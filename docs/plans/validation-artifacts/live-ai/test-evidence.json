@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-24",
+  "timezone": "Asia/Bangkok",
+  "releaseReady": false,
+  "checks": [
+    {"command": ".venv/Scripts/python.exe -m pytest -q", "cwd": "backend", "database": "disposable local moodprint_live_test", "passed": 175, "failed": 0, "skipped": 0, "status": "PASS"},
+    {"command": ".venv/Scripts/python.exe -m ruff check .", "cwd": "backend", "status": "PASS"},
+    {"command": ".venv/Scripts/python.exe -m mypy app", "cwd": "backend", "sourceFiles": 47, "status": "PASS"},
+    {"command": "npm test", "cwd": "frontend", "passed": 85, "status": "PASS"},
+    {"command": "npm run build", "cwd": "frontend", "includesTypecheck": true, "status": "PASS"},
+    {"command": "npm run test:e2e", "cwd": "frontend", "passed": 18, "status": "PASS"},
+    {"command": "npm run test:e2e:legacy", "cwd": "frontend", "passed": 15, "status": "PASS"},
+    {"command": "backend/.venv/Scripts/python.exe scripts/test_fullstack.py", "cwd": "repository root", "passed": 6, "status": "PASS"},
+    {"command": "backend/.venv/Scripts/python.exe scripts/run_live_browser.py", "cwd": "repository root", "execution": "Two initial journeys, then cancel/revoke and synthetic voice separately with --grep; four distinct tests passed across three runs", "passedDistinctTests": 4, "provider": "real OpenAI; synthetic Web Audio capture for voice test", "status": "PASS"},
+    {"command": ".venv/Scripts/python.exe -m alembic upgrade head", "cwd": "backend", "database": "disposable local moodprint_migration_v2_test", "head": "0006_ai_usage", "rlsEnabledOnNewTable": true, "status": "PASS"}
+  ],
+  "retainedFailuresAndLimitations": [
+    "Four scoped-tool regressions were introduced by checking provider availability inside shared tool policy validation; removed redundant check, retained actor checks at acceptance/provider boundary; focused10 and full175 passed.",
+    "Initial hosted live fixture used Supabase Auth subjects as internal actor IDs; resolver now reads existing authorized mappings, without granting eligibility or consent.",
+    "Initial live fixture used an incorrect memory-editor accessible label; corrected to the actual UI label.",
+    "Native Chromium getUserMedia returned NotSupportedError even in an isolated fake-device probe; native microphone remains BLOCKED. Web Audio MediaStream, actual AudioWorklet, authenticated WAV upload, real STT, preview/edit and explicit send passed.",
+    "API-fixture browser tests are not real backend/provider tests; separately listed hosted live and local full-stack evidence establishes those boundaries.",
+    "Legacy migration import formatting was corrected for full-directory Ruff; approved remote SQL artifacts were not changed.",
+    "No production load/SLA test, independent human quality calibration, provider privacy certification or remote accounting migration approval is claimed."
+  ]
+}

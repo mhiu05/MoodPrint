@@ -1,5 +1,5 @@
 {
-  "collectedAt": "2026-10-24T10:06:23.725604+00:00",
+  "collectedAt": "2026-10-24T13:59:31.551953+00:00",
   "scope": "Latest completed runner reports; per-section dates and latestImplementationSession distinguish current checks from retained earlier evidence. Collection does not rerun checks.",
   "releaseReady": false,
   "taskStatuses": {
@@ -9,14 +9,14 @@
   },
   "backend": {
     "status": "PASS",
-    "tests": 159,
+    "tests": 175,
     "errors": 0,
     "failures": 0,
     "skipped": 0,
-    "report": "docs/plans/validation-artifacts/backend-tests.xml",
-    "sha256": "300ef3758dda95cff9780f1da35a6456ef5ae2f867143855abbdd79cc46e7bdc",
-    "command": "uv run pytest -q --tb=short --junitxml=../docs/plans/validation-artifacts/backend-tests.xml",
-    "database": "local disposable PostgreSQL17.11"
+    "report": "docs/plans/validation-artifacts/live-ai/test-evidence.json",
+    "sha256": "d27e3393f393a885733bba6fc6f32b91f89fb581ef1147b13ac8d24490fda292",
+    "command": ".venv/Scripts/python.exe -m pytest -q",
+    "database": "disposable local moodprint_live_test"
   },
   "frontendUnits": {
     "status": "PASS",
@@ -29,22 +29,22 @@
   "browserApiFixtures": {
     "status": "PASS",
     "stats": {
-      "startTime": "2026-10-24T08:42:36.720Z",
-      "duration": 26097.832000000002,
-      "expected": 16,
+      "startTime": "2026-10-24T13:34:03.214Z",
+      "duration": 23350.926,
+      "expected": 18,
       "skipped": 0,
       "unexpected": 0,
       "flaky": 0
     },
     "runnerErrors": [],
     "report": "frontend/evidence/e2e-results.json",
-    "sha256": "0691f0569942cbe1c87f2662ee5f1749a92492135f6d09554a3a798a76f495c9"
+    "sha256": "68751b8b293ba284a9cadebe83e381cd321e8eb75bf47ff94507a612e0964024"
   },
   "browserPreservedLegacy": {
     "status": "PASS",
     "stats": {
-      "startTime": "2026-10-24T07:45:57.404Z",
-      "duration": 114697.237,
+      "startTime": "2026-10-24T13:31:07.145Z",
+      "duration": 112752.702,
       "expected": 15,
       "skipped": 0,
       "unexpected": 0,
@@ -52,13 +52,13 @@
     },
     "runnerErrors": [],
     "report": "frontend/evidence/legacy-results.json",
-    "sha256": "41ecc567db4048dfb12be6cd087dac27a77a50061d55e00f2b6d3fb75427f218"
+    "sha256": "bf893439dd14f7eb0bc4d22413fd27bfcdf598c81030b6c4e6f7bf393b9f64c4"
   },
   "fullstackRealHttpPostgresSdkFakeModel": {
     "status": "PASS",
     "stats": {
-      "startTime": "2026-10-24T09:57:11.658Z",
-      "duration": 70053.368,
+      "startTime": "2026-10-24T13:34:43.420Z",
+      "duration": 68678.41,
       "expected": 6,
       "skipped": 0,
       "unexpected": 0,
@@ -66,7 +66,7 @@
     },
     "runnerErrors": [],
     "report": "frontend/evidence/fullstack-results.json",
-    "sha256": "e2351479b30c965644261f027c900d32245cc97b77a4004253e4276694ab0c3c"
+    "sha256": "9701adb2588abc8189a0a5e3060c9590ebfa7470439cc7efc59999d557c5e08b"
   },
   "fullstackRealSupabaseAuthDatabaseSdkFakeModel": {
     "status": "PASS",
@@ -97,8 +97,8 @@
     "sha256": "6bec0e7bd008796d4f4f50a1d8ceb36e6b1eeffcc3cd80a3c2ba1d4d868864e3"
   },
   "otherCompletedLocalChecks": {
-    "ruff": "PASS: app tests evals and newly added operational scripts",
-    "mypy": "PASS:43 application source files",
+    "ruff": "PASS: all backend files, including migrations",
+    "mypy": "PASS:47 application source files",
     "frontendTypecheckBuild": "PASS",
     "contractRegenerationDrift": "none",
     "npmAudit": {
@@ -1023,110 +1023,360 @@
     },
     "remoteDdlOrDomainWrites": true,
     "remoteWriteScope": "Two explicitly approved security/initialization artifacts; domain writes only for the two authorized synthetic users; no reset or managed Auth SQL writes",
-    "liveOpenAiOrSttCalls": 0,
-    "cloudDeployment": false
+    "liveOpenAiOrSttCalls": 283,
+    "cloudDeployment": false,
+    "newRemoteAccountingDdlExecuted": false
   },
   "latestImplementationSession": {
-    "backendAddedTests": 24,
-    "backendTests": 159,
-    "frontendBuild": "PASS after per-turn Nhịp date selection UI; existing React/Vite layout preserved",
-    "frontendUnitsApiBrowserLegacyAndDocker": "85 units/16 API browser/15 legacy/6 local full-stack PASS; Docker image smoke retained from earlier run",
-    "fullstackInitialAttempt": "Earlier continuation had missing Playwright browser; retained separately. Current continuation reran all six journeys successfully",
-    "initialFullstackFailureReport": "docs/plans/validation-artifacts/fullstack-browser-missing.json",
-    "scopedMoodTool": "P04.02: owner-selected dates in existing Nhịp UI; valid recent90day range; permission consumed after accepted turn; exact retry scope; real Supabase SDK-tool test/notes exclusion/a11y at390/1440 PASS",
-    "cancellationRecovery": "16 recovery tests: original6 plus10 durable terminal/purge/late-tool/completion-CAS/first-writer/input-output-RAM-commit cases; focused27/full159 PASS; intermediate capacity regression retained",
-    "recoveryReport": "docs/plans/validation-artifacts/ai-recovery-tests.xml",
-    "recoveryRedGreen": {
-      "scope": "Real disposable PostgreSQL with SDK ScriptedModel; no hosted schema changes or live provider calls",
-      "newRegressionCases": 10,
-      "observedRedFailures": {
-        "lateFinalToolTerminalWriters": 7,
-        "completionCompareAndSetInterleaving": 1,
-        "ramReservationWhileCommitWaits": 1,
-        "inputOutputCommitInterleaving": 1
-      },
-      "intermediateFullSuite": {
-        "tests": 157,
-        "passed": 156,
-        "failed": 1,
-        "exitCode": 1,
-        "test": "test_capacity_failure_before_emission_is_not_recorded_as_completed",
-        "rootCause": "Preserving terminal metadata exposed a fallible RAM capacity check after the completion commit",
-        "correction": "Check and reserve RAM before the completion write; count reservations for concurrent admissions and release after emission/failure"
-      },
-      "focusedAfterCorrection": {
-        "tests": 27,
-        "passed": 27,
-        "exitCode": 0
-      },
-      "fullSuiteAfterCorrection": {
-        "tests": 159,
-        "passed": 159,
-        "failed": 0,
-        "skipped": 0,
-        "exitCode": 0
-      },
-      "financialAccountingImplemented": false,
-      "multiWorkerLeaseFencingImplemented": false,
-      "liveProviderCalls": 0
-    },
-    "accountingDesign": "docs/plans/validation-artifacts/durable-ai-accounting-design.md; schema gap/design only, no monetary accounting or new DDL",
-    "scopedCodeReview": {
-      "scope": "Runtime terminal/CAS/RAM changes, scoped mood UI and local Auth fixture helper",
-      "baseCommit": "ea72c418216e620bb4aff04730484c668d09758d",
-      "reviewedWorkingTree": true,
-      "reviewPasses": 2,
-      "readOnly": true,
-      "envReadByReviewer": false,
-      "reviewerNetworkOrDatabaseOperations": false,
-      "criticalFindings": 0,
-      "importantFindings": [
+    "scope": "Live AI, prompt/context/tool quality and local durable accounting",
+    "evidence": {
+      "date": "2026-10-24",
+      "timezone": "Asia/Bangkok",
+      "releaseReady": false,
+      "checks": [
         {
-          "issue": "Pending input commit was not included in global RAM capacity while output reserved space",
-          "resolution": "Input ExitStack reservation retained across transaction commit and message/progress publication; pending input and output are both counted",
-          "regression": "test_pending_input_commit_and_output_commit_share_the_global_capacity",
-          "observedRed": true,
-          "focused27Passed": true,
-          "reReview": "Addressed; no residual Important issue found"
+          "command": ".venv/Scripts/python.exe -m pytest -q",
+          "cwd": "backend",
+          "database": "disposable local moodprint_live_test",
+          "passed": 175,
+          "failed": 0,
+          "skipped": 0,
+          "status": "PASS"
+        },
+        {
+          "command": ".venv/Scripts/python.exe -m ruff check .",
+          "cwd": "backend",
+          "status": "PASS"
+        },
+        {
+          "command": ".venv/Scripts/python.exe -m mypy app",
+          "cwd": "backend",
+          "sourceFiles": 47,
+          "status": "PASS"
+        },
+        {
+          "command": "npm test",
+          "cwd": "frontend",
+          "passed": 85,
+          "status": "PASS"
+        },
+        {
+          "command": "npm run build",
+          "cwd": "frontend",
+          "includesTypecheck": true,
+          "status": "PASS"
+        },
+        {
+          "command": "npm run test:e2e",
+          "cwd": "frontend",
+          "passed": 18,
+          "status": "PASS"
+        },
+        {
+          "command": "npm run test:e2e:legacy",
+          "cwd": "frontend",
+          "passed": 15,
+          "status": "PASS"
+        },
+        {
+          "command": "backend/.venv/Scripts/python.exe scripts/test_fullstack.py",
+          "cwd": "repository root",
+          "passed": 6,
+          "status": "PASS"
+        },
+        {
+          "command": "backend/.venv/Scripts/python.exe scripts/run_live_browser.py",
+          "cwd": "repository root",
+          "execution": "Two initial journeys, then cancel/revoke and synthetic voice separately with --grep; four distinct tests passed across three runs",
+          "passedDistinctTests": 4,
+          "provider": "real OpenAI; synthetic Web Audio capture for voice test",
+          "status": "PASS"
+        },
+        {
+          "command": ".venv/Scripts/python.exe -m alembic upgrade head",
+          "cwd": "backend",
+          "database": "disposable local moodprint_migration_v2_test",
+          "head": "0006_ai_usage",
+          "rlsEnabledOnNewTable": true,
+          "status": "PASS"
         }
       ],
-      "openMinorFindings": [
+      "retainedFailuresAndLimitations": [
+        "Four scoped-tool regressions were introduced by checking provider availability inside shared tool policy validation; removed redundant check, retained actor checks at acceptance/provider boundary; focused10 and full175 passed.",
+        "Initial hosted live fixture used Supabase Auth subjects as internal actor IDs; resolver now reads existing authorized mappings, without granting eligibility or consent.",
+        "Initial live fixture used an incorrect memory-editor accessible label; corrected to the actual UI label.",
+        "Native Chromium getUserMedia returned NotSupportedError even in an isolated fake-device probe; native microphone remains BLOCKED. Web Audio MediaStream, actual AudioWorklet, authenticated WAV upload, real STT, preview/edit and explicit send passed.",
+        "API-fixture browser tests are not real backend/provider tests; separately listed hosted live and local full-stack evidence establishes those boundaries.",
+        "Legacy migration import formatting was corrected for full-directory Ruff; approved remote SQL artifacts were not changed.",
+        "No production load/SLA test, independent human quality calibration, provider privacy certification or remote accounting migration approval is claimed."
+      ]
+    },
+    "usage": {
+      "model": "gpt-6-luna",
+      "sdk": "0.24.0",
+      "openai_sdk": "3.37.0",
+      "parts": {
+        "baseline-results.json": {
+          "requests_started": 40,
+          "responses_received": 40,
+          "input_tokens": 21210,
+          "cached_input_tokens": 0,
+          "output_tokens": 5459,
+          "cases": 40,
+          "errors": 0,
+          "latency_p50_seconds": 2.4219999999999997,
+          "latency_p95_seconds": 3.747
+        },
+        "candidate-results.json": {
+          "requests_started": 80,
+          "responses_received": 80,
+          "input_tokens": 93948,
+          "cached_input_tokens": 0,
+          "output_tokens": 10770,
+          "cases": 80,
+          "errors": 0,
+          "latency_p50_seconds": 2.5385,
+          "latency_p95_seconds": 4.306
+        },
+        "heldout-results.json": {
+          "requests_started": 60,
+          "responses_received": 60,
+          "input_tokens": 57636,
+          "cached_input_tokens": 0,
+          "output_tokens": 11425,
+          "cases": 60,
+          "errors": 0,
+          "latency_p50_seconds": 3.0505,
+          "latency_p95_seconds": 6.664
+        },
+        "smoke-results.json": {
+          "requests_started": 1,
+          "responses_received": 1,
+          "input_tokens": 541,
+          "output_tokens": 99,
+          "cached_input_tokens": 0
+        },
+        "timeout-results.json": {
+          "requests_started": 1,
+          "responses_received": 0,
+          "unknown_usage_requests": 1,
+          "input_tokens": 0,
+          "cached_input_tokens": 0,
+          "output_tokens": 0
+        },
+        "development-judge.json": {
+          "requests_started": 48,
+          "responses_received": 48,
+          "input_tokens": 35096,
+          "cached_input_tokens": 0,
+          "output_tokens": 27489
+        },
+        "heldout-judge.json": {
+          "requests_started": 24,
+          "responses_received": 24,
+          "input_tokens": 18282,
+          "cached_input_tokens": 0,
+          "output_tokens": 17035
+        },
+        "authorized_http_browser": {
+          "requests_started": 25,
+          "responses_received": 23,
+          "input_tokens": 29226,
+          "cached_input_tokens": 3861,
+          "output_tokens": 2341,
+          "tools_observed": [
+            "propose_memory",
+            "propose_private_item",
+            "read_mood_summary"
+          ]
+        }
+      },
+      "text_totals": {
+        "requests_started": 279,
+        "responses_received": 276,
+        "input_tokens": 255939,
+        "cached_input_tokens": 3861,
+        "output_tokens": 74618,
+        "unknown_usage_attempts": 3,
+        "estimated_known_cost_usd": 0.06255541
+      },
+      "pricing_source": "https://developers.openai.com/api/docs/pricing",
+      "pricing_date": "2026-10-24",
+      "cost_limitations": "Estimate for known text receipts only; excludes unknown cancelled/timeout usage and audio charges. Not an invoice.",
+      "audio_requests": {
+        "tts": 2,
+        "stt": 2,
+        "tts_token_usage": "not returned by binary speech response",
+        "native_microphone": "BLOCKED: NotSupportedError",
+        "synthetic_stream_stt_ui": "PASS"
+      },
+      "inference_attempts_including_audio": 283
+    },
+    "comparison": {
+      "rubric_weights": {
+        "intent_usefulness": 0.25,
+        "natural_persona": 0.2,
+        "grounding": 0.2,
+        "context_memory": 0.15,
+        "tool_action": 0.15,
+        "clarity": 0.05
+      },
+      "selection_frozen_before_heldout": true,
+      "reviewers": "Same-model blinded judge plus primary agent manual review; no independent humans",
+      "bots": [
         {
-          "issue": "Foreground midnight leaves Nhịp range bounds on the prior session snapshot until refresh",
-          "impact": "New current day can remain unavailable and prior oldest day can look valid; backend rejects expired range",
-          "task": "P04.02",
-          "next": "Advance server-relative time or refresh session at local midnight"
+          "bot_id": "may",
+          "selected_variant": "baseline",
+          "before_version": "legacy-v1",
+          "after_version": "legacy-v1",
+          "development_and_calibration": {
+            "cases": 8,
+            "baseline": 4.775,
+            "A": 4.6937,
+            "B": 4.7625,
+            "selected": 4.775,
+            "delta": 0.0
+          },
+          "heldout": {
+            "cases": 4,
+            "baseline": 4.4125,
+            "A": 4.6125,
+            "B": 4.4375,
+            "selected": 4.4125,
+            "delta": 0.0
+          }
+        },
+        {
+          "bot_id": "guong",
+          "selected_variant": "A",
+          "before_version": "legacy-v1",
+          "after_version": "2026-10-24-a1",
+          "development_and_calibration": {
+            "cases": 8,
+            "baseline": 4.65,
+            "A": 4.8438,
+            "B": 4.6625,
+            "selected": 4.8438,
+            "delta": 0.1938
+          },
+          "heldout": {
+            "cases": 4,
+            "baseline": 4.6625,
+            "A": 4.7375,
+            "B": 4.6875,
+            "selected": 4.7375,
+            "delta": 0.075
+          }
+        },
+        {
+          "bot_id": "nhip",
+          "selected_variant": "B",
+          "before_version": "legacy-v1",
+          "after_version": "2026-10-24-b1",
+          "development_and_calibration": {
+            "cases": 8,
+            "baseline": 4.525,
+            "A": 4.6437,
+            "B": 4.825,
+            "selected": 4.825,
+            "delta": 0.3
+          },
+          "heldout": {
+            "cases": 4,
+            "baseline": 4.25,
+            "A": 4.25,
+            "B": 4.75,
+            "selected": 4.75,
+            "delta": 0.5
+          }
+        },
+        {
+          "bot_id": "rure",
+          "selected_variant": "B",
+          "before_version": "legacy-v1",
+          "after_version": "2026-10-24-b1",
+          "development_and_calibration": {
+            "cases": 8,
+            "baseline": 4.725,
+            "A": 4.7125,
+            "B": 4.7938,
+            "selected": 4.7938,
+            "delta": 0.0688
+          },
+          "heldout": {
+            "cases": 4,
+            "baseline": 4.4625,
+            "A": 4.5625,
+            "B": 4.45,
+            "selected": 4.45,
+            "delta": -0.0125
+          }
+        },
+        {
+          "bot_id": "caunoi",
+          "selected_variant": "A",
+          "before_version": "legacy-v1",
+          "after_version": "2026-10-24-a1",
+          "development_and_calibration": {
+            "cases": 8,
+            "baseline": 4.025,
+            "A": 4.8688,
+            "B": 4.7375,
+            "selected": 4.8688,
+            "delta": 0.8438
+          },
+          "heldout": {
+            "cases": 4,
+            "baseline": 3.975,
+            "A": 4.8375,
+            "B": 4.575,
+            "selected": 4.8375,
+            "delta": 0.8625
+          }
         }
       ],
-      "declinedBehaviors": [
-        "Durable monetary accounting and provider privacy/budget: explicitly incomplete roadmap work",
-        "Multiworker leases/startup orphan ownership: single-worker limitation remains",
-        "Public signup/SMTP/recovery: manual confirmed fixtures do not prove these",
-        "Live model/STT/semantic quality: disabled and unproven",
-        "Temporary provider-session cleanup following helper verification failure: optional hardening; not exercised by successful configured flow",
-        "Existing unrelated UI replay behavior: unchanged from reviewed base"
-      ],
-      "verdict": "Scoped correction acceptable with documented Minor UX gap; no merge or release action authorized"
+      "hard_gate_failures_in_judge": 0,
+      "heldout_overall": {
+        "baseline": 4.3525,
+        "selected": 4.6375,
+        "sample_size": 20
+      },
+      "judge_order_repeat_mean_abs_difference": 0.1688,
+      "structured_output_contracts": {
+        "passed": 180,
+        "failed": 0
+      }
     },
-    "migrationGuards": "Approved SHA256 mismatch, wrong host/project/owner/port/TLS rejection before remote connection",
-    "updatedEnvVariableNamesByAgent": [
-      "DATABASE_URL"
-    ],
-    "userRanHiddenPasswordEntry": true,
-    "userPasswordEntryVariableNames": [
-      "DATABASE_URL",
-      "DATABASE_MIGRATION_URL",
-      "DATABASE_POOL_MODE"
-    ],
-    "sqlApprovalRecorded": true,
-    "remoteSql": "docs/plans/validation-artifacts/supabase-initialization-auth-review.sql",
-    "approvedSqlSha256": "90008c3c928016e5f04f4bb6c8e9c8cb3bdc1312c9bbf5deb0f828874a09bab0",
-    "remoteSqlExecuted": true,
-    "runtimeSqlApprovedSha256": "d9124bfd7747a7a04841b8e471a38ddfe6de04d87f91b20ffd63e3f79a1f0461",
-    "hostedTestAccountsCreated": 2,
-    "hostedTestAccountsCreatedBy": "user via Dashboard; credentials verified/stored through local hidden-input helper; no Admin key",
-    "publicSignupEmailAndRecovery": "Not tested/implemented by the admin-confirmed fixture journey",
-    "liveAiSmokePlan": "docs/plans/validation-artifacts/live-ai-smoke-plan.md; account privacy/budget still unverified; no live call",
+    "accountingRehearsal": {
+      "status": "PASS",
+      "disposable_local_database": true,
+      "remote_ddl_executed": false,
+      "sql_sha256": "7119b1d9cd6e2d1a58df9c830dc950210b8c66499b3ee24d6d8e6bb402b78b22",
+      "head": "0006_ai_usage",
+      "rls_enabled": true,
+      "constraints": [
+        "ck_ai_usage_cost",
+        "ck_ai_usage_counts",
+        "ck_ai_usage_state",
+        "ck_ai_usage_tokens",
+        "fk_ai_usage_run_id_ai_runs",
+        "fk_ai_usage_user_id_users",
+        "pk_ai_usage"
+      ]
+    },
+    "currentLocalConfigObservation": {
+      "synthetic_actor_voice_consent_restored_off": true,
+      "diagnostic_session_logged_out": true,
+      "env_ai_enabled": true,
+      "env_stt_enabled": false,
+      "env_accounting_enabled": false,
+      "env_local_actor_allowlist_empty": true,
+      "owned_fastapi_process_stopped": true,
+      "owned_vite_process_stopped": true,
+      "owned_agent_browser_closed": true,
+      "owned_disposable_postgres_container_stopped": true
+    },
+    "envChangedByAgentThisSession": false,
     "releaseReady": false
   },
   "evalPreparation": {
@@ -1135,8 +1385,9 @@
     "calibration": 20,
     "development": 20,
     "heldout": 20,
-    "liveQualityRuns": 0,
-    "humanReviewCompleted": false
+    "liveQualityRuns": 180,
+    "humanReviewCompleted": false,
+    "judgeRequests": 72
   },
   "agePolicy": {
     "decidedByUserAt": "2026-10-24",
@@ -1145,7 +1396,125 @@
     "socialMinimum": 18,
     "eighteenthYearNeedsExplicitAdultConfirmation": true,
     "onboardingDoesNotEnableConsents": true,
-    "migrationHead": "0005_export_scope"
+    "migrationHead": "0005_export_scope",
+    "localMigrationHead": "0006_ai_usage"
   },
-  "limitations": "See implementation-status.md and release-readiness.md. Synthetic model tests are not live M1/evals. No production/SLA/privacy-provider certification."
+  "limitations": "Live synthetic evaluation completed; remote accounting SQL, provider privacy/deletion, independent human calibration and native microphone remain separate gates. See live-ai/final-evaluation.md.",
+  "historicalBeforeLiveAi": {
+    "backend": {
+      "status": "PASS",
+      "tests": 159,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "report": "docs/plans/validation-artifacts/backend-tests.xml",
+      "sha256": "300ef3758dda95cff9780f1da35a6456ef5ae2f867143855abbdd79cc46e7bdc",
+      "command": "uv run pytest -q --tb=short --junitxml=../docs/plans/validation-artifacts/backend-tests.xml",
+      "database": "local disposable PostgreSQL17.11"
+    },
+    "latestImplementationSession": {
+      "backendAddedTests": 24,
+      "backendTests": 159,
+      "frontendBuild": "PASS after per-turn Nhịp date selection UI; existing React/Vite layout preserved",
+      "frontendUnitsApiBrowserLegacyAndDocker": "85 units/16 API browser/15 legacy/6 local full-stack PASS; Docker image smoke retained from earlier run",
+      "fullstackInitialAttempt": "Earlier continuation had missing Playwright browser; retained separately. Current continuation reran all six journeys successfully",
+      "initialFullstackFailureReport": "docs/plans/validation-artifacts/fullstack-browser-missing.json",
+      "scopedMoodTool": "P04.02: owner-selected dates in existing Nhịp UI; valid recent90day range; permission consumed after accepted turn; exact retry scope; real Supabase SDK-tool test/notes exclusion/a11y at390/1440 PASS",
+      "cancellationRecovery": "16 recovery tests: original6 plus10 durable terminal/purge/late-tool/completion-CAS/first-writer/input-output-RAM-commit cases; focused27/full159 PASS; intermediate capacity regression retained",
+      "recoveryReport": "docs/plans/validation-artifacts/ai-recovery-tests.xml",
+      "recoveryRedGreen": {
+        "scope": "Real disposable PostgreSQL with SDK ScriptedModel; no hosted schema changes or live provider calls",
+        "newRegressionCases": 10,
+        "observedRedFailures": {
+          "lateFinalToolTerminalWriters": 7,
+          "completionCompareAndSetInterleaving": 1,
+          "ramReservationWhileCommitWaits": 1,
+          "inputOutputCommitInterleaving": 1
+        },
+        "intermediateFullSuite": {
+          "tests": 157,
+          "passed": 156,
+          "failed": 1,
+          "exitCode": 1,
+          "test": "test_capacity_failure_before_emission_is_not_recorded_as_completed",
+          "rootCause": "Preserving terminal metadata exposed a fallible RAM capacity check after the completion commit",
+          "correction": "Check and reserve RAM before the completion write; count reservations for concurrent admissions and release after emission/failure"
+        },
+        "focusedAfterCorrection": {
+          "tests": 27,
+          "passed": 27,
+          "exitCode": 0
+        },
+        "fullSuiteAfterCorrection": {
+          "tests": 159,
+          "passed": 159,
+          "failed": 0,
+          "skipped": 0,
+          "exitCode": 0
+        },
+        "financialAccountingImplemented": false,
+        "multiWorkerLeaseFencingImplemented": false,
+        "liveProviderCalls": 0
+      },
+      "accountingDesign": "docs/plans/validation-artifacts/durable-ai-accounting-design.md; schema gap/design only, no monetary accounting or new DDL",
+      "scopedCodeReview": {
+        "scope": "Runtime terminal/CAS/RAM changes, scoped mood UI and local Auth fixture helper",
+        "baseCommit": "ea72c418216e620bb4aff04730484c668d09758d",
+        "reviewedWorkingTree": true,
+        "reviewPasses": 2,
+        "readOnly": true,
+        "envReadByReviewer": false,
+        "reviewerNetworkOrDatabaseOperations": false,
+        "criticalFindings": 0,
+        "importantFindings": [
+          {
+            "issue": "Pending input commit was not included in global RAM capacity while output reserved space",
+            "resolution": "Input ExitStack reservation retained across transaction commit and message/progress publication; pending input and output are both counted",
+            "regression": "test_pending_input_commit_and_output_commit_share_the_global_capacity",
+            "observedRed": true,
+            "focused27Passed": true,
+            "reReview": "Addressed; no residual Important issue found"
+          }
+        ],
+        "openMinorFindings": [
+          {
+            "issue": "Foreground midnight leaves Nhịp range bounds on the prior session snapshot until refresh",
+            "impact": "New current day can remain unavailable and prior oldest day can look valid; backend rejects expired range",
+            "task": "P04.02",
+            "next": "Advance server-relative time or refresh session at local midnight"
+          }
+        ],
+        "declinedBehaviors": [
+          "Durable monetary accounting and provider privacy/budget: explicitly incomplete roadmap work",
+          "Multiworker leases/startup orphan ownership: single-worker limitation remains",
+          "Public signup/SMTP/recovery: manual confirmed fixtures do not prove these",
+          "Live model/STT/semantic quality: disabled and unproven",
+          "Temporary provider-session cleanup following helper verification failure: optional hardening; not exercised by successful configured flow",
+          "Existing unrelated UI replay behavior: unchanged from reviewed base"
+        ],
+        "verdict": "Scoped correction acceptable with documented Minor UX gap; no merge or release action authorized"
+      },
+      "migrationGuards": "Approved SHA256 mismatch, wrong host/project/owner/port/TLS rejection before remote connection",
+      "updatedEnvVariableNamesByAgent": [
+        "DATABASE_URL"
+      ],
+      "userRanHiddenPasswordEntry": true,
+      "userPasswordEntryVariableNames": [
+        "DATABASE_URL",
+        "DATABASE_MIGRATION_URL",
+        "DATABASE_POOL_MODE"
+      ],
+      "sqlApprovalRecorded": true,
+      "remoteSql": "docs/plans/validation-artifacts/supabase-initialization-auth-review.sql",
+      "approvedSqlSha256": "90008c3c928016e5f04f4bb6c8e9c8cb3bdc1312c9bbf5deb0f828874a09bab0",
+      "remoteSqlExecuted": true,
+      "runtimeSqlApprovedSha256": "d9124bfd7747a7a04841b8e471a38ddfe6de04d87f91b20ffd63e3f79a1f0461",
+      "hostedTestAccountsCreated": 2,
+      "hostedTestAccountsCreatedBy": "user via Dashboard; credentials verified/stored through local hidden-input helper; no Admin key",
+      "publicSignupEmailAndRecovery": "Not tested/implemented by the admin-confirmed fixture journey",
+      "liveAiSmokePlan": "docs/plans/validation-artifacts/live-ai-smoke-plan.md; account privacy/budget still unverified; no live call",
+      "releaseReady": false
+    },
+    "note": "Prior XML/session evidence retained; superseded current checks use live-ai/test-evidence.json"
+  }
 }

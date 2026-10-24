@@ -1,0 +1,25 @@
+{
+  "kind": "real-provider-smoke",
+  "synthetic": true,
+  "model": "gpt-6-luna",
+  "sdk": "0.24.0",
+  "openai_sdk": "3.37.0",
+  "started_at": "2026-10-24T10:33:08.837831+00:00",
+  "prompt_unchanged": true,
+  "store": false,
+  "tracing": false,
+  "retries": 0,
+  "status": "PASS",
+  "output": {
+    "text": "Ôi tuyệt quá! 🐱 Bạn khoe mình xem với, nếu muốn nhé!",
+    "cards": []
+  },
+  "usage": {
+    "requests_started": 1,
+    "responses_received": 1,
+    "input_tokens": 541,
+    "output_tokens": 99,
+    "cached_input_tokens": 0
+  },
+  "latency_seconds": 3.588
+}

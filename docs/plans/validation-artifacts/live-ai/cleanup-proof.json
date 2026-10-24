@@ -1,0 +1,12 @@
+{
+  "synthetic_actor_voice_consent_restored_off": true,
+  "diagnostic_session_logged_out": true,
+  "env_ai_enabled": true,
+  "env_stt_enabled": false,
+  "env_accounting_enabled": false,
+  "env_local_actor_allowlist_empty": true,
+  "owned_fastapi_process_stopped": true,
+  "owned_vite_process_stopped": true,
+  "owned_agent_browser_closed": true,
+  "owned_disposable_postgres_container_stopped": true
+}

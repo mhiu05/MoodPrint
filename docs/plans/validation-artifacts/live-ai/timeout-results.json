@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "synthetic": true,
+  "deadline_seconds": 0.3,
+  "usage": {
+    "requests_started": 1,
+    "responses_received": 0,
+    "unknown_usage_requests": 1,
+    "input_tokens": 0,
+    "cached_input_tokens": 0,
+    "output_tokens": 0
+  },
+  "no_output_published": true,
+  "note": "Started attempts with no receipt have unknown provider billing; not zero-cost calls"
+}

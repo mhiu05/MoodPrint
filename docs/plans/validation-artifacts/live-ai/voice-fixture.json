@@ -1,0 +1,7 @@
+{
+  "synthetic": true,
+  "model": "gpt-4o-mini-tts",
+  "requests": 1,
+  "duration_seconds": 5.199979166666667,
+  "purpose": "Fake microphone input for real browser STT; local temporary fixture only"
+}

@@ -1,0 +1,135 @@
+{
+  "rubric_weights": {
+    "intent_usefulness": 0.25,
+    "natural_persona": 0.2,
+    "grounding": 0.2,
+    "context_memory": 0.15,
+    "tool_action": 0.15,
+    "clarity": 0.05
+  },
+  "selection_frozen_before_heldout": true,
+  "reviewers": "Same-model blinded judge plus primary agent manual review; no independent humans",
+  "bots": [
+    {
+      "bot_id": "may",
+      "selected_variant": "baseline",
+      "before_version": "legacy-v1",
+      "after_version": "legacy-v1",
+      "development_and_calibration": {
+        "cases": 8,
+        "baseline": 4.775,
+        "A": 4.6937,
+        "B": 4.7625,
+        "selected": 4.775,
+        "delta": 0.0
+      },
+      "heldout": {
+        "cases": 4,
+        "baseline": 4.4125,
+        "A": 4.6125,
+        "B": 4.4375,
+        "selected": 4.4125,
+        "delta": 0.0
+      }
+    },
+    {
+      "bot_id": "guong",
+      "selected_variant": "A",
+      "before_version": "legacy-v1",
+      "after_version": "2026-10-24-a1",
+      "development_and_calibration": {
+        "cases": 8,
+        "baseline": 4.65,
+        "A": 4.8438,
+        "B": 4.6625,
+        "selected": 4.8438,
+        "delta": 0.1938
+      },
+      "heldout": {
+        "cases": 4,
+        "baseline": 4.6625,
+        "A": 4.7375,
+        "B": 4.6875,
+        "selected": 4.7375,
+        "delta": 0.075
+      }
+    },
+    {
+      "bot_id": "nhip",
+      "selected_variant": "B",
+      "before_version": "legacy-v1",
+      "after_version": "2026-10-24-b1",
+      "development_and_calibration": {
+        "cases": 8,
+        "baseline": 4.525,
+        "A": 4.6437,
+        "B": 4.825,
+        "selected": 4.825,
+        "delta": 0.3
+      },
+      "heldout": {
+        "cases": 4,
+        "baseline": 4.25,
+        "A": 4.25,
+        "B": 4.75,
+        "selected": 4.75,
+        "delta": 0.5
+      }
+    },
+    {
+      "bot_id": "rure",
+      "selected_variant": "B",
+      "before_version": "legacy-v1",
+      "after_version": "2026-10-24-b1",
+      "development_and_calibration": {
+        "cases": 8,
+        "baseline": 4.725,
+        "A": 4.7125,
+        "B": 4.7938,
+        "selected": 4.7938,
+        "delta": 0.0688
+      },
+      "heldout": {
+        "cases": 4,
+        "baseline": 4.4625,
+        "A": 4.5625,
+        "B": 4.45,
+        "selected": 4.45,
+        "delta": -0.0125
+      }
+    },
+    {
+      "bot_id": "caunoi",
+      "selected_variant": "A",
+      "before_version": "legacy-v1",
+      "after_version": "2026-10-24-a1",
+      "development_and_calibration": {
+        "cases": 8,
+        "baseline": 4.025,
+        "A": 4.8688,
+        "B": 4.7375,
+        "selected": 4.8688,
+        "delta": 0.8438
+      },
+      "heldout": {
+        "cases": 4,
+        "baseline": 3.975,
+        "A": 4.8375,
+        "B": 4.575,
+        "selected": 4.8375,
+        "delta": 0.8625
+      }
+    }
+  ],
+  "hard_gate_failures_in_judge": 0,
+  "heldout_overall": {
+    "baseline": 4.3525,
+    "selected": 4.6375,
+    "sample_size": 20
+  },
+  "judge_order_repeat_mean_abs_difference": 0.1688,
+  "structured_output_contracts": {
+    "passed": 180,
+    "failed": 0
+  }
+}

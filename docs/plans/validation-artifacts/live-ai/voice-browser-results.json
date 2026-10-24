@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "synthetic": true,
+  "physicalMicUsed": false,
+  "nativeGetUserMedia": "BLOCKED: NotSupportedError in Chromium runner",
+  "captureSource": "Web Audio MediaStream from synthetic Vietnamese WAV",
+  "sttModel": "gpt-transcribe",
+  "sttRequests": 1,
+  "previewEditExplicitSend": true,
+  "replies": [
+    {
+      "bot": "may",
+      "reply": "Mình đã tạo đề xuất “Bạn thích trò chuyện chậm rãi” để bạn duyệt riêng nhé."
+    },
+    {
+      "bot": "guong",
+      "reply": "Mình đã tạo bản nháp mô tả riêng để bạn xem và duyệt: “Bạn thích khám phá thế giới và những ý tưởng mới qua hội họa.” Bản nháp đang chờ bạn xác nhận trên giao diện, chưa được lưu."
+    }
+  ]
+}

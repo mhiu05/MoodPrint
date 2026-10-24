@@ -1,0 +1,23 @@
+{
+  "selected_at": "2026-10-24T12:42:11.290366+00:00",
+  "heldout_opened": false,
+  "selected_variants": {
+    "may": "baseline",
+    "guong": "A",
+    "nhip": "B",
+    "rure": "B",
+    "caunoi": "A"
+  },
+  "versions": {
+    "baseline": "legacy-v1",
+    "A": "2026-10-24-a1",
+    "B": "2026-10-24-b1"
+  },
+  "method": "Prespecified mixed selection from 40 calibration/development cases, blinded six-dimension rubric, reversed-order repeats, agent manual review; retain May baseline because no measured improvement. No independent human reviewers claimed.",
+  "remaining_weaknesses": [
+    "Small sample: 8 cases per bot on tuning splits",
+    "Same-model judge; order repeat mean absolute weighted difference 0.169",
+    "Static social guidance may omit prerequisites; backend still enforces them",
+    "No tools exposed in quality batch; integration is separate"
+  ]
+}

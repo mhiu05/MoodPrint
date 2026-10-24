@@ -1,0 +1,101 @@
+{
+  "model": "gpt-6-luna",
+  "sdk": "0.24.0",
+  "openai_sdk": "3.37.0",
+  "parts": {
+    "baseline-results.json": {
+      "requests_started": 40,
+      "responses_received": 40,
+      "input_tokens": 21210,
+      "cached_input_tokens": 0,
+      "output_tokens": 5459,
+      "cases": 40,
+      "errors": 0,
+      "latency_p50_seconds": 2.4219999999999997,
+      "latency_p95_seconds": 3.747
+    },
+    "candidate-results.json": {
+      "requests_started": 80,
+      "responses_received": 80,
+      "input_tokens": 93948,
+      "cached_input_tokens": 0,
+      "output_tokens": 10770,
+      "cases": 80,
+      "errors": 0,
+      "latency_p50_seconds": 2.5385,
+      "latency_p95_seconds": 4.306
+    },
+    "heldout-results.json": {
+      "requests_started": 60,
+      "responses_received": 60,
+      "input_tokens": 57636,
+      "cached_input_tokens": 0,
+      "output_tokens": 11425,
+      "cases": 60,
+      "errors": 0,
+      "latency_p50_seconds": 3.0505,
+      "latency_p95_seconds": 6.664
+    },
+    "smoke-results.json": {
+      "requests_started": 1,
+      "responses_received": 1,
+      "input_tokens": 541,
+      "output_tokens": 99,
+      "cached_input_tokens": 0
+    },
+    "timeout-results.json": {
+      "requests_started": 1,
+      "responses_received": 0,
+      "unknown_usage_requests": 1,
+      "input_tokens": 0,
+      "cached_input_tokens": 0,
+      "output_tokens": 0
+    },
+    "development-judge.json": {
+      "requests_started": 48,
+      "responses_received": 48,
+      "input_tokens": 35096,
+      "cached_input_tokens": 0,
+      "output_tokens": 27489
+    },
+    "heldout-judge.json": {
+      "requests_started": 24,
+      "responses_received": 24,
+      "input_tokens": 18282,
+      "cached_input_tokens": 0,
+      "output_tokens": 17035
+    },
+    "authorized_http_browser": {
+      "requests_started": 25,
+      "responses_received": 23,
+      "input_tokens": 29226,
+      "cached_input_tokens": 3861,
+      "output_tokens": 2341,
+      "tools_observed": [
+        "propose_memory",
+        "propose_private_item",
+        "read_mood_summary"
+      ]
+    }
+  },
+  "text_totals": {
+    "requests_started": 279,
+    "responses_received": 276,
+    "input_tokens": 255939,
+    "cached_input_tokens": 3861,
+    "output_tokens": 74618,
+    "unknown_usage_attempts": 3,
+    "estimated_known_cost_usd": 0.06255541
+  },
+  "pricing_source": "https://developers.openai.com/api/docs/pricing",
+  "pricing_date": "2026-10-24",
+  "cost_limitations": "Estimate for known text receipts only; excludes unknown cancelled/timeout usage and audio charges. Not an invoice.",
+  "audio_requests": {
+    "tts": 2,
+    "stt": 2,
+    "tts_token_usage": "not returned by binary speech response",
+    "native_microphone": "BLOCKED: NotSupportedError",
+    "synthetic_stream_stt_ui": "PASS"
+  },
+  "inference_attempts_including_audio": 283
+}

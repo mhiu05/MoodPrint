@@ -1,0 +1,6 @@
+{
+  "synthetic": true,
+  "cancelAndIdempotency": "PASS",
+  "consentRevoke": "PASS",
+  "status": "PASS"
+}
