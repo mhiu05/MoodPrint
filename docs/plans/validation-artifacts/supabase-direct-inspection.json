@@ -1,0 +1,63 @@
+{
+  "readOnly": true,
+  "ddlPerformed": false,
+  "modelCalls": 0,
+  "database_url": {
+    "status": "connection_failed",
+    "local": false,
+    "matchesAuthProject": true,
+    "tlsMode": "require",
+    "network": {
+      "dns": {
+        "status": "resolved",
+        "families": [
+          "IPv4"
+        ]
+      },
+      "tcp": {
+        "status": "connected",
+        "family": "IPv4"
+      },
+      "tls": {
+        "status": "verified",
+        "certificateVerified": true,
+        "protocol": "TLSv1.3"
+      }
+    },
+    "authentication": "failed",
+    "errorType": "OperationalError",
+    "sqlState": null,
+    "errorCategory": "authentication"
+  },
+  "database_migration_url": {
+    "status": "connection_failed",
+    "local": false,
+    "matchesAuthProject": true,
+    "tlsMode": "require",
+    "network": {
+      "dns": {
+        "status": "resolved",
+        "families": [
+          "IPv4"
+        ]
+      },
+      "tcp": {
+        "status": "connected",
+        "family": "IPv4"
+      },
+      "tls": {
+        "status": "verified",
+        "certificateVerified": true,
+        "protocol": "TLSv1.3"
+      }
+    },
+    "authentication": "failed",
+    "errorType": "OperationalError",
+    "sqlState": null,
+    "errorCategory": "authentication"
+  },
+  "authSettings": {
+    "httpStatus": 200,
+    "emailProviderEnabled": true
+  }
+}
