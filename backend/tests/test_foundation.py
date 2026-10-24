@@ -1,0 +1,104 @@
+import httpx
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_live_works_without_configuration_but_ready_and_auth_fail_closed():
+    from app.main import create_app
+
+    app = create_app()
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        assert (await client.get("/api/v1/health/live")).status_code == 200
+        assert (await client.get("/api/v1/health/ready")).status_code == 503
+        response = await client.get("/api/v1/session")
+        assert response.status_code == 401
+        assert response.json()["error"]["code"] == "AUTH_REQUIRED"
+        assert "requestId" in response.json()["error"]
+
+
+@pytest.mark.asyncio
+async def test_bots_are_public_but_do_not_expose_prompts_or_tools():
+    from app.main import create_app
+
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=create_app()), base_url="http://test"
+    ) as client:
+        response = await client.get("/api/v1/bots")
+        assert response.status_code == 200
+        bots = response.json()
+        assert {bot["botId"] for bot in bots} == {"may", "guong", "nhip", "rure", "caunoi"}
+        assert all("instructions" not in bot and "tools" not in bot for bot in bots)
+
+
+def test_database_configuration_rejects_sqlite_and_invalid_pool_modes():
+    from app.core.config import Settings
+
+    with pytest.raises(ValueError):
+        Settings(database_url="sqlite:///test.db")
+    with pytest.raises(ValueError):
+        Settings(database_pool_mode="unknown")
+
+
+def test_destructive_test_setup_rejects_remote_targets_before_any_connection():
+    from tests.database_target import require_local_test_database
+
+    for target in (
+        "postgresql+psycopg://fixture:fixture@remote.example/moodprint_test",
+        "postgresql+psycopg://fixture:fixture@localhost/moodprint",
+        "sqlite:///moodprint_test",
+    ):
+        with pytest.raises(RuntimeError):
+            require_local_test_database(target)
+    assert (
+        require_local_test_database("postgresql+psycopg://localhost/moodprint_test").database
+        == "moodprint_test"
+    )
+
+
+def test_openapi_contains_safe_typed_contracts_and_unified_errors():
+    from app.main import create_app
+
+    schema = create_app().openapi()
+    assert "SessionView" in schema["components"]["schemas"]
+    assert "ApiError" in schema["components"]["schemas"]
+    assert "password" not in schema["components"]["schemas"]["SessionView"]["properties"]
+
+
+async def test_unexpected_error_does_not_escape_the_boundary_or_log_private_input(caplog):
+    from app.core.config import Settings
+    from app.main import create_app
+
+    app = create_app(Settings(_env_file=None))
+
+    @app.get("/test-private-error")
+    async def private_error():
+        raise RuntimeError("PRIVATE-ERROR-CANARY")
+
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.get("/test-private-error")
+    assert response.status_code == 500
+    assert response.json()["error"]["code"] == "INTERNAL_ERROR"
+    assert "PRIVATE-ERROR-CANARY" not in response.text + caplog.text
+
+
+async def test_chunked_body_without_content_length_cannot_bypass_request_limit():
+    from app.core.config import Settings
+    from app.main import create_app
+
+    async def chunks():
+        yield b"a" * 40000
+        yield b"b" * 40000
+
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=create_app(Settings(_env_file=None))),
+        base_url="http://test",
+    ) as client:
+        response = await client.post(
+            "/api/v1/auth/login", content=chunks(), headers={"Content-Type": "application/json"}
+        )
+    assert response.status_code == 413
+    assert response.json()["error"]["code"] == "BODY_TOO_LARGE"

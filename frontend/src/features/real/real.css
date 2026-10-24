@@ -1,0 +1,102 @@
+.real-auth {
+  width: min(100% - 42px, 480px);
+  margin: clamp(36px, 10vh, 100px) auto;
+}
+.real-auth > h1 {
+  margin-top: 44px;
+}
+.real-auth form {
+  margin-top: 28px;
+}
+.real-section {
+  padding-top: 28px;
+  margin-top: 32px;
+  border-top: 1px solid var(--color-divider);
+}
+.real-item {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--color-divider);
+  overflow-wrap: anywhere;
+}
+.real-item p {
+  white-space: pre-wrap;
+}
+.real-item .actions {
+  margin-bottom: 0;
+}
+.real-choices {
+  border: 0;
+  padding: 0;
+  margin: 24px 0;
+}
+.real-choices legend {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.real-choices label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 18px 14px 0;
+}
+.real-choices input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--color-ink);
+}
+.real-field {
+  display: block;
+  margin: 18px 0;
+}
+.real-human-chat {
+  min-height: 65vh;
+}
+.real-voice {
+  margin: 0 12px 12px;
+}
+.real-voice p {
+  font-size: 14px;
+}
+.real-safety {
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-divider);
+}
+.real-safety summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 8px 0;
+}
+.real-safety[open] {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.real-age-form {
+  display: grid;
+  gap: 12px;
+  max-width: 36rem;
+}
+.real-age-form > input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid var(--color-divider);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: inherit;
+}
+.real-auth .real-age-confirmation,
+.real-age-confirmation {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 0;
+  cursor: pointer;
+}
+.real-age-form .real-age-confirmation input {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  margin-top: 3px;
+}
