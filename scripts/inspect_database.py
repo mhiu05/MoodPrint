@@ -193,7 +193,7 @@ async def inspect_target(secret, config):
                 )
                 entry["migrationReadiness"] = (
                     "head_matches"
-                    if entry["revisions"] == ["0005_export_scope"]
+                    if entry["revisions"] == ["0010_account_deletion"]
                     else "revision_drift"
                 )
                 if entry["migrationReadiness"] == "head_matches" and not bridge:

@@ -1,0 +1,225 @@
+{
+  "status": "PASS",
+  "synthetic_only": true,
+  "users": 20,
+  "workers": 1,
+  "server_start_attempts": 1,
+  "model_delay_ms": 200.0,
+  "wall_seconds": 12.29,
+  "non_ai_endpoint_latency": {
+    "count": 377,
+    "p50_ms": 236.89,
+    "p95_ms": 603.87,
+    "max_ms": 758.72
+  },
+  "ai_completion_latency": {
+    "count": 20,
+    "p50_ms": 2601.07,
+    "p95_ms": 3037.62,
+    "max_ms": 3145.04
+  },
+  "endpoints": {
+    "memory_approve": {
+      "count": 20,
+      "p50_ms": 602.55,
+      "p95_ms": 698.95,
+      "max_ms": 703.7
+    },
+    "memory_retry": {
+      "count": 20,
+      "p50_ms": 164.43,
+      "p95_ms": 301.87,
+      "max_ms": 346.78
+    },
+    "preferences": {
+      "count": 20,
+      "p50_ms": 266.67,
+      "p95_ms": 370.86,
+      "max_ms": 389.38
+    },
+    "memory_list": {
+      "count": 20,
+      "p50_ms": 170.08,
+      "p95_ms": 305.88,
+      "max_ms": 324.15
+    },
+    "history_list": {
+      "count": 20,
+      "p50_ms": 255.03,
+      "p95_ms": 308.17,
+      "max_ms": 351.15
+    },
+    "create": {
+      "count": 48,
+      "p50_ms": 217.41,
+      "p95_ms": 533.21,
+      "max_ms": 585.4
+    },
+    "foreign_history_denied": {
+      "count": 20,
+      "p50_ms": 263.92,
+      "p95_ms": 326.83,
+      "max_ms": 338.84
+    },
+    "message_admission": {
+      "count": 28,
+      "p50_ms": 329.97,
+      "p95_ms": 728.73,
+      "max_ms": 758.72
+    },
+    "message_retry": {
+      "count": 20,
+      "p50_ms": 422.7,
+      "p95_ms": 738.1,
+      "max_ms": 748.31
+    },
+    "sse_completion": {
+      "count": 24,
+      "p50_ms": 1659.09,
+      "p95_ms": 2301.34,
+      "max_ms": 2503.21
+    },
+    "history_resume": {
+      "count": 24,
+      "p50_ms": 140.56,
+      "p95_ms": 343.25,
+      "max_ms": 403.49
+    },
+    "history_export": {
+      "count": 24,
+      "p50_ms": 92.38,
+      "p95_ms": 224.8,
+      "max_ms": 271.22
+    },
+    "rename": {
+      "count": 20,
+      "p50_ms": 268.03,
+      "p95_ms": 451.04,
+      "max_ms": 495.65
+    },
+    "history_page": {
+      "count": 40,
+      "p50_ms": 201.55,
+      "p95_ms": 315.29,
+      "max_ms": 399.91
+    },
+    "foreign_delete_denied": {
+      "count": 20,
+      "p50_ms": 147.22,
+      "p95_ms": 248.92,
+      "max_ms": 267.04
+    },
+    "history_delete": {
+      "count": 20,
+      "p50_ms": 154.56,
+      "p95_ms": 219.07,
+      "max_ms": 250.04
+    },
+    "consent_revoke": {
+      "count": 8,
+      "p50_ms": 106.75,
+      "p95_ms": 245.93,
+      "max_ms": 245.93
+    },
+    "cancel": {
+      "count": 4,
+      "p50_ms": 432.06,
+      "p95_ms": 450.37,
+      "max_ms": 450.37
+    },
+    "sse_cancelled": {
+      "count": 4,
+      "p50_ms": 136.67,
+      "p95_ms": 157.85,
+      "max_ms": 157.85
+    },
+    "recovery_read": {
+      "count": 1,
+      "p50_ms": 29.46,
+      "p95_ms": 29.46,
+      "max_ms": 29.46
+    }
+  },
+  "http_statuses": {
+    "memory_approve:200": 20,
+    "memory_retry:200": 20,
+    "preferences:200": 20,
+    "memory_list:200": 20,
+    "history_list:200": 20,
+    "create:201": 48,
+    "foreign_history_denied:404": 20,
+    "message_admission:202": 28,
+    "message_retry:202": 20,
+    "sse_completion:200": 24,
+    "history_resume:200": 24,
+    "history_export:200": 24,
+    "rename:200": 20,
+    "history_page:200": 40,
+    "foreign_delete_denied:410": 20,
+    "history_delete:204": 20,
+    "consent_revoke:200": 8,
+    "cancel:200": 4,
+    "sse_cancelled:200": 4,
+    "post_revoke_send:403": 4,
+    "recovery_read:200": 1
+  },
+  "unexpected_errors": [],
+  "sampled_peaks": {
+    "admitted_runs": 20,
+    "postgres_connections": 12,
+    "embedding_backlog": 60,
+    "pool_checked_out_sum": 10,
+    "worker_rss_sum_bytes": 168243200
+  },
+  "worker_observations": [
+    {
+      "pid": 8340,
+      "rss_bytes": 168247296,
+      "pool_checked_out": 10,
+      "pool_size": 5,
+      "pool_overflow": 5,
+      "runtime_worker_id": "84265b4c-dcd6-4005-b555-0a16d6082279",
+      "held": [],
+      "sdk_calls": 28,
+      "sdk_active": 9,
+      "sdk_peak": 9,
+      "isolation_failures": 0,
+      "missing_memory": 0,
+      "query_calls": 24,
+      "document_calls": 29,
+      "cancelled_calls": 4
+    }
+  ],
+  "indexed_before_chat": 60,
+  "durable_messages": 52,
+  "run_status_counts": {
+    "completed": 24,
+    "cancelled": 4,
+    "interrupted": 1
+  },
+  "embedding_backlog_end": 0,
+  "cancellation": {
+    "cancelled_turns": 4,
+    "cross_worker_cancels": 0,
+    "provider_observed_cancel": 4
+  },
+  "consent_revocation": {
+    "users": 4,
+    "memory_free_turns": 4,
+    "post_revoke_sends_blocked": 4
+  },
+  "crash_recovery": "not run (use --crash-kill)",
+  "recovery": {
+    "status": "interrupted",
+    "latency_ms": 42.76,
+    "provider_replayed": false
+  },
+  "limits": {
+    "global_admission": 50,
+    "per_user": 2,
+    "timeout_seconds": 30,
+    "pool_per_worker": "5 + 5 overflow",
+    "sampling_seconds": 0.1
+  },
+  "scope": "Local synthetic providers; no external latency, billing, production traffic, crash-kill, or sustained soak measurement."
+}

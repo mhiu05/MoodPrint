@@ -12,10 +12,5 @@
   "sdkFakeModelProposalOwnerApprovalAndMemoryPersistence": "PASS",
   "publishMatchingAndConcurrentMutualRequestsSingleRoom": "PASS",
   "realtimeChatAndConcurrentMessageDeduplication": "PASS",
-  "backendProcessRestartRetainsSessionsPrivateMemoryAndChat": "PASS",
-  "ownerRevealGrantAndRevoke": "PASS",
-  "reportReceiptAndBlockImmediatelyDenyBothDirections": "PASS",
-  "providerSessionRevokeInvalidatesOpaqueAppSession": "PASS",
-  "logoutAndOldCookieReplayDenied": "PASS",
-  "status": "PASS_SCOPED_HOSTED_JOURNEY"
+  "backendProcessRestartRetainsSessionsPrivateMemoryAndChat": "PASS"
 }

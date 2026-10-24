@@ -1,0 +1,68 @@
+{
+  "model": "gpt-6-luna",
+  "syntheticOnly": true,
+  "providerForceIpv4": true,
+  "levels": [
+    {
+      "concurrentUsers": 5,
+      "completed": 5,
+      "failed": [],
+      "latencyMs": {
+        "p50": 3132,
+        "p95": 3147,
+        "max": 3613
+      },
+      "wallMs": 3766,
+      "usage": {
+        "requests": 5,
+        "responses": 5,
+        "toolCalls": 0,
+        "inputTokens": 2599,
+        "cachedInputTokens": 0,
+        "outputTokens": 578,
+        "estimatedUsd": 0.000549
+      }
+    },
+    {
+      "concurrentUsers": 10,
+      "completed": 10,
+      "failed": [],
+      "latencyMs": {
+        "p50": 3437,
+        "p95": 3830,
+        "max": 3944
+      },
+      "wallMs": 4171,
+      "usage": {
+        "requests": 10,
+        "responses": 10,
+        "toolCalls": 0,
+        "inputTokens": 5200,
+        "cachedInputTokens": 0,
+        "outputTokens": 1226,
+        "estimatedUsd": 0.001133
+      }
+    },
+    {
+      "concurrentUsers": 12,
+      "completed": 12,
+      "failed": [],
+      "latencyMs": {
+        "p50": 3969,
+        "p95": 4077,
+        "max": 4108
+      },
+      "wallMs": 4375,
+      "usage": {
+        "requests": 12,
+        "responses": 12,
+        "toolCalls": 0,
+        "inputTokens": 6240,
+        "cachedInputTokens": 0,
+        "outputTokens": 1612,
+        "estimatedUsd": 0.00143
+      }
+    }
+  ],
+  "status": "PASS"
+}

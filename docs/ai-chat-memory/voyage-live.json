@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "provider": "Voyage",
+  "model": "voyage-4-lite",
+  "dimensions": 1024,
+  "queryDimensions": 1024,
+  "syntheticOnly": true,
+  "requests": 2,
+  "cosineSimilarity": 0.4192,
+  "externalDbWrites": false
+}

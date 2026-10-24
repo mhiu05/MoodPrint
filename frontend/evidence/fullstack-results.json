@@ -94,6 +94,48 @@
   },
   "suites": [
     {
+      "title": "chat-history.spec.ts",
+      "file": "chat-history.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "real saved history requires opt-in, resumes by URL, and stays manageable after AI/history withdrawal",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11353,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T16:30:21.962Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "cd86e16f0c4ce20a906b-d2564d0448f07862e80a",
+          "file": "chat-history.spec.ts",
+          "line": 22,
+          "column": 1
+        }
+      ]
+    },
+    {
       "title": "journeys.spec.ts",
       "file": "journeys.spec.ts",
       "column": 0,
@@ -115,12 +157,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5437,
+                  "duration": 4633,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T13:34:44.669Z",
+                  "startTime": "2026-10-24T16:30:34.013Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -149,12 +191,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2187,
+                  "duration": 2363,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T13:34:50.312Z",
+                  "startTime": "2026-10-24T16:30:38.666Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -183,12 +225,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 22312,
+                  "duration": 23229,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T13:34:52.524Z",
+                  "startTime": "2026-10-24T16:30:41.046Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -217,12 +259,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 20622,
+                  "duration": 17862,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T13:35:14.871Z",
+                  "startTime": "2026-10-24T16:31:04.292Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -232,7 +274,7 @@
           ],
           "id": "aa09586c1d16412a1f00-a8e3311a9f68d155b6e8",
           "file": "journeys.spec.ts",
-          "line": 326,
+          "line": 328,
           "column": 1
         },
         {
@@ -251,12 +293,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 6447,
+                  "duration": 7612,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T13:35:35.515Z",
+                  "startTime": "2026-10-24T16:31:22.179Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -266,7 +308,7 @@
           ],
           "id": "aa09586c1d16412a1f00-f12721f530a3ca2c7878",
           "file": "journeys.spec.ts",
-          "line": 482,
+          "line": 484,
           "column": 1
         },
         {
@@ -285,18 +327,18 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 9723,
+                  "duration": 12721,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T13:35:41.992Z",
+                  "startTime": "2026-10-24T16:31:29.814Z",
                   "annotations": [],
                   "attachments": [
                     {
                       "name": "accessibility-results",
                       "contentType": "application/json",
-                      "body": "WwogIHsKICAgICJ3aWR0aCI6IDM5MCwKICAgICJyb3V0ZSI6ICIvYXNzaXN0YW50cyIsCiAgICAicGFzc2VzIjogMTcsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAzOTAsCiAgICAicm91dGUiOiAiL3Byb2ZpbGUiLAogICAgInBhc3NlcyI6IDIzLAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0sCiAgewogICAgIndpZHRoIjogMzkwLAogICAgInJvdXRlIjogIi9zZXR0aW5ncyIsCiAgICAicGFzc2VzIjogMjAsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAzOTAsCiAgICAicm91dGUiOiAiL3NlbGYiLAogICAgInBhc3NlcyI6IDI0LAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0sCiAgewogICAgIndpZHRoIjogMzkwLAogICAgInJvdXRlIjogIi9jb25uZWN0IiwKICAgICJwYXNzZXMiOiAxNywKICAgICJ2aW9sYXRpb25zIjogW10KICB9LAogIHsKICAgICJ3aWR0aCI6IDE0NDAsCiAgICAicm91dGUiOiAiL2Fzc2lzdGFudHMiLAogICAgInBhc3NlcyI6IDIwLAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0sCiAgewogICAgIndpZHRoIjogMTQ0MCwKICAgICJyb3V0ZSI6ICIvcHJvZmlsZSIsCiAgICAicGFzc2VzIjogMjMsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAxNDQwLAogICAgInJvdXRlIjogIi9zZXR0aW5ncyIsCiAgICAicGFzc2VzIjogMjAsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAxNDQwLAogICAgInJvdXRlIjogIi9zZWxmIiwKICAgICJwYXNzZXMiOiAyNCwKICAgICJ2aW9sYXRpb25zIjogW10KICB9LAogIHsKICAgICJ3aWR0aCI6IDE0NDAsCiAgICAicm91dGUiOiAiL2Nvbm5lY3QiLAogICAgInBhc3NlcyI6IDE3LAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0KXQ=="
+                      "body": "WwogIHsKICAgICJ3aWR0aCI6IDM5MCwKICAgICJyb3V0ZSI6ICIvYXNzaXN0YW50cyIsCiAgICAicGFzc2VzIjogMjAsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAzOTAsCiAgICAicm91dGUiOiAiL3Byb2ZpbGUiLAogICAgInBhc3NlcyI6IDIzLAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0sCiAgewogICAgIndpZHRoIjogMzkwLAogICAgInJvdXRlIjogIi9zZXR0aW5ncyIsCiAgICAicGFzc2VzIjogMjEsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAzOTAsCiAgICAicm91dGUiOiAiL3NlbGYiLAogICAgInBhc3NlcyI6IDI0LAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0sCiAgewogICAgIndpZHRoIjogMzkwLAogICAgInJvdXRlIjogIi9jb25uZWN0IiwKICAgICJwYXNzZXMiOiAxNywKICAgICJ2aW9sYXRpb25zIjogW10KICB9LAogIHsKICAgICJ3aWR0aCI6IDE0NDAsCiAgICAicm91dGUiOiAiL2Fzc2lzdGFudHMiLAogICAgInBhc3NlcyI6IDIyLAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0sCiAgewogICAgIndpZHRoIjogMTQ0MCwKICAgICJyb3V0ZSI6ICIvcHJvZmlsZSIsCiAgICAicGFzc2VzIjogMjMsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAxNDQwLAogICAgInJvdXRlIjogIi9zZXR0aW5ncyIsCiAgICAicGFzc2VzIjogMjEsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAxNDQwLAogICAgInJvdXRlIjogIi9zZWxmIiwKICAgICJwYXNzZXMiOiAyNCwKICAgICJ2aW9sYXRpb25zIjogW10KICB9LAogIHsKICAgICJ3aWR0aCI6IDE0NDAsCiAgICAicm91dGUiOiAiL2Nvbm5lY3QiLAogICAgInBhc3NlcyI6IDE3LAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0KXQ=="
                     }
                   ]
                 }
@@ -306,7 +348,7 @@
           ],
           "id": "aa09586c1d16412a1f00-d55a58f818b9e2d482a7",
           "file": "journeys.spec.ts",
-          "line": 529,
+          "line": 531,
           "column": 1
         }
       ]
@@ -314,9 +356,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-24T13:34:43.420Z",
-    "duration": 68678.41,
-    "expected": 6,
+    "startTime": "2026-10-24T16:30:21.022Z",
+    "duration": 82369.9,
+    "expected": 7,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

@@ -1,0 +1,69 @@
+{
+  "status": "PASS",
+  "provider": "Voyage",
+  "model": "voyage-4-lite",
+  "dimensions": 1024,
+  "syntheticOnly": true,
+  "counts": {
+    "memories": 20,
+    "queries": 20,
+    "negatives": 5
+  },
+  "semantic": {
+    "hit@1": 0.9,
+    "hit@3": 1.0,
+    "mrr": 0.942
+  },
+  "lexical": {
+    "hit@1": 0.25,
+    "hit@3": 0.75,
+    "mrr": 0.499
+  },
+  "cosine": {
+    "relevantMin": 0.335,
+    "relevantMedian": 0.494,
+    "bestIrrelevantMedian": 0.365,
+    "negativeBestMax": 0.333,
+    "negativeBestMedian": 0.255
+  },
+  "thresholds": {
+    "0.3": {
+      "queriesWithRelevantAboveThreshold": 20,
+      "negativesReturningAnything": 1
+    },
+    "0.35": {
+      "queriesWithRelevantAboveThreshold": 19,
+      "negativesReturningAnything": 0
+    },
+    "0.4": {
+      "queriesWithRelevantAboveThreshold": 18,
+      "negativesReturningAnything": 0
+    },
+    "0.45": {
+      "queriesWithRelevantAboveThreshold": 15,
+      "negativesReturningAnything": 0
+    },
+    "0.5": {
+      "queriesWithRelevantAboveThreshold": 9,
+      "negativesReturningAnything": 0
+    }
+  },
+  "failureModes": {
+    "invalidKey": "embedding_provider_unavailable",
+    "timeout": "embedding_provider_unavailable",
+    "note": "First run's timeout probe set the httpx client timeout, which the adapter overrides per request (probe defect, not product). Re-run separately with voyage_timeout_seconds=0.001 through the production adapter: embedding_provider_unavailable. One extra billed request is not counted in usage."
+  },
+  "usage": {
+    "requests": 45,
+    "tokens": 427,
+    "failures": 0,
+    "status": {
+      "200": 45
+    }
+  },
+  "latencyMs": {
+    "p50": 277,
+    "p95": 314,
+    "max": 592
+  }
+}

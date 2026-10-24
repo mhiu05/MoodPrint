@@ -45,13 +45,56 @@ def stop(process):
             process.wait(timeout=5)
 
 
+def reset_fixture_pair(values):
+    """Clear the previous run's block/cooldown between the two synthetic fixtures only.
+
+    Blocking sets a 30-day pair cooldown by design, so a rerun needs this. The scope is
+    exactly one canonical pair whose ids and Auth emails both match the local fixtures.
+    """
+    import psycopg
+
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from apply_supabase_review import validate_target
+
+    subjects = [values[f"MOODPRINT_TEST_{actor}_USER_ID"] for actor in ("A", "B")]
+    emails = {values[f"MOODPRINT_TEST_{actor}_EMAIL"].lower() for actor in ("A", "B")}
+    raw = validate_target(values["DATABASE_MIGRATION_URL"], values["SUPABASE_URL"])
+    with psycopg.connect(raw, connect_timeout=10) as db:
+        users = db.execute(
+            "select u.id::text, lower(a.email) from moodprint.users u "
+            "join auth.users a on a.id = u.auth_subject where u.auth_subject = any(%s::uuid[])",
+            (subjects,),
+        ).fetchall()
+        if len(users) != 2 or {email for _, email in users} != emails:
+            raise ValueError("Fixture identities do not match the configured test accounts")
+        ids = sorted(user_id for user_id, _ in users)
+        blocks = db.execute(
+            "delete from moodprint.blocks where blocker_id = any(%s::uuid[]) "
+            "and blocked_id = any(%s::uuid[])",
+            (ids, ids),
+        ).rowcount
+        pairs = db.execute(
+            "update moodprint.pairs set cooldown_until = null, version = version + 1 "
+            "where low_user_id = %s and high_user_id = %s and cooldown_until is not null",
+            tuple(ids),
+        ).rowcount
+    print(json.dumps({"fixturePairReset": True, "blocksRemoved": blocks, "pairsCleared": pairs}))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--suite", choices=("core", "scoped"), default="core")
+    parser.add_argument(
+        "--reset-fixture-pair",
+        action="store_true",
+        help="Clear block/cooldown left by a previous run between the two synthetic fixtures",
+    )
     args = parser.parse_args()
     values = dotenv_values(ROOT / "backend/.env")
     if values.get("SUPABASE_URL") != "https://roznanxbiyqybjpvtilq.supabase.co":
         raise ValueError("Unexpected hosted test project")
+    if args.reset_fixture_pair:
+        reset_fixture_pair(values)
     environment = {**os.environ, "AI_ENABLED": "false", "STT_ENABLED": "false",
                    "MOODPRINT_API_PROXY": "http://127.0.0.1:8003"}
     for actor in ("A", "B"):

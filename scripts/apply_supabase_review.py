@@ -7,6 +7,7 @@ import os
 import re
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 import psycopg
@@ -20,6 +21,46 @@ PROJECT = "roznanxbiyqybjpvtilq"
 REVIEW = ROOT / "docs/plans/validation-artifacts/supabase-initialization-review.sql"
 AUTH_REVIEW = ROOT / "docs/plans/validation-artifacts/supabase-initialization-auth-review.sql"
 POOLER_HOST = "aws-0-ap-northeast-1.pooler.supabase.com"  # Verified in Connect, not derived.
+
+
+@dataclass(frozen=True)
+class UpgradePlan:
+    """One reviewed, expand-only hosted step executed from Alembic's offline export."""
+
+    review: Path
+    report: Path
+    from_revision: str
+    to_revision: str
+    tables: tuple[str, ...] = ()
+    functions: tuple[str, ...] = ()
+
+
+UPGRADES = {
+    "0009": UpgradePlan(
+        ROOT / "docs/ai-chat-memory/supabase-0006-0009-review.sql",
+        ROOT / "docs/ai-chat-memory/supabase-0006-0009-execution.json",
+        "0005_export_scope",
+        "0009_memory_embeddings",
+        tables=(
+            "ai_usage",
+            "ai_preferences",
+            "ai_conversations",
+            "ai_messages",
+            "ai_turns",
+            "memory_proposals",
+            "memory_embedding_jobs",
+            "memory_embeddings",
+        ),
+    ),
+    "0010": UpgradePlan(
+        ROOT / "docs/ai-chat-memory/supabase-0010-review.sql",
+        ROOT / "docs/ai-chat-memory/supabase-0010-execution.json",
+        "0009_memory_embeddings",
+        "0010_account_deletion",
+        functions=("moodprint.delete_provider_identity(uuid)",),
+    ),
+}
+SUPABASE_API_ROLES = ("anon", "authenticated", "service_role")
 
 
 def validate_target(raw: str, supabase_url: str):
@@ -74,6 +115,211 @@ def review_artifact(approved_sha256: str | None, path: Path | None = None):
     if re.search(r"\b(?:DROP|TRUNCATE)\b", sql, re.I):
         raise ValueError("Destructive SQL is not supported by this initializer")
     return digest, sql
+
+
+def alembic_export(revisions: str) -> str:
+    env = {
+        **os.environ,
+        "DATABASE_URL": "postgresql+psycopg://localhost/moodprint_review_test",
+        "DATABASE_MIGRATION_URL": "",
+        "AI_ENABLED": "false",
+        "STT_ENABLED": "false",
+    }
+    return subprocess.run(
+        [sys.executable, "-m", "alembic", "upgrade", revisions, "--sql"],
+        cwd=ROOT / "backend",
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+
+
+def review_upgrade_artifact(plan: UpgradePlan, approved_sha256: str | None):
+    content = plan.review.read_bytes()
+    digest = hashlib.sha256(content).hexdigest()
+    if approved_sha256 and digest != approved_sha256.lower():
+        raise ValueError("Approved SQL hash does not match the current artifact")
+    sql = content.decode("utf-8").replace("\r\n", "\n")
+    expected = alembic_export(f"{plan.from_revision}:{plan.to_revision}")
+    if sql != expected.replace("\r\n", "\n"):
+        raise ValueError("Reviewed SQL no longer matches the Alembic offline export")
+    if re.search(r"\b(?:DROP|TRUNCATE)\b", sql, re.I):
+        raise ValueError("Destructive SQL is not supported by this upgrade")
+    # Executed verbatim: a driver-escaped percent sign would reach PL/pgSQL format().
+    if "%%" in sql:
+        raise ValueError("Offline SQL contains driver-escaped percent signs")
+    return digest, sql
+
+
+def existing_row_counts(db) -> dict[str, int]:
+    tables = [
+        row[0]
+        for row in db.execute(
+            """select c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace
+            where n.nspname='moodprint' and c.relkind='r' order by c.relname"""
+        ).fetchall()
+    ]
+    return {
+        table: db.execute(f'select count(*) from moodprint."{table}"').fetchone()[0]
+        for table in tables
+    }
+
+
+def upgrade_checks(db, plan: UpgradePlan, before_counts: dict[str, int]):
+    revision = db.execute("select array_agg(version_num) from moodprint.alembic_version").fetchone()[
+        0
+    ]
+    after_counts = existing_row_counts(db)
+    tables = list(plan.tables)
+    api_roles = [
+        role
+        for (role,) in db.execute(
+            "select rolname from pg_roles where rolname = any(%s)", (list(SUPABASE_API_ROLES),)
+        ).fetchall()
+    ]
+    checks = {
+        "revision": revision == [plan.to_revision],
+        "runtimeNoSchemaCreate": db.execute(
+            "select not has_schema_privilege('moodprint_app','moodprint','CREATE')"
+        ).fetchone()[0],
+        "existingRowsPreserved": all(
+            after_counts.get(table) == count for table, count in before_counts.items()
+        ),
+    }
+    details: dict = {
+        "existingTables": len(before_counts),
+        "existingRows": sum(before_counts.values()),
+        "supabaseApiRolesPresent": api_roles,
+    }
+    if tables:
+        rls = db.execute(
+            """select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
+            where n.nspname='moodprint' and c.relkind='r' and c.relrowsecurity
+              and c.relname = any(%s)""",
+            (tables,),
+        ).fetchone()[0]
+        policies = db.execute(
+            """select count(*) from pg_policies where schemaname='moodprint'
+            and tablename = any(%s) and policyname='backend_access'
+            and roles = '{moodprint_runtime}' and cmd='ALL'""",
+            (tables,),
+        ).fetchone()[0]
+        checks["newTablesWithRls"] = rls == len(tables)
+        checks["backendAccessPolicies"] = policies == len(tables)
+        checks["runtimeDmlOnNewTables"] = db.execute(
+            """select bool_and(has_table_privilege('moodprint_app', 'moodprint.'||t, p))
+            from unnest(%s::text[]) t
+            cross join (values ('SELECT'),('INSERT'),('UPDATE'),('DELETE')) v(p)""",
+            (tables,),
+        ).fetchone()[0]
+        checks["supabaseApiRolesDeniedTables"] = all(
+            not db.execute(
+                """select bool_or(has_table_privilege(%s, 'moodprint.'||t, p))
+                from unnest(%s::text[]) t
+                cross join (values ('SELECT'),('INSERT'),('UPDATE'),('DELETE')) v(p)""",
+                (role, tables),
+            ).fetchone()[0]
+            for role in api_roles
+        )
+    if "memory_embeddings" in tables:
+        vector = db.execute(
+            """select e.extversion from pg_extension e join pg_namespace n on n.oid=e.extnamespace
+            where e.extname='vector' and n.nspname='extensions'"""
+        ).fetchone()
+        checks["vectorInExtensions"] = vector is not None
+        checks["runtimeVectorTypeUsage"] = db.execute(
+            "select has_schema_privilege('moodprint_app','extensions','USAGE')"
+        ).fetchone()[0]
+        details["vectorVersion"] = vector[0] if vector else None
+    for function in plan.functions:
+        definition = db.execute(
+            """select p.prosecdef, pg_get_userbyid(p.proowner), array_to_string(p.proconfig, ',')
+            from pg_proc p where p.oid = %s::regprocedure""",
+            (function,),
+        ).fetchone()
+        checks[f"{function}:securityDefinerOwnedByPostgres"] = definition is not None and tuple(
+            definition
+        ) == (True, "postgres", 'search_path=""')
+        checks[f"{function}:runtimeExecute"] = db.execute(
+            "select has_function_privilege('moodprint_app', %s, 'EXECUTE')", (function,)
+        ).fetchone()[0]
+        checks[f"{function}:apiRolesDenied"] = all(
+            not db.execute(
+                "select has_function_privilege(%s, %s, 'EXECUTE')", (role, function)
+            ).fetchone()[0]
+            for role in api_roles
+        )
+    return {key: "PASS" if value else "FAIL" for key, value in checks.items()}, details
+
+
+def run_upgrade(
+    raw: str, plan: UpgradePlan, *, digest: str, sql: str, hosted: bool, write: bool
+):
+    """Pre-check read-only, execute the exact reviewed SQL once, then verify read-only."""
+    report = {
+        "target": "hosted:" + PROJECT if hosted else "local-rehearsal",
+        "sqlSha256": digest,
+        "fromRevision": plan.from_revision,
+        "toRevision": plan.to_revision,
+        "ddlSubmitted": False,
+        "transactionOutcome": "not_submitted",
+        "executionMechanism": "Alembic offline export executed verbatim in one transaction; no stamp/online upgrade/MCP migration",
+    }
+    try:
+        with psycopg.connect(raw, autocommit=True, connect_timeout=10, prepare_threshold=None) as db:
+            if hosted and not db.pgconn.ssl_in_use:
+                raise ValueError("TLS is required")
+            with db.transaction():
+                db.execute("SET TRANSACTION READ ONLY")
+                db.execute("SET LOCAL statement_timeout='15s'")
+                if hosted and db.execute("select current_database(),current_user").fetchone() != (
+                    "postgres",
+                    "postgres",
+                ):
+                    raise ValueError("Unexpected migration identity")
+                revision = db.execute(
+                    "select array_agg(version_num) from moodprint.alembic_version"
+                ).fetchone()[0]
+                if revision != [plan.from_revision]:
+                    raise ValueError(
+                        "Revision is not the plan's starting point; inspect, never replay DDL"
+                    )
+                clash = db.execute(
+                    """select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
+                    where n.nspname='moodprint' and c.relname = any(%s)""",
+                    (list(plan.tables),),
+                ).fetchone()[0]
+                if clash:
+                    raise ValueError("Upgrade tables already exist; inspect drift")
+                before_counts = existing_row_counts(db)
+                before_auth = auth_fingerprint(db)
+            report["ddlSubmitted"] = True
+            report["transactionOutcome"] = "unknown_until_verified"
+            db.execute(sql, prepare=False)
+            report["transactionOutcome"] = "committed"
+            with db.transaction():
+                db.execute("SET TRANSACTION READ ONLY")
+                db.execute("SET LOCAL statement_timeout='15s'")
+                checks, details = upgrade_checks(db, plan, before_counts)
+                checks["authStructureUnchanged"] = (
+                    "PASS" if before_auth == auth_fingerprint(db) else "FAIL"
+                )
+            report["checks"] = checks
+            report["details"] = details
+            report["status"] = "PASS" if all(v == "PASS" for v in checks.values()) else "FAIL"
+    except Exception as error:
+        # A lost connection after submission is never treated as permission to retry DDL.
+        report.update(
+            {"status": "FAILED_REQUIRES_READ_ONLY_INSPECTION", "errorType": type(error).__name__}
+        )
+        if isinstance(error, psycopg.Error) and error.diag.message_primary:
+            report["errorMessage"] = error.diag.message_primary[:200]
+        if not report["ddlSubmitted"]:
+            report["transactionOutcome"] = "not_submitted"
+    if write:
+        plan.report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    return report
 
 
 def auth_fingerprint(db):
@@ -161,9 +407,43 @@ def main():
         action="store_true",
         help="Use the separately approved private Auth-session function artifact",
     )
+    parser.add_argument(
+        "--upgrade",
+        choices=sorted(UPGRADES),
+        help="Use a reviewed incremental upgrade artifact instead of the initialization one",
+    )
+    parser.add_argument(
+        "--rehearse-url",
+        help="Execute the upgrade on a local *_test DB restored from a hosted snapshot",
+    )
     args = parser.parse_args()
     if args.apply and not args.approved_sha256:
         parser.error("Explicit SQL approval and its SHA256 are required before --apply")
+    if args.upgrade:
+        plan = UPGRADES[args.upgrade]
+        digest, sql = review_upgrade_artifact(plan, args.approved_sha256)
+        if args.rehearse_url:
+            target = make_url(args.rehearse_url)
+            if target.host not in ("localhost", "127.0.0.1", "::1") or not (
+                target.database or ""
+            ).endswith("_test"):
+                raise ValueError("Rehearsal requires a local disposable *_test database")
+            raw = target.set(drivername="postgresql").render_as_string(hide_password=False)
+            report = run_upgrade(raw, plan, digest=digest, sql=sql, hosted=False, write=False)
+        elif args.apply:
+            settings = Settings(_env_file=ROOT / "backend/.env")
+            if not settings.database_migration_url:
+                raise ValueError("DATABASE_MIGRATION_URL is required")
+            raw = validate_target(
+                settings.database_migration_url.get_secret_value(), settings.supabase_url
+            )
+            report = run_upgrade(raw, plan, digest=digest, sql=sql, hosted=True, write=True)
+        else:
+            report = {"mode": "review_only", "sha256": digest, "alembicExportMatches": True}
+        print(json.dumps(report, indent=2))
+        if report.get("status", "PASS") != "PASS":
+            sys.exit(1)
+        return
     digest, sql = review_artifact(args.approved_sha256, AUTH_REVIEW if args.auth_rls else REVIEW)
     if not args.apply:
         print(
