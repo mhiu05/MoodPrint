@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Literal
 from uuid import UUID, uuid4
@@ -35,6 +36,7 @@ class LiveRun:
     terminal_status: str | None = None
     finalization_task: asyncio.Task | None = None
     terminal_persisted: bool = False
+    reserved_output_bytes: int = 0
 
 
 @dataclass
@@ -63,6 +65,7 @@ class AiRuntime:
         self.slots = asyncio.Semaphore(5)
         self.finalizers: set[asyncio.Task] = set()
         self.pending_terminal: dict[UUID, LiveRun] = {}
+        self.pending_inputs: dict[UUID, tuple[UUID, int]] = {}
 
     @property
     def available(self) -> bool:
@@ -129,14 +132,18 @@ class AiRuntime:
             async with self.database.require()() as db, db.begin():
                 updated = await db.scalar(
                     update(AiRun)
-                    .where(AiRun.id == run.id, AiRun.status.in_(("running", "completed")))
+                    .where(AiRun.id == run.id, AiRun.status == "running")
                     .values(status=run.terminal_status, version=2)
                     .returning(AiRun.id)
                 )
                 if updated is None:
                     status = await db.scalar(select(AiRun.status).where(AiRun.id == run.id))
-                    if status != run.terminal_status:
+                    if status in ("completed", "failed", "cancelled", "interrupted"):
+                        # A terminal outcome is immutable across competing writers.
+                        run.terminal_status = status
+                    elif status is not None:
                         raise RuntimeError("Run terminal state requires recovery")
+                    # Purged metadata must not be recreated by an old finalizer.
             run.terminal_persisted = True
             self.pending_terminal.pop(run.id, None)
             return True
@@ -166,6 +173,14 @@ class AiRuntime:
                 for run in self.runs.values()
                 if run.conversation_id == identity
                 for event in run.events
+            ) + sum(
+                run.reserved_output_bytes
+                for run in self.runs.values()
+                if run.conversation_id == identity
+            ) + sum(
+                byte_count
+                for conversation, byte_count in self.pending_inputs.values()
+                if conversation == identity
             )
 
         sizes = {identity: size(identity) for identity in self.store.conversations}
@@ -178,6 +193,16 @@ class AiRuntime:
                 "CONTEXT_LIMIT",
                 "Không gian trò chuyện đã đạt giới hạn. Hãy kết thúc phiên trước khi mở thêm.",
             )
+
+    @contextmanager
+    def reserve_input(self, conversation_id: UUID, extra_bytes: int):
+        self.check_capacity(conversation_id, extra_bytes)
+        identity = uuid4()
+        self.pending_inputs[identity] = (conversation_id, extra_bytes)
+        try:
+            yield
+        finally:
+            self.pending_inputs.pop(identity, None)
 
     def event(
         self,
@@ -198,6 +223,15 @@ class AiRuntime:
             await assert_purpose(db, user, "AI")
             if user.data_version != run.data_version:
                 raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
+            status = await db.scalar(
+                select(AiRun.status).where(
+                    AiRun.id == run.id,
+                    AiRun.user_id == run.actor.user_id,
+                    AiRun.conversation_id == run.conversation_id,
+                )
+            )
+            if status != "running":
+                raise DomainError(410, "RUN_ENDED", "Lượt trò chuyện đã kết thúc.")
 
     def invalidate(self, user_id: str, session_id: str | None = None) -> None:
         for run in self.runs.values():
@@ -230,6 +264,7 @@ class AiRuntime:
         self.runs.clear()
         self.store.clear()
         self.proposals.clear()
+        self.pending_inputs.clear()
 
     def tools(self, run: LiveRun, bot_id: str):
         async def check_tool():
@@ -376,25 +411,26 @@ class AiRuntime:
                 output = AiOutput.model_validate(output)
                 await self.check(run)
                 # Include the replay copy and message copy, not only plain text.
-                self.check_capacity(
-                    run.conversation_id,
-                    len(output.model_dump_json().encode()) + len(output.text.encode()) + 1024,
-                )
+                output_bytes = len(output.model_dump_json().encode()) + len(output.text.encode()) + 1024
+                self.check_capacity(run.conversation_id, output_bytes)
                 async with self.database.require()() as db, db.begin():
                     user = await lock_actor(db, run.actor)
                     await assert_purpose(db, user, "AI")
                     if user.data_version != run.data_version:
                         raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
-                    await db.execute(
+                    # Keep space across the final DB await; terminal metadata
+                    # must not commit before a fallible capacity check.
+                    self.check_capacity(run.conversation_id, output_bytes)
+                    run.reserved_output_bytes = output_bytes
+                    completed = await db.scalar(
                         update(AiRun)
                         .where(AiRun.id == run.id, AiRun.status == "running")
                         .values(status="completed", version=2)
+                        .returning(AiRun.id)
                     )
+                    if completed is None:
+                        raise DomainError(410, "RUN_ENDED", "Lượt trò chuyện đã kết thúc.")
                 # Do not publish tokens/JSON before output and live policy have both passed.
-                self.check_capacity(
-                    run.conversation_id,
-                    len(output.model_dump_json().encode()) + len(output.text.encode()) + 1024,
-                )
                 c.messages.append(
                     AIMessage(id=uuid4(), actor="bot", text=output.text, cards=output.cards)
                 )
@@ -407,4 +443,5 @@ class AiRuntime:
         except Exception:
             status = "failed"
         finally:
+            run.reserved_output_bytes = 0
             await asyncio.shield(self.finalize(run, status))

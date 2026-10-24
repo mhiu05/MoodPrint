@@ -58,6 +58,7 @@ class ScriptedModel(Model):
         self.responses = responses
         self.calls: list[dict[str, Any]] = []
         self.started = asyncio.Event()
+        self.release = asyncio.Event()
         self.hold = hold
         self.cancelled = False
         self.stream_finished = False
@@ -82,7 +83,7 @@ class ScriptedModel(Model):
         self.started.set()
         try:
             if self.hold:
-                await asyncio.Event().wait()
+                await self.release.wait()
             outputs = self.responses[min(len(self.calls) - 1, len(self.responses) - 1)]
             yield ResponseTextDeltaEvent(
                 content_index=0,

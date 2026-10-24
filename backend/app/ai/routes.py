@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import ExitStack
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -102,62 +103,63 @@ async def send(
 ):
     idempotency_key(request)
     runtime = request.app.state.ai
-    async with transaction(request, actor) as (db, user):
-        await assert_purpose(db, user, "AI")
-        if not runtime.available:
-            raise DomainError(503, "AI_UNAVAILABLE", "Trò chuyện AI chưa sẵn sàng.", True)
-        c = runtime.store.get(conversation_id, str(actor.user_id), str(actor.session_id))
-        message_digest = digest(body.model_dump_json(include={"text", "mood_scope"}))
-        previous = c.client_runs.get(str(body.client_message_id))
-        if previous:
-            if previous[0] != message_digest:
-                raise DomainError(
-                    409, "IDEMPOTENCY_CONFLICT", "Mã tin nhắn đã được dùng với nội dung khác."
+    with ExitStack() as input_buffer:
+        async with transaction(request, actor) as (db, user):
+            await assert_purpose(db, user, "AI")
+            if not runtime.available:
+                raise DomainError(503, "AI_UNAVAILABLE", "Trò chuyện AI chưa sẵn sàng.", True)
+            c = runtime.store.get(conversation_id, str(actor.user_id), str(actor.session_id))
+            message_digest = digest(body.model_dump_json(include={"text", "mood_scope"}))
+            previous = c.client_runs.get(str(body.client_message_id))
+            if previous:
+                if previous[0] != message_digest:
+                    raise DomainError(
+                        409, "IDEMPOTENCY_CONFLICT", "Mã tin nhắn đã được dùng với nội dung khác."
+                    )
+                return AIRunAccepted(
+                    run_id=previous[1],
+                    conversation_id=c.id,
+                    version=c.version,
+                    events_url=f"/api/v1/ai/runs/{previous[1]}/events",
                 )
-            return AIRunAccepted(
-                run_id=previous[1],
-                conversation_id=c.id,
-                version=c.version,
-                events_url=f"/api/v1/ai/runs/{previous[1]}/events",
-            )
-        if body.mood_scope is not None:
-            from app.modules.mood.service import validate_scope
+            if body.mood_scope is not None:
+                from app.modules.mood.service import validate_scope
 
-            if c.bot_id != "nhip":
-                raise DomainError(422, "MOOD_SCOPE_BOT", "Khoảng ngày chỉ dùng với Nhịp.")
-            validate_scope(user, body.mood_scope)
-        if c.active_run_id:
-            raise DomainError(409, "RUN_IN_PROGRESS", "Đang có một lượt trò chuyện chưa kết thúc.")
-        if c.version != body.expected_conversation_version:
-            raise DomainError(
-                409, "STALE_VERSION", "Cuộc trò chuyện đã thay đổi. Vui lòng tải lại."
-            )
-        if (
-            sum(not r.terminal and r.actor.user_id == actor.user_id for r in runtime.runs.values())
-            >= 2
-        ):
-            raise DomainError(429, "RUN_LIMIT", "Bạn đang có quá nhiều lượt trò chuyện.")
-        run_id = uuid4()
-        db.add(AiRun(id=run_id, user_id=user.id, conversation_id=c.id, bot_id=c.bot_id))
-        await db.flush()
-        data_version = user.data_version
-        runtime.check_capacity(c.id, len(body.text.encode()) + 1024)
-    from app.ai.schemas import AIMessage
+                if c.bot_id != "nhip":
+                    raise DomainError(422, "MOOD_SCOPE_BOT", "Khoảng ngày chỉ dùng với Nhịp.")
+                validate_scope(user, body.mood_scope)
+            if c.active_run_id:
+                raise DomainError(409, "RUN_IN_PROGRESS", "Đang có một lượt trò chuyện chưa kết thúc.")
+            if c.version != body.expected_conversation_version:
+                raise DomainError(
+                    409, "STALE_VERSION", "Cuộc trò chuyện đã thay đổi. Vui lòng tải lại."
+                )
+            if (
+                sum(not r.terminal and r.actor.user_id == actor.user_id for r in runtime.runs.values())
+                >= 2
+            ):
+                raise DomainError(429, "RUN_LIMIT", "Bạn đang có quá nhiều lượt trò chuyện.")
+            run_id = uuid4()
+            db.add(AiRun(id=run_id, user_id=user.id, conversation_id=c.id, bot_id=c.bot_id))
+            await db.flush()
+            data_version = user.data_version
+            input_buffer.enter_context(runtime.reserve_input(c.id, len(body.text.encode()) + 1024))
+        from app.ai.schemas import AIMessage
 
-    c.messages.append(AIMessage(id=uuid4(), actor="self", text=body.text))
-    c.version += 1
-    c.active_run_id = run_id
-    c.client_runs[str(body.client_message_id)] = (message_digest, run_id)
-    run = LiveRun(actor, c.id, data_version, run_id, mood_scope=body.mood_scope)
-    runtime.runs[run_id] = run
-    runtime.event(run, "progress", {})
-    run.task = asyncio.create_task(runtime.drive(run))
-    return AIRunAccepted(
-        run_id=run_id,
-        conversation_id=c.id,
-        version=c.version,
-        events_url=f"/api/v1/ai/runs/{run_id}/events",
-    )
+        c.messages.append(AIMessage(id=uuid4(), actor="self", text=body.text))
+        c.version += 1
+        c.active_run_id = run_id
+        c.client_runs[str(body.client_message_id)] = (message_digest, run_id)
+        run = LiveRun(actor, c.id, data_version, run_id, mood_scope=body.mood_scope)
+        runtime.runs[run_id] = run
+        runtime.event(run, "progress", {})
+        run.task = asyncio.create_task(runtime.drive(run))
+        return AIRunAccepted(
+            run_id=run_id,
+            conversation_id=c.id,
+            version=c.version,
+            events_url=f"/api/v1/ai/runs/{run_id}/events",
+        )
 
 
 async def authorized_run(request: Request, actor: Actor, run_id: UUID):
