@@ -32,12 +32,15 @@ os.environ.update(
         "OPENAI_MODEL": "",
         "AI_ENABLED": "false",
         "STT_ENABLED": "false",
+        "VOYAGE_API_KEY": "",
+        "SEMANTIC_MEMORY_ENABLED": "false",
+        "VOYAGE_DIMENSIONS": "1024",
     }
 )
 
-import time
-
-from app.ai.runtime import Proposal
+from app.ai import embedding_models  # noqa: F401
+from app.ai import models as chat_models  # noqa: F401
+from app.ai.memory_models import MemoryProposal
 from app.core.config import Settings
 from app.infrastructure.database.models import AuthSession, Base, Consent, Memory, User
 from app.main import create_app
@@ -58,6 +61,8 @@ app.state.ai.model_override = make_test_model("Mây đã nhận được chia s�
 async def seed():
     async with app.state.database.engine.begin() as connection:
         await connection.execute(text("create schema if not exists moodprint"))
+        await connection.execute(text("create schema if not exists extensions"))
+        await connection.execute(text("create extension if not exists vector with schema extensions"))
         await connection.run_sync(Base.metadata.drop_all)
         await connection.run_sync(Base.metadata.create_all)
         await connection.execute(text("create schema if not exists auth"))
@@ -114,16 +119,7 @@ async def seed():
                         proposal_id=__import__("uuid").uuid4(),
                     )
                 )
-                proposal = Proposal(
-                    uid,
-                    auth_session.id,
-                    "guong",
-                    "Đề xuất tổng hợp để bạn chỉnh sửa",
-                    "memory",
-                    1,
-                    time.monotonic() + 900,
-                )
-                app.state.ai.proposals[proposal.id] = proposal
+                db.add(MemoryProposal(user_id=uid, bot_id="guong", text="Đề xuất tổng hợp để bạn chỉnh sửa", purpose="memory", data_version=1, ai_consent_version=1, mem_consent_version=1, expires_at=datetime.now(UTC) + timedelta(minutes=15)))
             await db.execute(
                 text("insert into auth.sessions(id,user_id) values (:id,:uid)"),
                 {"id": provider, "uid": uid},

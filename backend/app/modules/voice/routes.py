@@ -5,10 +5,16 @@ from pydantic import Field
 
 from app.contracts import DTO
 from app.core.errors import DomainError
+from app.core.limits import AttemptLimiter
 from app.core.security import Actor, assert_purpose, idempotency_key, require_actor, transaction
+from app.core.streams import StreamSlots
 from app.modules.voice.service import validate_audio
 
 router = APIRouter()
+VOICE_LIMITED = ("VOICE_RATE_LIMITED", "Bạn đã gửi nhiều bản ghi âm. Vui lòng đợi một chút.")
+VOICE_LIMIT = AttemptLimiter(6, 60, *VOICE_LIMITED)
+VOICE_DAILY_LIMIT = AttemptLimiter(60, 86_400, *VOICE_LIMITED)
+VOICE_SLOTS = StreamSlots(1)
 
 
 class TranscriptionPreview(DTO):
@@ -30,6 +36,10 @@ async def transcribe(request: Request, actor: Actor = Depends(require_actor)):
         raise DomainError(503, "VOICE_UNAVAILABLE", "Chuyển giọng nói thành chữ chưa sẵn sàng.")
     if request.headers.get("Content-Type", "").split(";")[0] != "audio/wav":
         raise DomainError(422, "INVALID_AUDIO", "Chỉ nhận định dạng WAV.")
+    # Each accepted upload is a paid provider call: bound rate and concurrency per user.
+    VOICE_LIMIT.check("minute:" + str(actor.user_id))
+    VOICE_DAILY_LIMIT.check("day:" + str(actor.user_id))
+    release = VOICE_SLOTS.reserve(actor.user_id)
     audio = bytearray()
     try:
         async for chunk in request.stream():
@@ -60,4 +70,5 @@ async def transcribe(request: Request, actor: Actor = Depends(require_actor)):
             True,
         ) from exc
     finally:
+        release()
         audio.clear()

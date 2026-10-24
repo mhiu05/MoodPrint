@@ -35,12 +35,6 @@ router = APIRouter()
 
 @router.post("/data-deletions", response_model=DataJobView, status_code=202)
 async def deletion(body: DeletionInput, request: Request, actor: Actor = Depends(require_actor)):
-    if body.scope == "account":
-        raise DomainError(
-            503,
-            "ACCOUNT_DELETION_UNAVAILABLE",
-            "Xóa toàn bộ tài khoản chưa sẵn sàng. Bạn vẫn có thể xóa dữ liệu riêng trong ứng dụng.",
-        )
     key, payload = idempotency_key(request), body.model_dump(mode="json")
     async with transaction(request, actor, eligible=False) as (db, user):
         old = await previous_receipt(db, user, "data:delete", key, payload)

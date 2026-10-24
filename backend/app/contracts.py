@@ -83,6 +83,24 @@ class LoginInput(DTO):
     password: str = Field(min_length=1, max_length=1024, repr=False)
 
 
+class EmailInput(DTO):
+    email: str = Field(min_length=3, max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+class SignupInput(EmailInput):
+    # Supabase hashes with bcrypt, which ignores bytes beyond 72.
+    password: str = Field(min_length=8, max_length=72, repr=False)
+
+
+class PasswordResetInput(DTO):
+    access_token: str = Field(min_length=20, max_length=4096, repr=False)
+    password: str = Field(min_length=8, max_length=72, repr=False)
+
+
+class AuthNotice(DTO):
+    status: Literal["sent", "updated", "confirmed"]
+
+
 class ConsentInput(VersionInput):
     enabled: bool
     policy_version: Literal["v1"]

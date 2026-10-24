@@ -6,7 +6,7 @@ from sqlalchemy import select, update
 
 from app.ai.runtime import LiveRun
 from app.core.security import Actor
-from app.infrastructure.database.models import AiRun, AuthSession, User
+from app.infrastructure.database.models import AiRun, AuthSession, Consent, User
 from tests.fakes import ScriptedModel, message_output
 
 pytestmark = pytest.mark.postgres
@@ -32,6 +32,8 @@ async def seed_unstarted_run(clients):
         user = await db.get(User, uid)
         session = await db.scalar(select(AuthSession).where(AuthSession.user_id == uid))
         c = runtime.store.create(str(uid), str(session.id), "may")
+        # Mirror POST /ai/conversations, which records the AI consent version.
+        c.ai_consent_version = (await db.get(Consent, (uid, "AI"))).version
         run = LiveRun(Actor(uid, session.id, user.auth_version), c.id, user.data_version, uuid4())
         db.add(AiRun(id=run.id, user_id=uid, conversation_id=c.id, bot_id="may"))
     runtime.runs[run.id] = run

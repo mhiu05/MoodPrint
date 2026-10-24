@@ -49,3 +49,18 @@ async def test_id_only_notification_rechecks_block_before_returning_another_even
     ended = await anext(generator)
     assert "access_revoked" in ended and "PRIVATE-MESSAGE" not in ended
     await generator.aclose()
+
+
+async def test_social_stream_slots_are_capped_per_user_and_released(clients):
+    from app.modules.social.notifications import STREAM_SLOTS
+
+    app, actors, _, room = await open_room(clients)
+    client, uid = actors[1]
+    STREAM_SLOTS.active[uid] = STREAM_SLOTS.limit
+    capped = await client.get(f"/api/v1/connections/{room}/events")
+    assert capped.status_code == 429 and capped.json()["error"]["code"] == "STREAM_LIMIT"
+    STREAM_SLOTS.active.pop(uid)
+    gone = await client.get(f"/api/v1/connections/{uuid4()}/events")
+    assert gone.status_code == 404
+    # A rejected request must not leak its reservation.
+    assert STREAM_SLOTS.active.get(uid, 0) == 0

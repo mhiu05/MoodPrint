@@ -50,7 +50,7 @@ DECLARE role_name text;
 BEGIN
   FOREACH role_name IN ARRAY ARRAY['anon','authenticated','service_role'] LOOP
     IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname=role_name) THEN
-      EXECUTE format('REVOKE ALL ON moodprint.ai_usage FROM %I', role_name);
+      EXECUTE 'REVOKE ALL ON moodprint.ai_usage FROM ' || quote_ident(role_name);
     END IF;
   END LOOP;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='moodprint_runtime') THEN

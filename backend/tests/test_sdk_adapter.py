@@ -265,6 +265,8 @@ async def test_real_responses_adapter_sends_store_false_and_never_retries_503(mo
         )
 
     def client_factory(**kwargs):
+        # Swap the production transport for the mock; retry policy stays the SDK's own.
+        kwargs.pop("http_client", None)
         return AsyncOpenAI(
             **kwargs, http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler))
         )
@@ -302,3 +304,22 @@ async def test_real_responses_adapter_sends_store_false_and_never_retries_503(mo
             bot_id="may", history=[], tools=[], context=None, on_progress=no_progress
         )
     assert len(requests) == 2
+
+
+async def test_provider_reuses_one_client_and_retries_only_connection_setup():
+    from app.ai.provider import SdkProvider
+    from app.core.config import Settings
+    from app.core.outbound import CONNECT_RETRIES, openai_http_client, provider_transport
+
+    provider = SdkProvider(Settings(_env_file=None, provider_force_ipv4=True))
+    first, second = provider._openai("sk-test"), provider._openai("sk-test")
+    assert first is second
+    await provider.aclose()
+    assert provider._client is None and first.is_closed()
+    # httpcore retries only ConnectError/ConnectTimeout, i.e. before a request is sent.
+    pool = provider_transport(True)._pool
+    assert pool._retries == CONNECT_RETRIES and pool._local_address == "0.0.0.0"
+    assert provider_transport(False)._pool._local_address is None
+    client = openai_http_client(False)
+    assert client.timeout.connect == 5.0 and client.timeout.read == 30
+    await client.aclose()

@@ -71,3 +71,30 @@ async def test_expired_human_messages_are_purged_without_deleting_current_messag
     await purge_expired(app)
     async with app.state.database.sessions() as db:
         assert (await db.scalars(select(HumanMessage.seq))).all() == [2]
+
+
+async def test_old_ai_run_metadata_is_purged_unless_a_saved_message_needs_it(clients):
+    from uuid import uuid4
+
+    from sqlalchemy import select
+
+    from app.ai.models import AiConversation, AiMessageRecord
+    from app.infrastructure.database.models import AiRun, now
+    from app.jobs.retention import purge_expired
+
+    app, actors = clients
+    uid = actors[0][1]
+    old = now() - timedelta(days=91)
+    async with app.state.database.sessions.begin() as db:
+        stale = AiRun(user_id=uid, conversation_id=uuid4(), bot_id="may", status="completed", created_at=old)
+        recent = AiRun(user_id=uid, conversation_id=uuid4(), bot_id="may", status="completed")
+        anchored = AiRun(user_id=uid, conversation_id=uuid4(), bot_id="may", status="completed", created_at=old)
+        db.add_all([stale, recent, anchored])
+        conversation = AiConversation(user_id=uid, bot_id="may", title="t", expires_at=now() + timedelta(days=1))
+        db.add(conversation)
+        await db.flush()
+        db.add(AiMessageRecord(conversation_id=conversation.id, sequence=1, actor="self", text="x", cards=[], run_id=anchored.id))
+    await purge_expired(app)
+    async with app.state.database.sessions() as db:
+        left = set((await db.scalars(select(AiRun.id).where(AiRun.user_id == uid))).all())
+    assert left == {recent.id, anchored.id}

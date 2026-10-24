@@ -20,8 +20,9 @@ class Database:
                 pass
             self.engine = create_async_engine(
                 url,
-                pool_size=5,
-                max_overflow=5,
+                pool_size=settings.database_pool_size,
+                max_overflow=settings.database_pool_overflow,
+                pool_timeout=settings.database_pool_timeout,
                 pool_pre_ping=True,
                 hide_parameters=True,
                 connect_args={"prepare_threshold": None, "connect_timeout": 5},

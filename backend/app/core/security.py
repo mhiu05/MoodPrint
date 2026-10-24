@@ -8,7 +8,7 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import Request
-from sqlalchemy import select, text
+from sqlalchemy import select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import DomainError
@@ -57,6 +57,15 @@ async def require_actor(request: Request) -> Actor:
         if user is None:
             raise DomainError(401, "AUTH_REQUIRED", "Vui lòng đăng nhập.")
         await verify_session(db, session, user)
+        idle = timedelta(hours=request.app.state.settings.session_idle_hours)
+        if session.expires_at < now() + idle - timedelta(minutes=15):
+            # Sliding idle expiry, written at most every 15 minutes per session.
+            await db.execute(
+                update(AuthSession)
+                .where(AuthSession.id == session.id, AuthSession.revoked.is_(False))
+                .values(expires_at=now() + idle)
+            )
+            await db.commit()
         if request.method not in ("GET", "HEAD", "OPTIONS"):
             csrf = request.headers.get("X-CSRF-Token", "")
             if not csrf or not hmac.compare_digest(digest(csrf), session.csrf_hash):
@@ -71,8 +80,12 @@ async def require_actor(request: Request) -> Actor:
         return Actor(user.id, session.id, user.auth_version)
 
 
-async def lock_actor(db: AsyncSession, actor: Actor, *, eligible: bool = True) -> User:
-    user = await db.scalar(select(User).where(User.id == actor.user_id).with_for_update())
+async def lock_actor(
+    db: AsyncSession, actor: Actor, *, eligible: bool = True, lock: bool = True
+) -> User:
+    # lock=False is for read-only polling that must not contend with writers.
+    statement = select(User).where(User.id == actor.user_id)
+    user = await db.scalar(statement.with_for_update() if lock else statement)
     session = await db.get(AuthSession, actor.session_id)
     if not user or not session or actor.auth_version != user.auth_version:
         raise DomainError(401, "SESSION_EXPIRED", "Phiên đã kết thúc.")
@@ -91,9 +104,11 @@ async def lock_actor(db: AsyncSession, actor: Actor, *, eligible: bool = True) -
 
 
 @asynccontextmanager
-async def transaction(request: Request, actor: Actor, *, eligible: bool = True):
+async def transaction(
+    request: Request, actor: Actor, *, eligible: bool = True, lock: bool = True
+):
     async with request.app.state.database.require()() as db, db.begin():
-        user = await lock_actor(db, actor, eligible=eligible)
+        user = await lock_actor(db, actor, eligible=eligible, lock=lock)
         yield db, user
 
 

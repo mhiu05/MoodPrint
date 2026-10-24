@@ -32,6 +32,7 @@ from app.ai.schemas import AiOutput
 from app.ai.usage import UsageEvent, UsageObserver
 from app.core.config import Settings
 from app.core.errors import DomainError
+from app.core.outbound import openai_http_client
 
 RUN_TIMEOUT_SECONDS = 30.0
 _DURABLE_CLAIM = re.compile(
@@ -113,7 +114,23 @@ class SdkProvider:
         self.settings = settings
         self.usage_observer = usage_observer
         self.prompt_variant = prompt_variant
+        # One keep-alive client per runtime: per-turn clients paid a TLS handshake each turn.
+        self._client: AsyncOpenAI | None = None
         set_tracing_disabled(True)
+
+    def _openai(self, key: str) -> AsyncOpenAI:
+        if self._client is None:
+            self._client = AsyncOpenAI(
+                api_key=key,
+                max_retries=0,
+                http_client=openai_http_client(self.settings.provider_force_ipv4),
+            )
+        return self._client
+
+    async def aclose(self) -> None:
+        if self._client is not None:
+            client, self._client = self._client, None
+            await client.close()
 
     async def run(
         self,
@@ -147,9 +164,10 @@ class SdkProvider:
                 or not self.settings.ai_available_for(getattr(getattr(context, "actor", None), "user_id", None))
             ):
                 raise DomainError(503, "AI_UNAVAILABLE", "Trò chuyện AI hiện chưa khả dụng.")
-            async with AsyncOpenAI(api_key=key, max_retries=0, timeout=30) as client:
-                model = OpenAIResponsesModel(model_override or self.settings.openai_model, client)
-                return await self._stream(bot_id, history, tools, context, on_progress, model, observe)
+            model = OpenAIResponsesModel(
+                model_override or self.settings.openai_model, self._openai(key)
+            )
+            return await self._stream(bot_id, history, tools, context, on_progress, model, observe)
 
     async def _stream(
         self,

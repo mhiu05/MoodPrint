@@ -1,0 +1,17 @@
+{
+  "description": "Synthetic Vietnamese retrieval contract fixture. Hand-assigned topic vectors test ranking and isolation, not Voyage model quality.",
+  "memories": [
+    {"id": "reading", "text": "Tôi đọc sách để thư giãn sau giờ học", "vector": [1, 0, 0, 0, 0]},
+    {"id": "swimming", "text": "Tôi thường bơi ở hồ gần nhà vào cuối tuần", "vector": [0, 1, 0, 0, 0]},
+    {"id": "support", "text": "Tôi hay tâm sự với chị gái khi buồn", "vector": [0, 0, 1, 0, 0]},
+    {"id": "focus", "text": "Tôi thích học ở thư viện yên tĩnh", "vector": [0, 0, 0, 1, 0]},
+    {"id": "food", "text": "Món ăn yêu thích của tôi là phở", "vector": [0, 0, 0, 0, 1]}
+  ],
+  "queries": [
+    {"text": "Hoạt động nào giúp tôi thư giãn với sách?", "expected": "reading", "vector": [1, 0, 0, 0, 0]},
+    {"text": "Cuối tuần tôi hay vận động ở đâu?", "expected": "swimming", "vector": [0, 1, 0, 0, 0]},
+    {"text": "Tôi thường tìm ai để được lắng nghe?", "expected": "support", "vector": [0, 0, 1, 0, 0]},
+    {"text": "Nơi nào giúp tôi tập trung học bài?", "expected": "focus", "vector": [0, 0, 0, 1, 0]},
+    {"text": "Tôi hay chọn ăn món gì?", "expected": "food", "vector": [0, 0, 0, 0, 1]}
+  ]
+}

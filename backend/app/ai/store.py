@@ -1,3 +1,4 @@
+import secrets
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -20,6 +21,14 @@ class Conversation:
     messages: list[AIMessage] = field(default_factory=list)
     active_run_id: UUID | None = None
     client_runs: dict[str, tuple[str, UUID]] = field(default_factory=dict)
+    persistent: bool = False
+    # RAM-only salt: the content-free turn digest of a temporary chat must not be a
+    # plain hash that a database reader could match against guessed messages.
+    salt: str = field(default_factory=lambda: secrets.token_hex(16))
+    # AI consent version and wall time at creation, so any worker can tell that a
+    # withdrawal or private-data deletion handled elsewhere invalidated this copy.
+    ai_consent_version: int = 0
+    created_wall: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 class ConversationStore:

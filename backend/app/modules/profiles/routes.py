@@ -90,9 +90,14 @@ async def modify_item(
             user.data_version += 1
             user.profile_version += 1
             await invalidate_user_social(db, user.id)
+            from app.ai.embeddings import invalidate_memory
+
+            affected = (await db.scalars(select(Memory.id).where(Memory.source_id == item_id, Memory.user_id == user.id))).all()
+            for memory_id in affected:
+                await invalidate_memory(db, memory_id)
             await db.execute(
                 update(Memory)
-                .where(Memory.source_id == item_id)
+                .where(Memory.source_id == item_id, Memory.user_id == user.id)
                 .values(status="deleted", text="", version=Memory.version + 1)
             )
             receipt = {

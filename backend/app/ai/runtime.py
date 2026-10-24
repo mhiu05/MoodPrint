@@ -12,13 +12,16 @@ from sqlalchemy import select, update
 
 from app.ai.accounting import UsageSnapshot, persist_snapshot, reserve_accounting
 from app.ai.context import build_history
+from app.ai.models import AiMessageRecord
+from app.ai.persistence import current_turn, owned_conversation
 from app.ai.prompts import SELECTED_VARIANTS, prompt_version
 from app.ai.schemas import AIEvent, AIMessage, AiOutput, MoodReadScope
 from app.ai.store import ConversationStore
 from app.ai.usage import UsageEvent
 from app.core.errors import DomainError
 from app.core.security import Actor, assert_purpose, lock_actor
-from app.infrastructure.database.models import AiRun, AiUsage, Consent, Memory, now
+from app.core.streams import StreamSlots
+from app.infrastructure.database.models import AiRun, AiUsage, Consent, now
 
 
 @dataclass
@@ -42,6 +45,8 @@ class LiveRun:
     terminal_persisted: bool = False
     reserved_output_bytes: int = 0
     usage: UsageSnapshot = field(default_factory=UsageSnapshot)
+    persistent: bool = False
+    first_progress_ms: int | None = None
 
 
 @dataclass
@@ -68,10 +73,12 @@ class AiRuntime:
         self.runs: dict[UUID, LiveRun] = {}
         self.proposals: dict[UUID, Proposal] = {}
         self.model_override = None
-        self.slots = asyncio.Semaphore(5)
+        self.slots = asyncio.Semaphore(settings.ai_global_concurrency)
         self.finalizers: set[asyncio.Task] = set()
         self.pending_terminal: dict[UUID, LiveRun] = {}
         self.pending_inputs: dict[UUID, tuple[UUID, int]] = {}
+        # Per-user SSE slots, reserved before any await (see app.core.streams).
+        self.streams = StreamSlots(6)
 
     @property
     def available(self) -> bool:
@@ -235,7 +242,7 @@ class AiRuntime:
         run.wake.set()
 
     async def check(self, run: LiveRun) -> None:
-        if run.terminal or time.monotonic() - run.started > 30:
+        if run.terminal or time.monotonic() - run.started > self.settings.ai_timeout_seconds:
             raise DomainError(410, "RUN_ENDED", "Lượt trò chuyện đã kết thúc.")
         self.store.get(run.conversation_id, str(run.actor.user_id), str(run.actor.session_id))
         async with self.database.require()() as db, db.begin():
@@ -243,6 +250,9 @@ class AiRuntime:
             await assert_purpose(db, user, "AI")
             if user.data_version != run.data_version:
                 raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
+            await current_turn(db, run, self.worker_id)
+            if run.persistent and not await owned_conversation(db, run.conversation_id, user.id):
+                raise DomainError(410, "CONVERSATION_EXPIRED", "Cuộc trò chuyện đã kết thúc.")
             status = await db.scalar(
                 select(AiRun.status).where(
                     AiRun.id == run.id,
@@ -301,6 +311,9 @@ class AiRuntime:
         self.store.clear()
         self.proposals.clear()
         self.pending_inputs.clear()
+        closer = getattr(self.provider, "aclose", None)
+        if closer:
+            await closer()
 
     def tools(self, run: LiveRun, bot_id: str, *, memory_enabled: bool = True):
         async def check_tool():
@@ -318,16 +331,9 @@ class AiRuntime:
                 await assert_purpose(db, user, "MEM" if purpose == "memory" else "AI")
                 if user.data_version != run.data_version:
                     raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
-                p = Proposal(
-                    run.actor.user_id,
-                    run.actor.session_id,
-                    bot_id,
-                    text.strip(),
-                    purpose,
-                    run.data_version,
-                    time.monotonic() + 900,
-                )
-                self.proposals[p.id] = p
+                from app.ai.memory import create_proposal
+
+                p = await create_proposal(db, run.actor, bot_id, text.strip(), purpose, run.data_version)
             return {
                 "status": "proposed",
                 "proposalId": str(p.id),
@@ -390,8 +396,9 @@ class AiRuntime:
     async def drive(self, run: LiveRun) -> None:
         run.drive_started = True
         status = "failed"
+        monitor = None
         try:
-            async with asyncio.timeout(30), self.slots:
+            async with asyncio.timeout(self.settings.ai_timeout_seconds), self.slots:
                 await self.check(run)
                 c = self.store.get(
                     run.conversation_id, str(run.actor.user_id), str(run.actor.session_id)
@@ -404,24 +411,28 @@ class AiRuntime:
                             await db.scalars(select(Consent).where(Consent.user_id == user.id))
                         ).all()
                     }
-                    memories = []
-                    if c.bot_id != "caunoi" and consents["AI"].enabled and consents["MEM"].enabled:
-                        memories = (
-                            await db.scalars(
-                                select(Memory)
-                                .where(
-                                    Memory.user_id == user.id,
-                                    Memory.bot_id == c.bot_id,
-                                    Memory.status == "active",
-                                )
-                                .order_by(Memory.id)
-                                .limit(10)
-                            )
-                        ).all()
-                    history = build_history(c.messages, [m.text for m in memories])
+                from app.ai.embeddings import retrieve_memories
+
+                memories = await retrieve_memories(self.database, self.settings, run.actor, c.bot_id, c.messages[-1].text if c.messages else "", run.data_version)
+                await self.check(run)
+                history = build_history(c.messages, memories)
+
+                async def monitor_policy():
+                    while True:
+                        await asyncio.sleep(0.5)
+                        try:
+                            await self.check(run)
+                        except Exception:
+                            if run.task and not run.task.done():
+                                run.task.cancel()
+                            return
+
+                monitor = asyncio.create_task(monitor_policy())
 
                 async def progress():
                     await self.check(run)
+                    if run.first_progress_ms is None:
+                        run.first_progress_ms = round((time.monotonic() - run.started) * 1000)
                     self.event(run, "progress", {})
 
                 async def observe(event):
@@ -446,6 +457,11 @@ class AiRuntime:
                     await assert_purpose(db, user, "AI")
                     if user.data_version != run.data_version:
                         raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
+                    await current_turn(db, run, self.worker_id)
+                    if run.persistent:
+                        durable = await owned_conversation(db, c.id, user.id, lock=True)
+                        if durable is None:
+                            raise DomainError(410, "CONVERSATION_EXPIRED", "Cuộc trò chuyện đã kết thúc.")
                     # Keep space across the final DB await; terminal metadata
                     # must not commit before a fallible capacity check.
                     self.check_capacity(run.conversation_id, output_bytes)
@@ -462,9 +478,13 @@ class AiRuntime:
                     )
                     if completed is None:
                         raise DomainError(410, "RUN_ENDED", "Lượt trò chuyện đã kết thúc.")
+                    if run.persistent:
+                        durable.version += 1
+                        durable.updated_at = now()
+                        db.add(AiMessageRecord(conversation_id=c.id, sequence=durable.version, actor="bot", text=output.text, cards=[card.model_dump(mode="json", by_alias=True) for card in output.cards], run_id=run.id))
                 # Do not publish tokens/JSON before output and live policy have both passed.
                 c.messages.append(
-                    AIMessage(id=uuid4(), actor="bot", text=output.text, cards=output.cards)
+                    AIMessage(id=uuid4(), actor="bot", text=output.text, cards=output.cards, created_at=now(), run_id=run.id, status="completed")
                 )
                 c.version += 1
                 self.event(run, "final", output.model_dump(mode="json", by_alias=True))
@@ -472,8 +492,17 @@ class AiRuntime:
                 status = "completed"
         except asyncio.CancelledError:
             status = "cancelled"
-        except Exception:
+        except Exception as error:
             status = "failed"
+            logging.getLogger("moodprint").warning("ai_execution_error run_id=%s error_type=%s code=%s", run.id, type(error).__name__, error.code if isinstance(error, DomainError) else "AI_RUN_FAILED")
         finally:
+            if monitor:
+                monitor.cancel()
+                await asyncio.gather(monitor, return_exceptions=True)
             run.reserved_output_bytes = 0
             await asyncio.shield(self.finalize(run, status))
+            # Saved threads reload from PostgreSQL; keep no idle RAM copy per thread.
+            copy = self.store.conversations.get(run.conversation_id)
+            if copy is not None and copy.persistent and copy.active_run_id is None:
+                del self.store.conversations[run.conversation_id]
+            logging.getLogger("moodprint").info("ai_execution_end run_id=%s status=%s duration_ms=%s first_progress_ms=%s input_tokens=%s output_tokens=%s model_requests=%s active_local=%s", run.id, run.terminal_status, round((time.monotonic()-run.started)*1000), run.first_progress_ms, run.usage.input_tokens, run.usage.output_tokens, run.usage.requests_started, sum(not r.terminal for r in self.runs.values()))

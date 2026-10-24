@@ -4,12 +4,19 @@ from datetime import timedelta
 
 from sqlalchemy import Date, cast, delete, func, select
 
-from app.infrastructure.database.models import AiUsage, Idempotency, Mood, User, now
+from app.infrastructure.database.models import AiRun, AiUsage, Idempotency, Mood, User, now
 from app.modules.social.models import HumanMessage
 
 
 async def purge_expired(app):
     async with app.state.database.require()() as db, db.begin():
+        from app.ai.memory import expire_proposals, purge_proposals
+        from app.ai.persistence import purge_chat, recover_turns
+
+        await recover_turns(db)
+        await purge_chat(db)
+        await expire_proposals(db)
+        await purge_proposals(db)
         # Retention continues after the accounting kill switch is turned off;
         # old hosted schemas can still run before the expand migration is approved.
         if await db.scalar(select(func.to_regclass("moodprint.ai_usage"))):
@@ -18,6 +25,25 @@ async def purge_expired(app):
             ).limit(1000).with_for_update(skip_locked=True))).all()
             if ids:
                 await db.execute(delete(AiUsage).where(AiUsage.run_id.in_(ids)))
+        # Content-free run metadata; saved threads expire within 90 days, so older runs
+        # no longer anchor any message. Usage rows for these runs cascade.
+        from app.ai.models import AiMessageRecord
+
+        run_ids = (
+            await db.scalars(
+                select(AiRun.id)
+                .where(
+                    AiRun.created_at <= now() - timedelta(days=90),
+                    AiRun.status != "running",
+                    ~select(AiMessageRecord.id).where(AiMessageRecord.run_id == AiRun.id).exists(),
+                )
+                .order_by(AiRun.id)
+                .limit(1000)
+                .with_for_update(skip_locked=True)
+            )
+        ).all()
+        if run_ids:
+            await db.execute(delete(AiRun).where(AiRun.id.in_(run_ids)))
         # Date buckets use the owner's timezone, consistently with the mood API.
         mood_ids = (
             await db.scalars(

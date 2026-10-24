@@ -4,6 +4,7 @@ import wave
 from openai import AsyncOpenAI
 
 from app.core.errors import DomainError
+from app.core.outbound import openai_http_client
 
 
 def validate_audio(data: bytes) -> float:
@@ -33,10 +34,13 @@ class OpenAITranscriber:
     def __init__(self, settings):
         self.key = settings.openai_api_key
         self.model = settings.stt_model
+        self.force_ipv4 = settings.provider_force_ipv4
 
     async def transcribe(self, data: bytes) -> str:
         async with AsyncOpenAI(
-            api_key=self.key.get_secret_value(), max_retries=0, timeout=30
+            api_key=self.key.get_secret_value(),
+            max_retries=0,
+            http_client=openai_http_client(self.force_ipv4),
         ) as client:
             result = await client.audio.transcriptions.create(
                 file=("recording.wav", data, "audio/wav"), model=self.model, response_format="json"

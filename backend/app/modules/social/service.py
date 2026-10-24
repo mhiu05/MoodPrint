@@ -106,11 +106,10 @@ async def base_eligibility(db: AsyncSession, a: User, b: User, *, own_snapshot=N
     return ap, bp, snapshots
 
 
-async def canonical_pair(db: AsyncSession, a: UUID, b: UUID, create=True):
+async def canonical_pair(db: AsyncSession, a: UUID, b: UUID, create=True, lock=True):
     low, high = sorted((a, b))
-    pair = await db.scalar(
-        select(Pair).where(Pair.low_user_id == low, Pair.high_user_id == high).with_for_update()
-    )
+    statement = select(Pair).where(Pair.low_user_id == low, Pair.high_user_id == high)
+    pair = await db.scalar(statement.with_for_update() if lock else statement)
     if not pair and create:
         pair = Pair(low_user_id=low, high_user_id=high)
         db.add(pair)
@@ -119,21 +118,16 @@ async def canonical_pair(db: AsyncSession, a: UUID, b: UUID, create=True):
 
 
 @asynccontextmanager
-async def pair_transaction(request, actor: Actor, peer_id: UUID):
+async def pair_transaction(request, actor: Actor, peer_id: UUID, lock: bool = True):
     # Never lock the actor first: reciprocal operations must take identical order.
+    # lock=False is only for read-only polling, which must not contend with writers.
     async with request.app.state.database.require()() as db, db.begin():
-        users = (
-            await db.scalars(
-                select(User)
-                .where(User.id.in_([actor.user_id, peer_id]))
-                .order_by(User.id)
-                .with_for_update()
-            )
-        ).all()
+        statement = select(User).where(User.id.in_([actor.user_id, peer_id])).order_by(User.id)
+        users = (await db.scalars(statement.with_for_update() if lock else statement)).all()
         mapping = {user.id: user for user in users}
         if len(mapping) != 2:
             missing()
-        user = await lock_actor(db, actor)
+        user = await lock_actor(db, actor, lock=lock)
         yield db, user, mapping[peer_id]
 
 
@@ -249,10 +243,11 @@ async def room_peer(request, actor, room_id):
         return room.high_user_id if room.low_user_id == actor.user_id else room.low_user_id
 
 
-async def live_room(db, a, b, room_id):
+async def live_room(db, a, b, room_id, lock: bool = True):
     _, _, snapshots = await base_eligibility(db, a, b)
-    pair = await canonical_pair(db, a.id, b.id, False)
-    room = await db.scalar(select(Connection).where(Connection.id == room_id).with_for_update())
+    pair = await canonical_pair(db, a.id, b.id, False, lock=lock)
+    statement = select(Connection).where(Connection.id == room_id)
+    room = await db.scalar(statement.with_for_update() if lock else statement)
     if (
         not pair
         or not room

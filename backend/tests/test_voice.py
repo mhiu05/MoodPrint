@@ -72,3 +72,39 @@ async def test_local_voice_enablement_denies_an_actor_outside_the_live_scope(cli
     assert not session["features"]["voice"]
     response = await outsider.post("/api/v1/voice/transcriptions", content=audio(), headers={"Content-Type": "audio/wav", "Idempotency-Key": str(uuid4())})
     assert response.status_code == 503 and not calls
+
+
+@pytest.mark.postgres
+async def test_voice_uploads_are_rate_limited_before_reaching_the_paid_provider(clients):
+    from app.modules.voice import routes
+
+    routes.VOICE_LIMIT.attempts.clear()
+    routes.VOICE_DAILY_LIMIT.attempts.clear()
+    app, actors = clients
+    a, _ = actors[0]
+    for purpose in ("AI", "VOICE"):
+        await a.put(
+            f"/api/v1/consents/{purpose}",
+            json={"enabled": True, "expectedVersion": 1, "policyVersion": "v1"},
+            headers={"Idempotency-Key": str(uuid4())},
+        )
+    calls = []
+
+    class CountingTranscriber:
+        async def transcribe(self, data):
+            calls.append(len(data))
+            return "Bản chữ"
+
+    app.state.transcriber = CountingTranscriber()
+    statuses = []
+    for _ in range(routes.VOICE_LIMIT.limit + 2):
+        response = await a.post(
+            "/api/v1/voice/transcriptions",
+            content=audio(),
+            headers={"Content-Type": "audio/wav", "Idempotency-Key": str(uuid4())},
+        )
+        statuses.append(response.status_code)
+    assert statuses.count(200) == routes.VOICE_LIMIT.limit
+    assert statuses[-1] == 429
+    assert len(calls) == routes.VOICE_LIMIT.limit
+    assert routes.VOICE_SLOTS.active == {}

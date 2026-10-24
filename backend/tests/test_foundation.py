@@ -102,3 +102,30 @@ async def test_chunked_body_without_content_length_cannot_bypass_request_limit()
         )
     assert response.status_code == 413
     assert response.json()["error"]["code"] == "BODY_TOO_LARGE"
+
+
+async def test_spa_is_served_same_origin_without_shadowing_the_api(tmp_path):
+    import httpx
+
+    from app.core.config import Settings
+    from app.main import create_app
+
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "index.html").write_text("<!doctype html><div id=root></div>", encoding="utf-8")
+    (tmp_path / "assets" / "index-abc.js").write_text("console.log(1)", encoding="utf-8")
+    (tmp_path / "me2we.svg").write_text("<svg/>", encoding="utf-8")
+    app = create_app(Settings(_env_file=None, static_dir=str(tmp_path)))
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
+        shell = await c.get("/auth/callback")
+        assert shell.status_code == 200 and "id=root" in shell.text
+        assert "frame-ancestors 'none'" in shell.headers["Content-Security-Policy"]
+        assert "script-src 'self'" in shell.headers["Content-Security-Policy"]
+        assert shell.headers["Cache-Control"] == "no-store"
+        asset = await c.get("/assets/index-abc.js")
+        assert asset.status_code == 200 and "immutable" in asset.headers["Cache-Control"]
+        assert (await c.get("/me2we.svg")).text == "<svg/>"
+        api = await c.get("/api/v1/does-not-exist")
+        assert api.status_code == 404 and "id=root" not in api.text
+        assert "Content-Security-Policy" not in api.headers
+        escape = await c.get("/..%2F..%2Fpyproject.toml")
+        assert "id=root" in escape.text

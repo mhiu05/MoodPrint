@@ -196,3 +196,83 @@ def test_migration_target_rejects_wrong_project_owner_port_and_missing_tls():
         with pytest.raises(ValueError) as error:
             runner.validate_target(raw, public)
         assert "SECRET-CANARY" not in str(error.value)
+
+
+def test_reviewed_upgrade_sql_executes_verbatim_with_supabase_roles(tmp_path):
+    """The hosted path runs Alembic's offline SQL as-is, so it must be valid SQL itself."""
+    import os
+    import subprocess
+    import sys
+
+    import psycopg
+
+    from tests.database_target import require_local_test_database
+
+    url = os.getenv("TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("TEST_DATABASE_URL must identify a disposable real PostgreSQL database")
+    target = require_local_test_database(url)
+    runner = script("apply_supabase_review")
+    plans = [runner.UPGRADES[key] for key in sorted(runner.UPGRADES)]
+    exports = [runner.alembic_export(f"{p.from_revision}:{p.to_revision}") for p in plans]
+    assert all("%%" not in sql for sql in exports)
+    name = f"{target.database.removesuffix('_test')}_offline_test"
+    admin = target.set(drivername="postgresql", database="postgres").render_as_string(
+        hide_password=False
+    )
+    scratch = target.set(database=name)
+    with psycopg.connect(admin, autocommit=True) as db:
+        db.execute(f'drop database if exists "{name}"')
+        db.execute(f'create database "{name}"')
+    try:
+        env = {
+            **os.environ,
+            "DATABASE_URL": "",
+            "DATABASE_MIGRATION_URL": scratch.render_as_string(hide_password=False),
+        }
+        subprocess.run(
+            [sys.executable, "-m", "alembic", "upgrade", plans[0].from_revision],
+            cwd=Path(__file__).resolve().parents[1],
+            env=env,
+            capture_output=True,
+            check=True,
+        )
+        raw = scratch.set(drivername="postgresql").render_as_string(hide_password=False)
+        with psycopg.connect(raw) as db:
+            # Roles are cluster-wide; creating them inside this transaction rolls them back.
+            db.execute("""DO $r$ BEGIN
+              IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='moodprint_runtime') THEN
+                CREATE ROLE moodprint_runtime NOLOGIN; END IF;
+              IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN
+                CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;
+                CREATE ROLE service_role NOLOGIN; END IF;
+            END $r$""")
+            for sql in exports:
+                body = sql.replace("BEGIN;\n", "", 1).replace("COMMIT;\n", "")
+                db.execute(body, prepare=False)
+            assert db.execute("select version_num from moodprint.alembic_version").fetchone()[
+                0
+            ] == plans[-1].to_revision
+            tables = [table for plan in plans for table in plan.tables]
+            assert (
+                db.execute(
+                    "select count(*) from pg_policies where schemaname='moodprint' "
+                    "and policyname='backend_access' and tablename = any(%s)",
+                    (tables,),
+                ).fetchone()[0]
+                == len(tables)
+            )
+            assert not db.execute(
+                "select has_table_privilege('anon','moodprint.ai_messages','SELECT')"
+            ).fetchone()[0]
+            identity = "moodprint.delete_provider_identity(uuid)"
+            assert not db.execute(
+                "select has_function_privilege('anon', %s, 'EXECUTE')", (identity,)
+            ).fetchone()[0]
+            assert db.execute(
+                "select has_function_privilege('moodprint_runtime', %s, 'EXECUTE')", (identity,)
+            ).fetchone()[0]
+            db.rollback()
+    finally:
+        with psycopg.connect(admin, autocommit=True) as db:
+            db.execute(f'drop database if exists "{name}" with (force)')

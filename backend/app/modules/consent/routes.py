@@ -44,6 +44,15 @@ async def update_consent(
             user.data_version += 1
             if purpose == "MATCH":
                 await invalidate_user_social(db, user.id)
+            if purpose in ("AI", "MEM"):
+                from app.ai.embeddings import discard_user_index
+
+                # Old vectors are bound to the previous consent versions either way.
+                await discard_user_index(db, user.id)
+                if not body.enabled:
+                    from app.ai.memory import withdraw_proposals
+
+                    await withdraw_proposals(db, user.id, purpose)
             db.add(
                 ConsentEvent(
                     user_id=user.id,

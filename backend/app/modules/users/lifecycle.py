@@ -1,12 +1,14 @@
 """Lease-fenced local deletion worker. Provider/backups remain separate tracked gates."""
 
+import logging
 from datetime import timedelta
 from uuid import uuid4
 
-from sqlalchemy import and_, delete, func, or_, select, update
+from sqlalchemy import and_, delete, func, or_, select, text, update
 
 from app.infrastructure.database.models import (
     AgeDeclaration,
+    AiRun,
     AiUsage,
     AuthSession,
     Idempotency,
@@ -27,6 +29,31 @@ from app.modules.social.models import (
 from app.modules.social.service import invalidate_user_social
 from app.modules.users.models import DataJob
 
+logger = logging.getLogger("moodprint.lifecycle")
+
+
+async def _release_exhausted(db) -> None:
+    """A job out of attempts must not leave the user locked behind deletion_pending."""
+    jobs = (
+        await db.scalars(
+            select(DataJob)
+            .where(
+                DataJob.kind == "deletion",
+                DataJob.attempts >= 5,
+                DataJob.status == "running",
+                DataJob.lease_until < now(),
+            )
+            .with_for_update(skip_locked=True)
+            .limit(10)
+        )
+    ).all()
+    for job in jobs:
+        job.status, job.lease_until, job.version = "failed", None, job.version + 1
+        await db.execute(
+            update(User).where(User.id == job.user_id).values(deletion_pending=False)
+        )
+        logger.error("deletion_job_failed scope=%s attempts=%s", job.scope, job.attempts)
+
 
 async def process_deletions(app):
     sessions = app.state.database.require()
@@ -46,6 +73,7 @@ async def process_deletions(app):
             .limit(1)
         )
         if job is None:
+            await _release_exhausted(db)
             return
         job.status = "running"
         job.attempts += 1
@@ -60,8 +88,28 @@ async def process_deletions(app):
         scopes = {job.scope}
         if job.scope in ("all_private", "account"):
             scopes = {"memories", "moods", "private_items", "identity", "matching"}
+            from app.ai.models import AiConversation, AiPreference, AiTurn
+
+            await db.execute(delete(AiConversation).where(AiConversation.user_id == uid))
+            await db.execute(delete(AiPreference).where(AiPreference.user_id == uid))
+            # Temporary-chat turn digests have no conversation row to cascade from.
+            await db.execute(delete(AiTurn).where(AiTurn.user_id == uid))
         if "memories" in scopes or "private_items" in scopes:
-            await db.execute(delete(Memory).where(Memory.user_id == uid))
+            from app.ai.memory_models import MemoryProposal
+
+            # Deleting private items removes only what was derived from them.
+            derived = () if "memories" in scopes else (
+                or_(MemoryProposal.source_id.isnot(None), MemoryProposal.purpose == "private_item"),
+            )
+            await db.execute(
+                delete(MemoryProposal).where(MemoryProposal.user_id == uid, *derived)
+            )
+            await db.execute(
+                delete(Memory).where(
+                    Memory.user_id == uid,
+                    *(() if "memories" in scopes else (Memory.source_id.isnot(None),)),
+                )
+            )
         if "private_items" in scopes:
             await db.execute(delete(PrivateItem).where(PrivateItem.user_id == uid))
         if "moods" in scopes:
@@ -104,8 +152,16 @@ async def process_deletions(app):
             await db.execute(
                 update(AuthSession).where(AuthSession.user_id == uid).values(revoked=True)
             )
+            # Content-free run metadata; ai_usage, ai_messages and ai_turns cascade.
+            await db.execute(delete(AiRun).where(AiRun.user_id == uid))
             user.status = "deleted"
-            job.status = "awaiting_provider"
+            user.alias = "Đã xóa"
+            await db.flush()
+            # Same transaction: the Supabase identity goes only if all app data went too.
+            await db.execute(
+                text("select moodprint.delete_provider_identity(:uid)"), {"uid": uid}
+            )
+            job.status = "completed"
         else:
             job.status = "completed"
         user.deletion_pending = False

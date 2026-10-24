@@ -15,6 +15,19 @@ SESSION_HELPER = (
 ).read_text(encoding="utf-8")
 
 
+def _identity_helper() -> str:
+    import importlib.util
+
+    path = Path(__file__).resolve().parents[1] / "alembic/versions/0010_account_deletion.py"
+    spec = importlib.util.spec_from_file_location("migration_0010", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.FUNCTION_SQL
+
+
+IDENTITY_HELPER = _identity_helper()
+
+
 def pytest_configure(config):
     # The user's editable .env must never turn synthetic tests into live calls.
     os.environ.update(
@@ -27,6 +40,9 @@ def pytest_configure(config):
             "OPENAI_API_KEY": "",
             "OPENAI_MODEL": "",
             "AI_ENABLED": "false",
+            "VOYAGE_API_KEY": "",
+            "SEMANTIC_MEMORY_ENABLED": "false",
+            "VOYAGE_DIMENSIONS": "1024",
         }
     )
 
@@ -43,6 +59,11 @@ async def database():
     from tests.database_target import require_local_test_database
 
     require_local_test_database(url)
+    from app.ai import (
+        embedding_models,  # noqa: F401
+        memory_models,  # noqa: F401
+    )
+    from app.ai import models as chat_models  # noqa: F401
     from app.infrastructure.database.models import Base
     from app.modules.moderation import models as safety_models  # noqa: F401
     from app.modules.social import models  # noqa: F401 -- register every table before reset
@@ -55,6 +76,8 @@ async def database():
         if not name or not name.endswith("_test"):
             raise RuntimeError("Integration tests require a database name ending _test")
         await conn.execute(text("create schema if not exists moodprint"))
+        await conn.execute(text("create schema if not exists extensions"))
+        await conn.execute(text("create extension if not exists vector with schema extensions"))
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
         await conn.execute(text("create schema if not exists auth"))
@@ -64,9 +87,12 @@ async def database():
             )
         )
         await conn.execute(text("truncate auth.sessions"))
+        await conn.execute(text("create table if not exists auth.users (id uuid primary key)"))
+        await conn.execute(text("truncate auth.users"))
         await conn.execute(
             text(SESSION_HELPER.replace("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION", 1))
         )
+        await conn.execute(text(IDENTITY_HELPER))
     yield engine
     await engine.dispose()
 
@@ -79,7 +105,7 @@ async def clients(database):
     from app.infrastructure.database.models import AuthSession, Consent, User
     from app.main import create_app
 
-    app = create_app(Settings(database_url=str(database.url.render_as_string(hide_password=False))))
+    app = create_app(Settings(_env_file=None, database_url=str(database.url.render_as_string(hide_password=False))))
     # Using the injected engine keeps test teardown and application queries on the same event loop.
     await app.state.database.engine.dispose()
     app.state.database.engine = database

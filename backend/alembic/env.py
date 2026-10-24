@@ -9,6 +9,11 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from alembic import context
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from app.ai import (
+    embedding_models,  # noqa: F401
+    memory_models,  # noqa: F401
+)
+from app.ai import models as chat_models  # noqa: F401
 from app.core.config import Settings
 from app.infrastructure.database.models import Base
 from app.modules.moderation import models as moderation_models  # noqa: F401
