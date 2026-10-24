@@ -1,6 +1,7 @@
 import importlib.util
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from dotenv import dotenv_values
@@ -54,6 +55,102 @@ def test_local_password_entry_round_trips_reserved_symbols_and_preserves_other_v
         )
     assert path.read_bytes() == before
     assert "SECRET" not in json.dumps(updated)
+
+
+@pytest.mark.parametrize(
+    ("entries", "code"),
+    [
+        (["", ""], "EMPTY_PASSWORD"),
+        (["SECRET-CANARY", "different"], "PASSWORD_MISMATCH"),
+        (["SECRET-CANARY\n", "SECRET-CANARY\n"], "INVALID_PASSWORD_CHARACTERS"),
+    ],
+)
+def test_password_entry_reports_local_failure_without_disclosing_input_or_writing(
+    monkeypatch, tmp_path, capsys, entries, code
+):
+    module = script("configure_database")
+    path = tmp_path / "backend/.env"
+    path.parent.mkdir()
+    path.write_text("SUPABASE_URL=https://projectref.supabase.co\n", encoding="utf-8")
+    before = path.read_bytes()
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    monkeypatch.setattr(module.sys, "stdin", SimpleNamespace(isatty=lambda: True))
+    monkeypatch.setattr(
+        module.sys,
+        "argv",
+        ["configure_database", "--host", "verified.pooler.supabase.com", "--username", "postgres.projectref"],
+    )
+    responses = iter(entries)
+    monkeypatch.setattr(module.getpass, "getpass", lambda prompt: next(responses))
+    assert module.main() == 1
+    output = capsys.readouterr()
+    report = json.loads(output.out)
+    assert report["errorCode"] == code
+    assert report["networkAccessPerformed"] is False
+    assert "SECRET-CANARY" not in output.out + output.err
+    assert path.read_bytes() == before
+
+
+def test_password_entry_sanitizes_filesystem_error(monkeypatch, tmp_path, capsys):
+    module = script("configure_database")
+    path = tmp_path / "backend/.env"
+    path.parent.mkdir()
+    path.write_text("SUPABASE_URL=https://projectref.supabase.co\n", encoding="utf-8")
+    before = path.read_bytes()
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    monkeypatch.setattr(module.sys, "stdin", SimpleNamespace(isatty=lambda: True))
+    monkeypatch.setattr(
+        module.sys,
+        "argv",
+        ["configure_database", "--host", "verified.pooler.supabase.com", "--username", "postgres.projectref"],
+    )
+    monkeypatch.setattr(module.getpass, "getpass", lambda prompt: "SECRET-CANARY")
+
+    def denied(*args, **kwargs):
+        raise PermissionError("private file content SECRET-CANARY")
+
+    monkeypatch.setattr(Path, "write_text", denied)
+    assert module.main() == 1
+    output = capsys.readouterr()
+    assert json.loads(output.out)["errorCode"] == "FILE_PERMISSION_DENIED"
+    assert "SECRET-CANARY" not in output.out + output.err
+    assert path.read_bytes() == before
+
+
+def test_password_entry_refuses_terminal_echo_fallback(monkeypatch, tmp_path, capsys):
+    module = script("configure_database")
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    monkeypatch.setattr(module.sys, "stdin", SimpleNamespace(isatty=lambda: True))
+    monkeypatch.setattr(
+        module.sys,
+        "argv",
+        ["configure_database", "--host", "verified.pooler.supabase.com", "--username", "postgres.projectref"],
+    )
+
+    def unsafe(prompt):
+        import warnings
+
+        warnings.warn("cannot disable echo", module.getpass.GetPassWarning, stacklevel=2)
+        pytest.fail("Echo fallback must not be reached")
+
+    monkeypatch.setattr(module.getpass, "getpass", unsafe)
+    assert module.main() == 1
+    assert json.loads(capsys.readouterr().out)["errorCode"] == "HIDDEN_INPUT_UNAVAILABLE"
+    assert not (tmp_path / "backend/.env").exists()
+
+
+@pytest.mark.parametrize("mode", ["session", "direct"])
+def test_password_entry_round_trips_punctuation_unicode_and_backslashes(tmp_path, mode):
+    path = tmp_path / ".env"
+    retained = "SUPABASE_URL=https://projectref.supabase.co\nOPENAI_API_KEY='retained'\n"
+    path.write_text(retained, encoding="utf-8")
+    password = "@:/?#%${reserved} '\\\" !&=+é測"
+    script("configure_database").configure(
+        path, "verified.pooler.supabase.com", "postgres.projectref", password, mode
+    )
+    for field in ("DATABASE_URL", "DATABASE_MIGRATION_URL"):
+        assert make_url(dotenv_values(path)[field]).password == password
+    assert retained in path.read_text(encoding="utf-8")
 
 
 def test_diagnostic_categories_separate_permissions_from_authentication_without_error_text():

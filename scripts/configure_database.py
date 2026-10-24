@@ -5,24 +5,35 @@ import getpass
 import json
 import re
 import sys
+import warnings
+from io import StringIO
 from pathlib import Path
 
 from dotenv import dotenv_values
-from sqlalchemy.engine import URL
+from sqlalchemy.engine import URL, make_url
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
+class ConfigurationError(ValueError):
+    """A fixed diagnostic code, never an exception containing credential input."""
+
+
 def configure(path: Path, host: str, username: str, password: str, migration_mode: str):
-    values = dotenv_values(path)
+    content = path.read_text(encoding="utf-8")
+    values = dotenv_values(stream=StringIO(content))
     project_url = values.get("SUPABASE_URL", "") or ""
     match = re.fullmatch(r"https://([a-z0-9]+)\.supabase\.co/?", project_url)
     if not match or not username.endswith("." + match[1]):
-        raise ValueError("Connect username must match the configured Supabase project")
+        raise ConfigurationError("PROJECT_USERNAME_MISMATCH")
     if not re.fullmatch(r"[a-z0-9.-]+\.pooler\.supabase\.com", host):
-        raise ValueError("Copy the shared pooler hostname from Supabase Connect")
-    if not password or any(c in password for c in ("\n", "\r", "\x00")):
-        raise ValueError("A nonempty, single-line database password is required")
+        raise ConfigurationError("INVALID_POOLER_HOST")
+    if not password:
+        raise ConfigurationError("EMPTY_PASSWORD")
+    if any(c in password for c in ("\n", "\r", "\x00")):
+        raise ConfigurationError("INVALID_PASSWORD_CHARACTERS")
+    if migration_mode not in ("session", "direct"):
+        raise ConfigurationError("INVALID_MIGRATION_MODE")
     session = URL.create(
         "postgresql",
         username=username,
@@ -50,7 +61,6 @@ def configure(path: Path, host: str, username: str, password: str, migration_mod
         "DATABASE_MIGRATION_URL": migration.render_as_string(hide_password=False),
         "DATABASE_POOL_MODE": "session",
     }
-    content = path.read_text(encoding="utf-8")
     for name, value in updates.items():
         # Single-quote dotenv values so percent-encoded credentials round-trip safely.
         replacement = name + "='" + value.replace("'", "\\'") + "'"
@@ -60,6 +70,13 @@ def configure(path: Path, host: str, username: str, password: str, migration_mod
             )
         else:
             content += "\n" + replacement + "\n"
+    # Validate encoding through the actual dotenv + URL parsers before touching the file.
+    rendered = dotenv_values(stream=StringIO(content))
+    if any(
+        make_url(rendered[name]).password != password
+        for name in ("DATABASE_URL", "DATABASE_MIGRATION_URL")
+    ):
+        raise ConfigurationError("PASSWORD_ENCODING_VALIDATION_FAILED")
     path.write_text(content, encoding="utf-8")
     return list(updates)
 
@@ -70,20 +87,54 @@ def main():
     parser.add_argument("--username", required=True, help="Session pooler user copied from Connect")
     parser.add_argument("--migration-mode", choices=("direct", "session"), default="session")
     args = parser.parse_args()
-    if not sys.stdin.isatty():
-        parser.error("Run in your local interactive terminal; password input is hidden")
-    password = getpass.getpass("PostgreSQL password (hidden, local only): ")
-    if password != getpass.getpass("Confirm PostgreSQL password: "):
-        raise ValueError("Passwords do not match; no file changed")
-    updated = configure(
-        ROOT / "backend/.env", args.host, args.username, password, args.migration_mode
+    code = None
+    try:
+        if not sys.stdin.isatty():
+            raise ConfigurationError("INTERACTIVE_TERMINAL_REQUIRED")
+        with warnings.catch_warnings():
+            # Fail before getpass can fall back to echoing input in an unsafe terminal.
+            warnings.simplefilter("error", getpass.GetPassWarning)
+            password = getpass.getpass("PostgreSQL password (hidden, local only): ")
+            confirmation = getpass.getpass("Confirm PostgreSQL password: ")
+        if not password:
+            raise ConfigurationError("EMPTY_PASSWORD")
+        if password != confirmation:
+            raise ConfigurationError("PASSWORD_MISMATCH")
+        updated = configure(
+            ROOT / "backend/.env", args.host, args.username, password, args.migration_mode
+        )
+    except ConfigurationError as error:
+        code = str(error)  # Only fixed codes created in this module.
+    except getpass.GetPassWarning:
+        code = "HIDDEN_INPUT_UNAVAILABLE"
+    except (EOFError, KeyboardInterrupt):
+        code = "INPUT_CANCELLED"
+    except FileNotFoundError:
+        code = "ENV_FILE_NOT_FOUND"
+    except PermissionError:
+        code = "FILE_PERMISSION_DENIED"
+    except OSError:
+        code = "FILE_IO_FAILED"
+    except (ValueError, UnicodeError):
+        code = "CONFIGURATION_VALIDATION_FAILED"
+    if code:
+        print(
+            json.dumps(
+                {"status": "failed", "errorCode": code, "networkAccessPerformed": False}
+            )
+        )
+        return 1
+    print(
+        json.dumps(
+            {
+                "updatedVariables": updated,
+                "passwordRoundTripVerified": True,
+                "networkAccessPerformed": False,
+            }
+        )
     )
-    print(json.dumps({"updatedVariables": updated, "networkAccessPerformed": False}))
+    return 0
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except (ValueError, EOFError, KeyboardInterrupt):
-        print("Configuration not updated. Check local input; no credentials are printed.")
-        sys.exit(1)
+    sys.exit(main())

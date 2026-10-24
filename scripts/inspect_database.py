@@ -164,8 +164,8 @@ async def inspect_target(secret, config):
             entry["authSessionAccess"] = await db.scalar(
                 text(
                     "select has_schema_privilege(current_user,'auth','USAGE') and "
-                    "has_column_privilege(current_user,'auth.sessions','id','SELECT') and "
-                    "has_column_privilege(current_user,'auth.sessions','user_id','SELECT')"
+                    "has_column_privilege(current_user,(select c.oid from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='auth' and c.relname='sessions'),'id','SELECT') and "
+                    "has_column_privilege(current_user,(select c.oid from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='auth' and c.relname='sessions'),'user_id','SELECT')"
                 )
             )
             bridge = await db.scalar(
@@ -175,7 +175,7 @@ async def inspect_target(secret, config):
             )
             entry["privateAuthBridgeExists"] = bridge
             entry["authSessionsRlsEnabled"] = await db.scalar(
-                text("select relrowsecurity from pg_class where oid='auth.sessions'::regclass")
+                text("select c.relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='auth' and c.relname='sessions'")
             )
             entry["privateAuthBridgeExecutable"] = bool(
                 bridge
