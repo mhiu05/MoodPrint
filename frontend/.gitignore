@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Vite and test caches/reports
+.vite/
+coverage/
+
+# Local environment variables (keep the example template)
+.env
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# evidence/
