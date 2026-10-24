@@ -3,7 +3,7 @@
   "ddlPerformed": false,
   "modelCalls": 0,
   "database_url": {
-    "status": "connection_failed",
+    "status": "connected",
     "local": false,
     "matchesAuthProject": true,
     "tlsMode": "require",
@@ -24,13 +24,56 @@
         "protocol": "TLSv1.3"
       }
     },
-    "authentication": "failed",
-    "errorType": "OperationalError",
-    "sqlState": null,
-    "errorCategory": "authentication"
+    "authentication": "passed",
+    "identity": {
+      "database": "postgres",
+      "role": "moodprint_backend",
+      "postgres_version": "PostgreSQL 17.11 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 15.2.0, 64-bit",
+      "superuser": false,
+      "can_create_database": false,
+      "can_create_role": false,
+      "bypass_rls": false
+    },
+    "schemaExists": true,
+    "migrationHistoryExists": true,
+    "authSessionAccess": false,
+    "privateAuthBridgeExists": true,
+    "authSessionsRlsEnabled": true,
+    "privateAuthBridgeExecutable": true,
+    "revisions": [
+      "0005_export_scope"
+    ],
+    "migrationReadiness": "head_matches",
+    "domainTables": [
+      "age_declarations",
+      "ai_runs",
+      "alembic_version",
+      "auth_sessions",
+      "blocks",
+      "candidate_references",
+      "connection_requests",
+      "connections",
+      "consent_events",
+      "consents",
+      "data_jobs",
+      "human_messages",
+      "idempotency_keys",
+      "identity_fields",
+      "matching_drafts",
+      "memories",
+      "moods",
+      "outbox",
+      "pairs",
+      "private_items",
+      "published_profiles",
+      "reports",
+      "reveal_access",
+      "users"
+    ],
+    "canCreateInDomainSchema": false
   },
   "database_migration_url": {
-    "status": "connection_failed",
+    "status": "connected",
     "local": false,
     "matchesAuthProject": true,
     "tlsMode": "require",
@@ -51,10 +94,53 @@
         "protocol": "TLSv1.3"
       }
     },
-    "authentication": "failed",
-    "errorType": "OperationalError",
-    "sqlState": null,
-    "errorCategory": "authentication"
+    "authentication": "passed",
+    "identity": {
+      "database": "postgres",
+      "role": "postgres",
+      "postgres_version": "PostgreSQL 17.11 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 15.2.0, 64-bit",
+      "superuser": false,
+      "can_create_database": true,
+      "can_create_role": true,
+      "bypass_rls": true
+    },
+    "schemaExists": true,
+    "migrationHistoryExists": true,
+    "authSessionAccess": true,
+    "privateAuthBridgeExists": true,
+    "authSessionsRlsEnabled": true,
+    "privateAuthBridgeExecutable": true,
+    "revisions": [
+      "0005_export_scope"
+    ],
+    "migrationReadiness": "head_matches",
+    "domainTables": [
+      "age_declarations",
+      "ai_runs",
+      "alembic_version",
+      "auth_sessions",
+      "blocks",
+      "candidate_references",
+      "connection_requests",
+      "connections",
+      "consent_events",
+      "consents",
+      "data_jobs",
+      "human_messages",
+      "idempotency_keys",
+      "identity_fields",
+      "matching_drafts",
+      "memories",
+      "moods",
+      "outbox",
+      "pairs",
+      "private_items",
+      "published_profiles",
+      "reports",
+      "reveal_access",
+      "users"
+    ],
+    "canCreateInDomainSchema": true
   },
   "authSettings": {
     "httpStatus": 200,

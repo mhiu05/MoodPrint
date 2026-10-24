@@ -12,7 +12,7 @@ import json
 import re
 import sys
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
@@ -199,7 +199,7 @@ def check(root: Path) -> dict:
         if required not in architecture:
             errors.append(f"Architecture missing {required}")
     return {
-        "checkedAt": datetime.now(timezone.utc).isoformat(),
+        "checkedAt": datetime.now(UTC).isoformat(),
         "status": "FAIL" if errors else "PASS",
         "scope": "Current documentation integrity only; no backend, provider, SQL or cloud verification claims",
         "documentCount": len(documents), "taskCount": len(tasks), "plannedTestIdCount": len(test_rows),

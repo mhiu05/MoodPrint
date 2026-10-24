@@ -2,6 +2,8 @@
 
 Kiểm tra ngày 24/10/2026, Asia/Bangkok. Project `database`, ID `roznanxbiyqybjpvtilq`. Không tạo project mới.
 
+Đây là snapshot lịch sử trước initialization. Bản Auth bridge mới sau đó đã được duyệt và commit; [execution hiện tại](supabase-migration-execution.json) và [runtime verification](supabase-runtime-verification.json) PASS. Các mô tả schema chưa có/password FAIL bên dưới chỉ ghi trạng thái lúc review cũ.
+
 **Bản này không dùng để apply.** Catalog sau đó phát hiện `auth.sessions` bật RLS không policies; GRANT hai cột không cho runtime thấy row. Rehearsal cũ LIMIT0 chưa kiểm row visibility. [Auth RLS review mới](supabase-auth-rls-review.md) thay quyền đọc trực tiếp bằng private helper boolean; người dùng đã phê duyệt riêng bản mới SHA256 `90008c3c928016e5f04f4bb6c8e9c8cb3bdc1312c9bbf5deb0f828874a09bab0`. SQL cũ giữ nguyên, chưa chạy; không apply bản cũ rồi chạy tiếp bản mới.
 
 ## Bằng chứng chỉ đọc

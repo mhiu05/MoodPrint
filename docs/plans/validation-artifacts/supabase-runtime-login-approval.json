@@ -1,0 +1,9 @@
+{
+  "projectId": "roznanxbiyqybjpvtilq",
+  "date": "2026-10-24",
+  "source": "Explicit user response in this session",
+  "approved": true,
+  "template": "supabase-runtime-login-review.sql",
+  "sha256": "d9124bfd7747a7a04841b8e471a38ddfe6de04d87f91b20ffd63e3f79a1f0461",
+  "scope": "Create moodprint_backend LOGIN, inherit moodprint_app; existing groups remain NOLOGIN; local random password bound as SCRAM verifier; update only DATABASE_URL; no additional Auth/schema/revision grants"
+}

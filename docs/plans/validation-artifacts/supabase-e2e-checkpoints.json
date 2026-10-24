@@ -1,0 +1,21 @@
+{
+  "projectId": "roznanxbiyqybjpvtilq",
+  "auth": "real Supabase",
+  "database": "real Supabase, dedicated runtime",
+  "ai": "SDK fake model",
+  "liveModelCalls": 0,
+  "signupAndEmailDelivery": "NOT_TESTED: users created/confirmed by owner in Dashboard",
+  "realLoginUiAndHttpOnlySession": "PASS",
+  "onboardingPrivate16PlusAndExplicit18Boundary": "PASS",
+  "crossUserPrivateReadAndWriteDenied": "PASS",
+  "privateAndMoodPersistenceAcrossReload": "PASS",
+  "sdkFakeModelProposalOwnerApprovalAndMemoryPersistence": "PASS",
+  "publishMatchingAndConcurrentMutualRequestsSingleRoom": "PASS",
+  "realtimeChatAndConcurrentMessageDeduplication": "PASS",
+  "backendProcessRestartRetainsSessionsPrivateMemoryAndChat": "PASS",
+  "ownerRevealGrantAndRevoke": "PASS",
+  "reportReceiptAndBlockImmediatelyDenyBothDirections": "PASS",
+  "providerSessionRevokeInvalidatesOpaqueAppSession": "PASS",
+  "logoutAndOldCookieReplayDenied": "PASS",
+  "status": "PASS_SCOPED_HOSTED_JOURNEY"
+}

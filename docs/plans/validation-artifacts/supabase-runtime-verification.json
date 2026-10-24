@@ -1,0 +1,16 @@
+{
+  "projectId": "roznanxbiyqybjpvtilq",
+  "readOnly": true,
+  "ddlSubmitted": false,
+  "checks": {
+    "leastPrivilege": true,
+    "inheritsApplicationGroup": true,
+    "ddlDenied": true,
+    "rawAuthDenied": true,
+    "privateHelperExecutable": true,
+    "privateHelperRejectsUnknownSession": true,
+    "roleMatches": true,
+    "tlsActive": true
+  },
+  "status": "PASS"
+}

@@ -1,6 +1,6 @@
-# Auth RLS correction — SQL đã được phê duyệt, chờ kết nối
+# Auth RLS correction — SQL đã commit và verification PASS
 
-24/10/2026, Asia/Bangkok. Project `roznanxbiyqybjpvtilq`. Chưa thực thi DDL remote.
+24/10/2026, Asia/Bangkok. Project `roznanxbiyqybjpvtilq`. Bản mới đã commit một lần, xem supabase-migration-execution.json.
 
 ## Phát hiện từ catalog Supabase thật
 
@@ -8,7 +8,7 @@
 
 Người dùng đã phê duyệt bản cũ SHA256 `f94b6032a3685070effb01d1b496d7769cef5880e045738f346c09b3a0f77f7a`. Bản cũ được giữ nguyên và chưa thực thi. Phê duyệt đó không được tự chuyển sang bản sửa có privileged function.
 
-Người dùng đã phê duyệt riêng **“Phê duyệt bản SQL mới đúng hash và phạm vi”** ngày 24/10/2026 cho bản mới SHA256 `90008c3c928016e5f04f4bb6c8e9c8cb3bdc1312c9bbf5deb0f828874a09bab0`. Bản mới thay thế bản cũ để thực thi; không cần xin duyệt lại nội dung này. Chưa gửi DDL vì probe backend cuối vẫn bị từ chối password; người dùng đang reset đúng project và cập nhật local.
+Người dùng đã phê duyệt riêng **“Phê duyệt bản SQL mới đúng hash và phạm vi”** ngày 24/10/2026 cho bản mới SHA256 `90008c3c928016e5f04f4bb6c8e9c8cb3bdc1312c9bbf5deb0f828874a09bab0`. Bản mới thay thế bản cũ để thực thi; không cần xin duyệt lại nội dung này. User đã nhập credential đúng; initialization đã commit/verification PASS. Không chạy lại initializer.
 
 ## Phương án đề nghị
 
@@ -39,8 +39,8 @@ Không CREATE/ALTER/DROP/policy hoặc ghi dữ liệu vào bảng Auth hệ th�
 
 Code FastAPI `verify_session` đã chuyển sang helper; health readiness yêu cầu helper tồn tại. Local Alembic online bootstrap và synthetic test fixtures dùng cùng SQL helper đóng gói trong `backend/app/infrastructure/database/provider_session.sql`, không sửa các revisions0001–0005. Offline export0001–0005 vẫn nguyên vẹn; helper là phần security bootstrap cùng ACL/RLS/roles.
 
-## Thực thi bản đã được phê duyệt
+## Cơ chế đã dùng — không chạy lại
 
-Dùng **chỉ bản mới**, runner `apply_supabase_review.py --auth-rls --apply --approved-sha256 90008c3c928016e5f04f4bb6c8e9c8cb3bdc1312c9bbf5deb0f828874a09bab0` sau khi password probe PASS. Không chạy bản cũ trước, không chạy thêm Alembic online/stamp/Supabase apply_migration sau initialization. Runner so khớp exact hash, Alembic body và helper source, kiểm project/TLS/schema absence; runner từ chối bản legacy khi Auth bật RLS. Post-check fingerprint cấu trúc/RLS/policies Auth trước/sau phải giữ nguyên.
+Đã dùng **chỉ bản mới**, runner `apply_supabase_review.py --auth-rls --apply --approved-sha256 90008c3c928016e5f04f4bb6c8e9c8cb3bdc1312c9bbf5deb0f828874a09bab0` sau password probe PASS. Không chạy lại initializer. Không chạy bản cũ trước hoặc thêm Alembic online/stamp/Supabase apply_migration. Runner đã so khớp exact hash/Alembic body/helper source, kiểm project/TLS/schema absence và Auth fingerprint trước/sau PASS.
 
-Runtime LOGIN/password vẫn là thao tác secret local sau migration. Hai test accounts đã được user cho phép, chưa tạo. Public Auth settings hiện signup enabled, email auto-confirm false: E2E register cần xác nhận email hoặc xác nhận test users qua Auth Dashboard/API được phép; không insert/update trực tiếp auth.users.
+Runtime LOGIN/password đã được duyệt bổ sung và provision thành công; hai test accounts do user tạo và scoped hosted E2E đã PASS. Public Auth settings hiện signup enabled, email auto-confirm false: E2E register cần xác nhận email hoặc xác nhận test users qua Auth Dashboard/API được phép; không insert/update trực tiếp auth.users.

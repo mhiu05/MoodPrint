@@ -1,0 +1,12 @@
+{
+  "projectId": "roznanxbiyqybjpvtilq",
+  "sqlSha256": "d9124bfd7747a7a04841b8e471a38ddfe6de04d87f91b20ffd63e3f79a1f0461",
+  "ddlSubmitted": true,
+  "transactionOutcome": "committed",
+  "updatedVariables": [
+    "DATABASE_URL"
+  ],
+  "managedAuthChanged": false,
+  "status": "FAILED_REQUIRES_READ_ONLY_INSPECTION",
+  "errorType": "InsufficientPrivilege"
+}

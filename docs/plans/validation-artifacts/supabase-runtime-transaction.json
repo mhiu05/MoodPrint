@@ -1,0 +1,8 @@
+{
+  "role": "moodprint_backend",
+  "domainDmlAndOutbox": true,
+  "atomicRollback": true,
+  "readinessHttpStatus": 200,
+  "managedAuthWrites": false,
+  "scope": "synthetic INSERTs rolled back; lifespan readiness on hosted runtime"
+}

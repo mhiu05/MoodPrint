@@ -6,8 +6,8 @@
     "projectMcp": "PASS",
     "urlFormat": "PASS",
     "dnsTcpTls": "PASS",
-    "passwordAuthentication": "FAIL",
-    "remoteSchemaInspection": "PASS_NOT_INITIALIZED",
+    "passwordAuthentication": "PASS",
+    "remoteSchemaInspection": "PASS_INITIALIZED",
     "alembicSqlMatch": "PASS",
     "localCatalog": {
       "revision": "PASS",
@@ -21,19 +21,27 @@
       "runtimePrivileges": "PASS"
     },
     "transactionRollback": true,
-    "remoteMigration": "BLOCKED_PASSWORD_RESET",
-    "runtimeLogin": "BLOCKED_NOT_PROVISIONED",
-    "hostedAuthAndE2E": "BLOCKED_DATABASE_NOT_INITIALIZED",
+    "remoteMigration": "PASS",
+    "runtimeLogin": "PASS",
+    "hostedAuthAndE2E": "PASS_SCOPED_HOSTED_CORE_AND_NHIP",
     "liveAi": "BLOCKED_ACCOUNT_PRIVACY_AND_BUDGET"
   },
   "sqlApproved": true,
-  "remoteDdlSubmitted": false,
-  "hostedTestAccountsCreated": 0,
+  "remoteDdlSubmitted": true,
+  "hostedTestAccountsCreated": 2,
   "liveProviderCalls": 0,
   "evidence": [
     "supabase-direct-inspection.json",
     "supabase-auth-rls-rehearsal.json",
-    "supabase-validation-groups.md"
+    "supabase-validation-groups.md",
+    "supabase-migration-execution.json",
+    "supabase-runtime-verification.json",
+    "supabase-runtime-transaction.json",
+    "supabase-auth-test-accounts.json",
+    "supabase-e2e-attempt-1.json",
+    "supabase-scoped-tool-proof.json",
+    "supabase-public-access.json",
+    "supabase-post-e2e-inspection.json"
   ],
   "approval": {
     "source": "explicit user approval of the new Auth bridge SQL in this session",
@@ -50,15 +58,15 @@
     "requiresSuccessfulBackendReadConnectionBeforeApply": true
   },
   "userHiddenPasswordEntryCompleted": true,
-  "postEntryReadProbe": "FAIL_AUTHENTICATION",
-  "userNextAction": "Reset project Database Password locally and rerun hidden entry",
+  "postEntryReadProbe": "PASS_SEPARATE_RUNTIME_AND_MIGRATION_IDENTITIES",
+  "userNextAction": "No credential or SQL action required for completed scope; privacy/budget decisions required only before live AI/STT",
   "diagnosticExclusions": {
     "environmentOverride": false,
     "passwordIsPublishableKey": false,
     "outerWhitespace": false,
     "postgresLoginAllowed": true,
     "postgresPasswordExpiry": null,
-    "directIpv6": "TCP_TIMEOUT",
+    "directIpv6": "Historical timeout; post-correction direct SSL/password read now PASS",
     "aggregateAuthLogs": "No matching rows in bounded 15-minute query; no raw logs printed"
   },
   "remoteAuthRls": {
@@ -118,5 +126,166 @@
     "path": "supabase-initialization-auth-review.sql",
     "sha256": "90008c3c928016e5f04f4bb6c8e9c8cb3bdc1312c9bbf5deb0f828874a09bab0",
     "supersedesLegacyForExecution": true
+  },
+  "hostedTestAccountsCreatedBy": "user through Dashboard; no Auth SQL",
+  "migrationExecution": {
+    "projectId": "roznanxbiyqybjpvtilq",
+    "sqlSha256": "90008c3c928016e5f04f4bb6c8e9c8cb3bdc1312c9bbf5deb0f828874a09bab0",
+    "ddlSubmitted": true,
+    "transactionOutcome": "committed",
+    "executionMechanism": "Alembic offline export, one transaction; no stamp/online upgrade/MCP migration",
+    "runtimeLoginReady": false,
+    "authE2EExecuted": false,
+    "checks": {
+      "revision": "PASS",
+      "tables24": "PASS",
+      "rls24": "PASS",
+      "foreignKeys34": "PASS",
+      "checks14": "PASS",
+      "uniqueConstraints9": "PASS",
+      "partialUniqueIndexes5": "PASS",
+      "rolesNologinLeastPrivilege": "PASS",
+      "runtimePrivileges": "PASS",
+      "privateAuthBridge": "PASS",
+      "authStructureUnchanged": "PASS"
+    },
+    "status": "PASS"
+  },
+  "runtimeVerification": {
+    "projectId": "roznanxbiyqybjpvtilq",
+    "readOnly": true,
+    "ddlSubmitted": false,
+    "checks": {
+      "leastPrivilege": true,
+      "inheritsApplicationGroup": true,
+      "ddlDenied": true,
+      "rawAuthDenied": true,
+      "privateHelperExecutable": true,
+      "privateHelperRejectsUnknownSession": true,
+      "roleMatches": true,
+      "tlsActive": true
+    },
+    "status": "PASS"
+  },
+  "runtimeTransaction": {
+    "role": "moodprint_backend",
+    "domainDmlAndOutbox": true,
+    "atomicRollback": true,
+    "readinessHttpStatus": 200,
+    "managedAuthWrites": false,
+    "scope": "synthetic INSERTs rolled back; lifespan readiness on hosted runtime"
+  },
+  "historicalCredentialFailure": "Earlier credential failed on pooler and direct; safe local input replaced it and authentication now passes. Old generic input error did not identify its exact branch.",
+  "performanceAdvisors": {
+    "unindexedForeignKeysInfo": 2,
+    "unusedIndexesInfo": 31,
+    "followupDdlExecuted": false,
+    "initialSecurityLints": 0
+  },
+  "hostedJourney": {
+    "projectId": "roznanxbiyqybjpvtilq",
+    "auth": "real Supabase",
+    "database": "real Supabase, dedicated runtime",
+    "ai": "SDK fake model",
+    "liveModelCalls": 0,
+    "signupAndEmailDelivery": "NOT_TESTED: users created/confirmed by owner in Dashboard",
+    "realLoginUiAndHttpOnlySession": "PASS",
+    "onboardingPrivate16PlusAndExplicit18Boundary": "PASS",
+    "crossUserPrivateReadAndWriteDenied": "PASS",
+    "privateAndMoodPersistenceAcrossReload": "PASS",
+    "sdkFakeModelProposalOwnerApprovalAndMemoryPersistence": "PASS",
+    "publishMatchingAndConcurrentMutualRequestsSingleRoom": "PASS",
+    "realtimeChatAndConcurrentMessageDeduplication": "PASS",
+    "backendProcessRestartRetainsSessionsPrivateMemoryAndChat": "PASS",
+    "ownerRevealGrantAndRevoke": "PASS",
+    "reportReceiptAndBlockImmediatelyDenyBothDirections": "PASS",
+    "providerSessionRevokeInvalidatesOpaqueAppSession": "PASS",
+    "logoutAndOldCookieReplayDenied": "PASS",
+    "status": "PASS_SCOPED_HOSTED_JOURNEY"
+  },
+  "scopedToolProof": {
+    "unselectedToolNotExposed": true,
+    "projectId": "roznanxbiyqybjpvtilq",
+    "model": "SDK fake",
+    "liveModelCalls": 0,
+    "selectedRangeToolInvoked": true,
+    "notesExcluded": true,
+    "recordedDays": 1,
+    "fromDate": "2026-10-24",
+    "toDate": "2026-10-24"
+  },
+  "latestSecurityAdvisor": "WARN_AUTH_LEAKED_PASSWORD_PROTECTION_DISABLED_PRO_REQUIRED",
+  "postCorrectionDirectProbe": {
+    "scope": "post-correction direct IPv6 read-only probe; no DDL",
+    "direct": {
+      "status": "connected",
+      "local": false,
+      "matchesAuthProject": true,
+      "tlsMode": "require",
+      "network": {
+        "dns": {
+          "status": "resolved",
+          "families": [
+            "IPv6"
+          ]
+        },
+        "tcp": {
+          "status": "connected",
+          "family": "IPv6"
+        },
+        "tls": {
+          "status": "verified",
+          "certificateVerified": true,
+          "protocol": "TLSv1.3"
+        }
+      },
+      "authentication": "passed",
+      "identity": {
+        "database": "postgres",
+        "role": "postgres",
+        "postgres_version": "PostgreSQL 17.11 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 15.2.0, 64-bit",
+        "superuser": false,
+        "can_create_database": true,
+        "can_create_role": true,
+        "bypass_rls": true
+      },
+      "schemaExists": true,
+      "migrationHistoryExists": true,
+      "authSessionAccess": true,
+      "privateAuthBridgeExists": true,
+      "authSessionsRlsEnabled": true,
+      "privateAuthBridgeExecutable": true,
+      "revisions": [
+        "0005_export_scope"
+      ],
+      "migrationReadiness": "head_matches",
+      "domainTables": [
+        "age_declarations",
+        "ai_runs",
+        "alembic_version",
+        "auth_sessions",
+        "blocks",
+        "candidate_references",
+        "connection_requests",
+        "connections",
+        "consent_events",
+        "consents",
+        "data_jobs",
+        "human_messages",
+        "idempotency_keys",
+        "identity_fields",
+        "matching_drafts",
+        "memories",
+        "moods",
+        "outbox",
+        "pairs",
+        "private_items",
+        "published_profiles",
+        "reports",
+        "reveal_access",
+        "users"
+      ],
+      "canCreateInDomainSchema": true
+    }
   }
 }
