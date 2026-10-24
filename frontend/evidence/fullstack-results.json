@@ -1,0 +1,324 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "E:\\MoodPrint\\frontend\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--config",
+      "playwright.fullstack.config.ts"
+    ],
+    "configFile": "E:\\MoodPrint\\frontend\\playwright.fullstack.config.ts",
+    "rootDir": "E:/MoodPrint/frontend/tests/fullstack",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 180000,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "E:/MoodPrint/frontend/evidence/fullstack",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "E:/MoodPrint/frontend/tests/fullstack",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "E:\\MoodPrint\\frontend\\evidence\\fullstack",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "",
+        "testDir": "E:\\MoodPrint\\frontend\\tests\\fullstack",
+        "snapshotDir": "E:\\MoodPrint\\frontend\\tests\\fullstack",
+        "testIgnore": [],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 60000,
+        "use": {
+          "baseURL": "http://127.0.0.1:5174",
+          "screenshot": "only-on-failure",
+          "trace": "retain-on-failure",
+          "launchOptions": {}
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": ""
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "evidence/fullstack-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "journeys.spec.ts",
+      "file": "journeys.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "birth-year onboarding persists16+ access while the server rejects social access and under16 users",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9003,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T04:07:00.329Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "aa09586c1d16412a1f00-6ec78f2155f2a4d56290",
+          "file": "journeys.spec.ts",
+          "line": 58,
+          "column": 1
+        },
+        {
+          "title": "the eighteenth-year account explicitly confirms18 in settings without automatically enabling MATCH",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2921,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T04:07:09.542Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "aa09586c1d16412a1f00-a344e2f4c495bfd5ab63",
+          "file": "journeys.spec.ts",
+          "line": 168,
+          "column": 1
+        },
+        {
+          "title": "real FastAPI/PostgreSQL preserves private records and mood, streams through the SDK, and connects two users",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 21587,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T04:07:12.499Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "aa09586c1d16412a1f00-8cff519fa626eb223d5b",
+          "file": "journeys.spec.ts",
+          "line": 233,
+          "column": 1
+        },
+        {
+          "title": "only the identity owner grants reveal, revocation removes access, and reporting is separate from blocking",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 19001,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T04:07:34.133Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "aa09586c1d16412a1f00-a8e3311a9f68d155b6e8",
+          "file": "journeys.spec.ts",
+          "line": 326,
+          "column": 1
+        },
+        {
+          "title": "approved memory uses the edited approval, survives reload, and local privacy actions return real receipts",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8805,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T04:07:53.176Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "aa09586c1d16412a1f00-f12721f530a3ca2c7878",
+          "file": "journeys.spec.ts",
+          "line": 482,
+          "column": 1
+        },
+        {
+          "title": "real authenticated screens reflow and pass automated accessibility checks at mobile and desktop sizes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 17421,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-24T04:08:02.018Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "accessibility-results",
+                      "contentType": "application/json",
+                      "body": "WwogIHsKICAgICJ3aWR0aCI6IDM5MCwKICAgICJyb3V0ZSI6ICIvYXNzaXN0YW50cyIsCiAgICAicGFzc2VzIjogMTcsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAzOTAsCiAgICAicm91dGUiOiAiL3Byb2ZpbGUiLAogICAgInBhc3NlcyI6IDIzLAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0sCiAgewogICAgIndpZHRoIjogMzkwLAogICAgInJvdXRlIjogIi9zZXR0aW5ncyIsCiAgICAicGFzc2VzIjogMjAsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAzOTAsCiAgICAicm91dGUiOiAiL3NlbGYiLAogICAgInBhc3NlcyI6IDI0LAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0sCiAgewogICAgIndpZHRoIjogMzkwLAogICAgInJvdXRlIjogIi9jb25uZWN0IiwKICAgICJwYXNzZXMiOiAxNywKICAgICJ2aW9sYXRpb25zIjogW10KICB9LAogIHsKICAgICJ3aWR0aCI6IDE0NDAsCiAgICAicm91dGUiOiAiL2Fzc2lzdGFudHMiLAogICAgInBhc3NlcyI6IDIwLAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0sCiAgewogICAgIndpZHRoIjogMTQ0MCwKICAgICJyb3V0ZSI6ICIvcHJvZmlsZSIsCiAgICAicGFzc2VzIjogMjMsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAxNDQwLAogICAgInJvdXRlIjogIi9zZXR0aW5ncyIsCiAgICAicGFzc2VzIjogMjAsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAxNDQwLAogICAgInJvdXRlIjogIi9zZWxmIiwKICAgICJwYXNzZXMiOiAyNCwKICAgICJ2aW9sYXRpb25zIjogW10KICB9LAogIHsKICAgICJ3aWR0aCI6IDE0NDAsCiAgICAicm91dGUiOiAiL2Nvbm5lY3QiLAogICAgInBhc3NlcyI6IDE3LAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0KXQ=="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "aa09586c1d16412a1f00-d55a58f818b9e2d482a7",
+          "file": "journeys.spec.ts",
+          "line": 529,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-24T04:06:58.346Z",
+    "duration": 81724.769,
+    "expected": 6,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

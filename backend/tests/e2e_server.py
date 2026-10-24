@@ -1,0 +1,138 @@
+"""Disposable synthetic full-stack fixture. Never used by the application entrypoint."""
+# ruff: noqa: E402 -- sanitize inherited configuration before importing app.main
+
+import asyncio
+import hashlib
+import os
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from uuid import UUID
+
+import uvicorn
+from sqlalchemy import text
+from sqlalchemy.engine import make_url
+
+# Do not inherit real secrets from a developer's .env or environment.
+url = os.environ.get("TEST_DATABASE_URL", "")
+target = make_url(url) if url else None
+if (
+    not target
+    or target.host not in ("127.0.0.1", "localhost")
+    or not target.database.endswith("_test")
+):
+    raise RuntimeError("E2E requires an explicitly configured disposable local *_test database")
+os.environ.update(
+    {
+        "APP_ENV": "test",
+        "DATABASE_URL": "",
+        "DATABASE_MIGRATION_URL": "",
+        "SUPABASE_URL": "",
+        "SUPABASE_PUBLISHABLE_KEY": "",
+        "OPENAI_API_KEY": "",
+        "OPENAI_MODEL": "",
+        "AI_ENABLED": "false",
+        "STT_ENABLED": "false",
+    }
+)
+
+import time
+
+from app.ai.runtime import Proposal
+from app.core.config import Settings
+from app.infrastructure.database.models import AuthSession, Base, Consent, Memory, User
+from app.main import create_app
+from tests.fakes import make_test_model
+
+SESSION_HELPER = (
+    Path(__file__).resolve().parents[1] / "app/infrastructure/database/provider_session.sql"
+).read_text(encoding="utf-8")
+
+app = create_app(
+    Settings(
+        _env_file=None, app_env="test", database_url=url, frontend_origin="http://127.0.0.1:5174"
+    )
+)
+app.state.ai.model_override = make_test_model("Mây đã nhận được chia sẻ của bạn qua SDK.")
+
+
+async def seed():
+    async with app.state.database.engine.begin() as connection:
+        await connection.execute(text("create schema if not exists moodprint"))
+        await connection.run_sync(Base.metadata.drop_all)
+        await connection.run_sync(Base.metadata.create_all)
+        await connection.execute(text("create schema if not exists auth"))
+        await connection.execute(
+            text(
+                "create table if not exists auth.sessions (id uuid primary key,user_id uuid not null)"
+            )
+        )
+        await connection.execute(text("truncate auth.sessions"))
+        await connection.execute(
+            text(SESSION_HELPER.replace("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION", 1))
+        )
+    async with app.state.database.sessions.begin() as db:
+        for number in range(1, 10):
+            uid = UUID(f"00000000-0000-4000-8000-{number:012d}")
+            provider = UUID(f"00000000-0000-4000-9000-{number:012d}")
+            db.add(
+                User(
+                    id=uid,
+                    auth_subject=uid,
+                    alias=f"Bạn {number}",
+                    age_band="unknown" if number >= 7 else "adult",
+                )
+            )
+            await db.flush()
+            for purpose in ("AI", "MEM", "MATCH", "VOICE"):
+                db.add(
+                    Consent(
+                        user_id=uid,
+                        purpose=purpose,
+                        enabled=number == 5 and purpose in ("AI", "MEM"),
+                        version=1,
+                    )
+                )
+
+            def hash_(value):
+                return hashlib.sha256(value.encode()).hexdigest()
+
+            auth_session = AuthSession(
+                user_id=uid,
+                token_hash=hash_(f"e2e-synthetic-session-{number}"),
+                csrf_hash=hash_(f"e2e-synthetic-csrf-{number}"),
+                provider_session_id=provider,
+                expires_at=datetime.now(UTC) + timedelta(hours=1),
+            )
+            db.add(auth_session)
+            await db.flush()
+            if number == 5:
+                db.add(
+                    Memory(
+                        user_id=uid,
+                        bot_id="may",
+                        text="Mục ghi nhớ tổng hợp đã được duyệt",
+                        proposal_id=__import__("uuid").uuid4(),
+                    )
+                )
+                proposal = Proposal(
+                    uid,
+                    auth_session.id,
+                    "guong",
+                    "Đề xuất tổng hợp để bạn chỉnh sửa",
+                    "memory",
+                    1,
+                    time.monotonic() + 900,
+                )
+                app.state.ai.proposals[proposal.id] = proposal
+            await db.execute(
+                text("insert into auth.sessions(id,user_id) values (:id,:uid)"),
+                {"id": provider, "uid": uid},
+            )
+    await app.state.database.engine.dispose()
+
+
+if __name__ == "__main__":
+    asyncio.run(seed(), loop_factory=asyncio.SelectorEventLoop)
+    uvicorn.run(
+        app, host="127.0.0.1", port=8002, loop="app.core.loop:selector_factory", log_config=None
+    )
