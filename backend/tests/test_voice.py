@@ -50,3 +50,25 @@ async def test_voice_requires_both_consents_and_rechecks_before_returning_previe
     assert result.status_code == 200, result.text
     assert result.json()["text"] == "Bản chữ để bạn duyệt"
     assert "sent" not in result.json()
+
+
+@pytest.mark.postgres
+async def test_local_voice_enablement_denies_an_actor_outside_the_live_scope(clients):
+    app, actors = clients
+    app.state.settings.app_env = "development"
+    app.state.settings.ai_local_test_user_ids = [actors[0][1]]
+    outsider = actors[1][0]
+    for purpose in ("AI", "VOICE"):
+        await outsider.put(f"/api/v1/consents/{purpose}", json={"enabled": True, "expectedVersion": 1, "policyVersion": "v1"}, headers={"Idempotency-Key": str(uuid4())})
+    calls = []
+
+    class Transcriber:
+        async def transcribe(self, data):
+            calls.append(True)
+            return "must not run"
+
+    app.state.transcriber = Transcriber()
+    session = (await outsider.get("/api/v1/session")).json()
+    assert not session["features"]["voice"]
+    response = await outsider.post("/api/v1/voice/transcriptions", content=audio(), headers={"Content-Type": "audio/wav", "Idempotency-Key": str(uuid4())})
+    assert response.status_code == 503 and not calls

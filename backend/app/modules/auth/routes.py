@@ -45,9 +45,12 @@ async def session_view(request: Request, actor: Actor, csrf: str | None = None) 
             birth_year=declaration.birth_year if declaration else None,
             eligibility_version=declaration.version if declaration else 0,
             features=FeatureView(
-                ai=request.app.state.ai.available,
+                ai=request.app.state.ai.available_for(actor.user_id),
                 matching=True,
-                voice=request.app.state.transcriber is not None,
+                voice=request.app.state.transcriber is not None and (
+                    not request.app.state.settings.ai_local_test_user_ids
+                    or request.app.state.ai.available_for(actor.user_id)
+                ),
             ),
         )
 

@@ -1,5 +1,7 @@
 # Live AI smoke preparation — chưa được bật
 
+> Historical preparation before the authorized live run. Superseded by [24Oct2026 live evaluation](live-ai/final-evaluation.md), [usage](live-ai/performance-usage.json), and [local0006 accounting rehearsal](live-ai/accounting-local-verification.json). Fixed-budget permission gates in this historical draft do not override the user's later explicit authorization. New remote SQL still requires separate approval.
+
 24/10/2026, Asia/Bangkok. Model đang cấu hình: `gpt-6-luna`; OpenAI key đã có, không cần cung cấp lại. `AI_ENABLED=false`, `STT_ENABLED=false`; chưa gọi live provider.
 
 ## Privacy đã kiểm tra được và phần còn thiếu

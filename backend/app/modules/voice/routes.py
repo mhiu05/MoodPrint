@@ -23,7 +23,10 @@ async def transcribe(request: Request, actor: Actor = Depends(require_actor)):
         await assert_purpose(db, user, "VOICE")
         version = user.data_version
     provider = request.app.state.transcriber
-    if provider is None:
+    if provider is None or (
+        request.app.state.settings.ai_local_test_user_ids
+        and not request.app.state.ai.available_for(actor.user_id)
+    ):
         raise DomainError(503, "VOICE_UNAVAILABLE", "Chuyển giọng nói thành chữ chưa sẵn sàng.")
     if request.headers.get("Content-Type", "").split(";")[0] != "audio/wav":
         raise DomainError(422, "INVALID_AUDIO", "Chỉ nhận định dạng WAV.")
