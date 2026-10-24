@@ -55,6 +55,13 @@
 .real-voice {
   margin: 0 12px 12px;
 }
+
+.ai-markdown > :first-child { margin-top: 0; }
+.ai-markdown > :last-child { margin-bottom: 0; }
+.ai-markdown p + p { margin-top: .6em; }
+.ai-markdown ul, .ai-markdown ol { padding-left: 1.3em; margin-block: .6em; }
+.ai-markdown pre { max-width: 100%; overflow-x: auto; white-space: pre-wrap; }
+.ai-markdown blockquote { margin-inline: 0; padding-left: .8em; border-left: 2px solid currentColor; }
 .real-voice p {
   font-size: 14px;
 }

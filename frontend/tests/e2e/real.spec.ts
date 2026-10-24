@@ -132,6 +132,20 @@ test("Nhịp retries preserve the exact range intent and changing dates creates 
   await expect(page.getByRole("textbox", { name: "Tin nhắn cho Nhịp" })).toHaveValue("Cùng một lời nhắn");
 });
 
+test("terminal AI failure restores text without regranting the consumed mood scope", async ({ page }) => {
+  const submitted: any[] = [];
+  await scopedNhip(page, submitted);
+  await page.route("**/api/v1/ai/runs/*/events", route => route.fulfill({ contentType: "text/event-stream", body:
+    `data: ${JSON.stringify({ version: "ai-events-v1", seq: "1", type: "failed", data: {} })}\n\n` }));
+  const input = page.getByRole("textbox", { name: "Tin nhắn cho Nhịp" });
+  await input.fill("Một lời nhắn cần thử lại");
+  await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
+  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(input).toHaveValue("Một lời nhắn cần thử lại");
+  await expect(page.getByRole("checkbox", { name: "Cho Nhịp đọc khoảng ngày mình chọn", exact: true })).not.toBeChecked();
+  expect(submitted).toHaveLength(1);
+});
+
 test("login failure retains credentials and never opens a sample session", async ({
   page,
 }) => {
@@ -440,6 +454,19 @@ test("AI presents the validated final and rejects raw stream deltas", async ({
     "Mình đang lắng nghe bạn.",
   );
   await expect(page.getByText("RAW_SECRET_DELTA")).toHaveCount(0);
+});
+
+test("bot Markdown renders emphasis and lists without HTML, active links or remote images", async ({ page }) => {
+  await api(page);
+  const text = "**Một bước nhỏ**\n\n- Mở sổ\n- Vẽ một nét\n\n[Liên kết](https://example.test)\n\n![Ảnh](https://example.test/pixel.png)\n\n<script>window.syntheticLeak = true</script>";
+  await page.route("**/api/v1/ai/conversations", route => route.fulfill({ json: [conversation] }));
+  await page.route(`**/api/v1/ai/conversations/${conversation.conversationId}`, route => route.fulfill({ json: { ...conversation, messages: [{ id: "synthetic-markdown", actor: "bot", text, cards: [] }] } }));
+  await page.goto("/#/assistants/may");
+  const bubble = page.locator(".from-bot .chat-bubble");
+  await expect(bubble.locator("strong")).toHaveText("Một bước nhỏ");
+  await expect(bubble.getByRole("listitem")).toHaveCount(2);
+  await expect(bubble.locator("a, img, script")).toHaveCount(0);
+  expect(await page.evaluate(() => "syntheticLeak" in window)).toBe(false);
 });
 
 test("the next AI send uses the version persisted after final completion", async ({

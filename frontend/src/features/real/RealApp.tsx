@@ -1,5 +1,7 @@
 import {
   createContext,
+  lazy,
+  Suspense,
   useCallback,
   useContext,
   useEffect,
@@ -71,6 +73,8 @@ import { ApprovedMemories } from "./Memory";
 import { VoiceRecorder } from "./Voice";
 import { OwnIdentity } from "./Safety";
 import { DataControls } from "./Privacy";
+
+const MessageMarkdown = lazy(() => import("./MessageMarkdown"));
 
 type SessionContextValue = {
   api: ApiClient;
@@ -699,6 +703,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const log = useRef<HTMLDivElement>(null),
     lifetime = useRef<AbortController | null>(null);
   const intent = useRef<{ text: string; scopeKey: string; clientMessageId: string } | null>(null);
+  const submittedText = useRef<string | undefined>(undefined);
   const [shareMood, setShareMood] = useState(false);
   const [moodFrom, setMoodFrom] = useState("");
   const [moodTo, setMoodTo] = useState("");
@@ -758,6 +763,11 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         if (!signal.aborted) {
           setError(reason);
           setReady(false);
+          if (reason instanceof ApiError && reason.code === "RUN_FAILED") {
+            // Restore only a confirmed terminal failure. A transport interruption
+            // can still complete on the server and must be reconciled by reload.
+            setDraft(value => value || submittedText.current || "");
+          }
         }
       } finally {
         if (!signal.aborted) {
@@ -877,6 +887,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         ],
       });
       intent.current = null;
+      submittedText.current = text;
       setShareMood(false);
       setDraft("");
       setAtBottom(true);
@@ -935,7 +946,11 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           >
             <div className="message-content">
               <div className="chat-bubble">
-                <p>{message.text}</p>
+                {message.actor === "bot" ? (
+                  <Suspense fallback={<p>{message.text}</p>}>
+                    <MessageMarkdown text={message.text} />
+                  </Suspense>
+                ) : <p>{message.text}</p>}
               </div>
               {validCards(message.cards) &&
                 message.cards.map((card, index) => (
