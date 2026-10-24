@@ -1,0 +1,173 @@
+import { useEffect, useState } from "react";
+import { Button, cx, Dialog } from "../../components/UI";
+import type { components } from "../../api/generated/schema";
+import { ErrorNotice, useSession } from "./RealApp";
+import type { SessionView } from "../../api/contracts";
+
+type Job = components["schemas"]["DataJobView"];
+type Scope = components["schemas"]["DeletionInput"]["scope"];
+const choices = {
+  memories: "Ghi nhớ đã duyệt",
+  moods: "Nhật ký tâm trạng",
+  private_items: "Mục trong hồ sơ riêng",
+  all_private: "Toàn bộ dữ liệu riêng và hồ sơ kết nối",
+} as const;
+
+export function DataControls() {
+  const { api, receive } = useSession();
+  const [scope, setScope] = useState<Exclude<Scope, "account">>("memories"),
+    [confirm, setConfirm] = useState(false),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState<unknown>(),
+    [job, setJob] = useState<Job>(),
+    [notice, setNotice] = useState("");
+  useEffect(() => {
+    if (!job || !["queued", "running"].includes(job.status)) return;
+    let cancelled = false;
+    const timer = setInterval(() => {
+      void api
+        .request<Job>(`/data-deletions/${job.id}`)
+        .then((value) => {
+          if (!cancelled) {
+            setJob(value);
+            if (value.status === "completed")
+              setNotice("Đã xóa phạm vi dữ liệu bạn chọn trong ứng dụng.");
+          }
+        })
+        .catch((reason) => {
+          if (!cancelled) setError(reason);
+        });
+    }, 1000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [api, job?.id, job?.status]);
+  async function remove() {
+    setBusy(true);
+    setError(undefined);
+    setNotice("");
+    try {
+      const snapshot = await api.request<SessionView>("/session");
+      receive(snapshot);
+      const accepted = await api.request<Job>("/data-deletions", {
+        method: "POST",
+        body: { scope, expectedVersion: snapshot.dataVersion || 1 },
+      });
+      setJob(accepted);
+      setConfirm(false);
+    } catch (reason) {
+      setError(reason);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function exportData() {
+    setBusy(true);
+    setError(undefined);
+    setNotice("");
+    try {
+      const result = await api.request<Job>("/exports", {
+        method: "POST",
+        body: { scopes: ["account", "private_items", "memories", "moods"] },
+      });
+      const data = await api.request<unknown>(`/exports/${result.id}/download`);
+      const url = URL.createObjectURL(
+        new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "moodprint-data.json";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setNotice("Đã chuẩn bị tệp dữ liệu riêng của bạn.");
+    } catch (reason) {
+      setError(reason);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section className="real-section">
+      <h2>Dữ liệu của bạn</h2>
+      <p>
+        Bản xuất gồm thông tin tuổi, hồ sơ riêng, tâm trạng và ghi nhớ của bạn.
+        Hội thoại AI tạm và nội dung riêng của người khác không nằm trong bản
+        xuất.
+      </p>
+      <ErrorNotice error={error} />
+      {notice && <p role="status">{notice}</p>}
+      <Button
+        variant="secondary"
+        disabled={busy}
+        onClick={() => void exportData()}
+      >
+        Xuất dữ liệu riêng
+      </Button>
+      <div className="real-section">
+        <label htmlFor="deletion-scope">Dữ liệu bạn muốn xóa</label>
+        <select
+          id="deletion-scope"
+          value={scope}
+          onChange={(event) =>
+            setScope(event.target.value as Exclude<Scope, "account">)
+          }
+        >
+          {Object.entries(choices).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <Button
+          variant="text"
+          disabled={
+            busy || Boolean(job && ["queued", "running"].includes(job.status))
+          }
+          onClick={() => setConfirm(true)}
+        >
+          Xóa dữ liệu đã chọn
+        </Button>
+        {job && (
+          <p role="status">
+            {job.status === "completed"
+              ? "Yêu cầu đã hoàn tất trong ứng dụng."
+              : job.status === "failed"
+                ? "Chưa hoàn tất yêu cầu. Vui lòng thử lại hoặc liên hệ hỗ trợ."
+                : "Đang xóa dữ liệu đã chọn. Dữ liệu này đã được chặn sử dụng."}
+          </p>
+        )}
+      </div>
+      {confirm && (
+        <Dialog
+          title="Xóa phạm vi dữ liệu này?"
+          destructive
+          onClose={() => !busy && setConfirm(false)}
+        >
+          <p>{choices[scope]}</p>
+          <p>
+            Nội dung đã xóa sẽ không được khôi phục khi bật lại quyền. Nếu xóa
+            toàn bộ dữ liệu riêng, hồ sơ đang chia sẻ và kết nối liên quan cũng
+            sẽ mất hiệu lực.
+          </p>
+          <div className={cx.actions}>
+            <Button
+              variant="secondary"
+              disabled={busy}
+              onClick={() => setConfirm(false)}
+            >
+              Giữ dữ liệu
+            </Button>
+            <Button
+              variant="danger"
+              disabled={busy}
+              onClick={() => void remove()}
+            >
+              Xác nhận xóa dữ liệu
+            </Button>
+          </div>
+        </Dialog>
+      )}
+    </section>
+  );
+}
