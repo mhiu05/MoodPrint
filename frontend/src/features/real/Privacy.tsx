@@ -3,6 +3,8 @@ import { Button, cx, Dialog } from "../../components/UI";
 import type { components } from "../../api/generated/schema";
 import { ErrorNotice, useSession } from "./RealApp";
 import type { SessionView } from "../../api/contracts";
+import { ApiError } from "../../api/client";
+import { ReauthForm } from "./Auth";
 
 type Job = components["schemas"]["DataJobView"];
 type Scope = components["schemas"]["DeletionInput"]["scope"];
@@ -20,7 +22,13 @@ export function DataControls() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>(),
     [job, setJob] = useState<Job>(),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [reauthFor, setReauthFor] = useState<"export" | "account" | null>(null),
+    [accountDialog, setAccountDialog] = useState(false),
+    [understood, setUnderstood] = useState(false),
+    [accountDeleted, setAccountDeleted] = useState(false);
+  const needsReauth = (reason: unknown) =>
+    reason instanceof ApiError && reason.code === "REAUTH_REQUIRED";
   useEffect(() => {
     if (!job || !["queued", "running"].includes(job.status)) return;
     let cancelled = false;
@@ -82,21 +90,68 @@ export function DataControls() {
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       setNotice("Đã chuẩn bị tệp dữ liệu riêng của bạn.");
     } catch (reason) {
-      setError(reason);
+      if (needsReauth(reason)) setReauthFor("export");
+      else setError(reason);
     } finally {
       setBusy(false);
     }
   }
+  async function removeAccount() {
+    setBusy(true);
+    setError(undefined);
+    setNotice("");
+    try {
+      const snapshot = await api.request<SessionView>("/session");
+      receive(snapshot);
+      await api.request<Job>("/data-deletions", {
+        method: "POST",
+        body: { scope: "account", expectedVersion: snapshot.dataVersion || 1 },
+      });
+      setAccountDialog(false);
+      setAccountDeleted(true);
+    } catch (reason) {
+      if (needsReauth(reason)) {
+        setAccountDialog(false);
+        setReauthFor("account");
+      } else setError(reason);
+    } finally {
+      setBusy(false);
+    }
+  }
+  if (accountDeleted)
+    return (
+      <section className="real-section">
+        <h2>Tài khoản đang được xóa</h2>
+        <p role="status">
+          Bạn đã được đăng xuất. Dữ liệu trong ứng dụng và tài khoản đăng nhập
+          sẽ được xóa trong ít phút. Tin nhắn bạn đã gửi cho người khác sẽ hiển
+          thị là “[Đã xóa]”.
+        </p>
+        <Button onClick={() => window.location.reload()}>Về trang đăng nhập</Button>
+      </section>
+    );
   return (
     <section className="real-section">
       <h2>Dữ liệu của bạn</h2>
       <p>
         Bản xuất gồm thông tin tuổi, hồ sơ riêng, tâm trạng và ghi nhớ của bạn.
-        Hội thoại AI tạm và nội dung riêng của người khác không nằm trong bản
-        xuất.
+        Hội thoại AI đã lưu được xuất riêng trong lịch sử trò chuyện. Hội thoại
+        AI tạm và nội dung riêng của người khác không nằm trong bản xuất.
       </p>
       <ErrorNotice error={error} />
       {notice && <p role="status">{notice}</p>}
+      {reauthFor && (
+        <ReauthForm
+          api={api}
+          onCancel={() => setReauthFor(null)}
+          onConfirmed={() => {
+            const next = reauthFor;
+            setReauthFor(null);
+            if (next === "export") void exportData();
+            else setAccountDialog(true);
+          }}
+        />
+      )}
       <Button
         variant="secondary"
         disabled={busy}
@@ -138,6 +193,61 @@ export function DataControls() {
           </p>
         )}
       </div>
+      <div className="real-section">
+        <h3>Xóa tài khoản</h3>
+        <p>
+          Xóa vĩnh viễn tài khoản đăng nhập và toàn bộ dữ liệu của bạn trong
+          ứng dụng. Thao tác này không thể hoàn tác.
+        </p>
+        <Button
+          variant="danger"
+          disabled={busy || Boolean(reauthFor)}
+          onClick={() => {
+            setUnderstood(false);
+            setAccountDialog(true);
+          }}
+        >
+          Xóa tài khoản
+        </Button>
+      </div>
+      {accountDialog && (
+        <Dialog
+          title="Xóa vĩnh viễn tài khoản?"
+          destructive
+          onClose={() => !busy && setAccountDialog(false)}
+        >
+          <p>
+            Hội thoại đã lưu, ghi nhớ, tâm trạng, hồ sơ riêng, hồ sơ kết nối và
+            tài khoản đăng nhập sẽ bị xóa. Tin nhắn đã gửi cho người khác sẽ
+            hiển thị là “[Đã xóa]”. Bản sao lưu hệ thống có thể còn giữ dữ liệu
+            thêm một thời gian ngắn trước khi tự hết hạn.
+          </p>
+          <label className="real-check">
+            <input
+              type="checkbox"
+              checked={understood}
+              onChange={(event) => setUnderstood(event.target.checked)}
+            />
+            Tôi hiểu tài khoản không thể khôi phục.
+          </label>
+          <div className={cx.actions}>
+            <Button
+              variant="secondary"
+              disabled={busy}
+              onClick={() => setAccountDialog(false)}
+            >
+              Giữ tài khoản
+            </Button>
+            <Button
+              variant="danger"
+              disabled={busy || !understood}
+              onClick={() => void removeAccount()}
+            >
+              Xóa vĩnh viễn
+            </Button>
+          </div>
+        </Dialog>
+      )}
       {confirm && (
         <Dialog
           title="Xóa phạm vi dữ liệu này?"

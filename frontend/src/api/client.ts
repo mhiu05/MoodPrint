@@ -91,10 +91,12 @@ export class ApiClient {
       if (!response.ok) {
         const payload = record(await response.json().catch(() => ({})));
         const detail = record(payload.error || payload.detail);
+        // Step-up re-authentication and public auth endpoints are not session loss.
         if (
           response.status === 401 &&
           path !== "/session" &&
-          path !== "/auth/login"
+          !path.startsWith("/auth/") &&
+          detail.code !== "REAUTH_REQUIRED"
         )
           this.onUnauthorized?.();
         throw new ApiError(

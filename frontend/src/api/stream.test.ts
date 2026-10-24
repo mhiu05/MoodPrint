@@ -5,13 +5,11 @@ function stream(final: unknown, sequence = "1") {
   const body = `data: ${JSON.stringify({ version: "ai-events-v1", seq: sequence, type: "final", data: final })}\n\ndata: ${JSON.stringify({ version: "ai-events-v1", seq: String(BigInt(sequence) + 1n), type: "completed", data: {} })}\n\n`;
   vi.stubGlobal(
     "fetch",
-    vi
-      .fn()
-      .mockResolvedValue(
-        new Response(body, {
-          headers: { "Content-Type": "text/event-stream" },
-        }),
-      ),
+    vi.fn().mockResolvedValue(
+      new Response(body, {
+        headers: { "Content-Type": "text/event-stream" },
+      }),
+    ),
   );
   return consumeAIEvents(
     "/api/v1/ai/runs/123/events",
@@ -49,5 +47,24 @@ describe("validated AI stream", () => {
     await expect(
       stream({ text: "Hello", cards: [] }, "2"),
     ).rejects.toMatchObject({ code: "INVALID_AI_EVENT" });
+  });
+  it("distinguishes an interrupted durable turn from a retryable provider failure", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(
+            `data: ${JSON.stringify({ version: "ai-events-v1", seq: "1", type: "failed", data: { code: "AI_INTERRUPTED" } })}\n\n`,
+            { headers: { "Content-Type": "text/event-stream" } },
+          ),
+        ),
+    );
+    await expect(
+      consumeAIEvents(
+        "/api/v1/ai/runs/123/events",
+        new AbortController().signal,
+      ),
+    ).rejects.toMatchObject({ code: "RUN_INTERRUPTED" });
   });
 });

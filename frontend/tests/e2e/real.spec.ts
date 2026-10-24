@@ -47,6 +47,7 @@ async function api(page: Page, authenticated = true) {
             },
       });
     if (path === "/api/v1/bots") return route.fulfill({ json: [bot] });
+    if (path === "/api/v1/ai/preferences") return route.fulfill({ json: { historyEnabled: false, semanticMemoryEnabled: false, version: 1, policyVersion: "ai-data-v1", retentionDays: 30, historyAvailable: true, semanticMemoryAvailable: false } });
     if (path === "/api/v1/ai/conversations")
       return route.fulfill({
         json: route.request().method() === "GET" ? [] : conversation,
@@ -329,7 +330,7 @@ test("failed conversation history blocks new sends until the history can be chec
   page,
 }) => {
   await api(page);
-  await page.route("**/api/v1/ai/conversations", (route) =>
+  await page.route("**/api/v1/ai/conversations?*", (route) =>
     route.fulfill({
       status: 503,
       json: {
@@ -341,7 +342,7 @@ test("failed conversation history blocks new sends until the history can be chec
     }),
   );
   await page.goto("/#/assistants/may");
-  await expect(page.getByRole("alert")).toContainText("Chưa mở được lịch sử");
+  await expect(page.getByRole("alert").filter({ hasText: "Chưa mở được lịch sử" }).first()).toBeVisible();
   await page
     .getByRole("textbox", { name: "Tin nhắn cho Mây" })
     .fill("Giữ bản nháp này");
@@ -350,7 +351,7 @@ test("failed conversation history blocks new sends until the history can be chec
   ).toBeDisabled();
 });
 
-test("returning to the app rechecks consent and removes the revoked conversation", async ({
+test("returning to the app rechecks consent and removes the revoked composer", async ({
   page,
 }) => {
   await api(page);
@@ -377,7 +378,7 @@ test("returning to the app rechecks consent and removes the revoked conversation
   allowed = false;
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect(
-    page.getByRole("heading", { name: "Trò chuyện AI đang tắt" }),
+    page.getByText("Trò chuyện AI đang tắt hoặc chưa khả dụng. Bạn vẫn xem, xuất và xóa lịch sử đã lưu được.", { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("textbox", { name: "Tin nhắn cho Mây" }),
@@ -461,7 +462,7 @@ test("bot Markdown renders emphasis and lists without HTML, active links or remo
   const text = "**Một bước nhỏ**\n\n- Mở sổ\n- Vẽ một nét\n\n[Liên kết](https://example.test)\n\n![Ảnh](https://example.test/pixel.png)\n\n<script>window.syntheticLeak = true</script>";
   await page.route("**/api/v1/ai/conversations", route => route.fulfill({ json: [conversation] }));
   await page.route(`**/api/v1/ai/conversations/${conversation.conversationId}`, route => route.fulfill({ json: { ...conversation, messages: [{ id: "synthetic-markdown", actor: "bot", text, cards: [] }] } }));
-  await page.goto("/#/assistants/may");
+  await page.goto(`/#/assistants/may?conversation=${conversation.conversationId}`);
   const bubble = page.locator(".from-bot .chat-bubble");
   await expect(bubble.locator("strong")).toHaveText("Một bước nhỏ");
   await expect(bubble.getByRole("listitem")).toHaveCount(2);

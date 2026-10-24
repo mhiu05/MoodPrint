@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button, cx } from "../../components/UI";
 import type { components } from "../../api/generated/schema";
@@ -6,13 +6,7 @@ import { ErrorNotice, useResource, useSession } from "./RealApp";
 import { botById, type BotId } from "../../companions/registry";
 
 type MemoryDTO = components["schemas"]["MemoryDTO"];
-type Proposal = {
-  id: string;
-  text: string;
-  botId: BotId;
-  purpose: "memory" | "private_item";
-  version: number;
-};
+type Proposal = components["schemas"]["ProposalDTO"];
 
 function ProposalReview({
   proposal,
@@ -21,10 +15,34 @@ function ProposalReview({
   proposal: Proposal;
   completed: () => void;
 }) {
-  const { api } = useSession();
+  const { api, session } = useSession();
   const [text, setText] = useState(proposal.text),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>();
+  const [now, setNow] = useState(Date.now);
+  const expiry = proposal.expiresAt
+    ? new Date(proposal.expiresAt).getTime()
+    : Infinity;
+  const status =
+    (proposal.status || "pending") === "pending" && expiry <= now
+      ? "expired"
+      : proposal.status || "pending";
+  const allowed =
+    session.consents.AI.enabled &&
+    (proposal.purpose !== "memory" || session.consents.MEM.enabled);
+  useEffect(() => {
+    if (
+      !Number.isFinite(expiry) ||
+      expiry <= Date.now() ||
+      status !== "pending"
+    )
+      return;
+    const timer = window.setTimeout(
+      () => setNow(Date.now()),
+      Math.min(expiry - Date.now() + 20, 2_147_483_647),
+    );
+    return () => window.clearTimeout(timer);
+  }, [expiry, status]);
   return (
     <article className="real-item">
       <h3>
@@ -33,51 +51,90 @@ function ProposalReview({
           : "Đề xuất cho hồ sơ riêng"}{" "}
         từ {botById(proposal.botId)?.name}
       </h3>
-      <p>Đây là đề xuất để bạn xem lại. Chỉ nội dung bạn duyệt mới được lưu.</p>
-      <label htmlFor={`proposal-${proposal.id}`}>Nội dung bạn muốn duyệt</label>
-      <textarea
-        id={`proposal-${proposal.id}`}
-        value={text}
-        maxLength={120}
-        rows={3}
-        onChange={(event) => setText(event.target.value)}
-      />
-      <ErrorNotice error={error} />
-      <div className={cx.actions}>
-        <Button
-          disabled={busy || !text.trim()}
-          onClick={() => {
-            setBusy(true);
-            void api
-              .request(`/proposals/${proposal.id}/confirm`, {
-                method: "POST",
-                body: { expectedVersion: proposal.version, editedText: text },
-              })
-              .then(completed)
-              .catch(setError)
-              .finally(() => setBusy(false));
-          }}
-        >
-          Duyệt và lưu
-        </Button>
-        <Button
-          variant="secondary"
-          disabled={busy}
-          onClick={() => {
-            setBusy(true);
-            void api
-              .request(`/proposals/${proposal.id}/reject`, {
-                method: "POST",
-                body: { expectedVersion: proposal.version },
-              })
-              .then(completed)
-              .catch(setError)
-              .finally(() => setBusy(false));
-          }}
-        >
-          Không lưu
-        </Button>
-      </div>
+      {status !== "pending" ? (
+        <p>
+          {status === "expired"
+            ? "Đề xuất đã hết hạn. Bạn có thể tạo đề xuất mới trong cuộc trò chuyện."
+            : status === "approved"
+              ? "Đề xuất đã được duyệt. Bạn có thể sửa hoặc xóa nội dung trong những mục đã lưu."
+              : "Bạn đã chọn không lưu đề xuất này."}
+        </p>
+      ) : (
+        <>
+          <p>
+            Đây là đề xuất để bạn xem lại. Chỉ nội dung bạn duyệt mới được lưu.
+          </p>
+          {proposal.expiresAt ? (
+            <p>
+              Hết hạn:{" "}
+              <time dateTime={proposal.expiresAt}>
+                {new Intl.DateTimeFormat("vi-VN", {
+                  timeZone: session.timezone,
+                  dateStyle: "short",
+                  timeStyle: "short",
+                }).format(new Date(proposal.expiresAt))}
+              </time>
+            </p>
+          ) : null}
+          {!allowed ? (
+            <p>
+              Để duyệt đề xuất, hãy bật quyền AI
+              {proposal.purpose === "memory" ? " và ghi nhớ đã duyệt" : ""}{" "}
+              trong <Link to="/settings">quyền riêng tư</Link>. Bạn vẫn có thể
+              chọn không lưu.
+            </p>
+          ) : null}
+          <label htmlFor={`proposal-${proposal.id}`}>
+            Nội dung bạn muốn duyệt
+          </label>
+          <textarea
+            id={`proposal-${proposal.id}`}
+            value={text}
+            maxLength={120}
+            rows={3}
+            onChange={(event) => setText(event.target.value)}
+          />
+          <ErrorNotice error={error} />
+          <div className={cx.actions}>
+            <Button
+              disabled={busy || !text.trim() || !allowed}
+              onClick={() => {
+                setBusy(true);
+                void api
+                  .request(`/proposals/${proposal.id}/confirm`, {
+                    method: "POST",
+                    body: {
+                      expectedVersion: proposal.version,
+                      editedText: text,
+                    },
+                  })
+                  .then(completed)
+                  .catch(setError)
+                  .finally(() => setBusy(false));
+              }}
+            >
+              Duyệt và lưu
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={busy}
+              onClick={() => {
+                setBusy(true);
+                void api
+                  .request(`/proposals/${proposal.id}/reject`, {
+                    method: "POST",
+                    body: { expectedVersion: proposal.version },
+                  })
+                  .then(completed)
+                  .catch(setError)
+                  .finally(() => setBusy(false));
+              }}
+            >
+              Không lưu
+            </Button>
+          </div>
+        </>
+      )}
     </article>
   );
 }
@@ -92,6 +149,7 @@ function MemoryItem({
   const { api } = useSession();
   const [text, setText] = useState(memory.text),
     [editing, setEditing] = useState(false),
+    [confirmDelete, setConfirmDelete] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>();
   async function modify(deleting: boolean) {
@@ -137,13 +195,32 @@ function MemoryItem({
         >
           {editing ? "Lưu chỉnh sửa" : "Sửa"}
         </Button>
-        <Button
-          variant="text"
-          disabled={busy}
-          onClick={() => void modify(true)}
-        >
-          Xóa ghi nhớ
-        </Button>
+        {confirmDelete ? (
+          <>
+            <Button
+              variant="danger"
+              disabled={busy}
+              onClick={() => void modify(true)}
+            >
+              Xác nhận xóa ghi nhớ
+            </Button>
+            <Button
+              variant="text"
+              disabled={busy}
+              onClick={() => setConfirmDelete(false)}
+            >
+              Giữ lại
+            </Button>
+          </>
+        ) : (
+          <Button
+            variant="text"
+            disabled={busy}
+            onClick={() => setConfirmDelete(true)}
+          >
+            Xóa ghi nhớ
+          </Button>
+        )}
         {editing && (
           <Button
             variant="text"
@@ -186,10 +263,16 @@ export function ApprovedMemories() {
           lưu. <Link to="/settings">Xem quyền ghi nhớ</Link>
         </p>
       ) : null}
-      {session.consents.AI.enabled && proposals.data && (
+      <ErrorNotice error={proposals.error} retry={proposals.refresh} />
+      {proposals.loading ? <p role="status">Đang tải đề xuất…</p> : null}
+      {proposals.data && (
         <section className="real-section">
-          <h2>Đang chờ bạn xem lại</h2>
-          {proposals.data.length === 0 && <p>Không có đề xuất đang chờ.</p>}
+          <h2>Đề xuất của trợ lý</h2>
+          {!proposals.data.some(
+            (proposal) =>
+              proposal.status === "pending" &&
+              new Date(proposal.expiresAt).getTime() > Date.now(),
+          ) && <p>Không có đề xuất đang chờ.</p>}
           {proposals.data.map((proposal) => (
             <ProposalReview
               key={proposal.id}

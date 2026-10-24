@@ -272,6 +272,8 @@ test("real FastAPI/PostgreSQL preserves private records and mood, streams throug
     one.locator("article").getByText("Một ngày bình yên", { exact: true }),
   ).toBeVisible();
   await enable(one, "trò chuyện AI");
+  await one.getByRole("checkbox", { name: "Lưu lịch sử trò chuyện", exact: true }).check();
+  await expect(one.getByText("Đã cập nhật lựa chọn dữ liệu AI.", { exact: true })).toBeVisible();
   await one.goto("/#/assistants/may");
   await one
     .getByRole("textbox", { name: "Tin nhắn cho Mây" })

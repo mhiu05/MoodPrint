@@ -120,6 +120,12 @@ export async function consumeAIEvents(
             "Phản hồi đã dừng. Bạn có thể gửi một tin nhắn mới.",
           );
         } else if (event.type === "failed") {
+          if (event.data.code === "AI_INTERRUPTED")
+            throw new ApiError(
+              409,
+              "RUN_INTERRUPTED",
+              "Phản hồi đã bị gián đoạn. Lượt này không tự chạy lại; tải lại hội thoại rồi chủ động gửi tin mới.",
+            );
           throw new ApiError(
             503,
             "RUN_FAILED",

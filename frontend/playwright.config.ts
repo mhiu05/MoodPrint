@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "tests/e2e",
-  testMatch: ["real.spec.ts", "social.spec.ts"],
+  testMatch: ["real.spec.ts", "social.spec.ts", "chat-history.spec.ts", "auth.spec.ts"],
   globalTimeout: 180000,
   fullyParallel: false,
   workers: 1,

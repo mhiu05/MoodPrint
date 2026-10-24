@@ -12,9 +12,13 @@ export function OwnIdentity() {
   const [values, setValues] = useState({ displayName: "", gender: "" }),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>(),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    if (resource.data)
+    // Apply stored values once; inputs stay disabled until then so typing is never
+    // overwritten by a late load or by the refresh that follows a save.
+    if (resource.data && !loaded) {
+      setLoaded(true);
       setValues({
         displayName:
           resource.data.find((item) => item.field === "displayName")?.value ||
@@ -22,7 +26,8 @@ export function OwnIdentity() {
         gender:
           resource.data.find((item) => item.field === "gender")?.value || "",
       });
-  }, [resource.data]);
+    }
+  }, [resource.data, loaded]);
   return (
     <section className="real-section">
       <h2>Thông tin bạn có thể chọn chia sẻ</h2>
@@ -37,7 +42,7 @@ export function OwnIdentity() {
           <label htmlFor={`identity-${field}`}>{fields[field]}</label>
           <input
             id={`identity-${field}`}
-            disabled={!resource.data || busy}
+            disabled={!loaded || busy}
             maxLength={40}
             value={values[field]}
             onChange={(event) =>
@@ -46,7 +51,7 @@ export function OwnIdentity() {
           />
           <Button
             variant="secondary"
-            disabled={busy || !resource.data || !values[field].trim()}
+            disabled={busy || !loaded || !values[field].trim()}
             onClick={() => {
               setBusy(true);
               setError(undefined);

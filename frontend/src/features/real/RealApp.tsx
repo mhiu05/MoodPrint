@@ -20,6 +20,7 @@ import {
   Routes,
   useLocation,
   useParams,
+  useSearchParams,
 } from "react-router-dom";
 import {
   ArrowLeft,
@@ -48,18 +49,15 @@ import { botById, type BotId } from "../../companions/registry";
 import { ApiClient, ApiError, errorMessage } from "../../api/client";
 import { consumeAIEvents, validCards } from "../../api/stream";
 import { AdultEligibility, EligibilityGate } from "./Eligibility";
+import { AuthScreen, readAuthCallback } from "./Auth";
 import type {
   AIRunAccepted,
   ActionReceipt,
   BotPublicDTO,
   ConsentPurpose,
   ConsentInput,
-  ConversationInput,
-  ConversationHeader,
-  ConversationView,
   MoodDTO,
   MoodInput,
-  LoginInput,
   PrivateItemDTO,
   PrivateItemInput,
   PrivateItemEdit,
@@ -73,6 +71,7 @@ import { ApprovedMemories } from "./Memory";
 import { VoiceRecorder } from "./Voice";
 import { OwnIdentity } from "./Safety";
 import { DataControls } from "./Privacy";
+import { AIDataProvider, AIDataControls, ConversationHistory, useAIData, downloadConversation, type SavedConversation, type SavedConversationHeader } from "./AIData";
 
 const MessageMarkdown = lazy(() => import("./MessageMarkdown"));
 
@@ -170,73 +169,10 @@ export function useResource<T>(path: string, enabled = true) {
   return { data, setData, error, loading, refresh };
 }
 
-function Login({
-  api,
-  receive,
-}: {
-  api: ApiClient;
-  receive: (value: SessionView) => void;
-}) {
-  const [email, setEmail] = useState(""),
-    [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false),
-    [error, setError] = useState<unknown>();
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    if (busy) return;
-    setBusy(true);
-    setError(undefined);
-    try {
-      receive(
-        await api.request<SessionView>("/auth/login", {
-          method: "POST",
-          body: { email, password } satisfies LoginInput,
-          publicWrite: true,
-        }),
-      );
-    } catch (reason) {
-      setError(reason);
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <main id="main" className="real-auth">
-      <Brand />
-      <h1 tabIndex={-1}>Chào bạn trở lại</h1>
-      <p className={cx.lede}>Đăng nhập để tiếp tục không gian riêng của bạn.</p>
-      <ErrorNotice error={error} />
-      <form onSubmit={submit} aria-busy={busy}>
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          type="email"
-          autoComplete="username"
-          required
-          maxLength={254}
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-        />
-        <label htmlFor="password">Mật khẩu</label>
-        <input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          maxLength={256}
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-        />
-        <Button type="submit" disabled={busy}>
-          {busy ? "Đang đăng nhập…" : "Đăng nhập"}
-        </Button>
-      </form>
-    </main>
-  );
-}
-
 function SessionRoot() {
   const [api] = useState(() => new ApiClient());
+  // Captured once before rendering so email-link tokens leave the URL immediately.
+  const [callback] = useState(readAuthCallback);
   const [session, setSession] = useState<SessionView | null>();
   const [error, setError] = useState<unknown>();
   const [revision, setRevision] = useState(0);
@@ -314,10 +250,11 @@ function SessionRoot() {
         <p role="status">Đang kiểm tra phiên…</p>
       </main>
     );
-  if (session === null) return <Login api={api} receive={receive} />;
+  if (session === null || callback?.kind === "recovery")
+    return <AuthScreen api={api} receive={receive} callback={callback} />;
   return (
     <SessionContext.Provider value={{ api, session, receive, logout }}>
-      {session.eligible ? <Shell /> : <EligibilityGate />}
+      {session.eligible ? <AIDataProvider key={session.userId}><Shell /></AIDataProvider> : <EligibilityGate />}
     </SessionContext.Provider>
   );
 }
@@ -564,6 +501,7 @@ function Assistants() {
             Chưa tìm thấy trợ lý. Thử tên khác nhé.
           </p>
         ) : null}
+        <ConversationHistory />
         <Link className="human-bridge" to="/connect">
           <span className="bridge-icon">
             <Users size={21} />
@@ -632,8 +570,7 @@ function Assistants() {
 }
 
 function Conversation({ bot }: { bot: BotPublicDTO }) {
-  const { session } = useSession();
-  const allowed = session.consents.AI.enabled && session.features.ai;
+  const [historyOpen, setHistoryOpen] = useState(false);
   return (
     <div className="bot-conversation">
       <header className="conversation-header">
@@ -644,6 +581,7 @@ function Conversation({ bot }: { bot: BotPublicDTO }) {
         >
           <ArrowLeft size={21} />
         </Link>
+        <button className="icon-button history-mobile-button" aria-label="Mở lịch sử hội thoại" onClick={() => setHistoryOpen(true)}><MessageCircle size={20} /></button>
         <PublicAvatar bot={bot} size={43} />
         <div>
           <h1 tabIndex={-1}>
@@ -659,39 +597,27 @@ function Conversation({ bot }: { bot: BotPublicDTO }) {
           <ShieldCheck size={21} />
         </Link>
       </header>
-      {allowed ? (
-        <ConversationBody bot={bot} />
-      ) : (
-        <div className="chat-disabled">
-          <StatePanel
-            title={
-              session.consents.AI.enabled
-                ? "Trò chuyện AI chưa khả dụng"
-                : "Trò chuyện AI đang tắt"
-            }
-            action={
-              <div className={cx.actions}>
-                <Link className={`${cx.button} ${cx.primary}`} to="/settings">
-                  Xem quyền trò chuyện AI
-                </Link>
-                <Link className={`${cx.button} ${cx.secondary}`} to="/self">
-                  Tự ghi tâm trạng
-                </Link>
-              </div>
-            }
-          >
-            Bạn có thể ghi cảm xúc trong không gian riêng của mình.
-          </StatePanel>
-        </div>
-      )}
+      {historyOpen ? <Dialog title="Lịch sử hội thoại" onClose={() => setHistoryOpen(false)}><ConversationHistory onSelect={() => setHistoryOpen(false)} /></Dialog> : null}
+      <ConversationBody bot={bot} />
+
     </div>
   );
 }
 
 function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const { api, session } = useSession();
-  const [conversation, setConversation] = useState<ConversationView>();
-  const current = useRef<ConversationView | undefined>(undefined);
+  const { preferences, loading: preferencesLoading, error: preferencesError, reload: reloadPreferences, refreshHistory } = useAIData();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedId = searchParams.get("conversation");
+  const [conversation, setConversation] = useState<SavedConversation>();
+  const current = useRef<SavedConversation | undefined>(undefined);
+  const [olderBusy, setOlderBusy] = useState(false), [manageBusy, setManageBusy] = useState(false), [deleteOpen, setDeleteOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false), [renameText, setRenameText] = useState(""), [renameError, setRenameError] = useState<unknown>();
+  const [notice, setNotice] = useState("");
+  const [pendingProposals, setPendingProposals] = useState(0), [proposalRevision, setProposalRevision] = useState(0);
+  const allowed = session.consents.AI.enabled && session.features.ai;
+  const historyWritable = !conversation?.persistent || !!(preferences?.historyEnabled && preferences.historyAvailable);
+  const canSend = allowed && historyWritable;
   const [draft, setDraft] = useState(""),
     [error, setError] = useState<unknown>();
   const [loading, setLoading] = useState(true),
@@ -699,6 +625,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const [ready, setReady] = useState(false);
   const [run, setRun] = useState<{ id: string; version: number }>();
   const [revision, setRevision] = useState(0);
+  const loadedRevision = useRef(0);
+  const loadedSelection = useRef<string | undefined>(undefined);
   const [atBottom, setAtBottom] = useState(true);
   const log = useRef<HTMLDivElement>(null),
     lifetime = useRef<AbortController | null>(null);
@@ -719,7 +647,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const moodSelected = bot.botId === "nhip" && shareMood;
   const moodInvalid = moodSelected && (!moodFrom || !moodTo || moodFrom > moodTo ||
     moodFrom < moodWindow.earliest || moodTo > moodWindow.today);
-  const update = useCallback((value: ConversationView) => {
+  const update = useCallback((value: SavedConversation) => {
     current.current = value;
     setConversation(value);
   }, []);
@@ -750,13 +678,15 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
               },
             ],
           });
-          const stored = await api.request<ConversationView>(
+          const stored = await api.request<SavedConversation>(
             `/ai/conversations/${before.conversationId}`,
             { signal },
           );
           if (!signal.aborted) {
             update(stored);
             setReady(true);
+            refreshHistory();
+            setProposalRevision((value) => value + 1);
           }
         }
       } catch (reason) {
@@ -776,49 +706,60 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         }
       }
     },
-    [api, update],
+    [api, update, refreshHistory],
   );
+  useEffect(() => () => lifetime.current?.abort(), []);
   useEffect(() => {
+    // A newly created thread receives a URL without interrupting its active stream.
+    if (selectedId && selectedId === current.current?.conversationId && loadedRevision.current === revision) return;
+    loadedRevision.current = revision;
+    lifetime.current?.abort();
     const controller = new AbortController();
     lifetime.current = controller;
-    setLoading(true);
-    setReady(false);
-    setError(undefined);
-    api
-      .request<ConversationHeader[]>("/ai/conversations", {
-        signal: controller.signal,
+    setLoading(true); setReady(false); setBusy(false); setRun(undefined); setError(undefined); setNotice("");
+    current.current = undefined; setConversation(undefined);
+    const selection = `${bot.botId}/${selectedId || searchParams.get("new") || "latest"}`;
+    if (loadedSelection.current !== selection) { intent.current = null; setDraft(""); setShareMood(false); }
+    loadedSelection.current = selection;
+    async function open() {
+      // Explicit selection is authoritative; otherwise resume the latest temporary
+      // or saved thread for this assistant. No chat content enters browser storage.
+      let id = selectedId;
+      if (!id && !searchParams.has("new")) {
+        const headers = await api.request<SavedConversationHeader[]>(`/ai/conversations?limit=30&botId=${bot.botId}`, { signal: controller.signal });
+        id = headers.find(value => value.botId === bot.botId && (!value.persistent || preferences?.historyEnabled))?.conversationId || null;
+      }
+      if (controller.signal.aborted) return;
+      if (!id) { setReady(true); return; }
+      const value = await api.request<SavedConversation>(`/ai/conversations/${encodeURIComponent(id)}`, { signal: controller.signal });
+      if (controller.signal.aborted) return;
+      if (value.botId !== bot.botId) throw new ApiError(409, "CONVERSATION_BOT_MISMATCH", "Hội thoại thuộc một trợ lý khác. Chọn lại hội thoại trong lịch sử.");
+      update(value); setReady(true); setAtBottom(true);
+      if (value.activeRunId && allowed) void stream(value.activeRunId, value.activeRunVersion || 1, `/api/v1/ai/runs/${value.activeRunId}/events`, controller.signal);
+    }
+    void open().catch(reason => { if (!controller.signal.aborted) setError(reason); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    // Lifetime is aborted above on a real selection and on unmount. URL updates
+    // for the current thread must leave its in-flight request running.
+  }, [api, bot.botId, selectedId, searchParams.get("new"), revision, stream, update]);
+  useEffect(() => {
+    if (!session.consents.AI.enabled) {
+      setPendingProposals(0);
+      return;
+    }
+    const controller = new AbortController();
+    void api
+      .request<{ status: string; expiresAt: string }[]>("/proposals", { signal: controller.signal })
+      .then((items) => {
+        if (!controller.signal.aborted)
+          setPendingProposals(items.filter((item) => item.status === "pending" && new Date(item.expiresAt).getTime() > Date.now()).length);
       })
-      .then(async (headers) => {
-        const existing = headers.find((value) => value.botId === bot.botId);
-        if (!existing) {
-          current.current = undefined;
-          setConversation(undefined);
-          if (!controller.signal.aborted) setReady(true);
-          return;
-        }
-        const value = await api.request<ConversationView>(
-          `/ai/conversations/${existing.conversationId}`,
-          { signal: controller.signal },
-        );
-        if (controller.signal.aborted) return;
-        update(value);
-        setReady(true);
-        if (value.activeRunId)
-          void stream(
-            value.activeRunId,
-            value.activeRunVersion || 1,
-            `/api/v1/ai/runs/${value.activeRunId}/events`,
-            controller.signal,
-          );
-      })
-      .catch((reason) => {
-        if (!controller.signal.aborted) setError(reason);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+      .catch(() => {
+        // The count is a convenience link; the memory page reports real errors.
+        if (!controller.signal.aborted) setPendingProposals(0);
       });
     return () => controller.abort();
-  }, [api, bot.botId, revision, stream, update]);
+  }, [api, proposalRevision, conversation?.conversationId, session.consents.AI.enabled, session.consents.MEM.enabled]);
   useEffect(() => {
     if (atBottom && log.current)
       log.current.scrollTop = log.current.scrollHeight;
@@ -827,6 +768,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     const text = value.trim();
     if (
       !text ||
+      !canSend ||
+      preferencesLoading ||
       busy ||
       loading ||
       !ready ||
@@ -845,22 +788,25 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     try {
       let thread = current.current;
       if (!thread) {
-        const created = await api.request<ConversationHeader>(
+        const created = await api.request<SavedConversationHeader>(
           "/ai/conversations",
           {
             method: "POST",
-            body: { botId: bot.botId } satisfies ConversationInput,
+            body: { botId: bot.botId, persistent: !!(preferences?.historyEnabled && preferences.historyAvailable) },
             signal,
           },
         );
         thread = {
           ...created,
           messages: [],
+          hasMoreMessages: false,
           activeRunId: null,
           activeRunVersion: null,
         };
         if (signal.aborted) return;
         update(thread);
+        setSearchParams({ conversation: thread.conversationId }, { replace: true });
+        refreshHistory();
       }
       const accepted = await api.request<AIRunAccepted>(
         `/ai/conversations/${thread.conversationId}/messages`,
@@ -914,8 +860,73 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       setError(reason);
     }
   }
+  function newConversation() {
+    lifetime.current?.abort();
+    lifetime.current = new AbortController();
+    current.current = undefined; setConversation(undefined); setDraft(""); setError(undefined); setNotice("");
+    setReady(true); setLoading(false); setBusy(false); setRun(undefined); intent.current = null; setShareMood(false);
+    // An explicit new marker prevents latest-thread auto-resume. Record it now:
+    // the router applies the URL in a transition, and its effect must not wipe a
+    // draft typed after this click.
+    const marker = crypto.randomUUID();
+    loadedSelection.current = `${bot.botId}/${marker}`;
+    setSearchParams({ new: marker });
+  }
+  async function olderMessages() {
+    const thread = current.current;
+    if (!thread || olderBusy || !thread.messages.length) return;
+    const signal = lifetime.current?.signal;
+    setOlderBusy(true); setError(undefined); setAtBottom(false);
+    const beforeHeight = log.current?.scrollHeight || 0;
+    const beforeTop = log.current?.scrollTop || 0;
+    try {
+      const page = await api.request<SavedConversation>(`/ai/conversations/${thread.conversationId}?limit=50&before=${encodeURIComponent(thread.messages[0].id)}`, { signal });
+      if (signal?.aborted || current.current?.conversationId !== thread.conversationId) return;
+      const latest = current.current;
+      update({ ...latest, hasMoreMessages: page.hasMoreMessages, messages: [...page.messages.filter(item => !latest.messages.some(old => old.id === item.id)), ...latest.messages] });
+      requestAnimationFrame(() => { if (log.current) log.current.scrollTop = beforeTop + log.current.scrollHeight - beforeHeight; });
+    } catch (reason) { if (!signal?.aborted) setError(reason); }
+    finally { setOlderBusy(false); }
+  }
+  async function rename() {
+    const thread = current.current;
+    const title = renameText.trim();
+    if (!thread || manageBusy || !title) return;
+    setManageBusy(true); setRenameError(undefined);
+    try {
+      const header = await api.request<SavedConversationHeader>(`/ai/conversations/${thread.conversationId}`, { method: "PATCH", body: { title } });
+      if (current.current?.conversationId === thread.conversationId) update({ ...current.current, title: header.title });
+      setRenameOpen(false); refreshHistory(); setNotice("Đã đổi tên hội thoại.");
+    } catch (reason) { setRenameError(reason); }
+    finally { setManageBusy(false); }
+  }
+  async function manage(deleting: boolean) {
+    const thread = current.current;
+    if (!thread || manageBusy) return;
+    setManageBusy(true); setError(undefined);
+    try {
+      if (deleting) {
+        await api.request(`/ai/conversations/${thread.conversationId}`, { method: "DELETE" });
+        setDeleteOpen(false); newConversation(); refreshHistory(); setNotice("Đã xóa hội thoại.");
+      } else {
+        const exported = await api.request<unknown>(`/ai/conversations/${thread.conversationId}/export`);
+        downloadConversation(exported, thread.conversationId);
+      }
+    } catch (reason) { setError(reason); }
+    finally { setManageBusy(false); }
+  }
   return (
     <>
+      <div className="chat-history-toolbar">
+        <div><span>{conversation?.persistent ? "Hội thoại đã lưu" : "Hội thoại tạm thời"}</span>
+        <Link to="/settings">{preferences?.historyEnabled ? `Lưu tối đa ${preferences.retentionDays} ngày` : "Lưu lịch sử đang tắt"}</Link></div>
+        <div className={cx.actions}>
+          <Button variant="text" onClick={newConversation}>Cuộc trò chuyện mới</Button>
+          {conversation?.persistent ? <><Button variant="text" disabled={manageBusy} onClick={() => { setRenameText(conversation.title || ""); setRenameError(undefined); setRenameOpen(true); }}>Đổi tên</Button><Button variant="text" disabled={manageBusy} onClick={() => void manage(false)}>Xuất hội thoại</Button><Button variant="text" disabled={manageBusy} onClick={() => setDeleteOpen(true)}>Xóa hội thoại</Button></> : null}
+        </div>
+      </div>
+      {renameOpen ? <Dialog title="Đổi tên hội thoại" onClose={() => !manageBusy && setRenameOpen(false)}><form className="conversation-rename" onSubmit={(event) => { event.preventDefault(); void rename(); }}><label htmlFor="conversation-title">Tên hội thoại</label><input id="conversation-title" value={renameText} maxLength={100} required onChange={(event) => setRenameText(event.target.value)} /><p>Tên chỉ hiển thị cho bạn và không được gửi tới trợ lý.</p><ErrorNotice error={renameError} /><div className={cx.actions}><Button type="button" variant="secondary" disabled={manageBusy} onClick={() => setRenameOpen(false)}>Hủy</Button><Button type="submit" disabled={manageBusy || !renameText.trim()}>Lưu tên</Button></div></form></Dialog> : null}
+      {deleteOpen ? <Dialog title="Xóa hội thoại này?" destructive onClose={() => !manageBusy && setDeleteOpen(false)}><p>Hội thoại và các tin nhắn trong đó sẽ bị xóa. Thao tác này không thể hoàn tác.</p><ErrorNotice error={error} /><div className={cx.actions}><Button variant="secondary" data-cancel disabled={manageBusy} onClick={() => setDeleteOpen(false)}>Giữ hội thoại</Button><Button disabled={manageBusy} onClick={() => void manage(true)}>Xác nhận xóa hội thoại</Button></div></Dialog> : null}
       <div
         className="conversation-log"
         ref={log}
@@ -938,7 +949,10 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             <LockKeyhole size={11} /> Chỉ bạn xem
           </small>
         </div>
+        {notice ? <p role="status">{notice}</p> : null}
+        {preferencesError ? <><p>Lựa chọn dữ liệu chưa xác minh được; cuộc trò chuyện mới chỉ là tạm thời.</p><ErrorNotice error={preferencesError} retry={reloadPreferences} /></> : null}
         {loading ? <p role="status">Đang mở cuộc trò chuyện…</p> : null}
+        {conversation?.hasMoreMessages ? <Button variant="secondary" disabled={olderBusy || loading} onClick={() => void olderMessages()}>{olderBusy ? "Đang tải tin nhắn…" : "Tải tin nhắn cũ hơn"}</Button> : null}
         {conversation?.messages.map((message) => (
           <div
             key={message.id}
@@ -952,6 +966,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
                   </Suspense>
                 ) : <p>{message.text}</p>}
               </div>
+              {message.actor === "self" && message.status && ["failed", "interrupted", "cancelled"].includes(message.status) ? <small className="message-turn-status" role="status">{message.status === "interrupted" ? "Phản hồi bị gián đoạn; lượt này không tự chạy lại." : message.status === "cancelled" ? "Đã dừng phản hồi." : "Phản hồi chưa hoàn tất."}</small> : null}
               {validCards(message.cards) &&
                 message.cards.map((card, index) => (
                   <div className="inline-card" key={`${message.id}-${index}`}>
@@ -969,6 +984,12 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             </div>
           </div>
         ))}
+        {pendingProposals > 0 && !busy ? (
+          <p className="chat-proposal-notice" role="status">
+            Có {pendingProposals} đề xuất đang chờ bạn duyệt. Chưa có gì được lưu cho đến khi bạn duyệt.{" "}
+            <Link to="/memory">Xem đề xuất</Link>
+          </p>
+        ) : null}
         {busy ? (
           <div className="bot-pending">
             <Typing />
@@ -986,7 +1007,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           retry={() => setRevision((value) => value + 1)}
         />
       </div>
-      <div className="chat-bottom">
+      {!canSend ? <div className="chat-readonly" role="status"><p>{!allowed ? "Trò chuyện AI đang tắt hoặc chưa khả dụng. Bạn vẫn xem, xuất và xóa lịch sử đã lưu được." : "Lưu lịch sử đang tắt. Hội thoại đã lưu chỉ để xem; bắt đầu cuộc trò chuyện mới để nhắn tạm thời."}</p><Link to="/settings">Xem quyền dữ liệu AI</Link></div> : <div className="chat-bottom">
         {bot.botId === "nhip" ? (
           <details className="mood-share-options">
             <summary>Chia sẻ thống kê tâm trạng cho lượt này</summary>
@@ -1051,13 +1072,13 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           <button
             type="submit"
             className="send-button"
-            disabled={!draft.trim() || busy || loading || !ready || moodInvalid}
+            disabled={!draft.trim() || busy || loading || !ready || moodInvalid || preferencesLoading}
             aria-label="Gửi tin cho AI"
           >
             <Send size={19} />
           </button>
         </form>
-      </div>
+      </div>}
     </>
   );
 }
@@ -1137,6 +1158,7 @@ function Settings() {
           </Button>
         </section>
       ))}
+      <AIDataControls />
       <AdultEligibility />
       <section className="real-section">
         <h2>Phiên đăng nhập</h2>
