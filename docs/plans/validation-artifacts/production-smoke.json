@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "browser": "153.0.8010.12",
+  "entry": "Me2We bot roster",
+  "journeys": [
+    "five bot scenarios",
+    "bot continuity and isolated pending replies",
+    "mutual consent → human chat → ACT01 completed",
+    "reset"
+  ],
+  "externalRequests": [],
+  "pageAndConsoleErrors": [],
+  "microphone": 0,
+  "storage": {
+    "local": 0,
+    "session": 0,
+    "cookies": "",
+    "dbs": 0
+  },
+  "productionHarness": "ignored"
+}
