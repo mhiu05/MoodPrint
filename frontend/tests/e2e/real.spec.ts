@@ -70,6 +70,68 @@ async function api(page: Page, authenticated = true) {
   });
 }
 
+async function scopedNhip(page: Page, submitted: any[], fail = false) {
+  await api(page);
+  await page.route("**/api/v1/bots", route => route.fulfill({ json: [{ ...bot, botId: "nhip", name: "Nhịp", avatarKey: "nhip" }] }));
+  await page.route("**/api/v1/ai/conversations", route => route.fulfill({ json: route.request().method() === "GET" ? [] : { ...conversation, botId: "nhip" } }));
+  let version = 1;
+  await page.route(`**/api/v1/ai/conversations/${conversation.conversationId}`, route => route.fulfill({ json: { ...conversation, botId: "nhip", version } }));
+  await page.route(`**/api/v1/ai/conversations/${conversation.conversationId}/messages`, route => {
+    submitted.push(route.request().postDataJSON());
+    if (fail) return route.fulfill({ status: 503, json: { error: { code: "UNAVAILABLE", message: "Chưa gửi được. Thử lại nhé." } } });
+    version += 2;
+    return route.fulfill({ status: 202, json: { runId: "33333333-3333-4333-8333-333333333333", conversationId: conversation.conversationId, version: version - 1, runVersion: 1, eventsUrl: "/api/v1/ai/runs/33333333-3333-4333-8333-333333333333/events" } });
+  });
+  await page.route("**/api/v1/ai/runs/*/events", route => route.fulfill({ contentType: "text/event-stream", body: [
+    { version: "ai-events-v1", seq: "1", type: "final", data: { text: "Đã phản hồi.", cards: [] } },
+    { version: "ai-events-v1", seq: "2", type: "completed", data: {} },
+  ].map(event => `id: ${event.seq}\ndata: ${JSON.stringify(event)}\n\n`).join("") }));
+  await page.goto("/#/assistants/nhip");
+  await page.getByText("Chia sẻ thống kê tâm trạng cho lượt này", { exact: true }).click();
+}
+
+test("Nhịp requires an explicit valid mood range and consumes permission after one accepted turn", async ({ page }) => {
+  const submitted: any[] = [];
+  await scopedNhip(page, submitted);
+  await page.getByRole("checkbox", { name: "Cho Nhịp đọc khoảng ngày mình chọn", exact: true }).check();
+  await page.getByLabel("Thống kê từ ngày", { exact: true }).fill("2026-10-02");
+  await page.getByLabel("Thống kê đến ngày", { exact: true }).fill("2026-10-01");
+  await page.getByRole("textbox", { name: "Tin nhắn cho Nhịp" }).fill("Nhìn lại những ngày mình chọn");
+  await expect(page.getByRole("button", { name: "Gửi tin cho AI", exact: true })).toBeDisabled();
+  await page.getByRole("textbox", { name: "Tin nhắn cho Nhịp" }).press("Enter");
+  expect(submitted).toHaveLength(0);
+  await page.getByLabel("Thống kê từ ngày", { exact: true }).fill("2026-10-01");
+  await page.getByLabel("Thống kê đến ngày", { exact: true }).fill("2026-10-02");
+  await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
+  await expect.poll(() => submitted.length).toBe(1);
+  expect(submitted[0].moodScope).toEqual({ fromDate: "2026-10-01", toDate: "2026-10-02" });
+  await expect(page.getByRole("checkbox", { name: "Cho Nhịp đọc khoảng ngày mình chọn", exact: true })).not.toBeChecked();
+  await page.getByRole("textbox", { name: "Tin nhắn cho Nhịp" }).fill("Một lượt trò chuyện riêng");
+  await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
+  await expect.poll(() => submitted.length).toBe(2);
+  expect(submitted[1].moodScope).toBeUndefined();
+  expect(submitted[1].clientMessageId).not.toBe(submitted[0].clientMessageId);
+});
+
+test("Nhịp retries preserve the exact range intent and changing dates creates a new intent", async ({ page }) => {
+  const submitted: any[] = [];
+  await scopedNhip(page, submitted, true);
+  await page.getByRole("checkbox", { name: "Cho Nhịp đọc khoảng ngày mình chọn", exact: true }).check();
+  await page.getByLabel("Thống kê từ ngày", { exact: true }).fill("2026-10-01");
+  await page.getByLabel("Thống kê đến ngày", { exact: true }).fill("2026-10-02");
+  await page.getByRole("textbox", { name: "Tin nhắn cho Nhịp" }).fill("Cùng một lời nhắn");
+  const send = page.getByRole("button", { name: "Gửi tin cho AI", exact: true });
+  await send.click(); await expect.poll(() => submitted.length).toBe(1); await expect(send).toBeEnabled();
+  await send.click(); await expect.poll(() => submitted.length).toBe(2); await expect(send).toBeEnabled();
+  expect(submitted[1].clientMessageId).toBe(submitted[0].clientMessageId);
+  expect(submitted[1].moodScope).toEqual(submitted[0].moodScope);
+  await page.getByLabel("Thống kê đến ngày", { exact: true }).fill("2026-10-03");
+  await send.click(); await expect.poll(() => submitted.length).toBe(3);
+  expect(submitted[2].clientMessageId).not.toBe(submitted[1].clientMessageId);
+  expect(submitted[2].moodScope).toEqual({ fromDate: "2026-10-01", toDate: "2026-10-03" });
+  await expect(page.getByRole("textbox", { name: "Tin nhắn cho Nhịp" })).toHaveValue("Cùng một lời nhắn");
+});
+
 test("login failure retains credentials and never opens a sample session", async ({
   page,
 }) => {

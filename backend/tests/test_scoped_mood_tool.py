@@ -11,7 +11,7 @@ from app.ai.runtime import LiveRun
 from app.ai.schemas import MoodReadScope, StartRunInput
 from app.core.errors import DomainError
 from app.core.security import Actor
-from app.infrastructure.database.models import AuthSession, Mood, User
+from app.infrastructure.database.models import AiRun, AuthSession, Mood, User
 
 
 def tool_context(run):
@@ -54,7 +54,10 @@ async def prepare(clients, scope):
         actor = Actor(uid, session.id, user.auth_version)
         version = user.data_version
     c = app.state.ai.store.create(str(uid), str(actor.session_id), "nhip")
-    return app.state.ai, LiveRun(actor, c.id, version, uuid4(), mood_scope=scope)
+    run = LiveRun(actor, c.id, version, uuid4(), mood_scope=scope)
+    async with app.state.database.sessions.begin() as db:
+        db.add(AiRun(id=run.id, user_id=uid, conversation_id=c.id, bot_id="nhip"))
+    return app.state.ai, run
 
 
 @pytest.mark.postgres

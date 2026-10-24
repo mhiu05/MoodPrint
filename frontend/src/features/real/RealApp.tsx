@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type FormEvent,
@@ -684,7 +685,7 @@ function Conversation({ bot }: { bot: BotPublicDTO }) {
 }
 
 function ConversationBody({ bot }: { bot: BotPublicDTO }) {
-  const { api } = useSession();
+  const { api, session } = useSession();
   const [conversation, setConversation] = useState<ConversationView>();
   const current = useRef<ConversationView | undefined>(undefined);
   const [draft, setDraft] = useState(""),
@@ -697,7 +698,22 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const [atBottom, setAtBottom] = useState(true);
   const log = useRef<HTMLDivElement>(null),
     lifetime = useRef<AbortController | null>(null);
-  const intent = useRef<{ text: string; clientMessageId: string } | null>(null);
+  const intent = useRef<{ text: string; scopeKey: string; clientMessageId: string } | null>(null);
+  const [shareMood, setShareMood] = useState(false);
+  const [moodFrom, setMoodFrom] = useState("");
+  const [moodTo, setMoodTo] = useState("");
+  const moodWindow = useMemo(() => {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat("en", {
+      timeZone: session.timezone, year: "numeric", month: "2-digit", day: "2-digit",
+    }).formatToParts(new Date(session.serverTime)).map(part => [part.type, part.value]));
+    const today = `${parts.year}-${parts.month}-${parts.day}`;
+    const earliest = new Date(`${today}T00:00:00Z`);
+    earliest.setUTCDate(earliest.getUTCDate() - 89);
+    return { today, earliest: earliest.toISOString().slice(0, 10) };
+  }, [session.serverTime, session.timezone]);
+  const moodSelected = bot.botId === "nhip" && shareMood;
+  const moodInvalid = moodSelected && (!moodFrom || !moodTo || moodFrom > moodTo ||
+    moodFrom < moodWindow.earliest || moodTo > moodWindow.today);
   const update = useCallback((value: ConversationView) => {
     current.current = value;
     setConversation(value);
@@ -804,6 +820,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       busy ||
       loading ||
       !ready ||
+      moodInvalid ||
       text.length > 500 ||
       !lifetime.current
     )
@@ -811,8 +828,10 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     const signal = lifetime.current.signal;
     setBusy(true);
     setError(undefined);
-    if (intent.current?.text !== text)
-      intent.current = { text, clientMessageId: crypto.randomUUID() };
+    const moodScope = moodSelected ? { fromDate: moodFrom, toDate: moodTo } : undefined;
+    const scopeKey = moodScope ? `${moodScope.fromDate}/${moodScope.toDate}` : "";
+    if (intent.current?.text !== text || intent.current?.scopeKey !== scopeKey)
+      intent.current = { text, scopeKey, clientMessageId: crypto.randomUUID() };
     try {
       let thread = current.current;
       if (!thread) {
@@ -841,6 +860,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             text,
             clientMessageId: intent.current!.clientMessageId,
             expectedConversationVersion: thread.version,
+            ...(moodScope ? { moodScope } : {}),
           } satisfies StartRunInput,
           signal,
         },
@@ -857,6 +877,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         ],
       });
       intent.current = null;
+      setShareMood(false);
       setDraft("");
       setAtBottom(true);
       await stream(
@@ -951,12 +972,33 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         />
       </div>
       <div className="chat-bottom">
+        {bot.botId === "nhip" ? (
+          <details className="mood-share-options">
+            <summary>Chia sẻ thống kê tâm trạng cho lượt này</summary>
+            <fieldset disabled={busy || loading || !ready}>
+              <label className="mood-share-choice">
+                <input type="checkbox" checked={shareMood} onChange={event => setShareMood(event.target.checked)} />
+                Cho Nhịp đọc khoảng ngày mình chọn
+              </label>
+              <p>Chỉ chia sẻ điểm tâm trạng và những ngày đã ghi, không gửi ghi chú. Bạn chọn lại quyền này cho mỗi lượt.</p>
+              {shareMood ? <div className="mood-share-dates">
+                <label htmlFor="mood-share-from">Thống kê từ ngày
+                  <input id="mood-share-from" type="date" min={moodWindow.earliest} max={moodWindow.today} value={moodFrom} onChange={event => setMoodFrom(event.target.value)} />
+                </label>
+                <label htmlFor="mood-share-to">Thống kê đến ngày
+                  <input id="mood-share-to" type="date" min={moodFrom || moodWindow.earliest} max={moodWindow.today} value={moodTo} onChange={event => setMoodTo(event.target.value)} />
+                </label>
+                {moodInvalid ? <p role="alert">Chọn đủ ngày bắt đầu và kết thúc theo đúng thứ tự, trong 90 ngày gần đây.</p> : null}
+              </div> : null}
+            </fieldset>
+          </details>
+        ) : null}
         <VoiceRecorder onUse={setDraft} />
         <div className="quick-replies" aria-label="Gợi ý trò chuyện">
           {bot.starters.map((text) => (
             <button
               key={text}
-              disabled={busy || loading || !ready}
+              disabled={busy || loading || !ready || moodInvalid}
               onClick={() => {
                 setDraft(text);
                 void send(text);
@@ -994,7 +1036,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           <button
             type="submit"
             className="send-button"
-            disabled={!draft.trim() || busy || loading || !ready}
+            disabled={!draft.trim() || busy || loading || !ready || moodInvalid}
             aria-label="Gửi tin cho AI"
           >
             <Send size={19} />
