@@ -1,0 +1,272 @@
+import { useEffect, useRef, useState } from "react";
+import { Button, cx } from "../../components/UI";
+import { ApiError } from "../../api/client";
+import { ErrorNotice, useSession } from "./RealApp";
+import { encodeWav } from "./audio";
+
+type Recording = {
+  stream: MediaStream;
+  context: AudioContext;
+  node: AudioWorkletNode;
+  chunks: Float32Array[];
+  frames: number;
+  timer: ReturnType<typeof setTimeout>;
+  clock: ReturnType<typeof setInterval>;
+};
+
+export function VoiceRecorder({ onUse }: { onUse: (text: string) => void }) {
+  const { session } = useSession();
+  const allowed =
+    session.features.voice &&
+    session.consents.AI.enabled &&
+    session.consents.VOICE.enabled;
+  const allowedRef = useRef(allowed);
+  allowedRef.current = allowed;
+  const [state, setState] = useState<
+      "idle" | "recording" | "transcribing" | "preview"
+    >("idle"),
+    [seconds, setSeconds] = useState(0),
+    [text, setText] = useState(""),
+    [error, setError] = useState<unknown>();
+  const recording = useRef<Recording | undefined>(undefined),
+    upload = useRef<AbortController | undefined>(undefined),
+    alive = useRef(true);
+  const cleanup = () => {
+    const value = recording.current;
+    if (value) {
+      clearTimeout(value.timer);
+      clearInterval(value.clock);
+      value.stream.getTracks().forEach((track) => track.stop());
+      value.node.disconnect();
+      value.node.port.close();
+      void value.context.close();
+      recording.current = undefined;
+    }
+  };
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+      cleanup();
+      upload.current?.abort();
+    };
+  }, []);
+  useEffect(() => {
+    if (!allowed) {
+      cleanup();
+      upload.current?.abort();
+      setText("");
+      setState("idle");
+    }
+  }, [allowed]);
+  async function finish() {
+    const value = recording.current;
+    if (!value) return;
+    cleanup();
+    setState("transcribing");
+    const controller = new AbortController();
+    upload.current = controller;
+    const timeout = setTimeout(() => controller.abort(), 40000);
+    try {
+      const blob = encodeWav(value.chunks, value.context.sampleRate);
+      value.chunks.length = 0;
+      const response = await fetch("/api/v1/voice/transcriptions", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+        body: blob,
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "audio/wav",
+          "X-CSRF-Token": session.csrfToken,
+          "Idempotency-Key": crypto.randomUUID(),
+        },
+      });
+      if (!response.ok)
+        throw new ApiError(
+          response.status,
+          "VOICE_FAILED",
+          "Chưa chuyển được giọng nói thành chữ. Bạn vẫn có thể nhập tin nhắn.",
+        );
+      const result = await response.json();
+      if (
+        typeof result.text !== "string" ||
+        Array.from(result.text).length > 500
+      )
+        throw new Error("Invalid transcript");
+      if (alive.current) {
+        setText(result.text);
+        setState("preview");
+      }
+    } catch (reason) {
+      if (alive.current) {
+        setError(reason);
+        setState("idle");
+      }
+    } finally {
+      clearTimeout(timeout);
+      upload.current = undefined;
+      value.chunks.length = 0;
+    }
+  }
+  async function start() {
+    setError(undefined);
+    let stream: MediaStream | undefined, context: AudioContext | undefined;
+    try {
+      if (!navigator.mediaDevices?.getUserMedia || !window.AudioContext)
+        throw new ApiError(
+          422,
+          "MIC_UNAVAILABLE",
+          "Trình duyệt này chưa hỗ trợ ghi âm. Bạn vẫn có thể nhập tin nhắn.",
+        );
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: { channelCount: 1, echoCancellation: true },
+        video: false,
+      });
+      if (!alive.current || !allowedRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      context = new AudioContext({ sampleRate: 16000 });
+      await context.audioWorklet.addModule(
+        new URL("./pcm-worklet.js", import.meta.url),
+      );
+      if (!alive.current || !allowedRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        await context.close();
+        return;
+      }
+      const node = new AudioWorkletNode(context, "moodprint-pcm"),
+        source = context.createMediaStreamSource(stream),
+        mute = context.createGain();
+      mute.gain.value = 0;
+      source.connect(node);
+      node.connect(mute);
+      mute.connect(context.destination);
+      await context.resume();
+      if (!alive.current || !allowedRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        node.disconnect();
+        node.port.close();
+        await context.close();
+        return;
+      }
+      const value: Recording = {
+        stream,
+        context,
+        node,
+        chunks: [],
+        frames: 0,
+        timer: setTimeout(() => void finish(), 30000),
+        clock: setInterval(
+          () => setSeconds((value) => Math.min(30, value + 1)),
+          1000,
+        ),
+      };
+      node.port.onmessage = (event) => {
+        if (recording.current !== value) return;
+        const data = event.data as Float32Array;
+        const remaining = value.context.sampleRate * 30 - value.frames;
+        if (remaining > 0) {
+          const chunk = data.slice(0, remaining);
+          value.chunks.push(chunk);
+          value.frames += chunk.length;
+        }
+        if (value.frames >= value.context.sampleRate * 30) void finish();
+      };
+      recording.current = value;
+      setSeconds(0);
+      setState("recording");
+    } catch (reason) {
+      stream?.getTracks().forEach((track) => track.stop());
+      if (context) void context.close();
+      setError(reason);
+      setState("idle");
+    }
+  }
+  if (
+    !session.features.voice ||
+    !session.consents.AI.enabled ||
+    !session.consents.VOICE.enabled
+  )
+    return null;
+  return (
+    <section className="real-voice" aria-label="Gửi bằng giọng nói">
+      <ErrorNotice error={error} />
+      {state === "idle" && (
+        <Button variant="text" onClick={() => void start()}>
+          Ghi âm tối đa 30 giây
+        </Button>
+      )}
+      {state === "recording" && (
+        <>
+          <p role="status">Đang ghi âm · {seconds}/30 giây</p>
+          <div className={cx.actions}>
+            <Button variant="secondary" onClick={() => void finish()}>
+              Dừng và xem bản chữ
+            </Button>
+            <Button
+              variant="text"
+              onClick={() => {
+                cleanup();
+                setState("idle");
+              }}
+            >
+              Hủy ghi âm
+            </Button>
+          </div>
+        </>
+      )}
+      {state === "transcribing" && (
+        <>
+          <p role="status">Đang chuyển giọng nói thành chữ…</p>
+          <Button
+            variant="text"
+            onClick={() => {
+              upload.current?.abort();
+              setState("idle");
+            }}
+          >
+            Hủy chuyển giọng nói
+          </Button>
+        </>
+      )}
+      {state === "preview" && (
+        <>
+          <label htmlFor="voice-preview">Xem và sửa bản chữ</label>
+          <textarea
+            id="voice-preview"
+            maxLength={500}
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+          />
+          <p>
+            Bản chữ chưa được gửi. Bạn quyết định có dùng nội dung này hay
+            không.
+          </p>
+          <div className={cx.actions}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                onUse(text);
+                setText("");
+                setState("idle");
+              }}
+            >
+              Dùng bản chữ trong ô nhắn
+            </Button>
+            <Button
+              variant="text"
+              onClick={() => {
+                setText("");
+                setState("idle");
+              }}
+            >
+              Bỏ bản chữ
+            </Button>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
