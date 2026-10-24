@@ -1,0 +1,7 @@
+# Rollback và xử lý sự cố
+
+`deploy/aws/deploy.sh` lưu image digest pair trước đó trong `/opt/moodprint/staging.previous.env`, pull pair mới, thay Compose env, chờ API+web container healthy và `https://APP_DOMAIN/api/v1/health/ready`. Nếu lỗi, script chạy lại pair cũ và trả exit 1 để GitHub workflow hiển thị FAIL, kể cả khi rollback thành công. Không tự đụng schema/database. Nếu đây là lần deploy đầu và không có pair cũ, cần operator xử lý thủ công.
+
+Khi kiểm lỗi: xem SSM command status, `docker compose ps`, health state và log đã lọc; không in `docker inspect` toàn bộ env hoặc cat `/run/moodprint/runtime.env`. Kiểm tra DNS/TLS/Caddy trước, sau đó DB revision/helper/quyền runtime, cuối cùng provider toggles. Không dùng `docker compose down -v` vì sẽ xóa TLS storage. Nếu API cũ không tương thích schema mới, image rollback không an toàn: đóng traffic, đưa bản app tương thích hoặc restore **bản sao** DB theo kế hoạch đã duyệt. [Supabase restore](https://supabase.com/docs/guides/platform/backups).
+
+Trước restore DB: bảo toàn tombstone xóa tài khoản/memory, revocation/consent và deletion queue mới hơn điểm restore; sau restore đối soát trước khi mở traffic để dữ liệu đã xóa không tái xuất hiện. Xác minh backup có thể restore vào project mới, có thời điểm phục hồi đáp ứng RPO; PITR có thể cần gói trả phí. Migration 0006–0010 là expand-only và downgrade từ chối thao tác phá dữ liệu. Release/restart làm mất context tạm trong RAM và ngắt SSE đang mở; không tự replay model call. Chỉ một API worker/replica được phép.

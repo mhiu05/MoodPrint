@@ -5,10 +5,11 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     services:
       postgres:
-        image: postgres:17.11
+        # pgvector matches the hosted extension version required by migration 0009.
+        image: pgvector/pgvector:0.8.2-pg17
         env:
           POSTGRES_DB: moodprint_test
           POSTGRES_PASSWORD: synthetic-ci-only
@@ -33,6 +34,16 @@ jobs:
           uv run mypy app
           uv run pytest -q
           uv run python ../scripts/export_openapi.py
+      - name: Migration chain and two-worker synthetic load
+        working-directory: backend
+        env:
+          PGPASSWORD: synthetic-ci-only
+        run: |
+          psql -h 127.0.0.1 -U postgres -c "create database moodprint_migration_test"
+          psql -h 127.0.0.1 -U postgres -c "create database moodprint_load_test"
+          DATABASE_URL='' DATABASE_MIGRATION_URL=postgresql+psycopg://postgres:synthetic-ci-only@127.0.0.1:5432/moodprint_migration_test uv run alembic upgrade head
+          DATABASE_URL='' DATABASE_MIGRATION_URL=postgresql+psycopg://postgres:synthetic-ci-only@127.0.0.1:5432/moodprint_migration_test uv run alembic check
+          TEST_DATABASE_URL=postgresql+psycopg://postgres:synthetic-ci-only@127.0.0.1:5432/moodprint_load_test MOODPRINT_LOAD_AI_TIMEOUT=10 MOODPRINT_LOAD_HOLD_SECONDS=8 uv run python ../scripts/load_chat_memory.py --users 10 --crash-kill --output "$RUNNER_TEMP/load-results.json"
       - name: Frontend and contract drift
         working-directory: frontend
         run: |
@@ -52,3 +63,21 @@ jobs:
         run: uv run python ../scripts/test_fullstack.py
       - name: Plans integrity
         run: python scripts/check_plans.py
+      - name: Workflow syntax
+        run: docker run --rm -v "$PWD:/repo:ro" --workdir /repo rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+      - name: Production Docker and Compose packaging
+        env:
+          API_IMAGE: moodprint-api:ci
+          WEB_IMAGE: moodprint-web:ci
+          API_ENV_FILE: ../backend/.env.example
+          APP_DOMAIN: staging.example.org
+        run: |
+          docker build --platform linux/amd64 -t "$API_IMAGE" backend
+          docker build --platform linux/amd64 -t "$WEB_IMAGE" frontend
+          docker compose -f deploy/compose.staging.yml config -q
+          docker run --rm -e APP_DOMAIN="$APP_DOMAIN" \
+            -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            "$WEB_IMAGE" caddy validate --config /etc/caddy/Caddyfile
+          docker run --rm --entrypoint sh "$API_IMAGE" -c 'test ! -e /srv/moodprint/.env'
+          docker run --rm --entrypoint sh "$WEB_IMAGE" -c '! find /srv -name "*.map" -print -quit | grep -q .'
+          bash scripts/test_staging_proxy.sh

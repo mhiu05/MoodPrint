@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "2.2",
+  "description": "Deploy an approved MoodPrint staging image pair by immutable ECR digests",
+  "parameters": {
+    "apiDigest": {
+      "type": "String",
+      "interpolationType": "ENV_VAR",
+      "allowedPattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "webDigest": {
+      "type": "String",
+      "interpolationType": "ENV_VAR",
+      "allowedPattern": "^sha256:[a-f0-9]{64}$"
+    }
+  },
+  "mainSteps": [
+    {
+      "action": "aws:runShellScript",
+      "name": "deploy",
+      "precondition": {"StringEquals": ["platformType", "Linux"]},
+      "inputs": {
+        "timeoutSeconds": "360",
+        "runCommand": ["bash /opt/moodprint/deploy.sh"]
+      }
+    }
+  ]
+}

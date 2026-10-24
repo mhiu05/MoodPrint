@@ -1,0 +1,7 @@
+# Copy to /opt/moodprint/deployment.conf, replace placeholders, chown root:root, chmod 600.
+AWS_ACCOUNT_ID=123456789012
+AWS_REGION=ap-southeast-1
+ECR_API_REPO=moodprint-staging-api
+ECR_WEB_REPO=moodprint-staging-web
+APP_DOMAIN=staging.example.org
+PARAMETER_NAME=/moodprint/staging/runtime

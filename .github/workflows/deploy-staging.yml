@@ -1,0 +1,140 @@
+name: Deploy approved staging snapshot
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Full 40-character commit SHA already merged into main
+        required: true
+        type: string
+      approval:
+        description: 'Type DEPLOY STAGING followed by a space and the full SHA'
+        required: true
+        type: string
+
+concurrency:
+  group: moodprint-staging
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      sha: ${{ steps.provenance.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: provenance
+        name: Validate explicit approval and main ancestry
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          APPROVAL: ${{ inputs.approval }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF" == refs/heads/main ]]
+          [[ "$GITHUB_ACTOR" == "$GITHUB_REPOSITORY_OWNER" ]]
+          [[ "$RELEASE_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$APPROVAL" == "DEPLOY STAGING $RELEASE_SHA" ]]
+          git fetch --no-tags origin main
+          [[ $(git rev-parse "$RELEASE_SHA^{commit}") == "$RELEASE_SHA" ]]
+          git merge-base --is-ancestor "$RELEASE_SHA" origin/main
+          echo "sha=$RELEASE_SHA" >> "$GITHUB_OUTPUT"
+      - name: Require successful push CI on the exact SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ steps.provenance.outputs.sha }}
+        run: |
+          set -euo pipefail
+          gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/verify.yml/runs" \
+            -f head_sha="$RELEASE_SHA" -f status=success -f per_page=100 |
+            jq -e --arg sha "$RELEASE_SHA" \
+              '.workflow_runs | any(.head_sha == $sha and .conclusion == "success" and .event == "push" and .head_branch == "main")'
+
+  publish_and_deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_SHA: ${{ needs.validate.outputs.sha }}
+      AWS_REGION: ${{ vars.STAGING_AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ vars.STAGING_AWS_ACCOUNT_ID }}
+      API_REPOSITORY: ${{ vars.STAGING_API_ECR_REPOSITORY }}
+      WEB_REPOSITORY: ${{ vars.STAGING_WEB_ECR_REPOSITORY }}
+      INSTANCE_ID: ${{ vars.STAGING_EC2_INSTANCE_ID }}
+      SSM_DOCUMENT: ${{ vars.STAGING_SSM_DOCUMENT }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+          persist-credentials: false
+      - name: Confirm checkout and configuration
+        run: |
+          set -euo pipefail
+          [[ $(git rev-parse HEAD) == "$RELEASE_SHA" ]]
+          [[ -z $(git status --porcelain) ]]
+          [[ "$AWS_ACCOUNT_ID" =~ ^[0-9]{12}$ ]]
+          [[ "$AWS_REGION" =~ ^[a-z]{2}-[a-z]+-[0-9]$ ]]
+          [[ "$INSTANCE_ID" =~ ^i-[a-f0-9]+$ ]]
+          [[ "$API_REPOSITORY" =~ ^[a-z0-9][a-z0-9._/-]*$ ]]
+          [[ "$WEB_REPOSITORY" =~ ^[a-z0-9][a-z0-9._/-]*$ ]]
+          [[ "$SSM_DOCUMENT" =~ ^[A-Za-z0-9_.-]+$ ]]
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.STAGING_GITHUB_ROLE_ARN }}
+          aws-region: ${{ vars.STAGING_AWS_REGION }}
+          allowed-account-ids: ${{ vars.STAGING_AWS_ACCOUNT_ID }}
+      - uses: aws-actions/amazon-ecr-login@v2.1.7
+      - uses: docker/setup-buildx-action@v4.3.0
+      - name: Build and push immutable commit images
+        run: |
+          set -euo pipefail
+          registry="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+          publish_if_missing() {
+            local repository="$1" context="$2"
+            if aws ecr describe-images --repository-name "$repository" \
+              --image-ids imageTag="$RELEASE_SHA" >/dev/null 2>&1; then
+              echo "Reusing immutable image tag in $repository"
+            else
+              docker buildx build --platform linux/amd64 --pull --push \
+                --label "org.opencontainers.image.revision=$RELEASE_SHA" \
+                -t "$registry/$repository:$RELEASE_SHA" "$context"
+            fi
+          }
+          publish_if_missing "$API_REPOSITORY" backend
+          publish_if_missing "$WEB_REPOSITORY" frontend
+          api_digest=$(aws ecr describe-images --repository-name "$API_REPOSITORY" \
+            --image-ids imageTag="$RELEASE_SHA" --query 'imageDetails[0].imageDigest' --output text)
+          web_digest=$(aws ecr describe-images --repository-name "$WEB_REPOSITORY" \
+            --image-ids imageTag="$RELEASE_SHA" --query 'imageDetails[0].imageDigest' --output text)
+          [[ "$api_digest" =~ ^sha256:[a-f0-9]{64}$ ]]
+          [[ "$web_digest" =~ ^sha256:[a-f0-9]{64}$ ]]
+          echo "API_DIGEST=$api_digest" >> "$GITHUB_ENV"
+          echo "WEB_DIGEST=$web_digest" >> "$GITHUB_ENV"
+      - name: Run restricted SSM deployment and await result
+        run: |
+          set -euo pipefail
+          command_id=$(aws ssm send-command --document-name "$SSM_DOCUMENT" \
+            --instance-ids "$INSTANCE_ID" \
+            --parameters "apiDigest=$API_DIGEST,webDigest=$WEB_DIGEST" \
+            --comment "MoodPrint staging $RELEASE_SHA" \
+            --query 'Command.CommandId' --output text)
+          echo "SSM command: $command_id"
+          for ((attempt=0; attempt<90; attempt++)); do
+            status=$(aws ssm get-command-invocation --command-id "$command_id" \
+              --instance-id "$INSTANCE_ID" --query Status --output text 2>/dev/null || true)
+            case "$status" in
+              Success) echo 'Staging deployment healthy'; exit 0 ;;
+              Failed|Cancelled|TimedOut|Cancelling) echo "Deployment status: $status" >&2; exit 1 ;;
+            esac
+            sleep 5
+          done
+          echo 'SSM command did not complete within 450 seconds' >&2
+          exit 1
