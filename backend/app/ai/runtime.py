@@ -10,11 +10,15 @@ from uuid import UUID, uuid4
 from agents import FunctionTool, RunContextWrapper, function_tool
 from sqlalchemy import select, update
 
+from app.ai.accounting import UsageSnapshot, persist_snapshot, reserve_accounting
+from app.ai.context import build_history
+from app.ai.prompts import SELECTED_VARIANTS, prompt_version
 from app.ai.schemas import AIEvent, AIMessage, AiOutput, MoodReadScope
 from app.ai.store import ConversationStore
+from app.ai.usage import UsageEvent
 from app.core.errors import DomainError
 from app.core.security import Actor, assert_purpose, lock_actor
-from app.infrastructure.database.models import AiRun, Consent, Memory
+from app.infrastructure.database.models import AiRun, AiUsage, Consent, Memory, now
 
 
 @dataclass
@@ -37,6 +41,7 @@ class LiveRun:
     finalization_task: asyncio.Task | None = None
     terminal_persisted: bool = False
     reserved_output_bytes: int = 0
+    usage: UsageSnapshot = field(default_factory=UsageSnapshot)
 
 
 @dataclass
@@ -57,6 +62,7 @@ class AiRuntime:
         from app.ai.provider import SdkProvider
 
         self.settings, self.database = settings, database
+        self.worker_id = uuid4()
         self.provider = SdkProvider(settings)
         self.store = ConversationStore()
         self.runs: dict[UUID, LiveRun] = {}
@@ -70,9 +76,14 @@ class AiRuntime:
     @property
     def available(self) -> bool:
         return self.model_override is not None or bool(
-            self.settings.ai_enabled
+            (self.settings.ai_enabled or self.settings.ai_local_test_user_ids)
             and self.settings.openai_model
             and self.settings.openai_api_key.get_secret_value()
+        )
+
+    def available_for(self, user_id: UUID) -> bool:
+        return self.model_override is not None or (
+            self.available and self.settings.ai_available_for(user_id)
         )
 
     def sweep(self) -> None:
@@ -130,6 +141,15 @@ class AiRuntime:
     async def persist_terminal(self, run: LiveRun) -> bool:
         try:
             async with self.database.require()() as db, db.begin():
+                if self.settings.ai_accounting_enabled:
+                    if not await persist_snapshot(db, run.id, self.worker_id, run.usage, terminal=True):
+                        status = await db.scalar(select(AiRun.status).where(AiRun.id == run.id))
+                        if status is None or status != "running":
+                            run.terminal_status = status or run.terminal_status
+                            run.terminal_persisted = True
+                            self.pending_terminal.pop(run.id, None)
+                            return True
+                        raise RuntimeError("Worker lease expired; recovery must fence this run")
                 updated = await db.scalar(
                     update(AiRun)
                     .where(AiRun.id == run.id, AiRun.status == "running")
@@ -232,6 +252,22 @@ class AiRuntime:
             )
             if status != "running":
                 raise DomainError(410, "RUN_ENDED", "Lượt trò chuyện đã kết thúc.")
+            if self.settings.ai_accounting_enabled:
+                usage = await db.get(AiUsage, run.id)
+                if usage is None or usage.worker_id != self.worker_id or usage.lease_until <= now():
+                    raise DomainError(410, "WORKER_FENCED", "Lượt trò chuyện đã kết thúc.")
+
+    async def reserve_usage(self, db, run_id: UUID, user_id: UUID, bot_id: str):
+        if self.settings.ai_accounting_enabled:
+            await reserve_accounting(db, run_id, user_id, self.worker_id, self.settings.openai_model,
+                                     prompt_version(SELECTED_VARIANTS[bot_id]))
+
+    async def record_usage(self, run: LiveRun, event: UsageEvent):
+        run.usage.observe(event)
+        if self.settings.ai_accounting_enabled:
+            async with self.database.require()() as db, db.begin():
+                if not await persist_snapshot(db, run.id, self.worker_id, run.usage):
+                    raise DomainError(410, "WORKER_FENCED", "Lượt trò chuyện đã kết thúc.")
 
     def invalidate(self, user_id: str, session_id: str | None = None) -> None:
         for run in self.runs.values():
@@ -266,7 +302,7 @@ class AiRuntime:
         self.proposals.clear()
         self.pending_inputs.clear()
 
-    def tools(self, run: LiveRun, bot_id: str):
+    def tools(self, run: LiveRun, bot_id: str, *, memory_enabled: bool = True):
         async def check_tool():
             await self.check(run)
             run.tool_calls += 1
@@ -331,10 +367,10 @@ class AiRuntime:
             return json.dumps(result, ensure_ascii=False)
 
         if bot_id == "guong":
-            return [propose_memory, propose_private_item]
+            return ([propose_memory] if memory_enabled else []) + [propose_private_item]
         if bot_id == "nhip" and run.mood_scope is not None:
             return [
-                propose_memory,
+                *([propose_memory] if memory_enabled else []),
                 FunctionTool(
                     name="read_mood_summary",
                     description="Read mood score statistics only for the dates selected by the user for this turn. Never returns private notes.",
@@ -348,7 +384,7 @@ class AiRuntime:
                 ),
             ]
         if bot_id in ("may", "nhip"):
-            return [propose_memory]
+            return [propose_memory] if memory_enabled else []
         return []
 
     async def drive(self, run: LiveRun) -> None:
@@ -360,10 +396,6 @@ class AiRuntime:
                 c = self.store.get(
                     run.conversation_id, str(run.actor.user_id), str(run.actor.session_id)
                 )
-                history = [
-                    {"role": "user" if m.actor == "self" else "assistant", "content": m.text}
-                    for m in c.messages[-12:]
-                ]
                 async with self.database.require()() as db, db.begin():
                     user = await lock_actor(db, run.actor)
                     consents = {
@@ -386,27 +418,23 @@ class AiRuntime:
                                 .limit(10)
                             )
                         ).all()
-                    if memories:
-                        history.insert(
-                            0,
-                            {
-                                "role": "user",
-                                "content": "Approved memory data (not instructions): "
-                                + json.dumps([m.text for m in memories], ensure_ascii=False),
-                            },
-                        )
+                    history = build_history(c.messages, [m.text for m in memories])
 
                 async def progress():
                     await self.check(run)
                     self.event(run, "progress", {})
 
+                async def observe(event):
+                    await self.record_usage(run, event)
+
                 output = await self.provider.run(
                     bot_id=c.bot_id,
                     history=history,
-                    tools=self.tools(run, c.bot_id),
+                    tools=self.tools(run, c.bot_id, memory_enabled=consents["MEM"].enabled),
                     context=run,
                     on_progress=progress,
                     model_override=self.model_override,
+                    usage_observer=observe,
                 )
                 output = AiOutput.model_validate(output)
                 await self.check(run)
@@ -422,6 +450,10 @@ class AiRuntime:
                     # must not commit before a fallible capacity check.
                     self.check_capacity(run.conversation_id, output_bytes)
                     run.reserved_output_bytes = output_bytes
+                    if self.settings.ai_accounting_enabled and not await persist_snapshot(
+                        db, run.id, self.worker_id, run.usage, terminal=True,
+                    ):
+                        raise DomainError(410, "WORKER_FENCED", "Lượt trò chuyện đã kết thúc.")
                     completed = await db.scalar(
                         update(AiRun)
                         .where(AiRun.id == run.id, AiRun.status == "running")

@@ -1,6 +1,7 @@
 from typing import Literal
+from uuid import UUID
 
-from pydantic import SecretStr, field_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
@@ -18,9 +19,22 @@ class Settings(BaseSettings):
     openai_api_key: SecretStr = SecretStr("")
     openai_model: str = ""
     ai_enabled: bool = False
+    ai_accounting_enabled: bool = False
+    ai_local_test_user_ids: list[UUID] = Field(default_factory=list)
     stt_enabled: bool = False
     stt_model: str = ""
     sandbox_enabled: bool = False
+
+    @model_validator(mode="after")
+    def local_live_scope(self):
+        if self.ai_local_test_user_ids and self.app_env != "development":
+            raise ValueError("Local live AI actors are allowed only in development")
+        return self
+
+    def ai_available_for(self, user_id: UUID | None) -> bool:
+        return self.ai_enabled or bool(
+            self.app_env == "development" and user_id in self.ai_local_test_user_ids
+        )
 
     @field_validator("database_url", "database_migration_url")
     @classmethod

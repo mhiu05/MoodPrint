@@ -2,6 +2,7 @@ from datetime import UTC, date, datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
+    BigInteger,
     CheckConstraint,
     Date,
     DateTime,
@@ -184,4 +185,34 @@ class AiRun(Base):
             unique=True,
             postgresql_where=(status == "running"),
         ),
+    )
+
+
+class AiUsage(Base):
+    __tablename__ = "ai_usage"
+    run_id: Mapped[UUID] = mapped_column(ForeignKey(AiRun.id, ondelete="CASCADE"), primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey(User.id), index=True)
+    worker_id: Mapped[UUID] = mapped_column(PGUUID)
+    model: Mapped[str] = mapped_column(String(100))
+    prompt_version: Mapped[str] = mapped_column(String(60))
+    pricing_version: Mapped[str] = mapped_column(String(60))
+    input_nano_rate: Mapped[int | None] = mapped_column(BigInteger)
+    cached_nano_rate: Mapped[int | None] = mapped_column(BigInteger)
+    output_nano_rate: Mapped[int | None] = mapped_column(BigInteger)
+    estimated_nano_usd: Mapped[int | None] = mapped_column(BigInteger)
+    state: Mapped[str] = mapped_column(String(16), default="open")
+    sequence: Mapped[int] = mapped_column(Integer, default=0)
+    requests_started: Mapped[int] = mapped_column(Integer, default=0)
+    responses_received: Mapped[int] = mapped_column(Integer, default=0)
+    input_tokens: Mapped[int] = mapped_column(BigInteger, default=0)
+    cached_input_tokens: Mapped[int] = mapped_column(BigInteger, default=0)
+    output_tokens: Mapped[int] = mapped_column(BigInteger, default=0)
+    tool_calls: Mapped[int] = mapped_column(Integer, default=0)
+    lease_until: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    __table_args__ = (
+        CheckConstraint("state in ('open','settled','uncertain')", name="state"),
+        CheckConstraint("sequence >= 0 and requests_started >= responses_received and responses_received >= 0 and requests_started <= 3 and tool_calls between 0 and 2", name="counts"),
+        CheckConstraint("input_tokens >= cached_input_tokens and cached_input_tokens >= 0 and output_tokens >= 0", name="tokens"),
+        CheckConstraint("estimated_nano_usd is null or estimated_nano_usd >= 0", name="cost"),
     )

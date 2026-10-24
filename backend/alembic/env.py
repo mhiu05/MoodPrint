@@ -1,17 +1,18 @@
 import asyncio
-from pathlib import Path
 import sys
+from pathlib import Path
 
-from alembic import context
 from sqlalchemy import pool, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from alembic import context
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.core.config import Settings
 from app.infrastructure.database.models import Base
-from app.modules.social import models  # Register all owned domain tables.
 from app.modules.moderation import models as moderation_models  # noqa: F401
+from app.modules.social import models  # noqa: F401 -- register all owned domain tables
 from app.modules.users import models as lifecycle_models  # noqa: F401
 
 config = context.config

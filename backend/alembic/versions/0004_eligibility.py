@@ -1,6 +1,7 @@
 """Owner-private birth-year declarations; no automatic permission backfill."""
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision = "0004_eligibility"

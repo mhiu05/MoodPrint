@@ -69,7 +69,7 @@ async def create_conversation(
     runtime.sweep()
     async with transaction(request, actor) as (db, user):
         await assert_purpose(db, user, "AI")
-        if not runtime.available:
+        if not runtime.available_for(actor.user_id):
             raise DomainError(503, "AI_UNAVAILABLE", "Trò chuyện AI chưa sẵn sàng.", True)
     c = runtime.store.create(str(actor.user_id), str(actor.session_id), body.bot_id)
     return header(c)
@@ -106,7 +106,7 @@ async def send(
     with ExitStack() as input_buffer:
         async with transaction(request, actor) as (db, user):
             await assert_purpose(db, user, "AI")
-            if not runtime.available:
+            if not runtime.available_for(actor.user_id):
                 raise DomainError(503, "AI_UNAVAILABLE", "Trò chuyện AI chưa sẵn sàng.", True)
             c = runtime.store.get(conversation_id, str(actor.user_id), str(actor.session_id))
             message_digest = digest(body.model_dump_json(include={"text", "mood_scope"}))
@@ -142,6 +142,7 @@ async def send(
             run_id = uuid4()
             db.add(AiRun(id=run_id, user_id=user.id, conversation_id=c.id, bot_id=c.bot_id))
             await db.flush()
+            await runtime.reserve_usage(db, run_id, user.id, c.bot_id)
             data_version = user.data_version
             input_buffer.enter_context(runtime.reserve_input(c.id, len(body.text.encode()) + 1024))
         from app.ai.schemas import AIMessage

@@ -28,11 +28,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # No migrations at startup. Restart marks interrupted metadata without replaying model calls.
         if database.sessions:
             async with database.sessions.begin() as db:
-                await db.execute(
-                    update(AiRun)
-                    .where(AiRun.status == "running")
-                    .values(status="interrupted", version=AiRun.version + 1)
-                )
+                if config.ai_accounting_enabled:
+                    from app.ai.accounting import recover_expired
+                    await recover_expired(db)
+                else:
+                    await db.execute(
+                        update(AiRun)
+                        .where(AiRun.status == "running")
+                        .values(status="interrupted", version=AiRun.version + 1)
+                    )
 
         async def sweep_context():
             next_retention = 0.0
@@ -51,6 +55,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         await process_deletions(app)
                         if time.monotonic() >= next_retention:
                             await purge_expired(app)
+                            if config.ai_accounting_enabled:
+                                from app.ai.accounting import recover_expired
+                                async with database.sessions.begin() as db:
+                                    await recover_expired(db)
                             next_retention = time.monotonic() + 60
                     except Exception as error:
                         logging.getLogger("moodprint").error(

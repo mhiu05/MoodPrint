@@ -3,10 +3,11 @@
 from datetime import timedelta
 from uuid import uuid4
 
-from sqlalchemy import and_, delete, or_, select, update
+from sqlalchemy import and_, delete, func, or_, select, update
 
 from app.infrastructure.database.models import (
     AgeDeclaration,
+    AiUsage,
     AuthSession,
     Idempotency,
     Memory,
@@ -94,6 +95,8 @@ async def process_deletions(app):
                 .values(status="invalidated", version=ConnectionRequest.version + 1)
             )
         if job.scope == "account":
+            if await db.scalar(select(func.to_regclass("moodprint.ai_usage"))):
+                await db.execute(delete(AiUsage).where(AiUsage.user_id == uid))
             await db.execute(delete(AgeDeclaration).where(AgeDeclaration.user_id == uid))
             await db.execute(
                 update(HumanMessage).where(HumanMessage.sender_id == uid).values(text="[Đã xóa]")
