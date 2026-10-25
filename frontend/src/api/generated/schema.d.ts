@@ -1526,7 +1526,7 @@ export interface components {
         /** ExportInput */
         ExportInput: {
             /** Scopes */
-            scopes: ("account" | "private_items" | "memories" | "moods")[];
+            scopes: ("account" | "private_items" | "memories" | "moods" | "consents" | "social")[];
         };
         /** FeatureView */
         FeatureView: {
@@ -1652,6 +1652,16 @@ export interface components {
              */
             acceptedAt: string;
         };
+        /** MoodBucket */
+        MoodBucket: {
+            /**
+             * Localdate
+             * Format: date
+             */
+            localDate: string;
+            /** Value */
+            value: number | null;
+        };
         /** MoodCard */
         MoodCard: {
             /**
@@ -1710,6 +1720,34 @@ export interface components {
              * Format: date
              */
             toDate: string;
+        };
+        /**
+         * MoodSummaryDTO
+         * @description Aggregates only recorded days; missing days stay null and are never imputed.
+         */
+        MoodSummaryDTO: {
+            /**
+             * From
+             * Format: date
+             */
+            from: string;
+            /**
+             * To
+             * Format: date
+             */
+            to: string;
+            /** Count */
+            count: number;
+            /** Mean */
+            mean: number | null;
+            /** Min */
+            min: number | null;
+            /** Max */
+            max: number | null;
+            /** Insightavailable */
+            insightAvailable: boolean;
+            /** Buckets */
+            buckets: components["schemas"]["MoodBucket"][];
         };
         /** NavigateCard */
         NavigateCard: {
@@ -1852,6 +1890,14 @@ export interface components {
             profile: components["schemas"]["PublicProfile"];
             /** Version */
             version: number;
+            /**
+             * State
+             * @default live
+             * @enum {string}
+             */
+            state: "live" | "needs_republish";
+            /** Profileversion */
+            profileVersion: number;
         };
         /** ReportInput */
         ReportInput: {
@@ -3968,6 +4014,8 @@ export interface operations {
         parameters: {
             query?: {
                 days?: number;
+                from?: string | null;
+                to?: string | null;
             };
             header?: never;
             path?: never;
@@ -3981,7 +4029,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["MoodSummaryDTO"];
                 };
             };
             /** @description Unauthorized */

@@ -45,12 +45,36 @@
   margin: 0;
   accent-color: var(--color-ink);
 }
+.real-plain {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
 .real-field {
   display: block;
   margin: 18px 0;
 }
 .real-human-chat {
   min-height: 65vh;
+}
+.real-human-chat .conversation-header h1 {
+  font-size: 18px;
+  margin: 0;
+}
+/* Keep the newest messages and the composer on screen together, including when
+   an on-screen keyboard shrinks the visual viewport (--app-height). */
+.real-human-chat .conversation-log {
+  flex: 1 1 auto;
+  min-height: 160px;
+  max-height: max(160px, calc(var(--app-height, 100dvh) - 250px));
+}
+.mood-mean {
+  white-space: nowrap;
+}
+/* Two-column table: the legacy three-column rule narrows the last cell. */
+.mood-table td:last-child {
+  width: auto;
 }
 .real-voice {
   margin: 0 12px 12px;

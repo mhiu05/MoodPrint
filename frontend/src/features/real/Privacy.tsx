@@ -77,7 +77,16 @@ export function DataControls() {
     try {
       const result = await api.request<Job>("/exports", {
         method: "POST",
-        body: { scopes: ["account", "private_items", "memories", "moods"] },
+        body: {
+          scopes: [
+            "account",
+            "private_items",
+            "memories",
+            "moods",
+            "consents",
+            "social",
+          ],
+        },
       });
       const data = await api.request<unknown>(`/exports/${result.id}/download`);
       const url = URL.createObjectURL(
@@ -134,9 +143,11 @@ export function DataControls() {
     <section className="real-section">
       <h2>Dữ liệu của bạn</h2>
       <p>
-        Bản xuất gồm thông tin tuổi, hồ sơ riêng, tâm trạng và ghi nhớ của bạn.
-        Hội thoại AI đã lưu được xuất riêng trong lịch sử trò chuyện. Hội thoại
-        AI tạm và nội dung riêng của người khác không nằm trong bản xuất.
+        Bản xuất gồm thông tin tuổi, hồ sơ riêng, tâm trạng, ghi nhớ, lịch sử
+        bật/tắt quyền, hồ sơ kết nối, lời mời, tin nhắn bạn đã gửi, báo cáo và
+        lượt chặn bạn đã tạo. Hội thoại AI đã lưu được xuất riêng trong lịch sử
+        trò chuyện. Hội thoại AI tạm, tin nhắn và thông tin riêng của người khác
+        không nằm trong bản xuất. Tệp chỉ tải được một lần trong 15 phút.
       </p>
       <ErrorNotice error={error} />
       {notice && <p role="status">{notice}</p>}
@@ -219,8 +230,10 @@ export function DataControls() {
           <p>
             Hội thoại đã lưu, ghi nhớ, tâm trạng, hồ sơ riêng, hồ sơ kết nối và
             tài khoản đăng nhập sẽ bị xóa. Tin nhắn đã gửi cho người khác sẽ
-            hiển thị là “[Đã xóa]”. Bản sao lưu hệ thống có thể còn giữ dữ liệu
-            thêm một thời gian ngắn trước khi tự hết hạn.
+            hiển thị là “[Đã xóa]”. Để giữ an toàn cộng đồng, ứng dụng vẫn giữ
+            báo cáo bạn đã gửi, lịch sử bật/tắt quyền và một bản ghi tài khoản
+            đã xóa không có tên hay email. Bản sao lưu của nhà cung cấp hạ tầng
+            có thể còn dữ liệu cho đến khi bản sao lưu đó hết hạn.
           </p>
           <label className="real-check">
             <input

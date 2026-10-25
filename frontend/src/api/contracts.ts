@@ -8,6 +8,7 @@ export type ConversationHeader = components["schemas"]["ConversationHeader"];
 export type ConversationView = components["schemas"]["ConversationView"];
 export type AIRunAccepted = components["schemas"]["AIRunAccepted"];
 export type MoodDTO = components["schemas"]["MoodDTO"];
+export type MoodSummaryDTO = components["schemas"]["MoodSummaryDTO"];
 export type PrivateItemDTO = components["schemas"]["PrivateItemDTO"];
 export type ActionReceipt = components["schemas"]["ActionReceipt"];
 export type LoginInput = components["schemas"]["LoginInput"];

@@ -91,6 +91,9 @@ export class ApiClient {
       if (!response.ok) {
         const payload = record(await response.json().catch(() => ({})));
         const detail = record(payload.error || payload.detail);
+        // A 4xx means the server rolled the write back, so the key can never be
+        // replayed usefully; only 5xx/network outcomes are ambiguous and keep it.
+        if (response.status < 500) this.intents.delete(intent);
         // Step-up re-authentication and public auth endpoints are not session loss.
         if (
           response.status === 401 &&

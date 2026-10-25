@@ -56,8 +56,6 @@ import type {
   BotPublicDTO,
   ConsentPurpose,
   ConsentInput,
-  MoodDTO,
-  MoodInput,
   PrivateItemDTO,
   PrivateItemInput,
   PrivateItemEdit,
@@ -68,6 +66,7 @@ import type {
 import "./real.css";
 import { Discovery, HumanChat, HumanMessages } from "./Social";
 import { ApprovedMemories } from "./Memory";
+import { Moods } from "./Mood";
 import { VoiceRecorder } from "./Voice";
 import { OwnIdentity } from "./Safety";
 import { DataControls } from "./Privacy";
@@ -287,7 +286,10 @@ function Shell() {
   const { session } = useSession();
   const location = useLocation();
   const assistants = location.pathname.startsWith("/assistants");
-  const fullChat = assistants && location.pathname !== "/assistants";
+  // Conversations use the whole small screen; each has its own back button.
+  const fullChat =
+    (assistants && location.pathname !== "/assistants") ||
+    location.pathname.startsWith("/chat/");
   useEffect(() => {
     const viewport = window.visualViewport;
     const resize = () =>
@@ -1090,12 +1092,20 @@ const consentLabels: Record<ConsentPurpose, string> = {
   VOICE: "giọng nói",
 };
 const consentDescriptions: Record<ConsentPurpose, string> = {
-  AI: "Cho phép xử lý nội dung bạn gửi để trợ lý phản hồi. Hội thoại không tự trở thành hồ sơ hay ghi nhớ.",
-  MEM: "Chỉ những mục bạn duyệt mới được ghi nhớ. Quyền này độc lập với trò chuyện AI.",
+  AI: "Cho phép xử lý nội dung bạn gửi để trợ lý phản hồi, kể cả thống kê tâm trạng (không gồm ghi chú) khi bạn chủ động chia sẻ cho Nhịp trong một lượt. Hội thoại không tự trở thành hồ sơ hay ghi nhớ.",
+  MEM: "Chỉ những mục bạn duyệt mới được ghi nhớ và nhắc lại. Cần bật trò chuyện AI để dùng.",
   MATCH:
-    "Quyền tìm bạn không tự công khai hồ sơ riêng. Bạn xem trước và chủ động đăng hồ sơ kết nối.",
+    "Quyền tìm bạn không tự công khai hồ sơ riêng. Bạn xem trước và chủ động đăng hồ sơ kết nối; cảm xúc, ghi chú và hội thoại AI không bao giờ được dùng để ghép bạn.",
   VOICE:
-    "Chỉ ghi âm sau thao tác của bạn khi tính năng giọng nói khả dụng. Bạn có thể sửa bản chép trước khi gửi.",
+    "Chỉ ghi âm sau thao tác của bạn khi tính năng giọng nói khả dụng. Bạn có thể sửa bản chép trước khi gửi. Cần bật trò chuyện AI để dùng.",
+};
+/** What withdrawing each permission does, matching backend/app/modules/consent/routes.py. */
+const consentWithdrawal: Record<ConsentPurpose, string> = {
+  AI: "Khi tắt: dừng ngay các lượt AI đang chạy, hủy đề xuất ghi nhớ chưa duyệt và xóa chỉ mục tìm kiếm ghi nhớ. Vẫn giữ: lịch sử trò chuyện đã lưu (chỉ đọc) và các ghi nhớ bạn đã duyệt — bạn có thể xuất hoặc xóa chúng bên dưới.",
+  MEM: "Khi tắt: trợ lý ngừng nhắc lại ghi nhớ, hủy đề xuất chưa duyệt và xóa chỉ mục tìm kiếm. Vẫn giữ: các ghi nhớ đã duyệt để bạn xem, sửa hoặc xóa.",
+  MATCH:
+    "Khi tắt: đóng mọi cuộc trò chuyện với người thật, hủy lời mời đang chờ, và hồ sơ kết nối bị ẩn. Bật lại không tự chia sẻ lại hồ sơ — bạn cần xem lại và xuất bản lại. Những người đang trò chuyện hoặc có lời mời chờ với bạn sẽ không được gợi ý lại cho nhau trong 30 ngày.",
+  VOICE: "Khi tắt: không thể ghi âm nữa. Âm thanh không bao giờ được lưu lại.",
 };
 function Settings() {
   const { api, session, receive, logout } = useSession();
@@ -1137,6 +1147,7 @@ function Settings() {
               consentLabels[purpose].slice(1)}
           </h2>
           <p>{consentDescriptions[purpose]}</p>
+          <p className={cx.footnote}>{consentWithdrawal[purpose]}</p>
           <p>
             <strong>
               {session.consents[purpose].enabled ? "Đang bật" : "Đang tắt"}
@@ -1182,145 +1193,6 @@ function Settings() {
         </Button>
       </section>
       <DataControls />
-    </div>
-  );
-}
-
-function localDate(time: string, timezone: string) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date(time));
-  return ["year", "month", "day"]
-    .map((type) => parts.find((part) => part.type === type)?.value)
-    .join("-");
-}
-function Moods() {
-  const { api, session } = useSession();
-  const resource = useResource<MoodDTO[]>("/moods");
-  const [date, setDate] = useState(() =>
-    localDate(session.serverTime, session.timezone),
-  );
-  const [value, setValue] = useState(3),
-    [note, setNote] = useState("");
-  const [busy, setBusy] = useState(false),
-    [error, setError] = useState<unknown>(),
-    [receipt, setReceipt] = useState("");
-  async function save(event: FormEvent) {
-    event.preventDefault();
-    if (busy || !resource.data) return;
-    setBusy(true);
-    setError(undefined);
-    setReceipt("");
-    try {
-      const saved = await api.request<MoodDTO>(`/moods/${date}`, {
-        method: "PUT",
-        body: {
-          value,
-          note,
-          timezone: session.timezone,
-          expectedVersion:
-            resource.data.find((mood) => mood.localDate === date)?.version || 0,
-        } satisfies MoodInput,
-      });
-      resource.setData((previous) =>
-        [
-          saved,
-          ...(previous || []).filter(
-            (mood) => mood.localDate !== saved.localDate,
-          ),
-        ].sort((a, b) => b.localDate.localeCompare(a.localDate)),
-      );
-      setReceipt("Đã lưu tâm trạng.");
-    } catch (reason) {
-      setError(reason);
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <div className={cx.reading}>
-      <h1 tabIndex={-1}>Cảm xúc của bạn</h1>
-      <p className={cx.lede}>
-        Dành một nhịp để lắng nghe bản thân. Chỉ bạn xem những ghi chép này.
-      </p>
-      <ErrorNotice error={resource.error} retry={resource.refresh} />
-      <ErrorNotice error={error} />
-      {resource.loading ? <p role="status">Đang tải tâm trạng…</p> : null}
-      <form onSubmit={save}>
-        <label htmlFor="mood-date">Ngày</label>
-        <input
-          id="mood-date"
-          type="date"
-          value={date}
-          required
-          onChange={(event) => {
-            setDate(event.target.value);
-            setReceipt("");
-          }}
-        />
-        <label htmlFor="mood-value">Tâm trạng</label>
-        <select
-          id="mood-value"
-          value={value}
-          onChange={(event) => setValue(Number(event.target.value))}
-        >
-          {[
-            "Rất khó khăn",
-            "Hơi chùng xuống",
-            "Bình thường",
-            "Khá ổn",
-            "Rất vui",
-          ].map((label, index) => (
-            <option key={label} value={index + 1}>
-              {index + 1} — {label}
-            </option>
-          ))}
-        </select>
-        <label htmlFor="mood-note">Ghi chú</label>
-        <textarea
-          id="mood-note"
-          value={note}
-          maxLength={120}
-          rows={3}
-          onChange={(event) => setNote(event.target.value)}
-        />
-        <Button
-          type="submit"
-          disabled={busy || resource.loading || !resource.data}
-        >
-          {busy ? "Đang lưu…" : "Lưu tâm trạng"}
-        </Button>
-        {receipt ? <p role="status">{receipt}</p> : null}
-      </form>
-      <section className="real-section">
-        <h2>Nhìn lại cảm xúc</h2>
-        {resource.data?.length === 0 ? (
-          <p>Chưa có ghi chép. Bạn có thể bắt đầu từ hôm nay.</p>
-        ) : null}
-        {resource.data?.map((mood) => (
-          <article className="real-item" key={mood.id}>
-            <h3>
-              {mood.localDate} · {mood.value}/5
-            </h3>
-            <p>{mood.note}</p>
-            <Button
-              variant="text"
-              onClick={() => {
-                setDate(mood.localDate);
-                setValue(mood.value);
-                setNote(mood.note);
-                setReceipt("");
-                document.getElementById("mood-value")?.focus();
-              }}
-            >
-              Sửa tâm trạng ngày {mood.localDate}
-            </Button>
-          </article>
-        ))}
-      </section>
     </div>
   );
 }

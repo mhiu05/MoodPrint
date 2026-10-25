@@ -24,6 +24,15 @@ type ConnectionView = Schema["ConnectionView"];
 type Message = Schema["MessageView"];
 type Page = Schema["MessagePage"];
 
+const requestStatus: Record<string, string> = {
+  pending: "Đang chờ phản hồi",
+  accepted: "Đã kết nối",
+  declined: "Lời mời đã được từ chối",
+  cancelled: "Lời mời đã được hủy",
+  expired: "Lời mời đã hết hạn",
+  invalidated: "Lời mời không còn hiệu lực vì hồ sơ hoặc quyền đã thay đổi",
+};
+
 export function Discovery() {
   const { api, session } = useSession();
   const canMatch =
@@ -53,6 +62,9 @@ export function Discovery() {
     [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(),
     [notice, setNotice] = useState("");
+  const [blocking, setBlocking] = useState<string>();
+  const live =
+    Boolean(published.data) && published.data?.state !== "needs_republish";
   useEffect(() => {
     if (draft.data && !profile) setProfile(draft.data.profile);
   }, [draft.data, profile]);
@@ -266,8 +278,8 @@ export function Discovery() {
                         draftVersion: preview.draftVersion,
                         previewDigest: preview.previewDigest,
                         expectedPublishedVersion:
-                          draft.data?.publishedVersion ||
-                          published.data?.version ||
+                          published.data?.profileVersion ??
+                          draft.data?.publishedVersion ??
                           0,
                       } satisfies Schema["PublishInput"],
                     },
@@ -277,7 +289,7 @@ export function Discovery() {
                     (previous) =>
                       previous && {
                         ...previous,
-                        publishedVersion: result.version,
+                        publishedVersion: result.profileVersion,
                       },
                   );
                   setPreview(undefined);
@@ -292,7 +304,14 @@ export function Discovery() {
       )}
       {published.data && (
         <section className="real-section">
-          <h2>Hồ sơ đang chia sẻ</h2>
+          <h2>{live ? "Hồ sơ đang chia sẻ" : "Hồ sơ đang tạm ẩn"}</h2>
+          {!live && (
+            <p className={cx.note}>
+              Hồ sơ này không xuất hiện trong gợi ý (ví dụ sau khi bạn tắt rồi
+              bật lại quyền tìm bạn). Hãy xem lại và xuất bản lại nếu bạn muốn
+              chia sẻ tiếp; hệ thống không tự chia sẻ lại.
+            </p>
+          )}
           <p>
             {[
               ...(published.data.profile.interests || []),
@@ -308,7 +327,7 @@ export function Discovery() {
               void act(async () => {
                 await api.request("/profiles/published/current", {
                   method: "DELETE",
-                  body: { expectedVersion: published.data!.version },
+                  body: { expectedVersion: published.data!.profileVersion },
                 });
                 published.setData(null);
                 draft.refresh();
@@ -330,7 +349,10 @@ export function Discovery() {
             Tải lại gợi ý
           </Button>
           {suggestions.loading && <p role="status">Đang tìm điểm chung…</p>}
-          {Boolean(suggestions.error) && published.data && (
+          {!suggestions.loading && !live && (
+            <p>Hãy xuất bản hồ sơ kết nối để nhận gợi ý.</p>
+          )}
+          {Boolean(suggestions.error) && live && (
             <ErrorNotice
               error={suggestions.error}
               retry={suggestions.refresh}
@@ -379,16 +401,7 @@ export function Discovery() {
                 <Button
                   variant="text"
                   disabled={busy}
-                  onClick={() =>
-                    void act(
-                      () =>
-                        api.request("/blocks", {
-                          method: "POST",
-                          body: { peerRef: candidate.candidateRef },
-                        }),
-                      "Đã chặn kết nối.",
-                    )
-                  }
+                  onClick={() => setBlocking(candidate.candidateRef)}
                 >
                   Chặn
                 </Button>
@@ -396,6 +409,43 @@ export function Discovery() {
             </article>
           ))}
         </section>
+      )}
+      {blocking && (
+        <Dialog
+          title="Chặn người này?"
+          destructive
+          onClose={() => !busy && setBlocking(undefined)}
+        >
+          <p>
+            Hai bạn sẽ không được gợi ý cho nhau và không thể gửi lời mời hay
+            tin nhắn cho nhau nữa. Việc chặn không thể hoàn tác trong ứng dụng.
+          </p>
+          <div className={cx.actions}>
+            <Button
+              variant="secondary"
+              data-cancel
+              disabled={busy}
+              onClick={() => setBlocking(undefined)}
+            >
+              Không chặn
+            </Button>
+            <Button
+              variant="danger"
+              disabled={busy}
+              onClick={() =>
+                void act(async () => {
+                  await api.request("/blocks", {
+                    method: "POST",
+                    body: { peerRef: blocking },
+                  });
+                  setBlocking(undefined);
+                }, "Đã chặn kết nối.")
+              }
+            >
+              Xác nhận chặn
+            </Button>
+          </div>
+        </Dialog>
       )}
       {canMatch && (
         <section className="real-section">
@@ -409,13 +459,7 @@ export function Discovery() {
                   ? "Một lời chào dành cho bạn"
                   : "Lời chào bạn đã gửi"}
               </h3>
-              <p>
-                {item.status === "pending"
-                  ? "Đang chờ phản hồi"
-                  : item.status === "accepted"
-                    ? "Đã kết nối"
-                    : "Lời mời đã kết thúc"}
-              </p>
+              <p>{requestStatus[item.status] || "Lời mời đã kết thúc"}</p>
               {item.status === "pending" && (
                 <div className={cx.actions}>
                   {(item.direction === "incoming"
@@ -468,10 +512,16 @@ export function Discovery() {
 
 export function HumanMessages() {
   const { session } = useSession();
-  const rooms = useResource<ConnectionView[]>(
-    "/connections",
-    session.ageBand === "adult" && session.consents.MATCH.enabled,
-  );
+  const enabled = session.ageBand === "adult" && session.consents.MATCH.enabled;
+  const rooms = useResource<ConnectionView[]>("/connections", enabled);
+  const { refresh } = rooms;
+  useEffect(() => {
+    if (!enabled) return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") refresh();
+    }, 15_000);
+    return () => clearInterval(timer);
+  }, [enabled, refresh]);
   if (session.ageBand !== "adult")
     return (
       <StatePanel title="Tính năng kết nối chưa khả dụng">
@@ -515,6 +565,10 @@ export function HumanMessages() {
   );
 }
 
+const REVOKED = [403, 404, 410];
+const UNAVAILABLE =
+  "Cuộc trò chuyện này không còn khả dụng. Kết nối có thể đã kết thúc, bị chặn, hoặc một bên đã tắt quyền tìm bạn.";
+
 export function HumanChat() {
   const { connectionId } = useParams();
   const { api } = useSession();
@@ -524,13 +578,37 @@ export function HumanChat() {
     [error, setError] = useState<unknown>(),
     [busy, setBusy] = useState(false),
     [ready, setReady] = useState(false);
+  // closed: this tab no longer has access, so nothing is polled or streamed.
+  const [closed, setClosed] = useState<string>();
+  // Messages this user saw before they blocked or ended, kept only for a report.
+  const [evidence, setEvidence] = useState<Message[]>();
+  const [ending, setEnding] = useState(false);
   const intent = useRef<{ text: string; id: string } | undefined>(undefined),
     cursor = useRef("0");
   const loading = useRef(false),
+    revoked = useRef(false),
+    streamHealthy = useRef(false),
+    lastRefresh = useRef(0),
     log = useRef<HTMLDivElement>(null);
+  // The last history this tab showed; the event stream may revoke access (and
+  // clear the view) before the user's own block/end request has returned.
+  const seen = useRef<Message[]>([]);
+  useEffect(() => {
+    if (messages.length) seen.current = messages;
+  }, [messages]);
+  const revoke = useCallback((reason: string, own = false) => {
+    revoked.current = true;
+    setMessages([]);
+    setRoom(undefined);
+    setReady(false);
+    // The user's own action explains the closure best; a server-side revocation
+    // arriving in the same moment must not replace it.
+    setClosed((current) => (own ? reason : (current ?? reason)));
+  }, []);
   const refresh = useCallback(async () => {
-    if (loading.current) return;
+    if (loading.current || revoked.current) return;
     loading.current = true;
+    lastRefresh.current = Date.now();
     try {
       const access = await api.request<ConnectionView>(
         `/connections/${connectionId}`,
@@ -561,59 +639,82 @@ export function HumanChat() {
       setReady(true);
       setError(undefined);
     } catch (reason) {
-      setError(reason);
-      setReady(false);
-      if (
-        reason instanceof ApiError &&
-        [401, 403, 404, 410].includes(reason.status)
-      ) {
-        setMessages([]);
-        setRoom(undefined);
+      if (reason instanceof ApiError && REVOKED.includes(reason.status)) {
+        setError(undefined);
+        revoke(UNAVAILABLE);
+      } else {
+        setError(reason);
+        setReady(false);
       }
     } finally {
       loading.current = false;
     }
-  }, [api, connectionId]);
+  }, [api, connectionId, revoke]);
   useEffect(() => {
     cursor.current = "0";
+    revoked.current = false;
+    seen.current = [];
+    setClosed(undefined);
+    setEvidence(undefined);
     setMessages([]);
     setReady(false);
     void refresh();
+    // Fallback polling: every 3s while the event stream is down, otherwise a
+    // slow 15s safety net for anything the stream could have missed.
     const timer = setInterval(() => {
-      if (document.visibilityState === "visible") void refresh();
+      if (document.visibilityState !== "visible" || revoked.current) return;
+      const interval = streamHealthy.current ? 15_000 : 3_000;
+      if (Date.now() - lastRefresh.current >= interval - 100) void refresh();
     }, 3000);
     return () => clearInterval(timer);
   }, [refresh]);
   useEffect(() => {
-    const source = new EventSource(
-      `/api/v1/connections/${connectionId}/events?afterSeq=0`,
-    );
-    source.addEventListener("messages_available", () => void refresh());
-    source.addEventListener("access_revoked", () => {
-      source.close();
-      setMessages([]);
-      setRoom(undefined);
-      setReady(false);
-      setError(
-        new ApiError(
-          403,
-          "CONNECTION_UNAVAILABLE",
-          "Kết nối không còn khả dụng. Vui lòng tải lại.",
-        ),
+    let source: EventSource | undefined,
+      retry: number | undefined,
+      attempt = 0,
+      stopped = false;
+    const connect = () => {
+      if (stopped || revoked.current) return;
+      // Resume from the newest message this tab has, so nothing is skipped.
+      source = new EventSource(
+        `/api/v1/connections/${connectionId}/events?afterSeq=${cursor.current}`,
       );
-    });
-    source.onerror = () => {
-      source.close();
-      void refresh();
+      source.addEventListener("messages_available", () => {
+        attempt = 0;
+        streamHealthy.current = true;
+        void refresh();
+      });
+      source.addEventListener("access_revoked", () => {
+        source?.close();
+        streamHealthy.current = false;
+        stopped = true;
+        revoke(UNAVAILABLE);
+      });
+      source.onerror = () => {
+        source?.close();
+        streamHealthy.current = false;
+        void refresh();
+        attempt += 1;
+        retry = window.setTimeout(
+          connect,
+          Math.min(30_000, 1000 * 2 ** attempt),
+        );
+      };
     };
-    return () => source.close();
-  }, [connectionId, refresh]);
+    connect();
+    return () => {
+      stopped = true;
+      streamHealthy.current = false;
+      window.clearTimeout(retry);
+      source?.close();
+    };
+  }, [connectionId, refresh, revoke]);
   useEffect(() => {
     log.current?.scrollTo({ top: log.current.scrollHeight });
   }, [messages.length]);
   async function send(event: FormEvent) {
     event.preventDefault();
-    if (!ready || busy || !draft.trim()) return;
+    if (!ready || busy || closed || !draft.trim()) return;
     setBusy(true);
     setError(undefined);
     if (intent.current?.text !== draft.trim())
@@ -638,11 +739,18 @@ export function HumanChat() {
       intent.current = undefined;
       void refresh();
     } catch (reason) {
+      // The typed text stays in the composer; a stale tab learns it lost access.
       setError(reason);
+      if (reason instanceof ApiError && REVOKED.includes(reason.status))
+        void refresh();
     } finally {
       setBusy(false);
     }
   }
+  const leave = (reason: string) => {
+    setEvidence(seen.current);
+    revoke(reason, true);
+  };
   return (
     <div className="bot-conversation real-human-chat">
       <header className="conversation-header">
@@ -651,13 +759,29 @@ export function HumanChat() {
         </Link>
         <h1 tabIndex={-1}>{room?.alias || "Cuộc trò chuyện"}</h1>
       </header>
-      <ErrorNotice error={error} retry={() => void refresh()} />
+      <ErrorNotice
+        error={error}
+        retry={closed ? undefined : () => void refresh()}
+      />
+      {closed && (
+        <div className={cx.note} role="status">
+          <p>{closed}</p>
+          <p>Bạn không thể gửi thêm tin nhắn trong cuộc trò chuyện này.</p>
+          <Link to="/messages">Về danh sách tin nhắn</Link>
+        </div>
+      )}
+      {!closed && !ready && !error && (
+        <p role="status">Đang tải cuộc trò chuyện…</p>
+      )}
       <div
         className="conversation-log"
         ref={log}
         role="log"
         aria-label="Tin nhắn trong kết nối"
       >
+        {ready && messages.length === 0 && (
+          <p className={cx.footnote}>Hãy bắt đầu bằng một lời hỏi thăm.</p>
+        )}
         {messages.map((message) => (
           <div
             className={`message-row ${message.sender === "self" ? "from-self" : "from-bot"}`}
@@ -676,51 +800,82 @@ export function HumanChat() {
           rows={1}
           maxLength={500}
           aria-label="Tin nhắn cho bạn kết nối"
-          placeholder="Gửi một lời hỏi thăm…"
+          placeholder={
+            closed ? "Cuộc trò chuyện đã đóng" : "Gửi một lời hỏi thăm…"
+          }
           value={draft}
+          disabled={Boolean(closed)}
           onChange={(event) => setDraft(event.target.value)}
         />
         <button
           className="send-button"
           type="submit"
-          disabled={!ready || busy || !draft.trim()}
+          disabled={!ready || busy || Boolean(closed) || !draft.trim()}
           aria-label="Gửi tin nhắn"
         >
           <Send size={20} />
         </button>
       </form>
-      {room && (
-        <Button
-          variant="text"
-          disabled={busy}
-          onClick={() => {
-            setBusy(true);
-            void api
-              .request(`/connections/${connectionId}/end`, {
-                method: "POST",
-                body: { expectedVersion: room.version },
-              })
-              .then(() => {
-                setReady(false);
-                setMessages([]);
-                setRoom(undefined);
-              })
-              .catch(setError)
-              .finally(() => setBusy(false));
-          }}
-        >
+      {room && !closed && (
+        <Button variant="text" disabled={busy} onClick={() => setEnding(true)}>
           Kết thúc kết nối
         </Button>
       )}
-      {room && connectionId && (
+      {ending && room && (
+        <Dialog
+          title="Kết thúc kết nối này?"
+          destructive
+          onClose={() => !busy && setEnding(false)}
+        >
+          <p>
+            Cả hai sẽ không thể gửi thêm tin nhắn trong cuộc trò chuyện này, và
+            hai bạn sẽ không được gợi ý lại cho nhau trong 30 ngày.
+          </p>
+          <div className={cx.actions}>
+            <Button
+              variant="secondary"
+              data-cancel
+              disabled={busy}
+              onClick={() => setEnding(false)}
+            >
+              Giữ kết nối
+            </Button>
+            <Button
+              variant="danger"
+              disabled={busy}
+              onClick={() => {
+                setBusy(true);
+                void api
+                  .request(`/connections/${connectionId}/end`, {
+                    method: "POST",
+                    body: { expectedVersion: room.version },
+                  })
+                  .then(() => {
+                    setEnding(false);
+                    leave("Bạn đã kết thúc kết nối này.");
+                  })
+                  .catch(setError)
+                  .finally(() => setBusy(false));
+              }}
+            >
+              Xác nhận kết thúc
+            </Button>
+          </div>
+        </Dialog>
+      )}
+      {room && connectionId && !closed && (
         <ConnectionSafety
           connectionId={connectionId}
           messages={messages}
-          onBlocked={() => {
-            setReady(false);
-            setMessages([]);
-            setRoom(undefined);
-          }}
+          onBlocked={() => leave("Bạn đã chặn kết nối này.")}
+        />
+      )}
+      {closed && evidence && connectionId && (
+        <ConnectionSafety
+          connectionId={connectionId}
+          messages={evidence}
+          onBlocked={() => undefined}
+          reportOnly
         />
       )}
     </div>

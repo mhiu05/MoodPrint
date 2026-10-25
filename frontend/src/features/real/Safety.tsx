@@ -87,14 +87,18 @@ export function ConnectionSafety({
   connectionId,
   messages,
   onBlocked,
+  reportOnly = false,
 }: {
   connectionId: string;
   messages: Schema["MessageView"][];
   onBlocked: () => void;
+  /** After the room closed: identity sharing is gone, but reporting stays possible. */
+  reportOnly?: boolean;
 }) {
   const { api } = useSession();
   const reveals = useResource<Schema["RevealView"][]>(
     `/connections/${connectionId}/reveal-requests`,
+    !reportOnly,
   );
   const [shown, setShown] = useState<Record<string, string>>({}),
     [busy, setBusy] = useState(false),
@@ -104,11 +108,12 @@ export function ConnectionSafety({
     [selected, setSelected] = useState<string[]>([]),
     [blocking, setBlocking] = useState(false);
   useEffect(() => {
+    if (reportOnly) return;
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") reveals.refresh();
     }, 5000);
     return () => clearInterval(timer);
-  }, [reveals.refresh]);
+  }, [reveals.refresh, reportOnly]);
   useEffect(() => {
     if (reveals.data)
       setShown((previous) =>
@@ -129,7 +134,7 @@ export function ConnectionSafety({
     try {
       await work();
       setNotice(success);
-      reveals.refresh();
+      if (!reportOnly) reveals.refresh();
     } catch (failure) {
       setError(failure);
     } finally {
@@ -137,142 +142,159 @@ export function ConnectionSafety({
     }
   }
   return (
-    <details className="real-safety">
-      <summary>Chia s&#7867; v&#224; an to&#224;n</summary>
-      <h2>Chia sẻ theo lựa chọn của bạn</h2>
-      <p>
-        Mỗi thông tin có quyền riêng. Chia sẻ không mở quyền xem các ghi chép
-        hay hội thoại khác.
-      </p>
-      <ErrorNotice error={error || reveals.error} retry={reveals.refresh} />
-      {notice && <p role="status">{notice}</p>}
-      <div className={cx.actions}>
-        {(Object.keys(fields) as (keyof typeof fields)[]).map((field) => (
-          <Button
-            key={field}
-            variant="secondary"
-            disabled={busy}
-            onClick={() =>
-              void act(
-                () =>
-                  api.request(`/connections/${connectionId}/reveal-requests`, {
-                    method: "POST",
-                    body: {
-                      field,
-                      ownerSide: "peer",
-                      expectedIdentityVersion: 0,
-                    } satisfies Schema["RevealInput"],
-                  }),
-                "Đã gửi yêu cầu chia sẻ.",
-              )
-            }
-          >
-            Xin xem {fields[field].toLocaleLowerCase("vi-VN")}
-          </Button>
-        ))}
-      </div>
-      {reveals.data?.map((item) => (
-        <article className="real-item" key={item.id}>
-          <h3>
-            {fields[item.field]} ·{" "}
-            {item.ownerSide === "self"
-              ? "Thông tin của bạn"
-              : "Thông tin của người kia"}
-          </h3>
+    <details className="real-safety" open={reportOnly || undefined}>
+      <summary>
+        {reportOnly ? "Báo cáo nội dung" : "Chia sẻ và an toàn"}
+      </summary>
+      {reportOnly ? (
+        <>
+          <ErrorNotice error={error} />
+          {notice && <p role="status">{notice}</p>}
+        </>
+      ) : (
+        <>
+          <h2>Chia sẻ theo lựa chọn của bạn</h2>
           <p>
-            {item.status === "pending"
-              ? "Đang chờ chủ thông tin quyết định"
-              : item.status === "granted"
-                ? "Đang được chia sẻ"
-                : "Yêu cầu chia sẻ đã kết thúc"}
+            Mỗi thông tin có quyền riêng. Chia sẻ không mở quyền xem các ghi
+            chép hay hội thoại khác.
           </p>
-          {item.ownerSide === "self" &&
-            item.status === "pending" &&
-            item.previewDigest && (
-              <>
-                <p>
-                  Bạn sắp chia sẻ: <strong>{item.previewValue}</strong>
-                </p>
-                <div className={cx.actions}>
-                  <Button
-                    disabled={busy}
-                    onClick={() =>
-                      void act(
-                        () =>
-                          api.request(`/reveal-requests/${item.id}/grant`, {
-                            method: "POST",
-                            body: {
-                              expectedVersion: item.version,
-                              previewDigest: item.previewDigest!,
-                            } satisfies Schema["RevealDecision"],
-                          }),
-                        "Đã cập nhật quyền chia sẻ.",
-                      )
-                    }
-                  >
-                    Đồng ý chia sẻ
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    disabled={busy}
-                    onClick={() =>
-                      void act(
-                        () =>
-                          api.request(`/reveal-requests/${item.id}/decline`, {
-                            method: "POST",
-                            body: { expectedVersion: item.version },
-                          }),
-                        "Đã từ chối chia sẻ.",
-                      )
-                    }
-                  >
-                    Không chia sẻ
-                  </Button>
-                </div>
-              </>
-            )}
-          {item.ownerSide === "self" && item.status === "granted" && (
-            <Button
-              variant="text"
-              disabled={busy}
-              onClick={() =>
-                void act(
-                  () =>
-                    api.request(`/reveal-grants/${item.id}`, {
-                      method: "DELETE",
-                      body: { expectedVersion: item.version },
-                    }),
-                  "Đã thu hồi quyền xem tiếp theo.",
-                )
-              }
-            >
-              Thu hồi chia sẻ
-            </Button>
-          )}
-          {item.ownerSide === "peer" && item.status === "granted" && (
-            <>
+          <ErrorNotice error={error || reveals.error} retry={reveals.refresh} />
+          {notice && <p role="status">{notice}</p>}
+          <div className={cx.actions}>
+            {(Object.keys(fields) as (keyof typeof fields)[]).map((field) => (
               <Button
-                variant="text"
+                key={field}
+                variant="secondary"
                 disabled={busy}
                 onClick={() =>
-                  void act(async () => {
-                    const value = await api.request<Schema["IdentityView"]>(
-                      `/reveal-grants/${item.id}/value`,
-                    );
-                    setShown((previous) => ({
-                      ...previous,
-                      [item.id]: value.value,
-                    }));
-                  }, "")
+                  void act(
+                    () =>
+                      api.request(
+                        `/connections/${connectionId}/reveal-requests`,
+                        {
+                          method: "POST",
+                          body: {
+                            field,
+                            ownerSide: "peer",
+                            expectedIdentityVersion: 0,
+                          } satisfies Schema["RevealInput"],
+                        },
+                      ),
+                    "Đã gửi yêu cầu chia sẻ.",
+                  )
                 }
               >
-                Xem thông tin đã được chia sẻ
+                Xin xem {fields[field].toLocaleLowerCase("vi-VN")}
               </Button>
-              {shown[item.id] && <p>{shown[item.id]}</p>}
-            </>
-          )}
-        </article>
-      ))}
+            ))}
+          </div>
+          {reveals.data?.map((item) => (
+            <article className="real-item" key={item.id}>
+              <h3>
+                {fields[item.field]} ·{" "}
+                {item.ownerSide === "self"
+                  ? "Thông tin của bạn"
+                  : "Thông tin của người kia"}
+              </h3>
+              <p>
+                {item.status === "pending"
+                  ? "Đang chờ chủ thông tin quyết định"
+                  : item.status === "granted"
+                    ? "Đang được chia sẻ"
+                    : "Yêu cầu chia sẻ đã kết thúc"}
+              </p>
+              {item.ownerSide === "self" &&
+                item.status === "pending" &&
+                item.previewDigest && (
+                  <>
+                    <p>
+                      Bạn sắp chia sẻ: <strong>{item.previewValue}</strong>
+                    </p>
+                    <div className={cx.actions}>
+                      <Button
+                        disabled={busy}
+                        onClick={() =>
+                          void act(
+                            () =>
+                              api.request(`/reveal-requests/${item.id}/grant`, {
+                                method: "POST",
+                                body: {
+                                  expectedVersion: item.version,
+                                  previewDigest: item.previewDigest!,
+                                } satisfies Schema["RevealDecision"],
+                              }),
+                            "Đã cập nhật quyền chia sẻ.",
+                          )
+                        }
+                      >
+                        Đồng ý chia sẻ
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        disabled={busy}
+                        onClick={() =>
+                          void act(
+                            () =>
+                              api.request(
+                                `/reveal-requests/${item.id}/decline`,
+                                {
+                                  method: "POST",
+                                  body: { expectedVersion: item.version },
+                                },
+                              ),
+                            "Đã từ chối chia sẻ.",
+                          )
+                        }
+                      >
+                        Không chia sẻ
+                      </Button>
+                    </div>
+                  </>
+                )}
+              {item.ownerSide === "self" && item.status === "granted" && (
+                <Button
+                  variant="text"
+                  disabled={busy}
+                  onClick={() =>
+                    void act(
+                      () =>
+                        api.request(`/reveal-grants/${item.id}`, {
+                          method: "DELETE",
+                          body: { expectedVersion: item.version },
+                        }),
+                      "Đã thu hồi quyền xem tiếp theo.",
+                    )
+                  }
+                >
+                  Thu hồi chia sẻ
+                </Button>
+              )}
+              {item.ownerSide === "peer" && item.status === "granted" && (
+                <>
+                  <Button
+                    variant="text"
+                    disabled={busy}
+                    onClick={() =>
+                      void act(async () => {
+                        const value = await api.request<Schema["IdentityView"]>(
+                          `/reveal-grants/${item.id}/value`,
+                        );
+                        setShown((previous) => ({
+                          ...previous,
+                          [item.id]: value.value,
+                        }));
+                      }, "")
+                    }
+                  >
+                    Xem thông tin đã được chia sẻ
+                  </Button>
+                  {shown[item.id] && <p>{shown[item.id]}</p>}
+                </>
+              )}
+            </article>
+          ))}
+        </>
+      )}
       <section className="real-section">
         <h2>Báo cáo nội dung</h2>
         <p>
@@ -333,9 +355,15 @@ export function ConnectionSafety({
           Gửi báo cáo
         </Button>
       </section>
-      <Button variant="text" disabled={busy} onClick={() => setBlocking(true)}>
-        Chặn kết nối này
-      </Button>
+      {!reportOnly && (
+        <Button
+          variant="text"
+          disabled={busy}
+          onClick={() => setBlocking(true)}
+        >
+          Chặn kết nối này
+        </Button>
+      )}
       {blocking && (
         <Dialog
           title="Chặn kết nối này?"
