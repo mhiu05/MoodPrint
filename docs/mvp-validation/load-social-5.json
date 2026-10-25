@@ -1,0 +1,149 @@
+{
+  "users": 5,
+  "workers": 1,
+  "think_seconds": 0.0,
+  "elapsed_s": 4.78,
+  "requests": 196,
+  "throughput_rps": 41.0,
+  "unexpected_statuses": [],
+  "flow_exceptions": [],
+  "integrity": {},
+  "discovery_misses": [],
+  "info": {
+    "events_received": 12
+  },
+  "rooms_opened": 2,
+  "expected_rooms": 2,
+  "pool_peak_checked_out": 8,
+  "pool_peak_overflow": 0,
+  "pool_size": 8,
+  "latency": {
+    "candidates": {
+      "count": 5,
+      "p50_ms": 212.7,
+      "p95_ms": 288.2,
+      "max_ms": 288.2
+    },
+    "connections": {
+      "count": 4,
+      "p50_ms": 55.1,
+      "p95_ms": 58.4,
+      "max_ms": 58.4
+    },
+    "consent": {
+      "count": 5,
+      "p50_ms": 86.8,
+      "p95_ms": 90.4,
+      "max_ms": 90.4
+    },
+    "consent_toggle": {
+      "count": 2,
+      "p50_ms": 110.9,
+      "p95_ms": 153.2,
+      "max_ms": 153.2
+    },
+    "draft_preview": {
+      "count": 5,
+      "p50_ms": 39.2,
+      "p95_ms": 42.3,
+      "max_ms": 42.3
+    },
+    "draft_save": {
+      "count": 5,
+      "p50_ms": 59.3,
+      "p95_ms": 65.2,
+      "max_ms": 65.2
+    },
+    "events_first": {
+      "count": 4,
+      "p50_ms": 247.0,
+      "p95_ms": 265.8,
+      "max_ms": 265.8
+    },
+    "foreign_probe": {
+      "count": 3,
+      "p50_ms": 22.3,
+      "p95_ms": 26.0,
+      "max_ms": 26.0
+    },
+    "history": {
+      "count": 4,
+      "p50_ms": 62.7,
+      "p95_ms": 66.5,
+      "max_ms": 66.5
+    },
+    "message_poll": {
+      "count": 40,
+      "p50_ms": 59.9,
+      "p95_ms": 136.5,
+      "max_ms": 151.8
+    },
+    "message_retry": {
+      "count": 16,
+      "p50_ms": 79.8,
+      "p95_ms": 179.6,
+      "max_ms": 179.6
+    },
+    "message_send": {
+      "count": 40,
+      "p50_ms": 104.4,
+      "p95_ms": 416.9,
+      "max_ms": 423.2
+    },
+    "mood_edit": {
+      "count": 10,
+      "p50_ms": 44.1,
+      "p95_ms": 48.8,
+      "max_ms": 48.8
+    },
+    "mood_list": {
+      "count": 5,
+      "p50_ms": 36.1,
+      "p95_ms": 37.7,
+      "max_ms": 37.7
+    },
+    "mood_put": {
+      "count": 25,
+      "p50_ms": 52.2,
+      "p95_ms": 57.9,
+      "max_ms": 60.7
+    },
+    "mood_summary": {
+      "count": 5,
+      "p50_ms": 33.1,
+      "p95_ms": 35.8,
+      "max_ms": 35.8
+    },
+    "publish": {
+      "count": 5,
+      "p50_ms": 59.5,
+      "p95_ms": 64.9,
+      "max_ms": 64.9
+    },
+    "request_accept": {
+      "count": 1,
+      "p50_ms": 41.0,
+      "p95_ms": 41.0,
+      "max_ms": 41.0
+    },
+    "request_list": {
+      "count": 4,
+      "p50_ms": 35.5,
+      "p95_ms": 36.8,
+      "max_ms": 36.8
+    },
+    "request_send": {
+      "count": 3,
+      "p50_ms": 79.6,
+      "p95_ms": 161.2,
+      "max_ms": 161.2
+    },
+    "session": {
+      "count": 5,
+      "p50_ms": 383.5,
+      "p95_ms": 406.8,
+      "max_ms": 406.8
+    }
+  },
+  "passed": true
+}

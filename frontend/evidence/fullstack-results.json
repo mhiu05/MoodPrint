@@ -14,7 +14,7 @@
     "fullyParallel": false,
     "globalSetup": null,
     "globalTeardown": null,
-    "globalTimeout": 180000,
+    "globalTimeout": 900000,
     "grep": {},
     "grepInvert": null,
     "maxFailures": 0,
@@ -115,12 +115,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 11353,
+                  "duration": 7308,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T16:30:21.962Z",
+                  "startTime": "2026-10-25T02:58:24.740Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -157,12 +157,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4633,
+                  "duration": 3214,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T16:30:34.013Z",
+                  "startTime": "2026-10-25T02:58:32.231Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -191,12 +191,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2363,
+                  "duration": 1750,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T16:30:38.666Z",
+                  "startTime": "2026-10-25T02:58:35.459Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -225,12 +225,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 23229,
+                  "duration": 13740,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T16:30:41.046Z",
+                  "startTime": "2026-10-25T02:58:37.222Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -259,12 +259,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 17862,
+                  "duration": 15036,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T16:31:04.292Z",
+                  "startTime": "2026-10-25T02:58:50.977Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -293,12 +293,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 7612,
+                  "duration": 4471,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T16:31:22.179Z",
+                  "startTime": "2026-10-25T02:59:06.029Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -327,18 +327,18 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 12721,
+                  "duration": 8061,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T16:31:29.814Z",
+                  "startTime": "2026-10-25T02:59:10.513Z",
                   "annotations": [],
                   "attachments": [
                     {
                       "name": "accessibility-results",
                       "contentType": "application/json",
-                      "body": "WwogIHsKICAgICJ3aWR0aCI6IDM5MCwKICAgICJyb3V0ZSI6ICIvYXNzaXN0YW50cyIsCiAgICAicGFzc2VzIjogMjAsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAzOTAsCiAgICAicm91dGUiOiAiL3Byb2ZpbGUiLAogICAgInBhc3NlcyI6IDIzLAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0sCiAgewogICAgIndpZHRoIjogMzkwLAogICAgInJvdXRlIjogIi9zZXR0aW5ncyIsCiAgICAicGFzc2VzIjogMjEsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAzOTAsCiAgICAicm91dGUiOiAiL3NlbGYiLAogICAgInBhc3NlcyI6IDI0LAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0sCiAgewogICAgIndpZHRoIjogMzkwLAogICAgInJvdXRlIjogIi9jb25uZWN0IiwKICAgICJwYXNzZXMiOiAxNywKICAgICJ2aW9sYXRpb25zIjogW10KICB9LAogIHsKICAgICJ3aWR0aCI6IDE0NDAsCiAgICAicm91dGUiOiAiL2Fzc2lzdGFudHMiLAogICAgInBhc3NlcyI6IDIyLAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0sCiAgewogICAgIndpZHRoIjogMTQ0MCwKICAgICJyb3V0ZSI6ICIvcHJvZmlsZSIsCiAgICAicGFzc2VzIjogMjMsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAxNDQwLAogICAgInJvdXRlIjogIi9zZXR0aW5ncyIsCiAgICAicGFzc2VzIjogMjEsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAxNDQwLAogICAgInJvdXRlIjogIi9zZWxmIiwKICAgICJwYXNzZXMiOiAyNCwKICAgICJ2aW9sYXRpb25zIjogW10KICB9LAogIHsKICAgICJ3aWR0aCI6IDE0NDAsCiAgICAicm91dGUiOiAiL2Nvbm5lY3QiLAogICAgInBhc3NlcyI6IDE3LAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0KXQ=="
+                      "body": "WwogIHsKICAgICJ3aWR0aCI6IDM5MCwKICAgICJyb3V0ZSI6ICIvYXNzaXN0YW50cyIsCiAgICAicGFzc2VzIjogMjAsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAzOTAsCiAgICAicm91dGUiOiAiL3Byb2ZpbGUiLAogICAgInBhc3NlcyI6IDIzLAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0sCiAgewogICAgIndpZHRoIjogMzkwLAogICAgInJvdXRlIjogIi9zZXR0aW5ncyIsCiAgICAicGFzc2VzIjogMjEsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAzOTAsCiAgICAicm91dGUiOiAiL3NlbGYiLAogICAgInBhc3NlcyI6IDI0LAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0sCiAgewogICAgIndpZHRoIjogMzkwLAogICAgInJvdXRlIjogIi9jb25uZWN0IiwKICAgICJwYXNzZXMiOiAxNywKICAgICJ2aW9sYXRpb25zIjogW10KICB9LAogIHsKICAgICJ3aWR0aCI6IDE0NDAsCiAgICAicm91dGUiOiAiL2Fzc2lzdGFudHMiLAogICAgInBhc3NlcyI6IDIwLAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0sCiAgewogICAgIndpZHRoIjogMTQ0MCwKICAgICJyb3V0ZSI6ICIvcHJvZmlsZSIsCiAgICAicGFzc2VzIjogMjMsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAxNDQwLAogICAgInJvdXRlIjogIi9zZXR0aW5ncyIsCiAgICAicGFzc2VzIjogMjEsCiAgICAidmlvbGF0aW9ucyI6IFtdCiAgfSwKICB7CiAgICAid2lkdGgiOiAxNDQwLAogICAgInJvdXRlIjogIi9zZWxmIiwKICAgICJwYXNzZXMiOiAyNCwKICAgICJ2aW9sYXRpb25zIjogW10KICB9LAogIHsKICAgICJ3aWR0aCI6IDE0NDAsCiAgICAicm91dGUiOiAiL2Nvbm5lY3QiLAogICAgInBhc3NlcyI6IDE3LAogICAgInZpb2xhdGlvbnMiOiBbXQogIH0KXQ=="
                     }
                   ]
                 }
@@ -352,13 +352,225 @@
           "column": 1
         }
       ]
+    },
+    {
+      "title": "mvp.spec.ts",
+      "file": "mvp.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Journey E: export contains only the owner's own data and downloads once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1642,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T02:59:18.612Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "616161ec86a02322bd37-ddc1c94013239adbf92e",
+          "file": "mvp.spec.ts",
+          "line": 43,
+          "column": 1
+        },
+        {
+          "title": "Mood lifecycle: create, reload, edit, stale-tab conflict, insights and confirmed delete",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8836,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T02:59:20.266Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "616161ec86a02322bd37-6241ef183a0ae1c010e8",
+          "file": "mvp.spec.ts",
+          "line": 83,
+          "column": 1
+        },
+        {
+          "title": "Journey B/C: two users match, request, accept and chat; stale tab loses access on MATCH withdrawal; C is denied",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 27425,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T02:59:29.129Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "616161ec86a02322bd37-969913d5ba92ee8f2623",
+          "file": "mvp.spec.ts",
+          "line": 216,
+          "column": 1
+        },
+        {
+          "title": "Journey D: block keeps report-after-block possible, the peer's tab closes, and ending needs confirmation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11210,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T02:59:56.570Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "616161ec86a02322bd37-42d4b17fd1b8855fcd06",
+          "file": "mvp.spec.ts",
+          "line": 337,
+          "column": 1
+        },
+        {
+          "title": "Journey F: mood, matching and chat stay usable at 390px and 430px with the composer in view",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10263,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T03:00:07.800Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "616161ec86a02322bd37-90ab6268e8a0e0a68952",
+          "file": "mvp.spec.ts",
+          "line": 430,
+          "column": 1
+        },
+        {
+          "title": "Every real screen passes axe and reflows at 1440, 1280, 430 and 390 with reduced motion",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 33450,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T03:00:18.082Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "616161ec86a02322bd37-6014f733be49bc06bfa5",
+          "file": "mvp.spec.ts",
+          "line": 511,
+          "column": 1
+        }
+      ]
     }
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-24T16:30:21.022Z",
-    "duration": 82369.9,
-    "expected": 7,
+    "startTime": "2026-10-25T02:58:23.879Z",
+    "duration": 148610.461,
+    "expected": 13,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

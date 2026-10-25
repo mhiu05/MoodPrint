@@ -104,7 +104,7 @@
       "specs": [
         {
           "title": "hosted Auth, age, consent, private data, SDK memory, social races, restart and revoke",
-          "ok": false,
+          "ok": true,
           "tags": [],
           "tests": [
             {
@@ -117,53 +117,57 @@
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "failed",
-                  "duration": 209271,
-                  "error": {
-                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText('Synthetic owner 1fd18481', { exact: true })\nExpected: visible\nTimeout: 20000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByText('Synthetic owner 1fd18481', { exact: true }) with timeout 20000ms\u001b[22m\n\u001b[2m  - waiting for getByText('Synthetic owner 1fd18481', { exact: true })\u001b[22m\n",
-                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText('Synthetic owner 1fd18481', { exact: true })\nExpected: visible\nTimeout: 20000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByText('Synthetic owner 1fd18481', { exact: true }) with timeout 20000ms\u001b[22m\n\u001b[2m  - waiting for getByText('Synthetic owner 1fd18481', { exact: true })\u001b[22m\n\n    at E:\\MoodPrint\\frontend\\tests\\supabase\\journey.spec.ts:152:61",
-                    "location": {
-                      "file": "E:\\MoodPrint\\frontend\\tests\\supabase\\journey.spec.ts",
-                      "column": 61,
-                      "line": 152
-                    },
-                    "snippet": "\u001b[0m \u001b[90m 150 |\u001b[39m     \u001b[36mawait\u001b[39m one\u001b[33m.\u001b[39mgetByRole(\u001b[32m\"button\"\u001b[39m\u001b[33m,\u001b[39m { name\u001b[33m:\u001b[39m \u001b[32m\"Đồng ý chia sẻ\"\u001b[39m\u001b[33m,\u001b[39m exact\u001b[33m:\u001b[39m \u001b[36mtrue\u001b[39m })\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n \u001b[90m 151 |\u001b[39m     \u001b[36mawait\u001b[39m two\u001b[33m.\u001b[39mgetByRole(\u001b[32m\"button\"\u001b[39m\u001b[33m,\u001b[39m { name\u001b[33m:\u001b[39m \u001b[32m\"Xem thông tin đã được chia sẻ\"\u001b[39m\u001b[33m,\u001b[39m exact\u001b[33m:\u001b[39m \u001b[36mtrue\u001b[39m })\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 152 |\u001b[39m     \u001b[36mawait\u001b[39m expect(two\u001b[33m.\u001b[39mgetByText(aliasText\u001b[33m,\u001b[39m { exact\u001b[33m:\u001b[39m \u001b[36mtrue\u001b[39m }))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                                             \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 153 |\u001b[39m     \u001b[36mawait\u001b[39m one\u001b[33m.\u001b[39mgetByRole(\u001b[32m\"button\"\u001b[39m\u001b[33m,\u001b[39m { name\u001b[33m:\u001b[39m \u001b[32m\"Thu hồi chia sẻ\"\u001b[39m\u001b[33m,\u001b[39m exact\u001b[33m:\u001b[39m \u001b[36mtrue\u001b[39m })\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n \u001b[90m 154 |\u001b[39m     \u001b[36mawait\u001b[39m expect(two\u001b[33m.\u001b[39mgetByText(aliasText\u001b[33m,\u001b[39m { exact\u001b[33m:\u001b[39m \u001b[36mtrue\u001b[39m }))\u001b[33m.\u001b[39mtoHaveCount(\u001b[35m0\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 155 |\u001b[39m     record(\u001b[32m\"ownerRevealGrantAndRevoke\"\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
-                  },
-                  "errors": [
-                    {
-                      "location": {
-                        "file": "E:\\MoodPrint\\frontend\\tests\\supabase\\journey.spec.ts",
-                        "column": 61,
-                        "line": 152
-                      },
-                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText('Synthetic owner 1fd18481', { exact: true })\nExpected: visible\nTimeout: 20000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByText('Synthetic owner 1fd18481', { exact: true }) with timeout 20000ms\u001b[22m\n\u001b[2m  - waiting for getByText('Synthetic owner 1fd18481', { exact: true })\u001b[22m\n\n\n\u001b[0m \u001b[90m 150 |\u001b[39m     \u001b[36mawait\u001b[39m one\u001b[33m.\u001b[39mgetByRole(\u001b[32m\"button\"\u001b[39m\u001b[33m,\u001b[39m { name\u001b[33m:\u001b[39m \u001b[32m\"Đồng ý chia sẻ\"\u001b[39m\u001b[33m,\u001b[39m exact\u001b[33m:\u001b[39m \u001b[36mtrue\u001b[39m })\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n \u001b[90m 151 |\u001b[39m     \u001b[36mawait\u001b[39m two\u001b[33m.\u001b[39mgetByRole(\u001b[32m\"button\"\u001b[39m\u001b[33m,\u001b[39m { name\u001b[33m:\u001b[39m \u001b[32m\"Xem thông tin đã được chia sẻ\"\u001b[39m\u001b[33m,\u001b[39m exact\u001b[33m:\u001b[39m \u001b[36mtrue\u001b[39m })\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 152 |\u001b[39m     \u001b[36mawait\u001b[39m expect(two\u001b[33m.\u001b[39mgetByText(aliasText\u001b[33m,\u001b[39m { exact\u001b[33m:\u001b[39m \u001b[36mtrue\u001b[39m }))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                                             \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 153 |\u001b[39m     \u001b[36mawait\u001b[39m one\u001b[33m.\u001b[39mgetByRole(\u001b[32m\"button\"\u001b[39m\u001b[33m,\u001b[39m { name\u001b[33m:\u001b[39m \u001b[32m\"Thu hồi chia sẻ\"\u001b[39m\u001b[33m,\u001b[39m exact\u001b[33m:\u001b[39m \u001b[36mtrue\u001b[39m })\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n \u001b[90m 154 |\u001b[39m     \u001b[36mawait\u001b[39m expect(two\u001b[33m.\u001b[39mgetByText(aliasText\u001b[33m,\u001b[39m { exact\u001b[33m:\u001b[39m \u001b[36mtrue\u001b[39m }))\u001b[33m.\u001b[39mtoHaveCount(\u001b[35m0\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 155 |\u001b[39m     record(\u001b[32m\"ownerRevealGrantAndRevoke\"\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m\n\u001b[2m    at E:\\MoodPrint\\frontend\\tests\\supabase\\journey.spec.ts:152:61\u001b[22m"
-                    }
-                  ],
+                  "status": "passed",
+                  "duration": 142511,
+                  "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T17:26:24.649Z",
+                  "startTime": "2026-10-25T03:07:48.420Z",
                   "annotations": [],
-                  "attachments": [
-                    {
-                      "name": "error-context",
-                      "contentType": "text/markdown",
-                      "path": "E:\\MoodPrint\\frontend\\evidence\\supabase\\journey-hosted-Auth-age-co-62153-al-races-restart-and-revoke\\error-context.md"
-                    }
-                  ],
-                  "errorLocation": {
-                    "file": "E:\\MoodPrint\\frontend\\tests\\supabase\\journey.spec.ts",
-                    "column": 61,
-                    "line": 152
-                  }
+                  "attachments": []
                 }
               ],
-              "status": "unexpected"
+              "status": "expected"
             }
           ],
           "id": "bf222bad70f76648f722-151bf24e9c0a5e9d2f12",
           "file": "journey.spec.ts",
           "line": 53,
+          "column": 1
+        },
+        {
+          "title": "hosted Auth fixture: mood lifecycle with insights, and MATCH restore never republishes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 480000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 39820,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T03:10:11.073Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bf222bad70f76648f722-36e20224aa444e2300a5",
+          "file": "journey.spec.ts",
+          "line": 225,
           "column": 1
         }
       ]
@@ -171,11 +175,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-24T17:26:23.549Z",
-    "duration": 211026.98700000002,
-    "expected": 0,
+    "startTime": "2026-10-25T03:07:47.465Z",
+    "duration": 183677.771,
+    "expected": 2,
     "skipped": 0,
-    "unexpected": 1,
+    "unexpected": 0,
     "flaky": 0
   }
 }

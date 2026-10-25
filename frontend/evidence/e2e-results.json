@@ -3,7 +3,10 @@
     "argv": [
       "C:\\Program Files\\nodejs\\node.exe",
       "E:\\MoodPrint\\frontend\\node_modules\\@playwright\\test\\cli.js",
-      "test"
+      "test",
+      "tests/e2e/real.spec.ts",
+      "-g",
+      "saved mood"
     ],
     "configFile": "E:\\MoodPrint\\frontend\\playwright.config.ts",
     "rootDir": "E:/MoodPrint/frontend/tests/e2e",
@@ -34,7 +37,9 @@
         "testIgnore": [],
         "testMatch": [
           "real.spec.ts",
-          "social.spec.ts"
+          "social.spec.ts",
+          "chat-history.spec.ts",
+          "auth.spec.ts"
         ],
         "timeout": 45000
       }
@@ -55,7 +60,9 @@
         "testIgnore": [],
         "testMatch": [
           "real.spec.ts",
-          "social.spec.ts"
+          "social.spec.ts",
+          "chat-history.spec.ts",
+          "auth.spec.ts"
         ],
         "timeout": 45000,
         "use": {
@@ -117,518 +124,8 @@
       "line": 0,
       "specs": [
         {
-          "title": "Nhịp requires an explicit valid mood range and consumes permission after one accepted turn",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 45000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 2045,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-24T13:34:04.976Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "ddb2a7cae9f096cb7e62-72ea1a1891bb16c35eb9",
-          "file": "real.spec.ts",
-          "line": 93,
-          "column": 1
-        },
-        {
-          "title": "Nhịp retries preserve the exact range intent and changing dates creates a new intent",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 45000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 1289,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-24T13:34:07.231Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "ddb2a7cae9f096cb7e62-c2e2fae4c98d4064eb97",
-          "file": "real.spec.ts",
-          "line": 116,
-          "column": 1
-        },
-        {
-          "title": "terminal AI failure restores text without regranting the consumed mood scope",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 45000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 922,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-24T13:34:08.541Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "ddb2a7cae9f096cb7e62-915ccf0144b8328d70ea",
-          "file": "real.spec.ts",
-          "line": 135,
-          "column": 1
-        },
-        {
-          "title": "login failure retains credentials and never opens a sample session",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 45000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 667,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-24T13:34:09.480Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "ddb2a7cae9f096cb7e62-32c0ef694b97acf147fe",
-          "file": "real.spec.ts",
-          "line": 149,
-          "column": 1
-        },
-        {
-          "title": "year onboarding requires confirmation and server success, retaining input after failure",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 45000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 1071,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-24T13:34:10.163Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "ddb2a7cae9f096cb7e62-936ddb7d4bfdbe6337d1",
-          "file": "real.spec.ts",
-          "line": 169,
-          "column": 1
-        },
-        {
-          "title": "an unavailable session remains an explicit error until retry succeeds",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 45000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 957,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-24T13:34:11.255Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "ddb2a7cae9f096cb7e62-2d604c5d10b09d25f9ce",
-          "file": "real.spec.ts",
-          "line": 249,
-          "column": 1
-        },
-        {
-          "title": "consent changes wait for the server receipt and include session protection",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 45000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 1079,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-24T13:34:12.233Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "ddb2a7cae9f096cb7e62-26b9a6403fc450ca1552",
-          "file": "real.spec.ts",
-          "line": 281,
-          "column": 1
-        },
-        {
-          "title": "failed AI requests preserve the draft without creating a fake reply",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 45000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 925,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-24T13:34:13.328Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "ddb2a7cae9f096cb7e62-863875de4c1906b05234",
-          "file": "real.spec.ts",
-          "line": 313,
-          "column": 1
-        },
-        {
-          "title": "failed conversation history blocks new sends until the history can be checked",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 45000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 842,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-24T13:34:14.271Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "ddb2a7cae9f096cb7e62-f41f6133b678b0e3a5cb",
-          "file": "real.spec.ts",
-          "line": 328,
-          "column": 1
-        },
-        {
-          "title": "returning to the app rechecks consent and removes the revoked conversation",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 45000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 993,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-24T13:34:15.132Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "ddb2a7cae9f096cb7e62-15f085161b09bdbd5082",
-          "file": "real.spec.ts",
-          "line": 353,
-          "column": 1
-        },
-        {
-          "title": "AI presents the validated final and rejects raw stream deltas",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 45000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 1240,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-24T13:34:16.145Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "ddb2a7cae9f096cb7e62-04e28987bed9f11de3ae",
-          "file": "real.spec.ts",
-          "line": 387,
-          "column": 1
-        },
-        {
-          "title": "bot Markdown renders emphasis and lists without HTML, active links or remote images",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 45000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 1277,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-24T13:34:17.412Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "ddb2a7cae9f096cb7e62-a948925ab9294d0ec00a",
-          "file": "real.spec.ts",
-          "line": 459,
-          "column": 1
-        },
-        {
-          "title": "the next AI send uses the version persisted after final completion",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 45000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 1091,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-24T13:34:18.708Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "ddb2a7cae9f096cb7e62-9d89c25c75fdd6b0fb4b",
-          "file": "real.spec.ts",
-          "line": 472,
-          "column": 1
-        },
-        {
-          "title": "an invalid AI final fails visibly without rendering provider JSON",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 45000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 1001,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-24T13:34:19.818Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "ddb2a7cae9f096cb7e62-1beed2f3b92e19d5f882",
-          "file": "real.spec.ts",
-          "line": 544,
-          "column": 1
-        },
-        {
-          "title": "failed private profile writes retain the entry without a success receipt",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 45000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 942,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-24T13:34:20.847Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "ddb2a7cae9f096cb7e62-d1d44fc2b2e7c8893456",
-          "file": "real.spec.ts",
-          "line": 581,
-          "column": 1
-        },
-        {
           "title": "a saved mood reloads from the API while a failed edit keeps its note",
-          "ok": true,
+          "ok": false,
           "tags": [],
           "tests": [
             {
@@ -641,99 +138,63 @@
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 1371,
-                  "errors": [],
+                  "status": "failed",
+                  "duration": 2501,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText('Một ngày nhẹ nhàng', { exact: true })\nExpected: visible\nError: strict mode violation: getByText('Một ngày nhẹ nhàng', { exact: true }) resolved to 2 elements:\n    1) <textarea rows=\"3\" id=\"mood-note\" maxlength=\"120\" aria-describedby=\"mood-note-count\">Một ngày nhẹ nhàng</textarea> aka getByRole('textbox', { name: 'Ghi chú' })\n    2) <p>Một ngày nhẹ nhàng</p> aka getByRole('article').getByText('Một ngày nhẹ nhàng')\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByText('Một ngày nhẹ nhàng', { exact: true }) with timeout 7000ms\u001b[22m\n\u001b[2m  - waiting for getByText('Một ngày nhẹ nhàng', { exact: true })\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText('Một ngày nhẹ nhàng', { exact: true })\nExpected: visible\nError: strict mode violation: getByText('Một ngày nhẹ nhàng', { exact: true }) resolved to 2 elements:\n    1) <textarea rows=\"3\" id=\"mood-note\" maxlength=\"120\" aria-describedby=\"mood-note-count\">Một ngày nhẹ nhàng</textarea> aka getByRole('textbox', { name: 'Ghi chú' })\n    2) <p>Một ngày nhẹ nhàng</p> aka getByRole('article').getByText('Một ngày nhẹ nhàng')\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByText('Một ngày nhẹ nhàng', { exact: true }) with timeout 7000ms\u001b[22m\n\u001b[2m  - waiting for getByText('Một ngày nhẹ nhàng', { exact: true })\u001b[22m\n\n    at E:\\MoodPrint\\frontend\\tests\\e2e\\real.spec.ts:642:5",
+                    "location": {
+                      "file": "E:\\MoodPrint\\frontend\\tests\\e2e\\real.spec.ts",
+                      "column": 5,
+                      "line": 642
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 640 |\u001b[39m   \u001b[36mawait\u001b[39m expect(\n \u001b[90m 641 |\u001b[39m     page\u001b[33m.\u001b[39mgetByText(\u001b[32m\"Một ngày nhẹ nhàng\"\u001b[39m\u001b[33m,\u001b[39m { exact\u001b[33m:\u001b[39m \u001b[36mtrue\u001b[39m })\u001b[33m,\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 642 |\u001b[39m   )\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m     \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 643 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgetByLabel(\u001b[32m\"Ngày\"\u001b[39m\u001b[33m,\u001b[39m { exact\u001b[33m:\u001b[39m \u001b[36mtrue\u001b[39m })\u001b[33m.\u001b[39mfill(date)\u001b[33m;\u001b[39m\n \u001b[90m 644 |\u001b[39m   \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mgetByLabel(\u001b[32m\"Ghi chú\"\u001b[39m\u001b[33m,\u001b[39m { exact\u001b[33m:\u001b[39m \u001b[36mtrue\u001b[39m }))\u001b[33m.\u001b[39mtoHaveValue(\n \u001b[90m 645 |\u001b[39m     \u001b[32m\"Một ngày nhẹ nhàng\"\u001b[39m\u001b[33m,\u001b[39m\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "E:\\MoodPrint\\frontend\\tests\\e2e\\real.spec.ts",
+                        "column": 5,
+                        "line": 642
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText('Một ngày nhẹ nhàng', { exact: true })\nExpected: visible\nError: strict mode violation: getByText('Một ngày nhẹ nhàng', { exact: true }) resolved to 2 elements:\n    1) <textarea rows=\"3\" id=\"mood-note\" maxlength=\"120\" aria-describedby=\"mood-note-count\">Một ngày nhẹ nhàng</textarea> aka getByRole('textbox', { name: 'Ghi chú' })\n    2) <p>Một ngày nhẹ nhàng</p> aka getByRole('article').getByText('Một ngày nhẹ nhàng')\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByText('Một ngày nhẹ nhàng', { exact: true }) with timeout 7000ms\u001b[22m\n\u001b[2m  - waiting for getByText('Một ngày nhẹ nhàng', { exact: true })\u001b[22m\n\n\n  640 |   await expect(\n  641 |     page.getByText(\"Một ngày nhẹ nhàng\", { exact: true }),\n> 642 |   ).toBeVisible();\n      |     ^\n  643 |   await page.getByLabel(\"Ngày\", { exact: true }).fill(date);\n  644 |   await expect(page.getByLabel(\"Ghi chú\", { exact: true })).toHaveValue(\n  645 |     \"Một ngày nhẹ nhàng\",\n    at E:\\MoodPrint\\frontend\\tests\\e2e\\real.spec.ts:642:5"
+                    }
+                  ],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T13:34:21.806Z",
+                  "startTime": "2026-10-25T01:58:39.418Z",
                   "annotations": [],
-                  "attachments": []
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "E:\\MoodPrint\\frontend\\evidence\\test-results\\real-a-saved-mood-reloads--28b2d--failed-edit-keeps-its-note\\test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "E:\\MoodPrint\\frontend\\evidence\\test-results\\real-a-saved-mood-reloads--28b2d--failed-edit-keeps-its-note\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "E:\\MoodPrint\\frontend\\evidence\\test-results\\real-a-saved-mood-reloads--28b2d--failed-edit-keeps-its-note\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "E:\\MoodPrint\\frontend\\tests\\e2e\\real.spec.ts",
+                    "column": 5,
+                    "line": 642
+                  }
                 }
               ],
-              "status": "expected"
+              "status": "unexpected"
             }
           ],
           "id": "ddb2a7cae9f096cb7e62-cfbf8498fab1f294293c",
           "file": "real.spec.ts",
-          "line": 614,
-          "column": 1
-        },
-        {
-          "title": "validated AI cards navigate to existing tools without claiming a saved action",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 45000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 1065,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-24T13:34:23.194Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "ddb2a7cae9f096cb7e62-d3f9d4baac15672dda31",
-          "file": "real.spec.ts",
-          "line": 651,
-          "column": 1
-        }
-      ]
-    },
-    {
-      "title": "social.spec.ts",
-      "file": "social.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [
-        {
-          "title": "matching publishes the reviewed profile only after a committed receipt",
-          "ok": true,
-          "tags": [],
-          "tests": [
-            {
-              "timeout": 45000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "",
-              "projectName": "",
-              "results": [
-                {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 1751,
-                  "errors": [],
-                  "stdout": [],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-10-24T13:34:24.293Z",
-                  "annotations": [],
-                  "attachments": []
-                }
-              ],
-              "status": "expected"
-            }
-          ],
-          "id": "3bd26b923e159664f17e-ccaeef9aec67debc2ff6",
-          "file": "social.spec.ts",
-          "line": 3,
+          "line": 619,
           "column": 1
         }
       ]
@@ -741,11 +202,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-24T13:34:03.214Z",
-    "duration": 23350.926,
-    "expected": 18,
+    "startTime": "2026-10-25T01:58:37.458Z",
+    "duration": 6588.882,
+    "expected": 0,
     "skipped": 0,
-    "unexpected": 0,
+    "unexpected": 1,
     "flaky": 0
   }
 }

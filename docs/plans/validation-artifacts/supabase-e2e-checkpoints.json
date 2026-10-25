@@ -12,5 +12,13 @@
   "sdkFakeModelProposalOwnerApprovalAndMemoryPersistence": "PASS",
   "publishMatchingAndConcurrentMutualRequestsSingleRoom": "PASS",
   "realtimeChatAndConcurrentMessageDeduplication": "PASS",
-  "backendProcessRestartRetainsSessionsPrivateMemoryAndChat": "PASS"
+  "backendProcessRestartRetainsSessionsPrivateMemoryAndChat": "PASS",
+  "ownerRevealGrantAndRevoke": "PASS",
+  "reportReceiptAndBlockImmediatelyDenyBothDirections": "PASS",
+  "providerSessionRevokeInvalidatesOpaqueAppSession": "PASS",
+  "logoutAndOldCookieReplayDenied": "PASS",
+  "status": "PASS_SCOPED_HOSTED_JOURNEY",
+  "hostedMoodCreateReloadEditSummary": "PASS",
+  "hostedMoodConfirmedDelete": "PASS",
+  "hostedMatchRestoreRequiresExplicitRepublish": "PASS"
 }

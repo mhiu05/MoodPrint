@@ -118,12 +118,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 27025,
+                  "duration": 32977,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T09:57:15.415Z",
+                  "startTime": "2026-10-25T03:11:06.173Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -133,7 +133,7 @@
           ],
           "id": "bf222bad70f76648f722-212918446f5cecc3a58a",
           "file": "journey.spec.ts",
-          "line": 187,
+          "line": 190,
           "column": 1
         }
       ]
@@ -141,8 +141,8 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-24T09:57:14.208Z",
-    "duration": 28870.050000000003,
+    "startTime": "2026-10-25T03:11:05.392Z",
+    "duration": 33947.599,
     "expected": 1,
     "skipped": 0,
     "unexpected": 0,

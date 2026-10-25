@@ -7,7 +7,7 @@
       "--config",
       "playwright.live.config.ts",
       "--grep",
-      "synthetic media stream"
+      "five companions|consent revoke"
     ],
     "configFile": "E:\\MoodPrint\\frontend\\playwright.live.config.ts",
     "rootDir": "E:/MoodPrint/frontend/tests/live",
@@ -112,7 +112,7 @@
       "line": 0,
       "specs": [
         {
-          "title": "synthetic media stream, real STT preview, edit, explicit send and proposal-only tools",
+          "title": "real five companions, scoped mood tool, memory proposal and explicit approval",
           "ok": true,
           "tags": [],
           "tests": [
@@ -127,12 +127,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 65846,
+                  "duration": 119544,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-24T13:21:32.498Z",
+                  "startTime": "2026-10-25T03:12:08.591Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -140,9 +140,43 @@
               "status": "expected"
             }
           ],
-          "id": "f4c16ad2df3b1859900b-0ee0e28f9a444246ed8a",
+          "id": "f4c16ad2df3b1859900b-9b401d3eba9092a2d4a5",
           "file": "ai.spec.ts",
-          "line": 208,
+          "line": 50,
+          "column": 1
+        },
+        {
+          "title": "real provider cancel, duplicate intent and consent revoke suppress late output",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 30797,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-25T03:14:08.257Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f4c16ad2df3b1859900b-3d0ea62a0467e763bc56",
+          "file": "ai.spec.ts",
+          "line": 170,
           "column": 1
         }
       ]
@@ -150,9 +184,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-24T13:21:30.914Z",
-    "duration": 67752.189,
-    "expected": 1,
+    "startTime": "2026-10-25T03:12:07.825Z",
+    "duration": 151354.01,
+    "expected": 2,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0
