@@ -22,6 +22,16 @@ from app.core.errors import DomainError, install_errors
 from app.infrastructure.database.connection import Database
 from app.infrastructure.database.models import AiRun
 
+READY_REVISIONS = frozenset(
+    {
+        "0010_account_deletion",
+        "0011_social_stabilization",
+        "0012_matching_v2",
+        "0013_shared_activities",
+        "0014_moderation",
+    }
+)
+
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     config = settings or Settings()
@@ -193,7 +203,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 revision = await db.scalar(
                     text("select version_num from moodprint.alembic_version")
                 )
-                if revision != "0010_account_deletion":
+                if revision not in READY_REVISIONS:
                     raise RuntimeError("Migration required")
                 helper = await db.scalar(
                     text(
