@@ -163,6 +163,18 @@ class AttestationCommandTests(unittest.TestCase):
         self.assertEqual(command[command.index("--source-digest") + 1], SHA)
 
 
+class GitHubEnvironmentTests(unittest.TestCase):
+    def test_uses_writable_xdg_cache_for_sigstore_tuf(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config_dir = pathlib.Path(directory) / "gh-config"
+            environment = poll_release.prepare_gh_environment(config_dir)
+            expected_cache = pathlib.Path(directory) / "xdg-cache"
+
+            self.assertEqual(environment["XDG_CACHE_HOME"], str(expected_cache))
+            self.assertTrue(expected_cache.is_dir())
+            self.assertEqual(stat.S_IMODE(expected_cache.stat().st_mode), 0o700)
+
+
 class AttestationBundleTests(unittest.TestCase):
     def test_downloads_public_bundles_as_protected_jsonl(self):
         first_bundle = {

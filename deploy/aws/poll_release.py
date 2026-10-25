@@ -263,6 +263,10 @@ def prepare_gh_environment(config_dir: Path) -> dict[str, str]:
     environment = os.environ.copy()
     environment["GH_CONFIG_DIR"] = str(config_dir)
     environment["GH_PROMPT_DISABLED"] = "1"
+    cache_dir = config_dir.parent / "xdg-cache"
+    cache_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    os.chmod(cache_dir, 0o700)
+    environment["XDG_CACHE_HOME"] = str(cache_dir)
     for name in ("GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN"):
         environment.pop(name, None)
     return environment
