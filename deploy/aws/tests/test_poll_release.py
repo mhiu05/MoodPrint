@@ -51,7 +51,7 @@ def valid_ci_run():
         "status": "completed",
         "conclusion": "success",
         "workflow_id": poll_release.VERIFY_WORKFLOW_ID,
-        "path": ".github/workflows/verify.yml@refs/heads/main",
+        "path": ".github/workflows/verify.yml",
         "head_repository": {"full_name": REPOSITORY},
         "repository": {"full_name": REPOSITORY},
     }
@@ -112,12 +112,15 @@ class ManifestValidationTests(unittest.TestCase):
 
 class CiRunValidationTests(unittest.TestCase):
     def test_accepts_only_successful_push_verification_on_main(self):
-        poll_release.validate_ci_run(valid_ci_run(), REPOSITORY, SHA)
+        run = valid_ci_run()
+        poll_release.validate_ci_run(run, REPOSITORY, SHA)
+        run["path"] += "@refs/heads/main"
+        poll_release.validate_ci_run(run, REPOSITORY, SHA)
 
     def test_rejects_pull_request_or_non_successful_runs(self):
         for key, value in (("event", "pull_request"), ("conclusion", "failure"),
                            ("head_branch", "feature"), ("head_sha", "b" * 40),
-                           ("workflow_id", 1)):
+                           ("workflow_id", 1), ("path", ".github/workflows/other.yml")):
             with self.subTest(key=key):
                 run = valid_ci_run()
                 run[key] = value

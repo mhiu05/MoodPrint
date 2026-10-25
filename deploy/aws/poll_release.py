@@ -19,7 +19,7 @@ from typing import Any
 
 
 VERIFY_WORKFLOW_ID = 394882427
-VERIFY_WORKFLOW_PATH = ".github/workflows/verify.yml@"
+VERIFY_WORKFLOW_PATH = ".github/workflows/verify.yml"
 PUBLISH_WORKFLOW_PATH = ".github/workflows/deploy-staging.yml@"
 PUBLISH_WORKFLOW = ".github/workflows/deploy-staging.yml"
 GITHUB_REPOSITORY_ID = 1430876891
@@ -89,8 +89,11 @@ def validate_ci_run(run: Any, repository: str, commit_sha: str) -> None:
     _require(run.get("workflow_id") == VERIFY_WORKFLOW_ID,
              "CI run is not the local application verification workflow")
     path = run.get("path")
-    _require(isinstance(path, str) and path.startswith(VERIFY_WORKFLOW_PATH),
-             "CI run workflow path does not match")
+    _require(
+        isinstance(path, str)
+        and (path == VERIFY_WORKFLOW_PATH or path.startswith(VERIFY_WORKFLOW_PATH + "@")),
+        "CI run workflow path does not match",
+    )
     head_repository = run.get("head_repository")
     repository_object = run.get("repository")
     _require(isinstance(head_repository, dict) and head_repository.get("full_name") == repository,
