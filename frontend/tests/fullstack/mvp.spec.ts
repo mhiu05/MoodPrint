@@ -234,12 +234,14 @@ test("Journey B/C: two users match, request, accept and chat; stale tab loses ac
   await expect(card.getByText(/Cùng thích/)).toBeVisible();
   await card.getByRole("button", { name: "Gửi lời chào", exact: true }).click();
   await expect(one.getByText("Đã gửi lời mời.", { exact: true })).toBeVisible();
-  await expect(one.getByText("Lời chào bạn đã gửi")).toBeVisible();
+  await expect(
+    one.getByText(`Lời chào gửi ${pairAlias(11, 12)}`),
+  ).toBeVisible();
 
   await two.reload();
   const invite = two
     .locator("article")
-    .filter({ hasText: "Một lời chào dành cho bạn" });
+    .filter({ hasText: `${pairAlias(11, 12)} muốn kết nối với bạn` });
   await invite
     .getByRole("button", { name: "Đồng ý kết nối", exact: true })
     .click();
