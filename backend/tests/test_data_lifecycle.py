@@ -2,7 +2,7 @@ from uuid import uuid4
 
 import pytest
 
-from tests.test_social import key
+from tests.social_helpers import key
 
 pytestmark = pytest.mark.postgres
 

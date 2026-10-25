@@ -21,7 +21,7 @@ from app.modules.social.models import (
     Pair,
 )
 from tests.conftest import add_actor
-from tests.test_social import consent, key, open_room, publish, published_pair
+from tests.social_helpers import consent, key, open_room, publish, published_pair
 
 pytestmark = pytest.mark.postgres
 

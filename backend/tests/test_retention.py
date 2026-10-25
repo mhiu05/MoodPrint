@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from app.infrastructure.database.models import Mood, now
 from app.modules.social.models import HumanMessage
-from tests.test_social import key, open_room
+from tests.social_helpers import key, open_room
 
 pytestmark = pytest.mark.postgres
 
