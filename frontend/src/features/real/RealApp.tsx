@@ -64,7 +64,9 @@ import type {
   VersionInput,
 } from "../../api/contracts";
 import "./real.css";
-import { Discovery, HumanChat, HumanMessages } from "./Social";
+import { ConnectBridge, Discovery } from "./social/Discovery";
+import { HumanChat } from "./social/HumanChat";
+import { HumanMessages } from "./social/HumanMessages";
 import { badgeText, useSocialSummary } from "./social/useSocialSummary";
 import { Moderation } from "./admin/Moderation";
 import { ApprovedMemories } from "./Memory";
@@ -316,7 +318,8 @@ function Navigation() {
       {[
         { to: "/assistants", label: "Trợ lý", Icon: Sparkles, count: 0, what: "" },
         {
-          to: "/connect",
+          // Pending invitations open their tab directly (08 section 2).
+          to: summary.pendingIncomingRequests ? "/connect?tab=requests" : "/connect",
           label: "Tìm bạn",
           Icon: Users,
           count: summary.pendingIncomingRequests,
@@ -332,7 +335,7 @@ function Navigation() {
         { to: "/profile", label: "Tôi", Icon: UserRound, count: 0, what: "" },
       ].map(({ to, label, Icon, count, what }) => (
         <NavLink
-          key={to}
+          key={label}
           className={({ isActive }) =>
             `${cx.navItem} ${isActive ? cx.navActive : ""}`
           }
@@ -580,15 +583,7 @@ function Assistants() {
           </p>
         ) : null}
         <ConversationHistory />
-        <Link className="human-bridge" to="/connect">
-          <span className="bridge-icon">
-            <Users size={21} />
-          </span>
-          <span>
-            <strong>Từ hiểu mình, đến hiểu mọi người xung quanh</strong>
-          </span>
-          <ArrowUpRight size={18} />
-        </Link>
+        <ConnectBridge />
       </section>
       <section
         className="conversation-pane"

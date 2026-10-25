@@ -63,3 +63,16 @@ export function InviteCard({
     );
   return null;
 }
+
+/** A finished session in the chat log's inline history (H-02); not a live region. */
+export function HistoryCard({ session, alias }: { session: Session; alias: string }) {
+  const title = KIND_TITLES[session.kind];
+  return (
+    <div className="invite-card ended" role="group" aria-label={`Hoạt động đã qua: ${title}`}>
+      <p>
+        {title}:{" "}
+        {session.state === "completed" ? "hai bạn đã hoàn thành." : endedMessage(session, alias)}
+      </p>
+    </div>
+  );
+}

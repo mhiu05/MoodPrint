@@ -230,3 +230,33 @@
     transition: none;
   }
 }
+.discovery-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 16px 0 8px;
+  border-bottom: 1px solid var(--color-divider);
+  overflow-x: auto;
+}
+.discovery-tabs [role="tab"] {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  cursor: pointer;
+}
+.discovery-tabs [role="tab"][aria-selected="true"] {
+  border-bottom-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.discovery-tabs [role="tab"]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+.discovery-panel > .real-section:first-child {
+  margin-top: 8px;
+}

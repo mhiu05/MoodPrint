@@ -52,7 +52,15 @@ function base(patch: Record<string, unknown> = {}): any {
   };
 }
 
-async function chat(page: Page, state: { current: unknown; posts: { path: string; body: unknown }[]; reply?: (path: string, body: any) => { status?: number; json: unknown } | undefined }) {
+type ChatState = {
+  current: unknown;
+  posts: { path: string; body: unknown }[];
+  reply?: (path: string, body: any) => { status?: number; json: unknown } | undefined;
+  messages?: { id: string; seq: string; sender: "self" | "peer"; text: string; acceptedAt: string }[];
+  history?: unknown[];
+};
+
+async function chat(page: Page, state: ChatState) {
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request(),
       path = new URL(request.url()).pathname.replace("/api/v1", "");
@@ -60,8 +68,15 @@ async function chat(page: Page, state: { current: unknown; posts: { path: string
     if (path === "/social/summary")
       return route.fulfill({ json: { pendingIncomingRequests: 0, unreadConnections: 0, activityInvites: 0 } });
     if (path === "/connections/room-1") return route.fulfill({ json: room });
-    if (path === "/connections/room-1/messages" && request.method() === "GET")
-      return route.fulfill({ json: { messages: [], highWaterSeq: "0" } });
+    if (path === "/connections/room-1/messages" && request.method() === "GET") {
+      const after = BigInt(new URL(request.url()).searchParams.get("afterSeq") ?? "0");
+      const all = (state.messages ?? []).map((m) => ({ connectionId: "room-1", clientMessageId: m.id, ...m }));
+      return route.fulfill({
+        json: { messages: all.filter((m) => BigInt(m.seq) > after), highWaterSeq: all.at(-1)?.seq ?? "0" },
+      });
+    }
+    if (path === "/connections/room-1/activities" && request.method() === "GET")
+      return route.fulfill({ json: state.history ?? [] });
     if (path.endsWith("/reveal-requests")) return route.fulfill({ json: [] });
     if (path === "/activities/catalog") return route.fulfill({ json: catalog });
     if (path === "/connections/room-1/activities/current")
@@ -221,4 +236,77 @@ test("contact details in a message prompt a non-blocking advisory", async ({ pag
   await page.getByRole("button", { name: "Gửi tin nhắn" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Vẫn gửi" }).click();
   await expect.poll(() => state.posts.filter((p: any) => p.path.endsWith("/messages")).length).toBe(1);
+});
+
+const running = () =>
+  base({
+    state: "active",
+    version: 2,
+    self: { accepted: true, readyRound: 0, feedbackGiven: false },
+    progress: { round: 1, totalRounds: 3, phase: "answering" },
+    current: { item, peerSubmitted: false },
+  });
+
+test("on a phone the dock is a sheet above the composer that collapses and keeps the draft", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await chat(page, { current: running(), posts: [] });
+  await page.goto("/#/chat/room-1");
+  const dock = page.getByRole("region", { name: "Hoạt động chung: Câu hỏi làm quen" });
+  await expect(dock.getByRole("heading", { name: item.prompt })).toBeVisible();
+  const composer = page.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" });
+  await composer.fill("chờ chút nhé");
+  const [sheet, input] = [await dock.boundingBox(), await composer.boundingBox()];
+  expect(sheet!.y + sheet!.height).toBeLessThanOrEqual(input!.y + 1);
+  expect(sheet!.height).toBeLessThanOrEqual(844 * 0.6 + 1);
+  // Escape collapses the sheet and returns focus to its toggle.
+  await dock.getByRole("radio", { name: "Một ly cà phê" }).focus();
+  await page.keyboard.press("Escape");
+  const toggle = dock.getByRole("button", { name: "Mở hoạt động" });
+  await expect(toggle).toBeFocused();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  expect((await dock.boundingBox())!.height).toBeLessThanOrEqual(57);
+  await expect(dock.getByRole("heading", { name: item.prompt })).toHaveCount(0);
+  await expect(composer).toBeVisible();
+  await expect(composer).toHaveValue("chờ chút nhé");
+  await toggle.click();
+  await expect(dock.getByRole("heading", { name: item.prompt })).toBeVisible();
+  await expect(dock.getByRole("button", { name: "Thu gọn hoạt động" })).toHaveAttribute("aria-expanded", "true");
+});
+
+test("on a desktop the dock is a side panel next to the log", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await chat(page, { current: running(), posts: [] });
+  await page.goto("/#/chat/room-1");
+  const dock = page.getByRole("region", { name: "Hoạt động chung: Câu hỏi làm quen" });
+  await expect(dock.getByRole("heading", { name: item.prompt })).toBeVisible();
+  const [panel, log] = [await dock.boundingBox(), await page.getByRole("log").boundingBox()];
+  expect(panel!.x).toBeGreaterThanOrEqual(log!.x + log!.width);
+  expect(panel!.width).toBeLessThanOrEqual(381);
+  await expect(page.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" })).toBeVisible();
+});
+
+test("finished activities appear in the log where they ended", async ({ page }) => {
+  const at = (minute: number) => `2026-10-23T08:${String(minute).padStart(2, "0")}:00Z`;
+  await chat(page, {
+    current: null,
+    posts: [],
+    messages: [
+      { id: "m1", seq: "1", sender: "peer", text: "Chào bạn", acceptedAt: at(0) },
+      { id: "m2", seq: "2", sender: "self", text: "Vui ghê", acceptedAt: at(20) },
+    ],
+    history: [
+      base({ id: "h2", kind: "coop_quiz", state: "declined", endReason: "invite_declined", role: "inviter", createdAt: at(25), endedAt: at(30) }),
+      base({ id: "h1", state: "completed", endReason: "completed", createdAt: at(1), endedAt: at(10) }),
+    ],
+  });
+  await page.goto("/#/chat/room-1");
+  const log = page.getByRole("log", { name: "Tin nhắn trong kết nối" });
+  await expect(log.getByRole("group", { name: "Hoạt động đã qua: Đố vui đồng đội" })).toBeVisible();
+  const order = (await log.locator(":scope > *").allInnerTexts()).map((text) => text.trim());
+  expect(order).toEqual([
+    "Chào bạn",
+    "Câu hỏi làm quen: hai bạn đã hoàn thành.",
+    "Vui ghê",
+    "Đố vui đồng đội: Bạn đồng hành 3fa9c1 chưa muốn chơi lúc này",
+  ]);
 });

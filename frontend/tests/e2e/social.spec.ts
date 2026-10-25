@@ -322,7 +322,8 @@ test("an incoming request shows the sender's public card before accepting", asyn
       json: { error: { code: "NOT_FOUND", message: "Missing route" } },
     });
   });
-  await page.goto("/#/connect");
+  // Requests live behind their tab (H-01); the nav badge links here.
+  await page.goto("/#/connect?tab=requests");
   const card = page.getByLabel("Hồ sơ của Bạn đồng hành 3fa9c1");
   await expect(
     page.getByRole("heading", {

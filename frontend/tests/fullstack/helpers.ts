@@ -111,7 +111,7 @@ export async function fillProfileEditor(page: Page) {
 
 export async function publish(page: Page) {
   await enable(page, "tìm bạn");
-  await page.goto("/#/connect");
+  await page.goto("/#/connect?tab=profile");
   await fillProfileEditor(page);
 }
 

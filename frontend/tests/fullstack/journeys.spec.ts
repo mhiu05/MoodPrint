@@ -32,7 +32,7 @@ async function enable(page: Page, name: string) {
 
 async function publish(page: Page) {
   await enable(page, "tìm bạn");
-  await page.goto("/#/connect");
+  await page.goto("/#/connect?tab=profile");
   await fillProfileEditor(page);
 }
 
@@ -275,7 +275,7 @@ test("real FastAPI/PostgreSQL preserves private records and mood, streams throug
   await one.getByRole("button", { name: "Tải lại gợi ý", exact: true }).click();
   await one.getByRole("button", { name: "Gửi lời chào", exact: true }).click();
   await expect(one.getByText("Đã gửi lời mời.", { exact: true })).toBeVisible();
-  await two.goto("/#/connect");
+  await two.goto("/#/connect?tab=requests");
   await two
     .getByRole("button", { name: "Tải lại lời mời", exact: true })
     .click();
