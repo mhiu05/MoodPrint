@@ -26,4 +26,18 @@ describe("production guard", () => {
       .map((file) => relative(SRC, file));
     expect(offenders).toEqual([]);
   });
+
+  it("exports only shared UI that production features use", () => {
+    const ui = readFileSync(join(SRC, "components", "UI.tsx"), "utf8");
+    const exported = [...ui.matchAll(/^export (?:function|const) (\w+)/gm)].map(
+      (match) => match[1],
+    );
+    const features = sources(join(SRC, "features"))
+      .map((file) => readFileSync(file, "utf8"))
+      .join("\n");
+    const unused = exported.filter(
+      (name) => !new RegExp(`\\b${name}\\b`).test(features),
+    );
+    expect(unused).toEqual([]);
+  });
 });
