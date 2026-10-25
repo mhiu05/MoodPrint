@@ -1,7 +1,12 @@
-# Copy to /opt/moodprint/deployment.conf, replace placeholders, chown root:root, chmod 600.
-AWS_ACCOUNT_ID=123456789012
-AWS_REGION=ap-southeast-1
-ECR_API_REPO=moodprint-staging-api
-ECR_WEB_REPO=moodprint-staging-web
-APP_DOMAIN=staging.example.org
+# Non-secret, root-owned runtime configuration for the EC2 release poller.
+AWS_REGION=ap-southeast-2
+GITHUB_REPOSITORY=mhiu05/MoodPrint
+GHCR_API_IMAGE=ghcr.io/mhiu05/moodprint-api
+GHCR_WEB_IMAGE=ghcr.io/mhiu05/moodprint-web
+GHCR_USERNAME=mhiu05
+APP_DOMAIN=moodprint.duckdns.org
 PARAMETER_NAME=/moodprint/staging/runtime
+
+# Leave blank for public GHCR packages. For private packages, store a read:packages
+# token as a separate SecureString and set this to that parameter's exact name.
+GHCR_TOKEN_PARAMETER_NAME=
