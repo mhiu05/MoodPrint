@@ -146,16 +146,16 @@ flowchart TD
 
 ## Progress checklist
 
-- [ ] A-01 · [ ] A-02 · [ ] A-03 · [ ] A-04 · [ ] A-05
-- [ ] B-01 · [ ] B-02 · [ ] B-03 · [ ] B-04 · [ ] B-05 · [ ] B-06
-- [ ] C-01 · [ ] C-02 · [ ] C-03 · [ ] C-04 · [ ] C-05 · [ ] C-06 · [ ] C-07 · [ ] C-08
-- [ ] D-01 · [ ] D-02 · [ ] D-03 · [ ] D-04 · [ ] D-05 · [ ] D-06 · [ ] D-07
-- [ ] E-01 · [ ] E-02 · [ ] E-03
-- [ ] F-01 · [ ] F-02 · [ ] F-03
-- [ ] G-01 · [ ] G-02 · [ ] G-03
-- [ ] H-01 · [ ] H-02 · [ ] H-03 · [ ] H-04
-- [ ] I-01 · [ ] I-02 · [ ] I-03 · [ ] I-04 · [ ] I-05 · [ ] I-06 · [ ] I-07 · [ ] I-08
-- [ ] J-01 · [ ] J-02 · [ ] J-03 (approval) · [ ] J-04 (approval) · [ ] J-05
+- [x] A-01 · [x] A-02 · [x] A-03 · [x] A-04 · [x] A-05
+- [x] B-01 · [x] B-02 · [x] B-03 · [x] B-04 · [x] B-05 · [x] B-06
+- [x] C-01 · [x] C-02 · [x] C-03 · [x] C-04 · [x] C-05 · [x] C-06 · [x] C-07 · [x] C-08
+- [x] D-01 · [x] D-02 · [x] D-03 · [x] D-04 · [x] D-05 · [x] D-06 · [x] D-07
+- [x] E-01 · [x] E-02 · [x] E-03
+- [x] F-01 · [x] F-02 · [x] F-03
+- [x] G-01 · [x] G-02 · [x] G-03
+- [x] H-01 · [x] H-02 · [x] H-03 · [x] H-04
+- [x] I-01 · [x] I-02 · [x] I-03 · [x] I-04 · [x] I-05 · [x] I-06 · [x] I-07 · [x] I-08
+- [x] J-01 · [ ] J-02 · [ ] J-03 (approval) · [ ] J-04 (approval) · [x] J-05
 
 **MVP** = all tasks above. **Post-MVP** (not in this plan): English practice, semantic profile embeddings, push/email notifications, global per-user SSE, multi-worker, unblock/appeals UI, outbox table drop, removal of the v1 scorer.
 
