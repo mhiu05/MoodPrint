@@ -10,7 +10,7 @@ Branch `docs/productization-plan` (not merged; `main` untouched). Gates from [12
 | G1 | PASS | Backend: ruff clean, mypy clean (85 files), pytest **473** passed on local PostgreSQL (baseline 278) | — |
 | G2 | PASS | Frontend: typecheck 0, vitest 47 passed, build OK, mocked Playwright 59 passed | — |
 | G3 | PASS (local) | Full stack 21 passed incl. activities, matching, moderation, responsive/axe; v2 mode 2 passed — [fullstack.md](fullstack.md) | Repeat on staging (J-04) |
-| G4 | PASS | `backend/openapi.json` and `frontend/src/api/generated/schema.d.ts` regenerated with the code; typecheck consumes the generated types | — |
+| G4 | PASS | VC-CONTRACT at the final commit: `export_openapi.py` + `npm run contracts:generate` exit 0, no diff in `backend/openapi.json` or `frontend/src/api/generated/schema.d.ts`, typecheck 0 | — |
 | G5 | BLOCKED | Review SQL 0011–0014 byte-match fresh exports and execute verbatim locally — [migrations/README.md](../migrations/README.md) | Operator: hosted dump → snapshot rehearsal → approval → apply → advisors |
 | G6 | FAIL | Offline gate met only on provisional proxy labels; scorer stays v1 — [matching-gate.md](matching-gate.md). Open P1: v1 returns no suggestions for v2-only goals/tags ([fullstack.md](fullstack.md#open-defect-p1-product-decision)) | Owner: choose v2 / restrict editor / extend v1; human-labelled set; shadow logs ≥ 3 days on staging |
 | G7 | BLOCKED | Runbook [moderation.md](../runbooks/moderation.md); queue/claim/resolve exercised locally (full stack) | Owner: approve runbook, fill Q-03 contacts, name a moderator, exercise on staging |
