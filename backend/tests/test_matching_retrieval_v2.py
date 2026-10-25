@@ -254,12 +254,44 @@ async def test_shadow_serves_v1_and_logs_only_aggregates(clients, caplog):
 async def test_fifty_peers_rank_quickly_with_bounded_queries(clients):
     import time
 
+    from sqlalchemy import event
+
     app, client, me = await viewer(clients)
     for _ in range(50):
         await seed_peer(app)
     timings = []
-    for _ in range(5):
-        start = time.perf_counter()
-        assert len(await candidate_aliases(client)) == 5
-        timings.append(time.perf_counter() - start)
+    query_counts = []
+
+    def count_query(*_):
+        query_counts[-1] += 1
+
+    engine = app.state.database.engine.sync_engine
+    event.listen(engine, "before_cursor_execute", count_query)
+    try:
+        for _ in range(5):
+            query_counts.append(0)
+            start = time.perf_counter()
+            assert len(await candidate_aliases(client)) == 5
+            timings.append(time.perf_counter() - start)
+    finally:
+        event.remove(engine, "before_cursor_execute", count_query)
+    assert max(query_counts) <= 16
     assert sorted(timings)[-1] < 0.6
+
+
+@pytest.mark.parametrize("rule", ["block_by_viewer", "cooldown", "open_room", "pending_request"])
+async def test_locked_recheck_rejects_peer_changed_after_ranking(clients, monkeypatch, rule):
+    app, client, me = await viewer(clients)
+    peer = await seed_peer(app)
+    original = retrieval.ranked_candidates
+
+    async def change_after_ranking(*args):
+        ranked = await original(*args)
+        assert peer in ranked
+        await exclude(app, me, peer, rule)
+        return ranked
+
+    monkeypatch.setattr(retrieval, "ranked_candidates", change_after_ranking)
+    assert await candidate_aliases(client) == []
+    async with app.state.database.sessions() as db:
+        assert not (await db.scalars(select(CandidateReference))).all()

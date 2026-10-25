@@ -42,7 +42,9 @@ class PeerRow:
     first_published_at: datetime | None
 
 
-async def eligible_peers(db, user: User, own: PublishedProfile, at: datetime) -> list[PeerRow]:
+async def eligible_peers(
+    db, user: User, own: PublishedProfile, at: datetime, *, peer_ids: list[UUID] | None = None
+) -> list[PeerRow]:
     """Every exclusion rule in SQL (05 section 9): consent, age, activity, staleness,
     shared language, strict goals, blocks, cooldowns, open rooms and live requests."""
     me = user.id
@@ -131,6 +133,8 @@ async def eligible_peers(db, user: User, own: PublishedProfile, at: datetime) ->
     )
     if own.payload.get("strict_goal"):
         statement = statement.where(PublishedProfile.payload["goal"].astext == goal)
+    if peer_ids is not None:
+        statement = statement.where(User.id.in_(peer_ids))
     return [PeerRow(*row) for row in (await db.execute(statement)).all()]
 
 

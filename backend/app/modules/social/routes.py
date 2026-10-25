@@ -1,7 +1,7 @@
 import hmac
 from datetime import timedelta
 from typing import Literal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import func, or_, select, update
@@ -31,7 +31,6 @@ from app.modules.social.models import (
     ConnectionRequest,
     HumanMessage,
     MatchingDraft,
-    Pair,
     PublishedProfile,
 )
 from app.modules.social.retrieval import STALE_PROFILE_AFTER
@@ -222,7 +221,7 @@ async def withdraw(body: VersionInput, request: Request, actor: Actor = Depends(
 @router.get("/matching/candidates", response_model=CandidateListDTO)
 async def candidates(request: Request, actor: Actor = Depends(require_actor)):
     from app.core.security import verify_actor
-    from app.modules.social.retrieval import ranked_candidates
+    from app.modules.social.retrieval import eligible_peers, ranked_candidates
 
     scorer = svc.scorer_of(request)
     served: Literal["rules-v1.1", "rules-v2"] = "rules-v2" if scorer == "v2" else "rules-v1.1"
@@ -246,72 +245,52 @@ async def candidates(request: Request, actor: Actor = Depends(require_actor)):
         # profile/consent/block writers still need exclusive gates and must wait.
         user = await verify_actor(db, actor, users.get(actor.user_id))
         own, own_consent = await svc.current_profile(db, user)
+        # Re-run every SQL exclusion under the same canonical account gates.
+        # Batch the recheck rather than repeating block/consent/profile/pair reads
+        # for each card. Writers still require the exclusive gates held above.
+        at = now()
+        eligible = {
+            peer.id: peer
+            for peer in await eligible_peers(db, user, own, at, peer_ids=shortlist)
+        }
         result: list[CandidateCardDTO] = []
         for peer_id in shortlist:
             if len(result) == 5:
                 break
-            peer = users.get(peer_id)
-            if peer is None:
+            peer = eligible.get(peer_id)
+            if peer is None or peer_id not in users:
                 continue
-            try:
-                _, published, snapshots = await svc.base_eligibility(
-                    db, user, peer, scorer=scorer, own_snapshot=(own, own_consent)
-                )
-            except DomainError:
-                continue
-            low, high = sorted((user.id, peer.id))
-            pair = await db.scalar(
-                select(Pair).where(Pair.low_user_id == low, Pair.high_user_id == high)
-            )
-            if pair:
-                if pair.cooldown_until and pair.cooldown_until > now():
-                    continue
-                pending = await db.scalar(
-                    select(ConnectionRequest).where(
-                        ConnectionRequest.pair_id == pair.id, ConnectionRequest.status == "pending"
-                    )
-                )
-                room = await db.scalar(
-                    select(Connection).where(
-                        Connection.pair_id == pair.id, Connection.status == "open"
-                    )
-                )
-                # Any live request or open room hides the pair, whatever either profile became.
-                if pending and pending.expires_at + timedelta(days=30) > now():
-                    continue
-                if room:
-                    continue
-            if not svc.suggestible(own.payload, published.payload, scorer):
+            if not svc.suggestible(own.payload, peer.payload, scorer):
                 continue
             ref = CandidateReference(
+                id=uuid4(),
                 user_id=user.id,
                 peer_id=peer.id,
                 profile_version=own.version,
-                peer_profile_version=published.version,
-                consent_version=snapshots[str(user.id)]["consent"],
-                peer_consent_version=snapshots[str(peer.id)]["consent"],
-                expires_at=now() + timedelta(minutes=15),
+                peer_profile_version=peer.version,
+                consent_version=own_consent.version,
+                peer_consent_version=peer.consent_version,
+                expires_at=at + timedelta(minutes=15),
                 scoring_version=served,
                 rank=len(result),
             )
             db.add(ref)
-            await db.flush()
             alias, alias_seed = svc.pair_alias(user.id, peer.id)
             reasons, label, shared_activities = svc.describe(
-                own.payload, published.payload, scorer
+                own.payload, peer.payload, scorer
             )
             result.append(
                 CandidateCardDTO(
                     candidate_ref=ref.id,
                     alias=alias,
                     avatar_seed=alias_seed,
-                    profile=PublicProfile.model_validate(published.payload),
+                    profile=PublicProfile.model_validate(peer.payload),
                     reasons=reasons,
                     match_label=label,
                     shared_activities=shared_activities,
                     scoring_version=served,
                     profile_version=own.version,
-                    peer_version=published.version,
+                    peer_version=peer.version,
                 )
             )
         await stats.bump(db, "impressions", served, now().date(), len(result))
