@@ -29,7 +29,7 @@ from app.core.config import Settings
 from app.infrastructure.database.models import AuthSession, Base, Consent, User
 from app.main import create_app
 from app.modules.social.models import PublishedProfile
-from tests.test_social import PROFILE
+from tests.social_helpers import PROFILE
 
 
 async def main():

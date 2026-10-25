@@ -34,6 +34,10 @@ async def verify_session(db: AsyncSession, session: AuthSession, user: User) -> 
         or user.status != "active"
     ):
         raise DomainError(401, "SESSION_EXPIRED", "Phiên đã kết thúc. Vui lòng đăng nhập lại.")
+    if user.suspended_until and user.suspended_until > now():
+        raise DomainError(
+            403, "ACCOUNT_SUSPENDED", "Tài khoản đang bị tạm khóa theo quy tắc cộng đồng."
+        )
     # Supabase logout/revocation removes auth.sessions. A JWT signature alone is insufficient.
     exists = await db.scalar(
         text("select moodprint.is_provider_session_active(:sid,:uid)"),
@@ -65,6 +69,8 @@ async def require_actor(request: Request) -> Actor:
                 .where(AuthSession.id == session.id, AuthSession.revoked.is_(False))
                 .values(expires_at=now() + idle)
             )
+            # Matching hides users inactive for 30 days; same 15-minute write cadence.
+            await db.execute(update(User).where(User.id == user.id).values(last_seen_at=now()))
             await db.commit()
         if request.method not in ("GET", "HEAD", "OPTIONS"):
             csrf = request.headers.get("X-CSRF-Token", "")
@@ -123,6 +129,14 @@ async def assert_purpose(db: AsyncSession, user: User, purpose: str) -> dict[str
     if purpose == "MATCH" and user.age_band != "adult":
         raise DomainError(
             403, "ADULT_REQUIRED", "Tính năng kết nối chỉ dành cho tài khoản đủ điều kiện."
+        )
+    if (
+        purpose == "MATCH"
+        and user.social_restricted_until
+        and user.social_restricted_until > now()
+    ):
+        raise DomainError(
+            403, "SOCIAL_RESTRICTED", "Tính năng kết nối của bạn đang tạm bị hạn chế."
         )
     return values
 

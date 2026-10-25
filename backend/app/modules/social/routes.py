@@ -1,9 +1,11 @@
 import hmac
 from datetime import timedelta
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request
-from sqlalchemy import or_, select, update
+from sqlalchemy import func, or_, select, update
+from sqlalchemy.dialects.postgresql import insert
 
 from app.contracts import ActionReceipt, EmptyInput, VersionInput
 from app.core.errors import DomainError
@@ -16,19 +18,23 @@ from app.core.security import (
     save_receipt,
     transaction,
 )
-from app.infrastructure.database.models import Consent, Outbox, User, now
-from app.modules.matching import scoring
+from app.infrastructure.database.models import Consent, User, now
+from app.modules.activities import hooks
+from app.modules.matching import stats
+from app.modules.profiles.taxonomy import TAXONOMY
 from app.modules.social import service as svc
 from app.modules.social.models import (
     Block,
     CandidateReference,
     Connection,
+    ConnectionRead,
     ConnectionRequest,
     HumanMessage,
     MatchingDraft,
     Pair,
     PublishedProfile,
 )
+from app.modules.social.retrieval import STALE_PROFILE_AFTER
 from app.modules.social.schemas import (
     BlockInput,
     CandidateCardDTO,
@@ -44,8 +50,11 @@ from app.modules.social.schemas import (
     PublicProfile,
     PublishedView,
     PublishInput,
+    ReadInput,
+    ReadView,
     RequestView,
 )
+from app.modules.social.summary import PREVIEW_CHARS, last_messages, unread_by_room, visible_rooms
 
 router = APIRouter()
 
@@ -104,11 +113,12 @@ async def published_current(request: Request, actor: Actor = Depends(require_act
             and consent.enabled
             and profile.consent_version == consent.version
         )
+        stale = profile.created_at <= now() - STALE_PROFILE_AFTER
         return PublishedView(
             id=profile.id,
             profile=PublicProfile.model_validate(profile.payload),
             version=profile.version,
-            state="live" if live else "needs_republish",
+            state=("stale" if stale else "live") if live else "needs_republish",
             profile_version=user.profile_version,
         )
 
@@ -157,7 +167,7 @@ async def publish(body: PublishInput, request: Request, actor: Actor = Depends(r
             ):
                 raise DomainError(409, "PREVIEW_CHANGED", "Hãy xem lại bản xem trước mới nhất.")
             svc.validate_publishable(draft.payload)
-            await svc.invalidate_user_social(db, user.id)
+            # DR-03: a new profile changes discovery only; rooms and requests stay valid.
             await db.execute(
                 update(PublishedProfile)
                 .where(PublishedProfile.user_id == user.id, PublishedProfile.valid)
@@ -169,18 +179,11 @@ async def publish(body: PublishInput, request: Request, actor: Actor = Depends(r
                 payload=draft.payload,
                 version=user.profile_version,
                 consent_version=consents["MATCH"].version,
+                taxonomy_version=TAXONOMY.version,
             )
             db.add(profile)
             await db.flush()
             save_receipt(db, user, "profile:publish", key, payload, {"resourceId": str(profile.id)})
-            db.add(
-                Outbox(
-                    user_id=user.id,
-                    kind="profile_changed",
-                    resource_id=str(profile.id),
-                    version=profile.version,
-                )
-            )
         return PublishedView(
             id=profile.id,
             profile=PublicProfile.model_validate(profile.payload),
@@ -198,7 +201,6 @@ async def withdraw(body: VersionInput, request: Request, actor: Actor = Depends(
             return ActionReceipt.model_validate(old)
         if user.profile_version != body.expected_version:
             raise DomainError(409, "STALE_VERSION", "Hồ sơ đã thay đổi.")
-        await svc.invalidate_user_social(db, user.id)
         await db.execute(
             update(PublishedProfile)
             .where(PublishedProfile.user_id == user.id, PublishedProfile.valid)
@@ -214,26 +216,20 @@ async def withdraw(body: VersionInput, request: Request, actor: Actor = Depends(
             payload,
             result.model_dump(mode="json", by_alias=True),
         )
-        db.add(
-            Outbox(
-                user_id=user.id,
-                kind="profile_withdrawn",
-                resource_id=str(user.id),
-                version=user.profile_version,
-            )
-        )
         return result
 
 
 @router.get("/matching/candidates", response_model=CandidateListDTO)
 async def candidates(request: Request, actor: Actor = Depends(require_actor)):
-    from app.core.security import digest, lock_actor
+    from app.core.security import lock_actor
     from app.modules.social.retrieval import ranked_candidates
 
+    scorer = svc.scorer_of(request)
+    served: Literal["rules-v1", "rules-v2"] = "rules-v2" if scorer == "v2" else "rules-v1"
     async with request.app.state.database.require()() as db, db.begin():
         user = await db.get(User, actor.user_id)
         own, consent = await svc.current_profile(db, user)
-        shortlist = await ranked_candidates(db, user, own, consent)
+        shortlist = await ranked_candidates(db, user, own, consent, scorer)
     # Recheck the shortlisted public snapshots while holding all account gates
     # in canonical order. Never acquire a peer gate after locking the actor first.
     async with request.app.state.database.require()() as db, db.begin():
@@ -257,7 +253,7 @@ async def candidates(request: Request, actor: Actor = Depends(require_actor)):
                 continue
             try:
                 _, published, snapshots = await svc.base_eligibility(
-                    db, user, peer, own_snapshot=(own, own_consent)
+                    db, user, peer, scorer=scorer, own_snapshot=(own, own_consent)
                 )
             except DomainError:
                 continue
@@ -278,18 +274,12 @@ async def candidates(request: Request, actor: Actor = Depends(require_actor)):
                         Connection.pair_id == pair.id, Connection.status == "open"
                     )
                 )
-                if (
-                    pending
-                    and pending.snapshots == snapshots
-                    and pending.expires_at + timedelta(days=30) > now()
-                ):
+                # Any live request or open room hides the pair, whatever either profile became.
+                if pending and pending.expires_at + timedelta(days=30) > now():
                     continue
-                if room and room.snapshots == snapshots:
+                if room:
                     continue
-            points = scoring.score(
-                {**own.payload, "sources": []}, {**published.payload, "sources": []}
-            )
-            if points < 30:
+            if not svc.suggestible(own.payload, published.payload, scorer):
                 continue
             ref = CandidateReference(
                 user_id=user.id,
@@ -299,21 +289,30 @@ async def candidates(request: Request, actor: Actor = Depends(require_actor)):
                 consent_version=snapshots[str(user.id)]["consent"],
                 peer_consent_version=snapshots[str(peer.id)]["consent"],
                 expires_at=now() + timedelta(minutes=15),
+                scoring_version=served,
+                rank=len(result),
             )
             db.add(ref)
             await db.flush()
-            alias_seed = digest(":".join(sorted((str(user.id), str(peer.id)))))[:8]
+            alias, alias_seed = svc.pair_alias(user.id, peer.id)
+            reasons, label, shared_activities = svc.describe(
+                own.payload, published.payload, scorer
+            )
             result.append(
                 CandidateCardDTO(
                     candidate_ref=ref.id,
-                    alias=f"Bạn đồng hành {alias_seed[:6]}",
+                    alias=alias,
                     avatar_seed=alias_seed,
                     profile=PublicProfile.model_validate(published.payload),
-                    reasons=svc.reasons(own.payload, published.payload),
+                    reasons=reasons,
+                    match_label=label,
+                    shared_activities=shared_activities,
+                    scoring_version=served,
                     profile_version=own.version,
                     peer_version=published.version,
                 )
             )
+        await stats.bump(db, "impressions", served, now().date(), len(result))
         return CandidateListDTO(candidates=result)
 
 
@@ -322,7 +321,9 @@ async def skip(body: CandidateInput, request: Request, actor: Actor = Depends(re
     ref = await svc.resolve_reference(request, actor, body.candidate_ref)
     key, payload = idempotency_key(request), body.model_dump(mode="json")
     async with svc.pair_transaction(request, actor, ref.peer_id) as (db, user, peer):
-        _, _, snapshots = await svc.base_eligibility(db, user, peer)
+        _, _, snapshots = await svc.base_eligibility(
+            db, user, peer, scorer=svc.scorer_of(request)
+        )
         svc.check_reference(ref, user, peer, snapshots)
         pair = await svc.canonical_pair(db, user.id, peer.id)
         old = await previous_receipt(db, user, "pair:skip", key, payload)
@@ -344,7 +345,9 @@ async def send_request(
     ref = await svc.resolve_reference(request, actor, body.candidate_ref)
     key, payload = idempotency_key(request), body.model_dump(mode="json")
     async with svc.pair_transaction(request, actor, ref.peer_id) as (db, user, peer):
-        _, _, snapshots = await svc.base_eligibility(db, user, peer)
+        _, _, snapshots = await svc.base_eligibility(
+            db, user, peer, scorer=svc.scorer_of(request)
+        )
         svc.check_reference(ref, user, peer, snapshots)
         pair = await svc.canonical_pair(db, user.id, peer.id)
         old = await previous_receipt(db, user, "request:send", key, payload)
@@ -357,6 +360,7 @@ async def send_request(
         if pending and pending.sender_id != user.id:
             # Sending back completes the peer's invitation, like accept; no quota applies.
             await svc.open_mutual_room(db, pair, pending, snapshots)
+            await stats.bump(db, "accepts", ref.scoring_version, now().date())
         elif not pending:
             await svc.invitation_quota(db, user.id)
             pending = ConnectionRequest(
@@ -368,6 +372,7 @@ async def send_request(
             )
             db.add(pending)
             await db.flush()
+            await stats.bump(db, "requests", ref.scoring_version, now().date())
         save_receipt(db, user, "request:send", key, payload, {"resourceId": str(pending.id)})
         return svc.request_view(pending, user.id)
 
@@ -395,6 +400,13 @@ async def list_requests(request: Request, actor: Actor = Depends(require_actor))
             view = svc.request_view(row, user.id)
             if row.status == "pending" and row.expires_at <= now():
                 view.status = "expired"
+            elif row.status == "pending":
+                peer = await db.get(
+                    User, row.recipient_id if row.sender_id == user.id else row.sender_id
+                )
+                view.peer = (
+                    await svc.peer_card(db, user, peer, svc.scorer_of(request)) if peer else None
+                )
             result.append(view)
         return result
 
@@ -408,7 +420,18 @@ async def decide(request_id, decision, body, request, actor):
     key, payload = idempotency_key(request), body.model_dump(mode="json")
     operation = f"request:{decision}:{request_id}"
     async with svc.pair_transaction(request, actor, peer_id) as (db, user, peer):
-        _, _, snapshots = await svc.base_eligibility(db, user, peer)
+        gate = svc.consent_view(await svc.room_gate(db, user, peer))
+        snapshots = None
+        if decision == "accept":
+            # Opening a room still needs both published profiles (DR-03 keeps requests
+            # alive across edits, but a withdrawn sender cannot be accepted).
+            try:
+                _, _, snapshots = await svc.base_eligibility(
+                    db, user, peer, scorer=svc.scorer_of(request)
+                )
+            except DomainError as error:
+                if error.code not in ("PROFILE_REQUIRED", "PAIR_INELIGIBLE"):
+                    raise
         pair = await svc.canonical_pair(db, user.id, peer.id, False)
         row = await db.scalar(
             select(ConnectionRequest).where(ConnectionRequest.id == request_id).with_for_update()
@@ -422,18 +445,21 @@ async def decide(request_id, decision, body, request, actor):
             raise DomainError(403, "WRONG_ACTOR", "Bạn không thể thực hiện lựa chọn này.")
         old = await previous_receipt(db, user, operation, key, payload)
         if old:
-            if row.snapshots != snapshots:
+            if svc.consent_view(row.snapshots) != gate:
                 svc.deny()
             return svc.request_view(row, user.id)
         if (
             row.version != body.expected_version
             or row.status != "pending"
             or row.expires_at <= now()
-            or row.snapshots != snapshots
+            or svc.consent_view(row.snapshots) != gate
+            or (decision == "accept" and snapshots is None)
         ):
             raise DomainError(409, "REQUEST_CHANGED", "Lời mời đã thay đổi hoặc hết hạn.")
-        if decision == "accept":
+        if decision == "accept" and snapshots is not None:
             await svc.open_mutual_room(db, pair, row, snapshots)
+            served = "rules-v2" if svc.scorer_of(request) == "v2" else "rules-v1"
+            await stats.bump(db, "accepts", served, now().date())
         else:
             row.status = "declined" if decision == "decline" else "cancelled"
             row.version += 1
@@ -467,28 +493,50 @@ async def cancel(
 async def list_connections(request: Request, actor: Actor = Depends(require_actor)):
     async with transaction(request, actor) as (db, user):
         await assert_purpose(db, user, "MATCH")
-        rows = (
-            await db.scalars(
-                select(Connection)
-                .where(
-                    or_(Connection.low_user_id == user.id, Connection.high_user_id == user.id),
-                    Connection.status == "open",
-                )
-                .order_by(Connection.created_at.desc())
-                .limit(100)
-            )
-        ).all()
+        rooms = await visible_rooms(db, user)
+        ids = [room.id for room in rooms]
+        unread, last = await unread_by_room(db, user.id, ids), await last_messages(db, ids)
+        kinds = await hooks.active_kinds(db, ids)
         result = []
-        for room in rows:
-            peer_id = room.high_user_id if room.low_user_id == user.id else room.low_user_id
-            peer = await db.get(User, peer_id)
-            try:
-                _, _, snapshots = await svc.base_eligibility(db, user, peer)
-            except DomainError:
-                continue
-            if room.snapshots == snapshots:
-                result.append(svc.connection_view(room))
+        for room in rooms:
+            view = svc.connection_view(room)
+            view.unread_count = unread.get(room.id, 0)
+            view.active_activity = kinds.get(room.id)  # type: ignore[assignment]
+            if message := last.get(room.id):
+                view.last_message_at = message.created_at
+                view.last_message_preview = message.text[:PREVIEW_CHARS]
+                view.last_message_sender = "self" if message.sender_id == user.id else "peer"
+            result.append(view)
+        result.sort(key=lambda view: view.last_message_at or view.created_at, reverse=True)
         return result
+
+
+@router.post("/connections/{connection_id}/read", response_model=ReadView)
+async def mark_read(
+    connection_id: UUID, body: ReadInput, request: Request, actor: Actor = Depends(require_actor)
+):
+    """Monotonic private read marker; naturally idempotent, so no receipt is stored."""
+    peer_id = await svc.room_peer(request, actor, connection_id)
+    async with svc.pair_transaction(request, actor, peer_id, lock=False) as (db, user, peer):
+        room = await svc.live_room(db, user, peer, connection_id, lock=False)
+        statement = insert(ConnectionRead).values(
+            connection_id=room.id,
+            user_id=user.id,
+            last_read_seq=min(int(body.seq), room.next_seq),
+            updated_at=now(),
+        )
+        value = await db.scalar(
+            statement.on_conflict_do_update(
+                index_elements=[ConnectionRead.connection_id, ConnectionRead.user_id],
+                set_={
+                    "last_read_seq": func.greatest(
+                        ConnectionRead.last_read_seq, statement.excluded.last_read_seq
+                    ),
+                    "updated_at": now(),
+                },
+            ).returning(ConnectionRead.last_read_seq)
+        )
+        return ReadView(last_read_seq=str(value))
 
 
 @router.get("/connections/{connection_id}", response_model=ConnectionView)
@@ -543,15 +591,6 @@ async def send_message(
         db.add(message)
         await db.flush()
         save_receipt(db, user, operation, key, payload, {"resourceId": str(message.id)})
-        for uid in (room.low_user_id, room.high_user_id):
-            db.add(
-                Outbox(
-                    user_id=uid,
-                    kind="message_available",
-                    resource_id=str(room.id),
-                    version=room.version,
-                )
-            )
         return svc.message_view(message, user.id)
 
 
@@ -603,6 +642,7 @@ async def end(
         room.status = "closed"
         room.version += 1
         pair.cooldown_until = now() + timedelta(days=30)
+        await hooks.abort_for_pair(db, pair.id, "room_closed")
         result = svc.receipt(room.id, room.version)
         save_receipt(
             db,
@@ -642,16 +682,11 @@ async def block_peer(peer_id, key, payload, request, actor):
         )
         pair.cooldown_until = now() + timedelta(days=30)
         pair.version += 1
+        await hooks.abort_for_pair(db, pair.id, "blocked")
         result = svc.receipt(pair.id, pair.version)
         save_receipt(
             db, user, "pair:block", key, payload, result.model_dump(mode="json", by_alias=True)
         )
-        for uid in (user.id, peer.id):
-            db.add(
-                Outbox(
-                    user_id=uid, kind="pair_blocked", resource_id=str(pair.id), version=pair.version
-                )
-            )
         return result
 
 

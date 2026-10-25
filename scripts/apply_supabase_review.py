@@ -59,6 +59,34 @@ UPGRADES = {
         "0010_account_deletion",
         functions=("moodprint.delete_provider_identity(uuid)",),
     ),
+    "0011": UpgradePlan(
+        ROOT / "docs/productization/migrations/0011-review.sql",
+        ROOT / "docs/productization/migrations/0011-execution.json",
+        "0010_account_deletion",
+        "0011_social_stabilization",
+        tables=("connection_reads",),
+    ),
+    "0012": UpgradePlan(
+        ROOT / "docs/productization/migrations/0012-review.sql",
+        ROOT / "docs/productization/migrations/0012-execution.json",
+        "0011_social_stabilization",
+        "0012_matching_v2",
+        tables=("matching_stats_daily",),
+    ),
+    "0013": UpgradePlan(
+        ROOT / "docs/productization/migrations/0013-review.sql",
+        ROOT / "docs/productization/migrations/0013-execution.json",
+        "0012_matching_v2",
+        "0013_shared_activities",
+        tables=("activity_sessions", "activity_participants", "activity_responses"),
+    ),
+    "0014": UpgradePlan(
+        ROOT / "docs/productization/migrations/0014-review.sql",
+        ROOT / "docs/productization/migrations/0014-execution.json",
+        "0013_shared_activities",
+        "0014_moderation",
+        tables=("staff_roles", "moderation_actions"),
+    ),
 }
 SUPABASE_API_ROLES = ("anon", "authenticated", "service_role")
 

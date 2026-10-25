@@ -11,82 +11,9 @@ import pytest
 from sqlalchemy import func, select
 
 from app.modules.social.models import Connection, HumanMessage
+from tests.social_helpers import PROFILE, consent, key, open_room, publish, published_pair
 
 pytestmark = pytest.mark.postgres
-
-PROFILE = {
-    "interests": ["reading", "music", "walking"],
-    "values": ["respect", "sincerity"],
-    "style": "balanced",
-    "goal": "friendship",
-    "languages": ["vi"],
-}
-
-
-def key():
-    return {"Idempotency-Key": str(uuid4())}
-
-
-async def consent(client, enabled=True, expected=1):
-    response = await client.put(
-        "/api/v1/consents/MATCH",
-        json={"enabled": enabled, "expectedVersion": expected, "policyVersion": "v1"},
-        headers=key(),
-    )
-    assert response.status_code == 200, response.text
-
-
-async def publish(client, profile=None):
-    await consent(client)
-    response = await client.put(
-        "/api/v1/profiles/matching-draft",
-        json={**(profile or PROFILE), "expectedVersion": 0},
-        headers=key(),
-    )
-    assert response.status_code == 200, response.text
-    response = await client.post("/api/v1/profiles/matching-draft/preview")
-    assert response.status_code == 200, response.text
-    preview = response.json()
-    response = await client.post(
-        "/api/v1/profiles/published",
-        json={
-            "draftVersion": preview["draftVersion"],
-            "previewDigest": preview["previewDigest"],
-            "expectedPublishedVersion": 0,
-        },
-        headers=key(),
-    )
-    assert response.status_code == 201, response.text
-    return response.json()
-
-
-async def published_pair(clients):
-    app, actors = clients
-    for client, _ in actors:
-        await publish(client)
-    refs = []
-    for client, _ in actors:
-        response = await client.get("/api/v1/matching/candidates")
-        assert response.status_code == 200, response.text
-        assert len(response.json()["candidates"]) == 1
-        refs.append(response.json()["candidates"][0]["candidateRef"])
-    return app, actors, refs
-
-
-async def open_room(clients):
-    app, actors, refs = await published_pair(clients)
-    response = await actors[0][0].post(
-        "/api/v1/connection-requests", json={"candidateRef": refs[0]}, headers=key()
-    )
-    assert response.status_code == 201, response.text
-    pending = response.json()
-    response = await actors[1][0].post(
-        f"/api/v1/connection-requests/{pending['id']}/accept",
-        json={"expectedVersion": pending["version"]},
-        headers=key(),
-    )
-    assert response.status_code == 200, response.text
-    return app, actors, refs, response.json()["connectionId"]
 
 
 async def test_publish_requires_current_preview_and_rejects_private_fields(clients):
@@ -125,8 +52,8 @@ async def test_ai_off_matching_returns_only_public_pair_scoped_cards(clients):
     _, actors, refs = await published_pair(clients)
     first = (await actors[0][0].get("/api/v1/matching/candidates")).json()["candidates"][0]
     assert len(first["reasons"]) <= 3
-    assert first["scoringVersion"] == "rules-v1-id"
-    assert first["profile"] == PROFILE
+    assert first["scoringVersion"] == "rules-v1"
+    assert first["profile"] == {**PROFILE, "activities": [], "availability": [], "strictGoal": False}
     assert not ({"userId", "identity", "privateItems", "sources", "memory", "score"} & first.keys())
     response = await actors[1][0].post(
         "/api/v1/connection-requests", json={"candidateRef": refs[0]}, headers=key()
@@ -250,7 +177,7 @@ async def test_message_quota_is_not_consumed_twice_by_retry(clients):
     ).status_code == 429
 
 
-async def test_republish_and_match_reenable_never_resurrect_room(clients):
+async def test_match_reenable_never_resurrects_room(clients):
     _, actors, _, room = await open_room(clients)
     path = f"/api/v1/connections/{room}/messages"
     await consent(actors[0][0], False, 2)

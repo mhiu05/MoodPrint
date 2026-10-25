@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from app.infrastructure.database.models import now
 from app.modules.social.models import Connection, ConnectionRequest, Pair
-from tests.test_social import consent, key, open_room, published_pair
+from tests.social_helpers import consent, key, open_room, published_pair
 
 pytestmark = pytest.mark.postgres
 

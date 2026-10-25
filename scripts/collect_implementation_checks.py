@@ -118,7 +118,6 @@ def main():
             "sha256": digest(unit_path),
         },
         "browserApiFixtures": playwright("e2e"),
-        "browserPreservedLegacy": playwright("legacy"),
         "fullstackRealHttpPostgresSdkFakeModel": playwright("fullstack"),
         "fullstackRealSupabaseAuthDatabaseSdkFakeModel": playwright("supabase"),
         "scopedMoodToolRealSupabaseSdkFakeModel": playwright("supabase-scoped"),

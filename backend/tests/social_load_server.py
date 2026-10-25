@@ -61,6 +61,9 @@ app = create_app(
         app_env="test",
         database_url=DATABASE_URL,
         frontend_origin=f"http://127.0.0.1:{PORT}",
+        # Beta feature set (J-02): shared activities on, scorer chosen by the driver.
+        activities_enabled=True,
+        matching_scorer=os.environ.get("MOODPRINT_LOAD_SCORER", "v2"),
     )
 )
 

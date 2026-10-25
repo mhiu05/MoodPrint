@@ -39,7 +39,7 @@ async function enable(page: Page, name: string) {
 }
 async function publish(page: Page) {
   await enable(page, "tìm bạn");
-  await page.goto(base + "/#/connect");
+  await page.goto(base + "/#/connect?tab=profile");
   await page.getByRole("button", { name: "Chỉnh hồ sơ kết nối" }).click();
   for (const name of ["Đọc sách", "Âm nhạc", "Đi bộ", "Tôn trọng", "Chân thành", "Tiếng Việt"])
     await page.getByRole("checkbox", { name, exact: true }).check();

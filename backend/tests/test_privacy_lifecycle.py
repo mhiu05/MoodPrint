@@ -18,7 +18,7 @@ from sqlalchemy import func, select, text
 from app.infrastructure.database.models import ConsentEvent, Mood, PrivateItem, User
 from app.modules.social.models import Connection, HumanMessage
 from tests.conftest import add_actor
-from tests.test_social import key, open_room
+from tests.social_helpers import key, open_room
 
 pytestmark = pytest.mark.postgres
 

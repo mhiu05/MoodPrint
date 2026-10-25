@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import select
 
 from app.infrastructure.database.models import User
-from tests.test_social import key
+from tests.social_helpers import key
 
 pytestmark = pytest.mark.postgres
 YEAR = datetime.now(ZoneInfo("Asia/Bangkok")).year

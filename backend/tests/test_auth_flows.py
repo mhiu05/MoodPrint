@@ -294,3 +294,23 @@ def test_production_settings_fail_closed_on_insecure_origin():
         supabase_publishable_key="synthetic-publishable-key",
         database_url="postgresql://u:p@db.example/postgres",
     )
+
+
+async def test_last_seen_is_written_only_with_the_sliding_session_refresh(clients):
+    from sqlalchemy import select
+
+    from app.infrastructure.database.models import User
+
+    app, actors = clients
+    client, uid = actors[0]
+
+    async def last_seen():
+        async with app.state.database.sessions() as db:
+            return await db.scalar(select(User.last_seen_at).where(User.id == uid))
+
+    assert await last_seen() is None
+    assert (await client.get("/api/v1/session")).status_code == 200
+    first = await last_seen()
+    assert first is not None
+    assert (await client.get("/api/v1/session")).status_code == 200
+    assert await last_seen() == first  # no extra write inside the 15-minute window

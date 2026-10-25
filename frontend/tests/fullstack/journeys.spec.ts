@@ -1,6 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { randomUUID } from "node:crypto";
+import { fillProfileEditor } from "./helpers";
 
 async function session(context: BrowserContext, number: number) {
   await context.addCookies([
@@ -31,28 +32,8 @@ async function enable(page: Page, name: string) {
 
 async function publish(page: Page) {
   await enable(page, "tìm bạn");
-  await page.goto("/#/connect");
-  await page.getByRole("button", { name: "Chỉnh hồ sơ kết nối" }).click();
-  for (const label of [
-    "Đọc sách",
-    "Âm nhạc",
-    "Đi bộ",
-    "Tôn trọng",
-    "Chân thành",
-    "Tiếng Việt",
-  ])
-    await page.getByRole("checkbox", { name: label, exact: true }).check();
-  await page.getByRole("button", { name: "Lưu bản nháp" }).click();
-  await expect(
-    page.getByText("Đã lưu bản nháp.", { exact: true }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Xem trước hồ sơ" }).click();
-  await page
-    .getByRole("button", { name: "Xuất bản hồ sơ", exact: true })
-    .click();
-  await expect(
-    page.getByText("Đã xuất bản hồ sơ.", { exact: true }),
-  ).toBeVisible();
+  await page.goto("/#/connect?tab=profile");
+  await fillProfileEditor(page);
 }
 
 test("birth-year onboarding persists16+ access while the server rejects social access and under16 users", async ({
@@ -294,7 +275,7 @@ test("real FastAPI/PostgreSQL preserves private records and mood, streams throug
   await one.getByRole("button", { name: "Tải lại gợi ý", exact: true }).click();
   await one.getByRole("button", { name: "Gửi lời chào", exact: true }).click();
   await expect(one.getByText("Đã gửi lời mời.", { exact: true })).toBeVisible();
-  await two.goto("/#/connect");
+  await two.goto("/#/connect?tab=requests");
   await two
     .getByRole("button", { name: "Tải lại lời mời", exact: true })
     .click();

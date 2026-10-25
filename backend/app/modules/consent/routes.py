@@ -11,7 +11,7 @@ from app.core.security import (
     save_receipt,
     transaction,
 )
-from app.infrastructure.database.models import Consent, ConsentEvent, Outbox
+from app.infrastructure.database.models import Consent, ConsentEvent
 from app.modules.auth.routes import session_view
 from app.modules.social.service import invalidate_user_social
 
@@ -60,14 +60,6 @@ async def update_consent(
                     enabled=body.enabled,
                     version=consent.version,
                     policy_version=body.policy_version,
-                )
-            )
-            db.add(
-                Outbox(
-                    user_id=user.id,
-                    kind="consent_changed",
-                    resource_id=purpose,
-                    version=consent.version,
                 )
             )
             save_receipt(

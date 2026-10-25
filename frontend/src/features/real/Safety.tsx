@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button, cx, Dialog } from "../../components/UI";
 import type { components } from "../../api/generated/schema";
 import { ErrorNotice, useResource, useSession } from "./RealApp";
+import { answerText } from "./activities/ActivitySummary";
 
 type Schema = components["schemas"];
 const fields = { displayName: "Tên hiển thị", gender: "Giới tính" } as const;
@@ -107,6 +108,38 @@ export function ConnectionSafety({
   const [reason, setReason] = useState(""),
     [selected, setSelected] = useState<string[]>([]),
     [blocking, setBlocking] = useState(false);
+  // Revealed activity answers from the peer (only ones this user could see) may be
+  // attached as evidence too; they are copied into the report on submission.
+  const finished = useResource<Schema["ActivitySessionView"][]>(
+    `/connections/${connectionId}/activities?limit=10`,
+    !reportOnly,
+  );
+  const running = useResource<Schema["ActivitySessionView"] | null>(
+    `/connections/${connectionId}/activities/current`,
+    !reportOnly,
+  );
+  const answers = [...(running.data ? [running.data] : []), ...(finished.data ?? [])]
+    .flatMap((session) =>
+      (session.history ?? []).map((row) => ({ session, row })),
+    )
+    .filter(
+      ({ row }) =>
+        typeof row.reveal.peer === "object" &&
+        row.reveal.peer !== null &&
+        !row.reveal.peer.skipped &&
+        row.reveal.self &&
+        !row.reveal.self.skipped,
+    )
+    .map(({ session, row }) => ({
+      key: `${session.id}:${row.round}`,
+      sessionId: session.id,
+      round: row.round,
+      label: `${row.item.prompt} — ${answerText(
+        typeof row.reveal.peer === "object" ? row.reveal.peer : null,
+        row.item.options,
+      )}`,
+    }));
+  const [chosenAnswers, setChosenAnswers] = useState<string[]>([]);
   useEffect(() => {
     if (reportOnly) return;
     const timer = setInterval(() => {
@@ -330,6 +363,30 @@ export function ConnectionSafety({
             </label>
           ))}
         </fieldset>
+        {answers.length > 0 && (
+          <fieldset className="real-choices">
+            <legend>Câu trả lời trong hoạt động chung (tối đa hai)</legend>
+            {answers.map((answer) => (
+              <label key={answer.key}>
+                <input
+                  type="checkbox"
+                  checked={chosenAnswers.includes(answer.key)}
+                  disabled={
+                    !chosenAnswers.includes(answer.key) && chosenAnswers.length >= 2
+                  }
+                  onChange={(event) =>
+                    setChosenAnswers((current) =>
+                      event.target.checked
+                        ? [...current, answer.key]
+                        : current.filter((key) => key !== answer.key),
+                    )
+                  }
+                />
+                {answer.label}
+              </label>
+            ))}
+          </fieldset>
+        )}
         <Button
           variant="secondary"
           disabled={busy || !reason.trim()}
@@ -345,10 +402,14 @@ export function ConnectionSafety({
                   peerRef: ref.peerRef,
                   reason,
                   selectedMessageIds: selected,
+                  selectedActivityResponses: answers
+                    .filter((answer) => chosenAnswers.includes(answer.key))
+                    .map(({ sessionId, round }) => ({ sessionId, round })),
                 } satisfies Schema["ReportInput"],
               });
               setReason("");
               setSelected([]);
+              setChosenAnswers([]);
             }, "Đã nhận báo cáo.")
           }
         >

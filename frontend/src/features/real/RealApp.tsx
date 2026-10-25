@@ -64,7 +64,12 @@ import type {
   VersionInput,
 } from "../../api/contracts";
 import "./real.css";
-import { Discovery, HumanChat, HumanMessages } from "./Social";
+import { ConnectBridge, Discovery } from "./social/Discovery";
+import { OfflineBanner } from "./OfflineBanner";
+import { HumanChat } from "./social/HumanChat";
+import { HumanMessages } from "./social/HumanMessages";
+import { badgeText, useSocialSummary } from "./social/useSocialSummary";
+import { Moderation } from "./admin/Moderation";
 import { ApprovedMemories } from "./Memory";
 import { Moods } from "./Mood";
 import { VoiceRecorder } from "./Voice";
@@ -165,6 +170,12 @@ export function useResource<T>(path: string, enabled = true) {
       });
     return () => controller.abort();
   }, [api, path, revision, enabled]);
+  // A failed read retries by itself when the browser comes back online.
+  useEffect(() => {
+    if (!error || !enabled) return;
+    window.addEventListener("online", refresh);
+    return () => window.removeEventListener("online", refresh);
+  }, [error, enabled, refresh]);
   return { data, setData, error, loading, refresh };
 }
 
@@ -258,23 +269,94 @@ function SessionRoot() {
   );
 }
 
+/** Moderation notices from the session (warning until dismissed; restriction until it ends). */
+function SessionNotices() {
+  const { session } = useSession();
+  const [dismissed, setDismissed] = useState(false);
+  const notices = (session.notices ?? []).filter(
+    (notice) => notice.kind === "restricted" || !dismissed,
+  );
+  if (!notices.length) return null;
+  return (
+    <div className={cx.note} role="status">
+      {notices.map((notice) =>
+        notice.kind === "restricted" ? (
+          <p key="restricted">
+            Tính năng kết nối của bạn đang tạm bị hạn chế
+            {notice.until
+              ? ` đến ${new Date(notice.until).toLocaleDateString("vi-VN")}`
+              : ""}
+            . Bạn vẫn dùng được các trợ lý và nhật ký cảm xúc.
+          </p>
+        ) : (
+          <p key="warning">
+            Tài khoản của bạn đã nhận một cảnh báo về quy tắc cộng đồng. Hãy trò
+            chuyện tôn trọng để giữ cộng đồng an toàn.{" "}
+            <Button variant="text" onClick={() => setDismissed(true)}>
+              Đã hiểu
+            </Button>
+          </p>
+        ),
+      )}
+    </div>
+  );
+}
+
+/** Shown only when few AI turns remain today (Asia/Bangkok day). */
+function QuotaHint() {
+  const { session } = useSession();
+  const remaining = session.features.aiQuotaRemaining;
+  if (remaining == null || remaining > 10) return null;
+  return (
+    <p className={cx.footnote} role="status">
+      {remaining === 0
+        ? "Hôm nay bạn đã dùng hết lượt trò chuyện với trợ lý. Hẹn bạn ngày mai nhé."
+        : `Hôm nay bạn còn ${remaining} lượt trò chuyện với trợ lý.`}
+    </p>
+  );
+}
+
 function Navigation() {
+  const location = useLocation();
+  const summary = useSocialSummary(location.pathname);
+  const unread = summary.unreadConnections + summary.activityInvites;
   return (
     <nav className={cx.navigation} aria-label="Điều hướng chính">
       {[
-        { to: "/assistants", label: "Trợ lý", Icon: Sparkles },
-        { to: "/connect", label: "Tìm bạn", Icon: Users },
-        { to: "/messages", label: "Tin nhắn", Icon: MessageCircle },
-        { to: "/profile", label: "Tôi", Icon: UserRound },
-      ].map(({ to, label, Icon }) => (
+        { to: "/assistants", label: "Trợ lý", Icon: Sparkles, count: 0, what: "" },
+        {
+          // Pending invitations open their tab directly (08 section 2).
+          to: summary.pendingIncomingRequests ? "/connect?tab=requests" : "/connect",
+          label: "Tìm bạn",
+          Icon: Users,
+          count: summary.pendingIncomingRequests,
+          what: "lời mời kết nối mới",
+        },
+        {
+          to: "/messages",
+          label: "Tin nhắn",
+          Icon: MessageCircle,
+          count: unread,
+          what: "cuộc trò chuyện chưa đọc",
+        },
+        { to: "/profile", label: "Tôi", Icon: UserRound, count: 0, what: "" },
+      ].map(({ to, label, Icon, count, what }) => (
         <NavLink
-          key={to}
+          key={label}
           className={({ isActive }) =>
             `${cx.navItem} ${isActive ? cx.navActive : ""}`
           }
           to={to}
+          aria-label={count ? `${label}, ${count} ${what}` : undefined}
         >
-          <Icon size={21} strokeWidth={1.6} />
+          <span className={cx.navIcon}>
+            <Icon size={21} strokeWidth={1.6} />
+            {count > 0 && (
+              <span className={cx.navBadge} aria-hidden="true">
+                {badgeText(count)}
+              </span>
+            )}
+          </span>
           <span>{label}</span>
         </NavLink>
       ))}
@@ -368,8 +450,13 @@ function Shell() {
               </Link>
             </header>
           ) : null}
+          <OfflineBanner />
+          <SessionNotices />
           <Motion motionKey={location.pathname}>
             <Routes>
+              {session.staff && (
+                <Route path="/admin/reports" element={<Moderation />} />
+              )}
               <Route path="/assistants" element={<Assistants />} />
               <Route path="/assistants/:botId" element={<Assistants />} />
               <Route path="/settings" element={<Settings />} />
@@ -504,15 +591,7 @@ function Assistants() {
           </p>
         ) : null}
         <ConversationHistory />
-        <Link className="human-bridge" to="/connect">
-          <span className="bridge-icon">
-            <Users size={21} />
-          </span>
-          <span>
-            <strong>Từ hiểu mình, đến hiểu mọi người xung quanh</strong>
-          </span>
-          <ArrowUpRight size={18} />
-        </Link>
+        <ConnectBridge />
       </section>
       <section
         className="conversation-pane"
@@ -1046,6 +1125,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             </button>
           ))}
         </div>
+        <QuotaHint />
         <form
           className="bot-composer"
           onSubmit={(event) => {
@@ -1104,7 +1184,7 @@ const consentWithdrawal: Record<ConsentPurpose, string> = {
   AI: "Khi tắt: dừng ngay các lượt AI đang chạy, hủy đề xuất ghi nhớ chưa duyệt và xóa chỉ mục tìm kiếm ghi nhớ. Vẫn giữ: lịch sử trò chuyện đã lưu (chỉ đọc) và các ghi nhớ bạn đã duyệt — bạn có thể xuất hoặc xóa chúng bên dưới.",
   MEM: "Khi tắt: trợ lý ngừng nhắc lại ghi nhớ, hủy đề xuất chưa duyệt và xóa chỉ mục tìm kiếm. Vẫn giữ: các ghi nhớ đã duyệt để bạn xem, sửa hoặc xóa.",
   MATCH:
-    "Khi tắt: đóng mọi cuộc trò chuyện với người thật, hủy lời mời đang chờ, và hồ sơ kết nối bị ẩn. Bật lại không tự chia sẻ lại hồ sơ — bạn cần xem lại và xuất bản lại. Những người đang trò chuyện hoặc có lời mời chờ với bạn sẽ không được gợi ý lại cho nhau trong 30 ngày.",
+    "Khi tắt: đóng mọi cuộc trò chuyện với người thật, hủy lời mời đang chờ, và hồ sơ kết nối bị ẩn. Bật lại không tự chia sẻ lại hồ sơ — bạn cần xem lại và xuất bản lại. Những người đang trò chuyện hoặc có lời mời chờ với bạn sẽ không được gợi ý lại cho nhau trong 30 ngày. Mọi hoạt động chung đang diễn ra cũng dừng lại.",
   VOICE: "Khi tắt: không thể ghi âm nữa. Âm thanh không bao giờ được lưu lại.",
 };
 function Settings() {
