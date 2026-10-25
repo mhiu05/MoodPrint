@@ -60,7 +60,7 @@ async function chat(page: Page, state: { current: unknown; posts: { path: string
     if (path === "/social/summary")
       return route.fulfill({ json: { pendingIncomingRequests: 0, unreadConnections: 0, activityInvites: 0 } });
     if (path === "/connections/room-1") return route.fulfill({ json: room });
-    if (path === "/connections/room-1/messages")
+    if (path === "/connections/room-1/messages" && request.method() === "GET")
       return route.fulfill({ json: { messages: [], highWaterSeq: "0" } });
     if (path.endsWith("/reveal-requests")) return route.fulfill({ json: [] });
     if (path === "/activities/catalog") return route.fulfill({ json: catalog });
@@ -198,4 +198,27 @@ test("a decline cooldown disables only that invitation kind", async ({ page }) =
   await invite.click();
   await expect(invite).toBeDisabled();
   await expect(page.getByRole("button", { name: "Mời cùng chơi Đố vui đồng đội" })).toBeEnabled();
+});
+
+test("contact details in a message prompt a non-blocking advisory", async ({ page }) => {
+  const state: any = { current: null, posts: [] };
+  state.reply = (path: string, body: any) => {
+    if (path === "/connections/room-1/messages")
+      return {
+        status: 201,
+        json: { id: "m1", connectionId: "room-1", clientMessageId: body.clientMessageId, sender: "self", text: body.text, seq: "1", acceptedAt: new Date().toISOString() },
+      };
+  };
+  await chat(page, state);
+  await page.goto("/#/chat/room-1");
+  const composer = page.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" });
+  await composer.fill("số mình 0912 345 678");
+  await page.getByRole("button", { name: "Gửi tin nhắn" }).click();
+  const dialog = page.getByRole("dialog", { name: "Tin nhắn có vẻ chứa thông tin liên hệ" });
+  await dialog.getByRole("button", { name: "Sửa lại" }).click();
+  await expect(composer).toHaveValue("số mình 0912 345 678");
+  expect(state.posts.filter((p: any) => p.path.endsWith("/messages"))).toHaveLength(0);
+  await page.getByRole("button", { name: "Gửi tin nhắn" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Vẫn gửi" }).click();
+  await expect.poll(() => state.posts.filter((p: any) => p.path.endsWith("/messages")).length).toBe(1);
 });

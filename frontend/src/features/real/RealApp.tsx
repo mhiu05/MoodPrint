@@ -66,6 +66,7 @@ import type {
 import "./real.css";
 import { Discovery, HumanChat, HumanMessages } from "./Social";
 import { badgeText, useSocialSummary } from "./social/useSocialSummary";
+import { Moderation } from "./admin/Moderation";
 import { ApprovedMemories } from "./Memory";
 import { Moods } from "./Mood";
 import { VoiceRecorder } from "./Voice";
@@ -259,6 +260,53 @@ function SessionRoot() {
   );
 }
 
+/** Moderation notices from the session (warning until dismissed; restriction until it ends). */
+function SessionNotices() {
+  const { session } = useSession();
+  const [dismissed, setDismissed] = useState(false);
+  const notices = (session.notices ?? []).filter(
+    (notice) => notice.kind === "restricted" || !dismissed,
+  );
+  if (!notices.length) return null;
+  return (
+    <div className={cx.note} role="status">
+      {notices.map((notice) =>
+        notice.kind === "restricted" ? (
+          <p key="restricted">
+            Tính năng kết nối của bạn đang tạm bị hạn chế
+            {notice.until
+              ? ` đến ${new Date(notice.until).toLocaleDateString("vi-VN")}`
+              : ""}
+            . Bạn vẫn dùng được các trợ lý và nhật ký cảm xúc.
+          </p>
+        ) : (
+          <p key="warning">
+            Tài khoản của bạn đã nhận một cảnh báo về quy tắc cộng đồng. Hãy trò
+            chuyện tôn trọng để giữ cộng đồng an toàn.{" "}
+            <Button variant="text" onClick={() => setDismissed(true)}>
+              Đã hiểu
+            </Button>
+          </p>
+        ),
+      )}
+    </div>
+  );
+}
+
+/** Shown only when few AI turns remain today (Asia/Bangkok day). */
+function QuotaHint() {
+  const { session } = useSession();
+  const remaining = session.features.aiQuotaRemaining;
+  if (remaining == null || remaining > 10) return null;
+  return (
+    <p className={cx.footnote} role="status">
+      {remaining === 0
+        ? "Hôm nay bạn đã dùng hết lượt trò chuyện với trợ lý. Hẹn bạn ngày mai nhé."
+        : `Hôm nay bạn còn ${remaining} lượt trò chuyện với trợ lý.`}
+    </p>
+  );
+}
+
 function Navigation() {
   const location = useLocation();
   const summary = useSocialSummary(location.pathname);
@@ -392,8 +440,12 @@ function Shell() {
               </Link>
             </header>
           ) : null}
+          <SessionNotices />
           <Motion motionKey={location.pathname}>
             <Routes>
+              {session.staff && (
+                <Route path="/admin/reports" element={<Moderation />} />
+              )}
               <Route path="/assistants" element={<Assistants />} />
               <Route path="/assistants/:botId" element={<Assistants />} />
               <Route path="/settings" element={<Settings />} />
@@ -1070,6 +1122,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             </button>
           ))}
         </div>
+        <QuotaHint />
         <form
           className="bot-composer"
           onSubmit={(event) => {

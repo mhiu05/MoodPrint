@@ -18,6 +18,7 @@ import { RequestCard } from "./social/RequestCard";
 import { previewLine, relativeTime } from "./social/format";
 import { badgeText } from "./social/useSocialSummary";
 import { useConnectionEvents } from "./social/useConnectionEvents";
+import { looksLikeContact } from "./social/pii";
 import { ActivityCatalog, ActivityEntryButton } from "./activities/ActivityCatalog";
 import { ActivityDock } from "./activities/ActivityDock";
 import { InviteCard } from "./activities/InviteCard";
@@ -547,6 +548,8 @@ export function HumanChat() {
   });
   const activity = useActivity(connectionId, streamHealthy, !closed);
   const [catalogOpen, setCatalogOpen] = useState(false);
+  const [advising, setAdvising] = useState(false);
+  const advised = useRef("");
   const composer = useRef<HTMLTextAreaElement>(null);
   const alias = room?.alias || "bạn kia";
   const docked =
@@ -557,6 +560,11 @@ export function HumanChat() {
   async function send(event: FormEvent) {
     event.preventDefault();
     if (!ready || busy || closed || !draft.trim()) return;
+    // Advisory only (I-06): never blocks, never leaves the browser.
+    if (looksLikeContact(draft) && advised.current !== draft.trim()) {
+      setAdvising(true);
+      return;
+    }
     setBusy(true);
     setError(undefined);
     if (intent.current?.text !== draft.trim())
@@ -689,6 +697,37 @@ export function HumanChat() {
           <Send size={20} />
         </button>
       </form>
+      {advising && (
+        <Dialog
+          title="Tin nhắn có vẻ chứa thông tin liên hệ"
+          onClose={() => setAdvising(false)}
+        >
+          <p>
+            Bạn chắc chắn muốn chia sẻ? Chỉ nên gửi số điện thoại, email hay liên
+            kết khi bạn đã đủ tin tưởng người kia.
+          </p>
+          <div className={cx.actions}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setAdvising(false);
+                composer.current?.focus();
+              }}
+            >
+              Sửa lại
+            </Button>
+            <Button
+              onClick={() => {
+                advised.current = draft.trim();
+                setAdvising(false);
+                composer.current?.form?.requestSubmit();
+              }}
+            >
+              Vẫn gửi
+            </Button>
+          </div>
+        </Dialog>
+      )}
       {catalogOpen && (
         <ActivityCatalog
           catalog={activity.catalog}
