@@ -1,14 +1,16 @@
-"""Pure parity oracle for the existing frontend matching behavior.
+"""Scorer `rules-v1`: the frozen parity oracle of the original frontend matching.
 
-The legacy scoring version is intentional: changing runtime language does not
-change weights, taxonomy, eligibility rules, or the public card projection.
-Database authorization and production candidate retrieval remain separate.
+Kept as the rollback scorer (MATCHING_SCORER=v1). Its vocabulary below is frozen on
+purpose and is not the product taxonomy (see app.modules.profiles.taxonomy); changing
+it would break oracle parity. Database authorization and retrieval remain separate.
 """
 
 from collections.abc import Mapping
 from typing import Any
 
-SCORING_VERSION = "mock-v1"
+SCORING_VERSION = "rules-v1"
+# Label of the original frontend oracle output, kept for parity fixtures.
+ORACLE_VERSION = "mock-v1"
 
 _INTERESTS = {
     "reading": "Đọc sách",
@@ -180,7 +182,7 @@ def recommendations(state: Mapping[str, Any]) -> list[dict[str, Any]]:
                         "languages": list(peer["languages"]),
                     },
                 },
-                "scoringVersion": SCORING_VERSION,
+                "scoringVersion": ORACLE_VERSION,
                 "profileVersion": published["version"],
                 "peerVersion": candidate["version"],
                 "score": points,

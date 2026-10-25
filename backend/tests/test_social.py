@@ -52,7 +52,7 @@ async def test_ai_off_matching_returns_only_public_pair_scoped_cards(clients):
     _, actors, refs = await published_pair(clients)
     first = (await actors[0][0].get("/api/v1/matching/candidates")).json()["candidates"][0]
     assert len(first["reasons"]) <= 3
-    assert first["scoringVersion"] == "rules-v1-id"
+    assert first["scoringVersion"] == "rules-v1"
     assert first["profile"] == PROFILE
     assert not ({"userId", "identity", "privateItems", "sources", "memory", "score"} & first.keys())
     response = await actors[1][0].post(

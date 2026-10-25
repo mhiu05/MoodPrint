@@ -5,7 +5,7 @@ from uuid import UUID
 from pydantic import Field, field_validator
 
 from app.contracts import DTO, MessageText, VersionInput
-from app.modules.matching.scoring import _GOALS, _INTERESTS, _LANGUAGES, _STYLES, _VALUES
+from app.modules.profiles.taxonomy import GOALS, INTERESTS, LANGUAGES, STYLES, VALUES
 
 
 class PublicProfile(DTO):
@@ -18,7 +18,7 @@ class PublicProfile(DTO):
     @field_validator("interests", "values", "languages")
     @classmethod
     def known_unique_tags(cls, value: list[str], info):
-        allowed = {"interests": _INTERESTS, "values": _VALUES, "languages": _LANGUAGES}[
+        allowed = {"interests": INTERESTS, "values": VALUES, "languages": LANGUAGES}[
             info.field_name
         ]
         if len(value) != len(set(value)) or any(tag not in allowed for tag in value):
@@ -28,7 +28,7 @@ class PublicProfile(DTO):
     @field_validator("style", "goal")
     @classmethod
     def known_option(cls, value: str, info):
-        if value not in (_STYLES if info.field_name == "style" else _GOALS):
+        if value not in (STYLES if info.field_name == "style" else GOALS):
             raise ValueError("Unknown taxonomy option")
         return value
 
@@ -72,7 +72,7 @@ class CandidateCardDTO(DTO):
     avatar_seed: str
     profile: PublicProfile
     reasons: list[str] = Field(max_length=3)
-    scoring_version: Literal["rules-v1-id"] = "rules-v1-id"
+    scoring_version: Literal["rules-v1", "rules-v2"] = "rules-v1"
     profile_version: int
     peer_version: int
 

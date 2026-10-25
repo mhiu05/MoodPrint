@@ -1295,10 +1295,10 @@ export interface components {
             reasons: string[];
             /**
              * Scoringversion
-             * @default rules-v1-id
-             * @constant
+             * @default rules-v1
+             * @enum {string}
              */
-            scoringVersion: "rules-v1-id";
+            scoringVersion: "rules-v1" | "rules-v2";
             /** Profileversion */
             profileVersion: number;
             /** Peerversion */
@@ -2169,7 +2169,7 @@ export interface components {
         TaxonomyDTO: {
             /**
              * Version
-             * @default v1
+             * @default v2
              */
             version: string;
             /** Interests */
@@ -2191,6 +2191,26 @@ export interface components {
             /** Languages */
             languages: {
                 [key: string]: string;
+            };
+            /** Activities */
+            activities: {
+                [key: string]: string;
+            };
+            /** Availability */
+            availability: {
+                [key: string]: string;
+            };
+            /** Categories */
+            categories: {
+                [key: string]: string[];
+            };
+            /** Categorylabels */
+            categoryLabels: {
+                [key: string]: string;
+            };
+            /** Limits */
+            limits: {
+                [key: string]: number[];
             };
         };
         /** TranscriptionPreview */

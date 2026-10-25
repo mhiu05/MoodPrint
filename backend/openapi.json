@@ -10045,9 +10045,12 @@
           },
           "scoringVersion": {
             "type": "string",
-            "const": "rules-v1-id",
+            "enum": [
+              "rules-v1",
+              "rules-v2"
+            ],
             "title": "Scoringversion",
-            "default": "rules-v1-id"
+            "default": "rules-v1"
           },
           "profileVersion": {
             "type": "integer",
@@ -12079,7 +12082,7 @@
           "version": {
             "type": "string",
             "title": "Version",
-            "default": "v1"
+            "default": "v2"
           },
           "interests": {
             "additionalProperties": {
@@ -12115,6 +12118,47 @@
             },
             "type": "object",
             "title": "Languages"
+          },
+          "activities": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Activities"
+          },
+          "availability": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Availability"
+          },
+          "categories": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Categories"
+          },
+          "categoryLabels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Categorylabels"
+          },
+          "limits": {
+            "additionalProperties": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Limits"
           }
         },
         "additionalProperties": false,
@@ -12124,7 +12168,12 @@
           "values",
           "styles",
           "goals",
-          "languages"
+          "languages",
+          "activities",
+          "availability",
+          "categories",
+          "categoryLabels",
+          "limits"
         ],
         "title": "TaxonomyDTO"
       },
