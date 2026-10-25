@@ -78,6 +78,8 @@ def main():
                 "test",
                 "--config",
                 "playwright.fullstack.config.ts",
+                # Optional spec filters / Playwright flags, e.g. activities.spec.ts.
+                *sys.argv[1:],
             ],
             cwd=ROOT / "frontend",
             env=environment,

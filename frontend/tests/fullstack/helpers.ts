@@ -1,4 +1,4 @@
-import { expect, type BrowserContext, type Page } from "@playwright/test";
+import { expect, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import { createHash, randomUUID } from "node:crypto";
 
 export const origin = "http://127.0.0.1:5174";
@@ -115,6 +115,22 @@ export async function publish(page: Page) {
   await fillProfileEditor(page);
 }
 
+// The frozen v1 vocabulary (backend scoring.py); the default v1 scorer ignores others.
+const V1_INTERESTS = ["reading", "music", "walking", "cooking", "english", "photography", "puzzles"];
+const V1_TRIPLES = V1_INTERESTS.flatMap((a, i) =>
+  V1_INTERESTS.slice(i + 1).flatMap((b, j) =>
+    V1_INTERESTS.slice(i + j + 2).map((c) => [a, b, c]),
+  ),
+);
+
+/**
+ * Both members of a pair get an interest triple no other API pair has (keyed by the
+ * first user), so the partner outranks every other published synthetic profile.
+ */
+function pairInterests(first: number) {
+  return V1_TRIPLES[first % V1_TRIPLES.length];
+}
+
 /**
  * Publishes both users through the API and connects them; returns the room id.
  * English-only profiles keep these pairs out of the UI journeys' Vietnamese pool.
@@ -140,7 +156,7 @@ export async function connectByApi(
       ).status,
     ).toBe(200);
     await call(context, number, "PUT", "/profiles/matching-draft", {
-      interests: ["reading", "music", "walking"],
+      interests: pairInterests(aNumber),
       values: ["respect", "kindness"],
       style: "balanced",
       goal,
@@ -195,4 +211,65 @@ export async function noHorizontalOverflow(page: Page) {
       ),
     )
     .toBe(true);
+}
+
+export type ProfileInput = {
+  interests: string[];
+  values: string[];
+  style: string;
+  goal: string;
+  languages: string[];
+  activities?: string[];
+  availability?: string[];
+  strictGoal?: boolean;
+};
+
+/** Consents to matching and publishes a profile through the API. */
+export async function publishProfile(
+  context: BrowserContext,
+  number: number,
+  profile: ProfileInput,
+) {
+  const consent = await call(context, number, "PUT", "/consents/MATCH", {
+    enabled: true,
+    expectedVersion: 1,
+    policyVersion: "v1",
+  });
+  expect(consent.status, consent.text).toBe(200);
+  const draft = await call(context, number, "PUT", "/profiles/matching-draft", {
+    ...profile,
+    expectedVersion: 0,
+  });
+  expect(draft.status, draft.text).toBe(200);
+  const preview = await call(context, number, "POST", "/profiles/matching-draft/preview");
+  const published = await call(context, number, "POST", "/profiles/published", {
+    draftVersion: preview.body.draftVersion,
+    previewDigest: preview.body.previewDigest,
+    expectedPublishedVersion: 0,
+  });
+  expect(published.status, published.text).toBe(201);
+}
+
+/** Two signed-in browsers connected through the API, both on the shared chat. */
+export async function openRoom(browser: Browser, a: number, b: number) {
+  const one = await browser.newContext(),
+    two = await browser.newContext();
+  await session(one, a);
+  await session(two, b);
+  const room = await connectByApi(one, a, two, b, "friendship");
+  const pageA = await one.newPage(),
+    pageB = await two.newPage();
+  await pageA.goto(`/#/chat/${room}`);
+  await pageB.goto(`/#/chat/${room}`);
+  return {
+    one,
+    two,
+    pageA,
+    pageB,
+    room,
+    close: async () => {
+      await one.close();
+      await two.close();
+    },
+  };
 }

@@ -234,10 +234,13 @@ test("Journey B/C: two users match, request, accept and chat; stale tab loses ac
   await expect(card.getByText(/Cùng thích/).first()).toBeVisible();
   await card.getByRole("button", { name: "Gửi lời chào", exact: true }).click();
   await expect(one.getByText("Đã gửi lời mời.", { exact: true })).toBeVisible();
+  // Outgoing and incoming invitations live under the Lời mời tab (H-01).
+  await one.getByRole("tab", { name: /Lời mời/ }).click();
   await expect(
     one.getByText(`Lời chào gửi ${pairAlias(11, 12)}`),
   ).toBeVisible();
 
+  await two.goto("/#/connect?tab=requests");
   await two.reload();
   const invite = two
     .locator("article")
