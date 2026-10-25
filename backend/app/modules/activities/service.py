@@ -4,6 +4,7 @@ Lock order everywhere: users (pair_transaction) -> pair and room (live_room) ->
 session. The sweeper and the lifecycle hooks take only the room -> session suffix.
 """
 
+import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from uuid import UUID
@@ -33,6 +34,7 @@ INVITES_PER_CONNECTION_HOUR = 6
 INVITES_PER_USER_DAY = 20
 DECLINE_COOLDOWN = timedelta(minutes=10)
 RECENT_SUMMARY = timedelta(minutes=15)
+log = logging.getLogger("moodprint")
 
 
 def refuse(error: MachineError) -> DomainError:
@@ -138,6 +140,16 @@ async def store(
     room.activity_seq += 1
     await db.flush()
     after.version = row.version
+    # Content-free counters (09 section 12); every route, job and hook writes through here.
+    if before.state == "invited" and after.state == "active":
+        log.info("metric=activity_started kind=%s", after.kind)
+    elif after.terminal and not before.terminal:
+        if after.state == "completed":
+            log.info("metric=activity_completed kind=%s", after.kind)
+        elif after.state == "aborted":
+            log.info("metric=activity_aborted kind=%s reason=%s", after.kind, after.end_reason)
+        else:
+            log.info("metric=activity_closed kind=%s state=%s", after.kind, after.state)
     return after
 
 

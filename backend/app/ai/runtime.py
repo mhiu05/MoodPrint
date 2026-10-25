@@ -121,6 +121,7 @@ class AiRuntime:
         if run.terminal_status is None:
             run.terminal_status = status or "failed"
             run.terminal = True
+            logging.getLogger("moodprint").info("metric=ai_run_ended status=%s", run.terminal_status)
             run.version = 2
             remaining = self.store.conversations.get(run.conversation_id)
             if remaining and remaining.active_run_id == run.id:

@@ -2,6 +2,10 @@ import os
 
 import uvicorn
 
+from app.core import logs
+
+logs.configure()
+
 # One process by design: temporary chats, rate limits and stream slots are in-process
 # (deploy/README.md). Proxy headers are trusted only from FORWARDED_ALLOW_IPS.
 uvicorn.run(

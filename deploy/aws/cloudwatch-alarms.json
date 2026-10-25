@@ -1,0 +1,35 @@
+{
+  "notes": [
+    "Configuration only (I-07): nothing here is applied automatically. Creating these filters and alarms in AWS is an operator action that needs explicit approval.",
+    "Filters match content-free lines `metric=<name> ...` written by the backend `moodprint` logger. Docker json-file wraps each line in a JSON `log` string, so filters count lines; numeric `value=` fields are read with Logs Insights (docs/productization/runbooks/incident.md).",
+    "The 5xx alarm is an absolute count because the request total (`metric=http_requests value=N`) cannot be extracted by a metric filter; the 2 % ratio is checked with the Logs Insights query in the incident runbook.",
+    "DiskUsed80 uses the CloudWatch agent metric; its dimensions must match the agent's (InstanceId plus path/device/fstype for disk)."
+  ],
+  "logGroupName": "/moodprint/staging/containers",
+  "namespace": "MoodPrint/Staging",
+  "metricFilters": [
+    {"filterName": "http-5xx", "filterPattern": "\"metric=http_5xx\"", "metricTransformations": [{"metricName": "Http5xx", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
+    {"filterName": "readiness-failed", "filterPattern": "\"metric=readiness_failed\"", "metricTransformations": [{"metricName": "ReadinessFailed", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
+    {"filterName": "ai-run-ended", "filterPattern": "\"metric=ai_run_ended\"", "metricTransformations": [{"metricName": "AiRunEnded", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
+    {"filterName": "ai-run-failed", "filterPattern": "\"metric=ai_run_ended status=failed\"", "metricTransformations": [{"metricName": "AiRunFailed", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
+    {"filterName": "ai-budget-ratio", "filterPattern": "\"metric=ai_budget_ratio\"", "metricTransformations": [{"metricName": "AiBudgetHigh", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
+    {"filterName": "ai-budget-denied", "filterPattern": "\"metric=ai_budget_denied\"", "metricTransformations": [{"metricName": "AiBudgetDenied", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
+    {"filterName": "ai-quota-denied", "filterPattern": "\"metric=ai_quota_denied\"", "metricTransformations": [{"metricName": "AiQuotaDenied", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
+    {"filterName": "activity-started", "filterPattern": "\"metric=activity_started\"", "metricTransformations": [{"metricName": "ActivityStarted", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
+    {"filterName": "activity-completed", "filterPattern": "\"metric=activity_completed\"", "metricTransformations": [{"metricName": "ActivityCompleted", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
+    {"filterName": "activity-aborted", "filterPattern": "\"metric=activity_aborted\"", "metricTransformations": [{"metricName": "ActivityAborted", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
+    {"filterName": "report-created", "filterPattern": "\"metric=report_created\"", "metricTransformations": [{"metricName": "ReportCreated", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
+    {"filterName": "moderation-action", "filterPattern": "\"metric=moderation_action\"", "metricTransformations": [{"metricName": "ModerationAction", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]}
+  ],
+  "alarms": [
+    {"alarmName": "Http5xxCount", "description": "Five or more 5xx API responses in 5 minutes.", "namespace": "MoodPrint/Staging", "metricName": "Http5xx", "statistic": "Sum", "period": 300, "evaluationPeriods": 1, "threshold": 5, "comparisonOperator": "GreaterThanOrEqualToThreshold", "treatMissingData": "notBreaching"},
+    {"alarmName": "ReadinessFailing", "description": "Readiness failed at least twice in one minute (compose health check every 20 s).", "namespace": "MoodPrint/Staging", "metricName": "ReadinessFailed", "statistic": "Sum", "period": 60, "evaluationPeriods": 1, "threshold": 2, "comparisonOperator": "GreaterThanOrEqualToThreshold", "treatMissingData": "notBreaching"},
+    {"alarmName": "AiRunFailedRate", "description": "More than 20 % of AI runs failed over 15 minutes (with at least 5 runs).", "metrics": [
+      {"id": "failed", "namespace": "MoodPrint/Staging", "metricName": "AiRunFailed", "statistic": "Sum", "period": 900, "returnData": false},
+      {"id": "ended", "namespace": "MoodPrint/Staging", "metricName": "AiRunEnded", "statistic": "Sum", "period": 900, "returnData": false},
+      {"id": "rate", "expression": "IF(ended >= 5, 100 * failed / ended, 0)", "label": "AI run failure %", "returnData": true}
+    ], "evaluationPeriods": 1, "threshold": 20, "comparisonOperator": "GreaterThanThreshold", "treatMissingData": "notBreaching"},
+    {"alarmName": "AiBudget80", "description": "Estimated AI spend reached 80 % of AI_DAILY_BUDGET_USD.", "namespace": "MoodPrint/Staging", "metricName": "AiBudgetHigh", "statistic": "Sum", "period": 300, "evaluationPeriods": 1, "threshold": 1, "comparisonOperator": "GreaterThanOrEqualToThreshold", "treatMissingData": "notBreaching"},
+    {"alarmName": "DiskUsed80", "description": "Root volume above 80 % used.", "namespace": "MoodPrint/Staging", "metricName": "disk_used_percent", "dimensions": {"path": "/"}, "statistic": "Maximum", "period": 300, "evaluationPeriods": 2, "threshold": 80, "comparisonOperator": "GreaterThanThreshold", "treatMissingData": "missing"}
+  ]
+}

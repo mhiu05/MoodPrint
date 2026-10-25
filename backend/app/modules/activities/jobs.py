@@ -62,6 +62,4 @@ async def advance_due(app, at: datetime | None = None) -> int:
                 continue
             await act.store(db, row, participants, state, after, room)
             advanced += 1
-            if after.terminal:
-                log.info("metric=activity_ended kind=%s reason=%s", after.kind, after.end_reason)
     return advanced

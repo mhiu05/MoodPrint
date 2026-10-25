@@ -1,4 +1,5 @@
 import hmac
+import logging
 import secrets
 from datetime import timedelta
 from uuid import UUID
@@ -444,6 +445,7 @@ async def report(body: ReportInput, request: Request, actor: Actor = Depends(req
         db.add(row)
         await db.flush()
         save_receipt(db, user, "report:create", key, payload, {"resourceId": str(row.id)})
+        logging.getLogger("moodprint").info("metric=report_created")
         return ReportView.model_validate(row)
 
 

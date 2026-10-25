@@ -16,7 +16,8 @@
           {
             "file_path": "/var/lib/docker/containers/*/*-json.log",
             "log_group_name": "/moodprint/staging/containers",
-            "log_stream_name": "{instance_id}"
+            "log_stream_name": "{instance_id}",
+            "retention_in_days": 30
           }
         ]
       }

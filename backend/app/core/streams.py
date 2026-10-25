@@ -31,3 +31,6 @@ class StreamSlots:
                 self.active.pop(user_id, None)
 
         return release
+
+    def open(self) -> int:
+        return sum(self.active.values())

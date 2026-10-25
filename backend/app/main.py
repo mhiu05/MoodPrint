@@ -54,9 +54,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 await recover_turns(db)
 
         async def sweep_context():
-            next_retention = 0.0
+            from app.modules.social.notifications import STREAM_SLOTS
+
+            next_retention = next_sample = 0.0
             while True:
                 app.state.ai.sweep()
+                if time.monotonic() >= next_sample:
+                    metrics = logging.getLogger("moodprint")
+                    metrics.info("metric=sse_streams_open value=%d", STREAM_SLOTS.open())
+                    metrics.info("metric=http_requests value=%d", app.state.http_requests)
+                    app.state.http_requests = 0
+                    next_sample = time.monotonic() + 60
                 app.state.exports = {
                     key: value
                     for key, value in app.state.exports.items()
@@ -126,6 +134,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings, app.state.database = config, database
     app.state.ai = AiRuntime(config, database)
     app.state.exports = {}
+    app.state.http_requests = 0
     from app.modules.voice.service import OpenAITranscriber
 
     app.state.transcriber = (
@@ -172,6 +181,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 status_code=500,
             )
         path = request.url.path
+        if path.startswith("/api/"):
+            app.state.http_requests += 1
+            if response.status_code >= 500:
+                logging.getLogger("moodprint").warning("metric=http_5xx")
         hashed = path.startswith("/assets/") and response.status_code == 200
         response.headers.update(
             {
@@ -215,6 +228,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 if not helper:
                     raise RuntimeError("Reviewed Auth security bootstrap required")
         except Exception as exc:
+            logging.getLogger("moodprint").warning("metric=readiness_failed")
             raise DomainError(503, "NOT_READY", "Dịch vụ dữ liệu chưa sẵn sàng.", True) from exc
         return {"status": "ready"}
 

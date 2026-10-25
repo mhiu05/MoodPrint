@@ -167,6 +167,31 @@ async def purge_expired(app):
         ).all()
         if old_reports:
             await db.execute(delete(Report).where(Report.id.in_(old_reports)))
+        # Read markers outlive their room by 90 days; open rooms keep them however old.
+        from app.modules.social.models import Connection, ConnectionRead, MatchingStatsDaily
+
+        stale_reads = (
+            await db.execute(
+                select(ConnectionRead.connection_id, ConnectionRead.user_id)
+                .join(Connection, Connection.id == ConnectionRead.connection_id)
+                .where(
+                    Connection.status != "open",
+                    ConnectionRead.updated_at <= now() - timedelta(days=90),
+                )
+                .limit(1000)
+            )
+        ).all()
+        for connection_id, user_id in stale_reads:
+            await db.execute(
+                delete(ConnectionRead).where(
+                    ConnectionRead.connection_id == connection_id,
+                    ConnectionRead.user_id == user_id,
+                )
+            )
+        # Identifier-free matching counters are kept one year (C-08).
+        await db.execute(
+            delete(MatchingStatsDaily).where(MatchingStatsDaily.day < cast(year, Date))
+        )
         # Retired outbox (no consumer): drain the backlog oldest first until the table is dropped.
         outbox = (
             await db.scalars(
