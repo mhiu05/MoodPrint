@@ -59,7 +59,7 @@ class AnswerView(DTO):
     skipped: bool = False
 
 
-class RevealView(DTO):
+class ActivityRevealView(DTO):
     me: AnswerView | None = Field(default=None, serialization_alias="self")
     # "hidden" when the viewer skipped (reciprocal reveal); "skipped" when the peer did.
     peer: AnswerView | Literal["hidden", "skipped"] | None = None
@@ -72,13 +72,13 @@ class CurrentView(DTO):
     item: ActivityItemView
     self_response: AnswerView | None = None
     peer_submitted: bool = False
-    reveal: RevealView | None = None
+    reveal: ActivityRevealView | None = None
 
 
 class HistoryRound(DTO):
     round: int
     item: ActivityItemView
-    reveal: RevealView
+    reveal: ActivityRevealView
 
 
 class SelfView(DTO):

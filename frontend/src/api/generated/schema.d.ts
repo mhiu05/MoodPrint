@@ -1502,6 +1502,18 @@ export interface components {
              */
             allowText: boolean;
         };
+        /** ActivityRevealView */
+        ActivityRevealView: {
+            self?: components["schemas"]["AnswerView"] | null;
+            /** Peer */
+            peer?: components["schemas"]["AnswerView"] | ("hidden" | "skipped") | null;
+            /** Correctindex */
+            correctIndex?: number | null;
+            /** Explanation */
+            explanation?: string | null;
+            /** Points */
+            points?: number | null;
+        };
         /** ActivitySessionView */
         ActivitySessionView: {
             /** Id */
@@ -1837,7 +1849,7 @@ export interface components {
              * @default false
              */
             peerSubmitted: boolean;
-            reveal?: components["schemas"]["app__modules__activities__schemas__RevealView"] | null;
+            reveal?: components["schemas"]["ActivityRevealView"] | null;
         };
         /** DataJobView */
         DataJobView: {
@@ -2005,7 +2017,7 @@ export interface components {
             /** Round */
             round: number;
             item: components["schemas"]["ActivityItemView"];
-            reveal: components["schemas"]["app__modules__activities__schemas__RevealView"];
+            reveal: components["schemas"]["ActivityRevealView"];
         };
         /** IdentityEdit */
         IdentityEdit: {
@@ -2527,6 +2539,39 @@ export interface components {
             /** Expectedidentityversion */
             expectedIdentityVersion: number;
         };
+        /** RevealView */
+        RevealView: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Field
+             * @enum {string}
+             */
+            field: "displayName" | "gender";
+            /**
+             * Ownerside
+             * @enum {string}
+             */
+            ownerSide: "self" | "peer";
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
+            /** Identityversion */
+            identityVersion: number;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+            /** Previewvalue */
+            previewValue?: string | null;
+            /** Previewdigest */
+            previewDigest?: string | null;
+        };
         /** ScoreView */
         ScoreView: {
             /** Team */
@@ -2726,51 +2771,6 @@ export interface components {
         VersionInput: {
             /** Expectedversion */
             expectedVersion: number;
-        };
-        /** RevealView */
-        app__modules__activities__schemas__RevealView: {
-            self?: components["schemas"]["AnswerView"] | null;
-            /** Peer */
-            peer?: components["schemas"]["AnswerView"] | ("hidden" | "skipped") | null;
-            /** Correctindex */
-            correctIndex?: number | null;
-            /** Explanation */
-            explanation?: string | null;
-            /** Points */
-            points?: number | null;
-        };
-        /** RevealView */
-        app__modules__moderation__schemas__RevealView: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /**
-             * Field
-             * @enum {string}
-             */
-            field: "displayName" | "gender";
-            /**
-             * Ownerside
-             * @enum {string}
-             */
-            ownerSide: "self" | "peer";
-            /** Status */
-            status: string;
-            /** Version */
-            version: number;
-            /** Identityversion */
-            identityVersion: number;
-            /**
-             * Expiresat
-             * Format: date-time
-             */
-            expiresAt: string;
-            /** Previewvalue */
-            previewValue?: string | null;
-            /** Previewdigest */
-            previewDigest?: string | null;
         };
         /** AIEvent */
         AIEvent: {
@@ -11295,7 +11295,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__modules__moderation__schemas__RevealView"][];
+                    "application/json": components["schemas"]["RevealView"][];
                 };
             };
             /** @description Unauthorized */
@@ -11402,7 +11402,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__modules__moderation__schemas__RevealView"];
+                    "application/json": components["schemas"]["RevealView"];
                 };
             };
             /** @description Unauthorized */
@@ -11509,7 +11509,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__modules__moderation__schemas__RevealView"];
+                    "application/json": components["schemas"]["RevealView"];
                 };
             };
             /** @description Unauthorized */

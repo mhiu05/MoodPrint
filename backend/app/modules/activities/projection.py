@@ -16,13 +16,13 @@ from app.modules.activities.definitions import DEFINITIONS
 from app.modules.activities.machine import ResponseState, SessionState
 from app.modules.activities.schemas import (
     ActivityItemView,
+    ActivityRevealView,
     ActivitySessionView,
     AnswerView,
     CurrentView,
     HistoryRound,
     PeerView,
     ProgressView,
-    RevealView,
     ScoreView,
     SelfView,
     SummaryView,
@@ -57,7 +57,7 @@ def _revealed(s: SessionState, round_number: int) -> bool:
     return round_number == s.round and (s.phase == "revealed" or s.state == "completed")
 
 
-def _reveal(s: SessionState, viewer: UUID, round_number: int) -> RevealView:
+def _reveal(s: SessionState, viewer: UUID, round_number: int) -> ActivityRevealView:
     mine = s.responses.get((viewer, round_number))
     theirs = s.responses.get((s.peer_of(viewer), round_number))
     peer: AnswerView | Literal["hidden", "skipped"] | None
@@ -69,7 +69,7 @@ def _reveal(s: SessionState, viewer: UUID, round_number: int) -> RevealView:
         peer = "hidden"
     else:
         peer = _answer(theirs)
-    reveal = RevealView(me=_answer(mine), peer=peer)
+    reveal = ActivityRevealView(me=_answer(mine), peer=peer)
     if s.kind == "coop_quiz":
         item = _item(s, round_number)
         reveal.correct_index = item["correctIndex"]

@@ -9946,7 +9946,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__modules__moderation__schemas__RevealView"
+                  "$ref": "#/components/schemas/RevealView"
                 }
               }
             }
@@ -10066,7 +10066,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/app__modules__moderation__schemas__RevealView"
+                    "$ref": "#/components/schemas/RevealView"
                   },
                   "title": "Response List Reveals Api V1 Connections  Connection Id  Reveal Requests Get"
                 }
@@ -10198,7 +10198,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__modules__moderation__schemas__RevealView"
+                  "$ref": "#/components/schemas/RevealView"
                 }
               }
             }
@@ -12010,6 +12010,74 @@
         ],
         "title": "ActivityItemView"
       },
+      "ActivityRevealView": {
+        "properties": {
+          "self": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnswerView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "peer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnswerView"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "hidden",
+                  "skipped"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peer"
+          },
+          "correctIndex": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correctindex"
+          },
+          "explanation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explanation"
+          },
+          "points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Points"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ActivityRevealView"
+      },
       "ActivitySessionView": {
         "properties": {
           "id": {
@@ -12902,7 +12970,7 @@
           "reveal": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__modules__activities__schemas__RevealView"
+                "$ref": "#/components/schemas/ActivityRevealView"
               },
               {
                 "type": "null"
@@ -13290,7 +13358,7 @@
             "$ref": "#/components/schemas/ActivityItemView"
           },
           "reveal": {
-            "$ref": "#/components/schemas/app__modules__activities__schemas__RevealView"
+            "$ref": "#/components/schemas/ActivityRevealView"
           }
         },
         "additionalProperties": false,
@@ -14546,6 +14614,82 @@
         ],
         "title": "RevealInput"
       },
+      "RevealView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "field": {
+            "type": "string",
+            "enum": [
+              "displayName",
+              "gender"
+            ],
+            "title": "Field"
+          },
+          "ownerSide": {
+            "type": "string",
+            "enum": [
+              "self",
+              "peer"
+            ],
+            "title": "Ownerside"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "identityVersion": {
+            "type": "integer",
+            "title": "Identityversion"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expiresat"
+          },
+          "previewValue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previewvalue"
+          },
+          "previewDigest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previewdigest"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "field",
+          "ownerSide",
+          "status",
+          "version",
+          "identityVersion",
+          "expiresAt"
+        ],
+        "title": "RevealView"
+      },
       "ScoreView": {
         "properties": {
           "team": {
@@ -15068,150 +15212,6 @@
           "expectedVersion"
         ],
         "title": "VersionInput"
-      },
-      "app__modules__activities__schemas__RevealView": {
-        "properties": {
-          "self": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AnswerView"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "peer": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AnswerView"
-              },
-              {
-                "type": "string",
-                "enum": [
-                  "hidden",
-                  "skipped"
-                ]
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Peer"
-          },
-          "correctIndex": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Correctindex"
-          },
-          "explanation": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Explanation"
-          },
-          "points": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Points"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "title": "RevealView"
-      },
-      "app__modules__moderation__schemas__RevealView": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "field": {
-            "type": "string",
-            "enum": [
-              "displayName",
-              "gender"
-            ],
-            "title": "Field"
-          },
-          "ownerSide": {
-            "type": "string",
-            "enum": [
-              "self",
-              "peer"
-            ],
-            "title": "Ownerside"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "version": {
-            "type": "integer",
-            "title": "Version"
-          },
-          "identityVersion": {
-            "type": "integer",
-            "title": "Identityversion"
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Expiresat"
-          },
-          "previewValue": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Previewvalue"
-          },
-          "previewDigest": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Previewdigest"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "id",
-          "field",
-          "ownerSide",
-          "status",
-          "version",
-          "identityVersion",
-          "expiresAt"
-        ],
-        "title": "RevealView"
       },
       "AIEvent": {
         "additionalProperties": false,
