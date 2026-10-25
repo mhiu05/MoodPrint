@@ -221,11 +221,11 @@ async def withdraw(body: VersionInput, request: Request, actor: Actor = Depends(
 
 @router.get("/matching/candidates", response_model=CandidateListDTO)
 async def candidates(request: Request, actor: Actor = Depends(require_actor)):
-    from app.core.security import lock_actor
+    from app.core.security import verify_actor
     from app.modules.social.retrieval import ranked_candidates
 
     scorer = svc.scorer_of(request)
-    served: Literal["rules-v1", "rules-v2"] = "rules-v2" if scorer == "v2" else "rules-v1"
+    served: Literal["rules-v1.1", "rules-v2"] = "rules-v2" if scorer == "v2" else "rules-v1.1"
     async with request.app.state.database.require()() as db, db.begin():
         user = await db.get(User, actor.user_id)
         own, consent = await svc.current_profile(db, user)
@@ -238,11 +238,13 @@ async def candidates(request: Request, actor: Actor = Depends(require_actor)):
                 select(User)
                 .where(User.id.in_([actor.user_id, *shortlist]))
                 .order_by(User.id)
-                .with_for_update()
+                .with_for_update(read=True)
             )
         ).all()
         users = {user.id: user for user in rows}
-        user = await lock_actor(db, actor)
+        # Shared account gates let simultaneous discovery reads coexist, while
+        # profile/consent/block writers still need exclusive gates and must wait.
+        user = await verify_actor(db, actor, users.get(actor.user_id))
         own, own_consent = await svc.current_profile(db, user)
         result: list[CandidateCardDTO] = []
         for peer_id in shortlist:
@@ -458,7 +460,7 @@ async def decide(request_id, decision, body, request, actor):
             raise DomainError(409, "REQUEST_CHANGED", "Lời mời đã thay đổi hoặc hết hạn.")
         if decision == "accept" and snapshots is not None:
             await svc.open_mutual_room(db, pair, row, snapshots)
-            served = "rules-v2" if svc.scorer_of(request) == "v2" else "rules-v1"
+            served = "rules-v2" if svc.scorer_of(request) == "v2" else "rules-v1.1"
             await stats.bump(db, "accepts", served, now().date())
         else:
             row.status = "declined" if decision == "decline" else "cancelled"

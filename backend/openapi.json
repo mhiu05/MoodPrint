@@ -13139,10 +13139,11 @@
             "type": "string",
             "enum": [
               "rules-v1",
+              "rules-v1.1",
               "rules-v2"
             ],
             "title": "Scoringversion",
-            "default": "rules-v1"
+            "default": "rules-v1.1"
           },
           "profileVersion": {
             "type": "integer",

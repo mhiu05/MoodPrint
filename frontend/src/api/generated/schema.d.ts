@@ -1775,10 +1775,10 @@ export interface components {
             sharedActivities?: string[];
             /**
              * Scoringversion
-             * @default rules-v1
+             * @default rules-v1.1
              * @enum {string}
              */
-            scoringVersion: "rules-v1" | "rules-v2";
+            scoringVersion: "rules-v1" | "rules-v1.1" | "rules-v2";
             /** Profileversion */
             profileVersion: number;
             /** Peerversion */

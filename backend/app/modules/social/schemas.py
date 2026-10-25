@@ -99,7 +99,7 @@ class CandidateCardDTO(DTO):
     # Qualitative only: never a score or percentage (DR-05).
     match_label: Literal["many", "some"] = "some"
     shared_activities: list[str] = Field(default_factory=list, max_length=4)
-    scoring_version: Literal["rules-v1", "rules-v2"] = "rules-v1"
+    scoring_version: Literal["rules-v1", "rules-v1.1", "rules-v2"] = "rules-v1.1"
     profile_version: int
     peer_version: int
 

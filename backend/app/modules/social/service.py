@@ -11,9 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.contracts import ActionReceipt
 from app.core.errors import DomainError
-from app.core.security import Actor, digest, lock_actor
+from app.core.security import Actor, digest, verify_actor
 from app.infrastructure.database.models import Consent, User, now
-from app.modules.matching import explain, scoring, scoring_v2
+from app.modules.matching import explain, scoring_compat, scoring_v2
 from app.modules.profiles import taxonomy
 from app.modules.social.models import (
     Block,
@@ -178,7 +178,7 @@ async def pair_transaction(request, actor: Actor, peer_id: UUID, lock: bool = Tr
         mapping = {user.id: user for user in users}
         if len(mapping) != 2:
             missing()
-        user = await lock_actor(db, actor, lock=lock)
+        user = await verify_actor(db, actor, mapping[actor.user_id])
         yield db, user, mapping[peer_id]
 
 
@@ -390,12 +390,12 @@ async def invitation_quota(db, user_id):
 def reasons(a, b):
     labels = [
         f"Cùng thích {label.lower()}"
-        for tag, label in scoring._INTERESTS.items()
+        for tag, label in taxonomy.INTERESTS.items()
         if tag in a["interests"] and tag in b["interests"]
     ]
     labels += [
         f"Cùng coi trọng {label.lower()}"
-        for tag, label in scoring._VALUES.items()
+        for tag, label in taxonomy.VALUES.items()
         if tag in a["values"] and tag in b["values"]
     ]
     if a["style"] == b["style"]:
@@ -414,7 +414,7 @@ def describe(
             scoring_v2.label(breakdown),
             breakdown.shared["activities"],
         )
-    points = scoring.score(scoring.v1_view(own), scoring.v1_view(peer))
+    points = scoring_compat.score(own, peer)
     return reasons(own, peer), "many" if points >= 60 else "some", []
 
 
@@ -423,7 +423,7 @@ def suggestible(own: dict, peer: dict, scorer: str) -> bool:
         return scoring_v2.goal_allowed(own, peer) and scoring_v2.eligible(
             scoring_v2.score(own, peer)
         )
-    return scoring.score(scoring.v1_view(own), scoring.v1_view(peer)) >= 30
+    return scoring_compat.score(own, peer) >= 30
 
 
 async def peer_card(

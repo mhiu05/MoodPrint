@@ -4,6 +4,7 @@
 import asyncio
 import hashlib
 import os
+import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5
@@ -29,7 +30,7 @@ os.environ.update(
 )
 
 import uvicorn
-from sqlalchemy import text
+from sqlalchemy import event, text
 
 from app.ai import (
     embedding_models,  # noqa: F401 -- register every table before reset
@@ -67,11 +68,34 @@ app = create_app(
     )
 )
 
+# Local fixture instrumentation only: no SQL text, parameters or account data.
+sql_count = 0
+sql_seconds = 0.0
+
+
+@event.listens_for(app.state.database.engine.sync_engine, "before_cursor_execute")
+def before_sql(conn, cursor, statement, parameters, context, executemany):
+    context._load_started = time.perf_counter()
+
+
+@event.listens_for(app.state.database.engine.sync_engine, "after_cursor_execute")
+def after_sql(conn, cursor, statement, parameters, context, executemany):
+    global sql_count, sql_seconds
+    sql_count += 1
+    sql_seconds += time.perf_counter() - context._load_started
+
 
 @app.get("/__load/pool", include_in_schema=False)
 async def pool_state():
     pool = app.state.database.engine.pool
-    return {"checkedOut": pool.checkedout(), "overflow": pool.overflow(), "size": pool.size()}
+    return {
+        "checkedOut": pool.checkedout(),
+        "overflow": pool.overflow(),
+        "size": pool.size(),
+        "sqlCount": sql_count,
+        "sqlSeconds": round(sql_seconds, 3),
+        "processCpuSeconds": round(time.process_time(), 3),
+    }
 
 
 async def seed():

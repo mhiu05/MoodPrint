@@ -231,7 +231,7 @@ async def test_v1_keeps_the_original_order(clients):
     expected_aliases = [pair_alias(me, peer)[0] for points, _, peer in expected if points >= 30][:5]
     assert await candidate_aliases(client) == expected_aliases
     body = (await client.get("/api/v1/matching/candidates")).json()
-    assert {card["scoringVersion"] for card in body["candidates"]} == {"rules-v1"}
+    assert {card["scoringVersion"] for card in body["candidates"]} == {"rules-v1.1"}
 
 
 async def test_shadow_serves_v1_and_logs_only_aggregates(clients, caplog):
@@ -240,7 +240,7 @@ async def test_shadow_serves_v1_and_logs_only_aggregates(clients, caplog):
         await seed_peer(app)
     with caplog.at_level(logging.INFO):
         body = (await client.get("/api/v1/matching/candidates")).json()
-    assert {card["scoringVersion"] for card in body["candidates"]} == {"rules-v1"}
+    assert {card["scoringVersion"] for card in body["candidates"]} == {"rules-v1.1"}
     lines = [
         record.getMessage() for record in caplog.records if "matching_shadow" in record.getMessage()
     ]
