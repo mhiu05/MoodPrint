@@ -49,6 +49,8 @@ class User(Base):
     data_version: Mapped[int] = mapped_column(default=1)
     profile_version: Mapped[int] = mapped_column(default=0)
     deletion_pending: Mapped[bool] = mapped_column(default=False, server_default="false")
+    # Written with the sliding session refresh (at most every 15 minutes); NULL = unknown.
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (
         CheckConstraint("age_band in ('unknown','under16','teen','adult')", name="age_band"),
     )

@@ -59,6 +59,13 @@ UPGRADES = {
         "0010_account_deletion",
         functions=("moodprint.delete_provider_identity(uuid)",),
     ),
+    "0011": UpgradePlan(
+        ROOT / "docs/productization/migrations/0011-review.sql",
+        ROOT / "docs/productization/migrations/0011-execution.json",
+        "0010_account_deletion",
+        "0011_social_stabilization",
+        tables=("connection_reads",),
+    ),
 }
 SUPABASE_API_ROLES = ("anon", "authenticated", "service_role")
 
