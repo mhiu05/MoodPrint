@@ -22,6 +22,7 @@ VERIFY_WORKFLOW_ID = 394882427
 VERIFY_WORKFLOW_PATH = ".github/workflows/verify.yml@"
 PUBLISH_WORKFLOW_PATH = ".github/workflows/deploy-staging.yml@"
 PUBLISH_WORKFLOW = ".github/workflows/deploy-staging.yml"
+GITHUB_REPOSITORY_ID = 1430876891
 SHA_RE = re.compile(r"^[a-f0-9]{40}$")
 DIGEST_RE = re.compile(r"^sha256:[a-f0-9]{64}$")
 REPOSITORY_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
@@ -241,6 +242,8 @@ def download_attestation_bundles(
     bundles: list[str] = []
     for attestation in attestations:
         _require(isinstance(attestation, dict), "attestation entry is invalid")
+        _require(attestation.get("repository_id") == GITHUB_REPOSITORY_ID,
+                 "attestation repository ID does not match")
         bundle = attestation.get("bundle")
         _require(
             isinstance(bundle, dict)
