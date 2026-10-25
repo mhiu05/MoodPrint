@@ -12,6 +12,8 @@ import type { components } from "../../api/generated/schema";
 import { ApiError } from "../../api/client";
 import { ErrorNotice, useResource, useSession } from "./RealApp";
 import { ConnectionSafety } from "./Safety";
+import { previewLine, relativeTime } from "./social/format";
+import { badgeText } from "./social/useSocialSummary";
 
 type Schema = components["schemas"];
 type PublicProfile = Schema["PublicProfile"];
@@ -580,13 +582,32 @@ export function HumanMessages() {
       )}
       {rooms.data?.map((room) => (
         <Link
-          className={cx.messagePreview}
+          className={`${cx.messagePreview} ${room.unreadCount ? cx.messageUnread : ""}`}
           key={room.id}
           to={`/chat/${room.id}`}
         >
           <div>
-            <h2>{room.alias}</h2>
-            <p>Mở cuộc trò chuyện</p>
+            <h2>
+              {room.alias}
+              {room.unreadCount > 0 && (
+                <span className={cx.srOnly}>
+                  {`, ${room.unreadCount} tin nhắn chưa đọc`}
+                </span>
+              )}
+            </h2>
+            <p>{previewLine(room.lastMessagePreview, room.lastMessageSender)}</p>
+          </div>
+          <div className={cx.messageMeta}>
+            {room.lastMessageAt && (
+              <time dateTime={room.lastMessageAt}>
+                {relativeTime(room.lastMessageAt)}
+              </time>
+            )}
+            {room.unreadCount > 0 && (
+              <span className={cx.unreadCount} aria-hidden="true">
+                {badgeText(room.unreadCount)}
+              </span>
+            )}
           </div>
         </Link>
       ))}
@@ -616,7 +637,11 @@ export function HumanChat() {
   const [evidence, setEvidence] = useState<Message[]>();
   const [ending, setEnding] = useState(false);
   const intent = useRef<{ text: string; id: string } | undefined>(undefined),
-    cursor = useRef("0");
+    cursor = useRef("0"),
+    lastRead = useRef("0");
+  const [visible, setVisible] = useState(
+    () => document.visibilityState === "visible",
+  );
   const loading = useRef(false),
     revoked = useRef(false),
     streamHealthy = useRef(false),
@@ -683,7 +708,33 @@ export function HumanChat() {
     }
   }, [api, connectionId, revoke]);
   useEffect(() => {
+    const change = () => setVisible(document.visibilityState === "visible");
+    document.addEventListener("visibilitychange", change);
+    return () => document.removeEventListener("visibilitychange", change);
+  }, []);
+  // Private read marker (never shown to the peer): the log keeps the newest
+  // message in view, so mark it read once the tab is visible for a second.
+  useEffect(() => {
+    const newest = messages.at(-1)?.seq;
+    if (!newest || closed || !visible) return;
+    if (BigInt(newest) <= BigInt(lastRead.current)) return;
+    const timer = window.setTimeout(() => {
+      const previous = lastRead.current;
+      lastRead.current = newest;
+      api
+        .request(`/connections/${connectionId}/read`, {
+          method: "POST",
+          body: { seq: newest } satisfies Schema["ReadInput"],
+        })
+        .catch(() => {
+          lastRead.current = previous;
+        });
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [messages, closed, visible, api, connectionId]);
+  useEffect(() => {
     cursor.current = "0";
+    lastRead.current = "0";
     revoked.current = false;
     seen.current = [];
     setClosed(undefined);

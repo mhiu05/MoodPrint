@@ -3,7 +3,8 @@ from datetime import timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request
-from sqlalchemy import or_, select, update
+from sqlalchemy import func, or_, select, update
+from sqlalchemy.dialects.postgresql import insert
 
 from app.contracts import ActionReceipt, EmptyInput, VersionInput
 from app.core.errors import DomainError
@@ -23,6 +24,7 @@ from app.modules.social.models import (
     Block,
     CandidateReference,
     Connection,
+    ConnectionRead,
     ConnectionRequest,
     HumanMessage,
     MatchingDraft,
@@ -44,8 +46,11 @@ from app.modules.social.schemas import (
     PublicProfile,
     PublishedView,
     PublishInput,
+    ReadInput,
+    ReadView,
     RequestView,
 )
+from app.modules.social.summary import PREVIEW_CHARS, last_messages, unread_by_room, visible_rooms
 
 router = APIRouter()
 
@@ -462,28 +467,48 @@ async def cancel(
 async def list_connections(request: Request, actor: Actor = Depends(require_actor)):
     async with transaction(request, actor) as (db, user):
         await assert_purpose(db, user, "MATCH")
-        rows = (
-            await db.scalars(
-                select(Connection)
-                .where(
-                    or_(Connection.low_user_id == user.id, Connection.high_user_id == user.id),
-                    Connection.status == "open",
-                )
-                .order_by(Connection.created_at.desc())
-                .limit(100)
-            )
-        ).all()
+        rooms = await visible_rooms(db, user)
+        ids = [room.id for room in rooms]
+        unread, last = await unread_by_room(db, user.id, ids), await last_messages(db, ids)
         result = []
-        for room in rows:
-            peer_id = room.high_user_id if room.low_user_id == user.id else room.low_user_id
-            peer = await db.get(User, peer_id)
-            try:
-                gate = await svc.room_gate(db, user, peer)
-            except DomainError:
-                continue
-            if svc.consent_view(room.snapshots) == svc.consent_view(gate):
-                result.append(svc.connection_view(room))
+        for room in rooms:
+            view = svc.connection_view(room)
+            view.unread_count = unread.get(room.id, 0)
+            if message := last.get(room.id):
+                view.last_message_at = message.created_at
+                view.last_message_preview = message.text[:PREVIEW_CHARS]
+                view.last_message_sender = "self" if message.sender_id == user.id else "peer"
+            result.append(view)
+        result.sort(key=lambda view: view.last_message_at or view.created_at, reverse=True)
         return result
+
+
+@router.post("/connections/{connection_id}/read", response_model=ReadView)
+async def mark_read(
+    connection_id: UUID, body: ReadInput, request: Request, actor: Actor = Depends(require_actor)
+):
+    """Monotonic private read marker; naturally idempotent, so no receipt is stored."""
+    peer_id = await svc.room_peer(request, actor, connection_id)
+    async with svc.pair_transaction(request, actor, peer_id, lock=False) as (db, user, peer):
+        room = await svc.live_room(db, user, peer, connection_id, lock=False)
+        statement = insert(ConnectionRead).values(
+            connection_id=room.id,
+            user_id=user.id,
+            last_read_seq=min(int(body.seq), room.next_seq),
+            updated_at=now(),
+        )
+        value = await db.scalar(
+            statement.on_conflict_do_update(
+                index_elements=[ConnectionRead.connection_id, ConnectionRead.user_id],
+                set_={
+                    "last_read_seq": func.greatest(
+                        ConnectionRead.last_read_seq, statement.excluded.last_read_seq
+                    ),
+                    "updated_at": now(),
+                },
+            ).returning(ConnectionRead.last_read_seq)
+        )
+        return ReadView(last_read_seq=str(value))
 
 
 @router.get("/connections/{connection_id}", response_model=ConnectionView)

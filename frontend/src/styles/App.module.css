@@ -89,6 +89,26 @@
   border-radius: 10px;
   min-height: 48px;
 }
+.navIcon {
+  position: relative;
+  display: inline-flex;
+}
+.navBadge {
+  position: absolute;
+  top: -7px;
+  right: -11px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--color-accent);
+  color: var(--color-on-primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--color-surface);
+}
 .navActive {
   background: #e5eadd;
   color: var(--color-primary);
@@ -367,8 +387,49 @@
   border-radius: 18px;
   padding: 18px;
 }
+.messagePreview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+}
+.messagePreview > div:first-child {
+  min-width: 0;
+}
+.messagePreview p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .messagePreview h2 {
   font-size: 17px;
+}
+.messageUnread h2 {
+  font-weight: 700;
+}
+.messageUnread p {
+  color: var(--color-ink);
+}
+.messageMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+.unreadCount {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: var(--color-accent);
+  color: var(--color-on-primary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 22px;
+  text-align: center;
 }
 .messagePreview p {
   font-size: 12px;

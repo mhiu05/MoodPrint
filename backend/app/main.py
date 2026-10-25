@@ -216,6 +216,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from app.modules.profiles.routes import router as profiles
     from app.modules.social.notifications import router as notifications
     from app.modules.social.routes import router as social
+    from app.modules.social.summary import router as social_summary
     from app.modules.users.routes import router as users
     from app.modules.voice.routes import router as voice
 
@@ -227,6 +228,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         ai,
         memory,
         social,
+        social_summary,
         moderation,
         notifications,
         voice,

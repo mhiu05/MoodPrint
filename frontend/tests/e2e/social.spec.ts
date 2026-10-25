@@ -243,3 +243,97 @@ test("an incoming request shows the sender's public card before accepting", asyn
   ).toBeVisible();
   expect(accepted).toBe(true);
 });
+
+test("navigation badges, unread rows and the private read marker", async ({
+  page,
+}) => {
+  const session = {
+    userId: "11111111-1111-4111-8111-111111111111",
+    alias: "An",
+    ageBand: "adult",
+    eligible: true,
+    csrfToken: "test-csrf",
+    serverTime: "2026-10-23T08:00:00Z",
+    timezone: "Asia/Bangkok",
+    features: { ai: false, matching: true, voice: false },
+    consents: Object.fromEntries(
+      ["AI", "MEM", "MATCH", "VOICE"].map((p) => [
+        p,
+        { enabled: p === "MATCH", version: 1, policyVersion: "v1" },
+      ]),
+    ),
+  };
+  const reads: unknown[] = [];
+  const room = {
+    id: "room-1",
+    alias: "Bạn đồng hành 3fa9c1",
+    status: "open",
+    version: 1,
+    highWaterSeq: "2",
+    createdAt: "2026-10-23T07:00:00Z",
+    unreadCount: 2,
+    lastMessageAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+    lastMessagePreview: "Hôm nay bạn thế nào?",
+    lastMessageSender: "peer",
+  };
+  const messages = ["Chào bạn", "Hôm nay bạn thế nào?"].map((text, i) => ({
+    id: `m${i + 1}`,
+    connectionId: "room-1",
+    clientMessageId: `c${i + 1}`,
+    sender: "peer",
+    text,
+    seq: String(i + 1),
+    acceptedAt: "2026-10-23T07:30:00Z",
+  }));
+  await page.route("**/api/v1/**", async (route) => {
+    const request = route.request(),
+      url = new URL(request.url()),
+      path = url.pathname;
+    if (path.endsWith("/session")) return route.fulfill({ json: session });
+    if (path.endsWith("/social/summary"))
+      return route.fulfill({
+        json: {
+          pendingIncomingRequests: reads.length ? 0 : 1,
+          unreadConnections: reads.length ? 0 : 1,
+          activityInvites: 0,
+        },
+      });
+    if (path.endsWith("/connections")) return route.fulfill({ json: [room] });
+    if (path.endsWith("/connections/room-1")) return route.fulfill({ json: room });
+    if (path.endsWith("/connections/room-1/messages"))
+      return route.fulfill({
+        json: {
+          messages: url.searchParams.get("afterSeq") === "0" ? messages : [],
+          highWaterSeq: "2",
+        },
+      });
+    if (path.endsWith("/connections/room-1/read")) {
+      expect(request.headers()["x-csrf-token"]).toBe("test-csrf");
+      reads.push(request.postDataJSON());
+      return route.fulfill({ json: { lastReadSeq: "2" } });
+    }
+    if (path.endsWith("/reveal-requests")) return route.fulfill({ json: [] });
+    return route.fulfill({
+      status: 404,
+      json: { error: { code: "NOT_FOUND", message: "Missing route" } },
+    });
+  });
+  await page.goto("/#/messages");
+  await expect(
+    page.getByRole("link", { name: "Tin nhắn, 1 cuộc trò chuyện chưa đọc" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Tìm bạn, 1 lời mời kết nối mới" }),
+  ).toBeVisible();
+  const row = page.getByRole("link", { name: /Bạn đồng hành 3fa9c1/ });
+  await expect(row).toContainText("Hôm nay bạn thế nào?");
+  await expect(row).toContainText("5 phút trước");
+  await expect(row.getByRole("heading")).toHaveText(
+    "Bạn đồng hành 3fa9c1, 2 tin nhắn chưa đọc",
+  );
+  await row.click();
+  await expect(page.getByText("Hôm nay bạn thế nào?")).toBeVisible();
+  await expect.poll(() => reads).toEqual([{ seq: "2" }]);
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(page.getByRole("link", { name: "Tin nhắn", exact: true })).toBeVisible();
+});

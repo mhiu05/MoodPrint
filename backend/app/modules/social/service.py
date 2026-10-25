@@ -261,6 +261,7 @@ def connection_view(room):
         status=room.status,
         version=room.version,
         high_water_seq=str(room.next_seq),
+        created_at=room.created_at,
     )
 
 

@@ -116,6 +116,26 @@ class ConnectionView(DTO):
     status: str
     version: int
     high_water_seq: str
+    created_at: datetime | None = None
+    # Inbox signals for the viewer only (read markers are never shown to the peer).
+    unread_count: int = 0
+    last_message_at: datetime | None = None
+    last_message_preview: str | None = Field(default=None, max_length=80)
+    last_message_sender: Literal["self", "peer"] | None = None
+
+
+class ReadInput(DTO):
+    seq: str = Field(pattern=r"^\d{1,19}$")
+
+
+class ReadView(DTO):
+    last_read_seq: str
+
+
+class SocialSummaryView(DTO):
+    pending_incoming_requests: int = 0
+    unread_connections: int = 0
+    activity_invites: int = 0
 
 
 class MessageInput(DTO):

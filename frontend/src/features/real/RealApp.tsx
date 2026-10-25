@@ -65,6 +65,7 @@ import type {
 } from "../../api/contracts";
 import "./real.css";
 import { Discovery, HumanChat, HumanMessages } from "./Social";
+import { badgeText, useSocialSummary } from "./social/useSocialSummary";
 import { ApprovedMemories } from "./Memory";
 import { Moods } from "./Mood";
 import { VoiceRecorder } from "./Voice";
@@ -259,22 +260,45 @@ function SessionRoot() {
 }
 
 function Navigation() {
+  const location = useLocation();
+  const summary = useSocialSummary(location.pathname);
+  const unread = summary.unreadConnections + summary.activityInvites;
   return (
     <nav className={cx.navigation} aria-label="Điều hướng chính">
       {[
-        { to: "/assistants", label: "Trợ lý", Icon: Sparkles },
-        { to: "/connect", label: "Tìm bạn", Icon: Users },
-        { to: "/messages", label: "Tin nhắn", Icon: MessageCircle },
-        { to: "/profile", label: "Tôi", Icon: UserRound },
-      ].map(({ to, label, Icon }) => (
+        { to: "/assistants", label: "Trợ lý", Icon: Sparkles, count: 0, what: "" },
+        {
+          to: "/connect",
+          label: "Tìm bạn",
+          Icon: Users,
+          count: summary.pendingIncomingRequests,
+          what: "lời mời kết nối mới",
+        },
+        {
+          to: "/messages",
+          label: "Tin nhắn",
+          Icon: MessageCircle,
+          count: unread,
+          what: "cuộc trò chuyện chưa đọc",
+        },
+        { to: "/profile", label: "Tôi", Icon: UserRound, count: 0, what: "" },
+      ].map(({ to, label, Icon, count, what }) => (
         <NavLink
           key={to}
           className={({ isActive }) =>
             `${cx.navItem} ${isActive ? cx.navActive : ""}`
           }
           to={to}
+          aria-label={count ? `${label}, ${count} ${what}` : undefined}
         >
-          <Icon size={21} strokeWidth={1.6} />
+          <span className={cx.navIcon}>
+            <Icon size={21} strokeWidth={1.6} />
+            {count > 0 && (
+              <span className={cx.navBadge} aria-hidden="true">
+                {badgeText(count)}
+              </span>
+            )}
+          </span>
           <span>{label}</span>
         </NavLink>
       ))}
