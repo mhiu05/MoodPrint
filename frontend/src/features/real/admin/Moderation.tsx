@@ -109,14 +109,17 @@ export function Moderation() {
                   variant="secondary"
                   disabled={busy}
                   onClick={() =>
-                    void run(
-                      () =>
-                        api.request(`/admin/reports/${row.id}/claim`, {
-                          method: "POST",
-                          body: { expectedVersion: row.version },
-                        }),
-                      "Bạn đang xem xét báo cáo này.",
-                    )
+                    void run(async () => {
+                      const claimed = await api.request<Row>(`/admin/reports/${row.id}/claim`, {
+                        method: "POST",
+                        body: { expectedVersion: row.version },
+                      });
+                      // Use the claimed version at once; a decision made before the
+                      // refetch lands would otherwise carry a stale version (409).
+                      queue.setData((rows) =>
+                        rows?.map((item) => (item.id === claimed.id ? claimed : item)),
+                      );
+                    }, "Bạn đang xem xét báo cáo này.")
                   }
                 >
                   Nhận xử lý

@@ -70,12 +70,15 @@ def public_payload(body):
 
 async def match_consent(db: AsyncSession, user: User) -> Consent:
     consent = await db.get(Consent, (user.id, "MATCH"))
-    restricted = user.social_restricted_until and user.social_restricted_until > now()
+    if user.social_restricted_until and user.social_restricted_until > now():
+        # Their own moderation state: say so (the session also carries the notice).
+        raise DomainError(
+            403, "SOCIAL_RESTRICTED", "Tính năng kết nối của bạn đang tạm bị hạn chế."
+        )
     if (
         user.status != "active"
         or user.deletion_pending
         or user.age_band != "adult"
-        or restricted
         or not consent
         or not consent.enabled
     ):

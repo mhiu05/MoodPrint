@@ -70,6 +70,8 @@ async def test_restriction_removes_social_access_and_aborts_activities(clients):
     for path in ("/api/v1/matching/candidates", "/api/v1/connections"):
         denied = await b.get(path)
         assert denied.status_code == 403
+        # The user is told why (their own state), not a generic "unavailable".
+        assert denied.json()["error"]["code"] == "SOCIAL_RESTRICTED"
     assert (await b.get("/api/v1/session")).json()["notices"][0]["kind"] == "restricted"
     assert (await a.get("/api/v1/connections")).json() == []
     sent = await b.post(
