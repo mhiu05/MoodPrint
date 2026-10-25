@@ -29,6 +29,7 @@ jobs:
       actions: read
     outputs:
       sha: ${{ steps.provenance.outputs.sha }}
+      eligible: ${{ steps.provenance.outputs.eligible }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -58,8 +59,16 @@ jobs:
           git fetch --no-tags origin main
           [[ $(git rev-parse "$RELEASE_SHA^{commit}") == "$RELEASE_SHA" ]]
           git merge-base --is-ancestor "$RELEASE_SHA" origin/main
+          if [[ "$DEPLOY_EVENT" == "workflow_run" ]] && [[ "$RELEASE_SHA" != "$(git rev-parse origin/main)" ]]; then
+            echo "sha=$RELEASE_SHA" >> "$GITHUB_OUTPUT"
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "Commit was superseded by a newer main commit; deployment skipped."
+            exit 0
+          fi
           echo "sha=$RELEASE_SHA" >> "$GITHUB_OUTPUT"
+          echo "eligible=true" >> "$GITHUB_OUTPUT"
       - name: Require successful push CI on the exact SHA
+        if: ${{ steps.provenance.outputs.eligible == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_SHA: ${{ steps.provenance.outputs.sha }}
@@ -72,6 +81,7 @@ jobs:
 
   publish_and_deploy:
     needs: validate
+    if: ${{ needs.validate.outputs.eligible == 'true' }}
     runs-on: ubuntu-latest
     environment: staging
     permissions:
@@ -79,6 +89,7 @@ jobs:
       id-token: write
     env:
       RELEASE_SHA: ${{ needs.validate.outputs.sha }}
+      DEPLOY_EVENT: ${{ github.event_name }}
       AWS_REGION: ${{ vars.STAGING_AWS_REGION }}
       AWS_ACCOUNT_ID: ${{ vars.STAGING_AWS_ACCOUNT_ID }}
       API_REPOSITORY: ${{ vars.STAGING_API_ECR_REPOSITORY }}
@@ -101,14 +112,34 @@ jobs:
           [[ "$API_REPOSITORY" =~ ^[a-z0-9][a-z0-9._/-]*$ ]]
           [[ "$WEB_REPOSITORY" =~ ^[a-z0-9][a-z0-9._/-]*$ ]]
           [[ "$SSM_DOCUMENT" =~ ^[A-Za-z0-9_.-]+$ ]]
+      - id: latest_before_auth
+        name: Skip superseded commit before AWS access
+        run: |
+          set -euo pipefail
+          if [[ "$DEPLOY_EVENT" != "workflow_run" ]]; then
+            echo "eligible=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git fetch --no-tags origin main
+          latest_sha=$(git rev-parse FETCH_HEAD)
+          if [[ "$RELEASE_SHA" == "$latest_sha" ]]; then
+            echo "eligible=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "Main moved to $latest_sha; skip AWS access and deployment."
+          fi
       - uses: aws-actions/configure-aws-credentials@v6.3.0
+        if: ${{ steps.latest_before_auth.outputs.eligible == 'true' }}
         with:
           role-to-assume: ${{ vars.STAGING_GITHUB_ROLE_ARN }}
           aws-region: ${{ vars.STAGING_AWS_REGION }}
           allowed-account-ids: ${{ vars.STAGING_AWS_ACCOUNT_ID }}
       - uses: aws-actions/amazon-ecr-login@v2.1.7
+        if: ${{ steps.latest_before_auth.outputs.eligible == 'true' }}
       - uses: docker/setup-buildx-action@v4.3.0
+        if: ${{ steps.latest_before_auth.outputs.eligible == 'true' }}
       - name: Build and push immutable commit images
+        if: ${{ steps.latest_before_auth.outputs.eligible == 'true' }}
         run: |
           set -euo pipefail
           registry="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
@@ -133,7 +164,25 @@ jobs:
           [[ "$web_digest" =~ ^sha256:[a-f0-9]{64}$ ]]
           echo "API_DIGEST=$api_digest" >> "$GITHUB_ENV"
           echo "WEB_DIGEST=$web_digest" >> "$GITHUB_ENV"
+      - id: latest_before_ssm
+        name: Skip superseded commit before SSM
+        if: ${{ steps.latest_before_auth.outputs.eligible == 'true' }}
+        run: |
+          set -euo pipefail
+          if [[ "$DEPLOY_EVENT" != "workflow_run" ]]; then
+            echo "eligible=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git fetch --no-tags origin main
+          latest_sha=$(git rev-parse FETCH_HEAD)
+          if [[ "$RELEASE_SHA" == "$latest_sha" ]]; then
+            echo "eligible=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "Main moved to $latest_sha after image publication; skip SSM."
+          fi
       - name: Run restricted SSM deployment and await result
+        if: ${{ steps.latest_before_ssm.outputs.eligible == 'true' }}
         run: |
           set -euo pipefail
           command_id=$(aws ssm send-command --document-name "$SSM_DOCUMENT" \
