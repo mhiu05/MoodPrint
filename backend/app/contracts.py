@@ -23,6 +23,8 @@ class ErrorDetail(DTO):
     message: str
     retryable: bool = False
     request_id: str
+    # Set with 409 ACTIVITY_IN_PROGRESS so the client can open the existing session.
+    current_session_id: str | None = None
 
 
 class ApiError(DTO):

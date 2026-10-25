@@ -59,7 +59,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     from app.modules.users.lifecycle import process_deletions
 
                     try:
+                        from app.modules.activities.jobs import advance_due
+
                         await process_deletions(app)
+                        await advance_due(app)
                         if time.monotonic() >= next_retention:
                             await purge_expired(app)
                             if config.ai_accounting_enabled:
@@ -209,6 +212,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     from app.ai.chat_routes import router as ai
     from app.ai.memory import router as memory
+    from app.modules.activities.routes import router as activities
     from app.modules.auth.routes import router as auth
     from app.modules.consent.routes import router as consent
     from app.modules.moderation.routes import router as moderation
@@ -229,6 +233,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         memory,
         social,
         social_summary,
+        activities,
         moderation,
         notifications,
         voice,

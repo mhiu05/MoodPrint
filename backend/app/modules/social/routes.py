@@ -19,6 +19,7 @@ from app.core.security import (
     transaction,
 )
 from app.infrastructure.database.models import Consent, User, now
+from app.modules.activities import hooks
 from app.modules.matching import stats
 from app.modules.profiles.taxonomy import TAXONOMY
 from app.modules.social import service as svc
@@ -495,10 +496,12 @@ async def list_connections(request: Request, actor: Actor = Depends(require_acto
         rooms = await visible_rooms(db, user)
         ids = [room.id for room in rooms]
         unread, last = await unread_by_room(db, user.id, ids), await last_messages(db, ids)
+        kinds = await hooks.active_kinds(db, ids)
         result = []
         for room in rooms:
             view = svc.connection_view(room)
             view.unread_count = unread.get(room.id, 0)
+            view.active_activity = kinds.get(room.id)  # type: ignore[assignment]
             if message := last.get(room.id):
                 view.last_message_at = message.created_at
                 view.last_message_preview = message.text[:PREVIEW_CHARS]

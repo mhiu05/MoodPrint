@@ -40,6 +40,15 @@ class Settings(EmbeddingSettings, BaseSettings):
     static_dir: str = ""
     # Matching scorer: v1 (rollback), v2 (rules-v2) or shadow (serve v1, log v2 overlap).
     matching_scorer: Literal["v1", "v2", "shadow"] = "v1"
+    # Shared activities master switch and per-kind rollout (rollback = remove a kind).
+    activities_enabled: bool = False
+    activity_kinds: list[Literal["icebreaker", "coop_quiz", "focus"]] = [
+        "icebreaker",
+        "coop_quiz",
+        "focus",
+    ]
+    # Short focus phases for automated tests only; ignored unless APP_ENV=test.
+    focus_test_plan_seconds: int | None = Field(default=None, ge=5, le=600)
 
     @model_validator(mode="after")
     def local_live_scope(self):

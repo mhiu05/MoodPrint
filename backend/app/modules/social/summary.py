@@ -103,8 +103,12 @@ async def social_summary(request: Request, actor: Actor = Depends(require_actor)
             )
         )
         rooms = await visible_rooms(db, user)
-        unread = await unread_by_room(db, user.id, [room.id for room in rooms])
+        ids = [room.id for room in rooms]
+        unread = await unread_by_room(db, user.id, ids)
+        from app.modules.activities import hooks
+
         return SocialSummaryView(
             pending_incoming_requests=pending or 0,
             unread_connections=sum(1 for count in unread.values() if count),
+            activity_invites=await hooks.pending_invites(db, user.id, ids),
         )

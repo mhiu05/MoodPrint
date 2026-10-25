@@ -149,6 +149,8 @@ class ConnectionView(DTO):
     last_message_at: datetime | None = None
     last_message_preview: str | None = Field(default=None, max_length=80)
     last_message_sender: Literal["self", "peer"] | None = None
+    # Kind of the room's invited/active/paused shared activity, if any.
+    active_activity: Literal["icebreaker", "coop_quiz", "focus"] | None = None
 
 
 class ReadInput(DTO):
