@@ -18,6 +18,54 @@ async def test_live_works_without_configuration_but_ready_and_auth_fail_closed()
         assert "requestId" in response.json()["error"]
 
 
+@pytest.mark.parametrize(
+    ("revision", "expected_status"),
+    [
+        ("0010_account_deletion", 200),
+        ("0011_social_stabilization", 200),
+        ("0012_matching_v2", 200),
+        ("0013_shared_activities", 200),
+        ("0014_moderation", 200),
+        ("0015_unreviewed", 503),
+    ],
+)
+async def test_ready_supports_expand_migration_window_and_rejects_unknown(
+    monkeypatch, revision, expected_status
+):
+    from app import main
+
+    class FakeSession:
+        def __init__(self):
+            self.scalar_results = iter((revision, True))
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            return None
+
+        async def execute(self, _):
+            return None
+
+        async def scalar(self, _):
+            return next(self.scalar_results)
+
+    class FakeDatabase:
+        def __init__(self, _):
+            self.engine = None
+            self.sessions = None
+
+        def require(self):
+            return FakeSession
+
+    monkeypatch.setattr(main, "Database", FakeDatabase)
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=main.create_app()), base_url="http://test"
+    ) as client:
+        response = await client.get("/api/v1/health/ready")
+    assert response.status_code == expected_status
+
+
 @pytest.mark.asyncio
 async def test_bots_are_public_but_do_not_expose_prompts_or_tools():
     from app.main import create_app
