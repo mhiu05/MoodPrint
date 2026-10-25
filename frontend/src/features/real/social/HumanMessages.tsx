@@ -41,7 +41,7 @@ export function HumanMessages() {
       {rooms.data?.length === 0 && (
         <p>
           Chưa có cuộc trò chuyện.{" "}
-          <Link to="/connect">Tìm người cùng điểm chung</Link>
+          <Link to="/connect?tab=suggestions">Tìm người cùng điểm chung</Link>
         </p>
       )}
       {rooms.data?.map((room) => (

@@ -65,6 +65,7 @@ import type {
 } from "../../api/contracts";
 import "./real.css";
 import { ConnectBridge, Discovery } from "./social/Discovery";
+import { OfflineBanner } from "./OfflineBanner";
 import { HumanChat } from "./social/HumanChat";
 import { HumanMessages } from "./social/HumanMessages";
 import { badgeText, useSocialSummary } from "./social/useSocialSummary";
@@ -169,6 +170,12 @@ export function useResource<T>(path: string, enabled = true) {
       });
     return () => controller.abort();
   }, [api, path, revision, enabled]);
+  // A failed read retries by itself when the browser comes back online.
+  useEffect(() => {
+    if (!error || !enabled) return;
+    window.addEventListener("online", refresh);
+    return () => window.removeEventListener("online", refresh);
+  }, [error, enabled, refresh]);
   return { data, setData, error, loading, refresh };
 }
 
@@ -443,6 +450,7 @@ function Shell() {
               </Link>
             </header>
           ) : null}
+          <OfflineBanner />
           <SessionNotices />
           <Motion motionKey={location.pathname}>
             <Routes>

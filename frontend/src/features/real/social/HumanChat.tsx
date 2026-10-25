@@ -18,6 +18,7 @@ import { ActivityCatalog, ActivityEntryButton } from "../activities/ActivityCata
 import { ActivityDock } from "../activities/ActivityDock";
 import { HistoryCard, InviteCard } from "../activities/InviteCard";
 import { useActivity } from "../activities/useActivity";
+import { useOnline } from "../OfflineBanner";
 
 type Schema = components["schemas"];
 type ConnectionView = Schema["ConnectionView"];
@@ -169,6 +170,13 @@ export function HumanChat() {
   const [advising, setAdvising] = useState(false);
   const advised = useRef("");
   const composer = useRef<HTMLTextAreaElement>(null);
+  const online = useOnline();
+  const wasOnline = useRef(online);
+  useEffect(() => {
+    // Catch up once when the connection returns; the stream may have missed events.
+    if (online && !wasOnline.current) void refresh();
+    wasOnline.current = online;
+  }, [online, refresh]);
   const alias = room?.alias || "bạn kia";
   const docked =
     !closed && Boolean(activity.session) && activity.session?.state !== "invited";
@@ -195,7 +203,7 @@ export function HumanChat() {
   }, [messages.length]);
   async function send(event: FormEvent) {
     event.preventDefault();
-    if (!ready || busy || closed || !draft.trim()) return;
+    if (!ready || busy || closed || !draft.trim() || !online) return;
     // Advisory only (I-06): never blocks, never leaves the browser.
     if (looksLikeContact(draft) && advised.current !== draft.trim()) {
       setAdvising(true);
@@ -331,7 +339,8 @@ export function HumanChat() {
         <button
           className="send-button"
           type="submit"
-          disabled={!ready || busy || Boolean(closed) || !draft.trim()}
+          disabled={!ready || busy || Boolean(closed) || !draft.trim() || !online}
+          title={online ? undefined : "Đang mất kết nối mạng"}
           aria-label="Gửi tin nhắn"
         >
           <Send size={20} />

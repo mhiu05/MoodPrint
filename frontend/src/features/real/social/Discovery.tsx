@@ -277,8 +277,17 @@ export function Discovery() {
                   retry={suggestions.refresh}
                 />
               )}
-              {suggestions.data?.candidates.length === 0 && (
-                <p>Chưa có gợi ý phù hợp.</p>
+              {live && suggestions.data?.candidates.length === 0 && (
+                <>
+                  <p>Chưa có gợi ý phù hợp.</p>
+                  <p className={cx.footnote}>
+                    Bạn có thể thử nhận cả mục tiêu khác, thêm ngôn ngữ hoặc sở
+                    thích trong hồ sơ kết nối.
+                  </p>
+                  <Button variant="secondary" onClick={() => select("profile", true)}>
+                    Mở rộng hồ sơ kết nối
+                  </Button>
+                </>
               )}
               <div className="peer-grid">
                 {suggestions.data?.candidates.map((candidate) => (
@@ -324,7 +333,17 @@ export function Discovery() {
             <section className="real-section">
               <h2>Lời mời kết nối</h2>
               <ErrorNotice error={requests.error} retry={requests.refresh} />
-              {requests.data?.length === 0 && <p>Bạn chưa có lời mời nào.</p>}
+              {requests.loading && !requests.data && (
+                <p role="status">Đang tải lời mời…</p>
+              )}
+              {requests.data?.length === 0 && (
+                <>
+                  <p>Bạn chưa có lời mời nào.</p>
+                  <Button variant="secondary" onClick={() => select("suggestions", true)}>
+                    Xem gợi ý
+                  </Button>
+                </>
+              )}
               {requests.data?.map((item) => (
                 <RequestCard
                   key={item.id}
