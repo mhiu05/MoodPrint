@@ -73,6 +73,13 @@ UPGRADES = {
         "0012_matching_v2",
         tables=("matching_stats_daily",),
     ),
+    "0013": UpgradePlan(
+        ROOT / "docs/productization/migrations/0013-review.sql",
+        ROOT / "docs/productization/migrations/0013-execution.json",
+        "0012_matching_v2",
+        "0013_shared_activities",
+        tables=("activity_sessions", "activity_participants", "activity_responses"),
+    ),
 }
 SUPABASE_API_ROLES = ("anon", "authenticated", "service_role")
 

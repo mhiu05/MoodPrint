@@ -5,4 +5,4 @@ keeps the previous one for one release, so the previous image stays ready on the
 newer schema and an app rollback needs no code change.
 """
 
-READY_REVISIONS: tuple[str, ...] = ("0011_social_stabilization", "0012_matching_v2")
+READY_REVISIONS: tuple[str, ...] = ("0012_matching_v2", "0013_shared_activities")

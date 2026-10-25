@@ -65,6 +65,7 @@ async def database():
     )
     from app.ai import models as chat_models  # noqa: F401
     from app.infrastructure.database.models import Base
+    from app.modules.activities import models as activity_models  # noqa: F401
     from app.modules.moderation import models as safety_models  # noqa: F401
     from app.modules.social import models  # noqa: F401 -- register every table before reset
     from app.modules.users import models as lifecycle_models  # noqa: F401

@@ -113,6 +113,8 @@ class Connection(Base):
     snapshots: Mapped[dict] = mapped_column(JSONB)
     next_seq: Mapped[int] = mapped_column(BigInteger, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    # Bumped with every activity change in this room; the SSE stream watches it (DR-01).
+    activity_seq: Mapped[int] = mapped_column(BigInteger, default=0, server_default="0")
     __table_args__ = (
         CheckConstraint("low_user_id < high_user_id", name="connection_canonical"),
         CheckConstraint("status in ('open','closed','blocked')", name="connection_status"),
