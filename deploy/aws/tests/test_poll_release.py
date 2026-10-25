@@ -177,8 +177,14 @@ class AttestationBundleTests(unittest.TestCase):
         }
         response = {
             "attestations": [
-                {"bundle": first_bundle},
-                {"bundle": second_bundle},
+                {
+                    "repository_id": poll_release.GITHUB_REPOSITORY_ID,
+                    "bundle": first_bundle,
+                },
+                {
+                    "repository_id": poll_release.GITHUB_REPOSITORY_ID,
+                    "bundle": second_bundle,
+                },
             ]
         }
 
@@ -198,7 +204,21 @@ class AttestationBundleTests(unittest.TestCase):
             )
 
     def test_rejects_missing_or_malformed_attestation_bundles(self):
-        for response in (None, {"attestations": []}, {"attestations": [{"bundle": {}}]}):
+        valid_bundle = {
+            "mediaType": "application/vnd.dev.sigstore.bundle+json;version=0.3",
+            "dsseEnvelope": {},
+            "verificationMaterial": {},
+        }
+        for response in (
+            None,
+            {"attestations": []},
+            {"attestations": [{"repository_id": 1, "bundle": valid_bundle}]},
+            {
+                "attestations": [
+                    {"repository_id": poll_release.GITHUB_REPOSITORY_ID, "bundle": {}}
+                ]
+            },
+        ):
             with self.subTest(response=response):
                 with tempfile.TemporaryDirectory() as directory:
                     destination = pathlib.Path(directory) / "bundles.jsonl"
