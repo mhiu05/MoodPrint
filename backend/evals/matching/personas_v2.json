@@ -1,0 +1,1780 @@
+{
+ "seed": 20261025,
+ "provisional": true,
+ "raters": "r1..r3 are rule-based proxy raters (intent, interests, conversation), not humans",
+ "personas": [
+  {
+   "id": "P01",
+   "archetype": "active",
+   "shape": "v1",
+   "profile": {
+    "interests": [
+     "english",
+     "walking",
+     "photography"
+    ],
+    "values": [
+     "kindness",
+     "respect",
+     "curiosity"
+    ],
+    "style": "direct",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ]
+   }
+  },
+  {
+   "id": "P02",
+   "archetype": "builder",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "podcasts",
+     "tech",
+     "chess",
+     "reading",
+     "meditation"
+    ],
+    "values": [
+     "curiosity",
+     "reliability",
+     "kindness"
+    ],
+    "style": "balanced",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "coop_quiz"
+    ],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P03",
+   "archetype": "creative",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "photography",
+     "anime",
+     "writing",
+     "music",
+     "crafts",
+     "drawing",
+     "science"
+    ],
+    "values": [
+     "sincerity",
+     "humor",
+     "respect"
+    ],
+    "style": "direct",
+    "goal": "friendship",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "chat_only",
+     "focus",
+     "icebreaker"
+    ],
+    "availability": [
+     "weekday_afternoon",
+     "weekend_morning",
+     "weekend_evening"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P04",
+   "archetype": "foodie",
+   "shape": "sparse",
+   "profile": {
+    "interests": [
+     "movies",
+     "travel",
+     "plants"
+    ],
+    "values": [
+     "sincerity",
+     "humor"
+    ],
+    "style": "direct",
+    "goal": "shared-interests",
+    "languages": [
+     "vi",
+     "en"
+    ],
+    "activities": [],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P05",
+   "archetype": "language-learner",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "movies",
+     "coffee",
+     "languages",
+     "podcasts"
+    ],
+    "values": [
+     "respect",
+     "kindness",
+     "growth"
+    ],
+    "style": "listening",
+    "goal": "language-practice",
+    "languages": [
+     "vi",
+     "en"
+    ],
+    "activities": [
+     "coop_quiz",
+     "focus"
+    ],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P06",
+   "archetype": "mindful",
+   "shape": "v1",
+   "profile": {
+    "interests": [
+     "walking",
+     "english",
+     "reading"
+    ],
+    "values": [
+     "kindness",
+     "respect"
+    ],
+    "style": "listening",
+    "goal": "friendship",
+    "languages": [
+     "vi"
+    ]
+   }
+  },
+  {
+   "id": "P07",
+   "archetype": "player",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "puzzles",
+     "chess",
+     "movies",
+     "anime",
+     "boardgames",
+     "running"
+    ],
+    "values": [
+     "humor",
+     "reliability",
+     "respect"
+    ],
+    "style": "balanced",
+    "goal": "friendship",
+    "languages": [
+     "vi",
+     "en"
+    ],
+    "activities": [
+     "icebreaker"
+    ],
+    "availability": [
+     "weekday_evening",
+     "weekday_morning"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P08",
+   "archetype": "active",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "travel",
+     "cycling",
+     "yoga",
+     "football",
+     "badminton"
+    ],
+    "values": [
+     "humor",
+     "kindness",
+     "reliability"
+    ],
+    "style": "listening",
+    "goal": "friendship",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "chat_only"
+    ],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P09",
+   "archetype": "builder",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "history",
+     "podcasts",
+     "tech",
+     "reading",
+     "games",
+     "cooking"
+    ],
+    "values": [
+     "reliability",
+     "growth"
+    ],
+    "style": "balanced",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "focus"
+    ],
+    "availability": [
+     "weekday_morning",
+     "weekday_evening"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P10",
+   "archetype": "creative",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "drawing",
+     "music",
+     "singing",
+     "crafts",
+     "anime",
+     "writing",
+     "chess"
+    ],
+    "values": [
+     "humor",
+     "kindness"
+    ],
+    "style": "listening",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "chat_only",
+     "icebreaker"
+    ],
+    "availability": [
+     "weekday_afternoon",
+     "weekend_morning"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P11",
+   "archetype": "foodie",
+   "shape": "v1",
+   "profile": {
+    "interests": [
+     "photography",
+     "reading",
+     "english"
+    ],
+    "values": [
+     "kindness",
+     "respect",
+     "sincerity"
+    ],
+    "style": "listening",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ]
+   }
+  },
+  {
+   "id": "P12",
+   "archetype": "language-learner",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "coffee",
+     "podcasts",
+     "travel",
+     "reading",
+     "languages",
+     "movies",
+     "football"
+    ],
+    "values": [
+     "growth",
+     "curiosity",
+     "kindness"
+    ],
+    "style": "balanced",
+    "goal": "friendship",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "focus"
+    ],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P13",
+   "archetype": "mindful",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "plants",
+     "writing",
+     "coffee",
+     "walking",
+     "chess"
+    ],
+    "values": [
+     "kindness",
+     "sincerity",
+     "respect",
+     "humor"
+    ],
+    "style": "listening",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "focus",
+     "chat_only"
+    ],
+    "availability": [
+     "weekend_evening",
+     "weekend_morning"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P14",
+   "archetype": "player",
+   "shape": "sparse",
+   "profile": {
+    "interests": [
+     "games",
+     "music",
+     "boardgames"
+    ],
+    "values": [
+     "respect",
+     "reliability"
+    ],
+    "style": "balanced",
+    "goal": "friendship",
+    "languages": [
+     "vi"
+    ],
+    "activities": [],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P15",
+   "archetype": "active",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "running",
+     "travel",
+     "badminton",
+     "walking",
+     "football",
+     "cycling",
+     "cooking"
+    ],
+    "values": [
+     "reliability",
+     "kindness"
+    ],
+    "style": "balanced",
+    "goal": "friendship",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "chat_only",
+     "icebreaker"
+    ],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P16",
+   "archetype": "builder",
+   "shape": "v1",
+   "profile": {
+    "interests": [
+     "reading",
+     "walking",
+     "music",
+     "puzzles"
+    ],
+    "values": [
+     "respect",
+     "kindness"
+    ],
+    "style": "direct",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ]
+   }
+  },
+  {
+   "id": "P17",
+   "archetype": "creative",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "singing",
+     "anime",
+     "writing",
+     "photography",
+     "drawing",
+     "coffee"
+    ],
+    "values": [
+     "curiosity",
+     "humor",
+     "kindness"
+    ],
+    "style": "listening",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "chat_only"
+    ],
+    "availability": [
+     "weekday_evening"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P18",
+   "archetype": "foodie",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "photography",
+     "cooking",
+     "plants",
+     "movies",
+     "travel",
+     "puzzles"
+    ],
+    "values": [
+     "kindness",
+     "sincerity",
+     "humor"
+    ],
+    "style": "direct",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "icebreaker"
+    ],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P19",
+   "archetype": "language-learner",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "english",
+     "coffee",
+     "reading",
+     "movies",
+     "crafts"
+    ],
+    "values": [
+     "respect",
+     "growth"
+    ],
+    "style": "listening",
+    "goal": "language-practice",
+    "languages": [
+     "vi",
+     "en"
+    ],
+    "activities": [
+     "focus",
+     "coop_quiz",
+     "icebreaker"
+    ],
+    "availability": [
+     "weekend_afternoon",
+     "weekday_afternoon"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P20",
+   "archetype": "mindful",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "coffee",
+     "yoga",
+     "meditation",
+     "reading",
+     "walking",
+     "languages"
+    ],
+    "values": [
+     "kindness",
+     "calm",
+     "curiosity"
+    ],
+    "style": "listening",
+    "goal": "friendship",
+    "languages": [
+     "vi",
+     "en"
+    ],
+    "activities": [
+     "chat_only"
+    ],
+    "availability": [
+     "weekend_afternoon",
+     "weekend_morning",
+     "weekend_evening"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P21",
+   "archetype": "player",
+   "shape": "v1",
+   "profile": {
+    "interests": [
+     "reading",
+     "music",
+     "walking",
+     "puzzles"
+    ],
+    "values": [
+     "curiosity",
+     "respect"
+    ],
+    "style": "direct",
+    "goal": "friendship",
+    "languages": [
+     "vi"
+    ]
+   }
+  },
+  {
+   "id": "P22",
+   "archetype": "active",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "walking",
+     "cycling",
+     "yoga",
+     "running",
+     "football",
+     "travel"
+    ],
+    "values": [
+     "humor",
+     "reliability"
+    ],
+    "style": "balanced",
+    "goal": "shared-interests",
+    "languages": [
+     "vi",
+     "en"
+    ],
+    "activities": [
+     "icebreaker"
+    ],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P23",
+   "archetype": "builder",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "science",
+     "games",
+     "reading",
+     "chess",
+     "history",
+     "anime"
+    ],
+    "values": [
+     "curiosity",
+     "reliability",
+     "kindness"
+    ],
+    "style": "listening",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "focus",
+     "coop_quiz"
+    ],
+    "availability": [
+     "weekend_morning"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P24",
+   "archetype": "creative",
+   "shape": "sparse",
+   "profile": {
+    "interests": [
+     "crafts",
+     "music",
+     "drawing"
+    ],
+    "values": [
+     "sincerity",
+     "curiosity"
+    ],
+    "style": "listening",
+    "goal": "friendship",
+    "languages": [
+     "vi"
+    ],
+    "activities": [],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P25",
+   "archetype": "foodie",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "travel",
+     "cooking",
+     "movies",
+     "coffee",
+     "photography"
+    ],
+    "values": [
+     "curiosity",
+     "humor",
+     "sincerity"
+    ],
+    "style": "listening",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "icebreaker",
+     "coop_quiz"
+    ],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P26",
+   "archetype": "language-learner",
+   "shape": "v1",
+   "profile": {
+    "interests": [
+     "reading",
+     "photography",
+     "english",
+     "walking"
+    ],
+    "values": [
+     "kindness",
+     "sincerity",
+     "curiosity"
+    ],
+    "style": "direct",
+    "goal": "friendship",
+    "languages": [
+     "vi"
+    ]
+   }
+  },
+  {
+   "id": "P27",
+   "archetype": "mindful",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "meditation",
+     "reading",
+     "plants",
+     "yoga",
+     "writing",
+     "coffee",
+     "games"
+    ],
+    "values": [
+     "calm",
+     "sincerity",
+     "respect",
+     "reliability"
+    ],
+    "style": "direct",
+    "goal": "friendship",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "chat_only",
+     "focus"
+    ],
+    "availability": [
+     "weekday_evening"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P28",
+   "archetype": "player",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "music",
+     "boardgames",
+     "anime",
+     "games",
+     "chess",
+     "movies"
+    ],
+    "values": [
+     "respect",
+     "reliability",
+     "growth"
+    ],
+    "style": "direct",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "icebreaker"
+    ],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P29",
+   "archetype": "active",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "badminton",
+     "travel",
+     "yoga",
+     "cycling",
+     "writing"
+    ],
+    "values": [
+     "kindness",
+     "humor",
+     "growth"
+    ],
+    "style": "listening",
+    "goal": "friendship",
+    "languages": [
+     "vi",
+     "en"
+    ],
+    "activities": [
+     "icebreaker"
+    ],
+    "availability": [
+     "weekday_evening"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P30",
+   "archetype": "builder",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "tech",
+     "games",
+     "chess",
+     "history",
+     "crafts"
+    ],
+    "values": [
+     "curiosity",
+     "reliability"
+    ],
+    "style": "balanced",
+    "goal": "study-buddy",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "focus"
+    ],
+    "availability": [
+     "weekday_evening"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P31",
+   "archetype": "creative",
+   "shape": "v1",
+   "profile": {
+    "interests": [
+     "reading",
+     "english",
+     "photography",
+     "music"
+    ],
+    "values": [
+     "respect",
+     "kindness",
+     "curiosity"
+    ],
+    "style": "listening",
+    "goal": "friendship",
+    "languages": [
+     "vi"
+    ]
+   }
+  },
+  {
+   "id": "P32",
+   "archetype": "foodie",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "cooking",
+     "movies",
+     "travel",
+     "plants",
+     "photography",
+     "crafts"
+    ],
+    "values": [
+     "sincerity",
+     "kindness",
+     "humor",
+     "respect"
+    ],
+    "style": "direct",
+    "goal": "friendship",
+    "languages": [
+     "vi",
+     "en"
+    ],
+    "activities": [
+     "icebreaker",
+     "chat_only"
+    ],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P33",
+   "archetype": "language-learner",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "reading",
+     "travel",
+     "podcasts",
+     "english",
+     "languages",
+     "movies"
+    ],
+    "values": [
+     "respect",
+     "kindness"
+    ],
+    "style": "direct",
+    "goal": "study-buddy",
+    "languages": [
+     "vi",
+     "en"
+    ],
+    "activities": [
+     "coop_quiz",
+     "focus",
+     "icebreaker"
+    ],
+    "availability": [
+     "weekend_morning",
+     "weekend_evening",
+     "weekend_afternoon"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P34",
+   "archetype": "mindful",
+   "shape": "sparse",
+   "profile": {
+    "interests": [
+     "meditation",
+     "walking",
+     "plants"
+    ],
+    "values": [
+     "respect",
+     "sincerity"
+    ],
+    "style": "listening",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ],
+    "activities": [],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P35",
+   "archetype": "player",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "boardgames",
+     "movies",
+     "music",
+     "chess",
+     "games",
+     "anime"
+    ],
+    "values": [
+     "humor",
+     "reliability",
+     "respect",
+     "growth"
+    ],
+    "style": "balanced",
+    "goal": "friendship",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "icebreaker"
+    ],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P36",
+   "archetype": "active",
+   "shape": "v1",
+   "profile": {
+    "interests": [
+     "photography",
+     "puzzles",
+     "cooking"
+    ],
+    "values": [
+     "sincerity",
+     "respect"
+    ],
+    "style": "direct",
+    "goal": "friendship",
+    "languages": [
+     "vi"
+    ]
+   }
+  },
+  {
+   "id": "P37",
+   "archetype": "builder",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "podcasts",
+     "chess",
+     "history",
+     "reading",
+     "plants"
+    ],
+    "values": [
+     "reliability",
+     "curiosity",
+     "growth"
+    ],
+    "style": "direct",
+    "goal": "study-buddy",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "focus"
+    ],
+    "availability": [
+     "weekend_morning",
+     "weekday_afternoon",
+     "weekday_evening"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P38",
+   "archetype": "creative",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "singing",
+     "anime",
+     "music",
+     "photography",
+     "drawing",
+     "writing"
+    ],
+    "values": [
+     "sincerity",
+     "curiosity"
+    ],
+    "style": "balanced",
+    "goal": "friendship",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "chat_only",
+     "focus"
+    ],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P39",
+   "archetype": "foodie",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "plants",
+     "cooking",
+     "photography",
+     "coffee",
+     "movies"
+    ],
+    "values": [
+     "curiosity",
+     "humor",
+     "sincerity",
+     "growth"
+    ],
+    "style": "direct",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "icebreaker",
+     "coop_quiz",
+     "chat_only"
+    ],
+    "availability": [
+     "weekday_morning",
+     "weekend_evening",
+     "weekday_afternoon"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P40",
+   "archetype": "language-learner",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "coffee",
+     "podcasts",
+     "movies",
+     "travel",
+     "languages",
+     "reading",
+     "meditation"
+    ],
+    "values": [
+     "curiosity",
+     "respect",
+     "kindness",
+     "calm"
+    ],
+    "style": "direct",
+    "goal": "study-buddy",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "icebreaker"
+    ],
+    "availability": [
+     "weekend_evening",
+     "weekday_afternoon"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P41",
+   "archetype": "mindful",
+   "shape": "v1",
+   "profile": {
+    "interests": [
+     "walking",
+     "reading",
+     "photography",
+     "cooking"
+    ],
+    "values": [
+     "respect",
+     "kindness",
+     "sincerity"
+    ],
+    "style": "listening",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ]
+   }
+  },
+  {
+   "id": "P42",
+   "archetype": "player",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "boardgames",
+     "anime",
+     "games",
+     "puzzles",
+     "movies",
+     "music",
+     "badminton"
+    ],
+    "values": [
+     "humor",
+     "respect",
+     "reliability"
+    ],
+    "style": "direct",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "coop_quiz"
+    ],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P43",
+   "archetype": "active",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "travel",
+     "cycling",
+     "badminton",
+     "yoga"
+    ],
+    "values": [
+     "reliability",
+     "growth"
+    ],
+    "style": "direct",
+    "goal": "shared-interests",
+    "languages": [
+     "vi",
+     "en"
+    ],
+    "activities": [
+     "chat_only",
+     "icebreaker"
+    ],
+    "availability": [
+     "weekend_morning",
+     "weekend_evening",
+     "weekend_afternoon"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P44",
+   "archetype": "builder",
+   "shape": "sparse",
+   "profile": {
+    "interests": [
+     "tech",
+     "science",
+     "history"
+    ],
+    "values": [
+     "growth",
+     "curiosity"
+    ],
+    "style": "direct",
+    "goal": "shared-interests",
+    "languages": [
+     "vi",
+     "en"
+    ],
+    "activities": [],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P45",
+   "archetype": "creative",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "crafts",
+     "singing",
+     "drawing",
+     "anime",
+     "photography"
+    ],
+    "values": [
+     "sincerity",
+     "curiosity",
+     "humor"
+    ],
+    "style": "listening",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "focus",
+     "chat_only"
+    ],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P46",
+   "archetype": "foodie",
+   "shape": "v1",
+   "profile": {
+    "interests": [
+     "photography",
+     "english",
+     "cooking",
+     "music"
+    ],
+    "values": [
+     "kindness",
+     "curiosity"
+    ],
+    "style": "direct",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ]
+   }
+  },
+  {
+   "id": "P47",
+   "archetype": "language-learner",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "coffee",
+     "travel",
+     "movies",
+     "english"
+    ],
+    "values": [
+     "growth",
+     "kindness",
+     "respect",
+     "curiosity"
+    ],
+    "style": "direct",
+    "goal": "language-practice",
+    "languages": [
+     "vi",
+     "en"
+    ],
+    "activities": [
+     "focus",
+     "icebreaker"
+    ],
+    "availability": [
+     "weekend_morning",
+     "weekend_afternoon",
+     "weekday_evening"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P48",
+   "archetype": "mindful",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "meditation",
+     "walking",
+     "yoga",
+     "coffee",
+     "reading",
+     "writing"
+    ],
+    "values": [
+     "sincerity",
+     "kindness",
+     "respect",
+     "reliability"
+    ],
+    "style": "listening",
+    "goal": "friendship",
+    "languages": [
+     "vi",
+     "en"
+    ],
+    "activities": [
+     "chat_only",
+     "focus"
+    ],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P49",
+   "archetype": "player",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "movies",
+     "puzzles",
+     "games",
+     "chess",
+     "boardgames"
+    ],
+    "values": [
+     "humor",
+     "reliability",
+     "respect",
+     "sincerity"
+    ],
+    "style": "listening",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "coop_quiz"
+    ],
+    "availability": [
+     "weekend_afternoon",
+     "weekend_evening"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P50",
+   "archetype": "active",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "badminton",
+     "travel",
+     "football",
+     "walking",
+     "podcasts"
+    ],
+    "values": [
+     "humor",
+     "growth",
+     "kindness"
+    ],
+    "style": "listening",
+    "goal": "friendship",
+    "languages": [
+     "vi",
+     "en"
+    ],
+    "activities": [
+     "icebreaker",
+     "chat_only"
+    ],
+    "availability": [
+     "weekday_afternoon",
+     "weekend_evening"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P51",
+   "archetype": "builder",
+   "shape": "v1",
+   "profile": {
+    "interests": [
+     "reading",
+     "english",
+     "music",
+     "photography"
+    ],
+    "values": [
+     "kindness",
+     "sincerity"
+    ],
+    "style": "balanced",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ]
+   }
+  },
+  {
+   "id": "P52",
+   "archetype": "creative",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "writing",
+     "drawing",
+     "photography",
+     "singing",
+     "crafts",
+     "running"
+    ],
+    "values": [
+     "humor",
+     "kindness",
+     "reliability"
+    ],
+    "style": "balanced",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "focus",
+     "icebreaker"
+    ],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P53",
+   "archetype": "foodie",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "cooking",
+     "plants",
+     "photography",
+     "travel"
+    ],
+    "values": [
+     "curiosity",
+     "humor",
+     "kindness"
+    ],
+    "style": "listening",
+    "goal": "friendship",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "coop_quiz",
+     "icebreaker"
+    ],
+    "availability": [
+     "weekday_evening",
+     "weekend_afternoon",
+     "weekend_evening"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P54",
+   "archetype": "language-learner",
+   "shape": "sparse",
+   "profile": {
+    "interests": [
+     "languages",
+     "movies",
+     "reading"
+    ],
+    "values": [
+     "growth",
+     "curiosity"
+    ],
+    "style": "direct",
+    "goal": "friendship",
+    "languages": [
+     "vi"
+    ],
+    "activities": [],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P55",
+   "archetype": "mindful",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "meditation",
+     "yoga",
+     "plants",
+     "reading",
+     "walking",
+     "coffee"
+    ],
+    "values": [
+     "calm",
+     "kindness"
+    ],
+    "style": "balanced",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "focus"
+    ],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P56",
+   "archetype": "player",
+   "shape": "v1",
+   "profile": {
+    "interests": [
+     "english",
+     "walking",
+     "music"
+    ],
+    "values": [
+     "respect",
+     "curiosity",
+     "sincerity"
+    ],
+    "style": "listening",
+    "goal": "friendship",
+    "languages": [
+     "vi"
+    ]
+   }
+  },
+  {
+   "id": "P57",
+   "archetype": "active",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "yoga",
+     "running",
+     "cycling",
+     "football",
+     "travel",
+     "badminton"
+    ],
+    "values": [
+     "reliability",
+     "humor"
+    ],
+    "style": "listening",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "icebreaker"
+    ],
+    "availability": [
+     "weekday_evening",
+     "weekend_evening",
+     "weekday_morning"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P58",
+   "archetype": "builder",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "chess",
+     "podcasts",
+     "reading",
+     "tech",
+     "history"
+    ],
+    "values": [
+     "reliability",
+     "curiosity"
+    ],
+    "style": "listening",
+    "goal": "study-buddy",
+    "languages": [
+     "vi",
+     "en"
+    ],
+    "activities": [
+     "focus"
+    ],
+    "availability": [],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P59",
+   "archetype": "creative",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "singing",
+     "writing",
+     "anime",
+     "drawing",
+     "music",
+     "photography",
+     "podcasts"
+    ],
+    "values": [
+     "sincerity",
+     "kindness",
+     "humor",
+     "respect"
+    ],
+    "style": "balanced",
+    "goal": "shared-interests",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "focus"
+    ],
+    "availability": [
+     "weekend_morning",
+     "weekday_morning",
+     "weekend_evening"
+    ],
+    "strict_goal": false
+   }
+  },
+  {
+   "id": "P60",
+   "archetype": "foodie",
+   "shape": "v2",
+   "profile": {
+    "interests": [
+     "movies",
+     "cooking",
+     "travel",
+     "coffee",
+     "plants",
+     "history"
+    ],
+    "values": [
+     "curiosity",
+     "humor",
+     "kindness"
+    ],
+    "style": "direct",
+    "goal": "friendship",
+    "languages": [
+     "vi"
+    ],
+    "activities": [
+     "icebreaker",
+     "coop_quiz",
+     "chat_only"
+    ],
+    "availability": [
+     "weekday_evening",
+     "weekend_evening",
+     "weekend_afternoon"
+    ],
+    "strict_goal": false
+   }
+  }
+ ]
+}
