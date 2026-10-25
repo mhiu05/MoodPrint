@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.contracts import ActionReceipt
 from app.core.errors import DomainError
 from app.core.security import Actor, lock_actor
-from app.infrastructure.database.models import Consent, Outbox, User, now
+from app.infrastructure.database.models import Consent, User, now
 from app.modules.matching import scoring
 from app.modules.social.models import (
     Block,
@@ -271,15 +271,6 @@ async def open_mutual_room(db, pair, pending, snapshots):
     pending.status = "accepted"
     pending.version += 1
     pending.connection_id = room.id
-    for uid in (pair.low_user_id, pair.high_user_id):
-        db.add(
-            Outbox(
-                user_id=uid,
-                kind="connection_opened",
-                resource_id=str(room.id),
-                version=room.version,
-            )
-        )
     return room
 
 

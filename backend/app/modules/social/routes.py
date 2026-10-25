@@ -16,7 +16,7 @@ from app.core.security import (
     save_receipt,
     transaction,
 )
-from app.infrastructure.database.models import Consent, Outbox, User, now
+from app.infrastructure.database.models import Consent, User, now
 from app.modules.matching import scoring
 from app.modules.social import service as svc
 from app.modules.social.models import (
@@ -173,14 +173,6 @@ async def publish(body: PublishInput, request: Request, actor: Actor = Depends(r
             db.add(profile)
             await db.flush()
             save_receipt(db, user, "profile:publish", key, payload, {"resourceId": str(profile.id)})
-            db.add(
-                Outbox(
-                    user_id=user.id,
-                    kind="profile_changed",
-                    resource_id=str(profile.id),
-                    version=profile.version,
-                )
-            )
         return PublishedView(
             id=profile.id,
             profile=PublicProfile.model_validate(profile.payload),
@@ -213,14 +205,6 @@ async def withdraw(body: VersionInput, request: Request, actor: Actor = Depends(
             key,
             payload,
             result.model_dump(mode="json", by_alias=True),
-        )
-        db.add(
-            Outbox(
-                user_id=user.id,
-                kind="profile_withdrawn",
-                resource_id=str(user.id),
-                version=user.profile_version,
-            )
         )
         return result
 
@@ -543,15 +527,6 @@ async def send_message(
         db.add(message)
         await db.flush()
         save_receipt(db, user, operation, key, payload, {"resourceId": str(message.id)})
-        for uid in (room.low_user_id, room.high_user_id):
-            db.add(
-                Outbox(
-                    user_id=uid,
-                    kind="message_available",
-                    resource_id=str(room.id),
-                    version=room.version,
-                )
-            )
         return svc.message_view(message, user.id)
 
 
@@ -646,12 +621,6 @@ async def block_peer(peer_id, key, payload, request, actor):
         save_receipt(
             db, user, "pair:block", key, payload, result.model_dump(mode="json", by_alias=True)
         )
-        for uid in (user.id, peer.id):
-            db.add(
-                Outbox(
-                    user_id=uid, kind="pair_blocked", resource_id=str(pair.id), version=pair.version
-                )
-            )
         return result
 
 

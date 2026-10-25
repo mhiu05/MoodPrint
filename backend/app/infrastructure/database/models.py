@@ -159,6 +159,8 @@ class Idempotency(Base):
 
 
 class Outbox(Base):
+    """Retired (DR-10): never written; retention drains old rows until a contract migration drops it."""
+
     __tablename__ = "outbox"
     id: Mapped[UUID] = mapped_column(PGUUID, primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(ForeignKey(User.id), index=True)

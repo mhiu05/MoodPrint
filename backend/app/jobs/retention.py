@@ -4,7 +4,15 @@ from datetime import timedelta
 
 from sqlalchemy import Date, cast, delete, func, select
 
-from app.infrastructure.database.models import AiRun, AiUsage, Idempotency, Mood, User, now
+from app.infrastructure.database.models import (
+    AiRun,
+    AiUsage,
+    Idempotency,
+    Mood,
+    Outbox,
+    User,
+    now,
+)
 from app.modules.social.models import CandidateReference, HumanMessage
 
 
@@ -91,3 +99,14 @@ async def purge_expired(app):
         ).all()
         if keys:
             await db.execute(delete(Idempotency).where(Idempotency.id.in_(keys)))
+        # Retired outbox (no consumer): drain the backlog oldest first until the table is dropped.
+        outbox = (
+            await db.scalars(
+                select(Outbox.id)
+                .order_by(Outbox.created_at, Outbox.id)
+                .limit(1000)
+                .with_for_update(skip_locked=True)
+            )
+        ).all()
+        if outbox:
+            await db.execute(delete(Outbox).where(Outbox.id.in_(outbox)))
