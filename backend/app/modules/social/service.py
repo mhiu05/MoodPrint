@@ -70,10 +70,12 @@ def public_payload(body):
 
 async def match_consent(db: AsyncSession, user: User) -> Consent:
     consent = await db.get(Consent, (user.id, "MATCH"))
+    restricted = user.social_restricted_until and user.social_restricted_until > now()
     if (
         user.status != "active"
         or user.deletion_pending
         or user.age_band != "adult"
+        or restricted
         or not consent
         or not consent.enabled
     ):

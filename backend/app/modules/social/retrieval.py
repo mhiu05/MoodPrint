@@ -109,6 +109,7 @@ async def eligible_peers(db, user: User, own: PublishedProfile, at: datetime) ->
             User.status == "active",
             User.age_band == "adult",
             ~User.deletion_pending,
+            or_(User.social_restricted_until.is_(None), User.social_restricted_until <= at),
             recently_seen | User.last_seen_at.is_(None)
             if at < LAST_SEEN_ENFORCED_FROM
             else recently_seen,

@@ -142,6 +142,31 @@ async def purge_expired(app):
         ).all()
         if finished:
             await db.execute(delete(ActivitySession).where(ActivitySession.id.in_(finished)))
+        # Reports and moderation decisions are kept one year (safety record), then purged.
+        from app.modules.moderation.models import ModerationAction, Report
+
+        year = now() - timedelta(days=365)
+        old_actions = (
+            await db.scalars(
+                select(ModerationAction.id).where(ModerationAction.created_at <= year).limit(1000)
+            )
+        ).all()
+        if old_actions:
+            await db.execute(delete(ModerationAction).where(ModerationAction.id.in_(old_actions)))
+        old_reports = (
+            await db.scalars(
+                select(Report.id)
+                .where(
+                    Report.created_at <= year,
+                    ~select(ModerationAction.id)
+                    .where(ModerationAction.report_id == Report.id)
+                    .exists(),
+                )
+                .limit(1000)
+            )
+        ).all()
+        if old_reports:
+            await db.execute(delete(Report).where(Report.id.in_(old_reports)))
         # Retired outbox (no consumer): drain the backlog oldest first until the table is dropped.
         outbox = (
             await db.scalars(

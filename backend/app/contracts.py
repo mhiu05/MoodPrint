@@ -49,6 +49,13 @@ class FeatureView(DTO):
     ai: bool = False
     matching: bool = False
     voice: bool = False
+    # Remaining AI turns today (Asia/Bangkok day); null when AI is unavailable.
+    ai_quota_remaining: int | None = None
+
+
+class NoticeView(DTO):
+    kind: Literal["warning", "restricted"]
+    until: datetime | None = None
 
 
 class SessionView(DTO):
@@ -64,6 +71,9 @@ class SessionView(DTO):
     data_version: int = 1
     birth_year: int | None = None
     eligibility_version: int = 0
+    # Present only for operator-granted staff; drives the hidden /admin/reports route.
+    staff: Literal["moderator", "admin"] | None = None
+    notices: list[NoticeView] = Field(default_factory=list)
 
 
 class EligibilityInput(VersionInput):

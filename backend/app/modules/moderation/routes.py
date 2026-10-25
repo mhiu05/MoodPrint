@@ -342,6 +342,43 @@ async def revoke(
         return result
 
 
+async def activity_evidence(db, reporter_id, subject_id, rooms, body) -> list[dict]:
+    """Copy the subject's revealed activity answers, so later retention cannot erase them."""
+    from app.modules.activities import content
+    from app.modules.activities.models import ActivityResponse, ActivitySession
+
+    copied = []
+    for ref in {(item.session_id, item.round) for item in body.selected_activity_responses}:
+        session = await db.get(ActivitySession, ref[0])
+        theirs = await db.get(ActivityResponse, (ref[0], subject_id, ref[1]))
+        mine = await db.get(ActivityResponse, (ref[0], reporter_id, ref[1]))
+        # Only an answer this reporter could see: same pair, both answered, not skipped.
+        if (
+            session is None
+            or session.connection_id not in [room.id for room in rooms]
+            or theirs is None
+            or theirs.skipped
+            or mine is None
+            or mine.skipped
+        ):
+            raise DomainError(
+                403, "EVIDENCE_DENIED", "Không thể dùng câu trả lời này làm bằng chứng."
+            )
+        item = content.item_by_id(session.content.get("bank", ""), theirs.item_id)
+        label = item["options"][theirs.choice] if theirs.choice is not None else None
+        copied.append(
+            {
+                "kind": "activity",
+                "sessionId": str(session.id),
+                "round": theirs.round,
+                "activity": session.kind,
+                "prompt": item["prompt"],
+                "text": " · ".join(part for part in (label, theirs.text) if part),
+            }
+        )
+    return copied
+
+
 @router.post("/reports", response_model=ReportView, status_code=201)
 async def report(body: ReportInput, request: Request, actor: Actor = Depends(require_actor)):
     key, payload = idempotency_key(request), body.model_dump(mode="json")
@@ -395,7 +432,15 @@ async def report(body: ReportInput, request: Request, actor: Actor = Depends(req
             # Evidence must come from this pair's own rooms, but the room need not be
             # live: abuse is often reported right after blocking or ending a connection.
             evidence.append({"messageId": str(message.id), "text": message.text})
-        row = Report(reporter_id=user.id, subject_id=peer.id, reason=body.reason, evidence=evidence)
+        evidence += await activity_evidence(db, user.id, peer.id, rooms, body)
+        latest = max(rooms, key=lambda room: room.created_at)
+        row = Report(
+            reporter_id=user.id,
+            subject_id=peer.id,
+            reason=body.reason,
+            evidence=evidence,
+            connection_id=latest.id,
+        )
         db.add(row)
         await db.flush()
         save_receipt(db, user, "report:create", key, payload, {"resourceId": str(row.id)})

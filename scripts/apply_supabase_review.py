@@ -80,6 +80,13 @@ UPGRADES = {
         "0013_shared_activities",
         tables=("activity_sessions", "activity_participants", "activity_responses"),
     ),
+    "0014": UpgradePlan(
+        ROOT / "docs/productization/migrations/0014-review.sql",
+        ROOT / "docs/productization/migrations/0014-execution.json",
+        "0013_shared_activities",
+        "0014_moderation",
+        tables=("staff_roles", "moderation_actions"),
+    ),
 }
 SUPABASE_API_ROLES = ("anon", "authenticated", "service_role")
 

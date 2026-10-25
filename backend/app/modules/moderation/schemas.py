@@ -42,10 +42,19 @@ class RevealView(DTO):
     preview_digest: str | None = None
 
 
+class ActivityResponseRef(DTO):
+    session_id: UUID
+    round: int = Field(ge=1, le=10)
+
+
 class ReportInput(DTO):
     peer_ref: UUID
     reason: ShortText
     selected_message_ids: list[UUID] = Field(default_factory=list, max_length=2)
+    # Up to two of the peer's activity answers this reporter actually saw (I-04).
+    selected_activity_responses: list[ActivityResponseRef] = Field(
+        default_factory=list, max_length=2
+    )
 
 
 class ReportView(DTO):

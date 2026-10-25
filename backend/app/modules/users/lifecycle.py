@@ -126,6 +126,9 @@ async def process_deletions(app):
             from app.modules.activities.models import ActivityParticipant, ActivityResponse
 
             await hooks.abort_for_user(db, uid, "account_deleted")
+            from app.modules.social.models import ConnectionRead
+
+            await db.execute(delete(ConnectionRead).where(ConnectionRead.user_id == uid))
             await db.execute(delete(ActivityResponse).where(ActivityResponse.user_id == uid))
             await db.execute(
                 update(ActivityParticipant)

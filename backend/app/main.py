@@ -24,8 +24,16 @@ from app.infrastructure.database.connection import Database
 from app.infrastructure.database.models import AiRun
 
 
+def warn_unenforced_budget(config) -> None:
+    if config.ai_daily_budget_usd > 0 and not config.ai_accounting_enabled:
+        logging.getLogger("moodprint").warning(
+            "ai_budget_unenforced reason=accounting_disabled"
+        )
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     config = settings or Settings()
+    warn_unenforced_budget(config)
     database = Database(config)
 
     @asynccontextmanager
@@ -215,6 +223,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from app.modules.activities.routes import router as activities
     from app.modules.auth.routes import router as auth
     from app.modules.consent.routes import router as consent
+    from app.modules.moderation.admin_routes import router as moderation_admin
     from app.modules.moderation.routes import router as moderation
     from app.modules.mood.routes import router as mood
     from app.modules.profiles.routes import router as profiles
@@ -235,6 +244,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         social_summary,
         activities,
         moderation,
+        moderation_admin,
         notifications,
         voice,
         users,

@@ -49,6 +49,12 @@ class Settings(EmbeddingSettings, BaseSettings):
     ]
     # Short focus phases for automated tests only; ignored unless APP_ENV=test.
     focus_test_plan_seconds: int | None = Field(default=None, ge=5, le=600)
+    # Staff moderation queue; the admin routes return 404 while this is off.
+    moderation_admin_enabled: bool = False
+    # Cost protection (DR-12): per-user turns per Asia/Bangkok day and a global daily
+    # estimated-spend ceiling in USD (0 disables; needs AI_ACCOUNTING_ENABLED=true).
+    ai_daily_turns_per_user: int = Field(default=60, ge=1, le=1000)
+    ai_daily_budget_usd: float = Field(default=0, ge=0)
 
     @model_validator(mode="after")
     def local_live_scope(self):

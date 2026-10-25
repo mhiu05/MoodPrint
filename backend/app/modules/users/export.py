@@ -16,6 +16,7 @@ from app.modules.moderation.models import IdentityField, Report, RevealAccess
 from app.modules.social.models import (
     Block,
     Connection,
+    ConnectionRead,
     ConnectionRequest,
     HumanMessage,
     MatchingDraft,
@@ -104,6 +105,7 @@ async def social_section(db: AsyncSession, user: User) -> dict:
     blocks = await _rows(db, select(Block).where(Block.blocker_id == user.id))
     shared = await _rows(db, select(RevealAccess).where(RevealAccess.owner_id == user.id))
     alias = {room.id: pair_alias(room.low_user_id, room.high_user_id)[0] for room in rooms}
+    reads = await _rows(db, select(ConnectionRead).where(ConnectionRead.user_id == user.id))
     return {
         "matchingDraft": {"profile": draft.payload, "version": draft.version} if draft else None,
         "publishedProfiles": [
@@ -159,6 +161,14 @@ async def social_section(db: AsyncSession, user: User) -> dict:
         ],
         "blocksMade": [{"createdAt": row.created_at.isoformat()} for row in blocks],
         "activities": await activity_section(db, user),
+        "readMarkers": [
+            {
+                "connection": alias.get(row.connection_id),
+                "lastReadSeq": str(row.last_read_seq),
+                "updatedAt": row.updated_at.isoformat(),
+            }
+            for row in reads
+        ],
     }
 
 

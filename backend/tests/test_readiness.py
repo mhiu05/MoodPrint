@@ -9,9 +9,9 @@ pytestmark = pytest.mark.postgres
 @pytest.mark.parametrize(
     ("revision", "status"),
     [
-        ("0012_matching_v2", 200),
         ("0013_shared_activities", 200),
-        ("0011_social_stabilization", 503),
+        ("0014_moderation", 200),
+        ("0012_matching_v2", 503),
         ("9999_unknown", 503),
     ],
 )

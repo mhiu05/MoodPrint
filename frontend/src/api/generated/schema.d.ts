@@ -1280,6 +1280,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Queue */
+        get: operations["queue_api_v1_admin_reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/reports/{report_id}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Claim */
+        post: operations["claim_api_v1_admin_reports__report_id__claim_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/reports/{report_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve */
+        post: operations["resolve_api_v1_admin_reports__report_id__resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{ref}/lift": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Lift */
+        post: operations["lift_api_v1_admin_users__ref__lift_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/connections/{connection_id}/events": {
         parameters: {
             query?: never;
@@ -1502,6 +1570,16 @@ export interface components {
              */
             allowText: boolean;
         };
+        /** ActivityResponseRef */
+        ActivityResponseRef: {
+            /**
+             * Sessionid
+             * Format: uuid
+             */
+            sessionId: string;
+            /** Round */
+            round: number;
+        };
         /** ActivityRevealView */
         ActivityRevealView: {
             self?: components["schemas"]["AnswerView"] | null;
@@ -1563,6 +1641,34 @@ export interface components {
             score?: components["schemas"]["ScoreView"] | null;
             timer?: components["schemas"]["TimerView"] | null;
             summary?: components["schemas"]["SummaryView"] | null;
+        };
+        /** AdminReportView */
+        AdminReportView: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
+            /** Reason */
+            reason: string;
+            /** Createdat */
+            createdAt: string;
+            /** Reviewedat */
+            reviewedAt?: string | null;
+            /** Resolution */
+            resolution?: string | null;
+            /** Subjectref */
+            subjectRef: string;
+            /** Reporterref */
+            reporterRef: string;
+            /** Evidence */
+            evidence: components["schemas"]["EvidenceView"][];
+            /** Prioractions */
+            priorActions: number;
         };
         /** AiPreferenceInput */
         AiPreferenceInput: {
@@ -1690,6 +1796,11 @@ export interface components {
         CandidateListDTO: {
             /** Candidates */
             candidates: components["schemas"]["CandidateCardDTO"][];
+        };
+        /** ClaimInput */
+        ClaimInput: {
+            /** Expectedversion */
+            expectedVersion: number;
         };
         /** ConnectionView */
         ConnectionView: {
@@ -1971,6 +2082,13 @@ export interface components {
             /** Currentsessionid */
             currentSessionId?: string | null;
         };
+        /** EvidenceView */
+        EvidenceView: {
+            /** Kind */
+            kind: string;
+            /** Text */
+            text: string;
+        };
         /** ExportInput */
         ExportInput: {
             /** Scopes */
@@ -1993,6 +2111,8 @@ export interface components {
              * @default false
              */
             voice: boolean;
+            /** Aiquotaremaining */
+            aiQuotaRemaining?: number | null;
         };
         /** FeedbackInput */
         FeedbackInput: {
@@ -2051,6 +2171,14 @@ export interface components {
              */
             kind: "icebreaker" | "coop_quiz" | "focus";
             options?: components["schemas"]["FocusOptions"] | null;
+        };
+        /** LiftInput */
+        LiftInput: {
+            /**
+             * Note
+             * @default
+             */
+            note: string;
         };
         /** LoginInput */
         LoginInput: {
@@ -2243,6 +2371,16 @@ export interface components {
              * @enum {string}
              */
             botId: "may" | "guong" | "nhip" | "rure" | "caunoi";
+        };
+        /** NoticeView */
+        NoticeView: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "warning" | "restricted";
+            /** Until */
+            until?: string | null;
         };
         /** PasswordResetInput */
         PasswordResetInput: {
@@ -2460,6 +2598,8 @@ export interface components {
             reason: string;
             /** Selectedmessageids */
             selectedMessageIds?: string[];
+            /** Selectedactivityresponses */
+            selectedActivityResponses?: components["schemas"]["ActivityResponseRef"][];
         };
         /** ReportView */
         ReportView: {
@@ -2500,6 +2640,23 @@ export interface components {
             /** Connectionid */
             connectionId?: string | null;
             peer?: components["schemas"]["PeerCardDTO"] | null;
+        };
+        /** ResolveInput */
+        ResolveInput: {
+            /** Expectedversion */
+            expectedVersion: number;
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "dismiss" | "warn" | "restrict" | "suspend";
+            /** Days */
+            days?: number | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
         };
         /** ResponseInput */
         ResponseInput: {
@@ -2637,6 +2794,10 @@ export interface components {
              * @default 0
              */
             eligibilityVersion: number;
+            /** Staff */
+            staff?: ("moderator" | "admin") | null;
+            /** Notices */
+            notices?: components["schemas"]["NoticeView"][];
         };
         /** SignupInput */
         SignupInput: {
@@ -12035,6 +12196,431 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReportView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    queue_api_v1_admin_reports_get: {
+        parameters: {
+            query?: {
+                status?: ("received" | "in_review" | "resolved") | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReportView"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    claim_api_v1_admin_reports__report_id__claim_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReportView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    resolve_api_v1_admin_reports__report_id__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReportView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    lift_api_v1_admin_users__ref__lift_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ref: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiftInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionReceipt"];
                 };
             };
             /** @description Unauthorized */
