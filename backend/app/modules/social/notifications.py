@@ -24,8 +24,21 @@ STREAM_LIFETIME_SECONDS = 1800
 FULL_CHECK_SECONDS = 5
 
 
+def activity_event(room) -> str:
+    envelope = {
+        "version": "social-events-v2",
+        "eventId": f"{room.id}:a{room.activity_seq}",
+        "connectionId": str(room.id),
+        "activitySeq": room.activity_seq,
+    }
+    return f"id: {envelope['eventId']}\nevent: activity_changed\ndata: {json.dumps(envelope)}\n\n"
+
+
 async def event_stream(request: Request, actor: Actor, connection_id: UUID, after_seq: int = 0):
     previous = None
+    previous_activity: int | None = None
+    activity = 0
+    activity_room = None
     heartbeat = 0
     last_full = 0.0
     deadline = time.monotonic() + STREAM_LIFETIME_SECONDS
@@ -40,15 +53,19 @@ async def event_stream(request: Request, actor: Actor, connection_id: UUID, afte
             async with request.app.state.database.require()() as db:
                 row = (
                     await db.execute(
-                        select(Connection.next_seq, Connection.version, Connection.status).where(
-                            Connection.id == connection_id
-                        )
+                        select(
+                            Connection.next_seq,
+                            Connection.version,
+                            Connection.status,
+                            Connection.activity_seq,
+                        ).where(Connection.id == connection_id)
                     )
                 ).one_or_none()
             if row is None or row.status != "open":
                 raise DomainError(403, "CONNECTION_UNAVAILABLE", "Kết nối không còn khả dụng.")
             watermark = (row.next_seq, row.version)
-            if watermark != previous or time.monotonic() - last_full >= FULL_CHECK_SECONDS:
+            changed = watermark != previous or row.activity_seq != previous_activity
+            if changed or time.monotonic() - last_full >= FULL_CHECK_SECONDS:
                 peer_id = await svc.room_peer(request, actor, connection_id)
                 async with svc.pair_transaction(request, actor, peer_id, lock=False) as (
                     db,
@@ -59,6 +76,7 @@ async def event_stream(request: Request, actor: Actor, connection_id: UUID, afte
                     if after_seq > room.next_seq:
                         raise DomainError(409, "CURSOR_GAP", "Hãy tải lại cuộc trò chuyện.")
                     watermark = (room.next_seq, room.version)
+                    activity, activity_room = room.activity_seq, room
                     envelope = {
                         "version": "social-events-v1",
                         "eventId": f"{room.id}:{room.next_seq}:{room.version}",
@@ -71,9 +89,20 @@ async def event_stream(request: Request, actor: Actor, connection_id: UUID, afte
         except DomainError:
             yield "event: access_revoked\ndata: {}\n\n"
             return
+        chunks = []
         if watermark != previous:
             previous = watermark
-            yield f"id: {envelope['eventId']}\nevent: messages_available\ndata: {json.dumps(envelope)}\n\n"
+            chunks.append(
+                f"id: {envelope['eventId']}\nevent: messages_available\ndata: {json.dumps(envelope)}\n\n"
+            )
+        if previous_activity is None:
+            previous_activity = activity  # the client fetches current state on connect
+        elif activity != previous_activity and activity_room is not None:
+            previous_activity = activity
+            chunks.append(activity_event(activity_room))
+        if chunks:
+            heartbeat = 0
+            yield "".join(chunks)
         elif heartbeat >= 10:
             heartbeat = 0
             yield ": heartbeat\n\n"
