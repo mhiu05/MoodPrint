@@ -2,7 +2,7 @@
 
 The workflow in `.github/workflows/deploy-staging.yml` publishes a prerelease only after the exact current `main` commit has a successful push run of `Verify local application`. It publishes digest-pinned GHCR images and GitHub attestations. This EC2 poller checks the current `main` SHA, release manifest attestation, CI run, publish run, and both image attestations before calling `deploy.sh`.
 
-The EC2 instance needs Docker Compose, AWS CLI, Python 3, GitHub CLI 2.102.0 or newer, and its existing SSM managed-instance role. For the public repository, the poller reads attestation bundles from GitHub's unauthenticated REST API and verifies them offline with the GitHub CLI and a fresh Sigstore trusted root; it does not need a GitHub token. The poller runs as root from a five-minute systemd timer. It reads the runtime `SecureString` only during a verified deployment, writes it under `/run/moodprint` with mode `0600`, and never prints the value. It does not run database migrations.
+The EC2 instance needs Docker Compose, AWS CLI, Python 3, GitHub CLI 2.102.0 or newer, and its existing SSM managed-instance role. For the public repository, the poller reads attestation bundles from GitHub's unauthenticated REST API and verifies them offline with the GitHub CLI and a fresh Sigstore trusted root; it does not need a GitHub token. It also pins the repository's numeric GitHub ID so a rename or name reuse fails closed. The poller runs as root from a five-minute systemd timer. It reads the runtime `SecureString` only during a verified deployment, writes it under `/run/moodprint` with mode `0600`, and never prints the value. It does not run database migrations.
 
 ## Configure and install
 
