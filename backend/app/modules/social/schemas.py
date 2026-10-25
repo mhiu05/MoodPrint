@@ -84,7 +84,8 @@ class PublishedView(DTO):
     version: int
     # needs_republish: kept for review but invisible to matching until published again
     # (e.g. after MATCH consent was withdrawn and restored). Never republished implicitly.
-    state: Literal["live", "needs_republish"] = "live"
+    # stale: published more than 180 days ago, hidden from discovery until reconfirmed.
+    state: Literal["live", "needs_republish", "stale"] = "live"
     # The version withdraw/publish must send as expectedVersion.
     profile_version: int
 
@@ -95,6 +96,9 @@ class CandidateCardDTO(DTO):
     avatar_seed: str
     profile: PublicProfile
     reasons: list[str] = Field(max_length=3)
+    # Qualitative only: never a score or percentage (DR-05).
+    match_label: Literal["many", "some"] = "some"
+    shared_activities: list[str] = Field(default_factory=list, max_length=4)
     scoring_version: Literal["rules-v1", "rules-v2"] = "rules-v1"
     profile_version: int
     peer_version: int

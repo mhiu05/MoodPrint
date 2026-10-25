@@ -225,10 +225,10 @@ async def test_discovery_backfills_peers_that_fail_the_locked_recheck(clients, m
 
     ranked = retrieval.ranked_candidates
 
-    async def racing(db, user, own, consent):
+    async def racing(db, user, own, consent, *args):
         # Simulates two shortlisted peers deleting their accounts between ranking
         # and the locked recheck: they must be skipped and replaced.
-        result = await ranked(db, user, own, consent)
+        result = await ranked(db, user, own, consent, *args)
         await db.execute(update(User).where(User.id.in_(gone)).values(status="deleted"))
         return gone + [peer for peer in result if peer not in gone]
 

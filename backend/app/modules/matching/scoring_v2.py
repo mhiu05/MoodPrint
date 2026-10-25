@@ -40,36 +40,46 @@ def _overlap(a: list[str], b: list[str]) -> float | None:
 def _interests(a: list[str], b: list[str]) -> float:
     if not a or not b:
         return 0.0
-    forward = sum(max(taxonomy.interest_similarity(x, y) for y in b) for x in a)
-    backward = sum(max(taxonomy.interest_similarity(x, y) for x in a) for y in b)
+    matrix = taxonomy.SIMILARITY
+    # map() over precomputed rows: this runs for every candidate on every request.
+    forward = sum([max(map(matrix[x].__getitem__, b)) for x in a])
+    backward = sum([max(map(matrix[y].__getitem__, a)) for y in b])
     return (forward + backward) / (len(a) + len(b))
 
 
-def _shared(a: Mapping[str, Any], b: Mapping[str, Any], facet: str, order) -> list[str]:
-    common = set(_tags(a, facet)) & set(_tags(b, facet))
-    # Taxonomy order keeps the result identical for (a, b) and (b, a).
-    return [tag for tag in order if tag in common]
+def interest_component(a: Mapping[str, Any], b: Mapping[str, Any]) -> float:
+    """The I component alone; ranking uses it as candidate-to-candidate similarity."""
+    return _interests(_tags(a, "interests"), _tags(b, "interests"))
+
+
+ORDER = {
+    "interests": taxonomy.INTERESTS,
+    "values": taxonomy.VALUES,
+    "activities": taxonomy.ACTIVITIES,
+    "availability": taxonomy.AVAILABILITY,
+}
 
 
 def score(a: Mapping[str, Any], b: Mapping[str, Any]) -> Breakdown:
+    ta = {facet: _tags(a, facet) for facet in ORDER}
+    tb = {facet: _tags(b, facet) for facet in ORDER}
     components: dict[str, float] = {
-        "I": _interests(_tags(a, "interests"), _tags(b, "interests")),
-        "V": _overlap(_tags(a, "values"), _tags(b, "values")) or 0.0,
+        "I": _interests(ta["interests"], tb["interests"]),
+        "V": _overlap(ta["values"], tb["values"]) or 0.0,
         "G": taxonomy.goal_compat(a["goal"], b["goal"]),
         "S": taxonomy.style_compat(a["style"], b["style"]),
     }
     for key, facet in (("P", "activities"), ("T", "availability")):
-        value = _overlap(_tags(a, facet), _tags(b, facet))
+        value = _overlap(ta[facet], tb[facet])
         if value is not None:
             components[key] = value
     coverage = sum(WEIGHTS[key] for key in components)
     raw = sum(WEIGHTS[key] * value for key, value in components.items()) / coverage
-    shared = {
-        "interests": _shared(a, b, "interests", taxonomy.INTERESTS),
-        "values": _shared(a, b, "values", taxonomy.VALUES),
-        "activities": _shared(a, b, "activities", taxonomy.ACTIVITIES),
-        "availability": _shared(a, b, "availability", taxonomy.AVAILABILITY),
-    }
+    shared = {}
+    for facet, order in ORDER.items():
+        common = set(ta[facet]).intersection(tb[facet])
+        # Taxonomy order keeps the result identical for (a, b) and (b, a).
+        shared[facet] = [tag for tag in order if tag in common] if common else []
     return Breakdown(raw * (0.9 + 0.1 * coverage), components, coverage, shared)
 
 

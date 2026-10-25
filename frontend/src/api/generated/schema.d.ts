@@ -1294,6 +1294,14 @@ export interface components {
             /** Reasons */
             reasons: string[];
             /**
+             * Matchlabel
+             * @default some
+             * @enum {string}
+             */
+            matchLabel: "many" | "some";
+            /** Sharedactivities */
+            sharedActivities?: string[];
+            /**
              * Scoringversion
              * @default rules-v1
              * @enum {string}
@@ -1987,7 +1995,7 @@ export interface components {
              * @default live
              * @enum {string}
              */
-            state: "live" | "needs_republish";
+            state: "live" | "needs_republish" | "stale";
             /** Profileversion */
             profileVersion: number;
         };

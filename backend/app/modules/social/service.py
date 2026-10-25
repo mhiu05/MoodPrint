@@ -3,7 +3,7 @@
 import secrets
 from contextlib import asynccontextmanager
 from datetime import timedelta
-from typing import NoReturn
+from typing import Literal, NoReturn
 from uuid import UUID, uuid4
 
 from sqlalchemy import and_, func, or_, select
@@ -13,7 +13,7 @@ from app.contracts import ActionReceipt
 from app.core.errors import DomainError
 from app.core.security import Actor, digest, lock_actor
 from app.infrastructure.database.models import Consent, User, now
-from app.modules.matching import scoring
+from app.modules.matching import explain, scoring, scoring_v2
 from app.modules.profiles import taxonomy
 from app.modules.social.models import (
     Block,
@@ -109,14 +109,25 @@ async def is_blocked(db: AsyncSession, a: UUID, b: UUID):
     )
 
 
-async def base_eligibility(db: AsyncSession, a: User, b: User, *, own_snapshot=None):
+def scorer_of(request) -> str:
+    return request.app.state.settings.matching_scorer
+
+
+def goals_compatible(a: dict, b: dict, scorer: str) -> bool:
+    """v1 (and shadow, which serves v1) needs equal goals; v2 only honours strictGoal."""
+    return scoring_v2.goal_allowed(a, b) if scorer == "v2" else a["goal"] == b["goal"]
+
+
+async def base_eligibility(
+    db: AsyncSession, a: User, b: User, *, scorer: str, own_snapshot=None
+):
     if a.id == b.id or await is_blocked(db, a.id, b.id):
         deny()
     ap, ac = own_snapshot if own_snapshot is not None else await current_profile(db, a)
     bp, bc = await current_profile(db, b)
-    if ap.payload["goal"] != bp.payload["goal"] or not set(ap.payload["languages"]) & set(
-        bp.payload["languages"]
-    ):
+    if not goals_compatible(ap.payload, bp.payload, scorer) or not set(
+        ap.payload["languages"]
+    ) & set(bp.payload["languages"]):
         deny("PAIR_INELIGIBLE")
     snapshots = {
         str(a.id): {"profile": ap.version, "consent": ac.version},
@@ -382,20 +393,45 @@ def reasons(a, b):
     return labels[:3]
 
 
-async def peer_card(db: AsyncSession, user: User, peer: User) -> PeerCardDTO | None:
+def describe(
+    own: dict, peer: dict, scorer: str
+) -> tuple[list[str], Literal["many", "some"], list[str]]:
+    """Reasons, qualitative label and shared activities; never a number (DR-05)."""
+    if scorer == "v2":
+        breakdown = scoring_v2.score(own, peer)
+        return (
+            explain.reasons(breakdown),
+            scoring_v2.label(breakdown),
+            breakdown.shared["activities"],
+        )
+    points = scoring.score(scoring.v1_view(own), scoring.v1_view(peer))
+    return reasons(own, peer), "many" if points >= 60 else "some", []
+
+
+def suggestible(own: dict, peer: dict, scorer: str) -> bool:
+    if scorer == "v2":
+        return scoring_v2.goal_allowed(own, peer) and scoring_v2.eligible(
+            scoring_v2.score(own, peer)
+        )
+    return scoring.score(scoring.v1_view(own), scoring.v1_view(peer)) >= 30
+
+
+async def peer_card(
+    db: AsyncSession, user: User, peer: User, scorer: str
+) -> PeerCardDTO | None:
     """Public card of a pending request's counterpart while both are still eligible."""
     try:
-        own, published, _ = await base_eligibility(db, user, peer)
+        own, published, _ = await base_eligibility(db, user, peer, scorer=scorer)
     except DomainError:
         return None
     alias, seed = pair_alias(user.id, peer.id)
-    points = scoring.score(scoring.v1_view(own.payload), scoring.v1_view(published.payload))
+    why, label, _ = describe(own.payload, published.payload, scorer)
     return PeerCardDTO(
         alias=alias,
         avatar_seed=seed,
         profile=PublicProfile.model_validate(published.payload),
-        reasons=reasons(own.payload, published.payload),
-        match_label="many" if points >= 60 else "some",
+        reasons=why,
+        match_label=label,
     )
 
 

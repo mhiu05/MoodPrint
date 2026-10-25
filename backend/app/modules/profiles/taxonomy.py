@@ -51,15 +51,24 @@ _STYLE_BALANCED: float = _DATA["styleCompatibility"]["withBalanced"]
 _STYLE_PAIRS = {frozenset((a, b)): value for a, b, value in _DATA["styleCompatibility"]["pairs"]}
 
 
-def interest_similarity(a: str, b: str) -> float:
-    """Curated tag similarity: 1 for the same tag, overrides, 0.5 within a category, else 0."""
-    same_category = CATEGORY_OF[a] == CATEGORY_OF[b]  # KeyError for unknown tags
+def _similarity(a: str, b: str) -> float:
     if a == b:
         return 1.0
     override = _INTEREST_OVERRIDES.get(frozenset((a, b)))
     if override is not None:
         return override
-    return _SAME_CATEGORY if same_category else 0.0
+    return _SAME_CATEGORY if CATEGORY_OF[a] == CATEGORY_OF[b] else 0.0
+
+
+# Precomputed once: scoring runs this lookup for every tag pair of every candidate.
+SIMILARITY: dict[str, dict[str, float]] = {
+    a: {b: _similarity(a, b) for b in INTERESTS} for a in INTERESTS
+}
+
+
+def interest_similarity(a: str, b: str) -> float:
+    """Curated tag similarity: 1 for the same tag, overrides, 0.5 within a category, else 0."""
+    return SIMILARITY[a][b]  # KeyError for unknown tags
 
 
 def goal_compat(a: str, b: str) -> float:

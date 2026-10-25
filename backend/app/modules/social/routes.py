@@ -1,5 +1,6 @@
 import hmac
 from datetime import timedelta
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -18,7 +19,6 @@ from app.core.security import (
     transaction,
 )
 from app.infrastructure.database.models import Consent, User, now
-from app.modules.matching import scoring
 from app.modules.profiles.taxonomy import TAXONOMY
 from app.modules.social import service as svc
 from app.modules.social.models import (
@@ -32,6 +32,7 @@ from app.modules.social.models import (
     Pair,
     PublishedProfile,
 )
+from app.modules.social.retrieval import STALE_PROFILE_AFTER
 from app.modules.social.schemas import (
     BlockInput,
     CandidateCardDTO,
@@ -110,11 +111,12 @@ async def published_current(request: Request, actor: Actor = Depends(require_act
             and consent.enabled
             and profile.consent_version == consent.version
         )
+        stale = profile.created_at <= now() - STALE_PROFILE_AFTER
         return PublishedView(
             id=profile.id,
             profile=PublicProfile.model_validate(profile.payload),
             version=profile.version,
-            state="live" if live else "needs_republish",
+            state=("stale" if stale else "live") if live else "needs_republish",
             profile_version=user.profile_version,
         )
 
@@ -220,10 +222,12 @@ async def candidates(request: Request, actor: Actor = Depends(require_actor)):
     from app.core.security import lock_actor
     from app.modules.social.retrieval import ranked_candidates
 
+    scorer = svc.scorer_of(request)
+    served: Literal["rules-v1", "rules-v2"] = "rules-v2" if scorer == "v2" else "rules-v1"
     async with request.app.state.database.require()() as db, db.begin():
         user = await db.get(User, actor.user_id)
         own, consent = await svc.current_profile(db, user)
-        shortlist = await ranked_candidates(db, user, own, consent)
+        shortlist = await ranked_candidates(db, user, own, consent, scorer)
     # Recheck the shortlisted public snapshots while holding all account gates
     # in canonical order. Never acquire a peer gate after locking the actor first.
     async with request.app.state.database.require()() as db, db.begin():
@@ -247,7 +251,7 @@ async def candidates(request: Request, actor: Actor = Depends(require_actor)):
                 continue
             try:
                 _, published, snapshots = await svc.base_eligibility(
-                    db, user, peer, own_snapshot=(own, own_consent)
+                    db, user, peer, scorer=scorer, own_snapshot=(own, own_consent)
                 )
             except DomainError:
                 continue
@@ -273,10 +277,7 @@ async def candidates(request: Request, actor: Actor = Depends(require_actor)):
                     continue
                 if room:
                     continue
-            points = scoring.score(
-                scoring.v1_view(own.payload), scoring.v1_view(published.payload)
-            )
-            if points < 30:
+            if not svc.suggestible(own.payload, published.payload, scorer):
                 continue
             ref = CandidateReference(
                 user_id=user.id,
@@ -286,17 +287,25 @@ async def candidates(request: Request, actor: Actor = Depends(require_actor)):
                 consent_version=snapshots[str(user.id)]["consent"],
                 peer_consent_version=snapshots[str(peer.id)]["consent"],
                 expires_at=now() + timedelta(minutes=15),
+                scoring_version=served,
+                rank=len(result),
             )
             db.add(ref)
             await db.flush()
             alias, alias_seed = svc.pair_alias(user.id, peer.id)
+            reasons, label, shared_activities = svc.describe(
+                own.payload, published.payload, scorer
+            )
             result.append(
                 CandidateCardDTO(
                     candidate_ref=ref.id,
                     alias=alias,
                     avatar_seed=alias_seed,
                     profile=PublicProfile.model_validate(published.payload),
-                    reasons=svc.reasons(own.payload, published.payload),
+                    reasons=reasons,
+                    match_label=label,
+                    shared_activities=shared_activities,
+                    scoring_version=served,
                     profile_version=own.version,
                     peer_version=published.version,
                 )
@@ -309,7 +318,9 @@ async def skip(body: CandidateInput, request: Request, actor: Actor = Depends(re
     ref = await svc.resolve_reference(request, actor, body.candidate_ref)
     key, payload = idempotency_key(request), body.model_dump(mode="json")
     async with svc.pair_transaction(request, actor, ref.peer_id) as (db, user, peer):
-        _, _, snapshots = await svc.base_eligibility(db, user, peer)
+        _, _, snapshots = await svc.base_eligibility(
+            db, user, peer, scorer=svc.scorer_of(request)
+        )
         svc.check_reference(ref, user, peer, snapshots)
         pair = await svc.canonical_pair(db, user.id, peer.id)
         old = await previous_receipt(db, user, "pair:skip", key, payload)
@@ -331,7 +342,9 @@ async def send_request(
     ref = await svc.resolve_reference(request, actor, body.candidate_ref)
     key, payload = idempotency_key(request), body.model_dump(mode="json")
     async with svc.pair_transaction(request, actor, ref.peer_id) as (db, user, peer):
-        _, _, snapshots = await svc.base_eligibility(db, user, peer)
+        _, _, snapshots = await svc.base_eligibility(
+            db, user, peer, scorer=svc.scorer_of(request)
+        )
         svc.check_reference(ref, user, peer, snapshots)
         pair = await svc.canonical_pair(db, user.id, peer.id)
         old = await previous_receipt(db, user, "request:send", key, payload)
@@ -386,7 +399,9 @@ async def list_requests(request: Request, actor: Actor = Depends(require_actor))
                 peer = await db.get(
                     User, row.recipient_id if row.sender_id == user.id else row.sender_id
                 )
-                view.peer = await svc.peer_card(db, user, peer) if peer else None
+                view.peer = (
+                    await svc.peer_card(db, user, peer, svc.scorer_of(request)) if peer else None
+                )
             result.append(view)
         return result
 
@@ -406,7 +421,9 @@ async def decide(request_id, decision, body, request, actor):
             # Opening a room still needs both published profiles (DR-03 keeps requests
             # alive across edits, but a withdrawn sender cannot be accepted).
             try:
-                _, _, snapshots = await svc.base_eligibility(db, user, peer)
+                _, _, snapshots = await svc.base_eligibility(
+                    db, user, peer, scorer=svc.scorer_of(request)
+                )
             except DomainError as error:
                 if error.code not in ("PROFILE_REQUIRED", "PAIR_INELIGIBLE"):
                     raise
