@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import fcntl
+import hashlib
 import json
 import os
 import re
@@ -224,11 +225,78 @@ def download_manifest(url: str, expected_url: str, destination: Path) -> dict[st
     return manifest
 
 
-def attestation_command(subject: str, repository: str, commit_sha: str) -> list[str]:
+def download_attestation_bundles(
+    subject_digest: str, repository: str, destination: Path
+) -> None:
+    _require(DIGEST_RE.fullmatch(subject_digest) is not None,
+             "attestation subject digest is invalid")
+    response = github_get(
+        f"{API_BASE}/repos/{repository}/attestations/{subject_digest}?per_page=100"
+    )
+    _require(response is not None, "attestation bundles were not found")
+    attestations = response.get("attestations")
+    _require(isinstance(attestations, list) and attestations,
+             "attestation bundle list is invalid")
+
+    bundles: list[str] = []
+    for attestation in attestations:
+        _require(isinstance(attestation, dict), "attestation entry is invalid")
+        bundle = attestation.get("bundle")
+        _require(
+            isinstance(bundle, dict)
+            and isinstance(bundle.get("dsseEnvelope"), dict)
+            and isinstance(bundle.get("verificationMaterial"), dict),
+            "attestation bundle is invalid",
+        )
+        bundles.append(json.dumps(bundle, separators=(",", ":")))
+
+    destination.write_text("\n".join(bundles) + "\n", encoding="utf-8")
+    os.chmod(destination, 0o600)
+
+
+def prepare_gh_environment(config_dir: Path) -> dict[str, str]:
+    config_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    os.chmod(config_dir, 0o700)
+    environment = os.environ.copy()
+    environment["GH_CONFIG_DIR"] = str(config_dir)
+    environment["GH_PROMPT_DISABLED"] = "1"
+    for name in ("GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN"):
+        environment.pop(name, None)
+    return environment
+
+
+def download_trusted_root(destination: Path, environment: dict[str, str]) -> None:
+    try:
+        result = subprocess.run(
+            ["gh", "attestation", "trusted-root"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=environment,
+        )
+    except FileNotFoundError as error:
+        raise RuntimeError("GitHub CLI is not installed") from error
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError("Sigstore trusted root request timed out") from error
+    _require(result.returncode == 0 and result.stdout.strip(),
+             "Sigstore trusted root could not be retrieved")
+    destination.write_text(result.stdout, encoding="utf-8")
+    os.chmod(destination, 0o600)
+
+
+def attestation_command(
+    subject: str,
+    repository: str,
+    commit_sha: str,
+    bundle_path: Path,
+    trusted_root_path: Path,
+) -> list[str]:
     return [
         "gh", "attestation", "verify", subject,
+        "--bundle", str(bundle_path),
+        "--custom-trusted-root", str(trusted_root_path),
         "--repo", repository,
-        "--signer-workflow", f"{repository}/{PUBLISH_WORKFLOW}",
         "--cert-identity",
         f"https://github.com/{repository}/{PUBLISH_WORKFLOW}@refs/heads/main",
         "--source-digest", commit_sha,
@@ -238,13 +306,19 @@ def attestation_command(subject: str, repository: str, commit_sha: str) -> list[
 
 
 def verify_attestation(subject: str, repository: str, commit_sha: str,
+                       bundle_path: Path, trusted_root_path: Path,
                        environment: dict[str, str] | None = None) -> None:
-    command = attestation_command(subject, repository, commit_sha)
+    command = attestation_command(
+        subject, repository, commit_sha, bundle_path, trusted_root_path
+    )
     try:
         result = subprocess.run(command, env=environment, check=False,
-                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                timeout=120)
     except FileNotFoundError as error:
         raise RuntimeError("GitHub CLI is not installed") from error
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError("GitHub attestation verification timed out") from error
     if result.returncode != 0:
         raise RuntimeError("GitHub attestation verification failed")
 
@@ -382,7 +456,16 @@ def run_once(values: dict[str, str]) -> None:
             manifest_path,
         )
         validate_manifest(manifest, repository, commit_sha, api_image, web_image)
-        verify_attestation(str(manifest_path), repository, commit_sha)
+        gh_environment = prepare_gh_environment(temp / "gh-config")
+        trusted_root_path = temp / "trusted-root.jsonl"
+        download_trusted_root(trusted_root_path, gh_environment)
+        manifest_digest = "sha256:" + hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+        manifest_bundle = temp / "manifest-attestations.jsonl"
+        download_attestation_bundles(manifest_digest, repository, manifest_bundle)
+        verify_attestation(
+            str(manifest_path), repository, commit_sha, manifest_bundle,
+            trusted_root_path, gh_environment,
+        )
 
         ci_run_id = manifest["ci_run_id"]
         ci_run = github_get(f"{API_BASE}/repos/{repository}/actions/runs/{ci_run_id}")
@@ -392,10 +475,20 @@ def run_once(values: dict[str, str]) -> None:
         validate_publish_run(publish_run, repository, commit_sha, publish_run_id)
 
         environment = prepare_registry_environment(values, temp / "docker-config")
+        environment.update(gh_environment)
+        for name in ("GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN"):
+            environment.pop(name, None)
         try:
             for component in ("api", "web"):
-                reference = manifest["images"][component]["ref"]
-                verify_attestation(f"oci://{reference}", repository, commit_sha, environment)
+                image = manifest["images"][component]
+                bundle_path = temp / f"{component}-attestations.jsonl"
+                download_attestation_bundles(
+                    image["digest"], repository, bundle_path
+                )
+                verify_attestation(
+                    f"oci://{image['ref']}", repository, commit_sha,
+                    bundle_path, trusted_root_path, environment,
+                )
 
             latest = github_get(f"{API_BASE}/repos/{repository}/commits/main")
             if not latest or latest.get("sha") != commit_sha:
