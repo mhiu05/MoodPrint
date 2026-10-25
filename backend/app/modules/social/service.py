@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.contracts import ActionReceipt
 from app.core.errors import DomainError
-from app.core.security import Actor, lock_actor
+from app.core.security import Actor, digest, lock_actor
 from app.infrastructure.database.models import Consent, User, now
 from app.modules.matching import scoring
 from app.modules.social.models import (
@@ -225,10 +225,16 @@ def request_view(row, actor_id):
     )
 
 
+def pair_alias(a: UUID, b: UUID) -> tuple[str, str]:
+    """One pseudonym per pair (DR-06): the same name on cards, requests, rooms and export."""
+    seed = digest(":".join(sorted((str(a), str(b)))))[:8]
+    return f"Bạn đồng hành {seed[:6]}", seed
+
+
 def connection_view(room):
     return ConnectionView(
         id=room.id,
-        alias=f"Bạn đồng hành {str(room.pair_id)[:6]}",
+        alias=pair_alias(room.low_user_id, room.high_user_id)[0],
         status=room.status,
         version=room.version,
         high_water_seq=str(room.next_seq),

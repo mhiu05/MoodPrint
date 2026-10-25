@@ -21,6 +21,7 @@ from app.modules.social.models import (
     MatchingDraft,
     PublishedProfile,
 )
+from app.modules.social.service import pair_alias
 
 ROW_LIMIT = 1000
 
@@ -102,7 +103,7 @@ async def social_section(db: AsyncSession, user: User) -> dict:
     )
     blocks = await _rows(db, select(Block).where(Block.blocker_id == user.id))
     shared = await _rows(db, select(RevealAccess).where(RevealAccess.owner_id == user.id))
-    alias = {room.id: f"Bạn đồng hành {str(room.pair_id)[:6]}" for room in rooms}
+    alias = {room.id: pair_alias(room.low_user_id, room.high_user_id)[0] for room in rooms}
     return {
         "matchingDraft": {"profile": draft.payload, "version": draft.version} if draft else None,
         "publishedProfiles": [

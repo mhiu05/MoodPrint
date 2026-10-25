@@ -211,7 +211,7 @@ async def withdraw(body: VersionInput, request: Request, actor: Actor = Depends(
 
 @router.get("/matching/candidates", response_model=CandidateListDTO)
 async def candidates(request: Request, actor: Actor = Depends(require_actor)):
-    from app.core.security import digest, lock_actor
+    from app.core.security import lock_actor
     from app.modules.social.retrieval import ranked_candidates
 
     async with request.app.state.database.require()() as db, db.begin():
@@ -286,11 +286,11 @@ async def candidates(request: Request, actor: Actor = Depends(require_actor)):
             )
             db.add(ref)
             await db.flush()
-            alias_seed = digest(":".join(sorted((str(user.id), str(peer.id)))))[:8]
+            alias, alias_seed = svc.pair_alias(user.id, peer.id)
             result.append(
                 CandidateCardDTO(
                     candidate_ref=ref.id,
-                    alias=f"Bạn đồng hành {alias_seed[:6]}",
+                    alias=alias,
                     avatar_seed=alias_seed,
                     profile=PublicProfile.model_validate(published.payload),
                     reasons=svc.reasons(own.payload, published.payload),
