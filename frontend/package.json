@@ -10,7 +10,6 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:e2e:legacy": "playwright test --config playwright.legacy.config.ts",
     "test:e2e:fullstack": "playwright test --config playwright.fullstack.config.ts",
     "contracts:generate": "openapi-typescript ../backend/openapi.json -o src/api/generated/schema.d.ts"
   },
