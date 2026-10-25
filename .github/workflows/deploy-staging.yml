@@ -1,140 +1,374 @@
-name: Deploy approved staging snapshot
+name: Publish verified staging release
 
 on:
   workflow_dispatch:
     inputs:
       release_sha:
-        description: Full 40-character commit SHA already merged into main
+        description: Full 40-character SHA of the current main commit
         required: true
         type: string
       approval:
         description: 'Type DEPLOY STAGING followed by a space and the full SHA'
         required: true
         type: string
+  workflow_run:
+    workflows: ["Verify local application"]
+    types: [completed]
+    branches: [main]
+
+permissions: {}
 
 concurrency:
-  group: moodprint-staging
+  group: moodprint-staging-release
   cancel-in-progress: false
 
 jobs:
   validate:
+    if: ${{github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       actions: read
     outputs:
-      sha: ${{ steps.provenance.outputs.sha }}
+      eligible: ${{steps.provenance.outputs.eligible}}
+      release_sha: ${{steps.provenance.outputs.release_sha}}
+      ci_run_id: ${{steps.provenance.outputs.ci_run_id}}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha}}
           fetch-depth: 0
           persist-credentials: false
       - id: provenance
-        name: Validate explicit approval and main ancestry
+        name: Validate exact main commit and successful push CI
         env:
-          RELEASE_SHA: ${{ inputs.release_sha }}
-          APPROVAL: ${{ inputs.approval }}
+          RELEASE_SHA: ${{github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.release_sha}}
+          APPROVAL: ${{inputs.approval}}
+          DEPLOY_EVENT: ${{github.event_name}}
+          CI_RUN_ID: ${{github.event_name == 'workflow_run' && github.event.workflow_run.id || ''}}
+          CI_EVENT: ${{github.event.workflow_run.event || ''}}
+          CI_BRANCH: ${{github.event.workflow_run.head_branch || ''}}
+          CI_REPOSITORY: ${{github.event.workflow_run.head_repository.full_name || ''}}
+          GH_TOKEN: ${{github.token}}
         run: |
           set -euo pipefail
-          [[ "$GITHUB_REF" == refs/heads/main ]]
-          [[ "$GITHUB_ACTOR" == "$GITHUB_REPOSITORY_OWNER" ]]
-          [[ "$RELEASE_SHA" =~ ^[a-f0-9]{40}$ ]]
-          [[ "$APPROVAL" == "DEPLOY STAGING $RELEASE_SHA" ]]
-          git fetch --no-tags origin main
-          [[ $(git rev-parse "$RELEASE_SHA^{commit}") == "$RELEASE_SHA" ]]
-          git merge-base --is-ancestor "$RELEASE_SHA" origin/main
-          echo "sha=$RELEASE_SHA" >> "$GITHUB_OUTPUT"
-      - name: Require successful push CI on the exact SHA
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_SHA: ${{ steps.provenance.outputs.sha }}
-        run: |
-          set -euo pipefail
-          gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/verify.yml/runs" \
-            -f head_sha="$RELEASE_SHA" -f status=success -f per_page=100 |
-            jq -e --arg sha "$RELEASE_SHA" \
-              '.workflow_runs | any(.head_sha == $sha and .conclusion == "success" and .event == "push" and .head_branch == "main")'
 
-  publish_and_deploy:
+          write_output() {
+            printf '%s=%s\n' "$1" "$2" >> "$GITHUB_OUTPUT"
+          }
+          [[ "$GITHUB_REF" == "refs/heads/main" ]]
+          [[ "$RELEASE_SHA" =~ ^[a-f0-9]{40}$ ]]
+
+          if [[ "$DEPLOY_EVENT" == "workflow_dispatch" ]]; then
+            [[ "${GITHUB_ACTOR,,}" == "${GITHUB_REPOSITORY_OWNER,,}" ]]
+            [[ "$APPROVAL" == "DEPLOY STAGING $RELEASE_SHA" ]]
+          else
+            [[ "$CI_EVENT" == "push" ]]
+            [[ "$CI_BRANCH" == "main" ]]
+            [[ "$CI_REPOSITORY" == "$GITHUB_REPOSITORY" ]]
+          fi
+
+          git fetch --no-tags origin main
+          latest_sha=$(git rev-parse origin/main)
+          if [[ "$RELEASE_SHA" != "$latest_sha" ]]; then
+            if [[ "$DEPLOY_EVENT" == "workflow_run" ]]; then
+              write_output eligible false
+              echo "Release skipped because main moved to $latest_sha."
+              exit 0
+            fi
+            echo "Manual release must target the current main SHA." >&2
+            exit 1
+          fi
+
+          if [[ -z "$CI_RUN_ID" ]]; then
+            CI_RUN_ID=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/verify.yml/runs" \
+              -f head_sha="$RELEASE_SHA" -f branch=main -f event=push \
+              -f status=completed -f per_page=100 |
+              jq -er --arg sha "$RELEASE_SHA" --arg repo "$GITHUB_REPOSITORY" '
+                [.workflow_runs[] | select(
+                  .head_sha == $sha and
+                  .head_branch == "main" and
+                  .event == "push" and
+                  .status == "completed" and
+                  .conclusion == "success" and
+                  .workflow_id == 394882427 and
+                  .head_repository.full_name == $repo
+                )] | sort_by(.created_at) | last | .id')
+          fi
+          [[ "$CI_RUN_ID" =~ ^[0-9]+$ ]]
+
+          run_json=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID")
+          jq -e --arg sha "$RELEASE_SHA" --arg repo "$GITHUB_REPOSITORY" '
+            .head_sha == $sha and
+            .head_branch == "main" and
+            .event == "push" and
+            .status == "completed" and
+            .conclusion == "success" and
+            .workflow_id == 394882427 and
+            (.path | startswith(".github/workflows/verify.yml@")) and
+            .head_repository.full_name == $repo and
+            .repository.full_name == $repo
+          ' <<<"$run_json" >/dev/null
+
+          write_output eligible true
+          write_output release_sha "$RELEASE_SHA"
+          write_output ci_run_id "$CI_RUN_ID"
+
+  build:
     needs: validate
+    if: ${{needs.validate.outputs.eligible == 'true'}}
     runs-on: ubuntu-latest
-    environment: staging
     permissions:
       contents: read
-      id-token: write
     env:
-      RELEASE_SHA: ${{ needs.validate.outputs.sha }}
-      AWS_REGION: ${{ vars.STAGING_AWS_REGION }}
-      AWS_ACCOUNT_ID: ${{ vars.STAGING_AWS_ACCOUNT_ID }}
-      API_REPOSITORY: ${{ vars.STAGING_API_ECR_REPOSITORY }}
-      WEB_REPOSITORY: ${{ vars.STAGING_WEB_ECR_REPOSITORY }}
-      INSTANCE_ID: ${{ vars.STAGING_EC2_INSTANCE_ID }}
-      SSM_DOCUMENT: ${{ vars.STAGING_SSM_DOCUMENT }}
+      RELEASE_SHA: ${{needs.validate.outputs.release_sha}}
+      API_IMAGE: ghcr.io/mhiu05/moodprint-api
+      WEB_IMAGE: ghcr.io/mhiu05/moodprint-web
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.validate.outputs.sha }}
+          ref: ${{needs.validate.outputs.release_sha}}
           persist-credentials: false
-      - name: Confirm checkout and configuration
+      - name: Build and archive the exact release images
         run: |
           set -euo pipefail
-          [[ $(git rev-parse HEAD) == "$RELEASE_SHA" ]]
-          [[ -z $(git status --porcelain) ]]
-          [[ "$AWS_ACCOUNT_ID" =~ ^[0-9]{12}$ ]]
-          [[ "$AWS_REGION" =~ ^[a-z]{2}-[a-z]+-[0-9]$ ]]
-          [[ "$INSTANCE_ID" =~ ^i-[a-f0-9]+$ ]]
-          [[ "$API_REPOSITORY" =~ ^[a-z0-9][a-z0-9._/-]*$ ]]
-          [[ "$WEB_REPOSITORY" =~ ^[a-z0-9][a-z0-9._/-]*$ ]]
-          [[ "$SSM_DOCUMENT" =~ ^[A-Za-z0-9_.-]+$ ]]
-      - uses: aws-actions/configure-aws-credentials@v6.3.0
+          out="$RUNNER_TEMP/moodprint-images"
+          mkdir -p "$out"
+          api_tag="$API_IMAGE:sha-$RELEASE_SHA"
+          web_tag="$WEB_IMAGE:sha-$RELEASE_SHA"
+          source="https://github.com/$GITHUB_REPOSITORY"
+
+          docker build --pull --platform linux/amd64 \
+            --label "org.opencontainers.image.source=$source" \
+            --label "org.opencontainers.image.revision=$RELEASE_SHA" \
+            --label "org.opencontainers.image.version=$RELEASE_SHA" \
+            --tag "$api_tag" backend
+          docker build --pull --platform linux/amd64 \
+            --label "org.opencontainers.image.source=$source" \
+            --label "org.opencontainers.image.revision=$RELEASE_SHA" \
+            --label "org.opencontainers.image.version=$RELEASE_SHA" \
+            --tag "$web_tag" frontend
+
+          if docker image inspect --format '{{json .Config.Env}}' "$api_tag" |
+            jq -e 'any(.[]; test("^(DATABASE_URL|SUPABASE_.*|OPENAI_API_KEY|VOYAGE_API_KEY)="; "i"))' >/dev/null; then
+            echo "API image contains a runtime secret variable in image metadata." >&2
+            exit 1
+          fi
+          docker run --rm --entrypoint sh "$api_tag" -c 'test ! -e /srv/moodprint/.env'
+          docker run --rm --entrypoint sh "$web_tag" -c '! find /srv -name "*.map" -print -quit | grep -q .'
+
+          api_id=$(docker image inspect --format '{{.Id}}' "$api_tag")
+          web_id=$(docker image inspect --format '{{.Id}}' "$web_tag")
+          docker save "$api_tag" | gzip -1 > "$out/api-image.tar.gz"
+          docker save "$web_tag" | gzip -1 > "$out/web-image.tar.gz"
+          jq -n \
+            --arg sha "$RELEASE_SHA" \
+            --arg api_tag "$api_tag" --arg api_id "$api_id" \
+            --arg web_tag "$web_tag" --arg web_id "$web_id" \
+            '{release_sha:$sha,api:{tag:$api_tag,image_id:$api_id},web:{tag:$web_tag,image_id:$web_id}}' \
+            > "$out/build-manifest.json"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          role-to-assume: ${{ vars.STAGING_GITHUB_ROLE_ARN }}
-          aws-region: ${{ vars.STAGING_AWS_REGION }}
-          allowed-account-ids: ${{ vars.STAGING_AWS_ACCOUNT_ID }}
-      - uses: aws-actions/amazon-ecr-login@v2.1.7
-      - uses: docker/setup-buildx-action@v4.3.0
-      - name: Build and push immutable commit images
+          name: moodprint-images
+          path: ${{runner.temp}}/moodprint-images/*
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  publish_gate:
+    needs: [validate, build]
+    if: ${{needs.validate.outputs.eligible == 'true'}}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      eligible: ${{steps.latest.outputs.eligible}}
+    steps:
+      - id: latest
+        name: Recheck main and CI before granting publish permissions
+        env:
+          RELEASE_SHA: ${{needs.validate.outputs.release_sha}}
+          CI_RUN_ID: ${{needs.validate.outputs.ci_run_id}}
+          GH_TOKEN: ${{github.token}}
         run: |
           set -euo pipefail
-          registry="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
-          publish_if_missing() {
-            local repository="$1" context="$2"
-            if aws ecr describe-images --repository-name "$repository" \
-              --image-ids imageTag="$RELEASE_SHA" >/dev/null 2>&1; then
-              echo "Reusing immutable image tag in $repository"
-            else
-              docker buildx build --platform linux/amd64 --pull --push \
-                --label "org.opencontainers.image.revision=$RELEASE_SHA" \
-                -t "$registry/$repository:$RELEASE_SHA" "$context"
-            fi
+          latest_sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          run_json=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID")
+          if [[ "$latest_sha" != "$RELEASE_SHA" ]] ||
+            ! jq -e --arg sha "$RELEASE_SHA" --arg repo "$GITHUB_REPOSITORY" '
+              .head_sha == $sha and
+              .head_branch == "main" and
+              .event == "push" and
+              .status == "completed" and
+              .conclusion == "success" and
+              .workflow_id == 394882427 and
+              .head_repository.full_name == $repo
+            ' <<<"$run_json" >/dev/null; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "Main or the verified CI run changed; publication skipped."
+            exit 0
+          fi
+          echo "eligible=true" >> "$GITHUB_OUTPUT"
+
+  publish:
+    needs: [validate, build, publish_gate]
+    if: ${{needs.publish_gate.outputs.eligible == 'true'}}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      attestations: write
+      contents: write
+      id-token: write
+      packages: write
+    env:
+      RELEASE_SHA: ${{needs.validate.outputs.release_sha}}
+      CI_RUN_ID: ${{needs.validate.outputs.ci_run_id}}
+      API_IMAGE: ghcr.io/mhiu05/moodprint-api
+      WEB_IMAGE: ghcr.io/mhiu05/moodprint-web
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: moodprint-images
+          path: ${{runner.temp}}/moodprint-images
+      - id: publish_gate
+        name: Recheck source SHA immediately before registry access
+        env:
+          GH_TOKEN: ${{github.token}}
+        run: |
+          set -euo pipefail
+          latest_sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          if [[ "$GITHUB_SHA" != "$RELEASE_SHA" || "$latest_sha" != "$RELEASE_SHA" ]]; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "Main moved during the build; no images will be published."
+            exit 0
+          fi
+          echo "eligible=true" >> "$GITHUB_OUTPUT"
+      - name: Load and verify build outputs
+        if: ${{steps.publish_gate.outputs.eligible == 'true'}}
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/moodprint-images"
+          [[ "$(jq -er .release_sha "$dir/build-manifest.json")" == "$RELEASE_SHA" ]]
+          gzip -dc "$dir/api-image.tar.gz" | docker load
+          gzip -dc "$dir/web-image.tar.gz" | docker load
+          api_tag=$(jq -er .api.tag "$dir/build-manifest.json")
+          web_tag=$(jq -er .web.tag "$dir/build-manifest.json")
+          [[ "$api_tag" == "$API_IMAGE:sha-$RELEASE_SHA" ]]
+          [[ "$web_tag" == "$WEB_IMAGE:sha-$RELEASE_SHA" ]]
+          [[ "$(docker image inspect --format '{{.Id}}' "$api_tag")" == "$(jq -er .api.image_id "$dir/build-manifest.json")" ]]
+          [[ "$(docker image inspect --format '{{.Id}}' "$web_tag")" == "$(jq -er .web.image_id "$dir/build-manifest.json")" ]]
+          [[ "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$api_tag")" == "$RELEASE_SHA" ]]
+          [[ "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$web_tag")" == "$RELEASE_SHA" ]]
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        if: ${{steps.publish_gate.outputs.eligible == 'true'}}
+        with:
+          registry: ghcr.io
+          username: ${{github.actor}}
+          password: ${{secrets.GITHUB_TOKEN}}
+      - id: push
+        name: Push immutable-SHA image tags and record registry digests
+        if: ${{steps.publish_gate.outputs.eligible == 'true'}}
+        run: |
+          set -euo pipefail
+          push_image() {
+            local tag="$1" output digest
+            output=$(docker push "$tag" 2>&1) || {
+              printf '%s\n' "$output" >&2
+              return 1
+            }
+            printf '%s\n' "$output" >&2
+            digest=$(printf '%s\n' "$output" | sed -nE 's/.*digest: (sha256:[a-f0-9]{64}).*/\1/p' | tail -n1)
+            [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]] || {
+              echo "Registry did not return a valid image digest." >&2
+              return 1
+            }
+            printf '%s' "$digest"
           }
-          publish_if_missing "$API_REPOSITORY" backend
-          publish_if_missing "$WEB_REPOSITORY" frontend
-          api_digest=$(aws ecr describe-images --repository-name "$API_REPOSITORY" \
-            --image-ids imageTag="$RELEASE_SHA" --query 'imageDetails[0].imageDigest' --output text)
-          web_digest=$(aws ecr describe-images --repository-name "$WEB_REPOSITORY" \
-            --image-ids imageTag="$RELEASE_SHA" --query 'imageDetails[0].imageDigest' --output text)
-          [[ "$api_digest" =~ ^sha256:[a-f0-9]{64}$ ]]
-          [[ "$web_digest" =~ ^sha256:[a-f0-9]{64}$ ]]
-          echo "API_DIGEST=$api_digest" >> "$GITHUB_ENV"
-          echo "WEB_DIGEST=$web_digest" >> "$GITHUB_ENV"
-      - name: Run restricted SSM deployment and await result
+          api_digest=$(push_image "$API_IMAGE:sha-$RELEASE_SHA")
+          web_digest=$(push_image "$WEB_IMAGE:sha-$RELEASE_SHA")
+          echo "api_digest=$api_digest" >> "$GITHUB_OUTPUT"
+          echo "web_digest=$web_digest" >> "$GITHUB_OUTPUT"
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        if: ${{steps.publish_gate.outputs.eligible == 'true'}}
+        with:
+          subject-name: ghcr.io/mhiu05/moodprint-api
+          subject-digest: ${{steps.push.outputs.api_digest}}
+          push-to-registry: true
+          create-storage-record: false
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        if: ${{steps.publish_gate.outputs.eligible == 'true'}}
+        with:
+          subject-name: ghcr.io/mhiu05/moodprint-web
+          subject-digest: ${{steps.push.outputs.web_digest}}
+          push-to-registry: true
+          create-storage-record: false
+      - id: before_manifest
+        name: Skip a release superseded during publication
+        if: ${{steps.publish_gate.outputs.eligible == 'true'}}
+        env:
+          GH_TOKEN: ${{github.token}}
         run: |
           set -euo pipefail
-          command_id=$(aws ssm send-command --document-name "$SSM_DOCUMENT" \
-            --instance-ids "$INSTANCE_ID" \
-            --parameters "apiDigest=$API_DIGEST,webDigest=$WEB_DIGEST" \
-            --comment "MoodPrint staging $RELEASE_SHA" \
-            --query 'Command.CommandId' --output text)
-          echo "SSM command: $command_id"
-          for ((attempt=0; attempt<90; attempt++)); do
-            status=$(aws ssm get-command-invocation --command-id "$command_id" \
-              --instance-id "$INSTANCE_ID" --query Status --output text 2>/dev/null || true)
-            case "$status" in
-              Success) echo 'Staging deployment healthy'; exit 0 ;;
-              Failed|Cancelled|TimedOut|Cancelling) echo "Deployment status: $status" >&2; exit 1 ;;
-            esac
-            sleep 5
-          done
-          echo 'SSM command did not complete within 450 seconds' >&2
-          exit 1
+          latest_sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          if [[ "$latest_sha" != "$RELEASE_SHA" ]]; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "Main moved while images were being published; no release manifest created."
+            exit 0
+          fi
+          echo "eligible=true" >> "$GITHUB_OUTPUT"
+      - name: Create verified release manifest
+        if: ${{steps.before_manifest.outputs.eligible == 'true'}}
+        env:
+          API_DIGEST: ${{steps.push.outputs.api_digest}}
+          WEB_DIGEST: ${{steps.push.outputs.web_digest}}
+        run: |
+          set -euo pipefail
+          [[ "$API_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          [[ "$WEB_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          mkdir -p "$RUNNER_TEMP/moodprint-release"
+          jq -n \
+            --arg repo "$GITHUB_REPOSITORY" \
+            --arg sha "$RELEASE_SHA" \
+            --arg ci_run "$CI_RUN_ID" \
+            --arg publish_run "$GITHUB_RUN_ID" \
+            --arg api_name "$API_IMAGE" --arg api_digest "$API_DIGEST" \
+            --arg web_name "$WEB_IMAGE" --arg web_digest "$WEB_DIGEST" \
+            '{
+              schema_version:1,
+              repository:$repo,
+              branch:"main",
+              commit_sha:$sha,
+              ci_run_id:($ci_run|tonumber),
+              publish_run_id:($publish_run|tonumber),
+              images:{
+                api:{name:$api_name,digest:$api_digest,ref:($api_name+"@"+$api_digest),revision:$sha},
+                web:{name:$web_name,digest:$web_digest,ref:($web_name+"@"+$web_digest),revision:$sha}
+              }
+            }' > "$RUNNER_TEMP/moodprint-release/release.json"
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        if: ${{steps.before_manifest.outputs.eligible == 'true'}}
+        with:
+          subject-path: ${{runner.temp}}/moodprint-release/release.json
+      - name: Publish the manifest as a SHA-specific prerelease
+        if: ${{steps.before_manifest.outputs.eligible == 'true'}}
+        env:
+          GH_TOKEN: ${{github.token}}
+        run: |
+          set -euo pipefail
+          tag="staging-$RELEASE_SHA"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            mkdir -p "$RUNNER_TEMP/existing-release"
+            gh release download "$tag" --pattern release.json --dir "$RUNNER_TEMP/existing-release"
+            cmp -s "$RUNNER_TEMP/existing-release/release.json" "$RUNNER_TEMP/moodprint-release/release.json" || {
+              echo "An existing SHA release has a different manifest; refusing to replace it." >&2
+              exit 1
+            }
+            echo "The verified SHA release already exists unchanged."
+            exit 0
+          fi
+          gh release create "$tag" "$RUNNER_TEMP/moodprint-release/release.json" \
+            --target "$RELEASE_SHA" \
+            --title "MoodPrint staging $RELEASE_SHA" \
+            --prerelease \
+            --notes "Verified staging image manifest for commit $RELEASE_SHA. Images are referenced by immutable registry digest."

@@ -1,6 +1,6 @@
 # Local operation and future deployment
 
-No cloud provider is configured and no public application has been deployed.
+AWS staging infrastructure is provisioned for `moodprint.duckdns.org`; the application will be considered deployed after a verified image release passes health checks. See [AWS staging deployment](aws/README.md).
 
 The backend is one process. AI transcript/replay/proposals live only in bounded RAM and expire after at most 24 hours idle. Do not enable multiple workers or replicas until an equally private shared ephemeral store and run fencing have been implemented and tested. A restart ends conversational context and marks metadata interrupted; it never replays a model call.
 
@@ -30,4 +30,4 @@ App rollback uses a previous image against a compatible expanded schema. Alembic
 
 Liveness: `/api/v1/health/live`; readiness: `/api/v1/health/ready`. Missing database, schema revision or configuration must keep readiness unavailable. Drain streams and bounded AI runs before stopping. Privacy-safe logs contain request IDs and error classes, not request bodies, SQL parameters, provider tokens or transcripts.
 
-Chuẩn bị AWS staging và xác minh local: [tài liệu triển khai](../docs/deployment/README.md). Image production dùng `backend/Dockerfile` và `frontend/Dockerfile`; `deploy/compose.staging.yml` phục vụ cả hai qua `deploy/Caddyfile` với một backend worker. Các file này chưa tạo tài nguyên AWS.
+Chuẩn bị AWS staging và xác minh local: [tài liệu triển khai](../docs/deployment/README.md); xem thêm [vận hành AWS release poller](aws/README.md). Image production dùng `backend/Dockerfile` và `frontend/Dockerfile`; `deploy/compose.staging.yml` phục vụ cả hai qua `deploy/Caddyfile` với một backend worker.
