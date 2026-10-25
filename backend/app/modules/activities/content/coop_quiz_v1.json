@@ -1,0 +1,824 @@
+{
+ "version": "coop_quiz-v1",
+ "items": [
+  {
+   "id": "q-dia-ly-01",
+   "category": "dia-ly",
+   "prompt": "Thủ đô của Nhật Bản là thành phố nào?",
+   "options": [
+    "Osaka",
+    "Tokyo",
+    "Kyoto",
+    "Sapporo"
+   ],
+   "correctIndex": 1,
+   "explanation": "Tokyo là thủ đô và thành phố lớn nhất của Nhật Bản."
+  },
+  {
+   "id": "q-dia-ly-02",
+   "category": "dia-ly",
+   "prompt": "Đại dương lớn nhất Trái Đất là?",
+   "options": [
+    "Đại Tây Dương",
+    "Ấn Độ Dương",
+    "Thái Bình Dương",
+    "Bắc Băng Dương"
+   ],
+   "correctIndex": 2,
+   "explanation": "Thái Bình Dương rộng nhất, lớn hơn cả tổng diện tích đất liền."
+  },
+  {
+   "id": "q-dia-ly-03",
+   "category": "dia-ly",
+   "prompt": "Đỉnh núi cao nhất Việt Nam là?",
+   "options": [
+    "Bà Đen",
+    "Fansipan",
+    "Lang Biang",
+    "Bạch Mã"
+   ],
+   "correctIndex": 1,
+   "explanation": "Fansipan cao khoảng 3.143 m, thuộc dãy Hoàng Liên Sơn."
+  },
+  {
+   "id": "q-dia-ly-04",
+   "category": "dia-ly",
+   "prompt": "Châu lục nào có diện tích lớn nhất?",
+   "options": [
+    "Châu Phi",
+    "Châu Á",
+    "Châu Mỹ",
+    "Châu Âu"
+   ],
+   "correctIndex": 1,
+   "explanation": "Châu Á là châu lục rộng nhất và đông dân nhất."
+  },
+  {
+   "id": "q-dia-ly-05",
+   "category": "dia-ly",
+   "prompt": "Kim tự tháp Giza nằm ở quốc gia nào?",
+   "options": [
+    "Ai Cập",
+    "Mexico",
+    "Peru",
+    "Hy Lạp"
+   ],
+   "correctIndex": 0,
+   "explanation": "Kim tự tháp Giza nằm gần thủ đô Cairo của Ai Cập."
+  },
+  {
+   "id": "q-dia-ly-06",
+   "category": "dia-ly",
+   "prompt": "Sa mạc Sahara nằm ở châu lục nào?",
+   "options": [
+    "Châu Á",
+    "Châu Phi",
+    "Châu Đại Dương",
+    "Châu Mỹ"
+   ],
+   "correctIndex": 1,
+   "explanation": "Sahara trải rộng khắp Bắc Phi."
+  },
+  {
+   "id": "q-dia-ly-07",
+   "category": "dia-ly",
+   "prompt": "Quốc gia nào có hình dáng giống chiếc ủng?",
+   "options": [
+    "Hy Lạp",
+    "Ý",
+    "Tây Ban Nha",
+    "Bồ Đào Nha"
+   ],
+   "correctIndex": 1,
+   "explanation": "Bán đảo Ý thường được ví như một chiếc ủng."
+  },
+  {
+   "id": "q-dia-ly-08",
+   "category": "dia-ly",
+   "prompt": "Thủ đô của Úc là thành phố nào?",
+   "options": [
+    "Sydney",
+    "Melbourne",
+    "Canberra",
+    "Perth"
+   ],
+   "correctIndex": 2,
+   "explanation": "Canberra là thủ đô, dù Sydney và Melbourne đông dân hơn."
+  },
+  {
+   "id": "q-dia-ly-09",
+   "category": "dia-ly",
+   "prompt": "Đường xích đạo chia Trái Đất thành hai nửa nào?",
+   "options": [
+    "Đông và Tây",
+    "Bắc và Nam",
+    "Trong và ngoài",
+    "Sáng và tối"
+   ],
+   "correctIndex": 1,
+   "explanation": "Xích đạo chia Trái Đất thành Bắc bán cầu và Nam bán cầu."
+  },
+  {
+   "id": "q-khoa-hoc-01",
+   "category": "khoa-hoc",
+   "prompt": "Hành tinh nào gần Mặt Trời nhất?",
+   "options": [
+    "Sao Kim",
+    "Sao Thủy",
+    "Trái Đất",
+    "Sao Hỏa"
+   ],
+   "correctIndex": 1,
+   "explanation": "Sao Thủy là hành tinh gần Mặt Trời nhất."
+  },
+  {
+   "id": "q-khoa-hoc-02",
+   "category": "khoa-hoc",
+   "prompt": "Ở mực nước biển, nước tinh khiết sôi ở bao nhiêu độ C?",
+   "options": [
+    "90",
+    "100",
+    "110",
+    "120"
+   ],
+   "correctIndex": 1,
+   "explanation": "Ở áp suất tiêu chuẩn, nước sôi ở 100 °C."
+  },
+  {
+   "id": "q-khoa-hoc-03",
+   "category": "khoa-hoc",
+   "prompt": "Khí nào chiếm tỉ lệ lớn nhất trong không khí?",
+   "options": [
+    "Oxy",
+    "Nitơ",
+    "Carbon dioxide",
+    "Argon"
+   ],
+   "correctIndex": 1,
+   "explanation": "Nitơ chiếm khoảng 78% không khí khô."
+  },
+  {
+   "id": "q-khoa-hoc-04",
+   "category": "khoa-hoc",
+   "prompt": "Hành tinh nào được gọi là \"hành tinh đỏ\"?",
+   "options": [
+    "Sao Mộc",
+    "Sao Hỏa",
+    "Sao Thổ",
+    "Sao Kim"
+   ],
+   "correctIndex": 1,
+   "explanation": "Bề mặt Sao Hỏa có nhiều oxit sắt nên trông đỏ."
+  },
+  {
+   "id": "q-khoa-hoc-05",
+   "category": "khoa-hoc",
+   "prompt": "Ký hiệu hóa học của vàng là gì?",
+   "options": [
+    "Ag",
+    "Au",
+    "Fe",
+    "Gd"
+   ],
+   "correctIndex": 1,
+   "explanation": "Au đến từ tên Latinh aurum; Ag là bạc."
+  },
+  {
+   "id": "q-khoa-hoc-06",
+   "category": "khoa-hoc",
+   "prompt": "Ánh sáng Mặt Trời đến Trái Đất mất khoảng bao lâu?",
+   "options": [
+    "8 giây",
+    "8 phút",
+    "8 giờ",
+    "8 ngày"
+   ],
+   "correctIndex": 1,
+   "explanation": "Khoảng 8 phút 20 giây."
+  },
+  {
+   "id": "q-khoa-hoc-07",
+   "category": "khoa-hoc",
+   "prompt": "Hành tinh lớn nhất trong Hệ Mặt Trời là?",
+   "options": [
+    "Sao Thổ",
+    "Sao Mộc",
+    "Sao Hải Vương",
+    "Trái Đất"
+   ],
+   "correctIndex": 1,
+   "explanation": "Sao Mộc lớn nhất, gấp hơn 300 lần khối lượng Trái Đất."
+  },
+  {
+   "id": "q-khoa-hoc-08",
+   "category": "khoa-hoc",
+   "prompt": "Ở áp suất tiêu chuẩn, nước tinh khiết đóng băng ở bao nhiêu độ C?",
+   "options": [
+    "0",
+    "-10",
+    "4",
+    "10"
+   ],
+   "correctIndex": 0,
+   "explanation": "Nước tinh khiết đóng băng ở 0 °C."
+  },
+  {
+   "id": "q-khoa-hoc-09",
+   "category": "khoa-hoc",
+   "prompt": "Theo cách gọi truyền thống, cầu vồng có bao nhiêu màu?",
+   "options": [
+    "5",
+    "6",
+    "7",
+    "8"
+   ],
+   "correctIndex": 2,
+   "explanation": "Đỏ, cam, vàng, lục, lam, chàm, tím."
+  },
+  {
+   "id": "q-thien-nhien-01",
+   "category": "thien-nhien",
+   "prompt": "Loài động vật nào lớn nhất từng được biết đến?",
+   "options": [
+    "Voi châu Phi",
+    "Cá voi xanh",
+    "Khủng long T. rex",
+    "Cá mập trắng"
+   ],
+   "correctIndex": 1,
+   "explanation": "Cá voi xanh có thể dài khoảng 30 m."
+  },
+  {
+   "id": "q-thien-nhien-02",
+   "category": "thien-nhien",
+   "prompt": "Con vật nào có thể đổi màu da?",
+   "options": [
+    "Tắc kè hoa",
+    "Thỏ",
+    "Rùa",
+    "Ngựa"
+   ],
+   "correctIndex": 0,
+   "explanation": "Tắc kè hoa đổi màu nhờ các tế bào đặc biệt dưới da."
+  },
+  {
+   "id": "q-thien-nhien-03",
+   "category": "thien-nhien",
+   "prompt": "Ong mật làm ra sản phẩm nào?",
+   "options": [
+    "Sữa",
+    "Mật ong",
+    "Tơ",
+    "Ngọc trai"
+   ],
+   "correctIndex": 1,
+   "explanation": "Ong biến mật hoa thành mật ong và cất trong tổ."
+  },
+  {
+   "id": "q-thien-nhien-04",
+   "category": "thien-nhien",
+   "prompt": "Cây xanh hấp thụ khí nào khi quang hợp?",
+   "options": [
+    "Oxy",
+    "Carbon dioxide",
+    "Nitơ",
+    "Heli"
+   ],
+   "correctIndex": 1,
+   "explanation": "Cây dùng carbon dioxide và ánh sáng để tạo đường, thải ra oxy."
+  },
+  {
+   "id": "q-thien-nhien-05",
+   "category": "thien-nhien",
+   "prompt": "Loài chim nào không biết bay?",
+   "options": [
+    "Đại bàng",
+    "Chim cánh cụt",
+    "Bồ câu",
+    "Chim sẻ"
+   ],
+   "correctIndex": 1,
+   "explanation": "Chim cánh cụt dùng cánh để bơi thay vì bay."
+  },
+  {
+   "id": "q-thien-nhien-06",
+   "category": "thien-nhien",
+   "prompt": "Con nhện có bao nhiêu chân?",
+   "options": [
+    "6",
+    "8",
+    "10",
+    "12"
+   ],
+   "correctIndex": 1,
+   "explanation": "Nhện có 8 chân; côn trùng có 6."
+  },
+  {
+   "id": "q-thien-nhien-07",
+   "category": "thien-nhien",
+   "prompt": "Thức ăn chính của gấu trúc lớn là gì?",
+   "options": [
+    "Cá",
+    "Tre",
+    "Mật ong",
+    "Thịt"
+   ],
+   "correctIndex": 1,
+   "explanation": "Tre chiếm phần lớn khẩu phần của gấu trúc lớn."
+  },
+  {
+   "id": "q-thien-nhien-08",
+   "category": "thien-nhien",
+   "prompt": "Trong văn hóa dân gian Việt Nam, con vật nào được gọi là \"chúa sơn lâm\"?",
+   "options": [
+    "Sư tử",
+    "Hổ",
+    "Voi",
+    "Gấu"
+   ],
+   "correctIndex": 1,
+   "explanation": "Hổ được gọi là chúa sơn lâm trong truyện dân gian."
+  },
+  {
+   "id": "q-thien-nhien-09",
+   "category": "thien-nhien",
+   "prompt": "Lá cây có màu xanh chủ yếu nhờ chất nào?",
+   "options": [
+    "Diệp lục",
+    "Sắt",
+    "Canxi",
+    "Muối"
+   ],
+   "correctIndex": 0,
+   "explanation": "Diệp lục hấp thụ ánh sáng và phản xạ màu xanh lục."
+  },
+  {
+   "id": "q-am-thuc-01",
+   "category": "am-thuc",
+   "prompt": "Phở truyền thống dùng loại sợi nào?",
+   "options": [
+    "Bánh mì",
+    "Bánh phở làm từ gạo",
+    "Mì trứng",
+    "Miến dong"
+   ],
+   "correctIndex": 1,
+   "explanation": "Bánh phở được làm từ bột gạo."
+  },
+  {
+   "id": "q-am-thuc-02",
+   "category": "am-thuc",
+   "prompt": "Sushi là món ăn nổi tiếng của nước nào?",
+   "options": [
+    "Hàn Quốc",
+    "Nhật Bản",
+    "Trung Quốc",
+    "Thái Lan"
+   ],
+   "correctIndex": 1,
+   "explanation": "Sushi là món cơm trộn giấm đặc trưng của Nhật Bản."
+  },
+  {
+   "id": "q-am-thuc-03",
+   "category": "am-thuc",
+   "prompt": "Kimchi là món ăn truyền thống của nước nào?",
+   "options": [
+    "Nhật Bản",
+    "Hàn Quốc",
+    "Việt Nam",
+    "Ấn Độ"
+   ],
+   "correctIndex": 1,
+   "explanation": "Kimchi là rau lên men, có mặt trong hầu hết bữa ăn Hàn Quốc."
+  },
+  {
+   "id": "q-am-thuc-04",
+   "category": "am-thuc",
+   "prompt": "Pizza bắt nguồn từ quốc gia nào?",
+   "options": [
+    "Pháp",
+    "Ý",
+    "Mỹ",
+    "Tây Ban Nha"
+   ],
+   "correctIndex": 1,
+   "explanation": "Pizza hiện đại bắt nguồn từ Naples, Ý."
+  },
+  {
+   "id": "q-am-thuc-05",
+   "category": "am-thuc",
+   "prompt": "Nước mắm truyền thống làm chủ yếu từ gì?",
+   "options": [
+    "Đậu nành",
+    "Cá và muối",
+    "Tôm khô",
+    "Rong biển"
+   ],
+   "correctIndex": 1,
+   "explanation": "Cá được ủ với muối nhiều tháng để thành nước mắm."
+  },
+  {
+   "id": "q-am-thuc-06",
+   "category": "am-thuc",
+   "prompt": "Hạt cà phê là bộ phận nào của cây cà phê?",
+   "options": [
+    "Rễ",
+    "Hạt bên trong quả",
+    "Lá khô",
+    "Hoa"
+   ],
+   "correctIndex": 1,
+   "explanation": "Mỗi quả cà phê thường chứa hai hạt."
+  },
+  {
+   "id": "q-am-thuc-07",
+   "category": "am-thuc",
+   "prompt": "Bánh chưng thường được gói bằng lá gì?",
+   "options": [
+    "Lá chuối",
+    "Lá dong",
+    "Lá sen",
+    "Lá bàng"
+   ],
+   "correctIndex": 1,
+   "explanation": "Lá dong giúp bánh chưng có màu xanh đặc trưng."
+  },
+  {
+   "id": "q-am-thuc-08",
+   "category": "am-thuc",
+   "prompt": "Tacos là món ăn nổi tiếng của nước nào?",
+   "options": [
+    "Mexico",
+    "Brazil",
+    "Ý",
+    "Pháp"
+   ],
+   "correctIndex": 0,
+   "explanation": "Tacos là bánh ngô cuốn nhân, rất phổ biến ở Mexico."
+  },
+  {
+   "id": "q-am-thuc-09",
+   "category": "am-thuc",
+   "prompt": "Đậu phụ được làm từ loại đậu nào?",
+   "options": [
+    "Đậu xanh",
+    "Đậu nành",
+    "Đậu đen",
+    "Đậu đỏ"
+   ],
+   "correctIndex": 1,
+   "explanation": "Đậu phụ được làm từ sữa đậu nành đông lại."
+  },
+  {
+   "id": "q-ngon-ngu-01",
+   "category": "ngon-ngu",
+   "prompt": "Từ \"hello\" trong tiếng Anh nghĩa là gì?",
+   "options": [
+    "Tạm biệt",
+    "Xin chào",
+    "Cảm ơn",
+    "Xin lỗi"
+   ],
+   "correctIndex": 1,
+   "explanation": "Hello là lời chào thông dụng trong tiếng Anh."
+  },
+  {
+   "id": "q-ngon-ngu-02",
+   "category": "ngon-ngu",
+   "prompt": "Bảng chữ cái tiếng Anh có bao nhiêu chữ cái?",
+   "options": [
+    "24",
+    "25",
+    "26",
+    "29"
+   ],
+   "correctIndex": 2,
+   "explanation": "Tiếng Anh dùng 26 chữ cái Latinh."
+  },
+  {
+   "id": "q-ngon-ngu-03",
+   "category": "ngon-ngu",
+   "prompt": "\"Thank you\" dịch sang tiếng Việt là gì?",
+   "options": [
+    "Xin chào",
+    "Cảm ơn",
+    "Không sao",
+    "Hẹn gặp lại"
+   ],
+   "correctIndex": 1,
+   "explanation": "Thank you nghĩa là cảm ơn."
+  },
+  {
+   "id": "q-ngon-ngu-04",
+   "category": "ngon-ngu",
+   "prompt": "Tiếng Việt hiện đại được viết bằng hệ chữ nào?",
+   "options": [
+    "Chữ Hán",
+    "Chữ Quốc ngữ dựa trên chữ Latinh",
+    "Chữ Phạn",
+    "Chữ Kirin"
+   ],
+   "correctIndex": 1,
+   "explanation": "Chữ Quốc ngữ dùng bảng chữ Latinh kèm dấu thanh."
+  },
+  {
+   "id": "q-ngon-ngu-05",
+   "category": "ngon-ngu",
+   "prompt": "Từ trái nghĩa với \"nóng\" là gì?",
+   "options": [
+    "Ấm",
+    "Lạnh",
+    "Sôi",
+    "Nắng"
+   ],
+   "correctIndex": 1,
+   "explanation": "Nóng và lạnh là cặp từ trái nghĩa."
+  },
+  {
+   "id": "q-ngon-ngu-06",
+   "category": "ngon-ngu",
+   "prompt": "Trong tiếng Anh, \"book\" nghĩa là gì?",
+   "options": [
+    "Bút",
+    "Sách",
+    "Bàn",
+    "Cặp"
+   ],
+   "correctIndex": 1,
+   "explanation": "Book là quyển sách."
+  },
+  {
+   "id": "q-ngon-ngu-07",
+   "category": "ngon-ngu",
+   "prompt": "Tiếng Việt có bao nhiêu thanh điệu theo cách dạy phổ biến?",
+   "options": [
+    "4",
+    "5",
+    "6",
+    "7"
+   ],
+   "correctIndex": 2,
+   "explanation": "Ngang, huyền, sắc, hỏi, ngã, nặng."
+  },
+  {
+   "id": "q-ngon-ngu-08",
+   "category": "ngon-ngu",
+   "prompt": "Lời chào \"Good morning\" thường dùng vào lúc nào?",
+   "options": [
+    "Buổi sáng",
+    "Buổi tối",
+    "Lúc đi ngủ",
+    "Nửa đêm"
+   ],
+   "correctIndex": 0,
+   "explanation": "Good morning nghĩa là chào buổi sáng."
+  },
+  {
+   "id": "q-ngon-ngu-09",
+   "category": "ngon-ngu",
+   "prompt": "\"Merci\" là lời cảm ơn trong tiếng nào?",
+   "options": [
+    "Tây Ban Nha",
+    "Pháp",
+    "Đức",
+    "Ý"
+   ],
+   "correctIndex": 1,
+   "explanation": "Merci là cảm ơn trong tiếng Pháp."
+  },
+  {
+   "id": "q-nghe-thuat-01",
+   "category": "nghe-thuat",
+   "prompt": "Bức tranh \"Mona Lisa\" do ai vẽ?",
+   "options": [
+    "Van Gogh",
+    "Leonardo da Vinci",
+    "Picasso",
+    "Monet"
+   ],
+   "correctIndex": 1,
+   "explanation": "Leonardo da Vinci vẽ Mona Lisa vào đầu thế kỷ 16."
+  },
+  {
+   "id": "q-nghe-thuat-02",
+   "category": "nghe-thuat",
+   "prompt": "Một cây đàn piano tiêu chuẩn có bao nhiêu phím?",
+   "options": [
+    "76",
+    "88",
+    "96",
+    "100"
+   ],
+   "correctIndex": 1,
+   "explanation": "Piano tiêu chuẩn có 88 phím: 52 trắng và 36 đen."
+  },
+  {
+   "id": "q-nghe-thuat-03",
+   "category": "nghe-thuat",
+   "prompt": "Trộn màu vàng với màu xanh lam (màu vẽ) được màu gì?",
+   "options": [
+    "Đỏ",
+    "Xanh lá",
+    "Tím",
+    "Cam"
+   ],
+   "correctIndex": 1,
+   "explanation": "Vàng và xanh lam pha với nhau cho ra xanh lá."
+  },
+  {
+   "id": "q-nghe-thuat-04",
+   "category": "nghe-thuat",
+   "prompt": "Nhạc cụ nào phổ biến nhất ở dạng 6 dây?",
+   "options": [
+    "Đàn guitar",
+    "Trống",
+    "Sáo",
+    "Kèn trumpet"
+   ],
+   "correctIndex": 0,
+   "explanation": "Guitar phổ biến nhất là loại 6 dây."
+  },
+  {
+   "id": "q-nghe-thuat-05",
+   "category": "nghe-thuat",
+   "prompt": "Ai là tác giả \"Truyện Kiều\"?",
+   "options": [
+    "Nguyễn Trãi",
+    "Nguyễn Du",
+    "Hồ Xuân Hương",
+    "Tố Hữu"
+   ],
+   "correctIndex": 1,
+   "explanation": "Nguyễn Du viết Truyện Kiều bằng thể thơ lục bát."
+  },
+  {
+   "id": "q-nghe-thuat-06",
+   "category": "nghe-thuat",
+   "prompt": "Bức \"Đêm đầy sao\" là tác phẩm của họa sĩ nào?",
+   "options": [
+    "Van Gogh",
+    "Rembrandt",
+    "Dalí",
+    "Matisse"
+   ],
+   "correctIndex": 0,
+   "explanation": "Vincent van Gogh vẽ The Starry Night năm 1889."
+  },
+  {
+   "id": "q-nghe-thuat-07",
+   "category": "nghe-thuat",
+   "prompt": "Bản nhạc thường được ghi bằng ký hiệu gì?",
+   "options": [
+    "Nốt nhạc",
+    "Số La Mã",
+    "Chữ cái Hy Lạp",
+    "Biểu tượng cảm xúc"
+   ],
+   "correctIndex": 0,
+   "explanation": "Nốt nhạc trên khuông nhạc cho biết cao độ và trường độ."
+  },
+  {
+   "id": "q-nghe-thuat-08",
+   "category": "nghe-thuat",
+   "prompt": "Ba màu cơ bản trong hệ màu vẽ truyền thống là?",
+   "options": [
+    "Đỏ, vàng, xanh lam",
+    "Trắng, đen, xám",
+    "Cam, tím, xanh lá",
+    "Hồng, nâu, be"
+   ],
+   "correctIndex": 0,
+   "explanation": "Đỏ, vàng, xanh lam là ba màu cơ bản truyền thống."
+  },
+  {
+   "id": "q-nghe-thuat-09",
+   "category": "nghe-thuat",
+   "prompt": "Đàn bầu của Việt Nam có bao nhiêu dây?",
+   "options": [
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "correctIndex": 0,
+   "explanation": "Đàn bầu chỉ có một dây, đổi cao độ bằng cần đàn."
+  },
+  {
+   "id": "q-the-thao-01",
+   "category": "the-thao",
+   "prompt": "Mỗi đội bóng đá có bao nhiêu cầu thủ trên sân?",
+   "options": [
+    "9",
+    "10",
+    "11",
+    "12"
+   ],
+   "correctIndex": 2,
+   "explanation": "Mỗi đội có 11 cầu thủ, kể cả thủ môn."
+  },
+  {
+   "id": "q-the-thao-02",
+   "category": "the-thao",
+   "prompt": "Thế vận hội mùa hè thường được tổ chức bao lâu một lần?",
+   "options": [
+    "2 năm",
+    "3 năm",
+    "4 năm",
+    "5 năm"
+   ],
+   "correctIndex": 2,
+   "explanation": "Olympic mùa hè diễn ra bốn năm một lần."
+  },
+  {
+   "id": "q-the-thao-03",
+   "category": "the-thao",
+   "prompt": "Môn thể thao nào dùng vợt và quả cầu lông?",
+   "options": [
+    "Tennis",
+    "Cầu lông",
+    "Bóng bàn",
+    "Bóng chuyền"
+   ],
+   "correctIndex": 1,
+   "explanation": "Cầu lông đánh quả cầu có lông vũ hoặc nhựa qua lưới."
+  },
+  {
+   "id": "q-the-thao-04",
+   "category": "the-thao",
+   "prompt": "Mỗi bên có bao nhiêu quân khi bắt đầu ván cờ vua?",
+   "options": [
+    "12",
+    "16",
+    "18",
+    "20"
+   ],
+   "correctIndex": 1,
+   "explanation": "Mỗi bên có 16 quân: 8 tốt và 8 quân khác."
+  },
+  {
+   "id": "q-the-thao-05",
+   "category": "the-thao",
+   "prompt": "Trong bóng rổ, cú ném trúng từ ngoài vạch ba điểm được mấy điểm?",
+   "options": [
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "correctIndex": 2,
+   "explanation": "Cú ném ngoài vạch ba điểm được tính 3 điểm."
+  },
+  {
+   "id": "q-the-thao-06",
+   "category": "the-thao",
+   "prompt": "Cự ly marathon là khoảng bao nhiêu km?",
+   "options": [
+    "21",
+    "30",
+    "42",
+    "50"
+   ],
+   "correctIndex": 2,
+   "explanation": "Marathon dài 42,195 km."
+  },
+  {
+   "id": "q-the-thao-07",
+   "category": "the-thao",
+   "prompt": "Môn nào thi đấu trên băng bằng gậy và quả puck?",
+   "options": [
+    "Khúc côn cầu trên băng",
+    "Bóng chày",
+    "Cricket",
+    "Golf"
+   ],
+   "correctIndex": 0,
+   "explanation": "Khúc côn cầu trên băng dùng gậy để đưa puck vào khung thành."
+  },
+  {
+   "id": "q-the-thao-08",
+   "category": "the-thao",
+   "prompt": "Biểu tượng Olympic gồm bao nhiêu vòng tròn?",
+   "options": [
+    "4",
+    "5",
+    "6",
+    "7"
+   ],
+   "correctIndex": 1,
+   "explanation": "Năm vòng tròn lồng vào nhau."
+  },
+  {
+   "id": "q-the-thao-09",
+   "category": "the-thao",
+   "prompt": "Môn nào chơi trên bàn với vợt nhỏ và bóng nhẹ?",
+   "options": [
+    "Bóng bàn",
+    "Cầu lông",
+    "Tennis",
+    "Squash"
+   ],
+   "correctIndex": 0,
+   "explanation": "Bóng bàn dùng bóng nhẹ đường kính khoảng 40 mm."
+  }
+ ]
+}

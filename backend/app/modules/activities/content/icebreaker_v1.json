@@ -1,0 +1,329 @@
+{
+ "version": "icebreaker-v1",
+ "items": [
+  {
+   "id": "ib-l01",
+   "tier": "light",
+   "prompt": "Buổi sáng lý tưởng của bạn bắt đầu bằng gì?",
+   "options": [
+    "Một ly cà phê",
+    "Đi bộ một vòng",
+    "Ngủ thêm chút nữa",
+    "Nghe một bài nhạc"
+   ],
+   "allowText": true
+  },
+  {
+   "id": "ib-l02",
+   "tier": "light",
+   "prompt": "Nếu được chọn một món ăn vặt cho cả tuần, bạn chọn gì?",
+   "options": [
+    "Bánh tráng trộn",
+    "Trà sữa",
+    "Trái cây",
+    "Bắp rang"
+   ],
+   "allowText": true
+  },
+  {
+   "id": "ib-l03",
+   "tier": "light",
+   "prompt": "Cuối tuần bạn thích đi đâu nhất?",
+   "options": [
+    "Quán cà phê yên tĩnh",
+    "Công viên",
+    "Ở nhà xem phim",
+    "Một nơi chưa từng đến"
+   ],
+   "allowText": true
+  },
+  {
+   "id": "ib-l04",
+   "tier": "light",
+   "prompt": "Thời tiết nào khiến bạn thấy dễ chịu nhất?",
+   "options": [
+    "Nắng nhẹ",
+    "Mưa rì rào",
+    "Se lạnh",
+    "Gió biển"
+   ],
+   "allowText": false
+  },
+  {
+   "id": "ib-l05",
+   "tier": "light",
+   "prompt": "Bạn hay nghe gì khi đi đường?",
+   "options": [
+    "Nhạc",
+    "Podcast",
+    "Không nghe gì",
+    "Tùy hôm"
+   ],
+   "allowText": false
+  },
+  {
+   "id": "ib-l06",
+   "tier": "light",
+   "prompt": "Bạn là người thích dậy sớm hay thức khuya?",
+   "options": [
+    "Dậy sớm",
+    "Thức khuya",
+    "Tùy mùa",
+    "Cả hai, nếu có cà phê"
+   ],
+   "allowText": false
+  },
+  {
+   "id": "ib-l07",
+   "tier": "light",
+   "prompt": "Món đồ nhỏ nào luôn có trong túi bạn?",
+   "options": [
+    "Tai nghe",
+    "Sổ tay",
+    "Bình nước",
+    "Chìa khóa có móc xinh"
+   ],
+   "allowText": true
+  },
+  {
+   "id": "ib-l08",
+   "tier": "light",
+   "prompt": "Nếu có thêm một giờ rảnh hôm nay, bạn sẽ làm gì?",
+   "options": [
+    "Ngủ",
+    "Đọc sách",
+    "Đi dạo",
+    "Gọi cho một người bạn"
+   ],
+   "allowText": true
+  },
+  {
+   "id": "ib-l09",
+   "tier": "light",
+   "prompt": "Bạn thích uống gì nhất khi trời nóng?",
+   "options": [
+    "Nước dừa",
+    "Trà đá",
+    "Nước ép",
+    "Sinh tố"
+   ],
+   "allowText": true
+  },
+  {
+   "id": "ib-c01",
+   "tier": "curious",
+   "prompt": "Gần đây bạn học được điều gì thú vị?",
+   "options": [
+    "Một kỹ năng mới",
+    "Một sự thật bất ngờ",
+    "Một công thức nấu ăn",
+    "Một từ mới"
+   ],
+   "allowText": true
+  },
+  {
+   "id": "ib-c02",
+   "tier": "curious",
+   "prompt": "Nếu có thể giỏi ngay một thứ, bạn chọn gì?",
+   "options": [
+    "Một ngoại ngữ",
+    "Một nhạc cụ",
+    "Vẽ",
+    "Nấu ăn"
+   ],
+   "allowText": true
+  },
+  {
+   "id": "ib-c03",
+   "tier": "curious",
+   "prompt": "Bạn muốn rủ người khác thử bộ phim, cuốn sách hay podcast nào?",
+   "options": [
+    "Một bộ phim",
+    "Một cuốn sách",
+    "Một bộ truyện",
+    "Một podcast"
+   ],
+   "allowText": true
+  },
+  {
+   "id": "ib-c04",
+   "tier": "curious",
+   "prompt": "Năm tới bạn muốn đi đâu nhất?",
+   "options": [
+    "Biển",
+    "Núi",
+    "Một thành phố mới",
+    "Về quê"
+   ],
+   "allowText": true
+  },
+  {
+   "id": "ib-c05",
+   "tier": "curious",
+   "prompt": "Kỹ năng nào bạn có mà ít người biết?",
+   "options": [
+    "Nấu ăn",
+    "Sửa đồ",
+    "Nhớ đường",
+    "Kể chuyện"
+   ],
+   "allowText": true
+  },
+  {
+   "id": "ib-c06",
+   "tier": "curious",
+   "prompt": "Bạn thích học điều mới theo cách nào?",
+   "options": [
+    "Đọc",
+    "Xem video",
+    "Làm thử",
+    "Học cùng bạn"
+   ],
+   "allowText": false
+  },
+  {
+   "id": "ib-c07",
+   "tier": "curious",
+   "prompt": "Nếu mở một quán nhỏ, bạn sẽ bán gì?",
+   "options": [
+    "Cà phê",
+    "Sách cũ",
+    "Bánh ngọt",
+    "Cây cảnh"
+   ],
+   "allowText": true
+  },
+  {
+   "id": "ib-c08",
+   "tier": "curious",
+   "prompt": "Một sở thích bạn muốn bắt đầu nhưng chưa có dịp?",
+   "options": [
+    "Chạy bộ",
+    "Vẽ",
+    "Chơi nhạc cụ",
+    "Làm vườn"
+   ],
+   "allowText": true
+  },
+  {
+   "id": "ib-c09",
+   "tier": "curious",
+   "prompt": "Khi tụ tập bạn bè, bạn thích chơi gì?",
+   "options": [
+    "Board game",
+    "Đố vui",
+    "Hát cùng nhau",
+    "Chỉ ngồi trò chuyện"
+   ],
+   "allowText": false
+  },
+  {
+   "id": "ib-r01",
+   "tier": "reflective",
+   "prompt": "Điều nhỏ nào gần đây làm bạn thấy vui?",
+   "options": [
+    "Một bữa ăn ngon",
+    "Một lời khen",
+    "Một ngày đẹp trời",
+    "Hoàn thành một việc"
+   ],
+   "allowText": true
+  },
+  {
+   "id": "ib-r02",
+   "tier": "reflective",
+   "prompt": "Bạn nạp lại năng lượng bằng cách nào?",
+   "options": [
+    "Ở một mình",
+    "Gặp bạn bè",
+    "Vận động",
+    "Ngủ đủ giấc"
+   ],
+   "allowText": false
+  },
+  {
+   "id": "ib-r03",
+   "tier": "reflective",
+   "prompt": "Một lời khuyên bạn từng nhận và vẫn nhớ?",
+   "options": [
+    "Cứ từ từ",
+    "Hãy thử đi",
+    "Chăm sóc bản thân",
+    "Hỏi khi chưa hiểu"
+   ],
+   "allowText": true
+  },
+  {
+   "id": "ib-r04",
+   "tier": "reflective",
+   "prompt": "Điều gì khiến một cuộc trò chuyện trở nên dễ chịu với bạn?",
+   "options": [
+    "Được lắng nghe",
+    "Có tiếng cười",
+    "Thẳng thắn",
+    "Không vội vàng"
+   ],
+   "allowText": false
+  },
+  {
+   "id": "ib-r05",
+   "tier": "reflective",
+   "prompt": "Bạn muốn tập một thói quen tốt nào trong tháng này?",
+   "options": [
+    "Ngủ sớm hơn",
+    "Đọc mỗi ngày",
+    "Dọn góc làm việc",
+    "Vận động nhẹ"
+   ],
+   "allowText": true
+  },
+  {
+   "id": "ib-r06",
+   "tier": "reflective",
+   "prompt": "Nơi nào khiến bạn thấy bình yên?",
+   "options": [
+    "Bên cửa sổ",
+    "Một quán quen",
+    "Gần thiên nhiên",
+    "Góc học tập"
+   ],
+   "allowText": true
+  },
+  {
+   "id": "ib-r07",
+   "tier": "reflective",
+   "prompt": "Bạn trân trọng điều gì nhất ở một người bạn?",
+   "options": [
+    "Sự chân thành",
+    "Sự hài hước",
+    "Sự tin cậy",
+    "Sự tôn trọng"
+   ],
+   "allowText": false
+  },
+  {
+   "id": "ib-r08",
+   "tier": "reflective",
+   "prompt": "Khi gặp ngày khó, điều gì giúp bạn nhẹ lòng hơn?",
+   "options": [
+    "Viết ra suy nghĩ",
+    "Nghe nhạc",
+    "Nói chuyện với ai đó",
+    "Ra ngoài đi dạo"
+   ],
+   "allowText": false
+  },
+  {
+   "id": "ib-r09",
+   "tier": "reflective",
+   "prompt": "Điều bạn mong chờ nhất trong tuần tới là gì?",
+   "options": [
+    "Một buổi hẹn với bạn",
+    "Ngày nghỉ",
+    "Một món ăn",
+    "Hoàn thành mục tiêu"
+   ],
+   "allowText": true
+  }
+ ]
+}
