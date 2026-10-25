@@ -91,6 +91,26 @@ async function chat(page: Page, state: ChatState) {
   });
 }
 
+test("opening the activity dialog keeps text opaque throughout its entrance", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await chat(page, { current: null, posts: [] });
+  await page.goto("/#/chat/room-1");
+  await expect(page.getByRole("button", { name: "Cùng làm gì đó?", exact: true })).toBeEnabled();
+  await page.evaluate(() => {
+    (window as any).dialogOpeningOpacity = null;
+    const observer = new MutationObserver(() => {
+      const dialog = document.querySelector("dialog[open]");
+      if (!dialog) return;
+      (window as any).dialogOpeningOpacity = getComputedStyle(dialog).opacity;
+      observer.disconnect();
+    });
+    observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ["open"] });
+  });
+  await page.getByRole("button", { name: "Cùng làm gì đó?", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Cùng làm gì đó?" })).toBeVisible();
+  expect(await page.evaluate(() => (window as any).dialogOpeningOpacity)).toBe("1");
+});
+
 test("an invitee accepts, answers, waits, then sees both answers revealed", async ({ page }) => {
   const state: any = { current: base(), posts: [] };
   const active = base({

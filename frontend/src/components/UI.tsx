@@ -66,7 +66,6 @@ export function Dialog({
       media.add("(prefers-reduced-motion: no-preference)", () => {
         gsap.from(ref.current, {
           y: 14,
-          opacity: 0,
           duration: 0.22,
           ease: "power2.out",
           clearProps: "all",
