@@ -1,0 +1,154 @@
+import pathlib
+import sys
+import unittest
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+import poll_release
+
+
+REPOSITORY = "mhiu05/MoodPrint"
+SHA = "a" * 40
+API_IMAGE = "ghcr.io/mhiu05/moodprint-api"
+WEB_IMAGE = "ghcr.io/mhiu05/moodprint-web"
+API_DIGEST = "sha256:" + "1" * 64
+WEB_DIGEST = "sha256:" + "2" * 64
+
+
+def valid_manifest():
+    return {
+        "schema_version": 1,
+        "repository": REPOSITORY,
+        "branch": "main",
+        "commit_sha": SHA,
+        "ci_run_id": 12345,
+        "publish_run_id": 67890,
+        "images": {
+            "api": {
+                "name": API_IMAGE,
+                "digest": API_DIGEST,
+                "ref": f"{API_IMAGE}@{API_DIGEST}",
+                "revision": SHA,
+            },
+            "web": {
+                "name": WEB_IMAGE,
+                "digest": WEB_DIGEST,
+                "ref": f"{WEB_IMAGE}@{WEB_DIGEST}",
+                "revision": SHA,
+            },
+        },
+    }
+
+
+def valid_ci_run():
+    return {
+        "head_sha": SHA,
+        "head_branch": "main",
+        "event": "push",
+        "status": "completed",
+        "conclusion": "success",
+        "workflow_id": poll_release.VERIFY_WORKFLOW_ID,
+        "path": ".github/workflows/verify.yml@refs/heads/main",
+        "head_repository": {"full_name": REPOSITORY},
+        "repository": {"full_name": REPOSITORY},
+    }
+
+
+def valid_publish_run():
+    return {
+        "id": 67890,
+        "head_sha": SHA,
+        "head_branch": "main",
+        "event": "workflow_run",
+        "status": "completed",
+        "conclusion": "success",
+        "path": ".github/workflows/deploy-staging.yml@refs/heads/main",
+        "head_repository": {"full_name": REPOSITORY},
+        "repository": {"full_name": REPOSITORY},
+    }
+
+
+class ManifestValidationTests(unittest.TestCase):
+    def test_accepts_current_main_manifest_with_digest_pinned_images(self):
+        result = poll_release.validate_manifest(
+            valid_manifest(), REPOSITORY, SHA, API_IMAGE, WEB_IMAGE
+        )
+        self.assertEqual(result["ci_run_id"], 12345)
+        self.assertEqual(result["images"]["api"]["ref"], f"{API_IMAGE}@{API_DIGEST}")
+
+    def test_rejects_wrong_repository_or_commit(self):
+        for key, value in (("repository", "attacker/other"), ("commit_sha", "b" * 40)):
+            with self.subTest(key=key):
+                manifest = valid_manifest()
+                manifest[key] = value
+                with self.assertRaises(poll_release.ValidationError):
+                    poll_release.validate_manifest(
+                        manifest, REPOSITORY, SHA, API_IMAGE, WEB_IMAGE
+                    )
+
+    def test_rejects_mutable_or_unexpected_image_references(self):
+        manifest = valid_manifest()
+        manifest["images"]["api"]["ref"] = f"{API_IMAGE}:latest"
+        with self.assertRaises(poll_release.ValidationError):
+            poll_release.validate_manifest(manifest, REPOSITORY, SHA, API_IMAGE, WEB_IMAGE)
+
+    def test_rejects_invalid_digest_and_run_ids(self):
+        for change in (
+            lambda m: m["images"]["web"].update(digest="latest"),
+            lambda m: m.update(ci_run_id=0),
+            lambda m: m.update(publish_run_id="67890"),
+        ):
+            with self.subTest(change=change):
+                manifest = valid_manifest()
+                change(manifest)
+                with self.assertRaises(poll_release.ValidationError):
+                    poll_release.validate_manifest(
+                        manifest, REPOSITORY, SHA, API_IMAGE, WEB_IMAGE
+                    )
+
+
+class CiRunValidationTests(unittest.TestCase):
+    def test_accepts_only_successful_push_verification_on_main(self):
+        poll_release.validate_ci_run(valid_ci_run(), REPOSITORY, SHA)
+
+    def test_rejects_pull_request_or_non_successful_runs(self):
+        for key, value in (("event", "pull_request"), ("conclusion", "failure"),
+                           ("head_branch", "feature"), ("head_sha", "b" * 40),
+                           ("workflow_id", 1)):
+            with self.subTest(key=key):
+                run = valid_ci_run()
+                run[key] = value
+                with self.assertRaises(poll_release.ValidationError):
+                    poll_release.validate_ci_run(run, REPOSITORY, SHA)
+
+
+class PublishRunValidationTests(unittest.TestCase):
+    def test_accepts_completed_publish_run_for_same_main_commit(self):
+        poll_release.validate_publish_run(valid_publish_run(), REPOSITORY, SHA, 67890)
+
+    def test_rejects_wrong_workflow_event_or_run_id(self):
+        for key, value in (("event", "pull_request"), ("head_sha", "b" * 40),
+                           ("conclusion", "failure"), ("path", "verify.yml")):
+            with self.subTest(key=key):
+                run = valid_publish_run()
+                run[key] = value
+                with self.assertRaises(poll_release.ValidationError):
+                    poll_release.validate_publish_run(run, REPOSITORY, SHA, 67890)
+        with self.assertRaises(poll_release.ValidationError):
+            poll_release.validate_publish_run(valid_publish_run(), REPOSITORY, SHA, 1)
+
+
+class AttestationCommandTests(unittest.TestCase):
+    def test_pins_exact_workflow_identity_and_main_source(self):
+        command = poll_release.attestation_command("release.json", REPOSITORY, SHA)
+        self.assertIn("--cert-identity", command)
+        identity_index = command.index("--cert-identity") + 1
+        self.assertEqual(
+            command[identity_index],
+            "https://github.com/mhiu05/MoodPrint/.github/workflows/deploy-staging.yml@refs/heads/main",
+        )
+        self.assertEqual(command[command.index("--source-ref") + 1], "refs/heads/main")
+        self.assertEqual(command[command.index("--source-digest") + 1], SHA)
+
+
+if __name__ == "__main__":
+    unittest.main()
