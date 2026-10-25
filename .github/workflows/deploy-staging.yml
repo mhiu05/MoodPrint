@@ -138,12 +138,12 @@ jobs:
           web_tag="$WEB_IMAGE:sha-$RELEASE_SHA"
           source="https://github.com/$GITHUB_REPOSITORY"
 
-          docker build --pull --platform linux/amd64 \
+          docker build --provenance=false --pull --platform linux/amd64 \
             --label "org.opencontainers.image.source=$source" \
             --label "org.opencontainers.image.revision=$RELEASE_SHA" \
             --label "org.opencontainers.image.version=$RELEASE_SHA" \
             --tag "$api_tag" backend
-          docker build --pull --platform linux/amd64 \
+          docker build --provenance=false --pull --platform linux/amd64 \
             --label "org.opencontainers.image.source=$source" \
             --label "org.opencontainers.image.revision=$RELEASE_SHA" \
             --label "org.opencontainers.image.version=$RELEASE_SHA" \
