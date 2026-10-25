@@ -428,7 +428,9 @@ test("navigation badges, unread rows and the private read marker", async ({
     "Bạn đồng hành 3fa9c1, 2 tin nhắn chưa đọc",
   );
   await row.click();
-  await expect(page.getByText("Hôm nay bạn thế nào?")).toBeVisible();
+  await expect(
+    page.getByRole("log").getByText("Hôm nay bạn thế nào?"),
+  ).toBeVisible();
   await expect.poll(() => reads).toEqual([{ seq: "2" }]);
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect(page.getByRole("link", { name: "Tin nhắn", exact: true })).toBeVisible();

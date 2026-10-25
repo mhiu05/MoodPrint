@@ -27,3 +27,18 @@ Phase B full-stack check (VC-FS, `prod_e2e_test`): first run 12/13 — Journey B
 | C-06 | PASS | see `git log --grep C-06` | `python -m evals.matching.benchmark`; `test_matching_eval.py` (2) | gate metrics met; labels provisional (α 0.286) → `MATCHING_SCORER` stays `v1` ([matching-gate.md](matching-gate.md)) | Labels are rule-based proxies, not human raters |
 | C-07 | PASS | see `git log --grep C-07` | `profileRules.test.ts` (4); mocked E2E stepper/preview/candidate card (+2 rewritten); VC-FE; VC-FS | vitest 23; mocked E2E 37; full stack 13 passed (after selector updates for the stepper and chip reasons) | Stepper with a clickable step list on every width instead of a desktop accordion (same content, fewer modes) |
 | C-08 | PASS | see `git log --grep C-08` | `test_matching_stats.py` (3) | 3 passed; social regression 39 passed | RED not executed separately |
+| D-01 | PASS | see `git log --grep D-01` | `test_activity_schema.py` RED (missing `activity_seq`) → GREEN; readiness; VC-MIG; VC-SQL 0013 | 2 + 4 passed; `alembic check` clean; review SQL 0 `%%`/DROP, 3 `backend_access` policies, sha256 `6176dd5b…3464` | Not applied to hosted |
+| D-02 | PASS | see `git log --grep D-02` | `test_activity_machine.py` (table-driven, test handler) | 27 passed | RED not executed separately (module written first) |
+| D-03 | PASS | see `git log --grep D-03` | `test_activities_api.py` (catalog/flags, races via `asyncio.gather`, idempotent replay, stale version, C isolation, quotas, cooldown, watermark) | 10 passed; VC-BE 441 passed | `expectedVersion` is enforced for lifecycle and timer controls; answers/ready use the round as CAS so simultaneous answers never 409 each other |
+| D-04 | PASS | see `git log --grep D-04` | `test_activity_lifecycle.py::test_stream_announces…` + existing `test_notifications.py` | 4 passed (SSE) | — |
+| D-05 | PASS | see `git log --grep D-05` | `test_activity_lifecycle.py` (block, end, MATCH off, account deletion, retention, export) | 7 passed | — |
+| D-06 | PASS | see `git log --grep D-06` | `test_activity_sweeper.py` (expiry + watermark, accept-vs-sweep race, locked room skipped) | 3 passed | — |
+| D-07 | PASS | see `git log --grep D-07` | `clock.test.ts`, `activityView.test.ts`; mocked E2E `activities.spec.ts` | vitest 31; E2E 41 (5 new) | — |
+| E-01/F-01 | PASS | see `git log --grep E-01` | `test_activity_content.py` | 8 passed (27 icebreaker, 63 quiz items) | Content reviewed by the implementer only; product-owner review recommended |
+| E-02 | PASS | see `git log --grep E-02` | `test_icebreaker.py` | 6 passed | All icebreaker questions accept optional short text |
+| E-03 | PASS | see `git log --grep E-03` | mocked E2E (accept → answer → waiting → reveal; reciprocal-hidden) | 2 passed | — |
+| F-02 | PASS | see `git log --grep F-02` | `test_quiz.py` | 6 passed | — |
+| F-03 | PASS | see `git log --grep F-03` | mocked E2E (reveal labels "Đáp án đúng"/"Bạn chọn", team score) | 1 passed | — |
+| G-01 | PASS | see `git log --grep G-01` | `test_focus_timer.py` (injected clock) | 11 passed | — |
+| G-02 | PASS | see `git log --grep G-02` | `test_focus_api.py` | 10 passed | — |
+| G-03 | PASS | see `git log --grep G-03` | mocked E2E (server-offset countdown, pause state) | 1 passed | — |

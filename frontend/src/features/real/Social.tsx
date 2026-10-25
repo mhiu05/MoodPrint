@@ -17,6 +17,11 @@ import { ProfileEditor } from "./social/ProfileEditor";
 import { RequestCard } from "./social/RequestCard";
 import { previewLine, relativeTime } from "./social/format";
 import { badgeText } from "./social/useSocialSummary";
+import { useConnectionEvents } from "./social/useConnectionEvents";
+import { ActivityCatalog, ActivityEntryButton } from "./activities/ActivityCatalog";
+import { ActivityDock } from "./activities/ActivityDock";
+import { InviteCard } from "./activities/InviteCard";
+import { useActivity } from "./activities/useActivity";
 
 type Schema = components["schemas"];
 type Draft = Schema["DraftView"];
@@ -426,7 +431,6 @@ export function HumanChat() {
   );
   const loading = useRef(false),
     revoked = useRef(false),
-    streamHealthy = useRef(false),
     lastRefresh = useRef(0),
     log = useRef<HTMLDivElement>(null);
   // The last history this tab showed; the event stream may revoke access (and
@@ -533,47 +537,20 @@ export function HumanChat() {
     }, 3000);
     return () => clearInterval(timer);
   }, [refresh]);
-  useEffect(() => {
-    let source: EventSource | undefined,
-      retry: number | undefined,
-      attempt = 0,
-      stopped = false;
-    const connect = () => {
-      if (stopped || revoked.current) return;
-      // Resume from the newest message this tab has, so nothing is skipped.
-      source = new EventSource(
-        `/api/v1/connections/${connectionId}/events?afterSeq=${cursor.current}`,
-      );
-      source.addEventListener("messages_available", () => {
-        attempt = 0;
-        streamHealthy.current = true;
-        void refresh();
-      });
-      source.addEventListener("access_revoked", () => {
-        source?.close();
-        streamHealthy.current = false;
-        stopped = true;
-        revoke(UNAVAILABLE);
-      });
-      source.onerror = () => {
-        source?.close();
-        streamHealthy.current = false;
-        void refresh();
-        attempt += 1;
-        retry = window.setTimeout(
-          connect,
-          Math.min(30_000, 1000 * 2 ** attempt),
-        );
-      };
-    };
-    connect();
-    return () => {
-      stopped = true;
-      streamHealthy.current = false;
-      window.clearTimeout(retry);
-      source?.close();
-    };
-  }, [connectionId, refresh, revoke]);
+  const streamHealthy = useConnectionEvents(connectionId, {
+    onMessages: () => void refresh(),
+    onActivity: () => void activity.refresh(),
+    onRevoked: () => revoke(UNAVAILABLE),
+    onError: () => void refresh(),
+    afterSeq: () => cursor.current,
+    stopped: () => revoked.current,
+  });
+  const activity = useActivity(connectionId, streamHealthy, !closed);
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const composer = useRef<HTMLTextAreaElement>(null);
+  const alias = room?.alias || "bạn kia";
+  const docked =
+    !closed && Boolean(activity.session) && activity.session?.state !== "invited";
   useEffect(() => {
     log.current?.scrollTo({ top: log.current.scrollHeight });
   }, [messages.length]);
@@ -617,7 +594,10 @@ export function HumanChat() {
     revoke(reason, true);
   };
   return (
-    <div className="bot-conversation real-human-chat">
+    <div
+      className="bot-conversation real-human-chat"
+      data-dock={docked || undefined}
+    >
       <header className="conversation-header">
         <Link to="/messages" className="icon-button" aria-label="Về tin nhắn">
           <ArrowLeft size={20} />
@@ -659,9 +639,37 @@ export function HumanChat() {
             </div>
           </div>
         ))}
+        {!closed && activity.session && (
+          <InviteCard
+            session={activity.session}
+            alias={alias}
+            catalog={activity.catalog}
+            busy={activity.busy}
+            onAccept={() => void activity.act("accept")}
+            onDecline={() => void activity.act("decline")}
+            onCancel={() => void activity.act("cancel")}
+          />
+        )}
+        {!closed && activity.session?.state === "invited" && activity.notice && (
+          <p role="status">{activity.notice}</p>
+        )}
       </div>
+      {docked && (
+        <ActivityDock
+          activity={activity}
+          alias={alias}
+          onContinue={() => composer.current?.focus()}
+        />
+      )}
       <form className="bot-composer" onSubmit={send}>
+        {ready && !closed && activity.catalog.length > 0 && (
+          <ActivityEntryButton
+            disabled={activity.open || activity.busy}
+            onOpen={() => setCatalogOpen(true)}
+          />
+        )}
         <textarea
+          ref={composer}
           rows={1}
           maxLength={500}
           aria-label="Tin nhắn cho bạn kết nối"
@@ -681,6 +689,20 @@ export function HumanChat() {
           <Send size={20} />
         </button>
       </form>
+      {catalogOpen && (
+        <ActivityCatalog
+          catalog={activity.catalog}
+          current={activity.open ? activity.session : null}
+          cooldown={activity.cooldown}
+          busy={activity.busy}
+          onInvite={(kind, options) =>
+            void activity.invite(kind, options).then((sent) => {
+              if (sent) setCatalogOpen(false);
+            })
+          }
+          onClose={() => setCatalogOpen(false)}
+        />
+      )}
       {room && !closed && (
         <Button variant="text" disabled={busy} onClick={() => setEnding(true)}>
           Kết thúc kết nối
