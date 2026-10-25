@@ -1,11 +1,42 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-test("matching publishes the reviewed profile only after a committed receipt", async ({
-  page,
-}) => {
-  let draft: unknown;
-  let published = false;
-  const session = {
+const TAXONOMY = {
+  version: "v2",
+  interests: {
+    reading: "Đọc sách",
+    music: "Âm nhạc",
+    walking: "Đi bộ",
+    coffee: "Cà phê",
+  },
+  values: { respect: "Tôn trọng", sincerity: "Chân thành", humor: "Hài hước" },
+  languages: { vi: "Tiếng Việt", en: "Tiếng Anh" },
+  styles: { balanced: "Cân bằng", listening: "Thích lắng nghe" },
+  goals: { friendship: "Tìm bạn trò chuyện", "study-buddy": "Tìm bạn cùng học" },
+  activities: { focus: "Cùng tập trung", icebreaker: "Câu hỏi làm quen" },
+  availability: { weekday_evening: "Tối ngày thường" },
+  categories: {
+    learning: ["reading"],
+    creative: ["music"],
+    active: ["walking"],
+    lifestyle: ["coffee"],
+  },
+  categoryLabels: {
+    learning: "Học hỏi",
+    creative: "Sáng tạo",
+    active: "Vận động",
+    lifestyle: "Đời sống",
+  },
+  limits: {
+    interests: [3, 10],
+    values: [2, 4],
+    languages: [1, 2],
+    activities: [0, 4],
+    availability: [0, 6],
+  },
+};
+
+function sessionFor() {
+  return {
     userId: "11111111-1111-4111-8111-111111111111",
     alias: "An",
     ageBand: "adult",
@@ -21,33 +52,30 @@ test("matching publishes the reviewed profile only after a committed receipt", a
       ]),
     ),
   };
+}
+
+async function mockDiscovery(
+  page: Page,
+  state: { draft?: unknown; published: boolean; candidates: unknown[] },
+) {
+  const session = sessionFor();
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request(),
       path = new URL(request.url()).pathname;
     if (path.endsWith("/session")) return route.fulfill({ json: session });
-    if (path.endsWith("/taxonomy"))
-      return route.fulfill({
-        json: {
-          version: "v1",
-          interests: {
-            reading: "Đọc sách",
-            music: "Âm nhạc",
-            walking: "Đi bộ",
-          },
-          values: { respect: "Tôn trọng", sincerity: "Chân thành" },
-          languages: { vi: "Tiếng Việt" },
-          styles: { balanced: "Cân bằng" },
-          goals: { friendship: "Tìm bạn trò chuyện" },
-        },
-      });
+    if (path.endsWith("/taxonomy")) return route.fulfill({ json: TAXONOMY });
     if (path.endsWith("/matching/candidates"))
-      return route.fulfill({ json: { candidates: [] } });
+      return route.fulfill({ json: { candidates: state.candidates } });
     if (path.endsWith("/connection-requests") || path.endsWith("/connections"))
       return route.fulfill({ json: [] });
+    if (path.endsWith("/social/summary"))
+      return route.fulfill({
+        json: { pendingIncomingRequests: 0, unreadConnections: 0, activityInvites: 0 },
+      });
     if (path.endsWith("/matching-draft/preview"))
       return route.fulfill({
         json: {
-          profile: draft,
+          profile: state.draft,
           draftVersion: 1,
           previewDigest: "reviewed-preview",
         },
@@ -62,6 +90,9 @@ test("matching publishes the reviewed profile only after a committed receipt", a
               style: "balanced",
               goal: "friendship",
               languages: [],
+              activities: [],
+              availability: [],
+              strictGoal: false,
             },
             version: 0,
           },
@@ -69,7 +100,7 @@ test("matching publishes the reviewed profile only after a committed receipt", a
       expect(request.headers()["x-csrf-token"]).toBe("test-csrf");
       const { expectedVersion, ...profile } = request.postDataJSON();
       expect(expectedVersion).toBe(0);
-      draft = profile;
+      state.draft = profile;
       return route.fulfill({ json: { profile, version: 1 } });
     }
     if (path.endsWith("/profiles/published")) {
@@ -78,10 +109,16 @@ test("matching publishes the reviewed profile only after a committed receipt", a
         previewDigest: "reviewed-preview",
         expectedPublishedVersion: 0,
       });
-      published = true;
+      state.published = true;
       return route.fulfill({
         status: 201,
-        json: { id: "published-id", profile: draft, version: 1 },
+        json: {
+          id: "published-id",
+          profile: state.draft,
+          version: 1,
+          state: "live",
+          profileVersion: 1,
+        },
       });
     }
     if (path.endsWith("/profiles/published/current"))
@@ -91,34 +128,93 @@ test("matching publishes the reviewed profile only after a committed receipt", a
       json: { error: { code: "NOT_FOUND", message: "Missing route" } },
     });
   });
+}
+
+test("matching publishes the reviewed profile only after a committed receipt", async ({
+  page,
+}) => {
+  const state = { published: false, candidates: [] as unknown[], draft: undefined };
+  await mockDiscovery(page, state);
   await page.goto("/#/connect");
   await page.getByRole("button", { name: "Chỉnh hồ sơ kết nối" }).click();
-  for (const label of [
-    "Đọc sách",
-    "Âm nhạc",
-    "Đi bộ",
-    "Tôn trọng",
-    "Chân thành",
-    "Tiếng Việt",
-  ])
+  await expect(page.getByRole("heading", { name: "Bước 1/5: Sở thích" })).toBeFocused();
+  const next = page.getByRole("button", { name: "Tiếp tục" });
+  await page.getByRole("checkbox", { name: "Đọc sách", exact: true }).check();
+  await page.getByRole("checkbox", { name: "Âm nhạc", exact: true }).check();
+  await expect(page.getByText("Đã chọn 2 · cần ít nhất 3")).toBeVisible();
+  await expect(next).toBeDisabled();
+  await page.getByRole("checkbox", { name: "Đi bộ", exact: true }).check();
+  await expect(next).toBeEnabled();
+  await next.click();
+  for (const label of ["Tôn trọng", "Chân thành"])
     await page.getByRole("checkbox", { name: label, exact: true }).check();
-  await page.getByRole("button", { name: "Lưu bản nháp" }).click();
-  await expect(
-    page.getByRole("status").filter({ hasText: "Đã lưu bản nháp" }),
-  ).toBeVisible();
-  expect(published).toBe(false);
+  await next.click();
+  await page.getByRole("checkbox", { name: "Tiếng Việt", exact: true }).check();
+  await next.click();
+  await page.getByRole("checkbox", { name: "Cùng tập trung", exact: true }).check();
+  expect(state.published).toBe(false);
   await page.getByRole("button", { name: "Xem trước hồ sơ" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Bạn muốn chia sẻ những điều này?" }),
-  ).toBeVisible();
-  expect(published).toBe(false);
+  const card = page.getByLabel("Hồ sơ của Bạn");
+  await expect(card).toContainText("Đọc sách · Âm nhạc · Đi bộ");
+  await expect(card).toContainText("Tôn trọng · Chân thành");
+  await expect(card).toContainText("Cùng tập trung");
+  await expect(card).not.toContainText("Cà phê");
+  expect(state.published).toBe(false);
   await page.getByRole("button", { name: "Xuất bản hồ sơ" }).click();
   await expect(
     page.getByText("Đã xuất bản hồ sơ.", { exact: true }),
   ).toBeVisible();
-  expect(published).toBe(true);
+  expect(state.published).toBe(true);
   await expect(
     page.getByText("Chưa có gợi ý phù hợp.", { exact: true }),
+  ).toBeVisible();
+});
+
+test("candidate cards show a qualitative label and at most three reasons, never a percentage", async ({
+  page,
+}) => {
+  const card = {
+    candidateRef: "ref-1",
+    alias: "Bạn đồng hành 7c1e02",
+    avatarSeed: "7c1e02aa",
+    profile: {
+      interests: ["reading", "coffee", "music"],
+      values: ["respect", "humor"],
+      style: "listening",
+      goal: "study-buddy",
+      languages: ["vi"],
+      activities: ["focus"],
+      availability: ["weekday_evening"],
+      strictGoal: false,
+    },
+    reasons: ["Cả hai muốn thử tập trung cùng nhau", "Cùng thích đọc sách", "Cùng coi trọng tôn trọng"],
+    matchLabel: "some",
+    sharedActivities: ["focus"],
+    scoringVersion: "rules-v2",
+    profileVersion: 1,
+    peerVersion: 1,
+  };
+  await mockDiscovery(page, { published: true, candidates: [card] });
+  await page.route("**/api/v1/profiles/published/current", (route) =>
+    route.fulfill({
+      json: {
+        id: "p",
+        profile: card.profile,
+        version: 1,
+        state: "live",
+        profileVersion: 1,
+      },
+    }),
+  );
+  await page.goto("/#/connect");
+  const shown = page.getByLabel("Hồ sơ của Bạn đồng hành 7c1e02");
+  await expect(shown).toContainText("Có vài điểm chung");
+  await expect(shown.getByRole("listitem")).toHaveCount(3);
+  await expect(shown).toContainText("Cùng tập trung (cả hai)");
+  expect(await shown.innerText()).not.toMatch(/\d\s*%/);
+  await expect(shown.getByRole("button", { name: "Gửi lời chào" })).toBeVisible();
+  await expect(
+    page.getByText(/không phải đánh giá mức độ hợp nhau/),
   ).toBeVisible();
 });
 

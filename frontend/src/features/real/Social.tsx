@@ -12,29 +12,21 @@ import type { components } from "../../api/generated/schema";
 import { ApiError } from "../../api/client";
 import { ErrorNotice, useResource, useSession } from "./RealApp";
 import { ConnectionSafety } from "./Safety";
+import { CandidateCard } from "./social/CandidateCard";
+import { ProfileEditor } from "./social/ProfileEditor";
+import { RequestCard } from "./social/RequestCard";
 import { previewLine, relativeTime } from "./social/format";
 import { badgeText } from "./social/useSocialSummary";
 
 type Schema = components["schemas"];
-type PublicProfile = Schema["PublicProfile"];
 type Draft = Schema["DraftView"];
 type Published = Schema["PublishedView"];
-type Preview = Schema["PreviewView"];
 type Taxonomy = Schema["TaxonomyDTO"];
 type RequestView = Schema["RequestView"];
 type ConnectionView = Schema["ConnectionView"];
 type Message = Schema["MessageView"];
 type Page = Schema["MessagePage"];
 
-const requestStatus: Record<string, string> = {
-  pending: "Đang chờ phản hồi",
-  accepted: "Đã kết nối",
-  declined: "Lời mời đã được từ chối",
-  cancelled: "Lời mời đã được hủy",
-  expired: "Lời mời đã hết hạn",
-  invalidated:
-    "Lời mời không còn hiệu lực vì quyền tìm bạn hoặc trạng thái kết nối đã thay đổi",
-};
 
 export function Discovery() {
   const { api, session } = useSession();
@@ -60,17 +52,12 @@ export function Discovery() {
     return () => clearInterval(timer);
   }, [requests.refresh, canMatch]);
   const [editing, setEditing] = useState(false),
-    [profile, setProfile] = useState<PublicProfile>();
-  const [preview, setPreview] = useState<Preview>(),
     [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(),
     [notice, setNotice] = useState("");
   const [blocking, setBlocking] = useState<string>();
-  const live =
-    Boolean(published.data) && published.data?.state !== "needs_republish";
-  useEffect(() => {
-    if (draft.data && !profile) setProfile(draft.data.profile);
-  }, [draft.data, profile]);
+  const [sent, setSent] = useState<string[]>([]);
+  const live = published.data?.state === "live";
   const refresh = () => {
     published.refresh();
     suggestions.refresh();
@@ -91,32 +78,18 @@ export function Discovery() {
       setBusy(false);
     }
   }
-  async function save(event: FormEvent) {
-    event.preventDefault();
-    if (!profile) return;
-    const currentProfile = profile;
-    await act(async () => {
-      const saved = await api.request<Draft>("/profiles/matching-draft", {
-        method: "PUT",
-        body: {
-          ...currentProfile,
-          expectedVersion: draft.data?.version || 0,
-        } satisfies Schema["DraftInput"],
-      });
-      draft.setData(saved);
-      setPreview(undefined);
-    }, "Đã lưu bản nháp.");
-  }
   const label = (key: string) =>
-    taxonomy.data &&
-    ({
-      ...taxonomy.data.interests,
-      ...taxonomy.data.values,
-      ...taxonomy.data.styles,
-      ...taxonomy.data.goals,
-      ...taxonomy.data.languages,
-    }[key] ||
-      key);
+    (taxonomy.data &&
+      {
+        ...taxonomy.data.interests,
+        ...taxonomy.data.values,
+        ...taxonomy.data.styles,
+        ...taxonomy.data.goals,
+        ...taxonomy.data.languages,
+        ...taxonomy.data.activities,
+        ...taxonomy.data.availability,
+      }[key]) ||
+    key;
   if (!session.features.matching)
     return (
       <StatePanel title="Tìm bạn chưa khả dụng">
@@ -149,176 +122,49 @@ export function Discovery() {
           <Link to="/settings">Xem quyền tìm bạn</Link>
         </StatePanel>
       )}
-      <Button
-        variant="secondary"
-        disabled={!draft.data || !taxonomy.data}
-        onClick={() => setEditing((value) => !value)}
-      >
-        Chỉnh hồ sơ kết nối
-      </Button>
-      {editing && profile && taxonomy.data && (
-        <section className="real-section">
-          <h2>Những điều bạn muốn chia sẻ</h2>
-          <p>
-            Hồ sơ kết nối chỉ gồm các lựa chọn dưới đây. Ghi chép riêng và hội
-            thoại không được đưa vào hồ sơ.
-          </p>
-          <form onSubmit={save}>
-            {(
-              [
-                ["interests", "Sở thích · chọn ít nhất 3"],
-                ["values", "Giá trị · chọn ít nhất 2"],
-                ["languages", "Ngôn ngữ · chọn ít nhất 1"],
-              ] as const
-            ).map(([kind, title]) => (
-              <fieldset className="real-choices" key={kind}>
-                <legend>{title}</legend>
-                {Object.entries(taxonomy.data![kind]).map(([value, name]) => (
-                  <label key={value}>
-                    <input
-                      type="checkbox"
-                      checked={(profile[kind] || []).includes(value)}
-                      onChange={(event) => {
-                        setPreview(undefined);
-                        setProfile({
-                          ...profile,
-                          [kind]: event.target.checked
-                            ? [...(profile[kind] || []), value]
-                            : (profile[kind] || []).filter(
-                                (tag) => tag !== value,
-                              ),
-                        });
-                      }}
-                    />
-                    {name}
-                  </label>
-                ))}
-              </fieldset>
-            ))}
-            {(
-              [
-                ["style", "Cách trò chuyện", "styles"],
-                ["goal", "Bạn đang tìm kiếm", "goals"],
-              ] as const
-            ).map(([kind, title, source]) => (
-              <label className="real-field" key={kind}>
-                {title}
-                <select
-                  value={profile[kind]}
-                  onChange={(event) => {
-                    setPreview(undefined);
-                    setProfile({ ...profile, [kind]: event.target.value });
-                  }}
-                >
-                  {Object.entries(taxonomy.data![source]).map(
-                    ([value, name]) => (
-                      <option value={value} key={value}>
-                        {name}
-                      </option>
-                    ),
-                  )}
-                </select>
-              </label>
-            ))}
-            <div className={cx.actions}>
-              <Button type="submit" disabled={busy}>
-                Lưu bản nháp
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={busy || !draft.data?.version}
-                onClick={() =>
-                  void act(async () => {
-                    setPreview(
-                      await api.request<Preview>(
-                        "/profiles/matching-draft/preview",
-                        { method: "POST" },
-                      ),
-                    );
-                  }, "")
-                }
-              >
-                Xem trước hồ sơ
-              </Button>
-            </div>
-          </form>
-        </section>
-      )}
-      {preview && (
-        <Dialog
-          title="Bạn muốn chia sẻ những điều này?"
-          onClose={() => !busy && setPreview(undefined)}
+      {!editing && (
+        <Button
+          variant="secondary"
+          disabled={!draft.data || !taxonomy.data}
+          onClick={() => setEditing(true)}
         >
-          <p>
-            {[
-              ...(preview.profile.interests || []),
-              ...(preview.profile.values || []),
-              ...(preview.profile.languages || []),
-              preview.profile.style!,
-              preview.profile.goal!,
-            ]
-              .map(label)
-              .join(" · ")}
-          </p>
-          <p>Chỉ các lựa chọn này sẽ xuất hiện trong gợi ý kết nối.</p>
-          {published.data && (
-            <p className={cx.note}>
-              Các kết nối hiện có vẫn được giữ. Hồ sơ mới chỉ thay đổi những gợi
-              ý bạn nhận được.
-            </p>
-          )}
-          <div className={cx.actions}>
-            <Button
-              variant="secondary"
-              disabled={busy}
-              onClick={() => setPreview(undefined)}
-            >
-              Chưa chia sẻ
-            </Button>
-            <Button
-              disabled={busy}
-              onClick={() =>
-                void act(async () => {
-                  const result = await api.request<Published>(
-                    "/profiles/published",
-                    {
-                      method: "POST",
-                      body: {
-                        draftVersion: preview.draftVersion,
-                        previewDigest: preview.previewDigest,
-                        expectedPublishedVersion:
-                          published.data?.profileVersion ??
-                          draft.data?.publishedVersion ??
-                          0,
-                      } satisfies Schema["PublishInput"],
-                    },
-                  );
-                  published.setData(result);
-                  draft.setData(
-                    (previous) =>
-                      previous && {
-                        ...previous,
-                        publishedVersion: result.profileVersion,
-                      },
-                  );
-                  setPreview(undefined);
-                  setEditing(false);
-                }, "Đã xuất bản hồ sơ.")
-              }
-            >
-              Xuất bản hồ sơ
-            </Button>
-          </div>
-        </Dialog>
+          Chỉnh hồ sơ kết nối
+        </Button>
+      )}
+      {editing && taxonomy.data && draft.data && (
+        <ProfileEditor
+          taxonomy={taxonomy.data}
+          draft={draft.data}
+          published={published.data}
+          onDraft={(saved) => draft.setData(saved)}
+          onPublished={(result) => {
+            published.setData(result);
+            draft.setData(
+              (previous) =>
+                previous && { ...previous, publishedVersion: result.profileVersion },
+            );
+            setEditing(false);
+            setNotice("Đã xuất bản hồ sơ.");
+            suggestions.refresh();
+            requests.refresh();
+          }}
+          onClose={() => setEditing(false)}
+        />
       )}
       {published.data && (
         <section className="real-section">
           <h2>{live ? "Hồ sơ đang chia sẻ" : "Hồ sơ đang tạm ẩn"}</h2>
-          {!live && (
+          {published.data.state === "needs_republish" && (
             <p className={cx.note}>
               Hồ sơ này không xuất hiện trong gợi ý (ví dụ sau khi bạn tắt rồi
               bật lại quyền tìm bạn). Hãy xem lại và xuất bản lại nếu bạn muốn
               chia sẻ tiếp; hệ thống không tự chia sẻ lại.
+            </p>
+          )}
+          {published.data.state === "stale" && (
+            <p className={cx.note}>
+              Hồ sơ tạm ẩn vì lâu chưa cập nhật. Mở “Chỉnh hồ sơ kết nối”, xem
+              lại và xuất bản để xác nhận hồ sơ vẫn đúng.
             </p>
           )}
           <p>
@@ -370,53 +216,43 @@ export function Discovery() {
           {suggestions.data?.candidates.length === 0 && (
             <p>Chưa có gợi ý phù hợp.</p>
           )}
-          {suggestions.data?.candidates.map((candidate) => (
-            <article className="real-item" key={candidate.candidateRef}>
-              <h3>{candidate.alias}</h3>
-              <p>{candidate.reasons.join(" · ")}</p>
-              <p>{candidate.profile.interests?.map(label).join(" · ")}</p>
-              <div className={cx.actions}>
-                <Button
-                  disabled={busy}
-                  onClick={() =>
-                    void act(
-                      () =>
-                        api.request("/connection-requests", {
-                          method: "POST",
-                          body: { candidateRef: candidate.candidateRef },
-                        }),
-                      "Đã gửi lời mời.",
-                    )
-                  }
-                >
-                  Gửi lời chào
-                </Button>
-                <Button
-                  variant="text"
-                  disabled={busy}
-                  onClick={() =>
-                    void act(
-                      () =>
-                        api.request("/matching/skips", {
-                          method: "POST",
-                          body: { candidateRef: candidate.candidateRef },
-                        }),
-                      "Đã bỏ qua gợi ý.",
-                    )
-                  }
-                >
-                  Bỏ qua
-                </Button>
-                <Button
-                  variant="text"
-                  disabled={busy}
-                  onClick={() => setBlocking(candidate.candidateRef)}
-                >
-                  Chặn
-                </Button>
-              </div>
-            </article>
-          ))}
+          <div className="peer-grid">
+            {suggestions.data?.candidates.map((candidate) => (
+              <CandidateCard
+                key={candidate.candidateRef}
+                card={candidate}
+                label={label}
+                busy={busy}
+                sent={sent.includes(candidate.candidateRef)}
+                onGreet={() =>
+                  void act(async () => {
+                    await api.request("/connection-requests", {
+                      method: "POST",
+                      body: { candidateRef: candidate.candidateRef },
+                    });
+                    setSent((value) => [...value, candidate.candidateRef]);
+                  }, "Đã gửi lời mời.")
+                }
+                onSkip={() =>
+                  void act(
+                    () =>
+                      api.request("/matching/skips", {
+                        method: "POST",
+                        body: { candidateRef: candidate.candidateRef },
+                      }),
+                    "Đã bỏ qua gợi ý.",
+                  )
+                }
+                onBlock={() => setBlocking(candidate.candidateRef)}
+              />
+            ))}
+          </div>
+          {Boolean(suggestions.data?.candidates.length) && (
+            <p className="discovery-footnote">
+              Gợi ý dựa trên những điểm chung bạn và họ tự chọn chia sẻ — không
+              phải đánh giá mức độ hợp nhau.
+            </p>
+          )}
         </section>
       )}
       {blocking && (
@@ -462,78 +298,24 @@ export function Discovery() {
           <ErrorNotice error={requests.error} retry={requests.refresh} />
           {requests.data?.length === 0 && <p>Bạn chưa có lời mời nào.</p>}
           {requests.data?.map((item) => (
-            <article className="real-item" key={item.id}>
-              <h3>
-                {item.peer
-                  ? item.direction === "incoming"
-                    ? `${item.peer.alias} muốn kết nối với bạn`
-                    : `Lời chào gửi ${item.peer.alias}`
-                  : item.direction === "incoming"
-                    ? "Một lời chào dành cho bạn"
-                    : "Lời chào bạn đã gửi"}
-              </h3>
-              {item.peer && (
-                <div aria-label={`Hồ sơ của ${item.peer.alias}`}>
-                  <p>
-                    <strong>
-                      {item.peer.matchLabel === "many"
-                        ? "Nhiều điểm chung"
-                        : "Có vài điểm chung"}
-                    </strong>
-                    {item.peer.reasons.length > 0 &&
-                      ` · ${item.peer.reasons.join(" · ")}`}
-                  </p>
-                  <p>
-                    {[
-                      ...(item.peer.profile.interests || []),
-                      ...(item.peer.profile.values || []),
-                    ]
-                      .map(label)
-                      .join(" · ")}
-                  </p>
-                </div>
-              )}
-              <p>{requestStatus[item.status] || "Lời mời đã kết thúc"}</p>
-              {item.status === "pending" && (
-                <div className={cx.actions}>
-                  {(item.direction === "incoming"
-                    ? [
-                        ["accept", "Đồng ý kết nối"],
-                        ["decline", "Từ chối"],
-                      ]
-                    : [["cancel", "Hủy lời mời"]]
-                  ).map(([decision, title]) => (
-                    <Button
-                      key={decision}
-                      variant={decision === "accept" ? "primary" : "secondary"}
-                      disabled={busy}
-                      onClick={() =>
-                        void act(
-                          () =>
-                            api.request(
-                              `/connection-requests/${item.id}/${decision}`,
-                              {
-                                method: "POST",
-                                body: { expectedVersion: item.version },
-                              },
-                            ),
-                          decision === "accept"
-                            ? "Đã kết nối. Bạn có thể bắt đầu trò chuyện."
-                            : "Đã cập nhật lời mời.",
-                        )
-                      }
-                    >
-                      {title}
-                    </Button>
-                  ))}
-                </div>
-              )}
-              {item.connectionId && item.status === "accepted" && (
-                <Link to={`/chat/${item.connectionId}`}>
-                  Mở cuộc trò chuyện
-                </Link>
-              )}
-            </article>
+            <RequestCard
+              key={item.id}
+              item={item}
+              label={label}
+              busy={busy}
+              onDecide={(row, decision) =>
+                void act(
+                  () =>
+                    api.request(`/connection-requests/${row.id}/${decision}`, {
+                      method: "POST",
+                      body: { expectedVersion: row.version },
+                    }),
+                  decision === "accept"
+                    ? "Đã kết nối. Bạn có thể bắt đầu trò chuyện."
+                    : "Đã cập nhật lời mời.",
+                )
+              }
+            />
           ))}
           <Button variant="text" onClick={requests.refresh}>
             Tải lại lời mời

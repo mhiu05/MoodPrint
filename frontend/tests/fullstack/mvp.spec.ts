@@ -231,7 +231,7 @@ test("Journey B/C: two users match, request, accept and chat; stale tab loses ac
     .locator("article")
     .filter({ has: one.getByRole("heading", { name: pairAlias(11, 12) }) });
   await expect(card).toBeVisible();
-  await expect(card.getByText(/Cùng thích/)).toBeVisible();
+  await expect(card.getByText(/Cùng thích/).first()).toBeVisible();
   await card.getByRole("button", { name: "Gửi lời chào", exact: true }).click();
   await expect(one.getByText("Đã gửi lời mời.", { exact: true })).toBeVisible();
   await expect(
