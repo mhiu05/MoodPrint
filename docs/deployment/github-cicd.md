@@ -1,11 +1,32 @@
 # CI và phát hành có kiểm soát
 
-`verify.yml` tiếp tục chạy backend Ruff/mypy/pytest, migration trên PostgreSQL disposable có pgvector, frontend contract/typecheck/Vitest/build/Playwright, full stack fake model; thêm Docker build, Compose config, Caddy parse và kiểm tra image không có `.env`/source map. CI của pull request chỉ có `contents: read`; không có OIDC hay AWS role. Import gây lỗi Ruff trong `backend/evals/scenarios_live.py` đã được sửa và kiểm tra local; CI của commit tương lai vẫn phải chạy lại.
+## CI
 
-`deploy-staging.yml` chỉ có `workflow_dispatch`. Chỉ repository owner được khởi chạy thành công; người này nhập SHA đầy đủ và `DEPLOY STAGING <SHA>`; job xác minh SHA là commit thuộc `main` và có một push run `verify.yml` thành công trên đúng SHA. Job phát hành checkout lại SHA đó, dùng GitHub environment `staging`, OIDC role, build 2 image `linux/amd64` với tag SHA, lấy ECR digest, gọi đúng SSM document và instance, chờ kết quả. `concurrency` ngăn 2 lần phát hành cùng lúc. Không có credential AWS dài hạn. SSM không nhận secret runtime; EC2 đọc SecureString bằng instance role.
+`verify.yml` chạy backend, PostgreSQL disposable, frontend, end-to-end, workflow syntax, image/package checks và poller unit tests. Pull request CI chỉ cần quyền đọc mã nguồn; không dùng AWS credentials, không đẩy image và không triển khai.
 
-Repository `mhiu05/MoodPrint` là **public**, tạo ngày 23/10/2026 và `main` là nhánh mặc định (đã kiểm tra read-only qua GitHub API). Theo [GitHub OIDC subject reference](https://docs.github.com/en/actions/reference/security/oidc), repo mới sau 15/7/2026 dùng owner/repo ID bất biến. Subject dự kiến của job environment là `repo:mhiu05@178863477/MoodPrint@1430876891:environment:staging`; xác minh claim thực trong một phiên thử OIDC có kiểm soát trước khi chốt trust policy. Template `deploy/aws/github-oidc-trust.json` yêu cầu **exact subject**, không dùng wildcard. [AWS action OIDC guide](https://github.com/aws-actions/configure-aws-credentials).
+## Phát hành tự động
 
-Hiện GitHub API trả danh sách environments rỗng: **chưa có `staging` hoặc reviewer rule**. Trước khi cho phép role OIDC, mở repository **Settings → Environments → New environment**, tạo `staging`, đặt **Required reviewers**, bật **Prevent self-review** và giới hạn deployment branch `main`; chạy thử một workflow không có AWS quyền để xác minh pause chờ reviewer. Theo [GitHub docs](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments), required reviewers có trên public repository; nếu visibility/plan đổi, kiểm tra lại. Nếu không cấu hình được rule, giữ AWS role chưa tạo/chưa cho phép trust; typed confirmation một mình không thay thế review độc lập. Cấu hình GitHub variables `STAGING_AWS_REGION`, `STAGING_AWS_ACCOUNT_ID`, `STAGING_API_ECR_REPOSITORY`, `STAGING_WEB_ECR_REPOSITORY`, `STAGING_EC2_INSTANCE_ID`, `STAGING_SSM_DOCUMENT`, `STAGING_GITHUB_ROLE_ARN` theo hạ tầng đã duyệt.
+`deploy-staging.yml` chạy sau khi `Verify local application` kết thúc thành công cho một push lên `main`. Job xác minh cùng repository, event `push`, branch `main`, workflow ID chính xác và SHA đúng với commit hiện tại trên `main`. Nếu `main` đã đổi thì release cũ bị bỏ qua.
 
-ECR repositories phải có immutable tags. Chạy lại cùng SHA sẽ dùng image tag đã tồn tại và triển khai bằng digest; không tắt immutability. Nếu một repo có tag còn repo kia chưa có do job trước dừng giữa chừng, workflow chỉ build image thiếu. Trước lần phát hành đầu, chứng minh branch protection và CI chính xác trên commit được chọn. Chỉ commit đã chứa toàn bộ migration/config cần thiết mới là ứng viên; các file untracked hôm nay không thể tự lọt vào image CD.
+Build job chỉ đọc source ở SHA đã xác minh. Job build hai image `linux/amd64`, kiểm tra biến runtime nhạy cảm trong image config, file `.env` và source maps, rồi chuyển image archive qua artifact ngắn hạn. Job publish kiểm tra lại SHA, CI run, image ID và revision label; sau đó đẩy image vào:
+
+- `ghcr.io/mhiu05/moodprint-api`
+- `ghcr.io/mhiu05/moodprint-web`
+
+Release manifest ghi SHA, CI/publish run ID, tên image và digest OCI. Manifest và từng digest có GitHub attestations. Workflow tạo prerelease `staging-<SHA>` chỉ khi `main` vẫn ở cùng SHA. EC2 poller kiểm tra main, manifest, CI, publish run và attestations trước khi dùng digest bất biến.
+
+Workflow không dùng AWS OIDC, IAM role, ECR, AWS access key hoặc API AWS. `id-token: write` trong job publish chỉ phục vụ GitHub artifact attestations; nó không cấp quyền AWS. Không có self-hosted GitHub runner. Routine deploy do EC2 pull release; GitHub Actions không gọi SSM.
+
+## EC2 puller
+
+Systemd timer kiểm tra mỗi năm phút. Poller xác minh repository/workflow/source identity, không chạy script tải từ repository khi polling, lấy SecureString chỉ khi có release mới, rồi gọi root-owned `deploy.sh`. Lock file ngăn poll trùng. Deploy dùng digest refs, đợi container health và HTTPS readiness, lưu image pair trước đó, và cố khôi phục pair cũ khi health check thất bại. Pipeline không chạy migration database.
+
+## GHCR access
+
+GHCR packages bắt đầu private. Để giữ private, lưu token chỉ có `read:packages` trong một SecureString riêng, cấu hình tên parameter trong `/opt/moodprint/deployment.conf`, rồi cấp quyền đọc chỉ parameter đó cho EC2 role. Không lưu token trong GitHub Actions, repository hoặc image.
+
+Public packages cho phép pull ẩn danh, nhưng đổi package thành public là lựa chọn có hậu quả lâu dài. Review image contents và secret checks trước khi thay visibility. Xem [GitHub Packages billing and permissions](https://docs.github.com/en/billing/concepts/product-billing/github-packages) và [container registry permissions](https://docs.github.com/en/packages/learn-github-packages/about-permissions-for-github-packages).
+
+`workflow_dispatch` là owner-only fallback để chạy lại publication cho SHA hiện tại sau khi nhập SHA và cụm xác nhận. Đây không phải routine deployment: EC2 vẫn tự phát hiện và xác minh release. Configure branch protection trên `main` nếu push cần review. Hạ tầng ECR cũ được giữ nguyên nhưng pipeline mới không dùng nó.
+
+Chi tiết cài đặt và vận hành: [staging setup](staging-setup.md), [AWS release poller](../../deploy/aws/README.md), [release checklist](release-checklist.md).
