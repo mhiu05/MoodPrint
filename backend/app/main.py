@@ -19,6 +19,7 @@ from app.contracts import ApiError
 from app.core.body_limit import BodyLimitMiddleware
 from app.core.config import Settings
 from app.core.errors import DomainError, install_errors
+from app.core.revisions import READY_REVISIONS
 from app.infrastructure.database.connection import Database
 from app.infrastructure.database.models import AiRun
 
@@ -193,7 +194,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 revision = await db.scalar(
                     text("select version_num from moodprint.alembic_version")
                 )
-                if revision != "0010_account_deletion":
+                if revision not in READY_REVISIONS:
                     raise RuntimeError("Migration required")
                 helper = await db.scalar(
                     text(

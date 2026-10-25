@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 from app.core.config import Settings  # noqa: E402
+from app.core.revisions import READY_REVISIONS  # noqa: E402
 
 
 def error_details(error):
@@ -193,7 +194,7 @@ async def inspect_target(secret, config):
                 )
                 entry["migrationReadiness"] = (
                     "head_matches"
-                    if entry["revisions"] == ["0010_account_deletion"]
+                    if len(entry["revisions"]) == 1 and entry["revisions"][0] in READY_REVISIONS
                     else "revision_drift"
                 )
                 if entry["migrationReadiness"] == "head_matches" and not bridge:
