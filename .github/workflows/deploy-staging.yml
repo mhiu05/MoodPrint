@@ -11,6 +11,10 @@ on:
         description: 'Type DEPLOY STAGING followed by a space and the full SHA'
         required: true
         type: string
+  workflow_run:
+    workflows: ["Verify local application"]
+    types: [completed]
+    branches: [main]
 
 concurrency:
   group: moodprint-staging
@@ -18,6 +22,7 @@ concurrency:
 
 jobs:
   validate:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -30,16 +35,26 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - id: provenance
-        name: Validate explicit approval and main ancestry
+        name: Validate deployment event and main ancestry
         env:
-          RELEASE_SHA: ${{ inputs.release_sha }}
+          RELEASE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.release_sha }}
           APPROVAL: ${{ inputs.approval }}
+          DEPLOY_EVENT: ${{ github.event_name }}
+          CI_EVENT: ${{ github.event.workflow_run.event }}
+          CI_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          CI_REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name }}
         run: |
           set -euo pipefail
           [[ "$GITHUB_REF" == refs/heads/main ]]
-          [[ "$GITHUB_ACTOR" == "$GITHUB_REPOSITORY_OWNER" ]]
           [[ "$RELEASE_SHA" =~ ^[a-f0-9]{40}$ ]]
-          [[ "$APPROVAL" == "DEPLOY STAGING $RELEASE_SHA" ]]
+          if [[ "$DEPLOY_EVENT" == "workflow_run" ]]; then
+            [[ "$CI_EVENT" == "push" ]]
+            [[ "$CI_BRANCH" == "main" ]]
+            [[ "$CI_REPOSITORY" == "$GITHUB_REPOSITORY" ]]
+          else
+            [[ "$GITHUB_ACTOR" == "$GITHUB_REPOSITORY_OWNER" ]]
+            [[ "$APPROVAL" == "DEPLOY STAGING $RELEASE_SHA" ]]
+          fi
           git fetch --no-tags origin main
           [[ $(git rev-parse "$RELEASE_SHA^{commit}") == "$RELEASE_SHA" ]]
           git merge-base --is-ancestor "$RELEASE_SHA" origin/main
