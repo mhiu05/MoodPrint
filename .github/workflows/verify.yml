@@ -30,11 +30,11 @@ jobs:
           TEST_DATABASE_URL: postgresql+psycopg://postgres:synthetic-ci-only@127.0.0.1:5432/moodprint_test
         run: |
           uv sync --locked --python 3.12.13
-          uv run ruff check app tests evals
+          uv run ruff check app tests evals alembic ../scripts/load_chat_memory.py ../scripts/apply_supabase_review.py ../scripts/test_supabase_fullstack.py
           uv run mypy app
           uv run pytest -q
           uv run python ../scripts/export_openapi.py
-      - name: Migration chain and two-worker synthetic load
+      - name: Migration chain and single-worker (production topology) synthetic load
         working-directory: backend
         env:
           PGPASSWORD: synthetic-ci-only
@@ -43,7 +43,7 @@ jobs:
           psql -h 127.0.0.1 -U postgres -c "create database moodprint_load_test"
           DATABASE_URL='' DATABASE_MIGRATION_URL=postgresql+psycopg://postgres:synthetic-ci-only@127.0.0.1:5432/moodprint_migration_test uv run alembic upgrade head
           DATABASE_URL='' DATABASE_MIGRATION_URL=postgresql+psycopg://postgres:synthetic-ci-only@127.0.0.1:5432/moodprint_migration_test uv run alembic check
-          TEST_DATABASE_URL=postgresql+psycopg://postgres:synthetic-ci-only@127.0.0.1:5432/moodprint_load_test MOODPRINT_LOAD_AI_TIMEOUT=10 MOODPRINT_LOAD_HOLD_SECONDS=8 uv run python ../scripts/load_chat_memory.py --users 10 --crash-kill --output "$RUNNER_TEMP/load-results.json"
+          TEST_DATABASE_URL=postgresql+psycopg://postgres:synthetic-ci-only@127.0.0.1:5432/moodprint_load_test MOODPRINT_LOAD_AI_TIMEOUT=10 MOODPRINT_LOAD_HOLD_SECONDS=8 uv run python ../scripts/load_chat_memory.py --workers 1 --users 10 --crash-kill --output "$RUNNER_TEMP/load-results.json"
       - name: Frontend and contract drift
         working-directory: frontend
         run: |
@@ -81,3 +81,7 @@ jobs:
           docker run --rm --entrypoint sh "$API_IMAGE" -c 'test ! -e /srv/moodprint/.env'
           docker run --rm --entrypoint sh "$WEB_IMAGE" -c '! find /srv -name "*.map" -print -quit | grep -q .'
           bash scripts/test_staging_proxy.sh
+      - name: Production image builds (SPA + API, no secrets)
+        run: |
+          docker build -t moodprint:ci .
+          docker run --rm --entrypoint sh moodprint:ci -c 'test ! -e /srv/moodprint/.env && test -f /srv/moodprint/static/index.html && test "$(id -u)" = 10001'
