@@ -30,7 +30,8 @@ const requestStatus: Record<string, string> = {
   declined: "Lời mời đã được từ chối",
   cancelled: "Lời mời đã được hủy",
   expired: "Lời mời đã hết hạn",
-  invalidated: "Lời mời không còn hiệu lực vì hồ sơ hoặc quyền đã thay đổi",
+  invalidated:
+    "Lời mời không còn hiệu lực vì quyền tìm bạn hoặc trạng thái kết nối đã thay đổi",
 };
 
 export function Discovery() {
@@ -258,6 +259,12 @@ export function Discovery() {
               .join(" · ")}
           </p>
           <p>Chỉ các lựa chọn này sẽ xuất hiện trong gợi ý kết nối.</p>
+          {published.data && (
+            <p className={cx.note}>
+              Các kết nối hiện có vẫn được giữ. Hồ sơ mới chỉ thay đổi những gợi
+              ý bạn nhận được.
+            </p>
+          )}
           <div className={cx.actions}>
             <Button
               variant="secondary"

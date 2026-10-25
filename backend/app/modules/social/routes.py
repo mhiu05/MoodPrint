@@ -157,7 +157,7 @@ async def publish(body: PublishInput, request: Request, actor: Actor = Depends(r
             ):
                 raise DomainError(409, "PREVIEW_CHANGED", "Hãy xem lại bản xem trước mới nhất.")
             svc.validate_publishable(draft.payload)
-            await svc.invalidate_user_social(db, user.id)
+            # DR-03: a new profile changes discovery only; rooms and requests stay valid.
             await db.execute(
                 update(PublishedProfile)
                 .where(PublishedProfile.user_id == user.id, PublishedProfile.valid)
@@ -190,7 +190,6 @@ async def withdraw(body: VersionInput, request: Request, actor: Actor = Depends(
             return ActionReceipt.model_validate(old)
         if user.profile_version != body.expected_version:
             raise DomainError(409, "STALE_VERSION", "Hồ sơ đã thay đổi.")
-        await svc.invalidate_user_social(db, user.id)
         await db.execute(
             update(PublishedProfile)
             .where(PublishedProfile.user_id == user.id, PublishedProfile.valid)
@@ -262,13 +261,10 @@ async def candidates(request: Request, actor: Actor = Depends(require_actor)):
                         Connection.pair_id == pair.id, Connection.status == "open"
                     )
                 )
-                if (
-                    pending
-                    and pending.snapshots == snapshots
-                    and pending.expires_at + timedelta(days=30) > now()
-                ):
+                # Any live request or open room hides the pair, whatever either profile became.
+                if pending and pending.expires_at + timedelta(days=30) > now():
                     continue
-                if room and room.snapshots == snapshots:
+                if room:
                     continue
             points = scoring.score(
                 {**own.payload, "sources": []}, {**published.payload, "sources": []}
@@ -392,7 +388,16 @@ async def decide(request_id, decision, body, request, actor):
     key, payload = idempotency_key(request), body.model_dump(mode="json")
     operation = f"request:{decision}:{request_id}"
     async with svc.pair_transaction(request, actor, peer_id) as (db, user, peer):
-        _, _, snapshots = await svc.base_eligibility(db, user, peer)
+        gate = svc.consent_view(await svc.room_gate(db, user, peer))
+        snapshots = None
+        if decision == "accept":
+            # Opening a room still needs both published profiles (DR-03 keeps requests
+            # alive across edits, but a withdrawn sender cannot be accepted).
+            try:
+                _, _, snapshots = await svc.base_eligibility(db, user, peer)
+            except DomainError as error:
+                if error.code not in ("PROFILE_REQUIRED", "PAIR_INELIGIBLE"):
+                    raise
         pair = await svc.canonical_pair(db, user.id, peer.id, False)
         row = await db.scalar(
             select(ConnectionRequest).where(ConnectionRequest.id == request_id).with_for_update()
@@ -406,17 +411,18 @@ async def decide(request_id, decision, body, request, actor):
             raise DomainError(403, "WRONG_ACTOR", "Bạn không thể thực hiện lựa chọn này.")
         old = await previous_receipt(db, user, operation, key, payload)
         if old:
-            if row.snapshots != snapshots:
+            if svc.consent_view(row.snapshots) != gate:
                 svc.deny()
             return svc.request_view(row, user.id)
         if (
             row.version != body.expected_version
             or row.status != "pending"
             or row.expires_at <= now()
-            or row.snapshots != snapshots
+            or svc.consent_view(row.snapshots) != gate
+            or (decision == "accept" and snapshots is None)
         ):
             raise DomainError(409, "REQUEST_CHANGED", "Lời mời đã thay đổi hoặc hết hạn.")
-        if decision == "accept":
+        if decision == "accept" and snapshots is not None:
             await svc.open_mutual_room(db, pair, row, snapshots)
         else:
             row.status = "declined" if decision == "decline" else "cancelled"
@@ -467,10 +473,10 @@ async def list_connections(request: Request, actor: Actor = Depends(require_acto
             peer_id = room.high_user_id if room.low_user_id == user.id else room.low_user_id
             peer = await db.get(User, peer_id)
             try:
-                _, _, snapshots = await svc.base_eligibility(db, user, peer)
+                gate = await svc.room_gate(db, user, peer)
             except DomainError:
                 continue
-            if room.snapshots == snapshots:
+            if svc.consent_view(room.snapshots) == svc.consent_view(gate):
                 result.append(svc.connection_view(room))
         return result
 

@@ -106,6 +106,22 @@ async def base_eligibility(db: AsyncSession, a: User, b: User, *, own_snapshot=N
     return ap, bp, snapshots
 
 
+async def room_gate(db: AsyncSession, a: User, b: User) -> dict[str, dict[str, int]]:
+    """Room/request validity (DR-03): no block and both MATCH-consented adults.
+
+    Published profiles decide discovery only, so editing or withdrawing one never
+    closes a friendship; consent versions remain the room's identity.
+    """
+    if a.id == b.id or await is_blocked(db, a.id, b.id):
+        deny()
+    ac, bc = await match_consent(db, a), await match_consent(db, b)
+    return {str(a.id): {"consent": ac.version}, str(b.id): {"consent": bc.version}}
+
+
+def consent_view(snapshots: dict) -> dict[str, int]:
+    return {uid: value["consent"] for uid, value in snapshots.items()}
+
+
 async def canonical_pair(db: AsyncSession, a: UUID, b: UUID, create=True, lock=True):
     low, high = sorted((a, b))
     statement = select(Pair).where(Pair.low_user_id == low, Pair.high_user_id == high)
@@ -166,14 +182,15 @@ async def interaction(db, pair: Pair, snapshots):
         .with_for_update()
     )
     deadlines = []
-    if pending and (pending.expires_at <= now() or pending.snapshots != snapshots):
+    gate = consent_view(snapshots)
+    if pending and (pending.expires_at <= now() or consent_view(pending.snapshots) != gate):
         expired = pending.expires_at <= now()
         pending.status = "expired" if expired else "invalidated"
         # Expiry has a durable timestamp. Rechecking must never move its cooldown.
         deadlines.append((pending.expires_at if expired else now()) + timedelta(days=30))
         pending.version += 1
         pending = None
-    if room and room.snapshots != snapshots:
+    if room and consent_view(room.snapshots) != gate:
         room.status = "closed"
         room.version += 1
         room = None
@@ -250,7 +267,7 @@ async def room_peer(request, actor, room_id):
 
 
 async def live_room(db, a, b, room_id, lock: bool = True):
-    _, _, snapshots = await base_eligibility(db, a, b)
+    gate = consent_view(await room_gate(db, a, b))
     pair = await canonical_pair(db, a.id, b.id, False, lock=lock)
     statement = select(Connection).where(Connection.id == room_id)
     room = await db.scalar(statement.with_for_update() if lock else statement)
@@ -259,7 +276,7 @@ async def live_room(db, a, b, room_id, lock: bool = True):
         or not room
         or room.pair_id != pair.id
         or room.status != "open"
-        or room.snapshots != snapshots
+        or consent_view(room.snapshots) != gate
     ):
         deny()
     return room

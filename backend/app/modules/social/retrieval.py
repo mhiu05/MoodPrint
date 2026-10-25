@@ -89,27 +89,23 @@ async def ranked_candidates(db, user, own, own_consent):
     pending_by_pair = {row.pair_id: row for row in pending}
     rooms_by_pair = {row.pair_id: row for row in rooms}
     ranked = []
-    for peer_id, version, payload, consent_version in peers:
+    for peer_id, _version, payload, _consent_version in peers:
         if (
             peer_id in blocked
             or payload["goal"] != own.payload["goal"]
             or not set(payload["languages"]) & set(own.payload["languages"])
         ):
             continue
-        snapshots = {
-            str(user.id): {"profile": own.version, "consent": own_consent.version},
-            str(peer_id): {"profile": version, "consent": consent_version},
-        }
         pair = by_peer.get(peer_id)
         if pair:
             if pair.cooldown_until and pair.cooldown_until > now():
                 continue
+            # DR-03: a live request or open room hides the pair even after either side
+            # republished; only consent changes (which close them) bring the pair back.
             pending_row = pending_by_pair.get(pair.id)
-            room = rooms_by_pair.get(pair.id)
-            if pending_row and pending_row.snapshots == snapshots:
-                if pending_row.expires_at + timedelta(days=30) > now():
-                    continue
-            if room and room.snapshots == snapshots:
+            if pending_row and pending_row.expires_at + timedelta(days=30) > now():
+                continue
+            if pair.id in rooms_by_pair:
                 continue
         points = scoring.score({**own.payload, "sources": []}, {**payload, "sources": []})
         if points >= 30:
