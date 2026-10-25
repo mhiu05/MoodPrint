@@ -27,6 +27,12 @@ describe("production guard", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("is packaged as the product, without legacy prototype scripts", () => {
+    const pkg = JSON.parse(readFileSync(join(SRC, "..", "package.json"), "utf8"));
+    expect(pkg.name).toBe("moodprint-web");
+    expect(Object.keys(pkg.scripts).filter((name) => /legacy/.test(name))).toEqual([]);
+  });
+
   it("exports only shared UI that production features use", () => {
     const ui = readFileSync(join(SRC, "components", "UI.tsx"), "utf8");
     const exported = [...ui.matchAll(/^export (?:function|const) (\w+)/gm)].map(
