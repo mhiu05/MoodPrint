@@ -18,8 +18,12 @@ const defaults = {
   historyAvailable: true,
   semanticMemoryAvailable: true,
 };
-async function fixture(page: Page, ai = true) {
-  let preferences = { ...defaults };
+async function fixture(page: Page, ai = true, options: {
+  preferences?: Partial<typeof defaults>;
+  preferencesReady?: Promise<void>;
+  serviceStatus?: "disabled" | "configuration_missing" | "configuration_invalid";
+} = {}) {
+  let preferences = { ...defaults, ...options.preferences };
   let deleted = false;
   const writes: any[] = [];
   const header = {
@@ -46,7 +50,7 @@ async function fixture(page: Page, ai = true) {
           csrfToken: "synthetic-csrf",
           timezone: "Asia/Bangkok",
           serverTime: "2026-10-24T08:00:00Z",
-          features: { ai: true, voice: false, matching: false },
+          features: { ai: !options.serviceStatus, aiStatus: options.serviceStatus || "ready", voice: false, matching: false },
           consents: Object.fromEntries(
             ["AI", "MEM", "MATCH", "VOICE"].map((p) => [
               p,
@@ -57,6 +61,7 @@ async function fixture(page: Page, ai = true) {
       });
     if (path === "/bots") return route.fulfill({ json: [bot] });
     if (path === "/ai/preferences") {
+      await options.preferencesReady;
       if (request.method() === "PUT") {
         writes.push(request.postDataJSON());
         preferences = {
@@ -116,6 +121,30 @@ async function fixture(page: Page, ai = true) {
   });
   return writes;
 }
+
+test("latest saved history waits for a late preference response after login", async ({ page }) => {
+  let release!: () => void;
+  const ready = new Promise<void>(resolve => { release = resolve; });
+  await fixture(page, true, { preferences: { historyEnabled: true }, preferencesReady: ready });
+  await page.goto("/#/assistants/may");
+  await expect(page.getByRole("link", { name: "Đang kiểm tra lịch sử…", exact: true })).toBeVisible();
+  release();
+  await expect(page.getByRole("log").getByText("Tin đã lưu", { exact: true })).toBeVisible();
+});
+
+test("history server availability and user opt-out have distinct actions", async ({ page }) => {
+  await fixture(page, true, { preferences: { historyAvailable: false } });
+  await page.goto("/#/assistants/may?new=1");
+  await expect(page.getByRole("link", { name: "Lưu lịch sử chưa sẵn sàng", exact: true })).toBeVisible();
+  await expect(page.getByText("Lưu lịch sử đang tắt", { exact: true })).toHaveCount(0);
+});
+
+test("missing provider is distinct from missing consent", async ({ page }) => {
+  await fixture(page, true, { serviceStatus: "configuration_missing" });
+  await page.goto("/#/assistants/may?new=1");
+  await expect(page.getByText("Trợ lý chưa được kết nối với dịch vụ AI. Bạn có thể quay lại sau.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Bật quyền trò chuyện AI", exact: true })).toHaveCount(0);
+});
 
 test("history is a separate explicit opt-in and semantic processing explains Voyage", async ({
   page,

@@ -82,6 +82,7 @@ async def session_view(request: Request, actor: Actor, csrf: str | None = None) 
             eligibility_version=declaration.version if declaration else 0,
             features=FeatureView(
                 ai=ai_available,
+                ai_status=request.app.state.ai.status_for(actor.user_id),
                 ai_quota_remaining=remaining,
                 matching=True,
                 voice=request.app.state.transcriber is not None and (

@@ -724,13 +724,13 @@ async def run(args):
                     "provider_replayed": False,
                 },
                 "limits": {
-                    "global_admission": 50,
-                    "per_user": 2,
-                    "timeout_seconds": 30,
-                    "pool_per_worker": "5 + 5 overflow",
+                    "global_admission": fixture.settings.ai_global_concurrency,
+                    "per_user": fixture.settings.ai_user_concurrency,
+                    "timeout_seconds": fixture.settings.ai_timeout_seconds,
+                    "pool_per_worker": f"{fixture.settings.database_pool_size} + {fixture.settings.database_pool_overflow} overflow",
                     "sampling_seconds": 0.1,
                 },
-                "scope": "Local synthetic providers; no external latency, billing, production traffic, crash-kill, or sustained soak measurement.",
+                "scope": "Local synthetic providers; no external provider latency, billing, production traffic or sustained soak measurement. Crash-kill is included only when crash_recovery is an object.",
             }
             output = Path(args.output)
             output.parent.mkdir(parents=True, exist_ok=True)

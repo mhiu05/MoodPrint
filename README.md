@@ -9,6 +9,9 @@ Kế hoạch sản phẩm hóa (matching v2, hoạt động chung, kiểm duyệ
 
 ## Chạy local
 
+Hướng dẫn cấu hình MVP local, phân biệt consent/lịch sử/provider và kiểm chứng
+bằng PostgreSQL riêng: [local MVP](docs/development/local-mvp.md).
+
 Frontend:
 
 ```powershell

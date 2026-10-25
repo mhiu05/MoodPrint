@@ -124,11 +124,35 @@ test("a one-cycle shared focus session runs on server time to completion", async
     // E2E_FOCUS_SECONDS (20 s) replaces the plan in the test env: 5 s start + 20 s focus.
     await expect(a).toContainText("Tập trung", { timeout: 20_000 });
     await expect(b).toContainText("Tập trung");
+    await a.getByRole("button", { name: "Tạm dừng", exact: true }).click();
+    await expect(a.getByText("Bạn đã tạm dừng", { exact: true })).toBeVisible();
+    await expect(b.getByText(/đã tạm dừng/)).toBeVisible();
+    await pageB.reload();
+    await expect(dock(pageB, title).getByText(/đã tạm dừng/)).toBeVisible();
+    await dock(pageB, title).getByRole("button", { name: "Tiếp tục", exact: true }).click();
+    await expect(a.getByRole("button", { name: "Tạm dừng", exact: true })).toBeEnabled();
     await expect(a.getByRole("heading", { name: "Hoàn thành!" })).toBeVisible({ timeout: 60_000 });
     await expect(b.getByRole("heading", { name: "Hoàn thành!" })).toBeVisible({ timeout: 10_000 });
   } finally {
     await close();
   }
+});
+
+test("either participant can explicitly stop focus and both reload the same summary", async ({ browser }) => {
+  const { pageA, pageB, close } = await openRoom(browser, 47, 48);
+  try {
+    const title = "Cùng tập trung";
+    await invite(pageA, title);
+    await accept(pageB, title);
+    await dock(pageB, title).getByRole("button", { name: "Kết thúc", exact: true }).click();
+    await pageB.getByRole("dialog", { name: "Kết thúc phiên tập trung?" })
+      .getByRole("button", { name: "Kết thúc phiên", exact: true }).click();
+    await expect(dock(pageA, title)).toContainText("kết thúc");
+    await pageA.reload();
+    await pageB.reload();
+    await expect(pageA.getByText("Cùng tập trung", { exact: true }).first()).toBeVisible();
+    await expect(pageB.getByText("Cùng tập trung", { exact: true }).first()).toBeVisible();
+  } finally { await close(); }
 });
 
 test("blocking mid-activity closes the peer's dock and the room", async ({ browser }) => {

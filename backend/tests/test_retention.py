@@ -100,8 +100,8 @@ async def test_old_ai_run_metadata_is_purged_unless_a_saved_message_needs_it(cli
     assert left == {recent.id, anchored.id}
 
 
-async def test_stale_read_markers_and_year_old_matching_stats_are_purged(clients):
-    from datetime import date
+async def test_stale_read_markers_and_year_old_matching_stats_are_purged(clients, monkeypatch):
+    from datetime import UTC
 
     from sqlalchemy import update
 
@@ -110,14 +110,19 @@ async def test_stale_read_markers_and_year_old_matching_stats_are_purged(clients
 
     app, actors, _, room = await open_room(clients)
     (_, a_id), (_, b_id) = actors
-    old = now() - timedelta(days=91)
+    # Matching statistics use UTC day buckets, unlike per-user mood dates.
+    # Freeze a UTC/Bangkok day disagreement instead of using the host's date.today().
+    at = datetime(2026, 10, 25, 18, 30, tzinfo=UTC)
+    monkeypatch.setattr("app.jobs.retention.now", lambda: at)
+    today = at.date()
+    old = at - timedelta(days=91)
     async with app.state.database.sessions.begin() as db:
         db.add_all(
             [
                 ConnectionRead(connection_id=UUID(room), user_id=a_id, last_read_seq=0, updated_at=old),
                 ConnectionRead(connection_id=UUID(room), user_id=b_id, last_read_seq=0),
-                MatchingStatsDaily(day=date.today() - timedelta(days=366), scoring_version="rules-v1"),
-                MatchingStatsDaily(day=date.today() - timedelta(days=364), scoring_version="rules-v1"),
+                MatchingStatsDaily(day=today - timedelta(days=366), scoring_version="rules-v1"),
+                MatchingStatsDaily(day=today - timedelta(days=364), scoring_version="rules-v1"),
             ]
         )
     await purge_expired(app)
@@ -126,8 +131,8 @@ async def test_stale_read_markers_and_year_old_matching_stats_are_purged(clients
         assert len((await db.scalars(select(ConnectionRead))).all()) == 2
         days = set((await db.scalars(select(MatchingStatsDaily.day))).all())
         # Discovery in open_room also counted today's impressions.
-        assert date.today() - timedelta(days=364) in days
-        assert date.today() - timedelta(days=366) not in days
+        assert today - timedelta(days=364) in days
+        assert today - timedelta(days=366) not in days
     async with app.state.database.sessions.begin() as db:
         await db.execute(update(Connection).values(status="closed"))
     await purge_expired(app)

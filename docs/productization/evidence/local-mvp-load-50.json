@@ -1,0 +1,233 @@
+{
+  "users": 50,
+  "workers": 1,
+  "think_seconds": 1.0,
+  "elapsed_s": 101.36,
+  "requests": 3379,
+  "throughput_rps": 33.3,
+  "unexpected_statuses": [],
+  "flow_exceptions": [],
+  "integrity": {},
+  "discovery_misses": [],
+  "info": {
+    "partner_seen_as_incoming_request": 2,
+    "events_received": 755
+  },
+  "transport_retries": [],
+  "rooms_opened": 25,
+  "expected_rooms": 25,
+  "pool_peak_checked_out": 12,
+  "pool_peak_overflow": 4,
+  "pool_size": 8,
+  "local_server_metrics": {
+    "checkedOut": 1,
+    "overflow": 0,
+    "size": 8,
+    "sqlCount": 55589,
+    "sqlSeconds": 306.945,
+    "processCpuSeconds": 67.5
+  },
+  "latency": {
+    "activity_accept": {
+      "count": 25,
+      "p50_ms": 82.8,
+      "p95_ms": 269.1,
+      "max_ms": 368.0
+    },
+    "activity_answer": {
+      "count": 150,
+      "p50_ms": 97.5,
+      "p95_ms": 326.4,
+      "max_ms": 426.3
+    },
+    "activity_current": {
+      "count": 50,
+      "p50_ms": 47.3,
+      "p95_ms": 103.7,
+      "max_ms": 111.8
+    },
+    "activity_history": {
+      "count": 50,
+      "p50_ms": 67.5,
+      "p95_ms": 212.7,
+      "max_ms": 478.0
+    },
+    "activity_invite": {
+      "count": 38,
+      "p50_ms": 56.2,
+      "p95_ms": 86.1,
+      "max_ms": 125.8
+    },
+    "activity_poll": {
+      "count": 444,
+      "p50_ms": 74.4,
+      "p95_ms": 270.5,
+      "max_ms": 463.5
+    },
+    "activity_ready": {
+      "count": 150,
+      "p50_ms": 90.9,
+      "p95_ms": 301.5,
+      "max_ms": 471.2
+    },
+    "candidates": {
+      "count": 50,
+      "p50_ms": 708.0,
+      "p95_ms": 922.4,
+      "max_ms": 1015.6
+    },
+    "connection_get": {
+      "count": 50,
+      "p50_ms": 50.9,
+      "p95_ms": 90.9,
+      "max_ms": 414.0
+    },
+    "connections": {
+      "count": 50,
+      "p50_ms": 172.2,
+      "p95_ms": 519.9,
+      "max_ms": 651.3
+    },
+    "consent": {
+      "count": 50,
+      "p50_ms": 58.6,
+      "p95_ms": 116.7,
+      "max_ms": 127.9
+    },
+    "consent_toggle": {
+      "count": 20,
+      "p50_ms": 65.2,
+      "p95_ms": 414.1,
+      "max_ms": 414.1
+    },
+    "draft_preview": {
+      "count": 50,
+      "p50_ms": 27.2,
+      "p95_ms": 49.1,
+      "max_ms": 59.5
+    },
+    "draft_save": {
+      "count": 50,
+      "p50_ms": 30.6,
+      "p95_ms": 62.0,
+      "max_ms": 79.2
+    },
+    "events_first": {
+      "count": 50,
+      "p50_ms": 429.0,
+      "p95_ms": 1368.5,
+      "max_ms": 1711.5
+    },
+    "foreign_probe": {
+      "count": 50,
+      "p50_ms": 23.1,
+      "p95_ms": 53.3,
+      "max_ms": 59.8
+    },
+    "history": {
+      "count": 50,
+      "p50_ms": 49.4,
+      "p95_ms": 93.8,
+      "max_ms": 110.6
+    },
+    "message_poll": {
+      "count": 500,
+      "p50_ms": 215.0,
+      "p95_ms": 702.9,
+      "max_ms": 1292.3
+    },
+    "message_retry": {
+      "count": 200,
+      "p50_ms": 260.2,
+      "p95_ms": 803.9,
+      "max_ms": 1222.3
+    },
+    "message_send": {
+      "count": 500,
+      "p50_ms": 264.8,
+      "p95_ms": 810.8,
+      "max_ms": 1429.8
+    },
+    "mood_edit": {
+      "count": 100,
+      "p50_ms": 29.6,
+      "p95_ms": 61.0,
+      "max_ms": 93.5
+    },
+    "mood_list": {
+      "count": 50,
+      "p50_ms": 26.6,
+      "p95_ms": 61.2,
+      "max_ms": 77.1
+    },
+    "mood_put": {
+      "count": 250,
+      "p50_ms": 35.9,
+      "p95_ms": 64.0,
+      "max_ms": 275.0
+    },
+    "mood_summary": {
+      "count": 50,
+      "p50_ms": 27.8,
+      "p95_ms": 71.6,
+      "max_ms": 77.3
+    },
+    "publish": {
+      "count": 50,
+      "p50_ms": 34.1,
+      "p95_ms": 59.1,
+      "max_ms": 59.4
+    },
+    "read_marker": {
+      "count": 50,
+      "p50_ms": 48.3,
+      "p95_ms": 93.7,
+      "max_ms": 421.9
+    },
+    "request_accept": {
+      "count": 13,
+      "p50_ms": 57.7,
+      "p95_ms": 90.3,
+      "max_ms": 90.3
+    },
+    "request_list": {
+      "count": 52,
+      "p50_ms": 33.0,
+      "p95_ms": 57.3,
+      "max_ms": 102.6
+    },
+    "request_send": {
+      "count": 37,
+      "p50_ms": 385.6,
+      "p95_ms": 1497.1,
+      "max_ms": 1701.0
+    },
+    "session": {
+      "count": 50,
+      "p50_ms": 578.5,
+      "p95_ms": 878.1,
+      "max_ms": 911.2
+    },
+    "summary": {
+      "count": 100,
+      "p50_ms": 41.3,
+      "p95_ms": 105.8,
+      "max_ms": 405.9
+    }
+  },
+  "acceptance": {
+    "write_p95_limit_ms": 800,
+    "read_p95_limit_ms": 500,
+    "over_limit": {
+      "candidates": 922.4,
+      "connections": 519.9,
+      "message_poll": 702.9,
+      "message_retry": 803.9,
+      "message_send": 810.8,
+      "request_send": 1497.1,
+      "session": 878.1
+    }
+  },
+  "scorer": "v2",
+  "passed": false
+}

@@ -2102,6 +2102,12 @@ export interface components {
              */
             ai: boolean;
             /**
+             * Aistatus
+             * @default disabled
+             * @enum {string}
+             */
+            aiStatus: "disabled" | "configuration_missing" | "configuration_invalid" | "ready" | "test_provider";
+            /**
              * Matching
              * @default false
              */

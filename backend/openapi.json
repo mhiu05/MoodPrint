@@ -13964,6 +13964,18 @@
             "title": "Ai",
             "default": false
           },
+          "aiStatus": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "configuration_missing",
+              "configuration_invalid",
+              "ready",
+              "test_provider"
+            ],
+            "title": "Aistatus",
+            "default": "disabled"
+          },
           "matching": {
             "type": "boolean",
             "title": "Matching",

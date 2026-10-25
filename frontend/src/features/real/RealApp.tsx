@@ -67,6 +67,7 @@ import "./real.css";
 import { ConnectBridge, Discovery } from "./social/Discovery";
 import { OfflineBanner } from "./OfflineBanner";
 import { AssistantGuide } from "./AssistantGuide";
+import { aiServiceMessage } from "./aiStatus";
 import { HumanChat } from "./social/HumanChat";
 import { HumanMessages } from "./social/HumanMessages";
 import { badgeText, useSocialSummary } from "./social/useSocialSummary";
@@ -699,7 +700,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const [pendingProposals, setPendingProposals] = useState(0), [proposalRevision, setProposalRevision] = useState(0);
   const allowed = session.consents.AI.enabled && session.features.ai;
   const historyWritable = !conversation?.persistent || !!(preferences?.historyEnabled && preferences.historyAvailable);
-  const canSend = allowed && historyWritable;
+  const canSend = allowed && historyWritable && !!preferences && !preferencesError;
   const [draft, setDraft] = useState(""),
     [error, setError] = useState<unknown>();
   const [loading, setLoading] = useState(true),
@@ -794,6 +795,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   useEffect(() => {
     // A newly created thread receives a URL without interrupting its active stream.
     if (selectedId && selectedId === current.current?.conversationId && loadedRevision.current === revision) return;
+    // A fresh login must wait for the saved-history preference before selecting
+    // the latest thread. Otherwise the first render silently skips saved threads.
+    if (!selectedId && preferencesLoading) return;
     loadedRevision.current = revision;
     lifetime.current?.abort();
     const controller = new AbortController();
@@ -823,7 +827,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     // Lifetime is aborted above on a real selection and on unmount. URL updates
     // for the current thread must leave its in-flight request running.
-  }, [api, bot.botId, selectedId, searchParams.get("new"), revision, stream, update]);
+  }, [api, bot.botId, selectedId, searchParams.get("new"), revision, stream, update, preferencesLoading, preferences?.historyEnabled]);
   useEffect(() => {
     if (!session.consents.AI.enabled) {
       setPendingProposals(0);
@@ -997,11 +1001,32 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     } catch (reason) { setError(reason); }
     finally { setManageBusy(false); }
   }
+  let conversationLabel = "Hội thoại tạm thời · không lưu vào lịch sử";
+  if (conversation?.persistent) conversationLabel = "Hội thoại đã lưu";
+  else if (!conversation && preferences?.historyEnabled && preferences.historyAvailable)
+    conversationLabel = "Hội thoại mới sẽ được lưu";
+
+  let historyAction = "Bật lưu lịch sử trong cài đặt";
+  if (preferencesLoading) historyAction = "Đang kiểm tra lịch sử…";
+  else if (!preferences) historyAction = "Kiểm tra quyền lưu lịch sử";
+  else if (!preferences.historyAvailable) historyAction = "Lưu lịch sử chưa sẵn sàng";
+  else if (preferences.historyEnabled) historyAction = `Lưu tối đa ${preferences.retentionDays} ngày`;
+
+  let readOnlyMessage = "Đang kiểm tra lựa chọn dữ liệu AI…";
+  if (!session.consents.AI.enabled)
+    readOnlyMessage = "Bạn chưa bật quyền trò chuyện AI. Bật quyền này khi bạn sẵn sàng chia sẻ với trợ lý; lưu lịch sử là lựa chọn riêng.";
+  else if (!session.features.ai) readOnlyMessage = aiServiceMessage(session.features);
+  else if (!preferences && !preferencesLoading)
+    readOnlyMessage = "Chưa tải được lựa chọn dữ liệu AI. Hãy thử tải lại trước khi nhắn.";
+  else if (preferences && !historyWritable)
+    readOnlyMessage = preferences.historyAvailable
+      ? "Bạn đang tắt lưu lịch sử. Bật lại trong cài đặt để tiếp tục hội thoại đã lưu, hoặc mở hội thoại tạm thời mới."
+      : "Lưu lịch sử hiện chưa sẵn sàng. Hội thoại đã lưu chỉ để xem; bạn có thể mở hội thoại tạm thời mới.";
   return (
     <>
       <div className="chat-history-toolbar">
-        <div><span>{conversation?.persistent ? "Hội thoại đã lưu" : "Hội thoại tạm thời"}</span>
-        <Link to="/settings">{preferences?.historyEnabled ? `Lưu tối đa ${preferences.retentionDays} ngày` : "Lưu lịch sử đang tắt"}</Link></div>
+        <div><span>{conversationLabel}</span>
+        <Link to="/settings">{historyAction}</Link></div>
         <div className={cx.actions}>
           <Button variant="text" onClick={newConversation}>Cuộc trò chuyện mới</Button>
           {conversation?.persistent ? <><Button variant="text" disabled={manageBusy} onClick={() => { setRenameText(conversation.title || ""); setRenameError(undefined); setRenameOpen(true); }}>Đổi tên</Button><Button variant="text" disabled={manageBusy} onClick={() => void manage(false)}>Xuất hội thoại</Button><Button variant="text" disabled={manageBusy} onClick={() => setDeleteOpen(true)}>Xóa hội thoại</Button></> : null}
@@ -1091,7 +1116,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           retry={() => setRevision((value) => value + 1)}
         />
       </div>
-      {!canSend ? <div className="chat-readonly" role="status"><p>{!allowed ? "Trò chuyện AI đang tắt hoặc chưa khả dụng. Bạn vẫn xem, xuất và xóa lịch sử đã lưu được." : "Lưu lịch sử đang tắt. Hội thoại đã lưu chỉ để xem; bắt đầu cuộc trò chuyện mới để nhắn tạm thời."}</p><Link to="/settings">Xem quyền dữ liệu AI</Link></div> : <div className="chat-bottom">
+      {session.features.aiStatus === "test_provider" ? <p className={cx.footnote} role="note">Môi trường kiểm thử · phản hồi từ model giả, không phải OpenAI.</p> : null}
+      {!canSend ? <div className="chat-readonly" role="status"><p>{readOnlyMessage}</p><Link to="/settings">{!session.consents.AI.enabled ? "Bật quyền trò chuyện AI" : "Xem quyền dữ liệu AI"}</Link></div> : <div className="chat-bottom">
         {bot.botId === "nhip" ? (
           <details className="mood-share-options">
             <summary>Chia sẻ thống kê tâm trạng cho lượt này</summary>
