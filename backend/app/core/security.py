@@ -65,6 +65,8 @@ async def require_actor(request: Request) -> Actor:
                 .where(AuthSession.id == session.id, AuthSession.revoked.is_(False))
                 .values(expires_at=now() + idle)
             )
+            # Matching hides users inactive for 30 days; same 15-minute write cadence.
+            await db.execute(update(User).where(User.id == user.id).values(last_seen_at=now()))
             await db.commit()
         if request.method not in ("GET", "HEAD", "OPTIONS"):
             csrf = request.headers.get("X-CSRF-Token", "")
