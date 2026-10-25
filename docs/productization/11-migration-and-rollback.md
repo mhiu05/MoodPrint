@@ -43,15 +43,17 @@ Problem: a strict equality check makes app rollback after a migration impossible
 | Situation | Action | Data impact |
 |---|---|---|
 | New feature misbehaves | Flip the flag (`ACTIVITIES_ENABLED=false`, remove a kind from `ACTIVITY_KINDS`, `MATCHING_SCORER=v1`, `MODERATION_ADMIN_ENABLED=false`) and restart | None; rows retained |
-| App release broken | Redeploy previous image digest (staging workflow input) | None; previous app tolerates the newer schema via `READY_REVISIONS` |
+| App release broken | Redeploy a verified new-data-compatible image/configuration; see the MVP release procedure | Readiness alone does not establish data-format or privacy-worker compatibility |
 | Migration itself fails during apply | Transaction rolls back automatically (single transaction) | None |
 | Migration applied but must be undone | **No down-migration.** Write a reviewed forward "contract" migration only if truly required; otherwise leave unused columns/tables | Avoids destructive DDL |
 | Data corruption | Restore from the pre-migration logical backup into a new schema/DB, reconcile with operator approval | Point-in-time loss window = backup age |
 
 Behavior-change rollback specifics:
 
-- **DR-03 (rooms survive republish)**: rolling back the app restores old behavior for future republishes only; rooms kept open meanwhile remain open (acceptable).
-- **Scorer v2**: v1 ignores v2-only fields; profiles published as v2 remain valid for v1.
+- **DR-03 (rooms survive republish)**: historical images recheck profile versions and goal equality. They can deny rooms created or retained by the new code. Do not use them as functional rollback after new writes.
+- **Scorer v2**: `MATCHING_SCORER=v1` on the current compatible image serves `rules-v1.1` over the current taxonomy. Historical image `2c71135` rejects the additional serialized profile fields even with legacy tags.
+- **Privacy workers**: historical images cannot erase new activity responses and feedback. Denying HTTP alone does not fence their background deletion workers. After new writes, recovery must retain compatible workers or stop the old backend completely and serve maintenance while fixing forward.
+- **MVP rollout**: temporarily block application writes, deploy the integrated image with v1 scoring and activities disabled, verify its core behavior, and preserve its image/runtime configuration as the compatible rollback baseline before enabling v2 and activities. Initial fallback to `2c71135` is allowed only while no new-format records have been written.
 - **Activities**: when disabled, write endpoints return 503 and the UI hides the dock; the sweeper keeps running, so open sessions expire through their normal deadlines (no manual cleanup task). Re-enabling resumes normally.
 - **Outbox retirement (A-05)**: reverting the app resumes writes; harmless.
 

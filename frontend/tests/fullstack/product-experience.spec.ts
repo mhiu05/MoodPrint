@@ -115,7 +115,7 @@ test("all five assistants explain their purpose and link to the related real fea
 test("a conversation starter stays editable and reaches the other account only after Send", async ({
   browser,
 }) => {
-  const { pageA, pageB, close } = await openRoom(browser, 42, 43);
+  const { pageA, pageB, two, room, close } = await openRoom(browser, 42, 43);
   try {
     await pageA.setViewportSize({ width: 390, height: 480 });
     const starter = pageA.getByRole("button", {
@@ -129,9 +129,13 @@ test("a conversation starter stays editable and reaches the other account only a
     await expect(composer).toHaveValue("Khi rảnh bạn thích làm gì nhất?");
     await expect(composer).toBeFocused();
     await expect(composer).toBeInViewport();
-    await expect(pageB.getByRole("log")).not.toContainText(
-      "Khi rảnh bạn thích làm gì nhất?",
-    );
+    // The peer has the same starter buttons inside its empty log. Wait for that
+    // screen, then check persisted messages instead of mistaking a button for a send.
+    await expect(pageB.getByRole("group", { name: "Lời mở đầu" })).toBeVisible();
+    await expect(pageB.getByRole("log").locator(".message-row")).toHaveCount(0);
+    const beforeSend = await call(two, 43, "GET", `/connections/${room}/messages`);
+    expect(beforeSend.status).toBe(200);
+    expect(beforeSend.body.messages).toEqual([]);
     await composer.fill("Chào bạn, mình rất vui được làm quen!");
     await pageA
       .getByRole("button", { name: "Gửi tin nhắn", exact: true })
