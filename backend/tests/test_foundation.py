@@ -18,6 +18,18 @@ async def test_live_works_without_configuration_but_ready_and_auth_fail_closed()
         assert "requestId" in response.json()["error"]
 
 
+def test_ready_revisions_cover_the_reviewed_migration_window():
+    from app.core.revisions import READY_REVISIONS
+
+    assert READY_REVISIONS == (
+        "0010_account_deletion",
+        "0011_social_stabilization",
+        "0012_matching_v2",
+        "0013_shared_activities",
+        "0014_moderation",
+    )
+
+
 @pytest.mark.asyncio
 async def test_bots_are_public_but_do_not_expose_prompts_or_tools():
     from app.main import create_app
