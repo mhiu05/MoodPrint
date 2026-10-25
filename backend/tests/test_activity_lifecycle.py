@@ -65,6 +65,21 @@ async def test_stream_announces_activity_changes_separately_from_messages(client
     await events.aclose()
 
 
+async def test_stream_resyncs_activity_on_connect(clients):
+    """An invite landing between the client's first fetch and the stream's first poll
+    must not be folded silently into the stream's baseline (lost update)."""
+    app, actors, _, room = await open_room(clients)
+    enable(app)
+    (a, _), (b, b_id) = actors
+    await invite(a, room)
+    events = await stream(app, b_id, room)
+    first = await asyncio.wait_for(anext(events), 3)
+    assert "event: messages_available" in first and "event: activity_changed" in first
+    activity = next(part for part in first.split("\n\n") if "activity_changed" in part)
+    assert envelope(activity)["activitySeq"] == 1
+    await events.aclose()
+
+
 async def active_session(clients):
     app, actors, refs, room = await open_room(clients)
     enable(app)

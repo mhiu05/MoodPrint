@@ -95,9 +95,9 @@ async def event_stream(request: Request, actor: Actor, connection_id: UUID, afte
             chunks.append(
                 f"id: {envelope['eventId']}\nevent: messages_available\ndata: {json.dumps(envelope)}\n\n"
             )
-        if previous_activity is None:
-            previous_activity = activity  # the client fetches current state on connect
-        elif activity != previous_activity and activity_room is not None:
+        # Announce on connect too: a change between the client's own first fetch and this
+        # first poll would otherwise become the baseline and never be announced.
+        if (previous_activity is None or activity != previous_activity) and activity_room:
             previous_activity = activity
             chunks.append(activity_event(activity_room))
         if chunks:
