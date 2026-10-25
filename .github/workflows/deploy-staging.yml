@@ -105,7 +105,7 @@ jobs:
             .status == "completed" and
             .conclusion == "success" and
             .workflow_id == 394882427 and
-            (.path | startswith(".github/workflows/verify.yml@")) and
+            (.path == ".github/workflows/verify.yml") and
             .head_repository.full_name == $repo and
             .repository.full_name == $repo
           ' <<<"$run_json" >/dev/null
