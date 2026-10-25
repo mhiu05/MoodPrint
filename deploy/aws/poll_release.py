@@ -20,7 +20,7 @@ from typing import Any
 
 VERIFY_WORKFLOW_ID = 394882427
 VERIFY_WORKFLOW_PATH = ".github/workflows/verify.yml"
-PUBLISH_WORKFLOW_PATH = ".github/workflows/deploy-staging.yml@"
+PUBLISH_WORKFLOW_PATH = ".github/workflows/deploy-staging.yml"
 PUBLISH_WORKFLOW = ".github/workflows/deploy-staging.yml"
 GITHUB_REPOSITORY_ID = 1430876891
 SHA_RE = re.compile(r"^[a-f0-9]{40}$")
@@ -114,8 +114,11 @@ def validate_publish_run(
     _require(run.get("status") == "completed" and run.get("conclusion") == "success",
              "publish workflow did not complete successfully")
     path = run.get("path")
-    _require(isinstance(path, str) and path.startswith(PUBLISH_WORKFLOW_PATH),
-             "publish workflow path does not match")
+    _require(
+        isinstance(path, str)
+        and (path == PUBLISH_WORKFLOW_PATH or path.startswith(PUBLISH_WORKFLOW_PATH + "@")),
+        "publish workflow path does not match",
+    )
     head_repository = run.get("head_repository")
     repository_object = run.get("repository")
     _require(isinstance(head_repository, dict) and head_repository.get("full_name") == repository,
