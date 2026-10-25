@@ -19,6 +19,7 @@ from app.core.security import (
     transaction,
 )
 from app.infrastructure.database.models import Consent, User, now
+from app.modules.matching import stats
 from app.modules.profiles.taxonomy import TAXONOMY
 from app.modules.social import service as svc
 from app.modules.social.models import (
@@ -310,6 +311,7 @@ async def candidates(request: Request, actor: Actor = Depends(require_actor)):
                     peer_version=published.version,
                 )
             )
+        await stats.bump(db, "impressions", served, now().date(), len(result))
         return CandidateListDTO(candidates=result)
 
 
@@ -357,6 +359,7 @@ async def send_request(
         if pending and pending.sender_id != user.id:
             # Sending back completes the peer's invitation, like accept; no quota applies.
             await svc.open_mutual_room(db, pair, pending, snapshots)
+            await stats.bump(db, "accepts", ref.scoring_version, now().date())
         elif not pending:
             await svc.invitation_quota(db, user.id)
             pending = ConnectionRequest(
@@ -368,6 +371,7 @@ async def send_request(
             )
             db.add(pending)
             await db.flush()
+            await stats.bump(db, "requests", ref.scoring_version, now().date())
         save_receipt(db, user, "request:send", key, payload, {"resourceId": str(pending.id)})
         return svc.request_view(pending, user.id)
 
@@ -453,6 +457,8 @@ async def decide(request_id, decision, body, request, actor):
             raise DomainError(409, "REQUEST_CHANGED", "Lời mời đã thay đổi hoặc hết hạn.")
         if decision == "accept" and snapshots is not None:
             await svc.open_mutual_room(db, pair, row, snapshots)
+            served = "rules-v2" if svc.scorer_of(request) == "v2" else "rules-v1"
+            await stats.bump(db, "accepts", served, now().date())
         else:
             row.status = "declined" if decision == "decline" else "cancelled"
             row.version += 1
