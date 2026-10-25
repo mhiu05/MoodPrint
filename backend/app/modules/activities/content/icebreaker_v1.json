@@ -47,7 +47,7 @@
     "Se lạnh",
     "Gió biển"
    ],
-   "allowText": false
+   "allowText": true
   },
   {
    "id": "ib-l05",
@@ -59,7 +59,7 @@
     "Không nghe gì",
     "Tùy hôm"
    ],
-   "allowText": false
+   "allowText": true
   },
   {
    "id": "ib-l06",
@@ -71,7 +71,7 @@
     "Tùy mùa",
     "Cả hai, nếu có cà phê"
    ],
-   "allowText": false
+   "allowText": true
   },
   {
    "id": "ib-l07",
@@ -179,7 +179,7 @@
     "Làm thử",
     "Học cùng bạn"
    ],
-   "allowText": false
+   "allowText": true
   },
   {
    "id": "ib-c07",
@@ -215,7 +215,7 @@
     "Hát cùng nhau",
     "Chỉ ngồi trò chuyện"
    ],
-   "allowText": false
+   "allowText": true
   },
   {
    "id": "ib-r01",
@@ -239,7 +239,7 @@
     "Vận động",
     "Ngủ đủ giấc"
    ],
-   "allowText": false
+   "allowText": true
   },
   {
    "id": "ib-r03",
@@ -263,7 +263,7 @@
     "Thẳng thắn",
     "Không vội vàng"
    ],
-   "allowText": false
+   "allowText": true
   },
   {
    "id": "ib-r05",
@@ -299,7 +299,7 @@
     "Sự tin cậy",
     "Sự tôn trọng"
    ],
-   "allowText": false
+   "allowText": true
   },
   {
    "id": "ib-r08",
@@ -311,7 +311,7 @@
     "Nói chuyện với ai đó",
     "Ra ngoài đi dạo"
    ],
-   "allowText": false
+   "allowText": true
   },
   {
    "id": "ib-r09",
