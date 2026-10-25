@@ -1,6 +1,10 @@
+import json
 import pathlib
+import stat
 import sys
+import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import poll_release
@@ -139,8 +143,17 @@ class PublishRunValidationTests(unittest.TestCase):
 
 class AttestationCommandTests(unittest.TestCase):
     def test_pins_exact_workflow_identity_and_main_source(self):
-        command = poll_release.attestation_command("release.json", REPOSITORY, SHA)
+        bundle_path = pathlib.Path("/run/moodprint/test-bundle.jsonl")
+        trusted_root_path = pathlib.Path("/run/moodprint/test-trusted-root.jsonl")
+        command = poll_release.attestation_command(
+            "release.json", REPOSITORY, SHA, bundle_path, trusted_root_path
+        )
         self.assertIn("--cert-identity", command)
+        self.assertNotIn("--signer-workflow", command)
+        self.assertEqual(command[command.index("--bundle") + 1], str(bundle_path))
+        self.assertEqual(
+            command[command.index("--custom-trusted-root") + 1], str(trusted_root_path)
+        )
         identity_index = command.index("--cert-identity") + 1
         self.assertEqual(
             command[identity_index],
@@ -148,6 +161,52 @@ class AttestationCommandTests(unittest.TestCase):
         )
         self.assertEqual(command[command.index("--source-ref") + 1], "refs/heads/main")
         self.assertEqual(command[command.index("--source-digest") + 1], SHA)
+
+
+class AttestationBundleTests(unittest.TestCase):
+    def test_downloads_public_bundles_as_protected_jsonl(self):
+        first_bundle = {
+            "mediaType": "application/vnd.dev.sigstore.bundle+json;version=0.3",
+            "dsseEnvelope": {},
+            "verificationMaterial": {},
+        }
+        second_bundle = {
+            "mediaType": "application/vnd.dev.sigstore.bundle+json;version=0.3",
+            "dsseEnvelope": {"payload": "second"},
+            "verificationMaterial": {},
+        }
+        response = {
+            "attestations": [
+                {"bundle": first_bundle},
+                {"bundle": second_bundle},
+            ]
+        }
+
+        with tempfile.TemporaryDirectory() as directory:
+            destination = pathlib.Path(directory) / "bundles.jsonl"
+            with patch.object(poll_release, "github_get", return_value=response) as get:
+                poll_release.download_attestation_bundles(API_DIGEST, REPOSITORY, destination)
+
+            self.assertEqual(
+                [json.loads(line) for line in destination.read_text().splitlines()],
+                [first_bundle, second_bundle],
+            )
+            self.assertEqual(stat.S_IMODE(destination.stat().st_mode), 0o600)
+            self.assertEqual(
+                get.call_args.args[0],
+                f"{poll_release.API_BASE}/repos/{REPOSITORY}/attestations/{API_DIGEST}?per_page=100",
+            )
+
+    def test_rejects_missing_or_malformed_attestation_bundles(self):
+        for response in (None, {"attestations": []}, {"attestations": [{"bundle": {}}]}):
+            with self.subTest(response=response):
+                with tempfile.TemporaryDirectory() as directory:
+                    destination = pathlib.Path(directory) / "bundles.jsonl"
+                    with patch.object(poll_release, "github_get", return_value=response):
+                        with self.assertRaises(poll_release.ValidationError):
+                            poll_release.download_attestation_bundles(
+                                API_DIGEST, REPOSITORY, destination
+                            )
 
 
 if __name__ == "__main__":
