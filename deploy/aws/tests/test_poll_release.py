@@ -65,7 +65,7 @@ def valid_publish_run():
         "event": "workflow_run",
         "status": "completed",
         "conclusion": "success",
-        "path": ".github/workflows/deploy-staging.yml@refs/heads/main",
+        "path": ".github/workflows/deploy-staging.yml",
         "head_repository": {"full_name": REPOSITORY},
         "repository": {"full_name": REPOSITORY},
     }
@@ -130,7 +130,10 @@ class CiRunValidationTests(unittest.TestCase):
 
 class PublishRunValidationTests(unittest.TestCase):
     def test_accepts_completed_publish_run_for_same_main_commit(self):
-        poll_release.validate_publish_run(valid_publish_run(), REPOSITORY, SHA, 67890)
+        run = valid_publish_run()
+        poll_release.validate_publish_run(run, REPOSITORY, SHA, 67890)
+        run["path"] += "@refs/heads/main"
+        poll_release.validate_publish_run(run, REPOSITORY, SHA, 67890)
 
     def test_rejects_wrong_workflow_event_or_run_id(self):
         for key, value in (("event", "pull_request"), ("head_sha", "b" * 40),
