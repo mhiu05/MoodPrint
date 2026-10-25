@@ -382,7 +382,7 @@ test("returning to the app rechecks consent and removes the revoked composer", a
   allowed = false;
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect(
-    page.getByText("Trò chuyện AI đang tắt hoặc chưa khả dụng. Bạn vẫn xem, xuất và xóa lịch sử đã lưu được.", { exact: true }),
+    page.getByText("Bạn chưa bật quyền trò chuyện AI. Bật quyền này khi bạn sẵn sàng chia sẻ với trợ lý; lưu lịch sử là lựa chọn riêng.", { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("textbox", { name: "Tin nhắn cho Mây" }),

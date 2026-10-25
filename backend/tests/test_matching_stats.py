@@ -22,20 +22,20 @@ async def totals(app):
 async def test_impressions_requests_and_accepts_count_once(clients):
     app, actors, refs = await published_pair(clients)
     (a, _), (b, _) = actors
-    assert await totals(app) == {"rules-v1": (2, 0, 0)}  # one card for each viewer
+    assert await totals(app) == {"rules-v1.1": (2, 0, 0)}  # one card for each viewer
     headers = key()
     body = {"candidateRef": refs[0]}
     sent = await a.post("/api/v1/connection-requests", json=body, headers=headers)
     replay = await a.post("/api/v1/connection-requests", json=body, headers=headers)
     assert sent.status_code == replay.status_code == 201
-    assert await totals(app) == {"rules-v1": (2, 1, 0)}
+    assert await totals(app) == {"rules-v1.1": (2, 1, 0)}
     incoming = (await b.get("/api/v1/connection-requests")).json()[0]
     headers = key()
     accept = {"expectedVersion": incoming["version"]}
     path = f"/api/v1/connection-requests/{incoming['id']}/accept"
     assert (await b.post(path, json=accept, headers=headers)).status_code == 200
     assert (await b.post(path, json=accept, headers=headers)).status_code == 200
-    assert await totals(app) == {"rules-v1": (2, 1, 1)}
+    assert await totals(app) == {"rules-v1.1": (2, 1, 1)}
 
 
 async def test_v2_impressions_are_counted_under_rules_v2(clients):
@@ -56,10 +56,10 @@ def report_module():
 def test_report_suppresses_cells_below_five_and_refuses_hosted_targets():
     report = report_module()
     day = date(2026, 10, 25)
-    rows = [(day, "rules-v1", 40, 6, 3), (day, "rules-v2", 4, 1, 0)]
+    rows = [(day, "rules-v1.1", 40, 6, 3), (day, "rules-v2", 4, 1, 0)]
     assert report.summarize(rows) == [
         {
-            "scoringVersion": "rules-v1",
+            "scoringVersion": "rules-v1.1",
             "impressions": 40,
             "requests": 6,
             "accepts": "<5",

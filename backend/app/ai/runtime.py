@@ -11,6 +11,7 @@ from agents import FunctionTool, RunContextWrapper, function_tool
 from sqlalchemy import select, update
 
 from app.ai.accounting import UsageSnapshot, persist_snapshot, reserve_accounting
+from app.ai.availability import AiStatus, public_failure
 from app.ai.context import build_history
 from app.ai.models import AiMessageRecord
 from app.ai.persistence import current_turn, owned_conversation
@@ -45,6 +46,7 @@ class LiveRun:
     terminal_persisted: bool = False
     reserved_output_bytes: int = 0
     usage: UsageSnapshot = field(default_factory=UsageSnapshot)
+    failure: dict[str, str] | None = None
     persistent: bool = False
     first_progress_ms: int | None = None
 
@@ -82,16 +84,27 @@ class AiRuntime:
 
     @property
     def available(self) -> bool:
-        return self.model_override is not None or bool(
-            (self.settings.ai_enabled or self.settings.ai_local_test_user_ids)
-            and self.settings.openai_model
-            and self.settings.openai_api_key.get_secret_value()
+        return self.status_for(None) in ("ready", "test_provider")
+
+    def status_for(self, user_id: UUID | None) -> AiStatus:
+        if self.model_override is not None:
+            return "test_provider"
+        enabled = self.settings.ai_available_for(user_id) if user_id else (
+            self.settings.ai_enabled or bool(self.settings.ai_local_test_user_ids)
         )
+        if not enabled:
+            return "disabled"
+        key, model = self.settings.openai_api_key.get_secret_value(), self.settings.openai_model
+        if not key.strip() or not model.strip():
+            return "configuration_missing"
+        if any(char.isspace() for char in key + model):
+            return "configuration_invalid"
+        # Presence is not a remote credential/model validation; provider errors are
+        # classified on an admitted turn, never by calling a billable health check.
+        return "ready"
 
     def available_for(self, user_id: UUID) -> bool:
-        return self.model_override is not None or (
-            self.available and self.settings.ai_available_for(user_id)
-        )
+        return self.status_for(user_id) in ("ready", "test_provider")
 
     def sweep(self) -> None:
         self.store.sweep()
@@ -132,7 +145,7 @@ class AiRuntime:
                 self.event(
                     run,
                     "failed",
-                    {
+                    run.failure or {
                         "code": "AI_RUN_FAILED",
                         "message": "Chưa hoàn tất phản hồi. Bạn có thể thử lại.",
                     },
@@ -495,6 +508,7 @@ class AiRuntime:
             status = "cancelled"
         except Exception as error:
             status = "failed"
+            run.failure = public_failure(error)
             logging.getLogger("moodprint").warning("ai_execution_error run_id=%s error_type=%s code=%s", run.id, type(error).__name__, error.code if isinstance(error, DomainError) else "AI_RUN_FAILED")
         finally:
             if monitor:

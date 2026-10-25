@@ -1,7 +1,8 @@
 name: moodprint
 services:
   database:
-    image: postgres:17.11
+    # Migrations include pgvector; plain postgres lacks the vector extension.
+    image: pgvector/pgvector:0.8.2-pg17
     environment:
       POSTGRES_DB: moodprint
       POSTGRES_USER: postgres

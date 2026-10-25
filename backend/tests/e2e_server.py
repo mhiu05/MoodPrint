@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID
 
+import httpx
 import uvicorn
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
@@ -45,6 +46,7 @@ from app.core.config import Settings
 from app.infrastructure.database.models import AuthSession, Base, Consent, Memory, User
 from app.main import create_app
 from app.modules.moderation.models import StaffRole
+from tests.e2e_auth import LocalAuth
 from tests.fakes import make_test_model
 
 SESSION_HELPER = (
@@ -67,6 +69,11 @@ app = create_app(
     )
 )
 app.state.ai.model_override = make_test_model("Mây đã nhận được chia sẻ của bạn qua SDK.")
+# Only the disposable test entrypoint installs this transport. Production
+# SupabaseAuth still verifies passwords, provider tokens and durable session rows.
+app.state.settings.supabase_url = "https://local-auth.invalid"
+app.state.settings.supabase_publishable_key = __import__("pydantic").SecretStr("synthetic-only")
+app.state.auth_transport = httpx.MockTransport(LocalAuth(app.state.database).handle)
 
 
 async def seed():
@@ -90,7 +97,8 @@ async def seed():
         # 1-9 back the original journeys; 10-20 are fresh adults for the MVP journeys;
         # 21-36 back the activity, matching-v2 and moderation journeys; 37 is staff;
         # 38-39 are the responsive/accessibility pair; 40-41 the v2-only-goal pair.
-        for number in range(1, 42):
+        # 42-43 cover the product-experience chat; 44 the five-assistant review.
+        for number in range(1, 49):
             uid = UUID(f"00000000-0000-4000-8000-{number:012d}")
             provider = UUID(f"00000000-0000-4000-9000-{number:012d}")
             db.add(

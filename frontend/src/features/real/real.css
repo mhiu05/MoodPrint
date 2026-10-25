@@ -55,8 +55,9 @@
   display: block;
   margin: 18px 0;
 }
-.real-human-chat {
-  min-height: 65vh;
+.bot-conversation.real-human-chat {
+  height: var(--app-height, 100dvh);
+  min-height: 0;
 }
 .real-human-chat .conversation-header h1 {
   font-size: 18px;
@@ -65,9 +66,9 @@
 /* Keep the newest messages and the composer on screen together, including when
    an on-screen keyboard shrinks the visual viewport (--app-height). */
 .real-human-chat .conversation-log {
-  flex: 1 1 auto;
-  min-height: 160px;
-  max-height: max(160px, calc(var(--app-height, 100dvh) - 250px));
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
 }
 .mood-mean {
   white-space: nowrap;

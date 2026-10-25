@@ -211,7 +211,7 @@ export function Brand() {
   return (
     <span className={styles.brand}>
       <BrandMark />
-      Me2We<span className={styles.brandDot}>.</span>
+      MoodPrint<span className={styles.brandDot}>.</span>
     </span>
   );
 }

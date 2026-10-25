@@ -149,7 +149,7 @@ test("empty screens say so honestly and offer one next step", async ({ page }) =
   await page.getByRole("button", { name: "Xem gợi ý" }).click();
   await expect(page.getByRole("tab", { name: "Gợi ý" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText("Chưa có gợi ý phù hợp.", { exact: true })).toBeVisible();
-  await expect(page.getByText(/nhận cả mục tiêu khác, thêm ngôn ngữ hoặc sở thích/)).toBeVisible();
+  await expect(page.getByText(/Có thể hiện chưa có người cùng điểm chung/)).toBeVisible();
   await page.getByRole("button", { name: "Mở rộng hồ sơ kết nối" }).click();
   await expect(page.getByRole("tab", { name: "Hồ sơ kết nối" })).toHaveAttribute("aria-selected", "true");
 });

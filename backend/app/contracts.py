@@ -47,6 +47,8 @@ class ConsentView(DTO):
 
 class FeatureView(DTO):
     ai: bool = False
+    # Service availability is independent of per-user AI consent and quota.
+    ai_status: Literal["disabled", "configuration_missing", "configuration_invalid", "ready", "test_provider"] = "disabled"
     matching: bool = False
     voice: bool = False
     # Remaining AI turns today (Asia/Bangkok day); null when AI is unavailable.

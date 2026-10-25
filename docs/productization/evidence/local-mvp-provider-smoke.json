@@ -1,0 +1,66 @@
+{
+  "status": "REAL_PROVIDER_VERIFIED",
+  "auth": "SYNTHETIC_PROVIDER",
+  "database": "LOCAL_POSTGRESQL",
+  "initialAttempt": {
+    "status": "FAIL",
+    "auth": "SYNTHETIC_PROVIDER",
+    "database": "LOCAL_POSTGRESQL",
+    "bots": [
+      "may",
+      "rure",
+      "caunoi",
+      "nhip",
+      "guong"
+    ],
+    "memoryApproval": "PASS",
+    "usage": {
+      "openaiRequests": 6,
+      "inputTokens": 6992,
+      "outputTokens": 392,
+      "voyageRequests": 1,
+      "voyageQueriesSucceeded": 0,
+      "voyageDocumentsSucceeded": 1,
+      "indexedMemories": 1,
+      "realOpenAI": true,
+      "voyageEnabled": true
+    }
+  },
+  "boundedResume": {
+    "status": "REAL_PROVIDER_VERIFIED",
+    "resumed": true,
+    "semanticRetrieval": "PASS",
+    "editReindexAndRetrieval": "PASS",
+    "semanticRevocation": "PASS",
+    "memoryDeletion": "PASS",
+    "historyAndProviderContextAfterLogin": "PASS",
+    "usage": {
+      "openaiRequests": 1,
+      "inputTokens": 721,
+      "outputTokens": 61,
+      "voyageRequests": 3,
+      "voyageQueriesSucceeded": 2,
+      "voyageDocumentsSucceeded": 1,
+      "indexedMemories": 0,
+      "indexedVersion": null,
+      "realOpenAI": true,
+      "voyageEnabled": true
+    }
+  },
+  "usage": {
+    "confirmedOpenAIRequests": 7,
+    "maximumOpenAIRequestsIncludingCancelledTurn": 8,
+    "unobservedCancelledDispatchesAtMost": 1,
+    "confirmedInputTokens": 7713,
+    "confirmedOutputTokens": 453,
+    "voyageRequests": 4
+  },
+  "notes": [
+    "Initial browser helper counted an existing restored reply before history was ready.",
+    "Five real assistants, proposal approval and first document indexing completed before the assertion failed.",
+    "One extra admitted Guong turn was cancelled during cleanup; dispatch was not captured by the last metrics snapshot.",
+    "Resume preserved the disposable DB and allowed only one further model call and three embeddings.",
+    "Resume verified real semantic retrieval, edited-memory re-indexing, revocation, deletion and OpenAI context after a new process/login.",
+    "Full fresh-provider suite was not rerun after correcting the helper; no live cancellation/quality calibration claim."
+  ]
+}

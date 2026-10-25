@@ -1775,10 +1775,10 @@ export interface components {
             sharedActivities?: string[];
             /**
              * Scoringversion
-             * @default rules-v1
+             * @default rules-v1.1
              * @enum {string}
              */
-            scoringVersion: "rules-v1" | "rules-v2";
+            scoringVersion: "rules-v1" | "rules-v1.1" | "rules-v2";
             /** Profileversion */
             profileVersion: number;
             /** Peerversion */
@@ -2101,6 +2101,12 @@ export interface components {
              * @default false
              */
             ai: boolean;
+            /**
+             * Aistatus
+             * @default disabled
+             * @enum {string}
+             */
+            aiStatus: "disabled" | "configuration_missing" | "configuration_invalid" | "ready" | "test_provider";
             /**
              * Matching
              * @default false

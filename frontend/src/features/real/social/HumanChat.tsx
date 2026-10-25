@@ -274,10 +274,22 @@ export function HumanChat() {
         className="conversation-log"
         ref={log}
         role="log"
+        tabIndex={0}
         aria-label="Tin nhắn trong kết nối"
       >
         {ready && messages.length === 0 && (
-          <p className={cx.footnote}>Hãy bắt đầu bằng một lời hỏi thăm.</p>
+          <div className="human-chat-welcome">
+            <h2>Một lời chào, một khởi đầu</h2>
+            <p>Chọn một câu để sửa theo cách của bạn. Tin nhắn chỉ gửi khi bạn bấm gửi.</p>
+            <div className="conversation-starters" role="group" aria-label="Lời mở đầu">
+              {["Chào bạn! Gần đây có điều gì làm bạn vui không?", "Khi rảnh bạn thích làm gì nhất?", "Mình cùng thử một hoạt động làm quen nhé?"].map((text) => (
+                <button key={text} type="button" onClick={() => {
+                  setDraft(text);
+                  composer.current?.focus();
+                }}>{text}</button>
+              ))}
+            </div>
+          </div>
         )}
         {timeline.map(({ message, past }) =>
           message ? (

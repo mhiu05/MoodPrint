@@ -17,7 +17,7 @@ from sqlalchemy.dialects.postgresql import array
 from sqlalchemy.orm import aliased
 
 from app.infrastructure.database.models import Consent, User, now
-from app.modules.matching import ranking, scoring, scoring_v2
+from app.modules.matching import ranking, scoring_compat, scoring_v2
 from app.modules.social.models import Block, Connection, ConnectionRequest, Pair, PublishedProfile
 
 log = logging.getLogger(__name__)
@@ -136,12 +136,11 @@ async def eligible_peers(db, user: User, own: PublishedProfile, at: datetime) ->
 
 def rank_v1(own: PublishedProfile, peers: list[PeerRow]) -> list[UUID]:
     """The original order: hard goal equality, v1 points >= 30, ties by peer UUID."""
-    mine = scoring.v1_view(own.payload)
     ranked = []
     for peer in peers:
         if peer.payload["goal"] != own.payload["goal"]:
             continue
-        points = scoring.score(mine, scoring.v1_view(peer.payload))
+        points = scoring_compat.score(own.payload, peer.payload)
         if points >= 30:
             ranked.append((points, str(peer.id), peer.id))
     ranked.sort(key=lambda item: (-item[0], item[1]))

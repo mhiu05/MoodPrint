@@ -567,6 +567,7 @@ async def run(args, base):
         "pool_peak_checked_out": max((s["checkedOut"] for s in samples), default=None),
         "pool_peak_overflow": max((s["overflow"] for s in samples), default=None),
         "pool_size": samples[0]["size"] if samples else None,
+        "local_server_metrics": samples[-1] if samples else None,
         "latency": {op: summarize(v) for op, v in sorted(metrics.latency.items())},
     }
     slow = {

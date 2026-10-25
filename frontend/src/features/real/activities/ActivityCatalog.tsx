@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import { Button, cx, Dialog } from "../../../components/UI";
-import { canInvite, type Definition, type Kind, type Session } from "./activityView";
+import { canInvite, isOpen, type Definition, type Kind, type Session } from "./activityView";
+
+const HOW_IT_WORKS: Record<Kind, string> = {
+  icebreaker: "3 câu hỏi nhỏ. Mỗi người trả lời riêng; chỉ mở câu trả lời khi cả hai đã gửi. Bạn có thể bỏ qua.",
+  coop_quiz: "5 vòng cùng một đội. Mỗi người chọn đáp án riêng; khi cả hai xong, cùng xem đáp án và điểm của đội.",
+  focus: "Chọn nhịp học hoặc làm việc cùng nhau. Một người tạm dừng sẽ dừng đồng hồ của cả hai; bạn có thể rời phiên và vào lại.",
+};
 
 /** "Cùng làm gì đó?" next to the composer; opens the catalog of shared activities. */
 export function ActivityEntryButton({
@@ -53,6 +59,7 @@ export function ActivityCatalog({
             <li key={definition.kind}>
               <h3>{definition.title}</h3>
               <p>{definition.description}</p>
+              <p className="activity-how">{HOW_IT_WORKS[definition.kind]}</p>
               <p className={cx.footnote}>Khoảng {definition.estimatedMinutes} phút</p>
               {definition.kind === "focus" && (
                 <div className="focus-options">
@@ -97,14 +104,14 @@ export function ActivityCatalog({
               >
                 Mời cùng chơi
               </Button>
-              {!allowed && !current && (
+              {!allowed && !isOpen(current) && (
                 <p className={cx.footnote}>Hãy thử lại hoạt động này sau ít phút.</p>
               )}
             </li>
           );
         })}
       </ul>
-      {current && <p className={cx.note}>Hai bạn đang có một hoạt động khác.</p>}
+      {isOpen(current) && <p className={cx.note}>Hai bạn đang có một hoạt động khác. Hoàn thành hoặc kết thúc hoạt động đó để gửi lời mời mới.</p>}
     </Dialog>
   );
 }
