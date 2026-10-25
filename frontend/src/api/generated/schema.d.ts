@@ -1769,6 +1769,24 @@ export interface components {
             /** Password */
             password: string;
         };
+        /**
+         * PeerCardDTO
+         * @description The counterpart's public card on a pending request (DR-07); never private data.
+         */
+        PeerCardDTO: {
+            /** Alias */
+            alias: string;
+            /** Avatarseed */
+            avatarSeed: string;
+            profile: components["schemas"]["PublicProfile"];
+            /** Reasons */
+            reasons: string[];
+            /**
+             * Matchlabel
+             * @enum {string}
+             */
+            matchLabel: "many" | "some";
+        };
         /** PeerReferenceView */
         PeerReferenceView: {
             /**
@@ -1949,6 +1967,7 @@ export interface components {
             expiresAt: string;
             /** Connectionid */
             connectionId?: string | null;
+            peer?: components["schemas"]["PeerCardDTO"] | null;
         };
         /** RevealDecision */
         RevealDecision: {

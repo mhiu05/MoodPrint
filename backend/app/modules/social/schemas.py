@@ -89,6 +89,16 @@ class BlockInput(DTO):
     peer_ref: UUID
 
 
+class PeerCardDTO(DTO):
+    """The counterpart's public card on a pending request (DR-07); never private data."""
+
+    alias: str
+    avatar_seed: str
+    profile: PublicProfile
+    reasons: list[str] = Field(max_length=3)
+    match_label: Literal["many", "some"]
+
+
 class RequestView(DTO):
     id: UUID
     status: str
@@ -96,6 +106,8 @@ class RequestView(DTO):
     direction: Literal["incoming", "outgoing"]
     expires_at: datetime
     connection_id: UUID | None = None
+    # Only while the request is pending and the pair is still eligible.
+    peer: PeerCardDTO | None = None
 
 
 class ConnectionView(DTO):

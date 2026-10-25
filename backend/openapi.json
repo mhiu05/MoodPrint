@@ -10973,6 +10973,48 @@
         ],
         "title": "PasswordResetInput"
       },
+      "PeerCardDTO": {
+        "properties": {
+          "alias": {
+            "type": "string",
+            "title": "Alias"
+          },
+          "avatarSeed": {
+            "type": "string",
+            "title": "Avatarseed"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/PublicProfile"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Reasons"
+          },
+          "matchLabel": {
+            "type": "string",
+            "enum": [
+              "many",
+              "some"
+            ],
+            "title": "Matchlabel"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "alias",
+          "avatarSeed",
+          "profile",
+          "reasons",
+          "matchLabel"
+        ],
+        "title": "PeerCardDTO",
+        "description": "The counterpart's public card on a pending request (DR-07); never private data."
+      },
       "PeerReferenceView": {
         "properties": {
           "peerRef": {
@@ -11377,6 +11419,16 @@
               }
             ],
             "title": "Connectionid"
+          },
+          "peer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PeerCardDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,

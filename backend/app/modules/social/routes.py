@@ -375,6 +375,11 @@ async def list_requests(request: Request, actor: Actor = Depends(require_actor))
             view = svc.request_view(row, user.id)
             if row.status == "pending" and row.expires_at <= now():
                 view.status = "expired"
+            elif row.status == "pending":
+                peer = await db.get(
+                    User, row.recipient_id if row.sender_id == user.id else row.sender_id
+                )
+                view.peer = await svc.peer_card(db, user, peer) if peer else None
             result.append(view)
         return result
 

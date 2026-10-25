@@ -121,3 +121,125 @@ test("matching publishes the reviewed profile only after a committed receipt", a
     page.getByText("Chưa có gợi ý phù hợp.", { exact: true }),
   ).toBeVisible();
 });
+
+test("an incoming request shows the sender's public card before accepting", async ({
+  page,
+}) => {
+  const session = {
+    userId: "11111111-1111-4111-8111-111111111111",
+    alias: "An",
+    ageBand: "adult",
+    eligible: true,
+    csrfToken: "test-csrf",
+    serverTime: "2026-10-23T08:00:00Z",
+    timezone: "Asia/Bangkok",
+    features: { ai: false, matching: true, voice: false },
+    consents: Object.fromEntries(
+      ["AI", "MEM", "MATCH", "VOICE"].map((p) => [
+        p,
+        { enabled: p === "MATCH", version: 1, policyVersion: "v1" },
+      ]),
+    ),
+  };
+  const profile = {
+    interests: ["reading", "music", "walking"],
+    values: ["respect", "sincerity"],
+    style: "balanced",
+    goal: "friendship",
+    languages: ["vi"],
+  };
+  let accepted = false;
+  await page.route("**/api/v1/**", async (route) => {
+    const request = route.request(),
+      path = new URL(request.url()).pathname;
+    if (path.endsWith("/session")) return route.fulfill({ json: session });
+    if (path.endsWith("/taxonomy"))
+      return route.fulfill({
+        json: {
+          version: "v1",
+          interests: {
+            reading: "Đọc sách",
+            music: "Âm nhạc",
+            walking: "Đi bộ",
+          },
+          values: { respect: "Tôn trọng", sincerity: "Chân thành" },
+          languages: { vi: "Tiếng Việt" },
+          styles: { balanced: "Cân bằng" },
+          goals: { friendship: "Tìm bạn trò chuyện" },
+        },
+      });
+    if (path.endsWith("/matching/candidates"))
+      return route.fulfill({ json: { candidates: [] } });
+    if (path.endsWith("/accept")) {
+      accepted = true;
+      expect(request.postDataJSON()).toEqual({ expectedVersion: 1 });
+      return route.fulfill({
+        json: {
+          id: "req-1",
+          status: "accepted",
+          version: 2,
+          direction: "incoming",
+          expiresAt: "2026-10-30T08:00:00Z",
+          connectionId: "room-1",
+        },
+      });
+    }
+    if (path.endsWith("/connection-requests"))
+      return route.fulfill({
+        json: [
+          {
+            id: "req-1",
+            status: accepted ? "accepted" : "pending",
+            version: accepted ? 2 : 1,
+            direction: "incoming",
+            expiresAt: "2026-10-30T08:00:00Z",
+            connectionId: accepted ? "room-1" : null,
+            peer: accepted
+              ? null
+              : {
+                  alias: "Bạn đồng hành 3fa9c1",
+                  avatarSeed: "3fa9c1d2",
+                  profile,
+                  reasons: ["Cùng thích đọc sách", "Cùng coi trọng tôn trọng"],
+                  matchLabel: "many",
+                },
+          },
+        ],
+      });
+    if (path.endsWith("/connections")) return route.fulfill({ json: [] });
+    if (path.endsWith("/matching-draft"))
+      return route.fulfill({
+        json: { profile, version: 1, publishedVersion: 1 },
+      });
+    if (path.endsWith("/profiles/published/current"))
+      return route.fulfill({
+        json: {
+          id: "p1",
+          profile,
+          version: 1,
+          state: "live",
+          profileVersion: 1,
+        },
+      });
+    return route.fulfill({
+      status: 404,
+      json: { error: { code: "NOT_FOUND", message: "Missing route" } },
+    });
+  });
+  await page.goto("/#/connect");
+  const card = page.getByLabel("Hồ sơ của Bạn đồng hành 3fa9c1");
+  await expect(
+    page.getByRole("heading", {
+      name: "Bạn đồng hành 3fa9c1 muốn kết nối với bạn",
+    }),
+  ).toBeVisible();
+  await expect(card).toContainText("Nhiều điểm chung");
+  await expect(card).toContainText("Cùng thích đọc sách");
+  await expect(card).toContainText("Đọc sách · Âm nhạc · Đi bộ");
+  await expect(card).not.toContainText("%");
+  await page.getByRole("button", { name: "Đồng ý kết nối" }).click();
+  await expect(
+    page.getByRole("link", { name: "Mở cuộc trò chuyện" }),
+  ).toBeVisible();
+  expect(accepted).toBe(true);
+});

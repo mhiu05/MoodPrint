@@ -23,7 +23,13 @@ from app.modules.social.models import (
     Pair,
     PublishedProfile,
 )
-from app.modules.social.schemas import ConnectionView, MessageView, PublicProfile, RequestView
+from app.modules.social.schemas import (
+    ConnectionView,
+    MessageView,
+    PeerCardDTO,
+    PublicProfile,
+    RequestView,
+)
 
 
 def deny(code="CONNECTION_UNAVAILABLE") -> NoReturn:
@@ -360,6 +366,23 @@ def reasons(a, b):
     if a["style"] == b["style"]:
         labels.append("Cùng cách trò chuyện")
     return labels[:3]
+
+
+async def peer_card(db: AsyncSession, user: User, peer: User) -> PeerCardDTO | None:
+    """Public card of a pending request's counterpart while both are still eligible."""
+    try:
+        own, published, _ = await base_eligibility(db, user, peer)
+    except DomainError:
+        return None
+    alias, seed = pair_alias(user.id, peer.id)
+    points = scoring.score({**own.payload, "sources": []}, {**published.payload, "sources": []})
+    return PeerCardDTO(
+        alias=alias,
+        avatar_seed=seed,
+        profile=PublicProfile.model_validate(published.payload),
+        reasons=reasons(own.payload, published.payload),
+        match_label="many" if points >= 60 else "some",
+    )
 
 
 def new_preview():

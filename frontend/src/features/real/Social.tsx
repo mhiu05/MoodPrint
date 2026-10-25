@@ -462,10 +462,35 @@ export function Discovery() {
           {requests.data?.map((item) => (
             <article className="real-item" key={item.id}>
               <h3>
-                {item.direction === "incoming"
-                  ? "Một lời chào dành cho bạn"
-                  : "Lời chào bạn đã gửi"}
+                {item.peer
+                  ? item.direction === "incoming"
+                    ? `${item.peer.alias} muốn kết nối với bạn`
+                    : `Lời chào gửi ${item.peer.alias}`
+                  : item.direction === "incoming"
+                    ? "Một lời chào dành cho bạn"
+                    : "Lời chào bạn đã gửi"}
               </h3>
+              {item.peer && (
+                <div aria-label={`Hồ sơ của ${item.peer.alias}`}>
+                  <p>
+                    <strong>
+                      {item.peer.matchLabel === "many"
+                        ? "Nhiều điểm chung"
+                        : "Có vài điểm chung"}
+                    </strong>
+                    {item.peer.reasons.length > 0 &&
+                      ` · ${item.peer.reasons.join(" · ")}`}
+                  </p>
+                  <p>
+                    {[
+                      ...(item.peer.profile.interests || []),
+                      ...(item.peer.profile.values || []),
+                    ]
+                      .map(label)
+                      .join(" · ")}
+                  </p>
+                </div>
+              )}
               <p>{requestStatus[item.status] || "Lời mời đã kết thúc"}</p>
               {item.status === "pending" && (
                 <div className={cx.actions}>
