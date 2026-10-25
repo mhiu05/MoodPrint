@@ -225,6 +225,11 @@ async def interaction(db, pair: Pair, snapshots):
         room.version += 1
         room = None
         deadlines.append(now() + timedelta(days=30))
+        from app.modules.activities import hooks
+
+        await hooks.abort_for_pair(
+            db, pair.id, "consent_withdrawn" if snapshots == {} else "room_closed"
+        )
     if deadlines:
         if pair.cooldown_until:
             deadlines.append(pair.cooldown_until)

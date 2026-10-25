@@ -122,6 +122,16 @@ async def process_deletions(app):
             )
             await db.execute(delete(IdentityField).where(IdentityField.user_id == uid))
         if "matching" in scopes:
+            from app.modules.activities import hooks
+            from app.modules.activities.models import ActivityParticipant, ActivityResponse
+
+            await hooks.abort_for_user(db, uid, "account_deleted")
+            await db.execute(delete(ActivityResponse).where(ActivityResponse.user_id == uid))
+            await db.execute(
+                update(ActivityParticipant)
+                .where(ActivityParticipant.user_id == uid)
+                .values(feedback=None, feedback_at=None)
+            )
             await invalidate_user_social(db, uid)
             user.profile_version += 1
             await db.execute(delete(MatchingDraft).where(MatchingDraft.user_id == uid))

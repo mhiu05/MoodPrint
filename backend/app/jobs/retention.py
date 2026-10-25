@@ -28,9 +28,17 @@ async def purge_expired(app):
         # Retention continues after the accounting kill switch is turned off;
         # old hosted schemas can still run before the expand migration is approved.
         if await db.scalar(select(func.to_regclass("moodprint.ai_usage"))):
-            ids = (await db.scalars(select(AiUsage.run_id).where(
-                AiUsage.created_at <= now() - timedelta(days=90), AiUsage.state != "open",
-            ).limit(1000).with_for_update(skip_locked=True))).all()
+            ids = (
+                await db.scalars(
+                    select(AiUsage.run_id)
+                    .where(
+                        AiUsage.created_at <= now() - timedelta(days=90),
+                        AiUsage.state != "open",
+                    )
+                    .limit(1000)
+                    .with_for_update(skip_locked=True)
+                )
+            ).all()
             if ids:
                 await db.execute(delete(AiUsage).where(AiUsage.run_id.in_(ids)))
         # Content-free run metadata; saved threads expire within 90 days, so older runs
@@ -99,6 +107,41 @@ async def purge_expired(app):
         ).all()
         if keys:
             await db.execute(delete(Idempotency).where(Idempotency.id.in_(keys)))
+        # Activity answers live 90 days like messages; finished sessions 90 days after ending.
+        from app.modules.activities.models import ActivityResponse, ActivitySession
+
+        answers = (
+            await db.execute(
+                select(
+                    ActivityResponse.session_id, ActivityResponse.user_id, ActivityResponse.round
+                )
+                .where(ActivityResponse.submitted_at <= now() - timedelta(days=90))
+                .limit(1000)
+            )
+        ).all()
+        for session_id, user_id, round_number in answers:
+            await db.execute(
+                delete(ActivityResponse).where(
+                    ActivityResponse.session_id == session_id,
+                    ActivityResponse.user_id == user_id,
+                    ActivityResponse.round == round_number,
+                )
+            )
+        finished = (
+            await db.scalars(
+                select(ActivitySession.id)
+                .where(
+                    ActivitySession.state.in_(
+                        ("completed", "ended", "declined", "cancelled", "expired", "aborted")
+                    ),
+                    ActivitySession.ended_at <= now() - timedelta(days=90),
+                )
+                .limit(1000)
+                .with_for_update(skip_locked=True)
+            )
+        ).all()
+        if finished:
+            await db.execute(delete(ActivitySession).where(ActivitySession.id.in_(finished)))
         # Retired outbox (no consumer): drain the backlog oldest first until the table is dropped.
         outbox = (
             await db.scalars(

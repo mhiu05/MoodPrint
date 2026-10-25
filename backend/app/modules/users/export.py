@@ -158,4 +158,62 @@ async def social_section(db: AsyncSession, user: User) -> dict:
             for row in reports
         ],
         "blocksMade": [{"createdAt": row.created_at.isoformat()} for row in blocks],
+        "activities": await activity_section(db, user),
+    }
+
+
+async def activity_section(db: AsyncSession, user: User) -> dict:
+    """Own sessions, own answers and own feedback; peer answers are never exported."""
+    from app.modules.activities.models import (
+        ActivityParticipant,
+        ActivityResponse,
+        ActivitySession,
+    )
+
+    participants = await _rows(
+        db, select(ActivityParticipant).where(ActivityParticipant.user_id == user.id)
+    )
+    sessions = {
+        row.id: row
+        for row in (
+            await db.scalars(
+                select(ActivitySession).where(
+                    ActivitySession.id.in_([p.session_id for p in participants])
+                )
+            )
+        ).all()
+    }
+    mine = sorted(
+        ((sessions[p.session_id], p) for p in participants), key=lambda pair: pair[0].created_at
+    )
+    answers = await _rows(
+        db,
+        select(ActivityResponse)
+        .where(ActivityResponse.user_id == user.id)
+        .order_by(ActivityResponse.submitted_at),
+    )
+    return {
+        "sessions": [
+            {
+                "id": str(session.id),
+                "kind": session.kind,
+                "role": participant.role,
+                "state": session.state,
+                "createdAt": session.created_at.isoformat(),
+                "endedAt": session.ended_at.isoformat() if session.ended_at else None,
+                "feedback": participant.feedback,
+            }
+            for session, participant in mine
+        ],
+        "responses": [
+            {
+                "session": str(row.session_id),
+                "round": row.round,
+                "choice": row.choice,
+                "text": row.text,
+                "skipped": row.skipped,
+                "submittedAt": row.submitted_at.isoformat(),
+            }
+            for row in answers
+        ],
     }

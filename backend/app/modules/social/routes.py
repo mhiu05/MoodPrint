@@ -642,6 +642,7 @@ async def end(
         room.status = "closed"
         room.version += 1
         pair.cooldown_until = now() + timedelta(days=30)
+        await hooks.abort_for_pair(db, pair.id, "room_closed")
         result = svc.receipt(room.id, room.version)
         save_receipt(
             db,
@@ -681,6 +682,7 @@ async def block_peer(peer_id, key, payload, request, actor):
         )
         pair.cooldown_until = now() + timedelta(days=30)
         pair.version += 1
+        await hooks.abort_for_pair(db, pair.id, "blocked")
         result = svc.receipt(pair.id, pair.version)
         save_receipt(
             db, user, "pair:block", key, payload, result.model_dump(mode="json", by_alias=True)
