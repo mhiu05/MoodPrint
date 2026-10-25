@@ -8,6 +8,10 @@ from app.infrastructure.database.models import Consent, User, now
 from app.modules.matching import scoring
 from app.modules.social.models import Block, Connection, ConnectionRequest, Pair, PublishedProfile
 
+# Bounded discovery: the eligible scan and the recheck shortlist both have hard caps.
+SCAN_LIMIT = 1000
+SHORTLIST = 10
+
 
 async def ranked_candidates(db, user, own, own_consent):
     peers = (
@@ -36,8 +40,10 @@ async def ranked_candidates(db, user, own, own_consent):
                 User.status == "active",
                 User.age_band == "adult",
                 ~User.deletion_pending,
+                PublishedProfile.payload["goal"].astext == own.payload["goal"],
             )
             .order_by(User.id)
+            .limit(SCAN_LIMIT)
         )
     ).all()
     blocks = (
@@ -109,4 +115,5 @@ async def ranked_candidates(db, user, own, own_consent):
         if points >= 30:
             ranked.append((points, str(peer_id), peer_id))
     ranked.sort(key=lambda item: (-item[0], item[1]))
-    return [item[2] for item in ranked[:5]]
+    # Extra ranked peers replace any that fail the locked recheck in the route.
+    return [item[2] for item in ranked[:SHORTLIST]]

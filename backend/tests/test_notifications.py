@@ -64,3 +64,42 @@ async def test_social_stream_slots_are_capped_per_user_and_released(clients):
     assert gone.status_code == 404
     # A rejected request must not leak its reservation.
     assert STREAM_SLOTS.active.get(uid, 0) == 0
+
+
+async def test_stream_revokes_on_session_or_eligibility_change_without_room_change(
+    clients, monkeypatch
+):
+    """The cheap per-second watermark must not hide revocations that leave the room open."""
+    from sqlalchemy import text, update
+
+    from app.infrastructure.database.models import User
+    from app.modules.social import notifications
+
+    monkeypatch.setattr(notifications, "FULL_CHECK_SECONDS", 0)
+    app, actors, _, room = await open_room(clients)
+    for revoke in ("session", "deletion"):
+        client, uid = actors[1] if revoke == "session" else actors[0]
+        async with app.state.database.sessions() as db:
+            own = await db.scalar(select(AuthSession).where(AuthSession.user_id == uid))
+            actor = Actor(uid, own.id, 1)
+        request = Request(
+            {
+                "type": "http",
+                "method": "GET",
+                "path": "/",
+                "headers": [],
+                "app": app,
+                "query_string": b"",
+            }
+        )
+        generator = notifications.event_stream(
+            request, actor, __import__("uuid").UUID(room), after_seq=0
+        )
+        assert "messages_available" in await anext(generator)
+        async with app.state.database.sessions.begin() as db:
+            if revoke == "session":
+                await db.execute(text("delete from auth.sessions where user_id=:id"), {"id": uid})
+            else:
+                await db.execute(update(User).where(User.id == uid).values(deletion_pending=True))
+        assert "access_revoked" in await anext(generator)
+        await generator.aclose()

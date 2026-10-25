@@ -4,7 +4,7 @@ from datetime import timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
-from sqlalchemy import or_, select, update
+from sqlalchemy import func, or_, select, update
 
 from app.contracts import ActionReceipt, EmptyInput, VersionInput
 from app.core.errors import DomainError
@@ -32,6 +32,8 @@ from app.modules.social import service as svc
 from app.modules.social.models import CandidateReference, Connection, HumanMessage
 
 router = APIRouter()
+
+REPORTS_PER_DAY = 5
 
 
 @router.post("/connections/{connection_id}/peer-reference", response_model=PeerReferenceView)
@@ -197,8 +199,9 @@ async def list_reveals(
     connection_id: UUID, request: Request, actor: Actor = Depends(require_actor)
 ):
     peer_id = await svc.room_peer(request, actor, connection_id)
-    async with svc.pair_transaction(request, actor, peer_id) as (db, user, peer):
-        await svc.live_room(db, user, peer, connection_id)
+    # Polled read: live-policy checks without row locks.
+    async with svc.pair_transaction(request, actor, peer_id, lock=False) as (db, user, peer):
+        await svc.live_room(db, user, peer, connection_id, lock=False)
         rows = (
             await db.scalars(
                 select(RevealAccess).where(
@@ -346,11 +349,24 @@ async def report(body: ReportInput, request: Request, actor: Actor = Depends(req
         ref = await db.get(CandidateReference, body.peer_ref)
         if not ref or ref.user_id != actor.user_id:
             svc.missing()
-        peer_id = ref.peer_id
+        peer_id, expired = ref.peer_id, ref.expires_at <= now()
     async with svc.pair_transaction(request, actor, peer_id) as (db, user, peer):
         old = await previous_receipt(db, user, "report:create", key, payload)
         if old:
             return ReportView.model_validate(await db.get(Report, UUID(old["resourceId"])))
+        if expired:
+            raise DomainError(
+                410, "REFERENCE_EXPIRED", "Phiên báo cáo đã hết hạn. Vui lòng thử lại."
+            )
+        recent = await db.scalar(
+            select(func.count()).where(
+                Report.reporter_id == user.id, Report.created_at > now() - timedelta(days=1)
+            )
+        )
+        if recent >= REPORTS_PER_DAY:
+            raise DomainError(
+                429, "REPORT_QUOTA", "Bạn đã gửi nhiều báo cáo hôm nay. Hãy thử lại sau.", True
+            )
         rooms = (
             await db.scalars(
                 select(Connection).where(
@@ -376,7 +392,8 @@ async def report(body: ReportInput, request: Request, actor: Actor = Depends(req
                 raise DomainError(
                     403, "EVIDENCE_DENIED", "Không thể dùng tin nhắn này làm bằng chứng."
                 )
-            await svc.live_room(db, user, peer, message.connection_id)
+            # Evidence must come from this pair's own rooms, but the room need not be
+            # live: abuse is often reported right after blocking or ending a connection.
             evidence.append({"messageId": str(message.id), "text": message.text})
         row = Report(reporter_id=user.id, subject_id=peer.id, reason=body.reason, evidence=evidence)
         db.add(row)

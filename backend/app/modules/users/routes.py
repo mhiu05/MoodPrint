@@ -27,6 +27,7 @@ from app.infrastructure.database.models import (
     PrivateItem,
     now,
 )
+from app.modules.users.export import consent_section, social_section
 from app.modules.users.models import DataJob
 from app.modules.users.schemas import DataJobView, DeletionInput, ExportInput
 
@@ -126,6 +127,10 @@ async def export(body: ExportInput, request: Request, actor: Actor = Depends(req
             result[target] = [
                 schema.model_validate(item).model_dump(mode="json", by_alias=True) for item in rows
             ]
+        if "consents" in body.scopes:
+            result["consents"] = await consent_section(db, user)
+        if "social" in body.scopes:
+            result["social"] = await social_section(db, user)
         if len(json.dumps(result).encode()) > 2 * 1024 * 1024:
             raise DomainError(503, "EXPORT_TOO_LARGE", "Phạm vi xuất quá lớn.")
         active_exports = [
@@ -140,7 +145,8 @@ async def export(body: ExportInput, request: Request, actor: Actor = Depends(req
             raise DomainError(
                 429, "EXPORT_LIMIT", "Hãy tải bản xuất hiện có hoặc chờ bản xuất hết hạn."
             )
-        row = DataJob(user_id=user.id, kind="export", scope=",".join(body.scopes), status="ready")
+        scope = ",".join(dict.fromkeys(body.scopes))
+        row = DataJob(user_id=user.id, kind="export", scope=scope, status="ready")
         db.add(row)
         await db.flush()
         save_receipt(db, user, "data:export", key, payload, {"resourceId": str(row.id)})

@@ -21,7 +21,6 @@ from app.core.security import (
 )
 from app.infrastructure.database.models import Memory, PrivateItem
 from app.modules.profiles.taxonomy import TAXONOMY, TaxonomyDTO
-from app.modules.social.service import invalidate_user_social
 
 router = APIRouter()
 
@@ -87,9 +86,9 @@ async def modify_item(
             item.version += 1
             item.status = "deleted" if deleting else "edited"
             item.text = body.text if isinstance(body, PrivateItemEdit) else ""
+            # Private items are never matching sources (publish accepts taxonomy tags
+            # only), so editing one must not unpublish the profile or close rooms.
             user.data_version += 1
-            user.profile_version += 1
-            await invalidate_user_social(db, user.id)
             from app.ai.embeddings import invalidate_memory
 
             affected = (await db.scalars(select(Memory.id).where(Memory.source_id == item_id, Memory.user_id == user.id))).all()

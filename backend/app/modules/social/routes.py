@@ -16,7 +16,7 @@ from app.core.security import (
     save_receipt,
     transaction,
 )
-from app.infrastructure.database.models import Outbox, User, now
+from app.infrastructure.database.models import Consent, Outbox, User, now
 from app.modules.matching import scoring
 from app.modules.social import service as svc
 from app.modules.social.models import (
@@ -97,10 +97,19 @@ async def published_current(request: Request, actor: Actor = Depends(require_act
         )
         if profile is None:
             return None
+        consent = await db.get(Consent, (user.id, "MATCH"))
+        live = (
+            profile.version == user.profile_version
+            and consent is not None
+            and consent.enabled
+            and profile.consent_version == consent.version
+        )
         return PublishedView(
             id=profile.id,
             profile=PublicProfile.model_validate(profile.payload),
             version=profile.version,
+            state="live" if live else "needs_republish",
+            profile_version=user.profile_version,
         )
 
 
@@ -176,6 +185,7 @@ async def publish(body: PublishInput, request: Request, actor: Actor = Depends(r
             id=profile.id,
             profile=PublicProfile.model_validate(profile.payload),
             version=profile.version,
+            profile_version=user.profile_version,
         )
 
 
@@ -238,8 +248,10 @@ async def candidates(request: Request, actor: Actor = Depends(require_actor)):
         users = {user.id: user for user in rows}
         user = await lock_actor(db, actor)
         own, own_consent = await svc.current_profile(db, user)
-        result = []
+        result: list[CandidateCardDTO] = []
         for peer_id in shortlist:
+            if len(result) == 5:
+                break
             peer = users.get(peer_id)
             if peer is None:
                 continue
@@ -343,7 +355,7 @@ async def send_request(
         if room or (pair.cooldown_until and pair.cooldown_until > now()):
             raise DomainError(409, "PAIR_UNAVAILABLE", "Cặp kết nối chưa thể nhận lời mời mới.")
         if pending and pending.sender_id != user.id:
-            await svc.invitation_quota(db, user.id)
+            # Sending back completes the peer's invitation, like accept; no quota applies.
             await svc.open_mutual_room(db, pair, pending, snapshots)
         elif not pending:
             await svc.invitation_quota(db, user.id)
@@ -484,8 +496,10 @@ async def get_connection(
     connection_id: UUID, request: Request, actor: Actor = Depends(require_actor)
 ):
     peer_id = await svc.room_peer(request, actor, connection_id)
-    async with svc.pair_transaction(request, actor, peer_id) as (db, user, peer):
-        return svc.connection_view(await svc.live_room(db, user, peer, connection_id))
+    # Polled read: same live-policy checks without row locks that would contend with writers.
+    async with svc.pair_transaction(request, actor, peer_id, lock=False) as (db, user, peer):
+        room = await svc.live_room(db, user, peer, connection_id, lock=False)
+        return svc.connection_view(room)
 
 
 @router.post("/connections/{connection_id}/messages", response_model=MessageView, status_code=201)
@@ -549,8 +563,9 @@ async def get_messages(
     actor: Actor = Depends(require_actor),
 ):
     peer_id = await svc.room_peer(request, actor, connection_id)
-    async with svc.pair_transaction(request, actor, peer_id) as (db, user, peer):
-        room = await svc.live_room(db, user, peer, connection_id)
+    # A message and room.next_seq commit together, so an unlocked read never sees a gap.
+    async with svc.pair_transaction(request, actor, peer_id, lock=False) as (db, user, peer):
+        room = await svc.live_room(db, user, peer, connection_id, lock=False)
         rows = (
             await db.scalars(
                 select(HumanMessage)

@@ -59,6 +59,11 @@ class PublishedView(DTO):
     id: UUID
     profile: PublicProfile
     version: int
+    # needs_republish: kept for review but invisible to matching until published again
+    # (e.g. after MATCH consent was withdrawn and restored). Never republished implicitly.
+    state: Literal["live", "needs_republish"] = "live"
+    # The version withdraw/publish must send as expectedVersion.
+    profile_version: int
 
 
 class CandidateCardDTO(DTO):

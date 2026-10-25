@@ -124,7 +124,8 @@ class PrivateItemDTO(DTO):
 
 class MoodInput(VersionInput):
     value: int = Field(ge=1, le=5, strict=True)
-    note: str = Field(default="", max_length=120)
+    note: Annotated[str, StringConstraints(strip_whitespace=True, max_length=120)] = ""
+    # Accepted for compatibility; date boundaries always follow the account timezone.
     timezone: str = "Asia/Bangkok"
 
     @field_validator("timezone")
@@ -144,6 +145,24 @@ class MoodDTO(DTO):
     note: str
     timezone: str
     version: int
+
+
+class MoodBucket(DTO):
+    local_date: date
+    value: int | None
+
+
+class MoodSummaryDTO(DTO):
+    """Aggregates only recorded days; missing days stay null and are never imputed."""
+
+    from_date: date = Field(alias="from")
+    to_date: date = Field(alias="to")
+    count: int
+    mean: float | None
+    min: int | None
+    max: int | None
+    insight_available: bool
+    buckets: list[MoodBucket]
 
 
 class ActionReceipt(DTO):

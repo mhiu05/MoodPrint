@@ -5,7 +5,7 @@ from datetime import timedelta
 from sqlalchemy import Date, cast, delete, func, select
 
 from app.infrastructure.database.models import AiRun, AiUsage, Idempotency, Mood, User, now
-from app.modules.social.models import HumanMessage
+from app.modules.social.models import CandidateReference, HumanMessage
 
 
 async def purge_expired(app):
@@ -68,6 +68,18 @@ async def purge_expired(app):
         ).all()
         if message_ids:
             await db.execute(delete(HumanMessage).where(HumanMessage.id.in_(message_ids)))
+        # Candidate/safety references live 15 minutes; a day later no replay can use them.
+        refs = (
+            await db.scalars(
+                select(CandidateReference.id)
+                .where(CandidateReference.expires_at <= now() - timedelta(hours=24))
+                .order_by(CandidateReference.id)
+                .limit(1000)
+                .with_for_update(skip_locked=True)
+            )
+        ).all()
+        if refs:
+            await db.execute(delete(CandidateReference).where(CandidateReference.id.in_(refs)))
         keys = (
             await db.scalars(
                 select(Idempotency.id)

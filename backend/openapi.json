@@ -2109,6 +2109,40 @@
               "default": 7,
               "title": "Days"
             }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
           }
         ],
         "responses": {
@@ -2116,7 +2150,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/MoodSummaryDTO"
+                }
               }
             }
           },
@@ -10392,11 +10428,13 @@
                 "account",
                 "private_items",
                 "memories",
-                "moods"
+                "moods",
+                "consents",
+                "social"
               ]
             },
             "type": "array",
-            "maxItems": 4,
+            "maxItems": 6,
             "minItems": 1,
             "title": "Scopes"
           }
@@ -10672,6 +10710,33 @@
         ],
         "title": "MessageView"
       },
+      "MoodBucket": {
+        "properties": {
+          "localDate": {
+            "type": "string",
+            "format": "date",
+            "title": "Localdate"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "localDate",
+          "value"
+        ],
+        "title": "MoodBucket"
+      },
       "MoodCard": {
         "additionalProperties": false,
         "properties": {
@@ -10781,6 +10846,82 @@
           "toDate"
         ],
         "title": "MoodReadScope"
+      },
+      "MoodSummaryDTO": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date",
+            "title": "From"
+          },
+          "to": {
+            "type": "string",
+            "format": "date",
+            "title": "To"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean"
+          },
+          "min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min"
+          },
+          "max": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max"
+          },
+          "insightAvailable": {
+            "type": "boolean",
+            "title": "Insightavailable"
+          },
+          "buckets": {
+            "items": {
+              "$ref": "#/components/schemas/MoodBucket"
+            },
+            "type": "array",
+            "title": "Buckets"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "from",
+          "to",
+          "count",
+          "mean",
+          "min",
+          "max",
+          "insightAvailable",
+          "buckets"
+        ],
+        "title": "MoodSummaryDTO",
+        "description": "Aggregates only recorded days; missing days stay null and are never imputed."
       },
       "NavigateCard": {
         "additionalProperties": false,
@@ -11115,6 +11256,19 @@
           "version": {
             "type": "integer",
             "title": "Version"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "live",
+              "needs_republish"
+            ],
+            "title": "State",
+            "default": "live"
+          },
+          "profileVersion": {
+            "type": "integer",
+            "title": "Profileversion"
           }
         },
         "additionalProperties": false,
@@ -11122,7 +11276,8 @@
         "required": [
           "id",
           "profile",
-          "version"
+          "version",
+          "profileVersion"
         ],
         "title": "PublishedView"
       },

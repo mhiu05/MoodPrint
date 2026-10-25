@@ -7,50 +7,72 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import StreamingResponse
+from sqlalchemy import select
 from starlette.background import BackgroundTask
 
 from app.core.errors import DomainError
 from app.core.security import Actor, require_actor
 from app.core.streams import StreamSlots
 from app.modules.social import service as svc
+from app.modules.social.models import Connection
 
 router = APIRouter()
 
 
 STREAM_SLOTS = StreamSlots(4)
 STREAM_LIFETIME_SECONDS = 1800
+FULL_CHECK_SECONDS = 5
 
 
 async def event_stream(request: Request, actor: Actor, connection_id: UUID, after_seq: int = 0):
     previous = None
     heartbeat = 0
+    last_full = 0.0
     deadline = time.monotonic() + STREAM_LIFETIME_SECONDS
     # EventSource reconnects with Last-Event-ID semantics handled by the HTTP cursor.
     while time.monotonic() < deadline:
         try:
-            peer_id = await svc.room_peer(request, actor, connection_id)
-            async with svc.pair_transaction(request, actor, peer_id, lock=False) as (
-                db,
-                user,
-                peer,
-            ):
-                room = await svc.live_room(db, user, peer, connection_id, lock=False)
-                if after_seq > room.next_seq:
-                    raise DomainError(409, "CURSOR_GAP", "Hãy tải lại cuộc trò chuyện.")
-                snapshot = (room.next_seq, room.version)
-                envelope = {
-                    "version": "social-events-v1",
-                    "eventId": f"{room.id}:{room.next_seq}:{room.version}",
-                    "connectionId": str(room.id),
-                    "highWaterSeq": str(room.next_seq),
-                    "roomVersion": room.version,
-                    "type": "messages_available",
-                }
+            # Cheap per-second watermark. Every room-ending change (end, block, consent
+            # withdrawal, account deletion) bumps the room version or status, so it is
+            # seen here at once; the full live-policy check runs on any change, before
+            # anything is announced, and at least every FULL_CHECK_SECONDS for
+            # session/eligibility changes that do not touch the room.
+            async with request.app.state.database.require()() as db:
+                row = (
+                    await db.execute(
+                        select(Connection.next_seq, Connection.version, Connection.status).where(
+                            Connection.id == connection_id
+                        )
+                    )
+                ).one_or_none()
+            if row is None or row.status != "open":
+                raise DomainError(403, "CONNECTION_UNAVAILABLE", "Kết nối không còn khả dụng.")
+            watermark = (row.next_seq, row.version)
+            if watermark != previous or time.monotonic() - last_full >= FULL_CHECK_SECONDS:
+                peer_id = await svc.room_peer(request, actor, connection_id)
+                async with svc.pair_transaction(request, actor, peer_id, lock=False) as (
+                    db,
+                    user,
+                    peer,
+                ):
+                    room = await svc.live_room(db, user, peer, connection_id, lock=False)
+                    if after_seq > room.next_seq:
+                        raise DomainError(409, "CURSOR_GAP", "Hãy tải lại cuộc trò chuyện.")
+                    watermark = (room.next_seq, room.version)
+                    envelope = {
+                        "version": "social-events-v1",
+                        "eventId": f"{room.id}:{room.next_seq}:{room.version}",
+                        "connectionId": str(room.id),
+                        "highWaterSeq": str(room.next_seq),
+                        "roomVersion": room.version,
+                        "type": "messages_available",
+                    }
+                last_full = time.monotonic()
         except DomainError:
             yield "event: access_revoked\ndata: {}\n\n"
             return
-        if snapshot != previous:
-            previous = snapshot
+        if watermark != previous:
+            previous = watermark
             yield f"id: {envelope['eventId']}\nevent: messages_available\ndata: {json.dumps(envelope)}\n\n"
         elif heartbeat >= 10:
             heartbeat = 0

@@ -102,7 +102,6 @@ async def clients(database):
     from sqlalchemy.ext.asyncio import async_sessionmaker
 
     from app.core.config import Settings
-    from app.infrastructure.database.models import AuthSession, Consent, User
     from app.main import create_app
 
     app = create_app(Settings(_env_file=None, database_url=str(database.url.render_as_string(hide_password=False))))
@@ -110,36 +109,44 @@ async def clients(database):
     await app.state.database.engine.dispose()
     app.state.database.engine = database
     app.state.database.sessions = async_sessionmaker(database, expire_on_commit=False)
-    actors = []
-    for index in range(2):
-        uid, sid = uuid4(), uuid4()
-        token, csrf = f"test-session-{index}-{uuid4()}", f"csrf-{uuid4()}"
-        async with app.state.database.sessions.begin() as db:
-            db.add(User(id=uid, auth_subject=uid, alias=f"User {index}", age_band="adult"))
-            await db.flush()
-            db.add(
-                AuthSession(
-                    user_id=uid,
-                    token_hash=hashlib.sha256(token.encode()).hexdigest(),
-                    csrf_hash=hashlib.sha256(csrf.encode()).hexdigest(),
-                    provider_session_id=sid,
-                    expires_at=datetime.now(UTC) + timedelta(hours=1),
-                )
-            )
-            for purpose in ("AI", "MEM", "MATCH", "VOICE"):
-                db.add(Consent(user_id=uid, purpose=purpose, enabled=False, version=1))
-            await db.execute(
-                text("insert into auth.sessions(id,user_id) values (:id,:uid)"),
-                {"id": sid, "uid": uid},
-            )
-        client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test")
-        client.cookies.set("moodprint_session", token)
-        client.headers["X-CSRF-Token"] = csrf
-        actors.append((client, uid))
+    actors = [await add_actor(app, index) for index in range(2)]
+    app.state.test_clients = [client for client, _ in actors]
     yield app, actors
-    for client, _ in actors:
+    for client in app.state.test_clients:
         await client.aclose()
     await app.state.ai.close()
+
+
+async def add_actor(app, index: int, age_band: str = "adult"):
+    """Seed one synthetic account with an opaque session; all consents start disabled."""
+    from app.infrastructure.database.models import AuthSession, Consent, User
+
+    uid, sid = uuid4(), uuid4()
+    token, csrf = f"test-session-{index}-{uuid4()}", f"csrf-{uuid4()}"
+    async with app.state.database.sessions.begin() as db:
+        db.add(User(id=uid, auth_subject=uid, alias=f"User {index}", age_band=age_band))
+        await db.flush()
+        db.add(
+            AuthSession(
+                user_id=uid,
+                token_hash=hashlib.sha256(token.encode()).hexdigest(),
+                csrf_hash=hashlib.sha256(csrf.encode()).hexdigest(),
+                provider_session_id=sid,
+                expires_at=datetime.now(UTC) + timedelta(hours=1),
+            )
+        )
+        for purpose in ("AI", "MEM", "MATCH", "VOICE"):
+            db.add(Consent(user_id=uid, purpose=purpose, enabled=False, version=1))
+        await db.execute(
+            text("insert into auth.sessions(id,user_id) values (:id,:uid)"),
+            {"id": sid, "uid": uid},
+        )
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test")
+    client.cookies.set("moodprint_session", token)
+    client.headers["X-CSRF-Token"] = csrf
+    if hasattr(app.state, "test_clients"):
+        app.state.test_clients.append(client)
+    return client, uid
 
 
 @pytest.fixture

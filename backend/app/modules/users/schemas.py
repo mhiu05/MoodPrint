@@ -20,6 +20,7 @@ class DataJobView(DTO):
 
 
 class ExportInput(DTO):
-    scopes: list[Literal["account", "private_items", "memories", "moods"]] = Field(
-        min_length=1, max_length=4
-    )
+    # Joined scopes must fit data_jobs.scope (String(64)); six names use 51 characters.
+    scopes: list[
+        Literal["account", "private_items", "memories", "moods", "consents", "social"]
+    ] = Field(min_length=1, max_length=6)
