@@ -23,6 +23,16 @@ from app.core.revisions import READY_REVISIONS
 from app.infrastructure.database.connection import Database
 from app.infrastructure.database.models import AiRun
 
+READY_REVISIONS = frozenset(
+    {
+        "0010_account_deletion",
+        "0011_social_stabilization",
+        "0012_matching_v2",
+        "0013_shared_activities",
+        "0014_moderation",
+    }
+)
+
 
 def warn_unenforced_budget(config) -> None:
     if config.ai_daily_budget_usd > 0 and not config.ai_accounting_enabled:
