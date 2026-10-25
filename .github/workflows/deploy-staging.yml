@@ -357,9 +357,9 @@ jobs:
         run: |
           set -euo pipefail
           tag="staging-$RELEASE_SHA"
-          if gh release view "$tag" >/dev/null 2>&1; then
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             mkdir -p "$RUNNER_TEMP/existing-release"
-            gh release download "$tag" --pattern release.json --dir "$RUNNER_TEMP/existing-release"
+            gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern release.json --dir "$RUNNER_TEMP/existing-release"
             cmp -s "$RUNNER_TEMP/existing-release/release.json" "$RUNNER_TEMP/moodprint-release/release.json" || {
               echo "An existing SHA release has a different manifest; refusing to replace it." >&2
               exit 1
@@ -368,6 +368,7 @@ jobs:
             exit 0
           fi
           gh release create "$tag" "$RUNNER_TEMP/moodprint-release/release.json" \
+            --repo "$GITHUB_REPOSITORY" \
             --target "$RELEASE_SHA" \
             --title "MoodPrint staging $RELEASE_SHA" \
             --prerelease \
