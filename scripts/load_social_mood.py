@@ -5,7 +5,9 @@ against a disposable local *_test database, then drives N synthetic users in
 pairs through a realistic mix: mood writes/reads/summary, consent and profile
 publication, discovery, mutual requests (half of the pairs race reciprocal
 sends), message exchange with idempotent retries, polling and the event stream,
-cross-pair access probes and consent toggles. No provider or AI calls.
+cross-pair access probes and consent toggles, then one Icebreaker per pair through
+completion (racing invites, reciprocal-reveal leak checks) with summary and read-marker
+polling. No provider or AI calls.
 
 Reports p50/p95 latency per operation, unexpected HTTP statuses, duplicate or
 missing messages, isolation failures and the peak of checked-out DB connections.
@@ -34,6 +36,27 @@ ROOT = Path(__file__).resolve().parents[1]
 INTERESTS = ["reading", "music", "walking", "cooking", "english", "photography", "puzzles"]
 TRIPLES = list(combinations(INTERESTS, 3))
 MESSAGES_PER_USER = 10
+ICEBREAKER_ROUNDS = 3
+# T-PERF-01 acceptance: p95 per operation class.
+WRITE_P95_MS, READ_P95_MS = 800, 500
+WRITES = {
+    "mood_put",
+    "mood_edit",
+    "consent",
+    "draft_save",
+    "draft_preview",
+    "publish",
+    "request_send",
+    "request_accept",
+    "message_send",
+    "message_retry",
+    "consent_toggle",
+    "activity_invite",
+    "activity_accept",
+    "activity_answer",
+    "activity_ready",
+    "read_marker",
+}
 
 
 def identity(number: int):
@@ -201,7 +224,7 @@ async def user_flow(number, users, base, metrics, barriers, rooms):
         if partner >= users:
             # Odd user count: the unpaired user only browses; it must still pass every
             # barrier so the paired users are not blocked.
-            for name in ("requested", "accepted", "chatted"):
+            for name in ("requested", "accepted", "chatted", "invited", "activity_done"):
                 await barriers[name].wait()
             return
         card = next((c for c in cards if c["alias"] == pair_alias(number, partner)), None)
@@ -251,7 +274,8 @@ async def user_flow(number, users, base, metrics, barriers, rooms):
         ).json()
         if len(open_rooms) != 1:
             metrics.counters["room_count_mismatch"] += 1
-            await barriers["chatted"].wait()
+            for name in ("chatted", "invited", "activity_done"):
+                await barriers[name].wait()
             return
         room = open_rooms[0]["id"]
         rooms[number] = room
@@ -328,8 +352,146 @@ async def user_flow(number, users, base, metrics, barriers, rooms):
             )
             if probe.status_code != 404 or "PAIR" in probe.text:
                 metrics.counters["foreign_room_leaks"] += 1
+        await activity_flow(client, metrics, barriers, number, partner, room, tag, racing)
     finally:
         await client.aclose()
+
+
+async def poll_session(client, metrics, session_id, done, limit_s=30.0):
+    """Polls the session like a tab without a stream until `done(view)` holds."""
+    deadline = time.monotonic() + limit_s
+    while time.monotonic() < deadline:
+        view = (
+            await request(
+                client, metrics, "activity_poll", "GET", f"/api/v1/activities/{session_id}"
+            )
+        ).json()
+        if done(view):
+            return view
+        await asyncio.sleep(0.25)
+    metrics.counters["activity_timeouts"] += 1
+    return None
+
+
+async def activity_flow(client, metrics, barriers, number, partner, room, tag, racing):
+    """One Icebreaker per pair (J-02); racing pairs invite at the same moment and the
+    server must keep exactly one session. Answers stay hidden until both answered.
+    Both barriers are always reached, so one failing pair cannot stall the others."""
+    try:
+        if number % 2 == 0 or racing:
+            await request(
+                client,
+                metrics,
+                "activity_invite",
+                "POST",
+                f"/api/v1/connections/{room}/activities",
+                json={"kind": "icebreaker"},
+                expect=(201, 409),
+            )
+    finally:
+        await barriers["invited"].wait()
+    try:
+        await _activity_steps(client, metrics, number, partner, room, tag)
+    finally:
+        await barriers["activity_done"].wait()
+
+
+async def _activity_steps(client, metrics, number, partner, room, tag):
+    live = (
+        await request(
+            client,
+            metrics,
+            "activity_current",
+            "GET",
+            f"/api/v1/connections/{room}/activities/current",
+        )
+    ).json()
+    if not live:
+        metrics.counters["activity_missing"] += 1
+        return
+    session_id = live["id"]
+    if live["role"] == "invitee":
+        await request(
+            client,
+            metrics,
+            "activity_accept",
+            "POST",
+            f"/api/v1/activities/{session_id}/accept",
+            json={"expectedVersion": live["version"]},
+        )
+    for round_number in range(1, ICEBREAKER_ROUNDS + 1):
+        view = await poll_session(
+            client,
+            metrics,
+            session_id,
+            lambda v, r=round_number: (
+                v["state"] == "active"
+                and v["progress"]["round"] == r
+                and v["progress"]["phase"] == "answering"
+            ),
+        )
+        if view is None:
+            return
+        own, peer = f"{tag} ans {number} r{round_number}", f"{tag} ans {partner} r{round_number}"
+        if peer in json.dumps(view, ensure_ascii=False):
+            metrics.counters["activity_answer_leaks"] += 1
+        await request(
+            client,
+            metrics,
+            "activity_answer",
+            "POST",
+            f"/api/v1/activities/{session_id}/responses",
+            json={"round": round_number, "expectedVersion": 0, "choice": number % 3, "text": own},
+        )
+        view = await poll_session(
+            client,
+            metrics,
+            session_id,
+            lambda v: bool((v.get("current") or {}).get("reveal")) or v["state"] != "active",
+        )
+        if view is None:
+            return
+        revealed = ((view.get("current") or {}).get("reveal") or {}).get("peer")
+        if not (isinstance(revealed, dict) and revealed.get("text") == peer):
+            metrics.counters["activity_reveal_mismatch"] += 1
+        await request(
+            client,
+            metrics,
+            "activity_ready",
+            "POST",
+            f"/api/v1/activities/{session_id}/ready",
+            json={"round": round_number, "expectedVersion": 0},
+        )
+    if await poll_session(client, metrics, session_id, lambda v: v["state"] == "completed") is None:
+        return
+    sessions = (
+        await request(
+            client,
+            metrics,
+            "activity_history",
+            "GET",
+            f"/api/v1/connections/{room}/activities",
+            params={"limit": 10},
+        )
+    ).json()
+    if len(sessions) != 1:
+        metrics.counters["activity_duplicate_sessions"] += 1
+    # Unread summary and the private read marker, as an open Messages tab does.
+    summary = (await request(client, metrics, "summary", "GET", "/api/v1/social/summary")).json()
+    high = (
+        await request(client, metrics, "connection_get", "GET", f"/api/v1/connections/{room}")
+    ).json()["highWaterSeq"]
+    await request(
+        client,
+        metrics,
+        "read_marker",
+        "POST",
+        f"/api/v1/connections/{room}/read",
+        json={"seq": high},
+    )
+    after = (await request(client, metrics, "summary", "GET", "/api/v1/social/summary")).json()
+    if after["unreadConnections"] or summary.get("activityInvites"):
+        metrics.counters["unread_after_read_marker"] += 1
 
 
 async def stream_watch(client, metrics, room):
@@ -372,7 +534,7 @@ async def run(args, base):
     metrics = Metrics()
     barriers = {
         name: asyncio.Barrier(args.users)
-        for name in ("published", "requested", "accepted", "chatted")
+        for name in ("published", "requested", "accepted", "chatted", "invited", "activity_done")
     }
     rooms: dict[int, str] = {}
     stop, samples = asyncio.Event(), []
@@ -405,13 +567,28 @@ async def run(args, base):
         "pool_peak_checked_out": max((s["checkedOut"] for s in samples), default=None),
         "pool_peak_overflow": max((s["overflow"] for s in samples), default=None),
         "pool_size": samples[0]["size"] if samples else None,
+        "local_server_metrics": samples[-1] if samples else None,
         "latency": {op: summarize(v) for op, v in sorted(metrics.latency.items())},
     }
+    slow = {
+        op: stats["p95_ms"]
+        for op, stats in report["latency"].items()
+        if stats.get("count")
+        and stats["p95_ms"] > (WRITE_P95_MS if op in WRITES else READ_P95_MS)
+        and op != "events_first"
+    }
+    report["acceptance"] = {
+        "write_p95_limit_ms": WRITE_P95_MS,
+        "read_p95_limit_ms": READ_P95_MS,
+        "over_limit": slow,
+    }
+    report["scorer"] = args.scorer
     report["passed"] = (
         not metrics.unexpected
         and not failures
         and not any(metrics.counters.values())
         and report["rooms_opened"] == report["expected_rooms"]
+        and not slow
     )
     return report
 
@@ -421,6 +598,7 @@ def start_server(args):
         **os.environ,
         "MOODPRINT_LOAD_USERS": str(args.users),
         "MOODPRINT_LOAD_PORT": str(args.port),
+        "MOODPRINT_LOAD_SCORER": args.scorer,
     }
     server = subprocess.Popen(
         [sys.executable, "-m", "tests.social_load_server"],
@@ -449,6 +627,7 @@ def main():
     parser.add_argument("--port", type=int, default=8005)
     parser.add_argument("--output", default=str(ROOT / "docs/mvp-validation/load-social-10.json"))
     parser.add_argument("--think", type=float, default=0.0, help="mean seconds between actions")
+    parser.add_argument("--scorer", choices=("v1", "v2", "shadow"), default="v2")
     args = parser.parse_args()
     global THINK_SECONDS
     THINK_SECONDS = args.think

@@ -128,11 +128,12 @@ export function BrandMark() {
     >
       <rect width="40" height="40" rx="13" fill="#285c4b" />
       <path
-        d="M9 25V16c0-4 7-4 7 0v9m0-7c0-5 8-5 8 0v7m0-9c0-4 7-4 7 0v9"
+        d="M11 26V17c0-5 9-5 9 0v9m0-9c0-5 9-5 9 0v9"
         stroke="#f3f4de"
         strokeWidth="3"
         strokeLinecap="round"
       />
+      <path d="M15.5 21v5m9-5v5" stroke="#f3f4de" strokeWidth="2" strokeLinecap="round" />
       <circle cx="30" cy="10" r="3" fill="#e9b75a" />
     </svg>
   );

@@ -12,7 +12,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def main():
+def run(
+    arguments=None,
+    *,
+    server_module="tests.e2e_server",
+    playwright_config="playwright.fullstack.config.ts",
+    extra_environment=None,
+):
     if not os.environ.get("TEST_DATABASE_URL", "").split("?")[0].endswith("_test"):
         raise RuntimeError("Set TEST_DATABASE_URL to a disposable local *_test database")
     for port in (8002, 5174):
@@ -23,14 +29,18 @@ def main():
                 raise RuntimeError(
                     f"Port {port} is occupied; existing processes will not be stopped"
                 ) from None
-    environment = {**os.environ, "MOODPRINT_API_PROXY": "http://127.0.0.1:8002"}
+    environment = {
+        **os.environ,
+        **(extra_environment or {}),
+        "MOODPRINT_API_PROXY": "http://127.0.0.1:8002",
+    }
     flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
     processes = []
     logs = Path(tempfile.mkdtemp(prefix="moodprint-fullstack-"))
     handles = []
     try:
         for name, command, directory in (
-            ("backend", [sys.executable, "-m", "tests.e2e_server"], ROOT / "backend"),
+            ("backend", [sys.executable, "-m", server_module], ROOT / "backend"),
             (
                 "frontend",
                 [
@@ -77,7 +87,9 @@ def main():
                 "node_modules/@playwright/test/cli.js",
                 "test",
                 "--config",
-                "playwright.fullstack.config.ts",
+                playwright_config,
+                # Optional spec filters / Playwright flags, e.g. activities.spec.ts.
+                *(arguments or []),
             ],
             cwd=ROOT / "frontend",
             env=environment,
@@ -98,4 +110,4 @@ def main():
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(run(sys.argv[1:]))

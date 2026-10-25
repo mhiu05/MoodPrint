@@ -38,6 +38,23 @@ class Settings(EmbeddingSettings, BaseSettings):
     session_idle_hours: int = Field(default=12, ge=1, le=72)
     session_max_days: int = Field(default=7, ge=1, le=30)
     static_dir: str = ""
+    # Matching scorer: v1 (rollback), v2 (rules-v2) or shadow (serve v1, log v2 overlap).
+    matching_scorer: Literal["v1", "v2", "shadow"] = "v1"
+    # Shared activities master switch and per-kind rollout (rollback = remove a kind).
+    activities_enabled: bool = False
+    activity_kinds: list[Literal["icebreaker", "coop_quiz", "focus"]] = [
+        "icebreaker",
+        "coop_quiz",
+        "focus",
+    ]
+    # Short focus phases for automated tests only; ignored unless APP_ENV=test.
+    focus_test_plan_seconds: int | None = Field(default=None, ge=5, le=600)
+    # Staff moderation queue; the admin routes return 404 while this is off.
+    moderation_admin_enabled: bool = False
+    # Cost protection (DR-12): per-user turns per Asia/Bangkok day and a global daily
+    # estimated-spend ceiling in USD (0 disables; needs AI_ACCOUNTING_ENABLED=true).
+    ai_daily_turns_per_user: int = Field(default=60, ge=1, le=1000)
+    ai_daily_budget_usd: float = Field(default=0, ge=0)
 
     @model_validator(mode="after")
     def local_live_scope(self):

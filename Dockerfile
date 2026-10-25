@@ -1,5 +1,5 @@
 # Single production image: built SPA + FastAPI on one origin (same-origin cookies/CSRF).
-FROM node:22.11.0-slim AS frontend
+FROM node:22.16.0-slim AS frontend
 WORKDIR /build
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund

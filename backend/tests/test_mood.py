@@ -13,7 +13,7 @@ import pytest
 from sqlalchemy import func, select, update
 
 from app.infrastructure.database.models import Mood, User
-from tests.test_social import key
+from tests.social_helpers import key
 
 pytestmark = pytest.mark.postgres
 

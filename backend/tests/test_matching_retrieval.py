@@ -5,7 +5,7 @@ from sqlalchemy import event
 
 from app.infrastructure.database.models import Consent, User
 from app.modules.social.models import PublishedProfile
-from tests.test_social import PROFILE, publish
+from tests.social_helpers import PROFILE, publish
 
 pytestmark = pytest.mark.postgres
 

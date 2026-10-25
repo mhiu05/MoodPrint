@@ -49,6 +49,12 @@ class User(Base):
     data_version: Mapped[int] = mapped_column(default=1)
     profile_version: Mapped[int] = mapped_column(default=0)
     deletion_pending: Mapped[bool] = mapped_column(default=False, server_default="false")
+    # Written with the sliding session refresh (at most every 15 minutes); NULL = unknown.
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Moderation outcomes (I-03): restricted users leave social features; suspended
+    # users cannot sign in or use any session until the time passes or staff lift it.
+    social_restricted_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    suspended_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (
         CheckConstraint("age_band in ('unknown','under16','teen','adult')", name="age_band"),
     )
@@ -159,6 +165,8 @@ class Idempotency(Base):
 
 
 class Outbox(Base):
+    """Retired (DR-10): never written; retention drains old rows until a contract migration drops it."""
+
     __tablename__ = "outbox"
     id: Mapped[UUID] = mapped_column(PGUUID, primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(ForeignKey(User.id), index=True)

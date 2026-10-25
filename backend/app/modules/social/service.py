@@ -3,7 +3,7 @@
 import secrets
 from contextlib import asynccontextmanager
 from datetime import timedelta
-from typing import NoReturn
+from typing import Literal, NoReturn
 from uuid import UUID, uuid4
 
 from sqlalchemy import and_, func, or_, select
@@ -11,9 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.contracts import ActionReceipt
 from app.core.errors import DomainError
-from app.core.security import Actor, lock_actor
-from app.infrastructure.database.models import Consent, Outbox, User, now
-from app.modules.matching import scoring
+from app.core.security import Actor, digest, verify_actor
+from app.infrastructure.database.models import Consent, User, now
+from app.modules.matching import explain, scoring_compat, scoring_v2
+from app.modules.profiles import taxonomy
 from app.modules.social.models import (
     Block,
     CandidateReference,
@@ -23,7 +24,13 @@ from app.modules.social.models import (
     Pair,
     PublishedProfile,
 )
-from app.modules.social.schemas import ConnectionView, MessageView, PublicProfile, RequestView
+from app.modules.social.schemas import (
+    ConnectionView,
+    MessageView,
+    PeerCardDTO,
+    PublicProfile,
+    RequestView,
+)
 
 
 def deny(code="CONNECTION_UNAVAILABLE") -> NoReturn:
@@ -39,9 +46,21 @@ def receipt(resource_id: UUID, version=1):
 
 
 def validate_publishable(profile: dict):
-    if not scoring._valid_profile({**profile, "sources": []}):
+    """Taxonomy v2 minimums and maximums for every multi-select facet."""
+    try:
+        PublicProfile.model_validate(profile)
+    except ValueError:
+        complete = False
+    else:
+        complete = all(
+            low <= len(profile.get(facet) or []) <= high
+            for facet, (low, high) in taxonomy.LIMITS.items()
+        )
+    if not complete:
         raise DomainError(
-            422, "PROFILE_INCOMPLETE", "Hãy chọn ít nhất 3 sở thích, 2 giá trị và 1 ngôn ngữ."
+            422,
+            "PROFILE_INCOMPLETE",
+            "Hãy chọn 3–10 sở thích, 2–4 giá trị và ít nhất 1 ngôn ngữ.",
         )
 
 
@@ -51,6 +70,11 @@ def public_payload(body):
 
 async def match_consent(db: AsyncSession, user: User) -> Consent:
     consent = await db.get(Consent, (user.id, "MATCH"))
+    if user.social_restricted_until and user.social_restricted_until > now():
+        # Their own moderation state: say so (the session also carries the notice).
+        raise DomainError(
+            403, "SOCIAL_RESTRICTED", "Tính năng kết nối của bạn đang tạm bị hạn chế."
+        )
     if (
         user.status != "active"
         or user.deletion_pending
@@ -90,20 +114,47 @@ async def is_blocked(db: AsyncSession, a: UUID, b: UUID):
     )
 
 
-async def base_eligibility(db: AsyncSession, a: User, b: User, *, own_snapshot=None):
+def scorer_of(request) -> str:
+    return request.app.state.settings.matching_scorer
+
+
+def goals_compatible(a: dict, b: dict, scorer: str) -> bool:
+    """v1 (and shadow, which serves v1) needs equal goals; v2 only honours strictGoal."""
+    return scoring_v2.goal_allowed(a, b) if scorer == "v2" else a["goal"] == b["goal"]
+
+
+async def base_eligibility(
+    db: AsyncSession, a: User, b: User, *, scorer: str, own_snapshot=None
+):
     if a.id == b.id or await is_blocked(db, a.id, b.id):
         deny()
     ap, ac = own_snapshot if own_snapshot is not None else await current_profile(db, a)
     bp, bc = await current_profile(db, b)
-    if ap.payload["goal"] != bp.payload["goal"] or not set(ap.payload["languages"]) & set(
-        bp.payload["languages"]
-    ):
+    if not goals_compatible(ap.payload, bp.payload, scorer) or not set(
+        ap.payload["languages"]
+    ) & set(bp.payload["languages"]):
         deny("PAIR_INELIGIBLE")
     snapshots = {
         str(a.id): {"profile": ap.version, "consent": ac.version},
         str(b.id): {"profile": bp.version, "consent": bc.version},
     }
     return ap, bp, snapshots
+
+
+async def room_gate(db: AsyncSession, a: User, b: User) -> dict[str, dict[str, int]]:
+    """Room/request validity (DR-03): no block and both MATCH-consented adults.
+
+    Published profiles decide discovery only, so editing or withdrawing one never
+    closes a friendship; consent versions remain the room's identity.
+    """
+    if a.id == b.id or await is_blocked(db, a.id, b.id):
+        deny()
+    ac, bc = await match_consent(db, a), await match_consent(db, b)
+    return {str(a.id): {"consent": ac.version}, str(b.id): {"consent": bc.version}}
+
+
+def consent_view(snapshots: dict) -> dict[str, int]:
+    return {uid: value["consent"] for uid, value in snapshots.items()}
 
 
 async def canonical_pair(db: AsyncSession, a: UUID, b: UUID, create=True, lock=True):
@@ -127,7 +178,7 @@ async def pair_transaction(request, actor: Actor, peer_id: UUID, lock: bool = Tr
         mapping = {user.id: user for user in users}
         if len(mapping) != 2:
             missing()
-        user = await lock_actor(db, actor, lock=lock)
+        user = await verify_actor(db, actor, mapping[actor.user_id])
         yield db, user, mapping[peer_id]
 
 
@@ -166,18 +217,24 @@ async def interaction(db, pair: Pair, snapshots):
         .with_for_update()
     )
     deadlines = []
-    if pending and (pending.expires_at <= now() or pending.snapshots != snapshots):
+    gate = consent_view(snapshots)
+    if pending and (pending.expires_at <= now() or consent_view(pending.snapshots) != gate):
         expired = pending.expires_at <= now()
         pending.status = "expired" if expired else "invalidated"
         # Expiry has a durable timestamp. Rechecking must never move its cooldown.
         deadlines.append((pending.expires_at if expired else now()) + timedelta(days=30))
         pending.version += 1
         pending = None
-    if room and room.snapshots != snapshots:
+    if room and consent_view(room.snapshots) != gate:
         room.status = "closed"
         room.version += 1
         room = None
         deadlines.append(now() + timedelta(days=30))
+        from app.modules.activities import hooks
+
+        await hooks.abort_for_pair(
+            db, pair.id, "consent_withdrawn" if snapshots == {} else "room_closed"
+        )
     if deadlines:
         if pair.cooldown_until:
             deadlines.append(pair.cooldown_until)
@@ -225,13 +282,20 @@ def request_view(row, actor_id):
     )
 
 
+def pair_alias(a: UUID, b: UUID) -> tuple[str, str]:
+    """One pseudonym per pair (DR-06): the same name on cards, requests, rooms and export."""
+    seed = digest(":".join(sorted((str(a), str(b)))))[:8]
+    return f"Bạn đồng hành {seed[:6]}", seed
+
+
 def connection_view(room):
     return ConnectionView(
         id=room.id,
-        alias=f"Bạn đồng hành {str(room.pair_id)[:6]}",
+        alias=pair_alias(room.low_user_id, room.high_user_id)[0],
         status=room.status,
         version=room.version,
         high_water_seq=str(room.next_seq),
+        created_at=room.created_at,
     )
 
 
@@ -244,7 +308,7 @@ async def room_peer(request, actor, room_id):
 
 
 async def live_room(db, a, b, room_id, lock: bool = True):
-    _, _, snapshots = await base_eligibility(db, a, b)
+    gate = consent_view(await room_gate(db, a, b))
     pair = await canonical_pair(db, a.id, b.id, False, lock=lock)
     statement = select(Connection).where(Connection.id == room_id)
     room = await db.scalar(statement.with_for_update() if lock else statement)
@@ -253,7 +317,7 @@ async def live_room(db, a, b, room_id, lock: bool = True):
         or not room
         or room.pair_id != pair.id
         or room.status != "open"
-        or room.snapshots != snapshots
+        or consent_view(room.snapshots) != gate
     ):
         deny()
     return room
@@ -271,15 +335,6 @@ async def open_mutual_room(db, pair, pending, snapshots):
     pending.status = "accepted"
     pending.version += 1
     pending.connection_id = room.id
-    for uid in (pair.low_user_id, pair.high_user_id):
-        db.add(
-            Outbox(
-                user_id=uid,
-                kind="connection_opened",
-                resource_id=str(room.id),
-                version=room.version,
-            )
-        )
     return room
 
 
@@ -335,17 +390,59 @@ async def invitation_quota(db, user_id):
 def reasons(a, b):
     labels = [
         f"Cùng thích {label.lower()}"
-        for tag, label in scoring._INTERESTS.items()
+        for tag, label in taxonomy.INTERESTS.items()
         if tag in a["interests"] and tag in b["interests"]
     ]
     labels += [
         f"Cùng coi trọng {label.lower()}"
-        for tag, label in scoring._VALUES.items()
+        for tag, label in taxonomy.VALUES.items()
         if tag in a["values"] and tag in b["values"]
     ]
     if a["style"] == b["style"]:
         labels.append("Cùng cách trò chuyện")
     return labels[:3]
+
+
+def describe(
+    own: dict, peer: dict, scorer: str
+) -> tuple[list[str], Literal["many", "some"], list[str]]:
+    """Reasons, qualitative label and shared activities; never a number (DR-05)."""
+    if scorer == "v2":
+        breakdown = scoring_v2.score(own, peer)
+        return (
+            explain.reasons(breakdown),
+            scoring_v2.label(breakdown),
+            breakdown.shared["activities"],
+        )
+    points = scoring_compat.score(own, peer)
+    return reasons(own, peer), "many" if points >= 60 else "some", []
+
+
+def suggestible(own: dict, peer: dict, scorer: str) -> bool:
+    if scorer == "v2":
+        return scoring_v2.goal_allowed(own, peer) and scoring_v2.eligible(
+            scoring_v2.score(own, peer)
+        )
+    return scoring_compat.score(own, peer) >= 30
+
+
+async def peer_card(
+    db: AsyncSession, user: User, peer: User, scorer: str
+) -> PeerCardDTO | None:
+    """Public card of a pending request's counterpart while both are still eligible."""
+    try:
+        own, published, _ = await base_eligibility(db, user, peer, scorer=scorer)
+    except DomainError:
+        return None
+    alias, seed = pair_alias(user.id, peer.id)
+    why, label, _ = describe(own.payload, published.payload, scorer)
+    return PeerCardDTO(
+        alias=alias,
+        avatar_seed=seed,
+        profile=PublicProfile.model_validate(published.payload),
+        reasons=why,
+        match_label=label,
+    )
 
 
 def new_preview():

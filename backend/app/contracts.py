@@ -23,6 +23,8 @@ class ErrorDetail(DTO):
     message: str
     retryable: bool = False
     request_id: str
+    # Set with 409 ACTIVITY_IN_PROGRESS so the client can open the existing session.
+    current_session_id: str | None = None
 
 
 class ApiError(DTO):
@@ -45,8 +47,17 @@ class ConsentView(DTO):
 
 class FeatureView(DTO):
     ai: bool = False
+    # Service availability is independent of per-user AI consent and quota.
+    ai_status: Literal["disabled", "configuration_missing", "configuration_invalid", "ready", "test_provider"] = "disabled"
     matching: bool = False
     voice: bool = False
+    # Remaining AI turns today (Asia/Bangkok day); null when AI is unavailable.
+    ai_quota_remaining: int | None = None
+
+
+class NoticeView(DTO):
+    kind: Literal["warning", "restricted"]
+    until: datetime | None = None
 
 
 class SessionView(DTO):
@@ -62,6 +73,9 @@ class SessionView(DTO):
     data_version: int = 1
     birth_year: int | None = None
     eligibility_version: int = 0
+    # Present only for operator-granted staff; drives the hidden /admin/reports route.
+    staff: Literal["moderator", "admin"] | None = None
+    notices: list[NoticeView] = Field(default_factory=list)
 
 
 class EligibilityInput(VersionInput):

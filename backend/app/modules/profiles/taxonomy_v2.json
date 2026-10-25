@@ -1,0 +1,133 @@
+{
+  "version": "v2",
+  "interests": {
+    "reading": "Đọc sách",
+    "english": "Học tiếng Anh",
+    "languages": "Ngoại ngữ khác",
+    "science": "Khoa học",
+    "history": "Lịch sử",
+    "tech": "Công nghệ",
+    "photography": "Chụp ảnh",
+    "drawing": "Vẽ",
+    "music": "Âm nhạc",
+    "writing": "Viết lách",
+    "crafts": "Đồ thủ công",
+    "singing": "Ca hát",
+    "walking": "Đi bộ",
+    "running": "Chạy bộ",
+    "cycling": "Đạp xe",
+    "yoga": "Yoga",
+    "football": "Bóng đá",
+    "badminton": "Cầu lông",
+    "puzzles": "Giải đố",
+    "chess": "Cờ vua",
+    "boardgames": "Board game",
+    "meditation": "Thiền",
+    "movies": "Phim ảnh",
+    "anime": "Anime và truyện tranh",
+    "podcasts": "Podcast",
+    "games": "Trò chơi điện tử",
+    "cooking": "Nấu ăn",
+    "coffee": "Cà phê",
+    "travel": "Du lịch",
+    "plants": "Trồng cây"
+  },
+  "categories": {
+    "learning": ["reading", "english", "languages", "science", "history", "tech"],
+    "creative": ["photography", "drawing", "music", "writing", "crafts", "singing"],
+    "active": ["walking", "running", "cycling", "yoga", "football", "badminton"],
+    "mind": ["puzzles", "chess", "boardgames", "meditation"],
+    "media": ["movies", "anime", "podcasts", "games"],
+    "lifestyle": ["cooking", "coffee", "travel", "plants"]
+  },
+  "categoryLabels": {
+    "learning": "Học hỏi",
+    "creative": "Sáng tạo",
+    "active": "Vận động",
+    "mind": "Tư duy",
+    "media": "Giải trí",
+    "lifestyle": "Đời sống"
+  },
+  "values": {
+    "respect": "Tôn trọng",
+    "sincerity": "Chân thành",
+    "curiosity": "Ham học hỏi",
+    "kindness": "Tử tế",
+    "humor": "Hài hước",
+    "growth": "Phát triển bản thân",
+    "calm": "Điềm tĩnh",
+    "reliability": "Đáng tin cậy"
+  },
+  "styles": {
+    "balanced": "Cân bằng",
+    "listening": "Thích lắng nghe",
+    "direct": "Thích nói thẳng"
+  },
+  "goals": {
+    "friendship": "Tìm bạn trò chuyện",
+    "shared-interests": "Tìm bạn cùng sở thích",
+    "study-buddy": "Tìm bạn cùng học",
+    "language-practice": "Tìm bạn luyện ngoại ngữ"
+  },
+  "languages": {
+    "vi": "Tiếng Việt",
+    "en": "Tiếng Anh"
+  },
+  "activities": {
+    "icebreaker": "Câu hỏi làm quen",
+    "coop_quiz": "Đố vui đồng đội",
+    "focus": "Cùng tập trung",
+    "chat_only": "Chỉ trò chuyện"
+  },
+  "activityReasons": {
+    "icebreaker": "Cả hai muốn thử câu hỏi làm quen cùng nhau",
+    "coop_quiz": "Cả hai muốn thử đố vui đồng đội cùng nhau",
+    "focus": "Cả hai muốn thử tập trung cùng nhau",
+    "chat_only": "Cả hai thích bắt đầu bằng trò chuyện"
+  },
+  "availability": {
+    "weekday_morning": "Sáng ngày thường",
+    "weekday_afternoon": "Chiều ngày thường",
+    "weekday_evening": "Tối ngày thường",
+    "weekend_morning": "Sáng cuối tuần",
+    "weekend_afternoon": "Chiều cuối tuần",
+    "weekend_evening": "Tối cuối tuần"
+  },
+  "limits": {
+    "interests": [3, 10],
+    "values": [2, 4],
+    "languages": [1, 2],
+    "activities": [0, 4],
+    "availability": [0, 6]
+  },
+  "interestSimilarity": {
+    "sameCategory": 0.5,
+    "overrides": [
+      ["english", "languages", 0.8],
+      ["running", "walking", 0.7],
+      ["boardgames", "chess", 0.7],
+      ["drawing", "crafts", 0.6],
+      ["podcasts", "reading", 0.4],
+      ["music", "singing", 0.8],
+      ["science", "tech", 0.7],
+      ["chess", "puzzles", 0.6],
+      ["boardgames", "puzzles", 0.6],
+      ["boardgames", "games", 0.5],
+      ["reading", "writing", 0.5],
+      ["meditation", "yoga", 0.6],
+      ["anime", "drawing", 0.3]
+    ]
+  },
+  "goalCompatibility": {
+    "default": 0.4,
+    "pairs": [
+      ["friendship", "shared-interests", 0.7],
+      ["shared-interests", "study-buddy", 0.7],
+      ["language-practice", "study-buddy", 0.7]
+    ]
+  },
+  "styleCompatibility": {
+    "withBalanced": 0.75,
+    "pairs": [["direct", "listening", 0.5]]
+  }
+}

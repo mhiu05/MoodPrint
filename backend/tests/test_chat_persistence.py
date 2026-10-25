@@ -51,6 +51,53 @@ async def test_history_is_explicit_optin_and_cannot_be_implicitly_activated(clie
     assert denied.status_code == 403
 
 
+@pytest.mark.parametrize("bot_id", ["may", "guong", "nhip", "rure", "caunoi"])
+async def test_every_assistant_rebuilds_context_from_postgres_after_runtime_restart(clients, bot_id):
+    from app.ai.prompts import instructions
+    from app.ai.runtime import AiRuntime
+    from tests.test_memory import enable as enable_memory
+    from tests.test_memory import seed_proposal
+
+    app, actors = clients
+    client, uid = actors[0]
+    await enable(client)
+    await enable_memory(client, "MEM")
+    if bot_id in ("may", "guong", "nhip"):
+        proposal = await seed_proposal(app, uid, bot_id=bot_id, text="Approved synthetic watercolor memory")
+        approved = await client.post(f"/api/v1/proposals/{proposal.id}/confirm",
+                                     json={"expectedVersion": 1}, headers=key())
+        assert approved.status_code == 200
+    app.state.ai.model_override = make_test_model("First synthetic reply")
+    c = (await client.post("/api/v1/ai/conversations", json={"botId": bot_id}, headers=key())).json()
+    url = f"/api/v1/ai/conversations/{c['conversationId']}"
+    first = await client.post(url + "/messages", json={"text": "First synthetic watercolor input",
+        "clientMessageId": str(uuid4()), "expectedConversationVersion": 1}, headers=key())
+    assert first.status_code == 202
+    await app.state.ai.runs[__import__("uuid").UUID(first.json()["runId"])].task
+    await app.state.ai.close()
+    app.state.ai = AiRuntime(app.state.settings, app.state.database)
+    model = make_test_model("Second synthetic reply")
+    app.state.ai.model_override = model
+    restored = (await client.get(url)).json()
+    second = await client.post(url + "/messages", json={"text": "Continue with my approved watercolor memory",
+        "clientMessageId": str(uuid4()), "expectedConversationVersion": restored["version"]}, headers=key())
+    assert second.status_code == 202
+    await app.state.ai.runs[__import__("uuid").UUID(second.json()["runId"])].task
+    assert model.calls[0]["instructions"] == instructions(bot_id)
+    history = json.dumps(model.calls[0]["input"])
+    assert "First synthetic watercolor input" in history
+    assert "First synthetic reply" in history
+    assert "Continue with my approved watercolor memory" in history
+    if bot_id in ("may", "guong", "nhip"):
+        assert "Approved synthetic watercolor memory" in history
+    else:
+        assert "Approved synthetic watercolor memory" not in history
+    tools = {tool.name for tool in model.calls[0]["tools"]}
+    assert tools == ({"propose_memory", "propose_private_item"} if bot_id == "guong" else
+                     {"propose_memory"} if bot_id in ("may", "nhip") else set())
+    assert (await actors[1][0].get(url)).status_code == 404
+
+
 async def test_durable_history_survives_runtime_replacement_and_retry_is_unique(clients):
     from app.ai.runtime import AiRuntime
 

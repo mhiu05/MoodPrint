@@ -5,7 +5,12 @@ React/Vite/TypeScript frontend và Python 3.12.13/FastAPI backend dạng Modular
 
 Trạng thái từng task và giới hạn kiểm chứng: [implementation-status](docs/plans/implementation-status.md). Hướng dẫn vận hành: [deploy/README.md](deploy/README.md).
 
+Kế hoạch sản phẩm hóa (matching v2, hoạt động chung, kiểm duyệt) và tiến độ triển khai: [docs/productization/README.md](docs/productization/README.md), [implementation-progress](docs/productization/evidence/implementation-progress.md).
+
 ## Chạy local
+
+Hướng dẫn cấu hình MVP local, phân biệt consent/lịch sử/provider và kiểm chứng
+bằng PostgreSQL riêng: [local MVP](docs/development/local-mvp.md).
 
 Frontend:
 

@@ -19,6 +19,15 @@ function stream(final: unknown, sequence = "1") {
 
 afterEach(() => vi.unstubAllGlobals());
 describe("validated AI stream", () => {
+  it.each(["AI_PROVIDER_CONFIGURATION", "AI_PROVIDER_RATE_LIMIT", "AI_PROVIDER_UNAVAILABLE", "AI_TIMEOUT", "AI_STORAGE_UNAVAILABLE"])("reports safe classified failure %s", async (code) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(
+      `data: ${JSON.stringify({ version: "ai-events-v1", seq: "1", type: "failed", data: { code, message: "PRIVATE-PROVIDER-DETAIL" } })}\n\n`,
+      { headers: { "Content-Type": "text/event-stream" } },
+    )));
+    const failure = await consumeAIEvents("/api/v1/ai/runs/123/events", new AbortController().signal).catch(error => error);
+    expect(failure.code).toBe("RUN_FAILED");
+    expect(failure.message).not.toContain("PRIVATE-PROVIDER-DETAIL");
+  });
   it("accepts only typed navigation cards after completion", async () => {
     await expect(
       stream({

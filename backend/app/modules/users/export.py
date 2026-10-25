@@ -16,11 +16,13 @@ from app.modules.moderation.models import IdentityField, Report, RevealAccess
 from app.modules.social.models import (
     Block,
     Connection,
+    ConnectionRead,
     ConnectionRequest,
     HumanMessage,
     MatchingDraft,
     PublishedProfile,
 )
+from app.modules.social.service import pair_alias
 
 ROW_LIMIT = 1000
 
@@ -102,7 +104,8 @@ async def social_section(db: AsyncSession, user: User) -> dict:
     )
     blocks = await _rows(db, select(Block).where(Block.blocker_id == user.id))
     shared = await _rows(db, select(RevealAccess).where(RevealAccess.owner_id == user.id))
-    alias = {room.id: f"Bạn đồng hành {str(room.pair_id)[:6]}" for room in rooms}
+    alias = {room.id: pair_alias(room.low_user_id, room.high_user_id)[0] for room in rooms}
+    reads = await _rows(db, select(ConnectionRead).where(ConnectionRead.user_id == user.id))
     return {
         "matchingDraft": {"profile": draft.payload, "version": draft.version} if draft else None,
         "publishedProfiles": [
@@ -157,4 +160,70 @@ async def social_section(db: AsyncSession, user: User) -> dict:
             for row in reports
         ],
         "blocksMade": [{"createdAt": row.created_at.isoformat()} for row in blocks],
+        "activities": await activity_section(db, user),
+        "readMarkers": [
+            {
+                "connection": alias.get(row.connection_id),
+                "lastReadSeq": str(row.last_read_seq),
+                "updatedAt": row.updated_at.isoformat(),
+            }
+            for row in reads
+        ],
+    }
+
+
+async def activity_section(db: AsyncSession, user: User) -> dict:
+    """Own sessions, own answers and own feedback; peer answers are never exported."""
+    from app.modules.activities.models import (
+        ActivityParticipant,
+        ActivityResponse,
+        ActivitySession,
+    )
+
+    participants = await _rows(
+        db, select(ActivityParticipant).where(ActivityParticipant.user_id == user.id)
+    )
+    sessions = {
+        row.id: row
+        for row in (
+            await db.scalars(
+                select(ActivitySession).where(
+                    ActivitySession.id.in_([p.session_id for p in participants])
+                )
+            )
+        ).all()
+    }
+    mine = sorted(
+        ((sessions[p.session_id], p) for p in participants), key=lambda pair: pair[0].created_at
+    )
+    answers = await _rows(
+        db,
+        select(ActivityResponse)
+        .where(ActivityResponse.user_id == user.id)
+        .order_by(ActivityResponse.submitted_at),
+    )
+    return {
+        "sessions": [
+            {
+                "id": str(session.id),
+                "kind": session.kind,
+                "role": participant.role,
+                "state": session.state,
+                "createdAt": session.created_at.isoformat(),
+                "endedAt": session.ended_at.isoformat() if session.ended_at else None,
+                "feedback": participant.feedback,
+            }
+            for session, participant in mine
+        ],
+        "responses": [
+            {
+                "session": str(row.session_id),
+                "round": row.round,
+                "choice": row.choice,
+                "text": row.text,
+                "skipped": row.skipped,
+                "submittedAt": row.submitted_at.isoformat(),
+            }
+            for row in answers
+        ],
     }

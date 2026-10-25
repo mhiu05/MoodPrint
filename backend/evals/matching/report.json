@@ -1,0 +1,45 @@
+{
+  "dataset": {
+    "personas": 60,
+    "labelled_pairs": 300,
+    "labels_provisional": true,
+    "krippendorff_alpha": 0.286
+  },
+  "v1": {
+    "ndcg_at5": 0.0613,
+    "precision_at5": 0.0,
+    "coverage": 0.2167,
+    "mean_candidates": 1.03,
+    "exposure_gini": 0.8138,
+    "faithfulness": 1.0,
+    "viewers_evaluated": 60,
+    "p95_ms_per_viewer": 0.88,
+    "p95_ms_per_viewer_600": 6.192,
+    "symmetry_violations": 0
+  },
+  "v2": {
+    "ndcg_at5": 0.8728,
+    "precision_at5": 0.1783,
+    "coverage": 1.0,
+    "mean_candidates": 51.73,
+    "exposure_gini": 0.2248,
+    "faithfulness": 1.0,
+    "viewers_evaluated": 60,
+    "p95_ms_per_viewer": 13.82,
+    "p95_ms_per_viewer_600": 37.927,
+    "symmetry_violations": 0
+  },
+  "gate": {
+    "passed": true,
+    "criteria": {
+      "ndcg_gain_ge_0_05": true,
+      "coverage_not_lower": true,
+      "gini_not_higher": true,
+      "faithfulness_100": true,
+      "symmetry_0": true,
+      "p95_600_lt_50ms": true
+    },
+    "labels_provisional": true,
+    "decision": "Metric gate met on provisional proxy labels: keep MATCHING_SCORER=v1 by default; run shadow on staging and confirm with human-rated labels before switching to v2."
+  }
+}

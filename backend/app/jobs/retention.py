@@ -4,7 +4,15 @@ from datetime import timedelta
 
 from sqlalchemy import Date, cast, delete, func, select
 
-from app.infrastructure.database.models import AiRun, AiUsage, Idempotency, Mood, User, now
+from app.infrastructure.database.models import (
+    AiRun,
+    AiUsage,
+    Idempotency,
+    Mood,
+    Outbox,
+    User,
+    now,
+)
 from app.modules.social.models import CandidateReference, HumanMessage
 
 
@@ -20,9 +28,17 @@ async def purge_expired(app):
         # Retention continues after the accounting kill switch is turned off;
         # old hosted schemas can still run before the expand migration is approved.
         if await db.scalar(select(func.to_regclass("moodprint.ai_usage"))):
-            ids = (await db.scalars(select(AiUsage.run_id).where(
-                AiUsage.created_at <= now() - timedelta(days=90), AiUsage.state != "open",
-            ).limit(1000).with_for_update(skip_locked=True))).all()
+            ids = (
+                await db.scalars(
+                    select(AiUsage.run_id)
+                    .where(
+                        AiUsage.created_at <= now() - timedelta(days=90),
+                        AiUsage.state != "open",
+                    )
+                    .limit(1000)
+                    .with_for_update(skip_locked=True)
+                )
+            ).all()
             if ids:
                 await db.execute(delete(AiUsage).where(AiUsage.run_id.in_(ids)))
         # Content-free run metadata; saved threads expire within 90 days, so older runs
@@ -91,3 +107,99 @@ async def purge_expired(app):
         ).all()
         if keys:
             await db.execute(delete(Idempotency).where(Idempotency.id.in_(keys)))
+        # Activity answers live 90 days like messages; finished sessions 90 days after ending.
+        from app.modules.activities.models import ActivityResponse, ActivitySession
+
+        answers = (
+            await db.execute(
+                select(
+                    ActivityResponse.session_id, ActivityResponse.user_id, ActivityResponse.round
+                )
+                .where(ActivityResponse.submitted_at <= now() - timedelta(days=90))
+                .limit(1000)
+            )
+        ).all()
+        for session_id, user_id, round_number in answers:
+            await db.execute(
+                delete(ActivityResponse).where(
+                    ActivityResponse.session_id == session_id,
+                    ActivityResponse.user_id == user_id,
+                    ActivityResponse.round == round_number,
+                )
+            )
+        finished = (
+            await db.scalars(
+                select(ActivitySession.id)
+                .where(
+                    ActivitySession.state.in_(
+                        ("completed", "ended", "declined", "cancelled", "expired", "aborted")
+                    ),
+                    ActivitySession.ended_at <= now() - timedelta(days=90),
+                )
+                .limit(1000)
+                .with_for_update(skip_locked=True)
+            )
+        ).all()
+        if finished:
+            await db.execute(delete(ActivitySession).where(ActivitySession.id.in_(finished)))
+        # Reports and moderation decisions are kept one year (safety record), then purged.
+        from app.modules.moderation.models import ModerationAction, Report
+
+        year = now() - timedelta(days=365)
+        old_actions = (
+            await db.scalars(
+                select(ModerationAction.id).where(ModerationAction.created_at <= year).limit(1000)
+            )
+        ).all()
+        if old_actions:
+            await db.execute(delete(ModerationAction).where(ModerationAction.id.in_(old_actions)))
+        old_reports = (
+            await db.scalars(
+                select(Report.id)
+                .where(
+                    Report.created_at <= year,
+                    ~select(ModerationAction.id)
+                    .where(ModerationAction.report_id == Report.id)
+                    .exists(),
+                )
+                .limit(1000)
+            )
+        ).all()
+        if old_reports:
+            await db.execute(delete(Report).where(Report.id.in_(old_reports)))
+        # Read markers outlive their room by 90 days; open rooms keep them however old.
+        from app.modules.social.models import Connection, ConnectionRead, MatchingStatsDaily
+
+        stale_reads = (
+            await db.execute(
+                select(ConnectionRead.connection_id, ConnectionRead.user_id)
+                .join(Connection, Connection.id == ConnectionRead.connection_id)
+                .where(
+                    Connection.status != "open",
+                    ConnectionRead.updated_at <= now() - timedelta(days=90),
+                )
+                .limit(1000)
+            )
+        ).all()
+        for connection_id, user_id in stale_reads:
+            await db.execute(
+                delete(ConnectionRead).where(
+                    ConnectionRead.connection_id == connection_id,
+                    ConnectionRead.user_id == user_id,
+                )
+            )
+        # Identifier-free matching counters are kept one year (C-08).
+        await db.execute(
+            delete(MatchingStatsDaily).where(MatchingStatsDaily.day < cast(year, Date))
+        )
+        # Retired outbox (no consumer): drain the backlog oldest first until the table is dropped.
+        outbox = (
+            await db.scalars(
+                select(Outbox.id)
+                .order_by(Outbox.created_at, Outbox.id)
+                .limit(1000)
+                .with_for_update(skip_locked=True)
+            )
+        ).all()
+        if outbox:
+            await db.execute(delete(Outbox).where(Outbox.id.in_(outbox)))

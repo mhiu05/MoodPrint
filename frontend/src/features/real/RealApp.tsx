@@ -64,7 +64,14 @@ import type {
   VersionInput,
 } from "../../api/contracts";
 import "./real.css";
-import { Discovery, HumanChat, HumanMessages } from "./Social";
+import { ConnectBridge, Discovery } from "./social/Discovery";
+import { OfflineBanner } from "./OfflineBanner";
+import { AssistantGuide } from "./AssistantGuide";
+import { aiServiceMessage } from "./aiStatus";
+import { HumanChat } from "./social/HumanChat";
+import { HumanMessages } from "./social/HumanMessages";
+import { badgeText, useSocialSummary } from "./social/useSocialSummary";
+import { Moderation } from "./admin/Moderation";
 import { ApprovedMemories } from "./Memory";
 import { Moods } from "./Mood";
 import { VoiceRecorder } from "./Voice";
@@ -165,6 +172,12 @@ export function useResource<T>(path: string, enabled = true) {
       });
     return () => controller.abort();
   }, [api, path, revision, enabled]);
+  // A failed read retries by itself when the browser comes back online.
+  useEffect(() => {
+    if (!error || !enabled) return;
+    window.addEventListener("online", refresh);
+    return () => window.removeEventListener("online", refresh);
+  }, [error, enabled, refresh]);
   return { data, setData, error, loading, refresh };
 }
 
@@ -258,23 +271,94 @@ function SessionRoot() {
   );
 }
 
+/** Moderation notices from the session (warning until dismissed; restriction until it ends). */
+function SessionNotices() {
+  const { session } = useSession();
+  const [dismissed, setDismissed] = useState(false);
+  const notices = (session.notices ?? []).filter(
+    (notice) => notice.kind === "restricted" || !dismissed,
+  );
+  if (!notices.length) return null;
+  return (
+    <div className={cx.note} role="status">
+      {notices.map((notice) =>
+        notice.kind === "restricted" ? (
+          <p key="restricted">
+            Tính năng kết nối của bạn đang tạm bị hạn chế
+            {notice.until
+              ? ` đến ${new Date(notice.until).toLocaleDateString("vi-VN")}`
+              : ""}
+            . Bạn vẫn dùng được các trợ lý và nhật ký cảm xúc.
+          </p>
+        ) : (
+          <p key="warning">
+            Tài khoản của bạn đã nhận một cảnh báo về quy tắc cộng đồng. Hãy trò
+            chuyện tôn trọng để giữ cộng đồng an toàn.{" "}
+            <Button variant="text" onClick={() => setDismissed(true)}>
+              Đã hiểu
+            </Button>
+          </p>
+        ),
+      )}
+    </div>
+  );
+}
+
+/** Shown only when few AI turns remain today (Asia/Bangkok day). */
+function QuotaHint() {
+  const { session } = useSession();
+  const remaining = session.features.aiQuotaRemaining;
+  if (remaining == null || remaining > 10) return null;
+  return (
+    <p className={cx.footnote} role="status">
+      {remaining === 0
+        ? "Hôm nay bạn đã dùng hết lượt trò chuyện với trợ lý. Hẹn bạn ngày mai nhé."
+        : `Hôm nay bạn còn ${remaining} lượt trò chuyện với trợ lý.`}
+    </p>
+  );
+}
+
 function Navigation() {
+  const location = useLocation();
+  const summary = useSocialSummary(location.pathname);
+  const unread = summary.unreadConnections + summary.activityInvites;
   return (
     <nav className={cx.navigation} aria-label="Điều hướng chính">
       {[
-        { to: "/assistants", label: "Trợ lý", Icon: Sparkles },
-        { to: "/connect", label: "Tìm bạn", Icon: Users },
-        { to: "/messages", label: "Tin nhắn", Icon: MessageCircle },
-        { to: "/profile", label: "Tôi", Icon: UserRound },
-      ].map(({ to, label, Icon }) => (
+        { to: "/assistants", label: "Trợ lý", Icon: Sparkles, count: 0, what: "" },
+        {
+          // Pending invitations open their tab directly (08 section 2).
+          to: summary.pendingIncomingRequests ? "/connect?tab=requests" : "/connect",
+          label: "Tìm bạn",
+          Icon: Users,
+          count: summary.pendingIncomingRequests,
+          what: "lời mời kết nối mới",
+        },
+        {
+          to: "/messages",
+          label: "Tin nhắn",
+          Icon: MessageCircle,
+          count: unread,
+          what: "cuộc trò chuyện chưa đọc",
+        },
+        { to: "/profile", label: "Tôi", Icon: UserRound, count: 0, what: "" },
+      ].map(({ to, label, Icon, count, what }) => (
         <NavLink
-          key={to}
+          key={label}
           className={({ isActive }) =>
             `${cx.navItem} ${isActive ? cx.navActive : ""}`
           }
           to={to}
+          aria-label={count ? `${label}, ${count} ${what}` : undefined}
         >
-          <Icon size={21} strokeWidth={1.6} />
+          <span className={cx.navIcon}>
+            <Icon size={21} strokeWidth={1.6} />
+            {count > 0 && (
+              <span className={cx.navBadge} aria-hidden="true">
+                {badgeText(count)}
+              </span>
+            )}
+          </span>
           <span>{label}</span>
         </NavLink>
       ))}
@@ -326,7 +410,7 @@ function Shell() {
         <aside className="me-rail">
           <Link
             className="rail-brand"
-            aria-label="Me2We — Trợ lý"
+            aria-label="MoodPrint — Trợ lý"
             to="/assistants"
           >
             <BrandMark />
@@ -356,7 +440,7 @@ function Shell() {
         >
           {!assistants ? (
             <header className="page-app-header">
-              <Link to="/assistants" aria-label="Me2We — Trợ lý">
+              <Link to="/assistants" aria-label="MoodPrint — Trợ lý">
                 <Brand />
               </Link>
               <Link
@@ -368,8 +452,13 @@ function Shell() {
               </Link>
             </header>
           ) : null}
+          <OfflineBanner />
+          <SessionNotices />
           <Motion motionKey={location.pathname}>
             <Routes>
+              {session.staff && (
+                <Route path="/admin/reports" element={<Moderation />} />
+              )}
               <Route path="/assistants" element={<Assistants />} />
               <Route path="/assistants/:botId" element={<Assistants />} />
               <Route path="/settings" element={<Settings />} />
@@ -443,7 +532,7 @@ function Assistants() {
     <div className={`companion-layout ${botId ? "has-conversation" : ""}`}>
       <section className="bot-roster" aria-label="Danh sách trợ lý">
         <div className="roster-brand">
-          <Link to="/assistants" aria-label="Me2We — Trợ lý">
+          <Link to="/assistants" aria-label="MoodPrint — Trợ lý">
             <Brand />
           </Link>
           <Link
@@ -504,15 +593,7 @@ function Assistants() {
           </p>
         ) : null}
         <ConversationHistory />
-        <Link className="human-bridge" to="/connect">
-          <span className="bridge-icon">
-            <Users size={21} />
-          </span>
-          <span>
-            <strong>Từ hiểu mình, đến hiểu mọi người xung quanh</strong>
-          </span>
-          <ArrowUpRight size={18} />
-        </Link>
+        <ConnectBridge />
       </section>
       <section
         className="conversation-pane"
@@ -619,7 +700,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const [pendingProposals, setPendingProposals] = useState(0), [proposalRevision, setProposalRevision] = useState(0);
   const allowed = session.consents.AI.enabled && session.features.ai;
   const historyWritable = !conversation?.persistent || !!(preferences?.historyEnabled && preferences.historyAvailable);
-  const canSend = allowed && historyWritable;
+  const canSend = allowed && historyWritable && !!preferences && !preferencesError;
   const [draft, setDraft] = useState(""),
     [error, setError] = useState<unknown>();
   const [loading, setLoading] = useState(true),
@@ -714,6 +795,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   useEffect(() => {
     // A newly created thread receives a URL without interrupting its active stream.
     if (selectedId && selectedId === current.current?.conversationId && loadedRevision.current === revision) return;
+    // A fresh login must wait for the saved-history preference before selecting
+    // the latest thread. Otherwise the first render silently skips saved threads.
+    if (!selectedId && preferencesLoading) return;
     loadedRevision.current = revision;
     lifetime.current?.abort();
     const controller = new AbortController();
@@ -743,7 +827,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     // Lifetime is aborted above on a real selection and on unmount. URL updates
     // for the current thread must leave its in-flight request running.
-  }, [api, bot.botId, selectedId, searchParams.get("new"), revision, stream, update]);
+  }, [api, bot.botId, selectedId, searchParams.get("new"), revision, stream, update, preferencesLoading, preferences?.historyEnabled]);
   useEffect(() => {
     if (!session.consents.AI.enabled) {
       setPendingProposals(0);
@@ -917,11 +1001,32 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     } catch (reason) { setError(reason); }
     finally { setManageBusy(false); }
   }
+  let conversationLabel = "Hội thoại tạm thời · không lưu vào lịch sử";
+  if (conversation?.persistent) conversationLabel = "Hội thoại đã lưu";
+  else if (!conversation && preferences?.historyEnabled && preferences.historyAvailable)
+    conversationLabel = "Hội thoại mới sẽ được lưu";
+
+  let historyAction = "Bật lưu lịch sử trong cài đặt";
+  if (preferencesLoading) historyAction = "Đang kiểm tra lịch sử…";
+  else if (!preferences) historyAction = "Kiểm tra quyền lưu lịch sử";
+  else if (!preferences.historyAvailable) historyAction = "Lưu lịch sử chưa sẵn sàng";
+  else if (preferences.historyEnabled) historyAction = `Lưu tối đa ${preferences.retentionDays} ngày`;
+
+  let readOnlyMessage = "Đang kiểm tra lựa chọn dữ liệu AI…";
+  if (!session.consents.AI.enabled)
+    readOnlyMessage = "Bạn chưa bật quyền trò chuyện AI. Bật quyền này khi bạn sẵn sàng chia sẻ với trợ lý; lưu lịch sử là lựa chọn riêng.";
+  else if (!session.features.ai) readOnlyMessage = aiServiceMessage(session.features);
+  else if (!preferences && !preferencesLoading)
+    readOnlyMessage = "Chưa tải được lựa chọn dữ liệu AI. Hãy thử tải lại trước khi nhắn.";
+  else if (preferences && !historyWritable)
+    readOnlyMessage = preferences.historyAvailable
+      ? "Bạn đang tắt lưu lịch sử. Bật lại trong cài đặt để tiếp tục hội thoại đã lưu, hoặc mở hội thoại tạm thời mới."
+      : "Lưu lịch sử hiện chưa sẵn sàng. Hội thoại đã lưu chỉ để xem; bạn có thể mở hội thoại tạm thời mới.";
   return (
     <>
       <div className="chat-history-toolbar">
-        <div><span>{conversation?.persistent ? "Hội thoại đã lưu" : "Hội thoại tạm thời"}</span>
-        <Link to="/settings">{preferences?.historyEnabled ? `Lưu tối đa ${preferences.retentionDays} ngày` : "Lưu lịch sử đang tắt"}</Link></div>
+        <div><span>{conversationLabel}</span>
+        <Link to="/settings">{historyAction}</Link></div>
         <div className={cx.actions}>
           <Button variant="text" onClick={newConversation}>Cuộc trò chuyện mới</Button>
           {conversation?.persistent ? <><Button variant="text" disabled={manageBusy} onClick={() => { setRenameText(conversation.title || ""); setRenameError(undefined); setRenameOpen(true); }}>Đổi tên</Button><Button variant="text" disabled={manageBusy} onClick={() => void manage(false)}>Xuất hội thoại</Button><Button variant="text" disabled={manageBusy} onClick={() => setDeleteOpen(true)}>Xóa hội thoại</Button></> : null}
@@ -933,6 +1038,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         className="conversation-log"
         ref={log}
         role="log"
+        tabIndex={0}
         aria-label={`Hội thoại với ${bot.name}`}
         aria-live="polite"
         onScroll={() => {
@@ -947,8 +1053,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           <PublicAvatar bot={bot} size={80} />
           <h3>Một chút thời gian với {bot.name}</h3>
           <p>{bot.description}</p>
+          {!conversation?.messages.length && <AssistantGuide botId={bot.botId} />}
           <small>
-            <LockKeyhole size={11} /> Chỉ bạn xem
+            <LockKeyhole size={11} /> Không chia sẻ với bạn kết nối
           </small>
         </div>
         {notice ? <p role="status">{notice}</p> : null}
@@ -1009,7 +1116,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           retry={() => setRevision((value) => value + 1)}
         />
       </div>
-      {!canSend ? <div className="chat-readonly" role="status"><p>{!allowed ? "Trò chuyện AI đang tắt hoặc chưa khả dụng. Bạn vẫn xem, xuất và xóa lịch sử đã lưu được." : "Lưu lịch sử đang tắt. Hội thoại đã lưu chỉ để xem; bắt đầu cuộc trò chuyện mới để nhắn tạm thời."}</p><Link to="/settings">Xem quyền dữ liệu AI</Link></div> : <div className="chat-bottom">
+      {session.features.aiStatus === "test_provider" ? <p className={cx.footnote} role="note">Môi trường kiểm thử · phản hồi từ model giả, không phải OpenAI.</p> : null}
+      {!canSend ? <div className="chat-readonly" role="status"><p>{readOnlyMessage}</p><Link to="/settings">{!session.consents.AI.enabled ? "Bật quyền trò chuyện AI" : "Xem quyền dữ liệu AI"}</Link></div> : <div className="chat-bottom">
         {bot.botId === "nhip" ? (
           <details className="mood-share-options">
             <summary>Chia sẻ thống kê tâm trạng cho lượt này</summary>
@@ -1046,6 +1154,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             </button>
           ))}
         </div>
+        <QuotaHint />
         <form
           className="bot-composer"
           onSubmit={(event) => {
@@ -1104,7 +1213,7 @@ const consentWithdrawal: Record<ConsentPurpose, string> = {
   AI: "Khi tắt: dừng ngay các lượt AI đang chạy, hủy đề xuất ghi nhớ chưa duyệt và xóa chỉ mục tìm kiếm ghi nhớ. Vẫn giữ: lịch sử trò chuyện đã lưu (chỉ đọc) và các ghi nhớ bạn đã duyệt — bạn có thể xuất hoặc xóa chúng bên dưới.",
   MEM: "Khi tắt: trợ lý ngừng nhắc lại ghi nhớ, hủy đề xuất chưa duyệt và xóa chỉ mục tìm kiếm. Vẫn giữ: các ghi nhớ đã duyệt để bạn xem, sửa hoặc xóa.",
   MATCH:
-    "Khi tắt: đóng mọi cuộc trò chuyện với người thật, hủy lời mời đang chờ, và hồ sơ kết nối bị ẩn. Bật lại không tự chia sẻ lại hồ sơ — bạn cần xem lại và xuất bản lại. Những người đang trò chuyện hoặc có lời mời chờ với bạn sẽ không được gợi ý lại cho nhau trong 30 ngày.",
+    "Khi tắt: đóng mọi cuộc trò chuyện với người thật, hủy lời mời đang chờ, và hồ sơ kết nối bị ẩn. Bật lại không tự chia sẻ lại hồ sơ — bạn cần xem lại và xuất bản lại. Những người đang trò chuyện hoặc có lời mời chờ với bạn sẽ không được gợi ý lại cho nhau trong 30 ngày. Mọi hoạt động chung đang diễn ra cũng dừng lại.",
   VOICE: "Khi tắt: không thể ghi âm nữa. Âm thanh không bao giờ được lưu lại.",
 };
 function Settings() {

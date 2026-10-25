@@ -6,8 +6,7 @@ import {
   type ReactNode,
   type ButtonHTMLAttributes,
 } from "react";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { X, ArrowRight, ShieldCheck } from "lucide-react";
+import { X, ShieldCheck } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import styles from "../styles/App.module.css";
@@ -26,45 +25,6 @@ export function Button({
       type="button"
       {...props}
     />
-  );
-}
-export function Go({
-  to,
-  children,
-  secondary = false,
-}: {
-  to: string;
-  children: ReactNode;
-  secondary?: boolean;
-}) {
-  return (
-    <Link
-      className={`${styles.button} ${secondary ? styles.secondary : styles.primary}`}
-      to={to}
-    >
-      {children}
-      <ArrowRight size={17} aria-hidden="true" />
-    </Link>
-  );
-}
-export function Badge({ children }: { children: ReactNode }) {
-  return <span className={styles.badge}>{children}</span>;
-}
-export function Intro({
-  eyebrow,
-  title,
-  children,
-}: {
-  eyebrow?: string;
-  title: string;
-  children?: ReactNode;
-}) {
-  return (
-    <header className={styles.intro}>
-      {eyebrow && <p className={styles.eyebrow}>{eyebrow}</p>}
-      <h1 tabIndex={-1}>{title}</h1>
-      {children && <p className={styles.lede}>{children}</p>}
-    </header>
   );
 }
 export function StatePanel({
@@ -170,46 +130,6 @@ export function Dialog({
     </dialog>
   );
 }
-export function Tabs({
-  tabs,
-  defaultTab,
-}: {
-  tabs: Record<string, string>;
-  defaultTab: string;
-}) {
-  const [params, setParams] = useSearchParams();
-  const value = params.get("tab") || defaultTab;
-  return (
-    <nav className={styles.tabs} aria-label="Các phần nội dung">
-      {Object.entries(tabs).map(([key, label]) => (
-        <button
-          type="button"
-          key={key}
-          aria-current={key === value ? "page" : undefined}
-          onClick={() => setParams({ tab: key })}
-        >
-          {label}
-        </button>
-      ))}
-    </nav>
-  );
-}
-export function useTab(
-  tabs: string[],
-  fallback: string,
-  extraKeys: string[] = [],
-) {
-  const [p, set] = useSearchParams();
-  const v = p.get("tab") || fallback;
-  useEffect(() => {
-    if (
-      !tabs.includes(v) ||
-      Array.from(p.keys()).some((k) => k !== "tab" && !extraKeys.includes(k))
-    )
-      set({ tab: tabs.includes(v) ? v : fallback }, { replace: true });
-  }, [v, p, set, tabs.join(","), extraKeys.join(",")]);
-  return tabs.includes(v) ? v : fallback;
-}
 export function Motion({
   children,
   motionKey,
@@ -291,115 +211,7 @@ export function Brand() {
   return (
     <span className={styles.brand}>
       <BrandMark />
-      Me2We<span className={styles.brandDot}>.</span>
+      MoodPrint<span className={styles.brandDot}>.</span>
     </span>
-  );
-}
-export function Avatar({
-  name,
-  color = "sage",
-}: {
-  name: string;
-  color?: string;
-}) {
-  return (
-    <span className={`${styles.avatar} ${styles[color]}`} aria-hidden="true">
-      <svg viewBox="0 0 100 110" width="100%" height="100%" fill="none">
-        <path
-          d="M9 115c1-32 16-43 41-43s40 11 41 43"
-          fill={
-            color === "blue"
-              ? "#607f9b"
-              : color === "peach"
-                ? "#b76543"
-                : "#487664"
-          }
-        />
-        <path d="M40 70v14q10 9 20 0V70" fill="#d99c72" />
-        <ellipse cx="50" cy="46" rx="27" ry="32" fill="#efbc92" />
-        <path
-          d={
-            name.startsWith("Mầm")
-              ? "M22 51c-10-10-10-25-2-29-2-12 10-20 20-17C50-4 62 1 66 8c15-2 24 13 18 24l-7 19-5-22c-8 5-13-4-17-1-9 7-15-5-21-1L22 51Z"
-              : name.startsWith("Đồi")
-                ? "M21 52C7 12 40 1 61 9c20 2 27 22 17 43l-4-25-47 1-6 24Z"
-                : color === "peach"
-                  ? "M23 61C5 9 37 4 50 8c32-8 44 38 26 59l-4-36c-18 7-28-3-34-10L23 61Z"
-                  : color === "blue"
-                    ? "M23 50C5 9 36 1 53 9c26-4 33 20 24 41l-8-26c-14 12-24 1-31 4L23 50Z"
-                    : "M22 51C5 10 39 1 55 9c25-4 34 23 23 44L67 29c-16 11-25 4-32-3L22 51Z"
-          }
-          fill="#303d33"
-        />
-        <path
-          d="M38 49h2m20 0h2"
-          stroke="#303d33"
-          strokeWidth="4"
-          strokeLinecap="round"
-        />
-        <path
-          d="M44 63q6 6 12 0"
-          stroke="#994c3d"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        {color === "blue" && (
-          <g stroke="#303d33" strokeWidth="1.5">
-            <circle cx="37" cy="49" r="9" />
-            <circle cx="63" cy="49" r="9" />
-            <path d="M46 49h8" />
-          </g>
-        )}
-        <path
-          d="M22 110V94m56 16V94"
-          stroke="#f8f4ed"
-          strokeOpacity=".4"
-          strokeWidth="2"
-        />
-      </svg>
-    </span>
-  );
-}
-export function Garden({ connection = false }: { connection?: boolean }) {
-  return (
-    <svg
-      className={styles.garden}
-      viewBox="0 0 460 230"
-      fill="none"
-      aria-hidden="true"
-    >
-      <circle cx="356" cy="58" r="28" fill="#e8c5a8" />
-      <path
-        d="M28 206c85-55 156-35 219-14 71 25 137 7 191-22"
-        stroke="#c1ccbb"
-        strokeWidth="2"
-      />
-      <path
-        d="M139 201v-89m0 50c-52-4-63-40-61-62 37 0 62 24 61 62Zm0-20c42-5 53-35 50-59-34 3-51 26-50 59Z"
-        fill="#93ad91"
-        stroke="#285c4b"
-        strokeWidth="2"
-      />
-      <path
-        d="M278 200V91m0 58c-40-5-53-27-51-54 31 3 51 23 51 54Zm0-13c45-6 60-36 57-65-37 4-57 30-57 65Z"
-        fill="#d9b39a"
-        stroke="#795744"
-        strokeWidth="2"
-      />
-      <path
-        d="M109 203h63l-7 22h-49l-7-22Zm138 0h65l-8 22h-49l-8-22Z"
-        fill="#285c4b"
-      />
-      {connection && (
-        <path
-          d="M181 103c28-30 45-27 60-1"
-          stroke="#b74f39"
-          strokeWidth="2"
-          strokeDasharray="4 6"
-        />
-      )}
-      <path d="m44 60 4 8 8 4-8 4-4 8-4-8-8-4 8-4 4-8Z" fill="#b74f39" />
-      <circle cx="207" cy="50" r="4" fill="#285c4b" />
-    </svg>
   );
 }

@@ -7,7 +7,7 @@ from starlette.requests import Request
 
 from app.core.security import Actor
 from app.infrastructure.database.models import AuthSession
-from tests.test_social import key, open_room
+from tests.social_helpers import key, open_room
 
 pytestmark = pytest.mark.postgres
 

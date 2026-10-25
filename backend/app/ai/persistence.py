@@ -1,6 +1,8 @@
 """Short transactions for transcript persistence and worker-fenced AI turns."""
 
-from datetime import timedelta
+import logging
+from datetime import UTC, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import delete, func, select, update
 
@@ -9,6 +11,8 @@ from app.ai.schemas import AIMessage, AiPreferenceView, ConversationHeader, Conv
 from app.ai.store import Conversation
 from app.core.errors import DomainError
 from app.infrastructure.database.models import AiRun, now
+
+log = logging.getLogger("moodprint")
 
 
 def preference_view(p, settings):
@@ -163,6 +167,45 @@ async def purge_chat(db):
     )
 
 
+QUOTA_ZONE = ZoneInfo("Asia/Bangkok")
+
+
+def quota_day_start(at: datetime) -> datetime:
+    """Midnight of the current day in Asia/Bangkok (the product's quota day), as an instant."""
+    local = at.astimezone(QUOTA_ZONE)
+    return local.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+async def daily_turns(db, user_id, at: datetime) -> int:
+    return (
+        await db.scalar(
+            select(func.count())
+            .select_from(AiRun)
+            .where(AiRun.user_id == user_id, AiRun.created_at >= quota_day_start(at))
+        )
+        or 0
+    )
+
+
+async def spent_today_nano(db, at: datetime) -> int:
+    """Estimated spend since UTC midnight from content-free usage rows (0 if absent)."""
+    from sqlalchemy import text
+
+    if not await db.scalar(select(func.to_regclass("moodprint.ai_usage"))):
+        return 0
+    midnight = at.astimezone(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    return int(
+        await db.scalar(
+            text(
+                "select coalesce(sum(estimated_nano_usd), 0) from moodprint.ai_usage "
+                "where created_at >= :since"
+            ),
+            {"since": midnight},
+        )
+        or 0
+    )
+
+
 async def admission(db, user, settings):
     # Shared across processes; keep this lock only around the short admission transaction.
     from sqlalchemy import text
@@ -190,3 +233,25 @@ async def admission(db, user, settings):
         raise DomainError(
             429, "RATE_LIMIT", "Bạn đã gửi nhiều tin nhắn. Hãy nghỉ một chút rồi thử lại.", True
         )
+    at = now()
+    if await daily_turns(db, user.id, at) >= settings.ai_daily_turns_per_user:
+        log.info("metric=ai_quota_denied")
+        raise DomainError(
+            429,
+            "AI_DAILY_QUOTA",
+            "Hôm nay bạn đã dùng hết lượt trò chuyện với trợ lý. Hẹn bạn ngày mai nhé.",
+            True,
+        )
+    if settings.ai_daily_budget_usd > 0 and settings.ai_accounting_enabled:
+        ceiling = int(settings.ai_daily_budget_usd * 1_000_000_000)
+        spent = await spent_today_nano(db, at)
+        if spent >= ceiling:
+            log.warning("metric=ai_budget_denied")
+            raise DomainError(
+                503,
+                "AI_BUDGET_EXHAUSTED",
+                "Trợ lý tạm nghỉ vì đã đạt giới hạn sử dụng hôm nay. Vui lòng thử lại sau.",
+                True,
+            )
+        if spent >= ceiling * 0.8:
+            log.warning("metric=ai_budget_ratio value=%.2f", spent / ceiling)

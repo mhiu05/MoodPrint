@@ -2,7 +2,7 @@
 
 > **Kiến trúc đã chốt ngày 23/10/2026:** Python 3.12/FastAPI/Pydantic v2, SQLAlchemy 2 async + psycopg 3, Alembic/uv, Supabase PostgreSQL/Auth và OpenAI Agents SDK Python. Giữ React/Vite/TypeScript; Pydantic → OpenAPI → `frontend/src/api/generated/`. Chỉ scaffold cloud, không deploy. Evidence audit ban đầu là lịch sử, không phải trạng thái implementation mới.
 
-**D03 đã chốt: OpenAI Agents SDK Python, một runtime chung, một bot hoạt động trong mỗi run.** Audit ban đầu chưa có SDK/agent server; trạng thái implementation mới phải có evidence riêng; [registry UI](../../frontend/src/companions/registry.ts#L1) và [scriptedReply](../../frontend/src/companions/scenarios.ts#L4) là nguồn danh tính, UX và ví dụ đánh giá, không phải runtime cần port nguyên trạng.
+**D03 đã chốt: OpenAI Agents SDK Python, một runtime chung, một bot hoạt động trong mỗi run.** Audit ban đầu chưa có SDK/agent server; trạng thái implementation mới phải có evidence riêng; [registry UI](../../frontend/src/companions/registry.ts#L1) và [scriptedReply](https://github.com/mhiu05/MoodPrint/blob/dad0cb46bf69417a7b87e60e4e745c0a8c77df71/frontend/src/companions/scenarios.ts#L4) là nguồn danh tính, UX và ví dụ đánh giá, không phải runtime cần port nguyên trạng.
 
 ## SDK Python đã xác minh và trách nhiệm adapter
 

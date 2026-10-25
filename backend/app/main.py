@@ -19,22 +19,21 @@ from app.contracts import ApiError
 from app.core.body_limit import BodyLimitMiddleware
 from app.core.config import Settings
 from app.core.errors import DomainError, install_errors
+from app.core.revisions import READY_REVISIONS
 from app.infrastructure.database.connection import Database
 from app.infrastructure.database.models import AiRun
 
-READY_REVISIONS = frozenset(
-    {
-        "0010_account_deletion",
-        "0011_social_stabilization",
-        "0012_matching_v2",
-        "0013_shared_activities",
-        "0014_moderation",
-    }
-)
+
+def warn_unenforced_budget(config) -> None:
+    if config.ai_daily_budget_usd > 0 and not config.ai_accounting_enabled:
+        logging.getLogger("moodprint").warning(
+            "ai_budget_unenforced reason=accounting_disabled"
+        )
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     config = settings or Settings()
+    warn_unenforced_budget(config)
     database = Database(config)
 
     @asynccontextmanager
@@ -55,9 +54,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 await recover_turns(db)
 
         async def sweep_context():
-            next_retention = 0.0
+            from app.modules.social.notifications import STREAM_SLOTS
+
+            next_retention = next_sample = 0.0
             while True:
                 app.state.ai.sweep()
+                if time.monotonic() >= next_sample:
+                    metrics = logging.getLogger("moodprint")
+                    metrics.info("metric=sse_streams_open value=%d", STREAM_SLOTS.open())
+                    metrics.info("metric=http_requests value=%d", app.state.http_requests)
+                    app.state.http_requests = 0
+                    next_sample = time.monotonic() + 60
                 app.state.exports = {
                     key: value
                     for key, value in app.state.exports.items()
@@ -68,7 +75,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     from app.modules.users.lifecycle import process_deletions
 
                     try:
+                        from app.modules.activities.jobs import advance_due
+
                         await process_deletions(app)
+                        await advance_due(app)
                         if time.monotonic() >= next_retention:
                             await purge_expired(app)
                             if config.ai_accounting_enabled:
@@ -124,6 +134,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings, app.state.database = config, database
     app.state.ai = AiRuntime(config, database)
     app.state.exports = {}
+    app.state.http_requests = 0
     from app.modules.voice.service import OpenAITranscriber
 
     app.state.transcriber = (
@@ -170,6 +181,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 status_code=500,
             )
         path = request.url.path
+        if path.startswith("/api/"):
+            app.state.http_requests += 1
+            if response.status_code >= 500:
+                logging.getLogger("moodprint").warning("metric=http_5xx")
         hashed = path.startswith("/assets/") and response.status_code == 200
         response.headers.update(
             {
@@ -213,18 +228,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 if not helper:
                     raise RuntimeError("Reviewed Auth security bootstrap required")
         except Exception as exc:
+            logging.getLogger("moodprint").warning("metric=readiness_failed")
             raise DomainError(503, "NOT_READY", "Dịch vụ dữ liệu chưa sẵn sàng.", True) from exc
         return {"status": "ready"}
 
     from app.ai.chat_routes import router as ai
     from app.ai.memory import router as memory
+    from app.modules.activities.routes import router as activities
     from app.modules.auth.routes import router as auth
     from app.modules.consent.routes import router as consent
+    from app.modules.moderation.admin_routes import router as moderation_admin
     from app.modules.moderation.routes import router as moderation
     from app.modules.mood.routes import router as mood
     from app.modules.profiles.routes import router as profiles
     from app.modules.social.notifications import router as notifications
     from app.modules.social.routes import router as social
+    from app.modules.social.summary import router as social_summary
     from app.modules.users.routes import router as users
     from app.modules.voice.routes import router as voice
 
@@ -236,7 +255,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         ai,
         memory,
         social,
+        social_summary,
+        activities,
         moderation,
+        moderation_admin,
         notifications,
         voice,
         users,

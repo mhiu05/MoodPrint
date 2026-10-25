@@ -34,6 +34,10 @@ async def verify_session(db: AsyncSession, session: AuthSession, user: User) -> 
         or user.status != "active"
     ):
         raise DomainError(401, "SESSION_EXPIRED", "Phiên đã kết thúc. Vui lòng đăng nhập lại.")
+    if user.suspended_until and user.suspended_until > now():
+        raise DomainError(
+            403, "ACCOUNT_SUSPENDED", "Tài khoản đang bị tạm khóa theo quy tắc cộng đồng."
+        )
     # Supabase logout/revocation removes auth.sessions. A JWT signature alone is insufficient.
     exists = await db.scalar(
         text("select moodprint.is_provider_session_active(:sid,:uid)"),
@@ -48,14 +52,16 @@ async def require_actor(request: Request) -> Actor:
     if not token:
         raise DomainError(401, "AUTH_REQUIRED", "Vui lòng đăng nhập.")
     async with request.app.state.database.require()() as db:
-        session = await db.scalar(
-            select(AuthSession).where(AuthSession.token_hash == digest(token))
-        )
-        if session is None:
+        identity = (
+            await db.execute(
+                select(AuthSession, User)
+                .join(User, User.id == AuthSession.user_id)
+                .where(AuthSession.token_hash == digest(token))
+            )
+        ).one_or_none()
+        if identity is None:
             raise DomainError(401, "SESSION_EXPIRED", "Phiên đã kết thúc. Vui lòng đăng nhập lại.")
-        user = await db.get(User, session.user_id)
-        if user is None:
-            raise DomainError(401, "AUTH_REQUIRED", "Vui lòng đăng nhập.")
+        session, user = identity
         await verify_session(db, session, user)
         idle = timedelta(hours=request.app.state.settings.session_idle_hours)
         if session.expires_at < now() + idle - timedelta(minutes=15):
@@ -65,6 +71,8 @@ async def require_actor(request: Request) -> Actor:
                 .where(AuthSession.id == session.id, AuthSession.revoked.is_(False))
                 .values(expires_at=now() + idle)
             )
+            # Matching hides users inactive for 30 days; same 15-minute write cadence.
+            await db.execute(update(User).where(User.id == user.id).values(last_seen_at=now()))
             await db.commit()
         if request.method not in ("GET", "HEAD", "OPTIONS"):
             csrf = request.headers.get("X-CSRF-Token", "")
@@ -86,8 +94,26 @@ async def lock_actor(
     # lock=False is for read-only polling that must not contend with writers.
     statement = select(User).where(User.id == actor.user_id)
     user = await db.scalar(statement.with_for_update() if lock else statement)
+    return await verify_actor(db, actor, user, eligible=eligible)
+
+
+async def verify_actor(
+    db: AsyncSession, actor: Actor, user: User | None, *, eligible: bool = True
+) -> User:
+    """Revalidate an actor after the caller acquires its account gate.
+
+    Pair/discovery transactions already load users in canonical lock order. Reusing
+    that row avoids a second account SELECT without caching or skipping revocation,
+    provider-session, eligibility or deletion checks.
+    """
     session = await db.get(AuthSession, actor.session_id)
-    if not user or not session or actor.auth_version != user.auth_version:
+    if (
+        not user
+        or user.id != actor.user_id
+        or not session
+        or session.user_id != actor.user_id
+        or actor.auth_version != user.auth_version
+    ):
         raise DomainError(401, "SESSION_EXPIRED", "Phiên đã kết thúc.")
     await verify_session(db, session, user)
     if eligible and user.age_band not in ("teen", "adult"):
@@ -104,9 +130,7 @@ async def lock_actor(
 
 
 @asynccontextmanager
-async def transaction(
-    request: Request, actor: Actor, *, eligible: bool = True, lock: bool = True
-):
+async def transaction(request: Request, actor: Actor, *, eligible: bool = True, lock: bool = True):
     async with request.app.state.database.require()() as db, db.begin():
         user = await lock_actor(db, actor, eligible=eligible, lock=lock)
         yield db, user
@@ -123,6 +147,10 @@ async def assert_purpose(db: AsyncSession, user: User, purpose: str) -> dict[str
     if purpose == "MATCH" and user.age_band != "adult":
         raise DomainError(
             403, "ADULT_REQUIRED", "Tính năng kết nối chỉ dành cho tài khoản đủ điều kiện."
+        )
+    if purpose == "MATCH" and user.social_restricted_until and user.social_restricted_until > now():
+        raise DomainError(
+            403, "SOCIAL_RESTRICTED", "Tính năng kết nối của bạn đang tạm bị hạn chế."
         )
     return values
 

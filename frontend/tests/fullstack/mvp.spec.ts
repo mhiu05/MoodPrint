@@ -231,15 +231,20 @@ test("Journey B/C: two users match, request, accept and chat; stale tab loses ac
     .locator("article")
     .filter({ has: one.getByRole("heading", { name: pairAlias(11, 12) }) });
   await expect(card).toBeVisible();
-  await expect(card.getByText(/Cùng thích/)).toBeVisible();
+  await expect(card.getByText(/Cùng thích/).first()).toBeVisible();
   await card.getByRole("button", { name: "Gửi lời chào", exact: true }).click();
   await expect(one.getByText("Đã gửi lời mời.", { exact: true })).toBeVisible();
-  await expect(one.getByText("Lời chào bạn đã gửi")).toBeVisible();
+  // Outgoing and incoming invitations live under the Lời mời tab (H-01).
+  await one.getByRole("tab", { name: /Lời mời/ }).click();
+  await expect(
+    one.getByText(`Lời chào gửi ${pairAlias(11, 12)}`),
+  ).toBeVisible();
 
+  await two.goto("/#/connect?tab=requests");
   await two.reload();
   const invite = two
     .locator("article")
-    .filter({ hasText: "Một lời chào dành cho bạn" });
+    .filter({ hasText: `${pairAlias(11, 12)} muốn kết nối với bạn` });
   await invite
     .getByRole("button", { name: "Đồng ý kết nối", exact: true })
     .click();
@@ -248,7 +253,7 @@ test("Journey B/C: two users match, request, accept and chat; stale tab loses ac
   ).toBeVisible();
   await two.getByRole("link", { name: "Mở cuộc trò chuyện" }).click();
   await expect(
-    two.getByText("Hãy bắt đầu bằng một lời hỏi thăm."),
+    two.getByRole("heading", { name: "Một lời chào, một khởi đầu" }),
   ).toBeVisible();
 
   await one.goto("/#/messages");
@@ -468,7 +473,7 @@ test("Journey F: mood, matching and chat stay usable at 390px and 430px with the
     await page.goto(`/#/chat/${room}`);
     await expect(
       page
-        .getByText("Hãy bắt đầu bằng một lời hỏi thăm.")
+        .getByRole("heading", { name: "Một lời chào, một khởi đầu" })
         .or(page.locator(".chat-bubble").first()),
     ).toBeVisible();
     await noHorizontalOverflow(page);
