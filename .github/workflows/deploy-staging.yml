@@ -52,6 +52,10 @@ jobs:
           GH_TOKEN: ${{github.token}}
         run: |
           set -euo pipefail
+
+          write_output() {
+            printf '%s=%s\n' "$1" "$2" >> "$GITHUB_OUTPUT"
+          }
           [[ "$GITHUB_REF" == "refs/heads/main" ]]
           [[ "$RELEASE_SHA" =~ ^[a-f0-9]{40}$ ]]
 
@@ -68,7 +72,7 @@ jobs:
           latest_sha=$(git rev-parse origin/main)
           if [[ "$RELEASE_SHA" != "$latest_sha" ]]; then
             if [[ "$DEPLOY_EVENT" == "workflow_run" ]]; then
-              echo "eligible=false" >> "$GITHUB_OUTPUT"
+              write_output eligible false
               echo "Release skipped because main moved to $latest_sha."
               exit 0
             fi
@@ -106,9 +110,9 @@ jobs:
             .repository.full_name == $repo
           ' <<<"$run_json" >/dev/null
 
-          echo "eligible=true" >> "$GITHUB_OUTPUT"
-          echo "release_sha=$RELEASE_SHA" >> "$GITHUB_OUTPUT"
-          echo "ci_run_id=$CI_RUN_ID" >> "$GITHUB_OUTPUT"
+          write_output eligible true
+          write_output release_sha "$RELEASE_SHA"
+          write_output ci_run_id "$CI_RUN_ID"
 
   build:
     needs: validate
