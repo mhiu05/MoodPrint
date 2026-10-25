@@ -21,10 +21,11 @@ const isTab = (value: string | null): value is Tab => TABS.includes(value as Tab
 /** Tabs per 08 section 2: Gợi ý · Lời mời (count) · Hồ sơ kết nối, kept in `?tab=`. */
 export function Discovery() {
   const { api, session } = useSession();
+  const restricted = session.notices?.some((notice) => notice.kind === "restricted");
   const canMatch =
     session.features.matching &&
     session.ageBand === "adult" &&
-    session.consents.MATCH.enabled;
+    session.consents.MATCH.enabled && !restricted;
   const draft = useResource<Draft>("/profiles/matching-draft");
   const taxonomy = useResource<Taxonomy>("/taxonomy");
   const published = useResource<Published | null>(
@@ -113,6 +114,13 @@ export function Discovery() {
         ...taxonomy.data.availability,
       }[key]) ||
     key;
+  if (restricted)
+    return (
+      <StatePanel title="Tìm bạn đang tạm dừng">
+        Bạn có thể quay lại sau thời gian hạn chế được thông báo ở trên.
+        Trong lúc này, không gian riêng của bạn vẫn ở đây.
+      </StatePanel>
+    );
   if (!session.features.matching)
     return (
       <StatePanel title="Tìm bạn chưa khả dụng">
@@ -281,8 +289,9 @@ export function Discovery() {
                 <>
                   <p>Chưa có gợi ý phù hợp.</p>
                   <p className={cx.footnote}>
-                    Bạn có thể thử nhận cả mục tiêu khác, thêm ngôn ngữ hoặc sở
-                    thích trong hồ sơ kết nối.
+                    Có thể hiện chưa có người cùng điểm chung, hoặc họ chưa bật
+                    chia sẻ hồ sơ. Bạn có thể quay lại sau; không cần thay đổi
+                    điều mình thích để nhận gợi ý.
                   </p>
                   <Button variant="secondary" onClick={() => select("profile", true)}>
                     Mở rộng hồ sơ kết nối

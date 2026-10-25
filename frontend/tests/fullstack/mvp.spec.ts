@@ -253,7 +253,7 @@ test("Journey B/C: two users match, request, accept and chat; stale tab loses ac
   ).toBeVisible();
   await two.getByRole("link", { name: "Mở cuộc trò chuyện" }).click();
   await expect(
-    two.getByText("Hãy bắt đầu bằng một lời hỏi thăm."),
+    two.getByRole("heading", { name: "Một lời chào, một khởi đầu" }),
   ).toBeVisible();
 
   await one.goto("/#/messages");
@@ -473,7 +473,7 @@ test("Journey F: mood, matching and chat stay usable at 390px and 430px with the
     await page.goto(`/#/chat/${room}`);
     await expect(
       page
-        .getByText("Hãy bắt đầu bằng một lời hỏi thăm.")
+        .getByRole("heading", { name: "Một lời chào, một khởi đầu" })
         .or(page.locator(".chat-bubble").first()),
     ).toBeVisible();
     await noHorizontalOverflow(page);

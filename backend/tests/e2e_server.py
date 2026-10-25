@@ -90,7 +90,8 @@ async def seed():
         # 1-9 back the original journeys; 10-20 are fresh adults for the MVP journeys;
         # 21-36 back the activity, matching-v2 and moderation journeys; 37 is staff;
         # 38-39 are the responsive/accessibility pair; 40-41 the v2-only-goal pair.
-        for number in range(1, 42):
+        # 42-43 cover the product-experience chat; 44 the five-assistant review.
+        for number in range(1, 45):
             uid = UUID(f"00000000-0000-4000-8000-{number:012d}")
             provider = UUID(f"00000000-0000-4000-9000-{number:012d}")
             db.add(

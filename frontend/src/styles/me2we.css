@@ -69,15 +69,53 @@ button {
 .me-main {
   min-width: 0;
 }
+.assistant-guide {
+  max-width: 42ch;
+  margin: 12px auto;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #53645c;
+}
+.assistant-guide a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #285c4b;
+  font-weight: 600;
+  text-underline-offset: 4px;
+}
+.human-chat-welcome {
+  padding: 20px;
+  max-width: 52ch;
+  margin: auto;
+  background: #f0f3ed;
+  border-radius: 18px;
+}
+.human-chat-welcome h2 { font-size: 20px; margin-top: 0; }
+.human-chat-welcome p { color: #53645c; font-size: 14px; }
+.conversation-starters { display: grid; gap: 8px; }
+.conversation-starters button {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid #c1cdc3;
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+  color: #285c4b;
+  font: inherit;
+  cursor: pointer;
+}
+.conversation-starters button:hover { background: #e6eee3; }
+.activity-how { color: #53645c; font-size: 14px; }
 .me-page {
   padding: 0 40px 50px;
   max-width: 1250px;
   width: 100%;
-  margin: auto;
+  margin: 0 auto;
 }
 .me-page > div:not([role="status"]) {
   max-width: 1100px;
-  margin: auto;
+  margin: 0 auto;
 }
 .page-app-header {
   height: 100px;

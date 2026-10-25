@@ -10,7 +10,8 @@ type ConnectionView = components["schemas"]["ConnectionView"];
 
 export function HumanMessages() {
   const { session } = useSession();
-  const enabled = session.ageBand === "adult" && session.consents.MATCH.enabled;
+  const restricted = session.notices?.some((notice) => notice.kind === "restricted");
+  const enabled = session.ageBand === "adult" && session.consents.MATCH.enabled && !restricted;
   const rooms = useResource<ConnectionView[]>("/connections", enabled);
   const { refresh } = rooms;
   useEffect(() => {
@@ -20,6 +21,13 @@ export function HumanMessages() {
     }, 15_000);
     return () => clearInterval(timer);
   }, [enabled, refresh]);
+  if (restricted)
+    return (
+      <StatePanel title="Kết nối đang tạm dừng">
+        Các cuộc trò chuyện không khả dụng trong thời gian hạn chế. Bạn có thể
+        tiếp tục dùng trợ lý và nhật ký cảm xúc.
+      </StatePanel>
+    );
   if (session.ageBand !== "adult")
     return (
       <StatePanel title="Tính năng kết nối chưa khả dụng">

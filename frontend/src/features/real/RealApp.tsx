@@ -66,6 +66,7 @@ import type {
 import "./real.css";
 import { ConnectBridge, Discovery } from "./social/Discovery";
 import { OfflineBanner } from "./OfflineBanner";
+import { AssistantGuide } from "./AssistantGuide";
 import { HumanChat } from "./social/HumanChat";
 import { HumanMessages } from "./social/HumanMessages";
 import { badgeText, useSocialSummary } from "./social/useSocialSummary";
@@ -408,7 +409,7 @@ function Shell() {
         <aside className="me-rail">
           <Link
             className="rail-brand"
-            aria-label="Me2We — Trợ lý"
+            aria-label="MoodPrint — Trợ lý"
             to="/assistants"
           >
             <BrandMark />
@@ -438,7 +439,7 @@ function Shell() {
         >
           {!assistants ? (
             <header className="page-app-header">
-              <Link to="/assistants" aria-label="Me2We — Trợ lý">
+              <Link to="/assistants" aria-label="MoodPrint — Trợ lý">
                 <Brand />
               </Link>
               <Link
@@ -530,7 +531,7 @@ function Assistants() {
     <div className={`companion-layout ${botId ? "has-conversation" : ""}`}>
       <section className="bot-roster" aria-label="Danh sách trợ lý">
         <div className="roster-brand">
-          <Link to="/assistants" aria-label="Me2We — Trợ lý">
+          <Link to="/assistants" aria-label="MoodPrint — Trợ lý">
             <Brand />
           </Link>
           <Link
@@ -1012,6 +1013,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         className="conversation-log"
         ref={log}
         role="log"
+        tabIndex={0}
         aria-label={`Hội thoại với ${bot.name}`}
         aria-live="polite"
         onScroll={() => {
@@ -1026,8 +1028,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           <PublicAvatar bot={bot} size={80} />
           <h3>Một chút thời gian với {bot.name}</h3>
           <p>{bot.description}</p>
+          {!conversation?.messages.length && <AssistantGuide botId={bot.botId} />}
           <small>
-            <LockKeyhole size={11} /> Chỉ bạn xem
+            <LockKeyhole size={11} /> Không chia sẻ với bạn kết nối
           </small>
         </div>
         {notice ? <p role="status">{notice}</p> : null}

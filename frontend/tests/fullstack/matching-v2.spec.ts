@@ -41,7 +41,7 @@ test(`matching (${scorer}) ranks real profiles with qualitative labels and hones
     expect(list.status, list.text).toBe(200);
     const aliases = list.body.candidates.map((card: { alias: string }) => card.alias);
     for (const card of list.body.candidates)
-      expect(card.scoringVersion).toBe(scorer === "v2" ? "rules-v2" : "rules-v1");
+      expect(card.scoringVersion).toBe(scorer === "v2" ? "rules-v2" : "rules-v1.1");
     expect(aliases[0], list.text).toBe(pairAlias(29, 30));
     expect(aliases).toContain(pairAlias(29, 31));
     // A strict goal is honoured by both scorers; no shared language means no match.
@@ -72,9 +72,7 @@ test(`matching (${scorer}) ranks real profiles with qualitative labels and hones
 });
 
 test(`a profile with a v2-only goal still receives suggestions (${scorer})`, async ({ browser }) => {
-  // Known defect (P1, release report): /taxonomy always offers the v2 vocabulary, but the
-  // default v1 scorer treats v2-only goals and tags as invalid and returns nothing.
-  test.fail(scorer === "v1", "v1 cannot rank v2-only goals or tags");
+  // Regression: rollback and candidate scorers both accept every published tag/goal.
   const profile: ProfileInput = {
     interests: ["chess", "anime", "podcasts"],
     values: ["growth", "calm"],

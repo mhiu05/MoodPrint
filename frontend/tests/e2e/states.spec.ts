@@ -111,8 +111,13 @@ test("a failed list shows retry, and coming back online retries by itself", asyn
   await alert.getByRole("button", { name: "Thử lại" }).click();
   await expect(alert).toContainText("Chưa hoàn tất yêu cầu");
   fail = false;
+  const offlineBanner = page
+    .getByRole("status")
+    .filter({ hasText: "Mất kết nối mạng. Nội dung đang nhập vẫn được giữ." });
   await context.setOffline(true);
+  await expect(offlineBanner).toBeVisible();
   await context.setOffline(false);
+  await expect(offlineBanner).toHaveCount(0);
   await expect(page.getByRole("link", { name: /Bạn đồng hành 3fa9c1/ })).toBeVisible();
   await expect(page.getByRole("alert")).toHaveCount(0);
 });
@@ -144,7 +149,7 @@ test("empty screens say so honestly and offer one next step", async ({ page }) =
   await page.getByRole("button", { name: "Xem gợi ý" }).click();
   await expect(page.getByRole("tab", { name: "Gợi ý" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText("Chưa có gợi ý phù hợp.", { exact: true })).toBeVisible();
-  await expect(page.getByText(/nhận cả mục tiêu khác, thêm ngôn ngữ hoặc sở thích/)).toBeVisible();
+  await expect(page.getByText(/Có thể hiện chưa có người cùng điểm chung/)).toBeVisible();
   await page.getByRole("button", { name: "Mở rộng hồ sơ kết nối" }).click();
   await expect(page.getByRole("tab", { name: "Hồ sơ kết nối" })).toHaveAttribute("aria-selected", "true");
 });

@@ -9,6 +9,9 @@ export default defineConfig({
     assetsInlineLimit: (file) => (file.endsWith(".js") ? false : undefined),
   },
   server: {
+    // Playwright traces contain HTML. Watching them reloads the app while a
+    // different browser is using it, interrupting real sessions and screenshots.
+    watch: { ignored: ["**/evidence/**", "**/.cache/**"] },
     port: 5173,
     strictPort: true,
     proxy: {
