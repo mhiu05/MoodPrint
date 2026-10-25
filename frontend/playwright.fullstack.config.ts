@@ -5,7 +5,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   timeout: 60000,
-  globalTimeout: 180000,
+  globalTimeout: 900000,
   reporter: [
     ["list"],
     ["json", { outputFile: "evidence/fullstack-results.json" }],

@@ -55,6 +55,10 @@ async function api(page: Page, authenticated = true) {
     if (path === `/api/v1/ai/conversations/${conversation.conversationId}`)
       return route.fulfill({ json: conversation });
     if (path === "/api/v1/moods") return route.fulfill({ json: [] });
+    if (path === "/api/v1/moods/summary")
+      return route.fulfill({
+        json: { from: "2026-10-17", to: "2026-10-23", count: 0, mean: null, min: null, max: null, insightAvailable: false, buckets: [] },
+      });
     if (path === "/api/v1/profiles/private-items")
       return route.fulfill({ json: [] });
     if (path === "/api/v1/users/me/identity")
@@ -630,18 +634,21 @@ test("a saved mood reloads from the API while a failed edit keeps its note", asy
   );
   await page.goto("/#/self");
   await expect(
-    page.getByText("Một ngày nhẹ nhàng", { exact: true }),
+    page.locator("article").getByText("Một ngày nhẹ nhàng", { exact: true }),
   ).toBeVisible();
   await page.reload();
   await expect(
-    page.getByText("Một ngày nhẹ nhàng", { exact: true }),
+    page.locator("article").getByText("Một ngày nhẹ nhàng", { exact: true }),
   ).toBeVisible();
   await page.getByLabel("Ngày", { exact: true }).fill(date);
+  await expect(page.getByLabel("Ghi chú", { exact: true })).toHaveValue(
+    "Một ngày nhẹ nhàng",
+  );
   await page
     .getByLabel("Ghi chú", { exact: true })
     .fill("Bản nháp cần giữ lại");
   await page
-    .getByRole("button", { name: "Lưu tâm trạng", exact: true })
+    .getByRole("button", { name: "Cập nhật tâm trạng", exact: true })
     .click();
   await expect(page.getByRole("alert")).toContainText("Chưa thể kết nối");
   await expect(page.getByLabel("Ghi chú", { exact: true })).toHaveValue(

@@ -81,7 +81,7 @@ def main():
             ],
             cwd=ROOT / "frontend",
             env=environment,
-            timeout=210,
+            timeout=900,
             check=False,
         ).returncode
     finally:

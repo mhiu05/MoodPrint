@@ -89,8 +89,9 @@ test("hosted Auth, age, consent, private data, SDK memory, social races, restart
     await expect(one.getByText("Đã cập nhật thông tin riêng.", { exact: true })).toBeVisible();
     await one.goto(base + "/#/self");
     await one.getByRole("textbox", { name: "Ghi chú", exact: true }).fill(moodText);
-    await one.getByRole("button", { name: "Lưu tâm trạng", exact: true }).click();
-    await expect(one.getByText("Đã lưu tâm trạng.", { exact: true })).toBeVisible();
+    // A previous run may already have recorded today, which turns the form into an edit.
+    await one.getByRole("button", { name: /^(Lưu|Cập nhật) tâm trạng$/ }).click();
+    await expect(one.getByText(/^Đã (lưu|cập nhật) tâm trạng\.$/)).toBeVisible();
     await one.reload(); await expect(one.locator("article").getByText(moodText, { exact: true })).toBeVisible();
     record("privateAndMoodPersistenceAcrossReload");
     await enable(one, "trò chuyện AI"); await enable(one, "ghi nhớ đã duyệt");
@@ -159,6 +160,8 @@ test("hosted Auth, age, consent, private data, SDK memory, social races, restart
     await expect(two.getByText("Đã nhận báo cáo.", { exact: true })).toBeVisible();
     await two.getByRole("button", { name: "Chặn kết nối này", exact: true }).click();
     await two.getByRole("button", { name: "Xác nhận chặn", exact: true }).click();
+    // Wait for the committed block before probing from the other account.
+    await expect(two.getByText("Bạn đã chặn kết nối này.", { exact: true })).toBeVisible();
     await request(a, "GET", path, undefined, 403);
     await request(a, "POST", path, { clientMessageId: randomUUID(), text: "must not send" }, 403);
     record("reportReceiptAndBlockImmediatelyDenyBothDirections");
@@ -217,4 +220,118 @@ test("hosted Nhịp reads only the explicitly selected mood dates and never priv
     expect(tool.fromDate === day && tool.toDate === day && tool.recordedDays === 1).toBe(true);
     await request(context, "POST", "/auth/logout", {}, 204);
   } finally { await context.close(); }
+});
+
+test("hosted Auth fixture: mood lifecycle with insights, and MATCH restore never republishes", async ({
+  browser,
+}) => {
+  const context = await browser.newContext();
+  try {
+    const page = await context.newPage();
+    await login(page, "A");
+    const session = await request(context, "GET", "/session");
+    const day = (offset: number) =>
+      new Intl.DateTimeFormat("sv-SE", {
+        timeZone: session.timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(
+        new Date(new Date(session.serverTime).getTime() - offset * 86_400_000),
+      );
+    const target = day(3),
+      shown = target.split("-").reverse().join("/"),
+      tag = randomUUID().slice(0, 8);
+    const existing = (await request(context, "GET", "/moods")).find(
+      (m: any) => m.localDate === target,
+    );
+    if (existing)
+      await request(context, "DELETE", `/moods/${target}`, {
+        expectedVersion: existing.version,
+      });
+    await page.goto(base + "/#/self");
+    await page.getByLabel("Ngày", { exact: true }).fill(target);
+    await page.getByLabel("Tâm trạng", { exact: true }).selectOption("2");
+    await page
+      .getByLabel("Ghi chú", { exact: true })
+      .fill(`Hosted mood ${tag}`);
+    await page
+      .getByRole("button", { name: "Lưu tâm trạng", exact: true })
+      .click();
+    await expect(
+      page.getByText("Đã lưu tâm trạng.", { exact: true }),
+    ).toBeVisible();
+    await page.reload();
+    await page.getByLabel("Ngày", { exact: true }).fill(target);
+    await expect(page.getByLabel("Ghi chú", { exact: true })).toHaveValue(
+      `Hosted mood ${tag}`,
+    );
+    await page.getByLabel("Tâm trạng", { exact: true }).selectOption("4");
+    await page
+      .getByRole("button", { name: "Cập nhật tâm trạng", exact: true })
+      .click();
+    await expect(
+      page.getByText("Đã cập nhật tâm trạng.", { exact: true }),
+    ).toBeVisible();
+    const summary = await request(context, "GET", "/moods/summary?days=7");
+    expect(summary.buckets.find((b: any) => b.localDate === target).value).toBe(
+      4,
+    );
+    expect(summary.buckets.filter((b: any) => b.value === null).length).toBe(
+      7 - summary.count,
+    );
+    record("hostedMoodCreateReloadEditSummary");
+    await page
+      .getByRole("button", { name: `Xóa tâm trạng ngày ${shown}`, exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Xóa ghi chép", exact: true })
+      .click();
+    await expect(
+      page.getByText(`Đã xóa tâm trạng ngày ${shown}.`, { exact: true }),
+    ).toBeVisible();
+    expect(
+      (await request(context, "GET", "/moods")).some(
+        (m: any) => m.localDate === target,
+      ),
+    ).toBe(false);
+    record("hostedMoodConfirmedDelete");
+
+    await enable(page, "tìm bạn");
+    let published = await request(
+      context,
+      "GET",
+      "/profiles/published/current",
+    );
+    if (!published || published.state !== "live") {
+      await publish(page);
+      published = await request(context, "GET", "/profiles/published/current");
+    }
+    expect(published.state).toBe("live");
+    await page.goto(base + "/#/settings");
+    await page
+      .getByRole("button", { name: "Tắt tìm bạn", exact: true })
+      .click();
+    await expect(
+      page.getByRole("button", { name: "Bật tìm bạn", exact: true }),
+    ).toBeVisible();
+    await request(context, "GET", "/matching/candidates", undefined, 403);
+    await enable(page, "tìm bạn");
+    expect(
+      (await request(context, "GET", "/profiles/published/current")).state,
+    ).toBe("needs_republish");
+    await request(context, "GET", "/matching/candidates", undefined, 403);
+    await page.goto(base + "/#/connect");
+    await expect(
+      page.getByRole("heading", { name: "Hồ sơ đang tạm ẩn" }),
+    ).toBeVisible();
+    record("hostedMatchRestoreRequiresExplicitRepublish");
+    await publish(page);
+    expect(
+      (await request(context, "GET", "/profiles/published/current")).state,
+    ).toBe("live");
+    await request(context, "POST", "/auth/logout", {}, 204);
+  } finally {
+    await context.close();
+  }
 });

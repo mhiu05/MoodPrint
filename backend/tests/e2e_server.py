@@ -76,7 +76,8 @@ async def seed():
             text(SESSION_HELPER.replace("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION", 1))
         )
     async with app.state.database.sessions.begin() as db:
-        for number in range(1, 10):
+        # 1-9 back the original journeys; 10-20 are fresh adults for the MVP journeys.
+        for number in range(1, 21):
             uid = UUID(f"00000000-0000-4000-8000-{number:012d}")
             provider = UUID(f"00000000-0000-4000-9000-{number:012d}")
             db.add(
@@ -84,7 +85,7 @@ async def seed():
                     id=uid,
                     auth_subject=uid,
                     alias=f"Bạn {number}",
-                    age_band="unknown" if number >= 7 else "adult",
+                    age_band="unknown" if 7 <= number <= 9 else "adult",
                 )
             )
             await db.flush()
