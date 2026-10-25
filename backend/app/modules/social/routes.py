@@ -260,7 +260,9 @@ async def candidates(request: Request, actor: Actor = Depends(require_actor)):
             peer = eligible.get(peer_id)
             if peer is None or peer_id not in users:
                 continue
-            if not svc.suggestible(own.payload, peer.payload, scorer):
+            if not svc.goals_compatible(own.payload, peer.payload, scorer) or not svc.suggestible(
+                own.payload, peer.payload, scorer
+            ):
                 continue
             ref = CandidateReference(
                 id=uuid4(),

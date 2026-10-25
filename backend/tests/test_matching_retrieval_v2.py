@@ -295,3 +295,24 @@ async def test_locked_recheck_rejects_peer_changed_after_ranking(clients, monkey
     assert await candidate_aliases(client) == []
     async with app.state.database.sessions() as db:
         assert not (await db.scalars(select(CandidateReference))).all()
+
+
+@pytest.mark.parametrize("scorer", ["v1", "shadow"])
+async def test_rollback_recheck_rejects_goal_changed_after_ranking(clients, monkeypatch, scorer):
+    app, client, _ = await viewer(clients, scorer=scorer)
+    peer = await seed_peer(app)
+    original = retrieval.ranked_candidates
+
+    async def change_goal_after_ranking(*args):
+        ranked = await original(*args)
+        assert peer in ranked
+        async with app.state.database.sessions.begin() as db:
+            profile = await db.scalar(select(PublishedProfile).where(PublishedProfile.user_id == peer))
+            profile.payload = {**profile.payload, "goal": "study-buddy"}
+            profile.version += 1
+            user = await db.get(User, peer)
+            user.profile_version += 1
+        return ranked
+
+    monkeypatch.setattr(retrieval, "ranked_candidates", change_goal_after_ranking)
+    assert await candidate_aliases(client) == []
