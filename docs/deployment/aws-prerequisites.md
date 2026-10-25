@@ -1,17 +1,27 @@
-# Điều kiện AWS trước khi tạo tài nguyên
+# Preflight cho AWS staging hiện có
 
-Chưa có tài nguyên AWS nào được tạo cho MoodPrint. Mọi bước dưới đây là hướng dẫn **cho lần triển khai sau**, cần chủ dự án duyệt snapshot Git và dự toán trước khi bấm nút tạo. Chọn một Region gần người dùng và tương thích với kết nối Supabase; ghi lại Region, account ID, domain và instance type x86_64. Đo RAM/CPU trước khi cam kết sức tải khoảng 50 người.
+Hạ tầng MoodPrint đã tồn tại ở `ap-southeast-2`. Giữ AWS Free Plan và spending limits; không bật Advanced Features, nâng account, mua dịch vụ mới, hoặc tạo lại tài nguyên đã có. Application chưa được xác nhận live.
 
-| Việc trong AWS Console | Giá trị dự kiến / kết quả / cách kiểm | Chi phí và cổng duyệt |
-| --- | --- | --- |
-| **Billing and Cost Management → Bills**: xem tài khoản và chi phí hiện tại | Ghi account ID, tiền tệ, ngân sách; chỉ đọc | Không tạo tài nguyên; làm bước đầu tiên. [AWS Bills](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/getting-viewing-bill.html) |
-| **Amazon ECR → Private repositories → Create repository** (hai lần) | `moodprint-staging-api`, `moodprint-staging-web`, Image tag immutability = Immutable, quét image theo cấu hình registry; xác minh hai URI | ECR lưu image có thể tính phí; phải duyệt. [ECR console](https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-create.html) |
-| **IAM → Identity providers → Add provider** | OpenID Connect, URL `https://token.actions.githubusercontent.com`, audience `sts.amazonaws.com`; xác minh ARN | IAM thường không tính riêng, nhưng cấp quyền cloud; phải review trust policy. [IAM OIDC](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html) |
-| **IAM → Policies → Create policy; Roles → Create role** | Thay placeholder trong `deploy/aws/*.json`; role GitHub chỉ push 2 ECR repo + gọi đúng SSM document/instance; role EC2 có `AmazonSSMManagedInstanceCore` và policy đọc ECR/1 SecureString | Duyệt IAM; không dùng AdministratorAccess. [SSM instance role](https://docs.aws.amazon.com/systems-manager/latest/userguide/setup-instance-permissions.html) |
-| **Systems Manager → Parameter Store → Create parameter** | `/moodprint/staging/runtime`, `SecureString`, customer managed KMS key nếu cần hạn chế decrypt; nội dung từ `deploy/runtime.env.example` điền trong kênh bí mật | Standard tối đa 4 KB; advanced/KMS có thể phát sinh phí. Không dán vào issue/log. [Parameter Store](https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-advanced-parameters.html) |
-| **Systems Manager → Documents → Create document** | Command document `MoodPrint-Staging-Deploy`, nội dung `deploy/aws/ssm-document.json`; xác minh chỉ gọi script cố định và tham số digest | Duyệt tài liệu vì SSM Agent thực thi với quyền root. Agent phải hỗ trợ `ENV_VAR` (>= 3.3.2746.0). [SSM interpolation](https://docs.aws.amazon.com/systems-manager/latest/userguide/documents-creating-content.html) |
-| **EC2 → Security Groups → Create security group** | Chỉ inbound 80/443 TCP, 443 UDP nếu bật HTTP/3; 8001/5432/22 không công khai; outbound HTTPS cần thiết. Xác minh inbound rules | Gắn EC2 có phí; duyệt. [EC2 security groups](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-security-groups.html) |
-| **EC2 → Instances → Launch instances** | Ubuntu 24.04 LTS x86_64, đủ RAM cho giới hạn Compose + OS, EBS gp3, instance role, SG, tag `Environment=staging`, `Application=MoodPrint`; xác minh SSM Managed nodes | Compute/EBS/IPv4 tính phí; chỉ sau dự toán và duyệt. [EC2 launch](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EC2_GetStarted.html) |
-| **CloudWatch → Log groups / Alarms** | Tạo log group có retention và alarm cho EC2, API health, ổ đĩa; agent chỉ gửi log đã lọc | Ingestion/storage/alarm có thể tính phí; duyệt. [CloudWatch agent](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Install-CloudWatch-Agent.html) |
+| Hạng mục | Trạng thái/kiểm tra trước release |
+| --- | --- |
+| Billing và plan | Xác minh Free Plan, spending limits, và chi phí hiện tại trong Billing. Không đổi plan hoặc bỏ giới hạn chi tiêu. |
+| EC2 và mạng | Reuse instance `moodprint-staging`, Elastic IP hiện có, và security group. Xác minh instance Running, status checks 3/3, SSM Online; inbound chỉ HTTP/HTTPS cần thiết, không mở SSH hoặc API port. |
+| Session Manager | Reuse instance role `MoodPrint-Staging-EC2-Role` với `AmazonSSMManagedInstanceCore`. Session Manager là đường quản trị; routine deploy dùng systemd poller, không SSH hay SSM Run Command. |
+| Runtime parameter | SecureString Standard `/moodprint/staging/runtime` đã có. Xác minh tồn tại mà không in plaintext. Standard giới hạn 4 KB. |
+| Runtime IAM | Review `deploy/aws/instance-policy.json` và chỉ thêm `ssm:GetParameter` cho ARN parameter runtime exact. Nếu dùng AWS managed `alias/aws/ssm`, không thêm placeholder customer-managed KMS grant. |
+| Registry | Hai ECR repository đã có; giữ nguyên repositories, cài đặt immutable tag và lifecycle policies. Workflow mới sử dụng GHCR; không tạo ECR/OIDC resource mới. |
+| GHCR access | Packages bắt đầu private. Chọn giữ private với token chỉ `read:packages` trong SecureString riêng, hoặc đổi public sau khi đã xem image và kiểm secret checks. Public visibility không thể chuyển lại private. |
+| DNS và TLS | Reuse `moodprint.duckdns.org` và Elastic IP. Verify DNS A record trước khi kiểm tra Caddy certificate/HTTPS; không đổi IP hoặc mua Route 53. |
+| SSM recovery | SSM document `MoodPrint-Staging-Deploy` đã tồn tại. Automatic poller không cần document này; chỉ review/update khi cần emergency recovery. |
+| Monitoring | `cloudwatch-agent.json` là template tùy chọn. Poller policy không grant CloudWatch permissions; không bật agent hoặc tạo log groups/alarms nếu chưa review quyền và chi phí. |
 
-DNS phải trỏ `APP_DOMAIN` về public IP của EC2 trước khi Caddy xin chứng chỉ. Kiểm tra domain, Supabase Auth redirect allow-list `https://<domain>/auth/callback`, SSL kết nối PostgreSQL, quyền runtime DB, migration và backup trước khi mở traffic. Không dùng Supabase service-role key trong browser. Không mở SSH chỉ để triển khai; SSM là đường điều khiển. Public IPv4 vẫn bị tính phí kể cả gắn vào EC2. [VPC IPv4 pricing](https://aws.amazon.com/vpc/pricing/).
+## Release sequence
+
+1. Từ commit đã review trên `main`, cài `deploy/aws/install-release-poller.sh` qua Session Manager; không tạo AWS resources.
+2. Verify `/opt/moodprint/deployment.conf` là root-owned, mode `0600`, với domain và repository đã biết. Không đưa giá trị bí mật vào file này.
+3. Xác minh EC2 có thể pull image GHCR. Nếu packages private, cấp role quyền đọc đúng token parameter; nếu chọn public, chỉ đổi visibility sau khi review image và secret checks.
+4. Verify systemd timer runs, then wait for a successful `Verify local application` push run and current-main release.
+5. Confirm both containers healthy and `https://moodprint.duckdns.org/api/v1/health/ready` responds. Check HTTPS certificate, SPA refresh, auth, and application workflows separately.
+6. Migrations and Supabase DDL are not part of image deployment. Keep the existing schema and data; do not run destructive migrations.
+
+ECR storage hiện có, EC2/EBS và public IPv4 có thể tính phí. Xem estimate của account mà không đổi plan hoặc spending controls. See [cost guidance](aws-costs.md), [staging install](staging-setup.md), and [release checklist](release-checklist.md).

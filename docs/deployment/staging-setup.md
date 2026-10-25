@@ -1,14 +1,41 @@
-# Bootstrap EC2 lần đầu (tách khỏi deploy thường ngày)
+# Cài poller staging trên EC2 hiện có
 
-Chỉ thực hiện sau khi chủ dự án duyệt account, Region, dự toán, domain, backup Supabase và commit snapshot. Không chạy những lệnh này trong tác vụ chuẩn bị hiện tại.
+Tài liệu này dùng lại hạ tầng MoodPrint đã tồn tại. Không tạo EC2, Elastic IP, ECR repository, NAT, load balancer hoặc dịch vụ DNS mới. Giữ AWS Free Plan và spending limits. Ứng dụng chưa được triển khai; cần kiểm tra thực tế sau lần phát hành đầu.
 
-1. Tạo hạ tầng theo [AWS prerequisites](aws-prerequisites.md). Chọn Ubuntu 24.04 LTS **x86_64/amd64**. Instance profile gồm `AmazonSSMManagedInstanceCore` và policy trong `deploy/aws/instance-policy.json`; Security Group không mở cổng API 8001. Xác minh instance xuất hiện trong **Systems Manager → Fleet Manager → Managed nodes** trước khi chạy lệnh.
-2. Qua SSM Session Manager, cài Docker Engine + Compose plugin theo [hướng dẫn Docker chính thức cho Ubuntu](https://docs.docker.com/engine/install/ubuntu/), sau khi kiểm tra gói/phần mềm đã có trên AMI. Cài AWS CLI v2 theo [AWS CLI Linux guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html). `docker version`, `docker compose version`, `aws --version`, `systemctl is-active docker` phải thành công. Giữ quyền Docker thuộc root; thành viên nhóm `docker` có quyền tương đương root.
-3. Từ **commit đã được duyệt**, sao chép chính xác `deploy/compose.staging.yml`, `deploy/Caddyfile`, `deploy/aws/deploy.sh` vào `/opt/moodprint/` dưới tên `compose.staging.yml`, `Caddyfile`, `deploy.sh`; so hash SHA-256 với artifact của commit trước khi cài. Đây là cấu hình bootstrap, không phải rebuild source trên EC2. Chỉ root được sửa thư mục này: `chown -R root:root /opt/moodprint`, `chmod 700 /opt/moodprint`, `chmod 600 /opt/moodprint/Caddyfile /opt/moodprint/compose.staging.yml /opt/moodprint/deploy.sh`.
-4. Sao chép `deploy/aws/deployment.conf.example` thành `/opt/moodprint/deployment.conf`, thay toàn bộ giá trị ví dụ bằng account/Region/repo/domain/Parameter Store thật đã duyệt. `chown root:root`, `chmod 600`; không đặt API key hoặc DB URL trong file này. Tạo SSM Command document từ `deploy/aws/ssm-document.json`; xác minh agent >= 3.3.2746.0 cho `ENV_VAR`. [SSM parameter security](https://docs.aws.amazon.com/systems-manager/latest/userguide/documents-creating-content.html).
-5. Nạp `deploy/runtime.env.example` đã điền riêng vào Parameter Store SecureString `/moodprint/staging/runtime` bằng kênh quản trị bí mật; không qua terminal history, workflow input, Git hoặc SSM command arguments. Chỉ role EC2 được `GetParameter` và KMS decrypt. Kiểm tra `APP_ENV=production`, `FRONTEND_ORIGIN=https://<domain>`, Supabase HTTPS/DB TLS và publishable key. Xem [secrets](secrets.md).
-6. Trỏ DNS A/AAAA (nếu dùng) tới EC2, kiểm tra outbound 80/443 và inbound 80/443. Caddy tự nhận chứng chỉ cho domain thật và chuyển HTTP sang HTTPS. Đảm bảo Supabase Auth redirect allow-list `https://<domain>/auth/callback` trước khi bật người dùng. Không dùng domain placeholder để chạy staging.
-7. Lần deploy đầu chỉ sau khi migration readiness và CI của SHA được duyệt. Workflow gọi SSM document; script lấy secret vào `/run/moodprint` (tmpfs), pull image theo digest, `docker compose up -d --no-build`, đợi health rồi xác minh HTTPS. Xem [release checklist](release-checklist.md).
-8. Cài CloudWatch agent theo [AWS guide](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Install-CloudWatch-Agent.html), dùng `deploy/aws/cloudwatch-agent.json` **chỉ trên EC2 chuyên dụng cho MoodPrint**; tạo log group `/moodprint/staging/containers` với retention trước khi bật agent. Template đọc Docker json logs của mọi container trên host nên không dùng host đa ứng dụng. Gắn quyền trong `instance-policy.json`, tạo alarm CPU/RAM/disk và health theo runbook, kiểm tra log bằng request synthetic.
+## Trước khi cài
 
-Một lần restart EC2, Docker restart các container do `restart: unless-stopped` và giữ volume Caddy. Secret file trong `/run` mất sau reboot nhưng container cũ còn environment snapshot; **trước khi deploy/recreate sau reboot**, chạy lại workflow/SSM để tải SecureString mới. Kiểm tra health và DNS sau reboot. Nếu file Compose/Caddy/deploy.sh thay đổi ở commit sau, cập nhật bootstrap files từ **chính commit đã duyệt** và so hash trước khi chạy workflow; CD thường ngày chỉ cập nhật hai image.
+1. Xác minh đúng AWS account/Region, instance `moodprint-staging` đang chạy, status checks 3/3 và SSM Managed node Online. Giữ Security Group mở đúng HTTP/HTTPS; không mở SSH hoặc API port.
+2. Giữ IAM role `MoodPrint-Staging-EC2-Role` với `AmazonSSMManagedInstanceCore`. Review `deploy/aws/instance-policy.json` và chỉ cấp thêm `ssm:GetParameter` cho ARN chính xác của `/moodprint/staging/runtime`. Nếu SecureString dùng AWS managed key `alias/aws/ssm`, không thêm placeholder customer-managed KMS grant.
+3. Xác minh parameter `/moodprint/staging/runtime` vẫn là Standard SecureString. Không in plaintext. Standard Parameter Store giới hạn 4 KB.
+4. Kiểm tra DNS A record của `moodprint.duckdns.org` trỏ tới Elastic IP hiện có. Không đổi IP hoặc mua domain mới.
+5. GHCR packages bắt đầu private. Sau khi image đầu tiên qua secret checks và được review, có thể chọn public để EC2 pull ẩn danh; chuyển package sang public là lựa chọn không thể hoàn tác. Nếu giữ private, dùng token chỉ có `read:packages` trong SecureString riêng và cấp quyền đọc đúng token parameter cho EC2 role.
+
+## Cài đặt
+
+Tải repository tại commit `main` đã được review, rồi chạy qua Session Manager:
+
+```bash
+sudo bash deploy/aws/install-release-poller.sh
+```
+
+Installer cài poller, `deploy.sh`, Compose/Caddy files, systemd service/timer và GitHub CLI tối thiểu 2.102.0 từ nguồn chính thức của GitHub nếu phiên bản có sẵn quá cũ. Installer không tạo AWS resource. Giữ thư mục và scripts do root sở hữu; user ứng dụng không được sửa chúng.
+
+Review `/opt/moodprint/deployment.conf` với owner root và mode `0600`. File này chứa cấu hình không bí mật như Region, `GITHUB_REPOSITORY=mhiu05/MoodPrint`, tên GHCR images, `APP_DOMAIN=moodprint.duckdns.org`, và tên parameter runtime. Không đưa secret values hoặc GHCR token vào file. Nếu dùng package private, đặt tên token parameter và GHCR username; cấp IAM chỉ cho đúng parameter token đó.
+
+Kiểm tra timer và log mà không đọc env file:
+
+```bash
+sudo systemctl status moodprint-release-poll.timer
+sudo systemctl start moodprint-release-poll.service
+sudo journalctl -u moodprint-release-poll.service --since today --no-pager
+```
+
+SSM document `MoodPrint-Staging-Deploy` chỉ dành cho recovery do operator thực hiện; routine deployment không gọi SSM Run Command. Giữ nguyên hai ECR repository cũ cùng immutable tag settings và lifecycle policies. Pipeline mới sử dụng GHCR.
+
+## Phát hành và kiểm tra
+
+Sau khi code được merge vào `main`, CI phải thành công trên đúng SHA. Release workflow tự build, kiểm image, xuất digest và attestations. EC2 timer kiểm tra mỗi năm phút, xác minh release của SHA `main` mới nhất, rồi triển khai digest pair. CI thất bại thì không có release mới để cài.
+
+Xác nhận hai container healthy và `https://moodprint.duckdns.org/api/v1/health/ready` thành công. Kiểm tra Caddy certificate, redirect HTTP sang HTTPS, refresh các SPA routes và Supabase Auth Site URL/redirect allow-list riêng. Image deployment không chạy migration database. Nếu health check thất bại, `deploy.sh` thử khôi phục image pair trước; chỉ báo rollback thành công sau khi xác nhận readiness.
+
+Auth, mood, matching, messaging, privacy, SSE và mobile cần synthetic smoke tests riêng. AI, memory, Voyage và STT chỉ được bật sau khi review secrets, consent, ngân sách và provider smoke tests. Readiness thành công không thay thế các bài kiểm tra tính năng.

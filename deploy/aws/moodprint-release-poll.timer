@@ -1,0 +1,12 @@
+[Unit]
+Description=Check MoodPrint for a verified main release every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+RandomizedDelaySec=30s
+Persistent=true
+Unit=moodprint-release-poll.service
+
+[Install]
+WantedBy=timers.target

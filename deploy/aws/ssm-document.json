@@ -1,16 +1,21 @@
 {
   "schemaVersion": "2.2",
-  "description": "Deploy an approved MoodPrint staging image pair by immutable ECR digests",
+  "description": "Operator recovery deployment of a verified MoodPrint GHCR image pair by digest",
   "parameters": {
-    "apiDigest": {
+    "apiImage": {
       "type": "String",
       "interpolationType": "ENV_VAR",
-      "allowedPattern": "^sha256:[a-f0-9]{64}$"
+      "allowedPattern": "^ghcr\\.io/mhiu05/moodprint-api@sha256:[a-f0-9]{64}$"
     },
-    "webDigest": {
+    "webImage": {
       "type": "String",
       "interpolationType": "ENV_VAR",
-      "allowedPattern": "^sha256:[a-f0-9]{64}$"
+      "allowedPattern": "^ghcr\\.io/mhiu05/moodprint-web@sha256:[a-f0-9]{64}$"
+    },
+    "releaseSha": {
+      "type": "String",
+      "interpolationType": "ENV_VAR",
+      "allowedPattern": "^[a-f0-9]{40}$"
     }
   },
   "mainSteps": [
@@ -20,7 +25,7 @@
       "precondition": {"StringEquals": ["platformType", "Linux"]},
       "inputs": {
         "timeoutSeconds": "360",
-        "runCommand": ["bash /opt/moodprint/deploy.sh"]
+        "runCommand": ["/opt/moodprint/deploy.sh \"$SSM_apiImage\" \"$SSM_webImage\" \"$SSM_releaseSha\""]
       }
     }
   ]
