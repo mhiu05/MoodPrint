@@ -107,7 +107,7 @@ async def ranked_candidates(db, user, own, own_consent):
                 continue
             if pair.id in rooms_by_pair:
                 continue
-        points = scoring.score({**own.payload, "sources": []}, {**payload, "sources": []})
+        points = scoring.score(scoring.v1_view(own.payload), scoring.v1_view(payload))
         if points >= 30:
             ranked.append((points, str(peer_id), peer_id))
     ranked.sort(key=lambda item: (-item[0], item[1]))

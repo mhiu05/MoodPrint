@@ -5,22 +5,45 @@ from uuid import UUID
 from pydantic import Field, field_validator
 
 from app.contracts import DTO, MessageText, VersionInput
-from app.modules.profiles.taxonomy import GOALS, INTERESTS, LANGUAGES, STYLES, VALUES
+from app.modules.profiles.taxonomy import (
+    ACTIVITIES,
+    AVAILABILITY,
+    GOALS,
+    INTERESTS,
+    LANGUAGES,
+    LIMITS,
+    STYLES,
+    VALUES,
+)
 
 
 class PublicProfile(DTO):
-    interests: list[str] = Field(default_factory=list, max_length=20)
-    values: list[str] = Field(default_factory=list, max_length=20)
+    """The only data another member can see or be matched on (taxonomy v2 tags).
+
+    v1 payloads (without activities, availability, strictGoal) remain valid.
+    Maximums apply to drafts; minimums are enforced when publishing.
+    """
+
+    interests: list[str] = Field(default_factory=list, max_length=LIMITS["interests"][1])
+    values: list[str] = Field(default_factory=list, max_length=LIMITS["values"][1])
     style: str = "balanced"
     goal: str = "friendship"
-    languages: list[str] = Field(default_factory=list, max_length=5)
+    languages: list[str] = Field(default_factory=list, max_length=LIMITS["languages"][1])
+    activities: list[str] = Field(default_factory=list, max_length=LIMITS["activities"][1])
+    availability: list[str] = Field(default_factory=list, max_length=LIMITS["availability"][1])
+    # Only show people with the same goal (applied to both sides).
+    strict_goal: bool = False
 
-    @field_validator("interests", "values", "languages")
+    @field_validator("interests", "values", "languages", "activities", "availability")
     @classmethod
     def known_unique_tags(cls, value: list[str], info):
-        allowed = {"interests": INTERESTS, "values": VALUES, "languages": LANGUAGES}[
-            info.field_name
-        ]
+        allowed = {
+            "interests": INTERESTS,
+            "values": VALUES,
+            "languages": LANGUAGES,
+            "activities": ACTIVITIES,
+            "availability": AVAILABILITY,
+        }[info.field_name]
         if len(value) != len(set(value)) or any(tag not in allowed for tag in value):
             raise ValueError("Unknown or duplicate taxonomy tag")
         return value

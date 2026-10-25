@@ -19,6 +19,7 @@ from app.core.security import (
 )
 from app.infrastructure.database.models import Consent, User, now
 from app.modules.matching import scoring
+from app.modules.profiles.taxonomy import TAXONOMY
 from app.modules.social import service as svc
 from app.modules.social.models import (
     Block,
@@ -174,6 +175,7 @@ async def publish(body: PublishInput, request: Request, actor: Actor = Depends(r
                 payload=draft.payload,
                 version=user.profile_version,
                 consent_version=consents["MATCH"].version,
+                taxonomy_version=TAXONOMY.version,
             )
             db.add(profile)
             await db.flush()
@@ -272,7 +274,7 @@ async def candidates(request: Request, actor: Actor = Depends(require_actor)):
                 if room:
                     continue
             points = scoring.score(
-                {**own.payload, "sources": []}, {**published.payload, "sources": []}
+                scoring.v1_view(own.payload), scoring.v1_view(published.payload)
             )
             if points < 30:
                 continue

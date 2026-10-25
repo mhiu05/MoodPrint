@@ -1,14 +1,16 @@
 """Persistent published-profile and social state; no private AI content."""
 
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
     BigInteger,
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKey,
     Index,
+    SmallInteger,
     String,
     UniqueConstraint,
     func,
@@ -39,6 +41,7 @@ class PublishedProfile(Base):
     consent_version: Mapped[int]
     valid: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    taxonomy_version: Mapped[str] = mapped_column(String(8), default="v1", server_default="v1")
     __table_args__ = (
         UniqueConstraint("user_id", "version"),
         Index("uq_published_active_owner", "user_id", unique=True, postgresql_where=text("valid")),
@@ -55,6 +58,11 @@ class CandidateReference(Base):
     consent_version: Mapped[int]
     peer_consent_version: Mapped[int]
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    scoring_version: Mapped[str] = mapped_column(
+        String(16), default="rules-v1", server_default="rules-v1"
+    )
+    # Position in the shortlist shown (0-based); null for pre-v2 references.
+    rank: Mapped[int | None] = mapped_column(SmallInteger)
     __table_args__ = (CheckConstraint("user_id <> peer_id", name="candidate_distinct"),)
 
 
@@ -149,3 +157,14 @@ class ConnectionRead(Base):
         DateTime(timezone=True), default=now, server_default=func.now()
     )
     __table_args__ = (CheckConstraint("last_read_seq >= 0", name="read_seq"),)
+
+
+class MatchingStatsDaily(Base):
+    """Aggregated beta counters per day and scorer; no user identifiers (C-08)."""
+
+    __tablename__ = "matching_stats_daily"
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    scoring_version: Mapped[str] = mapped_column(String(16), primary_key=True)
+    impressions: Mapped[int] = mapped_column(default=0, server_default="0")
+    requests: Mapped[int] = mapped_column(default=0, server_default="0")
+    accepts: Mapped[int] = mapped_column(default=0, server_default="0")

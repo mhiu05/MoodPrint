@@ -38,6 +38,8 @@ class Settings(EmbeddingSettings, BaseSettings):
     session_idle_hours: int = Field(default=12, ge=1, le=72)
     session_max_days: int = Field(default=7, ge=1, le=30)
     static_dir: str = ""
+    # Matching scorer: v1 (rollback), v2 (rules-v2) or shadow (serve v1, log v2 overlap).
+    matching_scorer: Literal["v1", "v2", "shadow"] = "v1"
 
     @model_validator(mode="after")
     def local_live_scope(self):

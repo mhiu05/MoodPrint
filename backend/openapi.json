@@ -10567,7 +10567,7 @@
               "type": "string"
             },
             "type": "array",
-            "maxItems": 20,
+            "maxItems": 10,
             "title": "Interests"
           },
           "values": {
@@ -10575,7 +10575,7 @@
               "type": "string"
             },
             "type": "array",
-            "maxItems": 20,
+            "maxItems": 4,
             "title": "Values"
           },
           "style": {
@@ -10593,8 +10593,29 @@
               "type": "string"
             },
             "type": "array",
-            "maxItems": 5,
+            "maxItems": 2,
             "title": "Languages"
+          },
+          "activities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 4,
+            "title": "Activities"
+          },
+          "availability": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 6,
+            "title": "Availability"
+          },
+          "strictGoal": {
+            "type": "boolean",
+            "title": "Strictgoal",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -11521,7 +11542,7 @@
               "type": "string"
             },
             "type": "array",
-            "maxItems": 20,
+            "maxItems": 10,
             "title": "Interests"
           },
           "values": {
@@ -11529,7 +11550,7 @@
               "type": "string"
             },
             "type": "array",
-            "maxItems": 20,
+            "maxItems": 4,
             "title": "Values"
           },
           "style": {
@@ -11547,13 +11568,35 @@
               "type": "string"
             },
             "type": "array",
-            "maxItems": 5,
+            "maxItems": 2,
             "title": "Languages"
+          },
+          "activities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 4,
+            "title": "Activities"
+          },
+          "availability": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 6,
+            "title": "Availability"
+          },
+          "strictGoal": {
+            "type": "boolean",
+            "title": "Strictgoal",
+            "default": false
           }
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "PublicProfile"
+        "title": "PublicProfile",
+        "description": "The only data another member can see or be matched on (taxonomy v2 tags).\n\nv1 payloads (without activities, availability, strictGoal) remain valid.\nMaximums apply to drafts; minimums are enforced when publishing."
       },
       "PublishInput": {
         "properties": {

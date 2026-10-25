@@ -14,6 +14,7 @@ from app.core.errors import DomainError
 from app.core.security import Actor, digest, lock_actor
 from app.infrastructure.database.models import Consent, User, now
 from app.modules.matching import scoring
+from app.modules.profiles import taxonomy
 from app.modules.social.models import (
     Block,
     CandidateReference,
@@ -45,9 +46,21 @@ def receipt(resource_id: UUID, version=1):
 
 
 def validate_publishable(profile: dict):
-    if not scoring._valid_profile({**profile, "sources": []}):
+    """Taxonomy v2 minimums and maximums for every multi-select facet."""
+    try:
+        PublicProfile.model_validate(profile)
+    except ValueError:
+        complete = False
+    else:
+        complete = all(
+            low <= len(profile.get(facet) or []) <= high
+            for facet, (low, high) in taxonomy.LIMITS.items()
+        )
+    if not complete:
         raise DomainError(
-            422, "PROFILE_INCOMPLETE", "Hãy chọn ít nhất 3 sở thích, 2 giá trị và 1 ngôn ngữ."
+            422,
+            "PROFILE_INCOMPLETE",
+            "Hãy chọn 3–10 sở thích, 2–4 giá trị và ít nhất 1 ngôn ngữ.",
         )
 
 
@@ -376,7 +389,7 @@ async def peer_card(db: AsyncSession, user: User, peer: User) -> PeerCardDTO | N
     except DomainError:
         return None
     alias, seed = pair_alias(user.id, peer.id)
-    points = scoring.score({**own.payload, "sources": []}, {**published.payload, "sources": []})
+    points = scoring.score(scoring.v1_view(own.payload), scoring.v1_view(published.payload))
     return PeerCardDTO(
         alias=alias,
         avatar_seed=seed,

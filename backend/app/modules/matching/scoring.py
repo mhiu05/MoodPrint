@@ -42,6 +42,22 @@ _PROFILE_FIELDS = {
 }
 
 
+def v1_view(profile: Mapping[str, Any]) -> dict[str, Any]:
+    """Project a published v1 or v2 payload onto the frozen v1 vocabulary.
+
+    v2-only facets (activities, availability, strict_goal) and v2-only tags are
+    ignored, so a v2 profile scores under v1 exactly like its v1 subset.
+    """
+    return {
+        "interests": [tag for tag in profile.get("interests", []) if tag in _INTERESTS],
+        "values": [tag for tag in profile.get("values", []) if tag in _VALUES],
+        "style": profile.get("style"),
+        "goal": profile.get("goal"),
+        "languages": [tag for tag in profile.get("languages", []) if tag in _LANGUAGES],
+        "sources": [],
+    }
+
+
 def half_up(numerator: int, denominator: int) -> int:
     """Round a rational value using the frontend's final round-half-up rule."""
     return (2 * numerator + denominator) // (2 * denominator)

@@ -66,6 +66,13 @@ UPGRADES = {
         "0011_social_stabilization",
         tables=("connection_reads",),
     ),
+    "0012": UpgradePlan(
+        ROOT / "docs/productization/migrations/0012-review.sql",
+        ROOT / "docs/productization/migrations/0012-execution.json",
+        "0011_social_stabilization",
+        "0012_matching_v2",
+        tables=("matching_stats_daily",),
+    ),
 }
 SUPABASE_API_ROLES = ("anon", "authenticated", "service_role")
 

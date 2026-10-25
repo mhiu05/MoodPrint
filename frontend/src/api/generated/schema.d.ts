@@ -1521,6 +1521,15 @@ export interface components {
             goal: string;
             /** Languages */
             languages?: string[];
+            /** Activities */
+            activities?: string[];
+            /** Availability */
+            availability?: string[];
+            /**
+             * Strictgoal
+             * @default false
+             */
+            strictGoal: boolean;
         };
         /** DraftView */
         DraftView: {
@@ -1920,7 +1929,13 @@ export interface components {
              */
             expiresAt: string;
         };
-        /** PublicProfile */
+        /**
+         * PublicProfile
+         * @description The only data another member can see or be matched on (taxonomy v2 tags).
+         *
+         *     v1 payloads (without activities, availability, strictGoal) remain valid.
+         *     Maximums apply to drafts; minimums are enforced when publishing.
+         */
         PublicProfile: {
             /** Interests */
             interests?: string[];
@@ -1938,6 +1953,15 @@ export interface components {
             goal: string;
             /** Languages */
             languages?: string[];
+            /** Activities */
+            activities?: string[];
+            /** Availability */
+            availability?: string[];
+            /**
+             * Strictgoal
+             * @default false
+             */
+            strictGoal: boolean;
         };
         /** PublishInput */
         PublishInput: {
