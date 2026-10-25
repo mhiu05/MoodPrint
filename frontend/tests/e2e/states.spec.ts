@@ -111,8 +111,13 @@ test("a failed list shows retry, and coming back online retries by itself", asyn
   await alert.getByRole("button", { name: "Thử lại" }).click();
   await expect(alert).toContainText("Chưa hoàn tất yêu cầu");
   fail = false;
+  const offlineBanner = page
+    .getByRole("status")
+    .filter({ hasText: "Mất kết nối mạng. Nội dung đang nhập vẫn được giữ." });
   await context.setOffline(true);
+  await expect(offlineBanner).toBeVisible();
   await context.setOffline(false);
+  await expect(offlineBanner).toHaveCount(0);
   await expect(page.getByRole("link", { name: /Bạn đồng hành 3fa9c1/ })).toBeVisible();
   await expect(page.getByRole("alert")).toHaveCount(0);
 });
