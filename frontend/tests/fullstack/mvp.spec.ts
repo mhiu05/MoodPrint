@@ -5,7 +5,6 @@ import {
   call,
   connectByApi,
   disable,
-  enable,
   noHorizontalOverflow,
   pairAlias,
   publish,
@@ -321,7 +320,12 @@ test("Journey B/C: two users match, request, accept and chat; stale tab loses ac
   expect(stale.status).toBe(403);
 
   // Restoring consent never republishes the profile implicitly.
-  await enable(settings, "tìm bạn");
+  const withdrawn = await call(b, 12, "GET", "/session");
+  expect((await call(b, 12, "PUT", "/consents/MATCH", {
+    enabled: true,
+    expectedVersion: withdrawn.body.consents.MATCH.version,
+    policyVersion: "v1",
+  })).status).toBe(200);
   await settings.goto("/#/connect");
   await expect(
     settings.getByRole("heading", { name: "Hồ sơ đang tạm ẩn" }),
@@ -518,8 +522,12 @@ test("Every real screen passes axe and reflows at 1440, 1280, 430 and 390 with r
 }) => {
   const context = await browser.newContext({ reducedMotion: "reduce" });
   await session(context, 20);
+  expect((await call(context, 20, "PUT", "/consents/MATCH", {
+    enabled: true,
+    expectedVersion: 1,
+    policyVersion: "v1",
+  })).status).toBe(200);
   const page = await context.newPage();
-  await enable(page, "tìm bạn");
   const routes = [
     ["/assistants", "Bạn muốn kể gì"],
     ["/self", "Cảm xúc của bạn"],

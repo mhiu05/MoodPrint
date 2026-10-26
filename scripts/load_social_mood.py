@@ -646,7 +646,10 @@ def main():
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
-    keys = ("users", "passed", "requests", "elapsed_s", "pool_peak_checked_out", "integrity")
+    keys = (
+        "users", "passed", "requests", "elapsed_s", "pool_peak_checked_out",
+        "integrity", "acceptance", "unexpected_statuses", "flow_exceptions",
+    )
     print(json.dumps({key: report[key] for key in keys}))
     raise SystemExit(0 if report["passed"] else 1)
 

@@ -43,16 +43,11 @@ test("real saved history requires opt-in, resumes by URL, and stays manageable a
   });
   await expect(history).not.toBeChecked();
   await expect(semantic).not.toBeChecked();
-  await history.check();
+  await history.click();
   await expect(
     page.getByText("Đã cập nhật lựa chọn dữ liệu AI.", { exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Bật trò chuyện AI", exact: true })
-    .click();
-  await expect(
-    page.getByRole("button", { name: "Tắt trò chuyện AI", exact: true }),
-  ).toBeVisible();
+  await expect(history).toBeChecked();
   await page.goto("/#/assistants/may");
   await page
     .getByRole("textbox", { name: "Tin nhắn cho Mây", exact: true })
@@ -122,16 +117,15 @@ test("real saved history requires opt-in, resumes by URL, and stays manageable a
     fullPage: true,
   });
   await page.goto("/#/settings");
-  await history.uncheck();
+  await history.click();
   await expect(
     page.getByText("Đã cập nhật lựa chọn dữ liệu AI.", { exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Tắt trò chuyện AI", exact: true })
-    .click();
+  await page.getByText("Rút quyền xử lý đã cấp", { exact: true }).click();
+  await page.getByRole("button", { name: "Rút quyền trò chuyện AI", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Bật trò chuyện AI", exact: true }),
-  ).toBeVisible();
+    page.getByRole("button", { name: "Rút quyền trò chuyện AI", exact: true }),
+  ).toHaveCount(0);
   await page.goto(selectedUrl);
   await expect(
     page

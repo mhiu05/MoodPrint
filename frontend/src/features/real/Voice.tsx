@@ -3,6 +3,7 @@ import { Button, cx } from "../../components/UI";
 import { ApiError } from "../../api/client";
 import { ErrorNotice, useSession } from "./RealApp";
 import { encodeWav } from "./audio";
+import type { ConsentInput, SessionView } from "../../api/contracts";
 
 type Recording = {
   stream: MediaStream;
@@ -15,15 +16,13 @@ type Recording = {
 };
 
 export function VoiceRecorder({ onUse }: { onUse: (text: string) => void }) {
-  const { session } = useSession();
-  const allowed =
-    session.features.voice &&
-    session.consents.AI.enabled &&
-    session.consents.VOICE.enabled;
+  const { api, session, receive } = useSession();
+  const allowed = session.features.voice;
+  const authorized = session.consents.AI.enabled && session.consents.VOICE.enabled;
   const allowedRef = useRef(allowed);
-  allowedRef.current = allowed;
+  allowedRef.current = allowed && authorized;
   const [state, setState] = useState<
-      "idle" | "recording" | "transcribing" | "preview"
+      "idle" | "starting" | "recording" | "transcribing" | "preview"
     >("idle"),
     [seconds, setSeconds] = useState(0),
     [text, setText] = useState(""),
@@ -52,13 +51,13 @@ export function VoiceRecorder({ onUse }: { onUse: (text: string) => void }) {
     };
   }, []);
   useEffect(() => {
-    if (!allowed) {
+    if (!allowed || (!authorized && state !== "idle" && state !== "starting")) {
       cleanup();
       upload.current?.abort();
       setText("");
       setState("idle");
     }
-  }, [allowed]);
+  }, [allowed, authorized, state]);
   async function finish() {
     const value = recording.current;
     if (!value) return;
@@ -111,8 +110,22 @@ export function VoiceRecorder({ onUse }: { onUse: (text: string) => void }) {
   }
   async function start() {
     setError(undefined);
+    setState("starting");
     let stream: MediaStream | undefined, context: AudioContext | undefined;
     try {
+      let next = session;
+      for (const purpose of ["AI", "VOICE"] as const) {
+        if (!next.consents[purpose].enabled) {
+          next = await api.request<SessionView>(`/consents/${purpose}`, {
+            method: "PUT",
+            body: { enabled: true, expectedVersion: next.consents[purpose].version,
+                    policyVersion: "v1" } satisfies ConsentInput,
+          });
+          receive(next);
+        }
+      }
+      if (!alive.current) return;
+      allowedRef.current = true;
       if (!navigator.mediaDevices?.getUserMedia || !window.AudioContext)
         throw new ApiError(
           422,
@@ -184,20 +197,18 @@ export function VoiceRecorder({ onUse }: { onUse: (text: string) => void }) {
       setState("idle");
     }
   }
-  if (
-    !session.features.voice ||
-    !session.consents.AI.enabled ||
-    !session.consents.VOICE.enabled
-  )
+  if (!session.features.voice)
     return null;
   return (
     <section className="real-voice" aria-label="Gửi bằng giọng nói">
+      <p className={cx.footnote}>Chỉ ghi sau khi bạn chọn Ghi âm và trình duyệt cho phép. Âm thanh được gửi đến OpenAI để chuyển thành chữ, không lưu bản âm thanh; bạn xem và sửa chữ trước khi gửi.</p>
       <ErrorNotice error={error} />
       {state === "idle" && (
         <Button variant="text" onClick={() => void start()}>
           Ghi âm tối đa 30 giây
         </Button>
       )}
+      {state === "starting" ? <p role="status">Đang xin quyền microphone…</p> : null}
       {state === "recording" && (
         <>
           <p role="status">Đang ghi âm · {seconds}/30 giây</p>

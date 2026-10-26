@@ -1,8 +1,10 @@
 import asyncio
 import json
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
+from pydantic import SecretStr
 
 from tests.fakes import make_test_model
 
@@ -49,6 +51,58 @@ async def test_history_is_explicit_optin_and_cannot_be_implicitly_activated(clie
         "/api/v1/ai/conversations", json={"botId": "may", "persistent": True}, headers=key()
     )
     assert denied.status_code == 403
+
+
+async def test_new_saved_history_never_exceeds_thirty_days(clients):
+    app, actors = clients
+    app.state.ai.model_override = make_test_model("Synthetic reply")
+    client = actors[0][0]
+    app.state.settings.chat_retention_days = 90  # Legacy deployment setting.
+    await enable(client)
+    preference = (await client.get("/api/v1/ai/preferences")).json()
+    assert preference["retentionDays"] == 30
+    created = await client.post(
+        "/api/v1/ai/conversations", json={"botId": "may"}, headers=key(),
+    )
+    assert created.status_code == 201, created.text
+    expiry = datetime.fromisoformat(created.json()["expiresAt"])
+    remaining = expiry - datetime.now(UTC)
+    assert timedelta(days=29) < remaining <= timedelta(days=30)
+
+
+async def test_memory_reapproval_does_not_resume_withdrawn_voyage_processing(clients):
+    from tests.test_memory import seed_proposal
+
+    app, actors = clients
+    client, uid = actors[0]
+    app.state.settings.semantic_memory_enabled = True
+    app.state.settings.voyage_api_key = SecretStr("synthetic-test-only")
+    for purpose in ("AI", "MEM"):
+        response = await client.put(
+            f"/api/v1/consents/{purpose}",
+            json={"enabled": True, "expectedVersion": 1, "policyVersion": "v1"},
+            headers=key(),
+        )
+        assert response.status_code == 200, response.text
+    enabled = await client.put(
+        "/api/v1/ai/preferences",
+        json={"historyEnabled": False, "semanticMemoryEnabled": True,
+              "expectedVersion": 1, "policyVersion": "ai-data-v1"}, headers=key(),
+    )
+    assert enabled.status_code == 200, enabled.text
+    withdrawn = await client.put(
+        "/api/v1/consents/MEM",
+        json={"enabled": False, "expectedVersion": 2, "policyVersion": "v1"},
+        headers=key(),
+    )
+    assert withdrawn.status_code == 200, withdrawn.text
+    proposal = await seed_proposal(app, uid)
+    approved = await client.post(
+        f"/api/v1/proposals/{proposal.id}/confirm",
+        json={"expectedVersion": 1}, headers=key(),
+    )
+    assert approved.status_code == 200, approved.text
+    assert not (await client.get("/api/v1/ai/preferences")).json()["semanticMemoryEnabled"]
 
 
 @pytest.mark.parametrize("bot_id", ["may", "guong", "nhip", "rure", "caunoi"])

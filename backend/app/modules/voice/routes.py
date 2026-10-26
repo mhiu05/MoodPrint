@@ -41,14 +41,23 @@ async def transcribe(request: Request, actor: Actor = Depends(require_actor)):
     VOICE_DAILY_LIMIT.check("day:" + str(actor.user_id))
     release = VOICE_SLOTS.reserve(actor.user_id)
     audio = bytearray()
+    task: asyncio.Task[str] | None = None
     try:
         async for chunk in request.stream():
             if len(audio) + len(chunk) > 3_000_000:
                 raise DomainError(413, "AUDIO_TOO_LARGE", "Bản ghi âm quá lớn.")
             audio.extend(chunk)
         duration = validate_audio(bytes(audio))
+        task = asyncio.create_task(provider.transcribe(bytes(audio)))
         async with asyncio.timeout(35):
-            text = await provider.transcribe(bytes(audio))
+            while not task.done():
+                await asyncio.wait({task}, timeout=0.5)
+                if not task.done():
+                    async with transaction(request, actor) as (db, user):
+                        await assert_purpose(db, user, "VOICE")
+                        if user.data_version != version:
+                            raise DomainError(409, "CONTEXT_CHANGED", "Quyền đã thay đổi. Bản ghi âm đã dừng xử lý.")
+            text = await task
         async with transaction(request, actor) as (db, user):
             await assert_purpose(db, user, "VOICE")
             if user.data_version != version:
@@ -70,5 +79,8 @@ async def transcribe(request: Request, actor: Actor = Depends(require_actor)):
             True,
         ) from exc
     finally:
+        if task and not task.done():
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
         release()
         audio.clear()

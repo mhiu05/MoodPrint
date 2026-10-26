@@ -36,6 +36,7 @@ test("social screens are responsive and pass axe at every acceptance size", asyn
   const { one, two, pageA, room, close } = await openRoom(browser, 38, 39);
   const staff = await browser.newContext();
   try {
+    await pageA.emulateMedia({ reducedMotion: "reduce" });
     const started = await call(one, 38, "POST", `/connections/${room}/activities`, {
       kind: "icebreaker",
     });
@@ -46,6 +47,7 @@ test("social screens are responsive and pass axe at every acceptance size", asyn
     expect(accepted.status, accepted.text).toBe(200);
     await session(staff, 37);
     const admin = await staff.newPage();
+    await admin.emulateMedia({ reducedMotion: "reduce" });
     for (const [width, height] of VIEWPORTS) {
       await pageA.setViewportSize({ width, height });
       await pageA.goto("/#/connect?tab=suggestions");

@@ -21,9 +21,40 @@ from app.modules.social.models import (
     Pair,
 )
 from tests.conftest import add_actor
-from tests.social_helpers import consent, key, open_room, publish, published_pair
+from tests.social_helpers import PROFILE, consent, key, open_room, publish, published_pair
 
 pytestmark = pytest.mark.postgres
+
+
+async def test_draft_and_preview_do_not_publish_or_grant_matching(clients):
+    _, actors = clients
+    a, _ = actors[0]
+    b, _ = actors[1]
+    saved = await a.put(
+        "/api/v1/profiles/matching-draft",
+        json={**PROFILE, "expectedVersion": 0}, headers=key(),
+    )
+    assert saved.status_code == 200, saved.text
+    preview = await a.post("/api/v1/profiles/matching-draft/preview")
+    assert preview.status_code == 200, preview.text
+    assert not (await a.get("/api/v1/session")).json()["consents"]["MATCH"]["enabled"]
+    assert (await a.get("/api/v1/profiles/published/current")).json() is None
+    await publish(b)
+    assert (await b.get("/api/v1/matching/candidates")).json()["candidates"] == []
+    card = preview.json()
+    published = await a.post(
+        "/api/v1/profiles/published",
+        json={"draftVersion": card["draftVersion"], "previewDigest": card["previewDigest"],
+              "expectedPublishedVersion": 0}, headers=key(),
+    )
+    assert published.status_code == 201, published.text
+    assert (await a.get("/api/v1/session")).json()["consents"]["MATCH"]["enabled"]
+    withdrawn = await a.request(
+        "DELETE", "/api/v1/profiles/published/current",
+        json={"expectedVersion": published.json()["profileVersion"]}, headers=key(),
+    )
+    assert withdrawn.status_code == 200, withdrawn.text
+    assert (await b.get("/api/v1/matching/candidates")).json()["candidates"] == []
 
 
 async def republish(client):

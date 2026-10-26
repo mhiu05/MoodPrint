@@ -11,7 +11,7 @@ from app.core.security import (
     save_receipt,
     transaction,
 )
-from app.infrastructure.database.models import Consent, ConsentEvent
+from app.infrastructure.database.models import Consent, ConsentEvent, now
 from app.modules.auth.routes import session_view
 from app.modules.social.service import invalidate_user_social
 
@@ -46,10 +46,17 @@ async def update_consent(
                 await invalidate_user_social(db, user.id)
             if purpose in ("AI", "MEM"):
                 from app.ai.embeddings import discard_user_index
+                from app.ai.models import AiPreference
 
                 # Old vectors are bound to the previous consent versions either way.
                 await discard_user_index(db, user.id)
                 if not body.enabled:
+                    preference = await db.get(AiPreference, user.id)
+                    if preference and preference.semantic_memory_enabled:
+                        # A later contextual AI/MEM grant must not resume Voyage.
+                        preference.semantic_memory_enabled = False
+                        preference.version += 1
+                        preference.updated_at = now()
                     from app.ai.memory import withdraw_proposals
 
                     await withdraw_proposals(db, user.id, purpose)

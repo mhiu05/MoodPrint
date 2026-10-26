@@ -4,6 +4,7 @@ import { ArrowUpRight, Users } from "lucide-react";
 import { Button, cx, Dialog, StatePanel } from "../../../components/UI";
 import type { components } from "../../../api/generated/schema";
 import { ErrorNotice, useResource, useSession } from "../RealApp";
+import type { SessionView } from "../../../api/contracts";
 import { CandidateCard } from "./CandidateCard";
 import { ProfileEditor } from "./ProfileEditor";
 import { RequestCard } from "./RequestCard";
@@ -20,17 +21,16 @@ const isTab = (value: string | null): value is Tab => TABS.includes(value as Tab
 
 /** Tabs per 08 section 2: Gợi ý · Lời mời (count) · Hồ sơ kết nối, kept in `?tab=`. */
 export function Discovery() {
-  const { api, session } = useSession();
+  const { api, session, receive } = useSession();
   const restricted = session.notices?.some((notice) => notice.kind === "restricted");
-  const canMatch =
-    session.features.matching &&
-    session.ageBand === "adult" &&
-    session.consents.MATCH.enabled && !restricted;
   const draft = useResource<Draft>("/profiles/matching-draft");
   const taxonomy = useResource<Taxonomy>("/taxonomy");
   const published = useResource<Published | null>(
     "/profiles/published/current",
   );
+  const canMatch =
+    session.features.matching && session.ageBand === "adult" &&
+    session.consents.MATCH.enabled && published.data?.state === "live" && !restricted;
   const suggestions = useResource<Schema["CandidateListDTO"]>(
     "/matching/candidates",
     canMatch,
@@ -133,11 +133,6 @@ export function Discovery() {
         Tìm bạn và nhắn tin người thật dành cho người đã đủ 18 tuổi.
       </StatePanel>
     );
-  const consentOff = !session.consents.MATCH.enabled && (
-    <StatePanel title="Bạn đang tắt quyền tìm bạn">
-      <Link to="/settings">Xem quyền tìm bạn</Link>
-    </StatePanel>
-  );
   return (
     <div className={cx.reading}>
       <h1 tabIndex={-1}>Tìm bạn đồng điệu</h1>
@@ -181,7 +176,7 @@ export function Discovery() {
       >
         {tab === "profile" && (
           <>
-            {consentOff}
+            <p>Hồ sơ chỉ xuất hiện với người khác sau khi bạn xem trước và chọn xuất bản. Trò chuyện AI, nhật ký cảm xúc và ghi nhớ không dùng để gợi ý bạn bè.</p>
             {!editing && (
               <Button
                 variant="secondary"
@@ -199,6 +194,7 @@ export function Discovery() {
                 onDraft={(saved) => draft.setData(saved)}
                 onPublished={(result) => {
                   published.setData(result);
+                  void api.request<SessionView>("/session").then(receive).catch(setError);
                   draft.setData(
                     (previous) =>
                       previous && {
@@ -260,7 +256,7 @@ export function Discovery() {
           </>
         )}
         {tab === "suggestions" &&
-          (consentOff || (
+          (
             <section className="real-section">
               <h2>Người cùng điểm chung</h2>
               <Button
@@ -336,9 +332,9 @@ export function Discovery() {
                 </p>
               )}
             </section>
-          ))}
+          )}
         {tab === "requests" &&
-          (consentOff || (
+          (
             <section className="real-section">
               <h2>Lời mời kết nối</h2>
               <ErrorNotice error={requests.error} retry={requests.refresh} />
@@ -380,7 +376,7 @@ export function Discovery() {
                 Tải lại lời mời
               </Button>
             </section>
-          ))}
+          )}
       </div>
       {blocking && (
         <Dialog

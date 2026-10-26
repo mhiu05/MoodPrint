@@ -100,20 +100,18 @@ export function useAIData() {
   return value;
 }
 
-export function AIDataControls() {
-  const { api } = useSession();
+export function AIDataControls({ historyOnly = false }: { historyOnly?: boolean }) {
+  const { api, session } = useSession();
   const { preferences, loading, error, reload, receive } = useAIData();
   const [busy, setBusy] = useState(false),
     [saveError, setSaveError] = useState<unknown>(),
     [notice, setNotice] = useState("");
-  const [pending, setPending] = useState<Partial<AIDataPreferences>>({});
   async function change(
     key: "historyEnabled" | "semanticMemoryEnabled",
     enabled: boolean,
   ) {
     if (!preferences || busy) return;
     setBusy(true);
-    setPending({ [key]: enabled });
     setSaveError(undefined);
     setNotice("");
     try {
@@ -134,7 +132,6 @@ export function AIDataControls() {
       reload();
     } finally {
       setBusy(false);
-      setPending({});
     }
   }
   return (
@@ -142,11 +139,8 @@ export function AIDataControls() {
       className="real-section ai-data-controls"
       aria-labelledby="ai-data-heading"
     >
-      <h2 id="ai-data-heading">Lịch sử và tìm ghi nhớ</h2>
-      <p>
-        Hai lựa chọn độc lập, mặc định tắt. Quyền trò chuyện AI và ghi nhớ đã
-        duyệt vẫn được quản lý riêng.
-      </p>
+      <h2 id="ai-data-heading">{historyOnly ? "Lưu lịch sử trò chuyện" : "Lịch sử và tìm ghi nhớ"}</h2>
+      {!historyOnly ? <p>Hai lựa chọn lưu lịch sử và dùng Voyage độc lập, mặc định tắt.</p> : null}
       {loading ? <p role="status">Đang tải lựa chọn dữ liệu AI…</p> : null}
       <ErrorNotice error={error} retry={reload} />
       <ErrorNotice error={saveError} />
@@ -155,7 +149,7 @@ export function AIDataControls() {
           <label className="ai-data-choice">
             <input
               type="checkbox"
-              checked={pending.historyEnabled ?? preferences.historyEnabled}
+              checked={preferences.historyEnabled}
               disabled={
                 busy ||
                 loading ||
@@ -177,16 +171,17 @@ export function AIDataControls() {
           {!preferences.historyAvailable ? (
             <p>Lưu lịch sử hiện chưa khả dụng.</p>
           ) : null}
-          <label className="ai-data-choice">
+          {!historyOnly ? <><label className="ai-data-choice">
             <input
               type="checkbox"
               checked={
-                pending.semanticMemoryEnabled ??
                 preferences.semanticMemoryEnabled
               }
               disabled={
                 busy ||
                 loading ||
+                (!preferences.semanticMemoryEnabled &&
+                  (!session.consents.AI.enabled || !session.consents.MEM.enabled)) ||
                 (!preferences.semanticMemoryAvailable &&
                   !preferences.semanticMemoryEnabled)
               }
@@ -203,13 +198,16 @@ export function AIDataControls() {
             AI và ghi nhớ đã duyệt cùng bật. Tắt lựa chọn này sẽ ngừng xử lý và
             loại bỏ dữ liệu tìm kiếm dẫn xuất.
           </p>
+          {(!session.consents.AI.enabled || !session.consents.MEM.enabled) ? (
+            <p>Để dùng Voyage, hãy gửi tin nhắn AI và duyệt ít nhất một ghi nhớ trước.</p>
+          ) : null}
           {!preferences.semanticMemoryAvailable ? (
             <p>Tìm ghi nhớ qua Voyage hiện chưa khả dụng.</p>
-          ) : null}
+          ) : null}</> : null}
         </>
       ) : null}
       {notice ? <p role="status">{notice}</p> : null}
-      <Link to="/memory">Quản lý ghi nhớ đã duyệt</Link>
+      {!historyOnly ? <Link to="/memory">Quản lý ghi nhớ đã duyệt</Link> : null}
     </section>
   );
 }

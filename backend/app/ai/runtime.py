@@ -22,7 +22,7 @@ from app.ai.usage import UsageEvent
 from app.core.errors import DomainError
 from app.core.security import Actor, assert_purpose, lock_actor
 from app.core.streams import StreamSlots
-from app.infrastructure.database.models import AiRun, AiUsage, Consent, now
+from app.infrastructure.database.models import AiRun, AiUsage, now
 
 
 @dataclass
@@ -342,7 +342,8 @@ class AiRuntime:
                 raise DomainError(422, "INVALID_PROPOSAL", "Nội dung đề xuất chưa hợp lệ.")
             async with self.database.require()() as db, db.begin():
                 user = await lock_actor(db, run.actor)
-                await assert_purpose(db, user, "MEM" if purpose == "memory" else "AI")
+                # A preview is temporary; persistence still requires approval.
+                await assert_purpose(db, user, "AI")
                 if user.data_version != run.data_version:
                     raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
                 from app.ai.memory import create_proposal
@@ -417,14 +418,6 @@ class AiRuntime:
                 c = self.store.get(
                     run.conversation_id, str(run.actor.user_id), str(run.actor.session_id)
                 )
-                async with self.database.require()() as db, db.begin():
-                    user = await lock_actor(db, run.actor)
-                    consents = {
-                        x.purpose: x
-                        for x in (
-                            await db.scalars(select(Consent).where(Consent.user_id == user.id))
-                        ).all()
-                    }
                 from app.ai.embeddings import retrieve_memories
 
                 memories = await retrieve_memories(self.database, self.settings, run.actor, c.bot_id, c.messages[-1].text if c.messages else "", run.data_version)
@@ -455,7 +448,7 @@ class AiRuntime:
                 output = await self.provider.run(
                     bot_id=c.bot_id,
                     history=history,
-                    tools=self.tools(run, c.bot_id, memory_enabled=consents["MEM"].enabled),
+                    tools=self.tools(run, c.bot_id, memory_enabled=True),
                     context=run,
                     on_progress=progress,
                     model_override=self.model_override,
