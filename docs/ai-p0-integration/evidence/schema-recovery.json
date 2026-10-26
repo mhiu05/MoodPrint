@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "backupHashVerified": true,
+  "backupDecrypt": "PASS",
+  "schemaRestore": "PASS",
+  "schemaTables": 39,
+  "isolatedUpgrade": "PASS",
+  "revision": "0015_context_privacy",
+  "network": "none",
+  "persistentStorage": false,
+  "hostedRowsRestored": false,
+  "fullDataRestore": "NOT_RUN",
+  "portableRecovery": "UNVERIFIED"
+}

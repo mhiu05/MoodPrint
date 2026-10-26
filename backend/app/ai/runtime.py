@@ -14,6 +14,7 @@ from sqlalchemy import select, update
 from app.ai.accounting import UsageSnapshot, persist_snapshot, reserve_accounting
 from app.ai.availability import AiStatus, public_failure
 from app.ai.context import MOOD_TURN_POLICY, SourceState, build_history, model_messages
+from app.ai.conversation import CONVERSATION_POLICY
 from app.ai.evidence import EVIDENCE_POLICY, EvidenceEnvelope
 from app.ai.models import AiMessageRecord
 from app.ai.persistence import current_turn, owned_conversation
@@ -288,7 +289,7 @@ class AiRuntime:
     async def reserve_usage(self, db, run_id: UUID, user_id: UUID, bot_id: str):
         if self.settings.ai_accounting_enabled:
             await reserve_accounting(db, run_id, user_id, self.worker_id, self.settings.openai_model,
-                                     prompt_version(SELECTED_VARIANTS[bot_id]) + "+" + EVIDENCE_POLICY)
+                                     prompt_version(SELECTED_VARIANTS[bot_id]) + "+" + EVIDENCE_POLICY + "+" + CONVERSATION_POLICY)
 
     async def record_usage(self, run: LiveRun, event: UsageEvent):
         run.usage.observe(event)

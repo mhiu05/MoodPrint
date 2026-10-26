@@ -27,8 +27,9 @@ from agents.result import RunResultStreaming
 from agents.tool import Tool
 from openai import AsyncOpenAI
 
+from app.ai.conversation import conversation_intent, requested_presentation
 from app.ai.evidence import MoodAnalysisPlan, render_mood_analysis, source_instructions
-from app.ai.prompts import LEGACY_BOTS, instructions
+from app.ai.prompts import LEGACY_BOTS, conversation_instructions, instructions
 from app.ai.schemas import AiOutput
 from app.ai.usage import UsageEvent, UsageObserver
 from app.core.config import Settings
@@ -180,12 +181,18 @@ class SdkProvider:
         model: Model,
         observer: UsageObserver,
     ) -> AiOutput:
-        scoped_mood = bot_id == "nhip" and getattr(context, "mood_scope", None) is not None
+        has_scope = bot_id == "nhip" and getattr(context, "mood_scope", None) is not None
+        runtime_context = hasattr(context, 'sources')
+        intent = conversation_intent(bot_id, history, scoped=has_scope) if runtime_context else 'analysis'
+        analytical = intent == 'analysis'
+        scoped_mood = has_scope and analytical
+        selected_tools: list[Tool] = [tool for tool in tools if analytical or tool.name != 'read_mood_summary']
+        runtime_guidance = conversation_instructions(bot_id, intent) if runtime_context else ''
         agent = Agent[Any](
             name=f"MoodPrint:{bot_id}",
-            instructions=instructions(bot_id, self.prompt_variant) + source_instructions(context, bot_id),
+            instructions=instructions(bot_id, self.prompt_variant) + source_instructions(context, bot_id, mood_analysis=analytical) + runtime_guidance,
             model=model,
-            tools=list(tools),
+            tools=selected_tools,
             output_type=MoodAnalysisPlan if scoped_mood else AiOutput,
             output_guardrails=[] if scoped_mood else [_no_unreceipted_claim],
             model_settings=ModelSettings(
@@ -210,7 +217,14 @@ class SdkProvider:
             async for _ in result.stream_events():
                 pass
             if scoped_mood:
-                return render_mood_analysis(MoodAnalysisPlan.model_validate(result.final_output), context)
+                plan = MoodAnalysisPlan.model_validate(result.final_output)
+                if runtime_context:
+                    brief, omit_mean = requested_presentation(history)
+                    if brief:
+                        plan.detail = 'brief'
+                    if omit_mean:
+                        plan.include_mean = False
+                return render_mood_analysis(plan, context)
             return AiOutput.model_validate(result.final_output)
         except BaseException as error:
             await _cancel_and_drain(result)

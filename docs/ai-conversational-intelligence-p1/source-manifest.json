@@ -1,0 +1,25 @@
+{
+  "baseline": "5e73a130fd0f081887c3c2ab2093c43674388012",
+  "evaluated_candidate": "2911eb63f6c72301c2b72837bfca8090e457a8c6",
+  "normalization": "UTF-8 text with normalized LF",
+  "application_sha256": {
+    "backend/app/ai/conversation.py": "d34f912d7f25164e259ead2ef8a96b3f3a182825d4b12bebbfbeb81475641030",
+    "backend/app/ai/evidence.py": "00f822a9a0810941b2358c98f3feec588bc364b758fc07ded559b73552d8521e",
+    "backend/app/ai/prompts.py": "32fd1c203046ce6c9b7cf041871ed52376d155c25952d2142f69f5e8b325a900",
+    "backend/app/ai/provider.py": "175d45352478b646180c6645c1bb2b5580b1b4b1dbeb5e906db6af470ce48792",
+    "backend/app/ai/runtime.py": "f72f516a5d5e9a686fbf168ecd471acbd205ff45b785f72e6058a7afb5fb4772"
+  },
+  "historical_fixtures_modified": false,
+  "prior_evaluated_candidates": [
+    "da24fcdb5cd0f0b72164c8f36400c67e382dad6a",
+    "6da23ea1d151d0a67ff2ca06ec02f9391ec53300"
+  ],
+  "reviewed_candidate": "2911eb63f6c72301c2b72837bfca8090e457a8c6",
+  "previous_application_sha256": {
+    "backend/app/ai/conversation.py": "a94f0e7555289020fa4c43d63d07aca129da5f756cfac4ee88fdb33d3fa629f5",
+    "backend/app/ai/evidence.py": "00f822a9a0810941b2358c98f3feec588bc364b758fc07ded559b73552d8521e",
+    "backend/app/ai/prompts.py": "32fd1c203046ce6c9b7cf041871ed52376d155c25952d2142f69f5e8b325a900",
+    "backend/app/ai/provider.py": "175d45352478b646180c6645c1bb2b5580b1b4b1dbeb5e906db6af470ce48792",
+    "backend/app/ai/runtime.py": "f72f516a5d5e9a686fbf168ecd471acbd205ff45b785f72e6058a7afb5fb4772"
+  }
+}
