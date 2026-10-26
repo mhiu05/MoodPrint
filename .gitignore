@@ -225,3 +225,5 @@ CLAUDE.md
 .claude/
 .mcp.json
 skills-lock.json
+.codex/
+.worktrees/
