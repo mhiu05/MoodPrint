@@ -35,7 +35,9 @@ async def selected_summary(db, user, scope: MoodReadScope):
         "to": str(scope.to_date),
         "count": len(rows),
         "mean": sum(by_day.values()) / len(rows) if rows else None,
-        "insightAvailable": len(rows) >= 3,
+        # Legacy tool key retained, never used as an inference threshold. The
+        # typed evidence capabilities are authoritative for analytical work.
+        "insightAvailable": False,
         "sourceVersions": [
             {"localDate": str(row.local_date), "version": row.version} for row in rows
         ],

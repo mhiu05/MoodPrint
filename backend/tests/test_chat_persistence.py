@@ -107,6 +107,7 @@ async def test_memory_reapproval_does_not_resume_withdrawn_voyage_processing(cli
 
 @pytest.mark.parametrize("bot_id", ["may", "guong", "nhip", "rure", "caunoi"])
 async def test_every_assistant_rebuilds_context_from_postgres_after_runtime_restart(clients, bot_id):
+    from app.ai.evidence import source_instructions
     from app.ai.prompts import instructions
     from app.ai.runtime import AiRuntime
     from tests.test_memory import enable as enable_memory
@@ -136,8 +137,9 @@ async def test_every_assistant_rebuilds_context_from_postgres_after_runtime_rest
     second = await client.post(url + "/messages", json={"text": "Continue with my approved watercolor memory",
         "clientMessageId": str(uuid4()), "expectedConversationVersion": restored["version"]}, headers=key())
     assert second.status_code == 202
-    await app.state.ai.runs[__import__("uuid").UUID(second.json()["runId"])].task
-    assert model.calls[0]["instructions"] == instructions(bot_id)
+    restored_run = app.state.ai.runs[__import__("uuid").UUID(second.json()["runId"])]
+    await restored_run.task
+    assert model.calls[0]["instructions"] == instructions(bot_id) + source_instructions(restored_run, bot_id)
     history = json.dumps(model.calls[0]["input"])
     assert "First synthetic watercolor input" in history
     assert "First synthetic reply" in history

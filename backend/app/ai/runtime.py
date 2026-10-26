@@ -4,6 +4,7 @@ import logging
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 from uuid import UUID, uuid4
 
@@ -13,6 +14,7 @@ from sqlalchemy import select, update
 from app.ai.accounting import UsageSnapshot, persist_snapshot, reserve_accounting
 from app.ai.availability import AiStatus, public_failure
 from app.ai.context import MOOD_TURN_POLICY, SourceState, build_history, model_messages
+from app.ai.evidence import EVIDENCE_POLICY, EvidenceEnvelope
 from app.ai.models import AiMessageRecord
 from app.ai.persistence import current_turn, owned_conversation
 from app.ai.prompts import SELECTED_VARIANTS, prompt_version
@@ -50,6 +52,7 @@ class LiveRun:
     persistent: bool = False
     first_progress_ms: int | None = None
     sources: dict[str, SourceState] = field(default_factory=dict)
+    mood_evidence: EvidenceEnvelope | None = None
 
 
 @dataclass
@@ -285,7 +288,7 @@ class AiRuntime:
     async def reserve_usage(self, db, run_id: UUID, user_id: UUID, bot_id: str):
         if self.settings.ai_accounting_enabled:
             await reserve_accounting(db, run_id, user_id, self.worker_id, self.settings.openai_model,
-                                     prompt_version(SELECTED_VARIANTS[bot_id]))
+                                     prompt_version(SELECTED_VARIANTS[bot_id]) + "+" + EVIDENCE_POLICY)
 
     async def record_usage(self, run: LiveRun, event: UsageEvent):
         run.usage.observe(event)
@@ -393,6 +396,12 @@ class AiRuntime:
                 raise
             state.authorization, state.evidence = "authorized", "retrieved"
             state.record_count = result["count"]
+            run.mood_evidence = EvidenceEnvelope.from_summary(
+                result, run, expires_at=datetime.now(UTC) + timedelta(
+                    seconds=max(0, self.settings.ai_timeout_seconds - (time.monotonic() - run.started))
+                ),
+            )
+            result["evidence"] = run.mood_evidence.model_view()
             return json.dumps(result, ensure_ascii=False)
 
         if bot_id == "guong":
@@ -499,6 +508,8 @@ class AiRuntime:
                     usage_observer=observe,
                 )
                 output = AiOutput.model_validate(output)
+                if run.mood_evidence is not None:
+                    run.mood_evidence.assert_current(run)
                 await self.check(run)
                 # Include the replay copy and message copy, not only plain text.
                 output_bytes = len(output.model_dump_json().encode()) + len(output.text.encode()) + 1024
@@ -548,6 +559,8 @@ class AiRuntime:
             run.failure = public_failure(error)
             logging.getLogger("moodprint").warning("ai_execution_error run_id=%s error_type=%s code=%s", run.id, type(error).__name__, error.code if isinstance(error, DomainError) else "AI_RUN_FAILED")
         finally:
+            # No snapshot survives a terminal run, saved-chat reload or worker restart.
+            run.mood_evidence = None
             if monitor:
                 monitor.cancel()
                 await asyncio.gather(monitor, return_exceptions=True)

@@ -1,0 +1,11 @@
+{
+  "stats": {
+    "startTime": "2026-10-26T09:59:52.852Z",
+    "duration": 42836.28,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "scope": "standard harness: mood-evidence, local-mvp, chat-history; local HTTP/API/PostgreSQL/SDK; synthetic model"
+}

@@ -473,7 +473,7 @@ button {
 .chat-introduction .bot-avatar {
   border-radius: 27px;
 }
-.chat-introduction h3 {
+.chat-introduction h2 {
   font-size: 16px;
   margin: 13px 0 7px;
   font-weight: 550;
@@ -776,7 +776,7 @@ button {
   .chat-introduction {
     padding: 19px 0 27px;
   }
-  .chat-introduction h3 {
+  .chat-introduction h2 {
     font-size: 16px;
   }
   .message-content {

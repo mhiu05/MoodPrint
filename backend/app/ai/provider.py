@@ -27,6 +27,7 @@ from agents.result import RunResultStreaming
 from agents.tool import Tool
 from openai import AsyncOpenAI
 
+from app.ai.evidence import MoodAnalysisPlan, render_mood_analysis, source_instructions
 from app.ai.prompts import LEGACY_BOTS, instructions
 from app.ai.schemas import AiOutput
 from app.ai.usage import UsageEvent, UsageObserver
@@ -179,13 +180,14 @@ class SdkProvider:
         model: Model,
         observer: UsageObserver,
     ) -> AiOutput:
+        scoped_mood = bot_id == "nhip" and getattr(context, "mood_scope", None) is not None
         agent = Agent[Any](
             name=f"MoodPrint:{bot_id}",
-            instructions=instructions(bot_id, self.prompt_variant),
+            instructions=instructions(bot_id, self.prompt_variant) + source_instructions(context, bot_id),
             model=model,
             tools=list(tools),
-            output_type=AiOutput,
-            output_guardrails=[_no_unreceipted_claim],
+            output_type=MoodAnalysisPlan if scoped_mood else AiOutput,
+            output_guardrails=[] if scoped_mood else [_no_unreceipted_claim],
             model_settings=ModelSettings(
                 store=False,
                 parallel_tool_calls=False,
@@ -207,6 +209,8 @@ class SdkProvider:
             # the complete schema-validated result is returned to the caller.
             async for _ in result.stream_events():
                 pass
+            if scoped_mood:
+                return render_mood_analysis(MoodAnalysisPlan.model_validate(result.final_output), context)
             return AiOutput.model_validate(result.final_output)
         except BaseException as error:
             await _cancel_and_drain(result)
