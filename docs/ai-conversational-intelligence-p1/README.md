@@ -2,7 +2,7 @@
 
 Base: verified main `5e73a130fd0f081887c3c2ab2093c43674388012`.
 Branch: `feat/ai-conversational-intelligence-p1`.
-Evaluated application: `6da23ea1d151d0a67ff2ca06ec02f9391ec53300`.
+Evaluated application: `2911eb63f6c72301c2b72837bfca8090e457a8c6`.
 P0 remains deployed; this branch must not be merged or deployed automatically.
 
 Acceptance criteria:
@@ -40,14 +40,14 @@ Five runtime persona layers preserve frozen historical variants and F03 projecti
 | Scope | Observed result |
 | --- | --- |
 | P0 prerequisite | [PASS: migration, integration and staging](../ai-p0-integration/FINAL.md) |
-| Backend regression | `pytest -q --tb=short --junitxml=.../backend-tests-final.xml`: **610 passed**, 401.12 s |
+| Backend regression | `pytest -q --tb=short`: **623 passed**, 448.54 s (reviewed source) |
 | Static verification | Ruff, configured mypy over 89 application files, frontend typecheck: PASS |
 | Frontend and contract | 54 unit tests, production build, OpenAPI/schema drift checks: PASS |
 | Real browser/full stack | 4 selected tests: saved history, five bots, ownership, logout/relogin, mood evidence, desktop/mobile, keyboard and axe checks: PASS |
-| New deterministic coverage | 10 cases through the real SDK with a synthetic model; existing privacy/evidence regressions retained |
+| New deterministic coverage | 17 cases through the real SDK with a synthetic model, plus 6 fail-closed evaluator-gate cases; existing privacy/evidence regressions retained |
 | Live development comparison | 12 new synthetic scenarios, 26 turns per arm; P0 **24/26** completed, final P1 **26/26**, zero final objective assertion failures |
-| All live rounds | 120 requests / 120 responses with known usage; estimated **USD 0.031822**, reservation cap USD 2 |
-| P1 release decision | **PARTIAL / HOLD**: latency and uncertainty calibration need review; independent human review pending |
+| All live rounds | 165 requests / 165 responses with known usage; estimated **USD 0.044654**, reservation cap USD 2 |
+| P1 release decision | **PARTIAL / HOLD**: factual accuracy, uncertainty calibration and latency stability need review; independent human review pending |
 
 Read [architecture and security boundaries](architecture.md),
 [comparison, methodology and limitations](evaluation.md),
@@ -60,16 +60,17 @@ Reports contain synthetic text only, never production conversations or keys.
 The first complete backend run found five prompt-composition expectation failures
 (605 passed); expectations were updated to assert the exact complete layered
 prompt while retaining ownership, memory and tool assertions. The final full run
-passed all 610. Initial live outputs, scores and evaluator corrections remain
+passed all 610 before source review. After review fixes, the full suite passed 623. Initial live outputs, scores and evaluator corrections remain
 visible; no human review or statistical significance is claimed.
 
 No dependency, migration, public API or frontend behavior changed. Intent routing
 is a bounded Vietnamese heuristic; free conversation has no universal semantic
 claim validator. Analytical numerical output remains deterministic. An unused
 scope keeps the conservative F03 stamp and may lose harmless next-turn continuity.
-Final p95 latency was 9.305 s versus 4.060 s for P0; judged uncertainty calibration
-was 4.833 versus 5.000. Runs were not interleaved; investigate before release.
+The reviewed run had p95 3.820 s versus 4.060 s for P0, while the previous candidate
+had p95 9.305 s. Final judged uncertainty calibration was 4.750 versus 4.917 and
+factual accuracy 4.875 versus 4.917. Runs were not interleaved; investigate before release.
 
 GitHub CI and Draft PR links are recorded in the PR description after publication.
-Raw XML and generated screenshots are retained locally in the isolated worktree;
+Initial raw XML, local test logs and generated screenshots are retained locally;
 they are not part of the commit.

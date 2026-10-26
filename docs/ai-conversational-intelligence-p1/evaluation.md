@@ -3,11 +3,13 @@
 These are **12 new synthetic development conversations / 26 turns per arm**, not
 reserved heldout cases and not production messages. Baseline is deployed P0
 `5e73a130fd0f081887c3c2ab2093c43674388012`; final candidate application source is
-`6da23ea1d151d0a67ff2ca06ec02f9391ec53300`. SDK 0.24.0, `gpt-6-luna`, 1,200 output
+`2911eb63f6c72301c2b72837bfca8090e457a8c6`. SDK 0.24.0, `gpt-6-luna`, 1,200 output
 tokens, three SDK steps, 30-second model timeout, no retries, no provider storage
 or tracing; each arm runs serially against its own guarded loopback PostgreSQL DB.
 The model alias is mutable. Initial arms ran concurrently; the calibrated final
-candidate ran later, so latency differences are not a controlled capacity result.
+candidate and reviewed candidate ran later, so latency differences are not a
+controlled capacity result. Baseline answers are unchanged and were rejudged with
+each candidate; subjective baseline scores therefore vary between judging rounds.
 
 | Final observed metric | P0 baseline | Final P1 candidate |
 | --- | ---: | ---: |
@@ -16,19 +18,19 @@ candidate ran later, so latency differences are not a controlled capacity result
 | Observed deterministic privacy/numerical assertion failures | 0 | 0 |
 | Objective intent assertion failures | 1 | 0 |
 | Judge hard-gate flags | 0 | 0 |
-| Factual accuracy, 1–5 | 5.000 | 5.000 |
-| Multi-turn consistency | 4.458 | 4.750 |
-| Relevance/usefulness | 4.208 | 4.583 |
-| Intent alignment | 4.208 | 4.583 |
-| Natural Vietnamese | 4.625 | 4.750 |
-| Appropriate initiative | 4.125 | 4.500 |
-| Persona differentiation | 4.542 | 4.625 |
+| Factual accuracy, 1–5 | 4.917 | 4.875 |
+| Multi-turn consistency | 4.375 | 4.833 |
+| Relevance/usefulness | 4.292 | 4.500 |
+| Intent alignment | 4.208 | 4.500 |
+| Natural Vietnamese | 4.667 | 4.875 |
+| Appropriate initiative | 4.167 | 4.417 |
+| Persona differentiation | 4.500 | 4.792 |
 | Tool correctness | 5.000 | 5.000 |
 | Privacy/authorization wording | 5.000 | 5.000 |
-| Uncertainty calibration | 5.000 | 4.833 |
-| Turn latency p50 / p95, seconds | 2.475 / 4.060 | 3.869 / 9.305 |
-| Input / cached / output tokens | 46,781 / 7,389 / 2,981 | 55,728 / 8,937 / 3,052 |
-| Estimated arm cost, USD | 0.005504 | 0.006294 |
+| Uncertainty calibration | 4.917 | 4.750 |
+| Turn latency p50 / p95, seconds | 2.475 / 4.060 | 2.709 / 3.820 |
+| Input / cached / output tokens | 46,781 / 7,389 / 2,981 | 55,685 / 8,937 / 3,108 |
+| Estimated arm cost, USD | 0.005504 | 0.006318 |
 
 The two baseline failures occurred when a sharing scope was present but the user
 explicitly wanted conversation or a topic change. The old private analysis schema
@@ -74,19 +76,38 @@ that memory was authorized. It incorrectly penalized an authorized hobby referen
 The final judge receives that source text for both arms and no revoked memory for
 later turns. No original score was overwritten or manually inflated.
 
+The pre-review calibrated round remains in `live-candidate-final.json`,
+`live-judge-final.json` and `evaluation-summary-round2.json`; "final" in these
+historical filenames is superseded by the reviewed round. A read-only source
+review then found practical arithmetic/negated-statistics routing bugs and an
+exit-code omission for intent-only failures. Regressions and fixes are documented
+in [review.md](review.md). The final `2911eb6` runtime completed the same matched
+26 turns using the corrected fail-closed gate, and was judged again without prompt
+tuning. Its raw reports are `live-candidate-reviewed.json` and
+`live-judge-reviewed.json`. Newly added arithmetic/mixed-clause regressions use the
+real SDK with a synthetic model; they are not additional live development cases.
+
+The current blinded human pack includes actual per-turn verified mood reads and
+approved-memory inputs. Earlier blinded packs remain under `-round1`/`-round2`.
+The latest subjective factual score decreased slightly despite zero deterministic
+numerical/privacy assertion failures; these measure different aspects of output
+and must not be conflated. Independent review is still pending.
+
 ## Usage, limits and release decision
 
-The final comparison including its judge cost an estimated **USD 0.018466**.
-All unique rounds—one baseline, two candidates and two judges—used **120 requests /
-120 responses with known usage**, estimated **USD 0.031822**. Conservative reservations
+The final reviewed comparison including its judge cost an estimated **USD 0.018336**.
+All unique rounds—one baseline, three candidates and three judges—used **165 requests /
+165 responses with known usage**, estimated **USD 0.044654**. Conservative reservations
 were capped at USD 2 in total. Estimates use the repository's versioned
 `openai-standard-2026-10-24` rates, not an invoice or a current pricing guarantee.
 See [all-rounds usage](all-rounds-usage.json) and the unmodified raw reports.
 
 **P1 release readiness: PARTIAL / HOLD.** Intent and completion improved in this
 sample while privacy/number assertions remained intact. Uncertainty calibration
-was slightly lower, and final latency was higher; these trade-offs must not be
-hidden behind the other quality averages. Do not promote solely from these means.
+and factual accuracy were slightly lower. The reviewed run's p95 was 3.820 seconds,
+but the preceding candidate had p95 9.305 seconds, showing latency instability.
+These observations must not be hidden behind the other quality averages. Do not
+promote solely from these means.
 Independent Vietnamese review, a larger untouched evaluation set and an interleaved
 latency/cost comparison are recommended before a release decision. The implemented
 branch is delivered only as a Draft PR, without merge or deployment.

@@ -1,17 +1,18 @@
 {
-  "evaluated_application": "6da23ea1d151d0a67ff2ca06ec02f9391ec53300",
+  "evaluated_application": "2911eb63f6c72301c2b72837bfca8090e457a8c6",
   "status": "PASS for executed regression checks; P1 release PARTIAL/HOLD",
   "commands": [
     {
       "cwd": "backend",
-      "command": "python -m pytest -q --tb=short --junitxml=<local-report>",
+      "command": "python -m pytest -q --tb=short (local disposable DB wrapper run_p1_review_checks.py full-reviewed --full)",
       "result": {
-        "tests": 610,
+        "tests": 623,
         "failures": 0,
         "errors": 0,
         "skipped": 0
       },
-      "seconds": 401.12
+      "seconds": 448.54,
+      "log_sha256": "8ed1f41868e0c0d75c8ac2284b753322a69b940396a7a7d6245b238bff4013e9"
     },
     {
       "cwd": "backend",
@@ -67,10 +68,27 @@
     "shell_invocation": "npm.ps1 was blocked by local PowerShell execution policy; npm.cmd succeeded without changing policy."
   },
   "coverage_limits": [
-    "Local browser run selected four affected tests; complete workflow browser suites run in GitHub CI.",
+    "The selected local browser suite passed on the earlier candidate. Complete GitHub workflow suites are required again on the final delivered head; links/results recorded in the Draft PR.",
     "SDK regression/full-stack tests use a synthetic model; live comparison reports separately exercise the real provider.",
     "No independent human review or controlled interleaved latency comparison."
   ],
-  "local_xml_sha256": "0650815b579420d4b8865fc8e55e73f6bcf020482a43f14755b77f0a8bd30ef9",
-  "no_p1_deployment": true
+  "no_p1_deployment": true,
+  "prior_evaluated_application": "6da23ea1d151d0a67ff2ca06ec02f9391ec53300",
+  "prior_local_xml_sha256": "0650815b579420d4b8865fc8e55e73f6bcf020482a43f14755b77f0a8bd30ef9",
+  "review_regressions": {
+    "sdk_cases": 17,
+    "evaluator_gate_cases": 6,
+    "initial_red": {
+      "routing_failures": 4,
+      "missing_gate_failures": 6,
+      "incorrect_test_assertion": 1
+    },
+    "focused_green": 54,
+    "mixed_clause_red": {
+      "failed": 2,
+      "passed": 1
+    },
+    "mixed_clause_green": 3,
+    "source_review": "Separate read-only reviewer confirmed no remaining important issue in 2911eb6; seven no-network probes passed."
+  }
 }

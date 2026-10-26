@@ -13,6 +13,11 @@ assistant prose, discarded context or a separate user profile. Explicit data
 requests take the analysis path. Explicit requests to talk, listen, celebrate,
 joke or answer a practical question can remove `read_mood_summary`. A refusal of
 advice alone does not refuse analysis; ambiguous scoped Nhịp requests retain P0.
+An explicit refusal to read mood data removes the reader before generic analysis
+words are considered. The refusal binds to the direct mood-data noun phrase,
+preserving positive analysis in a later clause such as "don't read other data;
+compare the selected mood records". A how-to question about arithmetic averages
+without a mood-data subject follows the practical path.
 
 This is conservative routing, not a universal intent classifier. It cannot grant
 scope, select dates/owners, restore permissions or register another tool. Runtime

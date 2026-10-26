@@ -10,15 +10,6 @@
       "estimated_usd": 0.005504
     },
     {
-      "file": "live-candidate.json",
-      "requests": 30,
-      "responses": 30,
-      "input_tokens": 55540,
-      "cached_input_tokens": 8937,
-      "output_tokens": 2873,
-      "estimated_usd": 0.006186
-    },
-    {
       "file": "live-candidate-final.json",
       "requests": 30,
       "responses": 30,
@@ -28,13 +19,22 @@
       "estimated_usd": 0.006294
     },
     {
-      "file": "live-judge.json",
-      "requests": 15,
-      "responses": 15,
-      "input_tokens": 21773,
-      "cached_input_tokens": 0,
-      "output_tokens": 9985,
-      "estimated_usd": 0.00717
+      "file": "live-candidate-reviewed.json",
+      "requests": 30,
+      "responses": 30,
+      "input_tokens": 55685,
+      "cached_input_tokens": 8937,
+      "output_tokens": 3108,
+      "estimated_usd": 0.006318
+    },
+    {
+      "file": "live-candidate.json",
+      "requests": 30,
+      "responses": 30,
+      "input_tokens": 55540,
+      "cached_input_tokens": 8937,
+      "output_tokens": 2873,
+      "estimated_usd": 0.006186
     },
     {
       "file": "live-judge-final.json",
@@ -44,11 +44,29 @@
       "cached_input_tokens": 0,
       "output_tokens": 8869,
       "estimated_usd": 0.006668
+    },
+    {
+      "file": "live-judge-reviewed.json",
+      "requests": 15,
+      "responses": 15,
+      "input_tokens": 22275,
+      "cached_input_tokens": 0,
+      "output_tokens": 8573,
+      "estimated_usd": 0.006514
+    },
+    {
+      "file": "live-judge.json",
+      "requests": 15,
+      "responses": 15,
+      "input_tokens": 21773,
+      "cached_input_tokens": 0,
+      "output_tokens": 9985,
+      "estimated_usd": 0.00717
     }
   ],
-  "total_requests": 120,
-  "total_responses": 120,
-  "known_usage_estimated_usd": 0.031822,
+  "total_requests": 165,
+  "total_responses": 165,
+  "known_usage_estimated_usd": 0.044654,
   "maximum_reservation_usd": 2,
   "provider_invoice": false
 }
