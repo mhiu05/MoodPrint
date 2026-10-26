@@ -21,7 +21,7 @@ def preference_view(p, settings):
         semantic_memory_enabled=bool(p and p.semantic_memory_enabled),
         version=p.version if p else 1,
         policy_version=p.policy_version if p else "ai-data-v1",
-        retention_days=settings.chat_retention_days,
+        retention_days=min(settings.chat_retention_days, 30),
         history_available=settings.chat_history_enabled,
         semantic_memory_available=bool(
             getattr(settings, "semantic_memory_enabled", False)

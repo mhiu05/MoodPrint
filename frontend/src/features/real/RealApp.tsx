@@ -688,7 +688,7 @@ function Conversation({ bot }: { bot: BotPublicDTO }) {
 }
 
 function ConversationBody({ bot }: { bot: BotPublicDTO }) {
-  const { api, session } = useSession();
+  const { api, session, receive } = useSession();
   const { preferences, loading: preferencesLoading, error: preferencesError, reload: reloadPreferences, refreshHistory } = useAIData();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedId = searchParams.get("conversation");
@@ -698,7 +698,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const [renameOpen, setRenameOpen] = useState(false), [renameText, setRenameText] = useState(""), [renameError, setRenameError] = useState<unknown>();
   const [notice, setNotice] = useState("");
   const [pendingProposals, setPendingProposals] = useState(0), [proposalRevision, setProposalRevision] = useState(0);
-  const allowed = session.consents.AI.enabled && session.features.ai;
+  const allowed = session.features.ai;
   const historyWritable = !conversation?.persistent || !!(preferences?.historyEnabled && preferences.historyAvailable);
   const canSend = allowed && historyWritable && !!preferences && !preferencesError;
   const [draft, setDraft] = useState(""),
@@ -871,7 +871,18 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     const scopeKey = moodScope ? `${moodScope.fromDate}/${moodScope.toDate}` : "";
     if (intent.current?.text !== text || intent.current?.scopeKey !== scopeKey)
       intent.current = { text, scopeKey, clientMessageId: crypto.randomUUID() };
+    let grantedSession: SessionView | undefined;
     try {
+      if (!session.consents.AI.enabled) {
+        // Sending is the explicit processing choice. No private text is sent
+        // until the server has recorded the consent decision.
+        grantedSession = await api.request<SessionView>("/consents/AI", {
+          method: "PUT",
+          body: { enabled: true, expectedVersion: session.consents.AI.version,
+                  policyVersion: "v1" } satisfies ConsentInput,
+          signal,
+        });
+      }
       let thread = current.current;
       if (!thread) {
         const created = await api.request<SavedConversationHeader>(
@@ -908,6 +919,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         },
       );
       if (signal.aborted) return;
+      if (grantedSession) receive(grantedSession);
       update({
         ...thread,
         version: accepted.version,
@@ -930,6 +942,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         signal,
       );
     } catch (reason) {
+      if (grantedSession) receive(grantedSession);
       if (!signal.aborted) setError(reason);
     } finally {
       if (!signal.aborted) setBusy(false);
@@ -1013,9 +1026,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   else if (preferences.historyEnabled) historyAction = `Lưu tối đa ${preferences.retentionDays} ngày`;
 
   let readOnlyMessage = "Đang kiểm tra lựa chọn dữ liệu AI…";
-  if (!session.consents.AI.enabled)
-    readOnlyMessage = "Bạn chưa bật quyền trò chuyện AI. Bật quyền này khi bạn sẵn sàng chia sẻ với trợ lý; lưu lịch sử là lựa chọn riêng.";
-  else if (!session.features.ai) readOnlyMessage = aiServiceMessage(session.features);
+  if (!session.features.ai) readOnlyMessage = aiServiceMessage(session.features);
   else if (!preferences && !preferencesLoading)
     readOnlyMessage = "Chưa tải được lựa chọn dữ liệu AI. Hãy thử tải lại trước khi nhắn.";
   else if (preferences && !historyWritable)
@@ -1117,7 +1128,10 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         />
       </div>
       {session.features.aiStatus === "test_provider" ? <p className={cx.footnote} role="note">Môi trường kiểm thử · phản hồi từ model giả, không phải OpenAI.</p> : null}
-      {!canSend ? <div className="chat-readonly" role="status"><p>{readOnlyMessage}</p><Link to="/settings">{!session.consents.AI.enabled ? "Bật quyền trò chuyện AI" : "Xem quyền dữ liệu AI"}</Link></div> : <div className="chat-bottom">
+      {!canSend ? <div className="chat-readonly" role="status"><p>{readOnlyMessage}</p><Link to="/settings">Xem quyền dữ liệu AI</Link></div> : <div className="chat-bottom">
+        <p className={cx.footnote}>Tin nhắn chỉ được gửi cho nhà cung cấp AI khi bạn chọn Gửi. Lịch sử máy chủ và ghi nhớ lâu dài là các lựa chọn riêng.</p>
+        {!session.consents.AI.enabled ? <p role="note">Lần gửi đầu tiên sẽ ghi nhận quyền xử lý tin nhắn AI. Bạn có thể rút quyền trong Quyền riêng tư.</p> : null}
+        <details><summary>Lưu lịch sử trò chuyện</summary><AIDataControls historyOnly /></details>
         {bot.botId === "nhip" ? (
           <details className="mood-share-options">
             <summary>Chia sẻ thống kê tâm trạng cho lượt này</summary>
@@ -1200,14 +1214,6 @@ const consentLabels: Record<ConsentPurpose, string> = {
   MATCH: "tìm bạn",
   VOICE: "giọng nói",
 };
-const consentDescriptions: Record<ConsentPurpose, string> = {
-  AI: "Cho phép xử lý nội dung bạn gửi để trợ lý phản hồi, kể cả thống kê tâm trạng (không gồm ghi chú) khi bạn chủ động chia sẻ cho Nhịp trong một lượt. Hội thoại không tự trở thành hồ sơ hay ghi nhớ.",
-  MEM: "Chỉ những mục bạn duyệt mới được ghi nhớ và nhắc lại. Cần bật trò chuyện AI để dùng.",
-  MATCH:
-    "Quyền tìm bạn không tự công khai hồ sơ riêng. Bạn xem trước và chủ động đăng hồ sơ kết nối; cảm xúc, ghi chú và hội thoại AI không bao giờ được dùng để ghép bạn.",
-  VOICE:
-    "Chỉ ghi âm sau thao tác của bạn khi tính năng giọng nói khả dụng. Bạn có thể sửa bản chép trước khi gửi. Cần bật trò chuyện AI để dùng.",
-};
 /** What withdrawing each permission does, matching backend/app/modules/consent/routes.py. */
 const consentWithdrawal: Record<ConsentPurpose, string> = {
   AI: "Khi tắt: dừng ngay các lượt AI đang chạy, hủy đề xuất ghi nhớ chưa duyệt và xóa chỉ mục tìm kiếm ghi nhớ. Vẫn giữ: lịch sử trò chuyện đã lưu (chỉ đọc) và các ghi nhớ bạn đã duyệt — bạn có thể xuất hoặc xóa chúng bên dưới.",
@@ -1218,6 +1224,7 @@ const consentWithdrawal: Record<ConsentPurpose, string> = {
 };
 function Settings() {
   const { api, session, receive, logout } = useSession();
+  const published = useResource<{ state: string; profileVersion: number } | null>("/profiles/published/current");
   const [busy, setBusy] = useState<string>(),
     [error, setError] = useState<unknown>();
   async function change(purpose: ConsentPurpose) {
@@ -1229,7 +1236,7 @@ function Settings() {
         await api.request<SessionView>(`/consents/${purpose}`, {
           method: "PUT",
           body: {
-            enabled: !session.consents[purpose].enabled,
+            enabled: false,
             expectedVersion: session.consents[purpose].version,
             policyVersion: "v1",
           } satisfies ConsentInput,
@@ -1241,44 +1248,49 @@ function Settings() {
       setBusy(undefined);
     }
   }
+  async function unpublish() {
+    if (!published.data || busy) return;
+    setBusy("unpublish");
+    setError(undefined);
+    try {
+      await api.request("/profiles/published/current", {
+        method: "DELETE",
+        body: { expectedVersion: published.data.profileVersion },
+      });
+      published.refresh();
+    } catch (reason) { setError(reason); }
+    finally { setBusy(undefined); }
+  }
   return (
     <div className={cx.reading}>
       <h1 tabIndex={-1}>Quyền riêng tư</h1>
-      <p className={cx.lede}>
-        Bạn quyết định cách dữ liệu của mình được dùng. Mỗi quyền được quản lý
-        riêng.
-      </p>
+      <p className={cx.lede}>Bạn chọn nội dung được lưu, dùng để ghi nhớ hoặc chia sẻ với người khác.</p>
       <ErrorNotice error={error} />
-      {(["AI", "MEM", "MATCH", "VOICE"] as ConsentPurpose[]).map((purpose) => (
-        <section className="real-section" key={purpose}>
-          <h2>
-            {consentLabels[purpose].charAt(0).toLocaleUpperCase("vi-VN") +
-              consentLabels[purpose].slice(1)}
-          </h2>
-          <p>{consentDescriptions[purpose]}</p>
-          <p className={cx.footnote}>{consentWithdrawal[purpose]}</p>
-          <p>
-            <strong>
-              {session.consents[purpose].enabled ? "Đang bật" : "Đang tắt"}
-            </strong>
-          </p>
-          <Button
-            variant="secondary"
-            disabled={
-              !!busy ||
-              (purpose === "MATCH" &&
-                session.ageBand !== "adult" &&
-                !session.consents.MATCH.enabled)
-            }
-            onClick={() => void change(purpose)}
-          >
-            {busy === purpose
-              ? "Đang cập nhật…"
-              : `${session.consents[purpose].enabled ? "Tắt" : "Bật"} ${consentLabels[purpose]}`}
-          </Button>
-        </section>
-      ))}
-      <AIDataControls />
+      <section className="real-section">
+        <h2>AI và ghi nhớ</h2>
+        <p>Trợ lý xử lý tin nhắn khi bạn chọn Gửi. Ghi nhớ chỉ được lưu sau khi bạn duyệt từng đề xuất.</p>
+        <Link to="/memory">Xem và quản lý ghi nhớ đã duyệt</Link>
+        <AIDataControls />
+      </section>
+      <section className="real-section">
+        <h2>Kết nối và khám phá</h2>
+        {published.loading ? <p role="status">Đang kiểm tra hồ sơ kết nối…</p> : published.error ? null :
+          <p role="status">{published.data?.state === "live" ? "Hồ sơ đang chia sẻ" : "Hồ sơ chưa hiển thị trong gợi ý"}</p>}
+        <ErrorNotice error={published.error} retry={published.refresh} />
+        <p>Chỉ thẻ kết nối bạn xem trước và xuất bản mới hiển thị với người khác. Nhật ký, cảm xúc và hội thoại AI không dùng để gợi ý.</p>
+        <Link to="/connect?tab=profile">Xem hoặc sửa hồ sơ kết nối</Link>
+        {published.data?.state === "live" ? <Button variant="secondary" disabled={!!busy} onClick={() => void unpublish()}>{busy === "unpublish" ? "Đang ngừng chia sẻ…" : "Ngừng chia sẻ hồ sơ"}</Button> : null}
+      </section>
+      <details className="real-section">
+        <summary>Rút quyền xử lý đã cấp</summary>
+        <p>Các lựa chọn đã rút vẫn được ghi nhận. Bạn có thể tiếp tục dùng tính năng sau khi chọn hành động có thông báo phù hợp.</p>
+        {(["AI", "MEM", "MATCH", "VOICE"] as ConsentPurpose[]).filter(purpose => session.consents[purpose].enabled).map(purpose =>
+          <div key={purpose}>
+            <p>{consentWithdrawal[purpose]}</p>
+            <Button variant="secondary" disabled={!!busy} onClick={() => void change(purpose)}>{busy === purpose ? "Đang cập nhật…" : `Rút quyền ${consentLabels[purpose]}`}</Button>
+          </div>
+        )}
+      </details>
       <AdultEligibility />
       <section className="real-section">
         <h2>Phiên đăng nhập</h2>

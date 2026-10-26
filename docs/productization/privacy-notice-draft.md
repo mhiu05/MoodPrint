@@ -27,10 +27,10 @@ _[email — cần điền]_.
 |---|---|---|
 | Tài khoản và đăng nhập | Xác thực, bảo vệ phiên, chống lạm dụng | Cần thiết để cung cấp dịch vụ |
 | Nhật ký cảm xúc | Lưu và hiển thị cảm xúc, ghi chú của chính bạn | Cần thiết để cung cấp dịch vụ |
-| Trợ lý AI | Tạo câu trả lời cho tin nhắn bạn gửi | Đồng ý riêng (AI) |
-| Ghi nhớ của trợ lý | Lưu những điều bạn đã duyệt để trợ lý nhớ | Đồng ý riêng (MEM) |
-| Kết nối (ghép bạn) | Gợi ý người phù hợp từ hồ sơ công khai bạn chọn đăng | Đồng ý riêng (MATCH) |
-| Giọng nói | Chuyển giọng nói thành văn bản | Đồng ý riêng (VOICE), khi tính năng được bật |
+| Trợ lý AI | Tạo câu trả lời cho tin nhắn bạn chủ động gửi | Quyền AI được ghi nhận khi gửi lần đầu; có thể rút |
+| Ghi nhớ của trợ lý | Lưu những điều bạn duyệt riêng từng mục | Duyệt mục đầu tiên ghi nhận quyền MEM; có thể rút |
+| Kết nối (ghép bạn) | Gợi ý từ hồ sơ công khai bạn chọn đăng | Xem trước rồi xuất bản ghi nhận quyền MATCH; có thể rút hoặc ngừng chia sẻ |
+| Giọng nói | Chuyển bản ghi âm chủ động thành văn bản | Chọn ghi âm ghi nhận quyền VOICE và xin phép trình duyệt; có thể rút |
 | An toàn | Xử lý báo cáo, chặn, hạn chế hoặc tạm khóa tài khoản vi phạm | Lợi ích chính đáng: an toàn cộng đồng |
 | Vận hành | Nhật ký kỹ thuật không chứa nội dung để phát hiện sự cố | Lợi ích chính đáng |
 
@@ -71,7 +71,7 @@ cần pháp lý xác nhận.]_
 | Tham chiếu gợi ý kết nối | Hiệu lực 15 phút, xóa sau 24 giờ |
 | Thống kê ghép bạn theo ngày (không định danh) | 1 năm |
 | Báo cáo và quyết định kiểm duyệt | 1 năm |
-| Cuộc trò chuyện với AI | Theo cài đặt, tối đa 90 ngày |
+| Cuộc trò chuyện AI mới được chọn lưu | Tối đa 30 ngày; hồ sơ cũ giữ hạn đã ghi khi tạo |
 | Hàng đợi sự kiện nội bộ (outbox) | Xóa toàn bộ (không còn dùng) |
 | Nhật ký kỹ thuật | 30 ngày |
 

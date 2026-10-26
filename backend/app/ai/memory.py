@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Request
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.embeddings import enqueue_memory, invalidate_memory
@@ -24,7 +24,7 @@ from app.core.security import (
     save_receipt,
     transaction,
 )
-from app.infrastructure.database.models import Consent, Memory, PrivateItem, now
+from app.infrastructure.database.models import Consent, ConsentEvent, Memory, PrivateItem, now
 
 router = APIRouter()
 
@@ -239,9 +239,7 @@ async def confirm(
             await expire_proposals(db, user.id)
             expired = True
         else:
-            consents = await assert_purpose(
-                db, user, "MEM" if proposal.purpose == "memory" else "AI"
-            )
+            consents = await assert_purpose(db, user, "AI")
             # Any withdrawal/re-grant since the preview stales it. Sibling approvals and
             # unrelated mood/profile revisions do not, so each preview stays decidable.
             if (
@@ -257,6 +255,29 @@ async def confirm(
                 raise DomainError(403, "MEMORY_BOT_FORBIDDEN", "Trợ lý này không được ghi nhớ.")
             if not await _source_valid(db, user.id, proposal.source_id, proposal.source_version):
                 raise DomainError(409, "SOURCE_CHANGED", "Nguồn dữ liệu đã thay đổi.")
+            if proposal.purpose == "memory" and not consents["MEM"].enabled:
+                # Approving this item is the explicit authorization to retain and
+                # retrieve approved memories. The decision is audited in one commit.
+                memory_consent = consents["MEM"]
+                memory_consent.enabled = True
+                memory_consent.policy_version = "v1"
+                memory_consent.version += 1
+                user.data_version += 1
+                db.add(ConsentEvent(user_id=user.id, purpose="MEM", enabled=True,
+                                    version=memory_consent.version, policy_version="v1"))
+                # Other previews created under the same unwithdrawn permission
+                # decision remain individually reviewable after the first approval.
+                await db.execute(
+                    update(MemoryProposal)
+                    .where(
+                        MemoryProposal.user_id == user.id,
+                        MemoryProposal.id != proposal.id,
+                        MemoryProposal.status == "pending",
+                        MemoryProposal.purpose == "memory",
+                        MemoryProposal.mem_consent_version == proposal.mem_consent_version,
+                    )
+                    .values(mem_consent_version=memory_consent.version)
+                )
             text = body.edited_text if body.edited_text is not None else proposal.text
             record: Memory | PrivateItem
             if proposal.purpose == "memory":

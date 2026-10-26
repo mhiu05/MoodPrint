@@ -164,7 +164,7 @@ test("history is a separate explicit opt-in and semantic processing explains Voy
     page.getByText(/Voyage.*ghi nhớ.*truy vấn/).first(),
   ).toBeVisible();
   expect(writes).toEqual([]);
-  await history.check();
+  await history.click();
   await expect(history).toBeChecked();
   expect(writes[0]).toEqual({
     historyEnabled: true,

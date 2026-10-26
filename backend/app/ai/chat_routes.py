@@ -127,6 +127,8 @@ async def update_preferences(
             and not preference_view(p, settings).semantic_memory_available
         ):
             raise DomainError(503, "SEMANTIC_UNAVAILABLE", "Tìm ghi nhớ liên quan chưa sẵn sàng.")
+        if body.semantic_memory_enabled:
+            await assert_purpose(db, user, "MEM")
         if p is None:
             p = AiPreference(
                 user_id=user.id, history_enabled=False, semantic_memory_enabled=False, version=1
@@ -266,7 +268,7 @@ async def create_conversation(
             c = AiConversation(
                 user_id=user.id,
                 bot_id=body.bot_id,
-                expires_at=now() + timedelta(days=settings.chat_retention_days),
+                expires_at=now() + timedelta(days=min(settings.chat_retention_days, 30)),
             )
             db.add(c)
             await db.flush()

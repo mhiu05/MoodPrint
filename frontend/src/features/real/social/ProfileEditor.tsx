@@ -246,6 +246,7 @@ export function ProfileEditor({
       {current.id === "preview" && preview && (
         <>
           <p>Người khác chỉ thấy đúng thẻ này. Ghi chép riêng, cảm xúc và hội thoại với trợ lý không bao giờ được đưa vào.</p>
+          <p>Chọn “Xuất bản hồ sơ” là đồng ý tham gia gợi ý kết nối và cho người đủ điều kiện thấy thẻ này. Bạn có thể ngừng chia sẻ bất cứ lúc nào.</p>
           <PeerCard
             alias="Bạn"
             avatarSeed="00"

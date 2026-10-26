@@ -1,6 +1,6 @@
 # AI chat history and long-term memory
 
-Status: **PARTIAL**. Implemented and verified locally against disposable PostgreSQL with synthetic providers. Not released: the hosted Supabase database is still at `0005_export_scope` and needs the reviewed 0006–0009 migration (see "Database migration"). No live OpenAI/Voyage evidence was produced in this session.
+Historical verification below describes the original delivery. Current privacy and availability behavior is documented in [privacy-availability](../productization/privacy-availability.md); hosted database and live-provider status must be checked independently before release.
 
 Related ledgers: [implementation-plan.md](implementation-plan.md) (original design ledger), [memory-implementation.md](memory-implementation.md), [embedding-implementation.md](embedding-implementation.md). This README is the authoritative final summary; where the older ledgers disagree, this file reflects the current code.
 
@@ -14,7 +14,7 @@ Related ledgers: [implementation-plan.md](implementation-plan.md) (original desi
 | Memory proposals | Durable pending previews (15 min), owner-only approve/edit/reject, idempotent and race-safe approval, preview text erased once decided, 30-day content-free tombstones. The model can only *propose*. | `app/ai/memory.py`, `app/ai/memory_models.py` |
 | Approved memory | List/edit/delete with AI off; per-assistant scope; `caunoi` never stores memory. | `app/ai/memory.py` |
 | Semantic retrieval (opt-in) | Voyage `voyage-4-lite` embeddings of approved memory text + current query, exact cosine search in pgvector, lexical fallback when unavailable. | `app/ai/embeddings.py`, `app/ai/voyage.py` |
-| UI | Settings toggles (both default off), history sidebar grouped by assistant + mobile dialog, new thread, older-message paging, rename/export/delete, read-only saved threads when saving or AI is off, pending-proposal link in chat, memory review page with delete confirmation. | `frontend/src/features/real/AIData.tsx`, `RealApp.tsx`, `Memory.tsx` |
+| UI | History switch in chat and Privacy (default off), independent Voyage switch in Privacy, history sidebar grouped by assistant + mobile dialog, new thread, older-message paging, rename/export/delete, read-only saved threads when saving is off, pending-proposal link in chat, memory review page with delete confirmation. | `frontend/src/features/real/AIData.tsx`, `RealApp.tsx`, `Memory.tsx` |
 
 ## 2. Data model and persistence
 

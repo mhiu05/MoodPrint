@@ -212,7 +212,7 @@ async def test_caunoi_cannot_propose_memory_and_consent_is_rechecked(clients):
     assert (await client.get("/api/v1/memories")).json() == []
 
 
-async def test_proposal_confirmation_requires_memory_consent_exact_payload_and_current_version(
+async def test_approval_grants_memory_use_for_only_approved_content(
     clients,
 ):
     app, actors = clients
@@ -224,21 +224,7 @@ async def test_proposal_confirmation_requires_memory_consent_exact_payload_and_c
     )
     proposal = await seed_proposal(app, uid)
     endpoint = f"/api/v1/proposals/{proposal.id}/confirm"
-    denied = await a.post(
-        endpoint, json={"expectedVersion": 1, "editedText": "Mình đọc vào buổi sáng"}, headers=key()
-    )
-    assert denied.status_code == 403
     assert (await a.get("/api/v1/memories")).json() == []
-    await a.put(
-        "/api/v1/consents/MEM",
-        json={"enabled": True, "expectedVersion": 1, "policyVersion": "v1"},
-        headers=key(),
-    )
-    # Changing consent invalidates old previews; a fresh source must be deliberately approved.
-    stale = await a.post(endpoint, json={"expectedVersion": 1}, headers=key())
-    assert stale.status_code == 409
-    proposal = await seed_proposal(app, uid)
-    endpoint = f"/api/v1/proposals/{proposal.id}/confirm"
     approval_key = key()
     approved = await a.post(
         endpoint,
@@ -247,6 +233,7 @@ async def test_proposal_confirmation_requires_memory_consent_exact_payload_and_c
     )
     assert approved.status_code == 200, approved.text
     assert approved.json()["status"] == "succeeded"
+    assert (await a.get("/api/v1/session")).json()["consents"]["MEM"]["enabled"]
     replay = await a.post(
         endpoint,
         json={"expectedVersion": 1, "editedText": "Mình đọc vào buổi sáng"},
@@ -263,6 +250,35 @@ async def test_proposal_confirmation_requires_memory_consent_exact_payload_and_c
     values = (await a.get("/api/v1/memories")).json()
     assert len(values) == 1 and values[0]["text"] == "Mình đọc vào buổi sáng"
     assert (await actors[1][0].get("/api/v1/memories")).json() == []
+
+
+async def test_rejected_proposal_does_not_grant_memory_permission(clients):
+    app, actors = clients
+    a, uid = actors[0]
+    await enable(a, "AI")
+    proposal = await seed_proposal(app, uid)
+    response = await a.post(
+        f"/api/v1/proposals/{proposal.id}/reject",
+        json={"expectedVersion": 1}, headers=key(),
+    )
+    assert response.status_code == 200, response.text
+    assert not (await a.get("/api/v1/session")).json()["consents"]["MEM"]["enabled"]
+    assert (await a.get("/api/v1/memories")).json() == []
+
+
+async def test_first_approval_keeps_other_pending_proposals_reviewable(clients):
+    app, actors = clients
+    a, uid = actors[0]
+    await enable(a, "AI")
+    first = await seed_proposal(app, uid, text="Tôi thích đọc sách")
+    second = await seed_proposal(app, uid, text="Tôi thích đi bộ")
+    for proposal in (first, second):
+        response = await a.post(
+            f"/api/v1/proposals/{proposal.id}/confirm",
+            json={"expectedVersion": 1}, headers=key(),
+        )
+        assert response.status_code == 200, response.text
+    assert len((await a.get("/api/v1/memories")).json()) == 2
 
 
 async def test_memory_remains_manageable_with_ai_off_but_deleted_text_is_not_returned(clients):

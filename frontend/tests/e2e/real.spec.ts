@@ -307,12 +307,13 @@ test("consent changes wait for the server receipt and include session protection
     });
   });
   await page.goto("/#/settings");
+  await page.getByText("Rút quyền xử lý đã cấp", { exact: true }).click();
   await page
-    .getByRole("button", { name: "Tắt trò chuyện AI", exact: true })
+    .getByRole("button", { name: "Rút quyền trò chuyện AI", exact: true })
     .click();
   await expect(
-    page.getByRole("button", { name: "Bật trò chuyện AI", exact: true }),
-  ).toBeVisible();
+    page.getByRole("button", { name: "Rút quyền trò chuyện AI", exact: true }),
+  ).toHaveCount(0);
 });
 
 test("failed AI requests preserve the draft without creating a fake reply", async ({
@@ -355,7 +356,7 @@ test("failed conversation history blocks new sends until the history can be chec
   ).toBeDisabled();
 });
 
-test("returning to the app rechecks consent and removes the revoked composer", async ({
+test("returning to the app rechecks consent and keeps chat accessible", async ({
   page,
 }) => {
   await api(page);
@@ -382,11 +383,82 @@ test("returning to the app rechecks consent and removes the revoked composer", a
   allowed = false;
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect(
-    page.getByText("Bạn chưa bật quyền trò chuyện AI. Bật quyền này khi bạn sẵn sàng chia sẻ với trợ lý; lưu lịch sử là lựa chọn riêng.", { exact: true }),
+    page.getByText("Lần gửi đầu tiên sẽ ghi nhận quyền xử lý tin nhắn AI. Bạn có thể rút quyền trong Quyền riêng tư.", { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("textbox", { name: "Tin nhắn cho Mây" }),
-  ).toHaveCount(0);
+  ).toBeVisible();
+});
+
+test("chat grants processing only when the user sends a message", async ({ page }) => {
+  await api(page);
+  const calls: string[] = [];
+  let granted = false;
+  await page.route("**/api/v1/session", route => route.fulfill({ json: {
+    ...session, consents: { ...session.consents,
+      AI: { enabled: granted, version: granted ? 2 : 1, policyVersion: "v1" } },
+  } }));
+  await page.route("**/api/v1/consents/AI", route => {
+    calls.push("consent");
+    expect(route.request().postDataJSON()).toEqual({
+      enabled: true, expectedVersion: 1, policyVersion: "v1",
+    });
+    granted = true;
+    return route.fulfill({ json: { ...session, consents: { ...session.consents,
+      AI: { enabled: true, version: 2, policyVersion: "v1" } } } });
+  });
+  await page.route("**/api/v1/ai/conversations", route => {
+    if (route.request().method() === "GET") return route.fulfill({ json: [] });
+    calls.push("conversation");
+    return route.fulfill({ json: conversation });
+  });
+  await page.goto("/#/assistants/may");
+  await expect(page.getByRole("textbox", { name: "Tin nhắn cho Mây" })).toBeVisible();
+  expect(calls).toEqual([]);
+  await page.getByRole("textbox", { name: "Tin nhắn cho Mây" }).fill("Xin chào");
+  await page.getByRole("button", { name: "Gửi tin cho AI" }).click();
+  await expect.poll(() => calls).toEqual(["consent", "conversation"]);
+});
+
+test("privacy controls remain readable on mobile and desktop", async ({ page }) => {
+  await api(page);
+  await page.route("**/api/v1/profiles/published/current", route => route.fulfill({ json: null }));
+  for (const width of [390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/#/settings");
+    await expect(page.getByRole("heading", { name: "AI và ghi nhớ" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Kết nối và khám phá" })).toBeVisible();
+    await expect(page.getByRole("checkbox", { name: "Lưu lịch sử trò chuyện" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  }
+});
+
+test("voice waits for a click and handles microphone denial", async ({ page }) => {
+  await api(page);
+  await page.addInitScript(() => {
+    (window as any).__microphoneCalls = 0;
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: { getUserMedia: async () => {
+        (window as any).__microphoneCalls += 1;
+        throw new DOMException("Permission denied", "NotAllowedError");
+      } },
+    });
+  });
+  await page.route("**/api/v1/session", route => route.fulfill({ json: {
+    ...session, features: { ...session.features, voice: true },
+  } }));
+  await page.route("**/api/v1/consents/VOICE", route => route.fulfill({ json: {
+    ...session, features: { ...session.features, voice: true },
+    consents: { ...session.consents, VOICE: { enabled: true, version: 2, policyVersion: "v1" } },
+  } }));
+  await page.goto("/#/assistants/may");
+  await expect(page.getByRole("button", { name: "Ghi âm tối đa 30 giây" })).toBeVisible();
+  expect(await page.evaluate(() => (window as any).__microphoneCalls)).toBe(0);
+  await page.getByRole("button", { name: "Ghi âm tối đa 30 giây" }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).__microphoneCalls)).toBe(1);
+  await expect(page.getByRole("alert").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ghi âm tối đa 30 giây" })).toBeVisible();
 });
 
 test("AI presents the validated final and rejects raw stream deltas", async ({

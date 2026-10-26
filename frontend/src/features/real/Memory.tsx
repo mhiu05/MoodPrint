@@ -4,6 +4,7 @@ import { Button, cx } from "../../components/UI";
 import type { components } from "../../api/generated/schema";
 import { ErrorNotice, useResource, useSession } from "./RealApp";
 import { botById, type BotId } from "../../companions/registry";
+import type { SessionView } from "../../api/contracts";
 
 type MemoryDTO = components["schemas"]["MemoryDTO"];
 type Proposal = components["schemas"]["ProposalDTO"];
@@ -15,7 +16,7 @@ function ProposalReview({
   proposal: Proposal;
   completed: () => void;
 }) {
-  const { api, session } = useSession();
+  const { api, session, receive } = useSession();
   const [text, setText] = useState(proposal.text),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>();
@@ -27,9 +28,7 @@ function ProposalReview({
     (proposal.status || "pending") === "pending" && expiry <= now
       ? "expired"
       : proposal.status || "pending";
-  const allowed =
-    session.consents.AI.enabled &&
-    (proposal.purpose !== "memory" || session.consents.MEM.enabled);
+  const allowed = session.consents.AI.enabled;
   useEffect(() => {
     if (
       !Number.isFinite(expiry) ||
@@ -78,12 +77,12 @@ function ProposalReview({
           ) : null}
           {!allowed ? (
             <p>
-              Để duyệt đề xuất, hãy bật quyền AI
-              {proposal.purpose === "memory" ? " và ghi nhớ đã duyệt" : ""}{" "}
+              Để duyệt đề xuất, hãy gửi một tin nhắn AI trước hoặc bật quyền AI trong{" "}
               trong <Link to="/settings">quyền riêng tư</Link>. Bạn vẫn có thể
               chọn không lưu.
             </p>
           ) : null}
+          {proposal.purpose === "memory" ? <p>Chọn “Duyệt và lưu” sẽ cho phép trợ lý dùng các ghi nhớ bạn đã duyệt trong những lần trò chuyện sau. Bạn có thể rút quyền và xóa từng ghi nhớ.</p> : null}
           <label htmlFor={`proposal-${proposal.id}`}>
             Nội dung bạn muốn duyệt
           </label>
@@ -108,7 +107,11 @@ function ProposalReview({
                       editedText: text,
                     },
                   })
-                  .then(completed)
+                  .then(async () => {
+                    completed();
+                    try { receive(await api.request<SessionView>("/session")); }
+                    catch (reason) { setError(reason); }
+                  })
                   .catch(setError)
                   .finally(() => setBusy(false));
               }}

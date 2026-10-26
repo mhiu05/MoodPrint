@@ -1,3 +1,4 @@
+import asyncio
 import io
 import wave
 from uuid import uuid4
@@ -50,6 +51,46 @@ async def test_voice_requires_both_consents_and_rechecks_before_returning_previe
     assert result.status_code == 200, result.text
     assert result.json()["text"] == "Bản chữ để bạn duyệt"
     assert "sent" not in result.json()
+
+
+@pytest.mark.postgres
+async def test_voice_withdrawal_cancels_inflight_provider_call(clients):
+    app, actors = clients
+    a, _ = actors[0]
+    for purpose in ("AI", "VOICE"):
+        granted = await a.put(
+            f"/api/v1/consents/{purpose}",
+            json={"enabled": True, "expectedVersion": 1, "policyVersion": "v1"},
+            headers={"Idempotency-Key": str(uuid4())},
+        )
+        assert granted.status_code == 200, granted.text
+    started, cancelled = asyncio.Event(), asyncio.Event()
+
+    class SlowTranscriber:
+        async def transcribe(self, data):
+            started.set()
+            try:
+                await asyncio.sleep(10)
+            except asyncio.CancelledError:
+                cancelled.set()
+                raise
+            return "must not reach the user"
+
+    app.state.transcriber = SlowTranscriber()
+    upload = asyncio.create_task(a.post(
+        "/api/v1/voice/transcriptions", content=audio(),
+        headers={"Content-Type": "audio/wav", "Idempotency-Key": str(uuid4())},
+    ))
+    await asyncio.wait_for(started.wait(), timeout=3)
+    withdrawn = await a.put(
+        "/api/v1/consents/VOICE",
+        json={"enabled": False, "expectedVersion": 2, "policyVersion": "v1"},
+        headers={"Idempotency-Key": str(uuid4())},
+    )
+    assert withdrawn.status_code == 200, withdrawn.text
+    response = await asyncio.wait_for(upload, timeout=3)
+    assert response.status_code in (403, 409)
+    assert cancelled.is_set()
 
 
 @pytest.mark.postgres

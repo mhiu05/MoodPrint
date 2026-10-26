@@ -18,7 +18,7 @@ from app.core.security import (
     save_receipt,
     transaction,
 )
-from app.infrastructure.database.models import Consent, User, now
+from app.infrastructure.database.models import Consent, ConsentEvent, User, now
 from app.modules.activities import hooks
 from app.modules.matching import stats
 from app.modules.profiles.taxonomy import TAXONOMY
@@ -142,9 +142,9 @@ async def preview_draft(request: Request, actor: Actor = Depends(require_actor))
 async def publish(body: PublishInput, request: Request, actor: Actor = Depends(require_actor)):
     key, payload = idempotency_key(request), body.model_dump(mode="json")
     async with transaction(request, actor) as (db, user):
-        consents = await assert_purpose(db, user, "MATCH")
         old = await previous_receipt(db, user, "profile:publish", key, payload)
         if old:
+            consents = await assert_purpose(db, user, "MATCH")
             profile = await db.get(PublishedProfile, UUID(old["resourceId"]))
             if (
                 not profile
@@ -166,6 +166,22 @@ async def publish(body: PublishInput, request: Request, actor: Actor = Depends(r
             ):
                 raise DomainError(409, "PREVIEW_CHANGED", "Hãy xem lại bản xem trước mới nhất.")
             svc.validate_publishable(draft.payload)
+            if user.age_band != "adult":
+                raise DomainError(403, "ADULT_REQUIRED", "Tính năng kết nối chỉ dành cho tài khoản đủ điều kiện.")
+            if user.social_restricted_until and user.social_restricted_until > now():
+                raise DomainError(403, "SOCIAL_RESTRICTED", "Tính năng kết nối đang tạm bị hạn chế.")
+            consent = await db.get(Consent, (user.id, "MATCH"))
+            if consent is None:
+                raise DomainError(403, "CONSENT_REQUIRED", "Không tìm thấy lựa chọn quyền riêng tư.")
+            if not consent.enabled:
+                # Preview plus publish is the deliberate choice to participate.
+                consent.enabled = True
+                consent.policy_version = "v1"
+                consent.version += 1
+                user.data_version += 1
+                db.add(ConsentEvent(user_id=user.id, purpose="MATCH", enabled=True,
+                                    version=consent.version, policy_version="v1"))
+            consents = {"MATCH": consent}
             # DR-03: a new profile changes discovery only; rooms and requests stay valid.
             await db.execute(
                 update(PublishedProfile)
