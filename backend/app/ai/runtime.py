@@ -12,7 +12,7 @@ from sqlalchemy import select, update
 
 from app.ai.accounting import UsageSnapshot, persist_snapshot, reserve_accounting
 from app.ai.availability import AiStatus, public_failure
-from app.ai.context import build_history
+from app.ai.context import MOOD_TURN_POLICY, SourceState, build_history, model_messages
 from app.ai.models import AiMessageRecord
 from app.ai.persistence import current_turn, owned_conversation
 from app.ai.prompts import SELECTED_VARIANTS, prompt_version
@@ -22,7 +22,7 @@ from app.ai.usage import UsageEvent
 from app.core.errors import DomainError
 from app.core.security import Actor, assert_purpose, lock_actor
 from app.core.streams import StreamSlots
-from app.infrastructure.database.models import AiRun, AiUsage, now
+from app.infrastructure.database.models import AiRun, AiUsage, Consent, now
 
 
 @dataclass
@@ -49,6 +49,7 @@ class LiveRun:
     failure: dict[str, str] | None = None
     persistent: bool = False
     first_progress_ms: int | None = None
+    sources: dict[str, SourceState] = field(default_factory=dict)
 
 
 @dataclass
@@ -375,16 +376,23 @@ class AiRuntime:
                 raise DomainError(
                     422, "INVALID_TOOL_ARGUMENTS", "Công cụ không nhận nguồn do model chọn."
                 )
-            await check_tool()
-            async with self.database.require()() as db, db.begin():
-                user = await lock_actor(db, run.actor)
-                await assert_purpose(db, user, "AI")
-                if user.data_version != run.data_version:
-                    raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
-                if bot_id != "nhip" or run.mood_scope is None:
-                    raise DomainError(403, "MOOD_SCOPE_REQUIRED", "Hãy chọn khoảng ngày trước.")
-                result = await selected_summary(db, user, run.mood_scope)
-            await self.check(run)
+            state = run.sources.setdefault("mood", SourceState())
+            try:
+                await check_tool()
+                async with self.database.require()() as db, db.begin():
+                    user = await lock_actor(db, run.actor)
+                    await assert_purpose(db, user, "AI")
+                    if user.data_version != run.data_version:
+                        raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
+                    if bot_id != "nhip" or run.mood_scope is None:
+                        raise DomainError(403, "MOOD_SCOPE_REQUIRED", "Hãy chọn khoảng ngày trước.")
+                    result = await selected_summary(db, user, run.mood_scope)
+                await self.check(run)
+            except Exception:
+                state.evidence = "tool_execution_failure"
+                raise
+            state.authorization, state.evidence = "authorized", "retrieved"
+            state.record_count = result["count"]
             return json.dumps(result, ensure_ascii=False)
 
         if bot_id == "guong":
@@ -418,11 +426,47 @@ class AiRuntime:
                 c = self.store.get(
                     run.conversation_id, str(run.actor.user_id), str(run.actor.session_id)
                 )
-                from app.ai.embeddings import retrieve_memories
+                from app.ai.embeddings import MEMORY_BOTS, retrieve_memories
 
-                memories = await retrieve_memories(self.database, self.settings, run.actor, c.bot_id, c.messages[-1].text if c.messages else "", run.data_version)
+                # Check live durable policy before projecting either transcript or
+                # memory. data_version is monotonic across revoke/regrant and edits.
+                async with self.database.require()() as db, db.begin():
+                    user = await lock_actor(db, run.actor)
+                    consents = await assert_purpose(db, user, "AI")
+                    if user.data_version != run.data_version:
+                        raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
+                    mem: Consent | None = consents.get("MEM")
+                    memory_state = SourceState()
+                    if mem and mem.enabled and mem.policy_version == "v1":
+                        memory_state.authorization = "authorized"
+                    elif mem and mem.version > 1:
+                        memory_state.authorization = "revoked"
+                    if c.bot_id not in MEMORY_BOTS:
+                        memory_state.evidence = "tool_unavailable"
+                    run.sources["memory"] = memory_state
+                run.sources["mood"] = SourceState(
+                    authorization="authorized" if run.mood_scope else "no_current_authorization",
+                    previous="previously_authorized" if any(
+                        s.policy == MOOD_TURN_POLICY for rid, s in c.context_stamps.items() if rid != run.id
+                    ) else "missing_verified_evidence",
+                    evidence="missing_verified_evidence" if c.bot_id == "nhip" and run.mood_scope else "tool_unavailable",
+                )
+                projected = model_messages(
+                    c.messages, c.context_stamps, current_run=run.id, data_version=run.data_version
+                )
+                memories = []
+                if memory_state.authorization == "authorized" and memory_state.evidence != "tool_unavailable":
+                    try:
+                        memories = await retrieve_memories(
+                            self.database, self.settings, run.actor, c.bot_id,
+                            projected[-1].text if projected else "", run.data_version,
+                        )
+                    except Exception:
+                        memory_state.evidence = "tool_execution_failure"
+                        raise
+                    memory_state.evidence, memory_state.record_count = "retrieved", len(memories)
                 await self.check(run)
-                history = build_history(c.messages, memories)
+                history = build_history(projected, memories)
 
                 async def monitor_policy():
                     while True:

@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy import delete, select, tuple_, update
 from starlette.background import BackgroundTask
 
+from app.ai.context import MOOD_TURN_POLICY, TEXT_POLICY, ContextStamp
 from app.ai.models import AiConversation, AiMessageRecord, AiPreference, AiTurn
 from app.ai.persistence import (
     admission,
@@ -392,6 +393,7 @@ async def send(
                     client_message_id=body.client_message_id,
                     input_digest=message_digest,
                     data_version=user.data_version,
+                    context_policy=MOOD_TURN_POLICY if body.mood_scope else TEXT_POLICY,
                     worker_id=runtime.worker_id,
                     lease_until=now() + timedelta(seconds=settings.ai_timeout_seconds + 15),
                 )
@@ -426,6 +428,9 @@ async def send(
                 runtime.store.conversations[c.id] = c
                 runtime.store.touch(c)
             input_buffer.enter_context(runtime.reserve_input(c.id, len(body.text.encode()) + 1024))
+        c.context_stamps[run_id] = ContextStamp(
+            data_version, MOOD_TURN_POLICY if body.mood_scope else TEXT_POLICY
+        )
         c.messages.append(
             AIMessage(
                 id=message_id,

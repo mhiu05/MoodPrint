@@ -68,6 +68,8 @@ class AiTurn(Base):
     client_message_id: Mapped[UUID]
     input_digest: Mapped[str] = mapped_column(String(64))
     data_version: Mapped[int]
+    # NULL means legacy/unverified, never infer eligibility from saved text.
+    context_policy: Mapped[str | None] = mapped_column(String(32))
     worker_id: Mapped[UUID]
     lease_until: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     __table_args__ = (UniqueConstraint("scope_id", "client_message_id"),)
