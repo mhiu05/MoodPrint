@@ -1,0 +1,27 @@
+{
+  "verdict": "RELEASE_LIMITED",
+  "applicationMainAndDeployedSha": "4de7bb1b1c21c50444b80514cf56715a6155be1e",
+  "functionalAcceptance": "PASS",
+  "actualDomainLatencyGate": "FAIL",
+  "publicSignup": false,
+  "moderationAdministration": false,
+  "maintenanceGate": false,
+  "releasePollerTimer": "active",
+  "schema": "0014_moderation",
+  "originalApplicationUsersPreserved": 3,
+  "threeObsoleteBranchesDeletedLocallyAndRemotely": true,
+  "fiveRealAiAssistants": "PASS",
+  "voyageSemanticRetrieval": "PASS",
+  "twoUserMessaging": "PASS",
+  "icebreaker": "PASS",
+  "quiz": "PASS",
+  "sharedFocusActualMinutesTogether": 15,
+  "exportAndScopedDeletion": "PASS",
+  "limits": [
+    "Latency targets unmet",
+    "SMTP delivery unverified",
+    "No authorized staff operator",
+    "Portable backup/PITR unverified"
+  ],
+  "evidenceOnlyReportBranch": "release/moodprint-mvp-integration"
+}

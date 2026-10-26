@@ -1,0 +1,43 @@
+{
+  "scope": "actual-domain authenticated sequential reads; sampling succeeded, latency acceptance failed",
+  "readP95TargetMs": 500,
+  "operations": [
+    {
+      "operation": "session",
+      "samples": 12,
+      "p50Ms": 2058.6,
+      "p95Ms": 2774.2,
+      "throughputRps": 0.47,
+      "errors": 0,
+      "latencyVerdict": "FAIL"
+    },
+    {
+      "operation": "candidates",
+      "samples": 12,
+      "p50Ms": 2656.9,
+      "p95Ms": 3183.1,
+      "throughputRps": 0.37,
+      "errors": 0,
+      "latencyVerdict": "FAIL"
+    },
+    {
+      "operation": "messages",
+      "samples": 12,
+      "p50Ms": 2517.1,
+      "p95Ms": 2736.7,
+      "throughputRps": 0.39,
+      "errors": 0,
+      "latencyVerdict": "FAIL"
+    },
+    {
+      "operation": "activity_current",
+      "samples": 12,
+      "p50Ms": 2878.4,
+      "p95Ms": 3485.6,
+      "throughputRps": 0.34,
+      "errors": 0,
+      "latencyVerdict": "FAIL"
+    }
+  ],
+  "status": "FAIL"
+}

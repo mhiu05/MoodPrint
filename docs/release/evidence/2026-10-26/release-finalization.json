@@ -1,0 +1,8 @@
+{
+  "CommandId": "2b7d312a-1c82-4e6f-a5e9-b910e858f76e",
+  "ExecutionStartDateTime": "2026-10-26T00:34:06.160Z",
+  "ExecutionEndDateTime": "2026-10-26T00:34:12.160Z",
+  "Status": "Success",
+  "ResponseCode": 0,
+  "StandardOutputContent": "{\"fixtureProfilesWithdrawn\": true, \"fixtureMatchingConsentDisabled\": true, \"newConversationsDeleted\": 5, \"newMemoryAndVectorRemoved\": true, \"activities\": {\"focus\": \"completed\", \"coop_quiz\": \"completed\", \"icebreaker\": \"completed\"}, \"applicationUsersPreserved\": 3, \"schema\": \"0014_moderation\", \"migrationCredentialConfigured\": false, \"scorer\": \"v2\", \"activitiesEnabled\": true, \"sandbox\": false, \"stt\": false, \"admin\": false}\n{\"releaseGate\": \"disable\", \"configValidated\": true, \"backendWorkersChanged\": false, \"tokenPrinted\": false}\nactive\nAPI_IMAGE=ghcr.io/mhiu05/moodprint-api@sha256:6ce3beb9facd8e4e22229b268e403b0b1678d2efba51c88db57286b5d5568879\nWEB_IMAGE=ghcr.io/mhiu05/moodprint-web@sha256:1524bb7688d179d74d67dfc0ff98d29796150ca2998fa482f82fdc7ed8982f4f\nRELEASE_SHA=4de7bb1b1c21c50444b80514cf56715a6155be1e\n/moodprint-staging-api-1 ghcr.io/mhiu05/moodprint-api@sha256:6ce3beb9facd8e4e22229b268e403b0b1678d2efba51c88db57286b5d5568879 healthy restarts=0\n/moodprint-staging-web-1 ghcr.io/mhiu05/moodprint-web@sha256:1524bb7688d179d74d67dfc0ff98d29796150ca2998fa482f82fdc7ed8982f4f healthy restarts=0\n"
+}
