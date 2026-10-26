@@ -21,17 +21,7 @@ async function session(context: BrowserContext, number: number) {
   ]);
 }
 
-async function enable(page: Page, name: string) {
-  await page.goto("/#/settings");
-  const button = page.getByRole("button", { name: `Bật ${name}`, exact: true });
-  if (await button.count()) await button.click();
-  await expect(
-    page.getByRole("button", { name: `Tắt ${name}`, exact: true }),
-  ).toBeVisible();
-}
-
 async function publish(page: Page) {
-  await enable(page, "tìm bạn");
   await page.goto("/#/connect?tab=profile");
   await fillProfileEditor(page);
 }
@@ -183,9 +173,7 @@ test("the eighteenth-year account explicitly confirms18 in settings without auto
     page.getByRole("heading", { name: /Bạn muốn kể gì/ }),
   ).toBeVisible();
   await page.goto("/#/settings");
-  await expect(
-    page.getByRole("button", { name: "Bật tìm bạn", exact: true }),
-  ).toBeDisabled();
+  await expect(page.getByRole("link", { name: "Xem hoặc sửa hồ sơ kết nối" })).toBeVisible();
   await page
     .getByRole("checkbox", {
       name: "Tôi xác nhận mình đã đủ 18 tuổi để sử dụng Tìm bạn và nhắn tin người thật.",
@@ -195,13 +183,8 @@ test("the eighteenth-year account explicitly confirms18 in settings without auto
   await page
     .getByRole("button", { name: "Xác nhận đủ 18 tuổi", exact: true })
     .click();
-  await expect(
-    page.getByRole("button", { name: "Bật tìm bạn", exact: true }),
-  ).toBeEnabled();
   await page.reload();
-  await expect(
-    page.getByRole("button", { name: "Bật tìm bạn", exact: true }),
-  ).toBeEnabled();
+  await expect(page.getByRole("link", { name: "Xem hoặc sửa hồ sơ kết nối" })).toBeVisible();
   const stored = await (
     await context.request.get("http://127.0.0.1:5174/api/v1/session")
   ).json();
@@ -252,8 +235,8 @@ test("real FastAPI/PostgreSQL preserves private records and mood, streams throug
   await expect(
     one.locator("article").getByText("Một ngày bình yên", { exact: true }),
   ).toBeVisible();
-  await enable(one, "trò chuyện AI");
-  await one.getByRole("checkbox", { name: "Lưu lịch sử trò chuyện", exact: true }).check();
+  await one.goto("/#/settings");
+  await one.getByRole("checkbox", { name: "Lưu lịch sử trò chuyện", exact: true }).click();
   await expect(one.getByText("Đã cập nhật lựa chọn dữ liệu AI.", { exact: true })).toBeVisible();
   await one.goto("/#/assistants/may");
   await one

@@ -61,25 +61,13 @@ export async function call(
   };
 }
 
-export async function enable(page: Page, name: string) {
-  await page.goto("/#/settings");
-  const button = page.getByRole("button", { name: `Bật ${name}`, exact: true });
-  // Wait for the rendered state before deciding; count() alone races the first render.
-  await expect(
-    button.or(page.getByRole("button", { name: `Tắt ${name}`, exact: true })),
-  ).toBeVisible();
-  if (await button.count()) await button.click();
-  await expect(
-    page.getByRole("button", { name: `Tắt ${name}`, exact: true }),
-  ).toBeVisible();
-}
-
 export async function disable(page: Page, name: string) {
   await page.goto("/#/settings");
-  await page.getByRole("button", { name: `Tắt ${name}`, exact: true }).click();
+  await page.getByText("Rút quyền xử lý đã cấp", { exact: true }).click();
+  await page.getByRole("button", { name: `Rút quyền ${name}`, exact: true }).click();
   await expect(
-    page.getByRole("button", { name: `Bật ${name}`, exact: true }),
-  ).toBeVisible();
+    page.getByRole("button", { name: `Rút quyền ${name}`, exact: true }),
+  ).toHaveCount(0);
 }
 
 /** Drives the five-step profile editor with the shared synthetic profile. */
@@ -110,7 +98,6 @@ export async function fillProfileEditor(page: Page) {
 }
 
 export async function publish(page: Page) {
-  await enable(page, "tìm bạn");
   await page.goto("/#/connect?tab=profile");
   await fillProfileEditor(page);
 }

@@ -30,25 +30,15 @@ test("five assistants persist, recover after logout/login and deny a separately 
     await login(a, 45);
     await login(b, 46);
     await a.goto("/#/assistants/may");
-    await expect(
-      a.getByRole("link", { name: "Bật quyền trò chuyện AI", exact: true }),
-    ).toBeVisible();
+    await expect(a.getByRole("textbox", { name: "Tin nhắn cho Mây", exact: true })).toBeVisible();
     await expect(a.getByText(/AI đang tắt hoặc chưa khả dụng/)).toHaveCount(0);
-    await a
-      .getByRole("link", { name: "Bật quyền trò chuyện AI", exact: true })
-      .click();
-    await a
-      .getByRole("button", { name: "Bật trò chuyện AI", exact: true })
-      .click();
-    await expect(
-      a.getByRole("button", { name: "Tắt trò chuyện AI", exact: true }),
-    ).toBeVisible();
+    await a.goto("/#/settings");
     await expect(
       a.getByRole("checkbox", { name: "Lưu lịch sử trò chuyện", exact: true }),
     ).not.toBeChecked();
     await a
       .getByRole("checkbox", { name: "Lưu lịch sử trò chuyện", exact: true })
-      .check();
+      .click();
     await expect(
       a.getByText("Đã cập nhật lựa chọn dữ liệu AI.", { exact: true }),
     ).toBeVisible();
@@ -61,7 +51,7 @@ test("five assistants persist, recover after logout/login and deny a separately 
       ["caunoi", "Cầu Nối"],
     ]) {
       await a.goto(`/#/assistants/${bot}`);
-      await expect(a.getByRole("note")).toContainText("model giả");
+      await expect(a.getByRole("note").filter({ hasText: "model giả" })).toBeVisible();
       await a
         .getByRole("textbox", { name: `Tin nhắn cho ${name}`, exact: true })
         .fill(`LOCAL-MVP ${bot} synthetic history`);
