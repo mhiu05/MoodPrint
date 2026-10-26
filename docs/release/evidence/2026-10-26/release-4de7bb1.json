@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "repository": "mhiu05/MoodPrint",
+  "branch": "main",
+  "commit_sha": "4de7bb1b1c21c50444b80514cf56715a6155be1e",
+  "ci_run_id": 40245721736,
+  "publish_run_id": 40246469472,
+  "images": {
+    "api": {
+      "name": "ghcr.io/mhiu05/moodprint-api",
+      "digest": "sha256:6ce3beb9facd8e4e22229b268e403b0b1678d2efba51c88db57286b5d5568879",
+      "ref": "ghcr.io/mhiu05/moodprint-api@sha256:6ce3beb9facd8e4e22229b268e403b0b1678d2efba51c88db57286b5d5568879",
+      "revision": "4de7bb1b1c21c50444b80514cf56715a6155be1e"
+    },
+    "web": {
+      "name": "ghcr.io/mhiu05/moodprint-web",
+      "digest": "sha256:1524bb7688d179d74d67dfc0ff98d29796150ca2998fa482f82fdc7ed8982f4f",
+      "ref": "ghcr.io/mhiu05/moodprint-web@sha256:1524bb7688d179d74d67dfc0ff98d29796150ca2998fa482f82fdc7ed8982f4f",
+      "revision": "4de7bb1b1c21c50444b80514cf56715a6155be1e"
+    }
+  }
+}

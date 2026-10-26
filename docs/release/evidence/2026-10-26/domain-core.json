@@ -1,0 +1,56 @@
+{
+  "mode": "core",
+  "startedUtc": "2026-10-25T23:56:43.378Z",
+  "checks": [
+    {
+      "name": "real hosted authentication and secure independent cookies",
+      "status": "PASS",
+      "utc": "2026-10-25T23:57:13.008Z"
+    },
+    {
+      "name": "real may assistant, SSE, saved reload and peer denial",
+      "status": "PASS",
+      "utc": "2026-10-25T23:58:10.522Z"
+    },
+    {
+      "name": "real guong assistant, SSE, saved reload and peer denial",
+      "status": "PASS",
+      "utc": "2026-10-25T23:58:51.744Z"
+    },
+    {
+      "name": "real nhip assistant, SSE, saved reload and peer denial",
+      "status": "PASS",
+      "utc": "2026-10-25T23:59:26.990Z"
+    },
+    {
+      "name": "real rure assistant, SSE, saved reload and peer denial",
+      "status": "PASS",
+      "utc": "2026-10-26T00:00:02.616Z"
+    },
+    {
+      "name": "real caunoi assistant, SSE, saved reload and peer denial",
+      "status": "PASS",
+      "utc": "2026-10-26T00:00:39.152Z"
+    },
+    {
+      "name": "logout/login restoration and continued durable conversation",
+      "status": "PASS",
+      "utc": "2026-10-26T00:01:23.080Z"
+    },
+    {
+      "name": "real model memory proposal, explicit edited approval, persistence and owner isolation",
+      "status": "PASS",
+      "utc": "2026-10-26T00:01:38.775Z"
+    },
+    {
+      "name": "real assistant retrieves explicitly approved memory",
+      "status": "PASS",
+      "utc": "2026-10-26T00:02:04.526Z"
+    }
+  ],
+  "status": "FAIL",
+  "error": {
+    "type": "ExpectError",
+    "message": "expect(locator).toBeVisible() failed\n\nLocator: getByRole('textbox', { name: 'Tin nhắn cho M?y', exact: true })\nExpected: visible\nTimeout: 30000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeVisible\" getByRole('textbox', { name: 'Tin nhắn cho M?y', exact: true }) with timeout 30000ms\n  - waiting for getByRole('textbox', { name: 'Tin nhắn cho M?y', exact: true })\n"
+  }
+}
