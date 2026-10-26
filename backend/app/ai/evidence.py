@@ -24,6 +24,8 @@ class MoodAnalysisPlan(BaseModel):
     model_config = ConfigDict(extra="forbid")
     focus: Literal["overview", "recorded_days", "comparison", "limits"]
     next_step: Literal["none", "reflect", "record", "small_step"]
+    detail: Literal["standard", "brief"] = "standard"
+    include_mean: bool = True
 
 
 @dataclass(frozen=True)
@@ -107,9 +109,12 @@ def render_mood_analysis(plan: MoodAnalysisPlan, run) -> AiOutput:
         parts.append("Chưa có bản ghi trong khoảng đã chọn. Điều này không cho biết tâm trạng của bạn trong những ngày đó.")
     else:
         mean = format(evidence.mean, ".2f").rstrip("0").rstrip(".").replace(".", ",")
-        parts.append(f"Điểm trung bình của các ngày đã ghi là {mean}/5.")
-        if plan.focus in ("overview", "recorded_days"):
+        if plan.include_mean:
+            parts.append(f"Điểm trung bình của các ngày đã ghi là {mean}/5.")
+        if plan.focus in ("overview", "recorded_days") and plan.detail == "standard":
             parts.append("Các điểm đã ghi: " + "; ".join(f"{row.local_date:%d/%m}: {row.value}/5" for row in rows) + ".")
+        elif plan.focus == 'recorded_days':
+            parts.append('Các lần ghi gần nhất: ' + '; '.join(f'{row.local_date:%d/%m}: {row.value}/5' for row in rows[-3:]) + '.')
         if len(rows) >= 2 and plan.focus != "recorded_days":
             first, last = rows[0], rows[-1]
             delta = last.value - first.value
@@ -119,7 +124,7 @@ def render_mood_analysis(plan: MoodAnalysisPlan, run) -> AiOutput:
             parts.append("Một lần ghi cho biết một thời điểm; chưa có lần ghi khác để so sánh.")
         if selected > count:
             parts.append(f"{selected - count} ngày chưa có bản ghi được để trống, không tính thành điểm thấp.")
-        if plan.focus == "limits" or len(rows) > 2:
+        if plan.focus == "limits" or (len(rows) > 2 and plan.detail == "standard"):
             parts.append("Các điểm tự ghi mô tả những thời điểm đã ghi; chưa có phương pháp suy luận xu hướng được kiểm chứng và không cho biết nguyên nhân.")
     suggestions = {
         "none": "",
@@ -132,7 +137,7 @@ def render_mood_analysis(plan: MoodAnalysisPlan, run) -> AiOutput:
     return AiOutput(text="\n\n".join(parts), cards=[])
 
 
-def source_instructions(context, bot_id: str = "nhip") -> str:
+def source_instructions(context, bot_id: str = "nhip", *, mood_analysis: bool = True) -> str:
     # Static historical prompt evals have no domain runtime and retain frozen inputs.
     if not hasattr(context, "sources"):
         return ""
@@ -161,6 +166,14 @@ unrelated data sources or tools when the user has not asked about them.
         "evidence": mood.evidence if mood else "tool_unavailable",
         "reuse": "not_authorized",
     }
+    if not mood_analysis:
+        return common + '\nBackend mood state (not a request to analyze): ' + json.dumps(state) + """
+The current request is conversational or practical. An unused sharing scope does
+not require analysis. No mood reading tool is supplied; do not claim stored mood
+facts or reuse earlier statistics. Answer the current request using AiOutput.
+Do not introduce date selection, statistics or permission explanations unless
+the user actually asks about stored mood data.
+"""
     return common + """
 Runtime evidence policy: mood-evidence-v1. This backend state is authoritative:
 """ + json.dumps(state) + """
@@ -182,6 +195,9 @@ observation compares actual records; inference requires a validated method (none
 Sparse records can still be described and compared. Never infer missing-day mood or causality.
 For scoped turns the private output is MoodAnalysisPlan, not AiOutput: choose focus and
 next_step for the user's request. Backend renders all factual and numerical mood claims.
+Set detail=brief for a short follow-up or a focused comparison. Set include_mean=false
+when the user does not want the mean repeated. Other facts still come from backend
+rendering; do not put free-form claims in the plan. Standard detail is the safe default.
 Use next_step=none when advice is unwanted. No raw text, numbers, dates, or trend claims
 belong in the plan. The public response remains AiOutput after server rendering.
 """

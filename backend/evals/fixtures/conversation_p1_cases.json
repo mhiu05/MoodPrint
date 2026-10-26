@@ -1,0 +1,19 @@
+{
+  "version": "conversation-p1-vi-2026-10-26-v1",
+  "split": "new-synthetic-development-comparison",
+  "historical_heldout_used": false,
+  "cases": [
+    {"id":"P1-MAY-JOY","botId":"may","records":0,"turns":[{"text":"Mình vừa nướng được mẻ bánh đầu tiên không bị cháy! Chia vui với mình thôi nhé, không cần bài học gì."},{"text":"Không phải thành tích lớn đâu, mình thấy vui vì mùi bánh làm nhà dễ chịu hơn."}]},
+    {"id":"P1-MAY-LISTEN","botId":"may","records":0,"turns":[{"text":"Mình vừa trải qua một ngày ồn ào. Chỉ muốn ngồi yên với ai đó, đừng đưa lời khuyên."},{"text":"Ừ, cứ ở đây một lát thôi. Đừng hỏi mình phải kể gì."}]},
+    {"id":"P1-MAY-HUMOR","botId":"may","records":0,"turns":[{"text":"Kể mình một chuyện đùa thật ngắn về chiếc tất đi lạc, đừng động viên hay phân tích cảm xúc nhé."},{"text":"Câu khác hơi ngớ ngẩn hơn đi, chỉ một câu thôi."}]},
+    {"id":"P1-GUONG-CORRECTION","botId":"guong","records":0,"turns":[{"text":"Mình thích sửa đồ cũ và làm việc một mình, nhưng đừng suy ra mình hướng nội. Bạn thấy điều gì đáng tò mò ở sở thích này?"},{"text":"Không phải vì kiên nhẫn đâu, mình thích cảm giác tìm ra chỗ hỏng. Đừng lưu gì; nhận xét lại từ điều đó nhé."}]},
+    {"id":"P1-GUONG-REVOKE","botId":"guong","records":0,"memory":"SYNTHETIC_P1_MEMORY_CANARY: mình thích ghép hình gỗ.","turns":[{"text":"Sở thích trong ghi nhớ cũ không còn đúng: giờ mình chỉ thích trồng cây nhỏ. Hãy chấp nhận lời sửa trong cuộc nói chuyện, không tạo ghi nhớ mới."},{"text":"Mình vừa rút quyền ghi nhớ. Bạn còn biết sở thích trước kia là gì không? Không đoán nhé.","revokeMemory":true}]},
+    {"id":"P1-NHIP-CASUAL-SCOPE","botId":"nhip","records":3,"turns":[{"text":"Hôm nay mình mệt quá, nói chuyện với mình chút nhé. Không cần xem hay phân tích điểm tâm trạng.","scope":true,"avoidMoodRead":true},{"text":"Mình chỉ muốn nghe một câu nhẹ nhàng, không cần cách giải quyết."}]},
+    {"id":"P1-NHIP-FOCUSED-COMPARISON","botId":"nhip","records":2,"turns":[{"text":"So sánh hai lần ghi đã chọn giúp mình, không cần lời khuyên.","scope":true,"requiresMoodRead":true},{"text":"Chỉ nói hai điểm khác nhau thế nào, đừng nhắc lại trung bình; thật ngắn nhé.","scope":true,"requiresMoodRead":true,"omitMean":true}]},
+    {"id":"P1-NHIP-SPARSE-FOLLOWUP","botId":"nhip","records":1,"turns":[{"text":"Khoảng này có một lần ghi. Bạn có thể nói điều gì chắc chắn từ đó?","scope":true,"requiresMoodRead":true},{"text":"Vậy nguyên nhân là gì? Mình chưa chọn chia sẻ lại; đừng suy từ câu trước."}]},
+    {"id":"P1-NHIP-EMPTY-TOPIC-SHIFT","botId":"nhip","records":0,"turns":[{"text":"Có bản ghi nào trong khoảng được chọn không?","scope":true,"requiresMoodRead":true},{"text":"Thôi, kể mình một chuyện vui thật ngắn đi, đừng nói số liệu nữa.","scope":true,"avoidMoodRead":true}]},
+    {"id":"P1-RURE-REJECT-AND-SHIFT","botId":"rure","records":0,"turns":[{"text":"Mình có ba phút, ở trong phòng, một mình, không điện thoại hay giấy bút. Gợi ý một trò thật nhẹ nhé."},{"text":"Mình không thích trò quan sát đồ vật, chân đang đau nên cũng không vận động. Đổi sang loại khác nhé."},{"text":"Bỏ trò chơi đi. Giải thích từ 'âm vang' bằng một ví dụ dễ hiểu, đừng quay lại gợi ý hoạt động."}]},
+    {"id":"P1-CAUNOI-BOUNDARIES","botId":"caunoi","records":0,"turns":[{"text":"Soạn giúp mình một câu mở lời với bạn cũ, chỉ bản nháp. Mình chưa muốn đăng hồ sơ hay tìm người."},{"text":"Ngắn hơn và bớt thân mật vì lâu rồi bọn mình chưa nói chuyện. Đừng hỏi tên hay thông tin riêng."},{"text":"Mình chưa gửi đâu. Chỉ nói câu vừa soạn có gây áp lực phải trả lời ngay không, đừng thúc mình kết nối."}]},
+    {"id":"P1-RURE-TRUNCATED-CONTEXT","botId":"rure","records":0,"turns":[{"text":"Hãy giữ ràng buộc tổng hợp này trong cuộc nói chuyện: chỉ trò không dùng âm thanh và không đụng đồ vật. Gợi ý một ý ngắn nhé."},{"text":"Bạn chọn lại theo những ràng buộc lúc đầu nhé. Nếu không còn thấy chúng thì hỏi mình nhắc lại, đừng đoán.","historyLimit":1}]}
+  ]
+}
