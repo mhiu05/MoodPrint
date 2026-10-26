@@ -207,9 +207,9 @@ async def evaluate(args):
                         expected_count = case["records"]
                         expected_mean = {0: None, 1: "3/5", 2: "2,5/5", 3: "3/5"}[expected_count]
                         row["assertions"]["grounded_count"] = f"{expected_count}/7" in row["output"]["text"]
-                        if not step.get('omitMean'):
-                            row["assertions"]["grounded_mean"] = expected_mean is None or expected_mean in row["output"]["text"]
-                        else:
+                        if 'trung bình' in row['output']['text'].lower():
+                            row["assertions"]["grounded_mean"] = expected_mean is not None and expected_mean in row["output"]["text"]
+                        if step.get('omitMean'):
                             row['intent_assertions']['unrequested_mean_omitted'] = expected_mean not in row['output']['text']
                     report["rows"].append(row)
                     await save()

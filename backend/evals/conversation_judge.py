@@ -88,13 +88,18 @@ async def evaluate(args):
                     for row in arms[variant]:
                         item={key:row.get(key) for key in ('turn','prompt','output','tools','status','scope_present','recorded_days','memory_authorized','history_limit')}
                         reads=[]
+                        memories=[]
                         for capture in row['model_inputs']:
                             for entry in capture['input']:
+                                content=entry.get('content')
+                                if entry.get('role')=='user' and isinstance(content,str) and content.startswith('Approved memory data '):
+                                    memories.append(content)
                                 if entry.get('type')=='function_call_output':
                                     output=json.loads(entry['output'])
                                     if 'buckets' in output:
                                         reads.append({key:output[key] for key in ('from','to','count','mean','buckets')})
                         item['verified_reads']=reads
+                        item['verified_approved_memory_inputs']=memories
                         payload['answers'][label].append(item)
                 serialized=json.dumps(payload,ensure_ascii=False)
                 reserve=len(serialized.encode())+len(RUBRIC.encode())+2000+4096
