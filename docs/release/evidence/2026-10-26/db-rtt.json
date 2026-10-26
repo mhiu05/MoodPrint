@@ -1,8 +1,0 @@
-{
-  "CommandId": "c4da6817-538c-40b8-b105-0ffb4e8bc9ec",
-  "ExecutionStartDateTime": "2026-10-26T00:17:29.728Z",
-  "ExecutionEndDateTime": "2026-10-26T00:17:34.728Z",
-  "Status": "Success",
-  "ResponseCode": 0,
-  "StandardOutputContent": "{\"probe\": \"existing production API container to hosted DB; sequential warm select1, no user data read/write\", \"samples\": 12, \"p50Ms\": 114.5, \"p95Ms\": 114.7, \"errors\": 0}\n"
-}

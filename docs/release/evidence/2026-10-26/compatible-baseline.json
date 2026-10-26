@@ -1,8 +1,0 @@
-{
-  "CommandId": "ef93f38b-d92c-4d6c-be0e-632681785010",
-  "ExecutionStartDateTime": "2026-10-26T00:06:07.158Z",
-  "ExecutionEndDateTime": "2026-10-26T00:06:07.158Z",
-  "Status": "Success",
-  "ResponseCode": 0,
-  "StandardOutputContent": "Compatible verified release and root-only runtime preserved\n"
-}

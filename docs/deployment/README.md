@@ -1,3 +1,0 @@
-# MoodPrint AWS staging
-
-Tài liệu này là bản **chuẩn bị và xác minh local**, chưa phải bằng chứng đã deploy. Bắt đầu bằng [kiến trúc và audit](architecture.md), [dự toán chi phí](aws-costs.md), [điều kiện AWS](aws-prerequisites.md). Sau khi được duyệt, làm [bootstrap EC2](staging-setup.md), [secrets](secrets.md), [migration](migration-readiness.md) và [CI/CD](github-cicd.md). Trước mỗi release dùng [checklist](release-checklist.md); khi lỗi dùng [rollback](rollback.md). AI/STT có [kế hoạch smoke riêng](ai-smoke-tests.md). Kết quả lệnh đã chạy nằm trong [verification report](verification-report.md).

@@ -1,8 +1,0 @@
-{
-  "CommandId": "d53401c2-32c2-4e4c-b876-8725fd0ee5eb",
-  "ExecutionStartDateTime": "2026-10-26T00:06:24.423Z",
-  "ExecutionEndDateTime": "2026-10-26T00:06:45.423Z",
-  "Status": "Success",
-  "ResponseCode": 0,
-  "StandardOutputContent": "Staging deployment healthy: 4de7bb1b1c21c50444b80514cf56715a6155be1e\n{\"matchingScorer\": \"v2\", \"activities\": true, \"semantic\": true, \"migrationCredentialConfigured\": false}\n"
-}

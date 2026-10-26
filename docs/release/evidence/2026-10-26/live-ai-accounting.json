@@ -1,8 +1,0 @@
-{
-  "CommandId": "dd8ab15e-6ba8-4ad3-84cb-5e499036e58f",
-  "ExecutionStartDateTime": "2026-10-26T00:09:16.555Z",
-  "ExecutionEndDateTime": "2026-10-26T00:09:19.555Z",
-  "Status": "Success",
-  "ResponseCode": 0,
-  "StandardOutputContent": "{\"scope\": \"only five synthetic release conversations\", \"aiTurns\": 10, \"runStates\": {\"completed\": 9, \"cancelled\": 1}, \"accountingStates\": {\"settled\": 10}, \"requests_started\": 10, \"responses_received\": 10, \"input_tokens\": 10916, \"cached_input_tokens\": 1187, \"output_tokens\": 722, \"tool_calls\": 1, \"estimated_nano_usd\": 1345770}\n"
-}

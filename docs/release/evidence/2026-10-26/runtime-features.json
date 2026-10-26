@@ -1,9 +1,0 @@
-{
-  "previousVersion": 5,
-  "newVersion": 6,
-  "updates": {
-    "MATCHING_SCORER": "v2",
-    "ACTIVITIES_ENABLED": "true"
-  },
-  "migrationCredentialConfigured": false
-}

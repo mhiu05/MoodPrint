@@ -1,8 +1,0 @@
-{
-  "CommandId": "4caea793-1b7f-4897-9b98-17779d80321c",
-  "ExecutionStartDateTime": "2026-10-26T00:05:35.797Z",
-  "ExecutionEndDateTime": "2026-10-26T00:05:42.797Z",
-  "Status": "Success",
-  "ResponseCode": 0,
-  "StandardOutputContent": "{\"semanticRetrieval\": \"PASS\", \"realVoyageQueryRequests\": 1, \"ownedApprovedMemoryReturned\": true, \"dimensions\": 1024}\n"
-}
