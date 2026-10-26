@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy import delete, func, select, update
 
+from app.ai.context import ContextStamp
 from app.ai.models import AiConversation, AiMessageRecord, AiTurn
 from app.ai.schemas import AIMessage, AiPreferenceView, ConversationHeader, ConversationView
 from app.ai.store import Conversation
@@ -104,6 +105,15 @@ async def conversation_view(db, c, limit=50, before=None):
 async def load_runtime_conversation(db, c, session_id):
     # Context is always the newest bounded page; old transcript remains pageable.
     view = await conversation_view(db, c, limit=40)
+    turns = (
+        await db.scalars(
+            select(AiTurn).where(
+                AiTurn.user_id == c.user_id,
+                AiTurn.conversation_id == c.id,
+                AiTurn.run_id.in_([m.run_id for m in view.messages if m.run_id]),
+            )
+        )
+    ).all()
     return Conversation(
         str(c.user_id),
         str(session_id),
@@ -112,6 +122,7 @@ async def load_runtime_conversation(db, c, session_id):
         version=c.version,
         expires_at=c.expires_at,
         messages=view.messages,
+        context_stamps={t.run_id: ContextStamp(t.data_version, t.context_policy) for t in turns},
         active_run_id=view.active_run_id,
         persistent=True,
     )

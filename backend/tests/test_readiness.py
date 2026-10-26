@@ -1,4 +1,4 @@
-"""DR-16: readiness accepts known schema heads throughout the expand-migration window."""
+"""Readiness requires the schema needed to enforce the privacy projection."""
 
 import pytest
 from sqlalchemy import text
@@ -9,11 +9,12 @@ pytestmark = pytest.mark.postgres
 @pytest.mark.parametrize(
     ("revision", "status"),
     [
-        ("0010_account_deletion", 200),
-        ("0011_social_stabilization", 200),
-        ("0012_matching_v2", 200),
-        ("0013_shared_activities", 200),
-        ("0014_moderation", 200),
+        ("0010_account_deletion", 503),
+        ("0011_social_stabilization", 503),
+        ("0012_matching_v2", 503),
+        ("0013_shared_activities", 503),
+        ("0014_moderation", 503),
+        ("0015_context_privacy", 200),
         ("0015_unreviewed", 503),
         ("9999_unknown", 503),
     ],

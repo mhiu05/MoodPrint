@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
+from app.ai.context import ContextStamp
 from app.ai.schemas import AIMessage
 from app.core.errors import DomainError
 
@@ -19,6 +20,7 @@ class Conversation:
     touched: float = 0
     expires_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     messages: list[AIMessage] = field(default_factory=list)
+    context_stamps: dict[UUID, ContextStamp] = field(default_factory=dict)
     active_run_id: UUID | None = None
     client_runs: dict[str, tuple[str, UUID]] = field(default_factory=dict)
     persistent: bool = False
