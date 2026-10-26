@@ -79,6 +79,21 @@ def generate(directory, candidate='live-candidate.json', judge_name='live-judge.
                     continue
                 lines.extend([f"Turn {row['turn']}; bot={row['botId']}; mood permission={row['scope_present']}; records={row['recorded_days']}; memory authorized={row['memory_authorized']}; history limit={row['history_limit']}.",'',
                               '**User:** '+row['prompt'],'','**Assistant:** '+((row.get('output') or {}).get('text') or '[No completed response: '+str(row.get('error_code'))+']'),''])
+                sources = {'verified_mood_reads': [], 'approved_memory_inputs': []}
+                for capture in row['model_inputs']:
+                    for entry in capture['input']:
+                        content = entry.get('content')
+                        if entry.get('role') == 'user' and isinstance(content, str) and content.startswith('Approved memory data '):
+                            if content not in sources['approved_memory_inputs']:
+                                sources['approved_memory_inputs'].append(content)
+                        if entry.get('type') == 'function_call_output':
+                            output = json.loads(entry['output'])
+                            if 'buckets' in output:
+                                read = {key: output[key] for key in ('from', 'to', 'count', 'mean', 'buckets')}
+                                if read not in sources['verified_mood_reads']:
+                                    sources['verified_mood_reads'].append(read)
+                lines.extend(['**Authorized source inputs observed for this turn:**', '',
+                              '```json', json.dumps(sources, ensure_ascii=False, indent=2), '```', ''])
     (directory/'human-review-blind.md').write_text('\n'.join(lines),encoding='utf-8')
     (directory/'human-review-key.json').write_text(json.dumps(key,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(result,ensure_ascii=False,indent=2))

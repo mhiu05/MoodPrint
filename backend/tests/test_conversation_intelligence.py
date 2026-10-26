@@ -15,6 +15,10 @@ pytestmark = pytest.mark.postgres
     'Kể cho mình một chuyện đùa nhẹ nhàng nhé.',
     'Chỉ mình cách gấp một chiếc máy bay giấy đơn giản nhé.',
     'Chỉ trò chuyện với mình thôi, không phân tích nhé.',
+    'Chỉ mình cách tính trung bình cộng của 2 và 4.',
+    'Chỉ mình cách tính trung bình cộng của 2 và 4, đừng xem dữ liệu tâm trạng.',
+    'Chỉ trò chuyện thôi, đừng tính trung bình hay thống kê điểm tâm trạng nhé.',
+    'Phân tích cách dùng phép ẩn dụ trong câu này, đừng xem dữ liệu tâm trạng.',
 ])
 async def test_unused_mood_scope_does_not_force_analysis(clients, message):
     app, client, url, scope = await setup(clients, 2)
@@ -56,3 +60,15 @@ async def test_declining_long_analysis_does_not_decline_analysis(clients):
     app, client, url, scope = await setup(clients, 2)
     run = await turn(app, client, url, 'Nhìn lại hai điểm đã ghi; không cần phân tích dài, đừng khuyên gì.', reader(), moodScope=scope)
     assert '2/7' in next(event.data['text'] for event in run.events if event.type == 'final')
+
+
+@pytest.mark.parametrize('message', [
+    'Chỉ mình cách tính trung bình các điểm tâm trạng đã ghi tuần này.',
+    'Đừng xem dữ liệu khác, chỉ so sánh điểm tâm trạng đã chọn.',
+    'Đừng xem dữ liệu khác; chỉ so sánh điểm tâm trạng đã chọn.',
+])
+async def test_how_to_average_mood_records_still_requires_current_evidence(clients, message):
+    app, client, url, scope = await setup(clients, 2)
+    run = await turn(app, client, url, message, reader(), moodScope=scope)
+    output = next(event.data['text'] for event in run.events if event.type == 'final')
+    assert '2/7' in output and '2,5/5' in output

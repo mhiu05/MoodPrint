@@ -24,6 +24,15 @@ REPO = Path(__file__).resolve().parents[2]
 FIXTURES = Path(__file__).with_name("fixtures")
 
 
+def evaluation_exit_code(rows: list[dict]) -> int:
+    return int(not rows or any(
+        row.get('status') != 'COMPLETED'
+        or not row.get('assertions') or not all(row['assertions'].values())
+        or not row.get('intent_assertions') or not all(row['intent_assertions'].values())
+        for row in rows
+    ))
+
+
 def arguments():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--live", action="store_true", required=True)
@@ -227,7 +236,7 @@ async def evaluate(args):
         await app.state.ai.close()
         await engine.dispose()
     await save()
-    return int(any(row["status"] != "COMPLETED" or not all(row["assertions"].values()) for row in report["rows"]))
+    return evaluation_exit_code(report['rows'])
 
 
 if __name__ == "__main__":

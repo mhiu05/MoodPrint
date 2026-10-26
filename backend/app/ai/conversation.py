@@ -26,7 +26,14 @@ def requested_presentation(history: list[dict]) -> tuple[bool, bool]:
 
 def conversation_intent(bot_id: str, history: list[dict], *, scoped: bool) -> Intent:
     text = current_text(history)
-    negative_analysis = r'(dung|khong(?: (?:muon|can))?|thoi khong) (?:ban )?(?:(?:xem|doc) (?:hay |va |hoac )?)?(?:phan tich|thong ke|so sanh)(?! (?:dai|lau|qua sau|chi tiet))'
+    # A current data-read refusal takes precedence over an unused UI scope.
+    # Generic arithmetic is practical; "average" alone is not a mood request.
+    if re.search(r'(?:dung|khong(?: (?:muon|can))?) (?:ban )?(?:xem|doc|truy cap|su dung) (?:(?:cac|nhung|lai|toan bo) )*(?:du lieu|diem|ban ghi)(?: (?:ve|cua))? tam trang', text):
+        return 'practical' if re.search(r'cach|chi minh|chi toi', text) else 'conversation'
+    if re.search(r'cach tinh trung binh(?: cong)?', text) and not re.search(r'tam trang|ban ghi|du lieu|diem da ghi', text):
+        return 'practical'
+    analysis_actions = r'(?:phan tich|thong ke|so sanh|tinh (?:diem|trung binh))'
+    negative_analysis = r'(dung|khong(?: (?:muon|can))?|thoi khong) (?:ban )?(?:(?:xem|doc) (?:hay |va |hoac )?)?' + analysis_actions + r'(?! (?:dai|lau|qua sau|chi tiet))(?: (?:hay|va|hoac) ' + analysis_actions + r')*'
     opt_out = bool(re.search(negative_analysis, text))
     request_text = re.sub(negative_analysis, '', text)
     if re.search(r'phan tich|so sanh|tinh (?:diem|trung binh)|thong ke|trung binh|bieu do|xu huong|'
