@@ -20,7 +20,7 @@ ECHO = "SYNTHETIC_DERIVED_TRANSCRIPT_CANARY"
 CORRECTED = "SYNTHETIC_CORRECTED_MEMORY_CANARY"
 
 
-async def turn(app, client, url, text, model, **extra):
+async def turn(app, client, url, text, model, *, expected_status="completed", **extra):
     app.state.ai.model_override = model
     view = await client.get(url)
     assert view.status_code == 200, view.text
@@ -37,9 +37,12 @@ async def turn(app, client, url, text, model, **extra):
     assert accepted.status_code == 202, accepted.text
     run = app.state.ai.runs[UUID(accepted.json()["runId"])]
     await run.task
-    assert run.terminal_status == "completed", run.failure
+    assert run.terminal_status == expected_status, run.failure
     stream = await client.get(accepted.json()["eventsUrl"])
-    assert "event: final" in stream.text and "event: completed" in stream.text
+    if expected_status == "completed":
+        assert "event: final" in stream.text and "event: completed" in stream.text
+    else:
+        assert "event: final" not in stream.text
     return run
 
 
@@ -222,13 +225,13 @@ async def test_t01_three_turn_nhip_reauthorizes_without_replaying_old_mood(
     assert created.status_code == 201, created.text
     url = f"/api/v1/ai/conversations/{created.json()['conversationId']}"
     scope = {"fromDate": "2026-10-20", "toDate": "2026-10-26"}
-    old_summary = "MOOD_DERIVATIVE_CANARY 2/7 mean 2.5"
+    old_summary = "Các điểm đã ghi: 20/10: 3/5; 26/10: 2/5."
 
     def reading_model(reply):
         return ScriptedModel(
             [
                 [tool_output("read_mood_summary", "mood_read")],
-                [message_output(json.dumps({"text": reply, "cards": []}))],
+                [message_output(json.dumps({"focus": "overview", "next_step": "none"}))],
             ]
         )
 
@@ -250,6 +253,8 @@ async def test_t01_three_turn_nhip_reauthorizes_without_replaying_old_mood(
     assert old_summary not in json.dumps(second.calls[0]["input"])
     assert "read_mood_summary" not in {tool.name for tool in second.calls[0]["tools"]}
     assert "sourceVersions" not in json.dumps(second.calls[0]["input"])
+    assert '"previous": "previously_authorized"' in second.calls[0]["instructions"]
+    assert '"authorization": "no_current_authorization"' in second.calls[0]["instructions"]
     third = reading_model("New authorized reading")
     await turn(app, client, url, "Nhìn lại tuần", third, moodScope=scope)
     assert old_summary not in json.dumps(third.calls[0]["input"])
@@ -387,14 +392,16 @@ async def test_runtime_source_states_distinguish_authorization_evidence_and_fail
     today = datetime.now(UTC).date().isoformat()
     scope = {"fromDate": today, "toDate": today}
     unused = await turn(
-        app, client, url, "Do not read", make_test_model("No evidence"), moodScope=scope
+        app, client, url, "Do not read",
+        ScriptedModel([[message_output('{"focus":"limits","next_step":"none"}')]]),
+        moodScope=scope, expected_status="failed",
     )
     assert unused.sources["mood"].authorization == "authorized"
     assert unused.sources["mood"].evidence == "missing_verified_evidence"
     reading = ScriptedModel(
         [
             [tool_output("read_mood_summary", "empty")],
-            [message_output('{"text":"No records","cards":[] }')],
+            [message_output('{"focus":"overview","next_step":"none"}')],
         ]
     )
     empty = await turn(app, client, url, "Read", reading, moodScope=scope)

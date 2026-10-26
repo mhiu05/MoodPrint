@@ -47,7 +47,7 @@ from app.infrastructure.database.models import AuthSession, Base, Consent, Memor
 from app.main import create_app
 from app.modules.moderation.models import StaffRole
 from tests.e2e_auth import LocalAuth
-from tests.fakes import make_test_model
+from tests.mood_e2e_model import MoodE2EModel
 
 SESSION_HELPER = (
     Path(__file__).resolve().parents[1] / "app/infrastructure/database/provider_session.sql"
@@ -68,7 +68,7 @@ app = create_app(
         matching_scorer=os.environ.get("E2E_MATCHING_SCORER", "v1"),
     )
 )
-app.state.ai.model_override = make_test_model("Mây đã nhận được chia sẻ của bạn qua SDK.")
+app.state.ai.model_override = MoodE2EModel([])
 # Only the disposable test entrypoint installs this transport. Production
 # SupabaseAuth still verifies passwords, provider tokens and durable session rows.
 app.state.settings.supabase_url = "https://local-auth.invalid"
@@ -97,7 +97,7 @@ async def seed():
         # 1-9 back the original journeys; 10-20 are fresh adults for the MVP journeys;
         # 21-36 back the activity, matching-v2 and moderation journeys; 37 is staff;
         # 38-39 are the responsive/accessibility pair; 40-41 the v2-only-goal pair.
-        # 42-43 cover the product-experience chat; 44 the five-assistant review.
+        # 42-43 cover product experience; 44 the five-assistant review; 47-48 mood evidence.
         for number in range(1, 49):
             uid = UUID(f"00000000-0000-4000-8000-{number:012d}")
             provider = UUID(f"00000000-0000-4000-9000-{number:012d}")

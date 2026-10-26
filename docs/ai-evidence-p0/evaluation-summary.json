@@ -1,0 +1,116 @@
+{
+  "dataset": "evidence-p0-multiturn-v1",
+  "model": "gpt-6-luna",
+  "arms": {
+    "baseline": {
+      "turns": 25,
+      "completed": 25,
+      "assertion_failures": [
+        {
+          "caseId": "P0-NHIP-INCIDENT-RESHARED",
+          "turn": 2,
+          "checks": [
+            "scoped_read_executed"
+          ]
+        },
+        {
+          "caseId": "P0-NHIP-SINGLE",
+          "turn": 1,
+          "checks": [
+            "scoped_read_executed"
+          ]
+        }
+      ],
+      "no_prior_tool_results_in_first_model_input": true,
+      "latency_p50_seconds": 5.217,
+      "latency_p95_seconds": 22.897,
+      "usage": {
+        "requests_started": 33,
+        "responses_received": 33,
+        "unknown_usage_requests": 0,
+        "input_tokens": 46331,
+        "cached_input_tokens": 12022,
+        "output_tokens": 2938
+      },
+      "estimated_usd": 0.00502,
+      "judged_conversations": 12,
+      "quality_means": {
+        "factual_accuracy": 4.75,
+        "multi_turn_consistency": 4.333,
+        "relevance_usefulness": 4.167,
+        "tool_correctness": 4.667,
+        "natural_vietnamese": 4.75,
+        "initiative": 3.583,
+        "uncertainty_calibration": 4.583,
+        "persona_differentiation": 4.083,
+        "privacy_authorization": 4.667
+      },
+      "judge_hard_gate_failures": [
+        "P0-MAY-REVOKED-MEMORY"
+      ]
+    },
+    "candidate": {
+      "turns": 25,
+      "completed": 25,
+      "assertion_failures": [],
+      "no_prior_tool_results_in_first_model_input": true,
+      "latency_p50_seconds": 3.694,
+      "latency_p95_seconds": 10.613,
+      "usage": {
+        "requests_started": 35,
+        "responses_received": 35,
+        "unknown_usage_requests": 0,
+        "input_tokens": 63356,
+        "cached_input_tokens": 18582,
+        "output_tokens": 3572
+      },
+      "estimated_usd": 0.006449,
+      "judged_conversations": 12,
+      "quality_means": {
+        "factual_accuracy": 4.917,
+        "multi_turn_consistency": 4.5,
+        "relevance_usefulness": 4.5,
+        "tool_correctness": 5,
+        "natural_vietnamese": 4.667,
+        "initiative": 3.917,
+        "uncertainty_calibration": 4.75,
+        "persona_differentiation": 4.333,
+        "privacy_authorization": 4.667
+      },
+      "judge_hard_gate_failures": [
+        "P0-MAY-REVOKED-MEMORY"
+      ]
+    }
+  },
+  "judge_errors_retained": [
+    {
+      "caseId": "P0-NHIP-INCIDENT-NO-REUSE",
+      "repeat": false,
+      "error_type": "ModelBehaviorError"
+    }
+  ],
+  "judge_known_estimated_usd": 0.009723,
+  "judge_unknown_usage_requests": 0,
+  "independent_human_review": false,
+  "all_rounds_known_estimated_total_usd": 0.037196,
+  "all_rounds_judge_unknown_usage_requests": 1,
+  "all_rounds_requests": 134,
+  "all_rounds_reserved_token_upper_bound": 1697795,
+  "judge_adjudication_required": {
+    "caseId": "P0-MAY-REVOKED-MEMORY",
+    "reason": "Raw judge flags both arms for using approved memory on turn 1 because mood scope=false. Mood scope and MEM are independent: the fixture explicitly enables MEM and approves that synthetic memory before turn 1; revocation precedes turn 2. Actual SDK-input assertions pass after revocation. Keep raw scores/flags pending independent review."
+  },
+  "known_estimated_total_usd": 0.021192,
+  "quality_deltas_candidate_minus_baseline": {
+    "factual_accuracy": 0.167,
+    "multi_turn_consistency": 0.167,
+    "relevance_usefulness": 0.333,
+    "tool_correctness": 0.333,
+    "natural_vietnamese": -0.083,
+    "initiative": 0.334,
+    "uncertainty_calibration": 0.167,
+    "persona_differentiation": 0.25,
+    "privacy_authorization": 0.0
+  },
+  "order_repeat_max_absolute_delta": 2
+}
