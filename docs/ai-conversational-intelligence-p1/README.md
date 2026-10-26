@@ -1,7 +1,9 @@
-# P1 conversational intelligence — implementation plan
+# P1 conversational intelligence — Draft delivery
 
 Base: verified main `5e73a130fd0f081887c3c2ab2093c43674388012`.
-Branch: `feat/ai-conversational-intelligence-p1`. P0 deployment remains unchanged.
+Branch: `feat/ai-conversational-intelligence-p1`.
+Evaluated application: `6da23ea1d151d0a67ff2ca06ec02f9391ec53300`.
+P0 remains deployed; this branch must not be merged or deployed automatically.
 
 Acceptance criteria:
 
@@ -29,4 +31,45 @@ snapshot, bounded provider requests/tokens, no retries, 1,200 output tokens, thr
 SDK steps, no provider storage/tracing. Actual usage, unknown usage, failures and
 the limitations of a small development sample will be reported separately.
 
-Status: implementation/evaluation in progress; no P1 release recommendation yet.
+Implementation and live evaluation are complete. **P1 release: PARTIAL / HOLD.**
+An unused scope no longer forces Nhịp into analysis for explicit conversation or
+practical requests. Tool selection can only remove permission, never grant it.
+Analysis retains backend-controlled facts and gains bounded brief/no-repeat choices.
+Five runtime persona layers preserve frozen historical variants and F03 projection.
+
+| Scope | Observed result |
+| --- | --- |
+| P0 prerequisite | [PASS: migration, integration and staging](../ai-p0-integration/FINAL.md) |
+| Backend regression | `pytest -q --tb=short --junitxml=.../backend-tests-final.xml`: **610 passed**, 401.12 s |
+| Static verification | Ruff, configured mypy over 89 application files, frontend typecheck: PASS |
+| Frontend and contract | 54 unit tests, production build, OpenAPI/schema drift checks: PASS |
+| Real browser/full stack | 4 selected tests: saved history, five bots, ownership, logout/relogin, mood evidence, desktop/mobile, keyboard and axe checks: PASS |
+| New deterministic coverage | 10 cases through the real SDK with a synthetic model; existing privacy/evidence regressions retained |
+| Live development comparison | 12 new synthetic scenarios, 26 turns per arm; P0 **24/26** completed, final P1 **26/26**, zero final objective assertion failures |
+| All live rounds | 120 requests / 120 responses with known usage; estimated **USD 0.031822**, reservation cap USD 2 |
+| P1 release decision | **PARTIAL / HOLD**: latency and uncertainty calibration need review; independent human review pending |
+
+Read [architecture and security boundaries](architecture.md),
+[comparison, methodology and limitations](evaluation.md),
+[machine-readable final summary](evaluation-summary.json),
+[verification](verification.json) and [source fingerprints](source-manifest.json).
+[Blinded before/after conversations](human-review-blind.md) are prepared for an
+independent reviewer; [labels are separate](human-review-key.json).
+Reports contain synthetic text only, never production conversations or keys.
+
+The first complete backend run found five prompt-composition expectation failures
+(605 passed); expectations were updated to assert the exact complete layered
+prompt while retaining ownership, memory and tool assertions. The final full run
+passed all 610. Initial live outputs, scores and evaluator corrections remain
+visible; no human review or statistical significance is claimed.
+
+No dependency, migration, public API or frontend behavior changed. Intent routing
+is a bounded Vietnamese heuristic; free conversation has no universal semantic
+claim validator. Analytical numerical output remains deterministic. An unused
+scope keeps the conservative F03 stamp and may lose harmless next-turn continuity.
+Final p95 latency was 9.305 s versus 4.060 s for P0; judged uncertainty calibration
+was 4.833 versus 5.000. Runs were not interleaved; investigate before release.
+
+GitHub CI and Draft PR links are recorded in the PR description after publication.
+Raw XML and generated screenshots are retained locally in the isolated worktree;
+they are not part of the commit.

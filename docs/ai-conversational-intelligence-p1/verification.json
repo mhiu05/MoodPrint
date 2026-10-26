@@ -1,0 +1,76 @@
+{
+  "evaluated_application": "6da23ea1d151d0a67ff2ca06ec02f9391ec53300",
+  "status": "PASS for executed regression checks; P1 release PARTIAL/HOLD",
+  "commands": [
+    {
+      "cwd": "backend",
+      "command": "python -m pytest -q --tb=short --junitxml=<local-report>",
+      "result": {
+        "tests": 610,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "seconds": 401.12
+    },
+    {
+      "cwd": "backend",
+      "command": "python -m ruff check app tests evals alembic ../scripts/load_chat_memory.py ../scripts/apply_supabase_review.py ../scripts/test_supabase_fullstack.py ../scripts/load_social_mood.py ../scripts/test_fullstack.py",
+      "result": "PASS"
+    },
+    {
+      "cwd": "backend",
+      "command": "python -m mypy app",
+      "result": "PASS, 89 source files"
+    },
+    {
+      "cwd": "frontend",
+      "command": "npm.cmd run typecheck",
+      "result": "PASS"
+    },
+    {
+      "cwd": "frontend",
+      "command": "npm.cmd test",
+      "result": "PASS, 54 tests"
+    },
+    {
+      "cwd": "frontend",
+      "command": "npm.cmd run build",
+      "result": "PASS"
+    },
+    {
+      "cwd": "repository",
+      "command": "python scripts/export_openapi.py; node <pinned-openapi-typescript-cli> backend/openapi.json -o frontend/src/api/generated/schema.d.ts; git diff --exit-code -- backend/openapi.json frontend/src/api/generated/schema.d.ts",
+      "result": "PASS, no contract drift"
+    },
+    {
+      "cwd": "backend",
+      "command": "python <local-only-run_p1_checks.py> browser",
+      "result": "PASS, 4 Playwright full-stack tests, 37.5 seconds; disposable local database; local server teardown verified",
+      "selection": [
+        "mood-evidence.spec.ts",
+        "chat-history.spec.ts",
+        "local-mvp.spec.ts"
+      ]
+    }
+  ],
+  "initial_failures": {
+    "first_backend_run": {
+      "passed": 605,
+      "failed": 5,
+      "cause": "Exact expected prompt assertions did not yet include new runtime layers. Updated exact composed prompt expectations; ownership/memory/tool checks retained."
+    },
+    "first_behavior_red": {
+      "failed": 6,
+      "passed": 2
+    },
+    "shell_invocation": "npm.ps1 was blocked by local PowerShell execution policy; npm.cmd succeeded without changing policy."
+  },
+  "coverage_limits": [
+    "Local browser run selected four affected tests; complete workflow browser suites run in GitHub CI.",
+    "SDK regression/full-stack tests use a synthetic model; live comparison reports separately exercise the real provider.",
+    "No independent human review or controlled interleaved latency comparison."
+  ],
+  "local_xml_sha256": "0650815b579420d4b8865fc8e55e73f6bcf020482a43f14755b77f0a8bd30ef9",
+  "no_p1_deployment": true
+}
