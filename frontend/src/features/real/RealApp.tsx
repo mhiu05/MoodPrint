@@ -571,7 +571,6 @@ function Assistants() {
               key={value.botId}
               to={`/assistants/${value.botId}`}
               className={`bot-row ${botId === value.botId ? "selected" : ""}`}
-              aria-label={`Trò chuyện với ${value.name}`}
               aria-current={botId === value.botId ? "page" : undefined}
             >
               <PublicAvatar bot={value} />
@@ -718,6 +717,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const [shareMood, setShareMood] = useState(false);
   const [moodFrom, setMoodFrom] = useState("");
   const [moodTo, setMoodTo] = useState("");
+  const [lastMoodRange, setLastMoodRange] = useState<{
+    conversationId: string; fromDate: string; toDate: string;
+  }>();
   const moodWindow = useMemo(() => {
     const parts = Object.fromEntries(new Intl.DateTimeFormat("en", {
       timeZone: session.timezone, year: "numeric", month: "2-digit", day: "2-digit",
@@ -932,6 +934,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       });
       intent.current = null;
       submittedText.current = text;
+      if (moodScope) setLastMoodRange({ conversationId: thread.conversationId, ...moodScope });
       setShareMood(false);
       setDraft("");
       setAtBottom(true);
@@ -963,7 +966,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     lifetime.current?.abort();
     lifetime.current = new AbortController();
     current.current = undefined; setConversation(undefined); setDraft(""); setError(undefined); setNotice("");
-    setReady(true); setLoading(false); setBusy(false); setRun(undefined); intent.current = null; setShareMood(false);
+    setReady(true); setLoading(false); setBusy(false); setRun(undefined); intent.current = null; setShareMood(false); setLastMoodRange(undefined);
     // An explicit new marker prevents latest-thread auto-resume. Record it now:
     // the router applies the URL in a transition, and its effect must not wipe a
     // draft typed after this click.
@@ -1062,7 +1065,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       >
         <div className="chat-introduction">
           <PublicAvatar bot={bot} size={80} />
-          <h3>Một chút thời gian với {bot.name}</h3>
+          <h2>Một chút thời gian với {bot.name}</h2>
           <p>{bot.description}</p>
           {!conversation?.messages.length && <AssistantGuide botId={bot.botId} />}
           <small>
@@ -1133,6 +1136,18 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         {!session.consents.AI.enabled ? <p role="note">Lần gửi đầu tiên sẽ ghi nhận quyền xử lý tin nhắn AI. Bạn có thể rút quyền trong Quyền riêng tư.</p> : null}
         <details><summary>Lưu lịch sử trò chuyện</summary><AIDataControls historyOnly /></details>
         {bot.botId === "nhip" ? (
+          <>
+          {lastMoodRange && lastMoodRange.conversationId === conversation?.conversationId && !shareMood ? (
+            <Button variant="secondary" disabled={busy || loading || !ready}
+              onClick={() => {
+                setMoodFrom(lastMoodRange.fromDate);
+                setMoodTo(lastMoodRange.toDate);
+                setShareMood(true);
+              }}>
+              Chia sẻ lại {lastMoodRange.fromDate} – {lastMoodRange.toDate} cho lượt tiếp
+            </Button>
+          ) : null}
+          {shareMood ? <p role="status">Đã chọn chia sẻ {moodFrom || "…"} – {moodTo || "…"}. Nhịp chỉ đọc khi bạn gửi tin nhắn; bạn có thể bỏ chọn trước khi gửi.</p> : null}
           <details className="mood-share-options">
             <summary>Chia sẻ thống kê tâm trạng cho lượt này</summary>
             <fieldset disabled={busy || loading || !ready}>
@@ -1152,6 +1167,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
               </div> : null}
             </fieldset>
           </details>
+          </>
         ) : null}
         <VoiceRecorder onUse={setDraft} />
         <div className="quick-replies" aria-label="Gợi ý trò chuyện">

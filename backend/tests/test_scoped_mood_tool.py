@@ -152,7 +152,7 @@ async def test_sdk_route_reads_explicit_scope_and_idempotency_binds_scope(client
     model = ScriptedModel(
         [
             [tool_output("read_mood_summary", "read_selected")],
-            [message_output('{"text":"Chưa đủ số ngày để nhận xét xu hướng.","cards":[]}')],
+            [message_output('{"focus":"overview","next_step":"none"}')],
         ]
     )
     app.state.ai.model_override = model

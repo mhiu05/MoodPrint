@@ -137,6 +137,36 @@ test("Nhịp retries preserve the exact range intent and changing dates creates 
   await expect(page.getByRole("textbox", { name: "Tin nhắn cho Nhịp" })).toHaveValue("Cùng một lời nhắn");
 });
 
+for (const width of [1280, 390]) {
+  test(`Nhịp explicitly re-shares the previous range with keyboard at width ${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const submitted: any[] = [];
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await scopedNhip(page, submitted);
+    await page.getByRole("checkbox", { name: "Cho Nhịp đọc khoảng ngày mình chọn", exact: true }).check();
+    await page.getByLabel("Thống kê từ ngày", { exact: true }).fill("2026-10-01");
+    await page.getByLabel("Thống kê đến ngày", { exact: true }).fill("2026-10-02");
+    const input = page.getByRole("textbox", { name: "Tin nhắn cho Nhịp" });
+    await input.fill("Nhìn lại tuần");
+    await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
+    const reshare = page.getByRole("button", { name: "Chia sẻ lại 2026-10-01 – 2026-10-02 cho lượt tiếp", exact: true });
+    await expect(reshare).toBeEnabled();
+    await reshare.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("checkbox", { name: "Cho Nhịp đọc khoảng ngày mình chọn", exact: true })).toBeChecked();
+    await expect(page.getByRole("status").filter({ hasText: "Nhịp chỉ đọc khi bạn gửi tin nhắn" })).toBeVisible();
+    expect(submitted).toHaveLength(1);
+    await input.fill("Bạn cứ nhận xét đi");
+    await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
+    await expect.poll(() => submitted.length).toBe(2);
+    expect(submitted[1].moodScope).toEqual(submitted[0].moodScope);
+    await expect(page.getByRole("checkbox", { name: "Cho Nhịp đọc khoảng ngày mình chọn", exact: true })).not.toBeChecked();
+    expect(errors).toEqual([]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+}
+
 test("terminal AI failure restores text without regranting the consumed mood scope", async ({ page }) => {
   const submitted: any[] = [];
   await scopedNhip(page, submitted);
