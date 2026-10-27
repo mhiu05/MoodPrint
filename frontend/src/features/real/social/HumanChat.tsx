@@ -330,7 +330,7 @@ export function HumanChat() {
         />
       )}
       <form className="bot-composer" onSubmit={send}>
-        {ready && !closed && activity.catalog.length > 0 && (
+        {ready && !closed && (activity.catalogStatus === "ready" || activity.catalogStatus === "error" || catalogOpen) && (
           <ActivityEntryButton
             disabled={activity.open || activity.busy}
             onOpen={() => setCatalogOpen(true)}
@@ -392,6 +392,9 @@ export function HumanChat() {
       {catalogOpen && (
         <ActivityCatalog
           catalog={activity.catalog}
+          status={activity.catalogStatus}
+          onRetryCatalog={activity.reloadCatalog}
+          inviteError={activity.inviteError}
           current={activity.open ? activity.session : null}
           cooldown={activity.cooldown}
           busy={activity.busy}
@@ -400,7 +403,10 @@ export function HumanChat() {
               if (sent) setCatalogOpen(false);
             })
           }
-          onClose={() => setCatalogOpen(false)}
+          onClose={() => {
+            activity.clearInviteError();
+            setCatalogOpen(false);
+          }}
         />
       )}
       {room && !closed && (

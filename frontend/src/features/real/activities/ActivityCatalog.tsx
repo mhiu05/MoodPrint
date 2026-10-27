@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { Button, cx, Dialog } from "../../../components/UI";
+import { ApiError, errorMessage } from "../../../api/client";
 import { canInvite, isOpen, type Definition, type Kind, type Session } from "./activityView";
 
 const HOW_IT_WORKS: Record<Kind, string> = {
@@ -32,8 +33,17 @@ export function ActivityEntryButton({
   );
 }
 
+/** A server/network failure keeps the choice; a refused request explains itself. */
+function inviteFailure(error: unknown) {
+  if (error instanceof ApiError && error.status < 500) return errorMessage(error);
+  return "Chưa gửi được lời mời. Lựa chọn của bạn vẫn được giữ. Bạn hãy thử lại.";
+}
+
 export function ActivityCatalog({
   catalog,
+  status,
+  onRetryCatalog,
+  inviteError,
   current,
   cooldown,
   busy,
@@ -41,6 +51,9 @@ export function ActivityCatalog({
   onClose,
 }: {
   catalog: Definition[];
+  status: "loading" | "ready" | "empty" | "error";
+  onRetryCatalog: () => void;
+  inviteError?: { kind: Kind; error: unknown };
   current: Session | null;
   cooldown: Partial<Record<Kind, number>>;
   busy: boolean;
@@ -49,9 +62,18 @@ export function ActivityCatalog({
 }) {
   const [plan, setPlan] = useState("25,5");
   const [cycles, setCycles] = useState(1);
+  const id = useId();
   return (
     <Dialog title="Cùng làm gì đó?" onClose={() => !busy && onClose()}>
       <p>Mời bạn kia cùng tham gia. Hoạt động chỉ bắt đầu khi cả hai đồng ý.</p>
+      {status === "loading" ? <p role="status">Đang tải danh sách hoạt động…</p> : null}
+      {status === "error" ? (
+        <div className={cx.error} role="alert">
+          <p>Chưa tải được danh sách hoạt động. Bạn hãy thử lại.</p>
+          <Button variant="secondary" onClick={onRetryCatalog}>Thử lại</Button>
+        </div>
+      ) : null}
+      {status === "empty" ? <p>Hiện chưa có hoạt động chung nào để mời.</p> : null}
       <ul className="activity-catalog">
         {catalog.map((definition) => {
           const allowed = canInvite(current, definition.kind, cooldown);
@@ -63,19 +85,20 @@ export function ActivityCatalog({
               <p className={cx.footnote}>Khoảng {definition.estimatedMinutes} phút</p>
               {definition.kind === "focus" && (
                 <div className="focus-options">
-                  <label>
-                    Nhịp
-                    <select value={plan} onChange={(event) => setPlan(event.target.value)}>
+                  <div>
+                    <label htmlFor={`${id}-plan`}>Nhịp</label>
+                    <select id={`${id}-plan`} value={plan} onChange={(event) => setPlan(event.target.value)}>
                       {(definition.focusPlans ?? [[25, 5]]).map(([work, rest]) => (
                         <option key={work} value={`${work},${rest}`}>
                           {work} phút tập trung / {rest} phút nghỉ
                         </option>
                       ))}
                     </select>
-                  </label>
-                  <label>
-                    Số lượt
+                  </div>
+                  <div>
+                    <label htmlFor={`${id}-cycles`}>Số lượt</label>
                     <select
+                      id={`${id}-cycles`}
                       value={cycles}
                       onChange={(event) => setCycles(Number(event.target.value))}
                     >
@@ -87,12 +110,15 @@ export function ActivityCatalog({
                         ),
                       )}
                     </select>
-                  </label>
+                  </div>
                 </div>
               )}
+              {inviteError?.kind === definition.kind ? (
+                <p className={cx.error} role="alert">{inviteFailure(inviteError.error)}</p>
+              ) : null}
               <Button
                 disabled={busy || !allowed}
-                aria-label={`Mời cùng chơi ${definition.title}`}
+                aria-label={`Mời tham gia ${definition.title}`}
                 onClick={() =>
                   onInvite(
                     definition.kind,
@@ -102,7 +128,7 @@ export function ActivityCatalog({
                   )
                 }
               >
-                Mời cùng chơi
+                {busy ? "Đang gửi lời mời…" : "Mời tham gia"}
               </Button>
               {!allowed && !isOpen(current) && (
                 <p className={cx.footnote}>Hãy thử lại hoạt động này sau ít phút.</p>

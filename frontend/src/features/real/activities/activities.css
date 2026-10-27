@@ -41,9 +41,8 @@
   margin: 8px 0 12px;
 }
 .focus-options label {
-  display: grid;
-  gap: 4px;
-  font-size: 0.85rem;
+  margin-bottom: 4px;
+  font-size: 0.875rem;
 }
 .focus-options select {
   min-height: 44px;

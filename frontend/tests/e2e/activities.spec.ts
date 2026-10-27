@@ -229,10 +229,10 @@ test("a decline cooldown disables only that invitation kind", async ({ page }) =
   await chat(page, state);
   await page.goto("/#/chat/room-1");
   await page.getByRole("button", { name: "Cùng làm gì đó?" }).click();
-  const invite = page.getByRole("button", { name: "Mời cùng chơi Câu hỏi làm quen" });
+  const invite = page.getByRole("button", { name: "Mời tham gia Câu hỏi làm quen" });
   await invite.click();
   await expect(invite).toBeDisabled();
-  await expect(page.getByRole("button", { name: "Mời cùng chơi Đố vui đồng đội" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Mời tham gia Đố vui đồng đội" })).toBeEnabled();
 });
 
 test("contact details in a message prompt a non-blocking advisory", async ({ page }) => {
@@ -329,4 +329,62 @@ test("finished activities appear in the log where they ended", async ({ page }) 
     "Vui ghê",
     "Đố vui đồng đội: Bạn đồng hành 3fa9c1 chưa muốn chơi lúc này",
   ]);
+});
+
+test("a failed catalog read keeps the entry and offers a retry inside the dialog", async ({ page }) => {
+  // Fails until the user retries (StrictMode may issue the first read twice).
+  let failing = true;
+  await chat(page, { current: null, posts: [] });
+  await page.route("**/api/v1/activities/catalog", (route) => {
+    if (failing)
+      return route.fulfill({ status: 503, json: { error: { code: "UNAVAILABLE", message: "Dịch vụ tạm gián đoạn." } } });
+    return route.fulfill({ json: catalog });
+  });
+  await page.goto("/#/chat/room-1");
+  await page.getByRole("button", { name: "Cùng làm gì đó?", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Cùng làm gì đó?" });
+  await expect(dialog.getByRole("alert")).toContainText("Chưa tải được danh sách hoạt động.");
+  await expect(dialog.getByText("Chưa có hoạt động nào", { exact: false })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Mời tham gia Câu hỏi làm quen", exact: true })).toHaveCount(0);
+  failing = false;
+  await dialog.getByRole("button", { name: "Thử lại", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "Mời tham gia Câu hỏi làm quen", exact: true })).toBeEnabled();
+  await expect(dialog.getByRole("alert")).toHaveCount(0);
+});
+
+test("a failed first invitation stays visible in the dialog and retrying keeps the plan and intent", async ({ page }) => {
+  const state: any = { current: null, posts: [] };
+  let attempts = 0;
+  state.reply = (path: string) => {
+    if (path !== "/connections/room-1/activities") return undefined;
+    attempts += 1;
+    if (attempts === 1)
+      return { status: 503, json: { error: { code: "UNAVAILABLE", message: "Dịch vụ tạm gián đoạn." } } };
+    return { json: base({ kind: "focus", definitionVersion: "focus-v1", role: "inviter", self: { accepted: true, readyRound: 0, feedbackGiven: false }, peer: { accepted: false, readyRound: 0 } }) };
+  };
+  const keys: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST" && request.url().endsWith("/connections/room-1/activities"))
+      keys.push(request.headers()["idempotency-key"]);
+  });
+  await chat(page, state);
+  await page.goto("/#/chat/room-1");
+  await page.getByRole("button", { name: "Cùng làm gì đó?", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Cùng làm gì đó?" });
+  await dialog.getByLabel("Nhịp", { exact: true }).selectOption("15,3");
+  await dialog.getByLabel("Số lượt", { exact: true }).selectOption("2");
+  const invite = dialog.getByRole("button", { name: "Mời tham gia Cùng tập trung", exact: true });
+  await invite.click();
+  await expect(dialog.getByRole("alert")).toContainText("Chưa gửi được lời mời. Lựa chọn của bạn vẫn được giữ.");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel("Nhịp", { exact: true })).toHaveValue("15,3");
+  await expect(dialog.getByLabel("Số lượt", { exact: true })).toHaveValue("2");
+  await expect(invite).toBeEnabled();
+  await invite.click();
+  await expect(dialog).toHaveCount(0);
+  const invites = state.posts.filter((post: any) => post.path === "/connections/room-1/activities");
+  expect(invites).toHaveLength(2);
+  expect(invites[1].body).toEqual({ kind: "focus", options: { plan: [15, 3], cycles: 2 } });
+  expect(keys[0]).toBeTruthy();
+  expect(keys[1]).toBe(keys[0]);
 });

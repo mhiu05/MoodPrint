@@ -10,7 +10,7 @@ async function invite(page: Page, title: string, setup?: (dialog: Locator) => Pr
   await page.getByRole("button", { name: "Cùng làm gì đó?" }).click();
   const dialog = page.getByRole("dialog", { name: "Cùng làm gì đó?" });
   if (setup) await setup(dialog);
-  await dialog.getByRole("button", { name: `Mời cùng chơi ${title}` }).click();
+  await dialog.getByRole("button", { name: `Mời tham gia ${title}` }).click();
 }
 
 async function accept(page: Page, title: string) {
