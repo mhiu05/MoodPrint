@@ -32,6 +32,7 @@ from app.infrastructure.database.models import (
     User,
 )
 from app.modules.activities.models import ActivityParticipant, ActivityResponse, ActivitySession
+from app.modules.guests.accounting import settle_open_for_user
 from app.modules.guests.models import (
     GuestCleanupJob,
     GuestOperationLink,
@@ -324,6 +325,9 @@ async def purge_guest(db: AsyncSession, user_id: UUID, lease_token: UUID) -> Pur
         job.lease_token, job.lease_until = None, None
         log.warning("metric=guest_incident reason=peer_evidence")
         return "incident_required"
+    # Conservatively settle any unsettled paid operation (charged uncertain) before its link
+    # disappears; the detached ledger keeps the liability and holds no identity.
+    await settle_open_for_user(db, user_id)
     await _delete_guest_only_social(db, user_id)
     await _delete_owned(db, user_id)
     removed = await db.scalar(

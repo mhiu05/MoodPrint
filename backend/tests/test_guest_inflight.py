@@ -283,6 +283,9 @@ async def start_guest_run(app, guest, model):
     """A live guest with AI consent opens a chat and sends one message; the model is held."""
     from uuid import uuid4
 
+    from tests.guest_helpers import enable_paid_fixture
+
+    enable_paid_fixture(app)
     app.state.ai.model_override = model
     ai = await guest.client.put(
         "/api/v1/consents/AI",

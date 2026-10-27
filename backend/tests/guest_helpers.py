@@ -212,3 +212,27 @@ async def post_guest(browser, key: str, body: dict | None = None):
         json=body or guest_body(),
         headers={**INTENT_HEADERS, "Idempotency-Key": key},
     )
+
+
+PAID_PRICING = {
+    "ai": {
+        "pricing_version": "synthetic-v1",
+        "input_nano_per_token": 2,
+        "cached_nano_per_token": 1,
+        "output_nano_per_token": 5,
+        "max_input_tokens": 100,
+    },
+    "voice": {"pricing_version": "synthetic-v1", "nano_per_second": 7, "quantum_seconds": 15},
+    "embed": {"pricing_version": "synthetic-v1", "nano_per_request": 11},
+}
+
+
+def enable_paid_fixture(app, *, budget: str = "0.01") -> None:
+    """Synthetic fixture prices/budget (never an approved production figure) with rates relaxed."""
+    from decimal import Decimal
+
+    settings = app.state.settings
+    settings.guest_paid_enabled = True
+    settings.guest_daily_budget_usd = Decimal(budget)
+    settings.guest_pricing_json = PAID_PRICING
+    settings.guest_ai_per_minute = settings.guest_voice_per_minute = 1000

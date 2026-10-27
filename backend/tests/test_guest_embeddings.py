@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import func, select, update
 
-from tests.guest_helpers import add_guest, db_now
+from tests.guest_helpers import PAID_PRICING, add_guest, db_now, enable_paid_fixture
 
 pytestmark = pytest.mark.postgres
 LIFETIME = timedelta(seconds=7200)
@@ -38,6 +38,9 @@ async def semantic_guest(app, *, started_ago, flag=True):
         voyage_api_key="synthetic",
         voyage_dimensions=256,
         guest_semantic_enabled=flag,
+        guest_paid_enabled=True,
+        guest_daily_budget_usd="0.01",
+        guest_pricing_json=PAID_PRICING,
     )
     async with app.state.database.sessions.begin() as db:
         await db.execute(
@@ -136,6 +139,7 @@ async def test_guest_proposal_and_history_expiry_capped(clients):
 
     app, _ = clients
     app.state.ai.model_override = make_test_model("x")
+    enable_paid_fixture(app)
     guest = await add_guest(app, started_ago=LIFETIME - timedelta(minutes=5), consents=True)
     actor = Actor(guest.user_id, guest.session_id, 1, "guest")
     async with app.state.database.sessions.begin() as db:

@@ -15,8 +15,15 @@ from sqlalchemy import and_, delete, func, or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 
 from app.infrastructure.database.models import User
+from app.modules.guests.accounting import settle_stale_reservations
 from app.modules.guests.lifecycle import purge_guest
-from app.modules.guests.models import GuestCleanupJob, GuestProvisioningAttempt
+from app.modules.guests.models import (
+    GuestAbuseBucket,
+    GuestBudgetDay,
+    GuestCleanupJob,
+    GuestCostReservation,
+    GuestProvisioningAttempt,
+)
 from app.modules.guests.policy import database_time
 
 log = logging.getLogger("moodprint")
@@ -240,4 +247,48 @@ async def guest_metrics(app: FastAPI) -> dict[str, float]:
         "guest_cleanup_retry_count": float(retries or 0),
         "guest_orphan_count": float(orphans or 0),
         "guest_incident_count": float(incidents or 0),
+    }
+
+
+async def settle_stale_liability(app: FastAPI) -> int:
+    """Charge a stale reservation (lost worker/restart) uncertain or release it; never replay it."""
+    async with app.state.database.require()() as db, db.begin():
+        return await settle_stale_reservations(db)
+
+
+async def retention_tick(app: FastAPI) -> dict[str, int]:
+    """Expire security counters and resolved accounting records; never delete live liability.
+
+    Network buckets live at most 24 h; random terminal reservation records 24 h after they are
+    final; unlinked daily totals 30 days (proposed, owner decision D01) and only when no
+    reservation still references the day. No identifier is retained in any of them.
+    """
+    async with app.state.database.require()() as db, db.begin():
+        now = await database_time(db)
+        buckets = await db.execute(
+            delete(GuestAbuseBucket).where(GuestAbuseBucket.expires_at < now).returning(GuestAbuseBucket.scope)
+        )
+        reservations = await db.execute(
+            delete(GuestCostReservation)
+            .where(
+                GuestCostReservation.state.in_(("settled", "uncertain", "cancelled")),
+                GuestCostReservation.lease_until < now - timedelta(hours=24),
+            )
+            .returning(GuestCostReservation.id)
+        )
+        days = await db.execute(
+            delete(GuestBudgetDay)
+            .where(
+                GuestBudgetDay.day < (now - timedelta(days=30)).date(),
+                GuestBudgetDay.halted_at.is_(None),
+                ~select(GuestCostReservation.id)
+                .where(GuestCostReservation.day == GuestBudgetDay.day)
+                .exists(),
+            )
+            .returning(GuestBudgetDay.day)
+        )
+    return {
+        "buckets": len(buckets.all()),
+        "reservations": len(reservations.all()),
+        "days": len(days.all()),
     }

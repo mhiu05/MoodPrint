@@ -181,6 +181,11 @@ class SdkProvider:
         model: Model,
         observer: UsageObserver,
     ) -> AiOutput:
+        guard = getattr(context, "before_dispatch", None)
+        if guard is not None:
+            from app.ai.guest_model import GuestGuardedModel
+
+            model = GuestGuardedModel(model, guard)
         has_scope = bot_id == "nhip" and getattr(context, "mood_scope", None) is not None
         runtime_context = hasattr(context, 'sources')
         intent = conversation_intent(bot_id, history, scoped=has_scope) if runtime_context else 'analysis'

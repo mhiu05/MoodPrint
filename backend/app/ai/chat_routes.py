@@ -45,6 +45,12 @@ from app.core.security import (
     transaction,
 )
 from app.infrastructure.database.models import AiRun, Consent, Memory, now
+from app.modules.guests.accounting import reserve_guest_operation
+from app.modules.guests.accounting import unavailable as guest_paid_unavailable
+from app.modules.guests.limits import reserve_guest_quota
+from app.modules.guests.output import REVOKED_EVENT
+from app.modules.guests.policy import guest_paid_available
+from app.modules.guests.pricing import ai_upper, budget_nano
 
 router = APIRouter()
 DEFAULT_TITLE = "Cuộc trò chuyện mới"
@@ -242,6 +248,8 @@ async def create_conversation(
             )
         if not runtime.available_for(actor.user_id):
             raise DomainError(503, "AI_UNAVAILABLE", "Trò chuyện AI chưa sẵn sàng.", True)
+        if user.account_kind == "guest" and not guest_paid_available(settings, "ai"):
+            raise guest_paid_unavailable()
         p = await db.get(AiPreference, user.id)
         persistent = (
             body.persistent
@@ -366,6 +374,8 @@ async def send(
                 )
             if not runtime.available_for(actor.user_id):
                 raise DomainError(503, "AI_UNAVAILABLE", "Trò chuyện AI chưa sẵn sàng.", True)
+            if user.account_kind == "guest" and not guest_paid_available(settings, "ai"):
+                raise guest_paid_unavailable()
             if persistent:
                 p = await db.get(AiPreference, user.id)
                 if not (p and p.history_enabled and settings.chat_history_enabled):
@@ -392,6 +402,23 @@ async def send(
                     409, "STALE_VERSION", "Cuộc trò chuyện đã thay đổi. Vui lòng tải lại."
                 )
             await admission(db, user, settings)
+            quota = reservation = None
+            if user.account_kind == "guest":
+                # One transaction: quota claim + worst-case reservation, rolled back together.
+                key = str(body.client_message_id)
+                quota = await reserve_guest_quota(
+                    db, user, kind="ai", operation_key=key, payload_digest=message_digest, settings=settings
+                )
+                _version, upper = ai_upper(settings.guest_pricing_json)  # type: ignore[misc]
+                reservation = await reserve_guest_operation(
+                    db,
+                    user,
+                    "ai",
+                    upper,
+                    operation_key=key,
+                    payload_digest=message_digest,
+                    limit_nano_usd=budget_nano(settings.guest_daily_budget_usd) or 0,
+                )
             run_id, message_id = uuid4(), uuid4()
             db.add(AiRun(id=run_id, user_id=user.id, conversation_id=c.id, bot_id=c.bot_id))
             await db.flush()
@@ -464,7 +491,11 @@ async def send(
             mood_scope=body.mood_scope,
             persistent=bool(persistent),
             deadline=getattr(request.state, "guest_output", None),
+            quota=quota,
+            reservation=reservation,
         )
+        if reservation is not None:
+            run.before_dispatch = runtime.guest_dispatch_guard(run)
         runtime.runs[run_id] = run
         runtime.event(run, "progress", {})
         run.task = asyncio.create_task(runtime.drive(run))
@@ -571,7 +602,7 @@ async def events(
         while not await request.is_disconnected():
             tick += 1
             if past_deadline():
-                yield "event: revoked\ndata: {}\n\n"
+                yield REVOKED_EVENT.decode()
                 return
             try:
                 # lock_actor in the polling read re-verifies the session each tick.
@@ -607,12 +638,12 @@ async def events(
                     run = await authorized_run(request, actor, run_id, poll=True)
                     data, terminal = run.events, run.terminal
             except DomainError:
-                yield "event: revoked\ndata: {}\n\n"
+                yield REVOKED_EVENT.decode()
                 return
             while cursor < len(data):
                 if past_deadline():
                     # Each event (buffered or replayed, including the final) is judged on its own.
-                    yield "event: revoked\ndata: {}\n\n"
+                    yield REVOKED_EVENT.decode()
                     return
                 event = data[cursor]
                 cursor += 1
@@ -621,7 +652,7 @@ async def events(
                 return
             await asyncio.sleep(0.25 if persistent else 0.1)
             if past_deadline():
-                yield "event: revoked\ndata: {}\n\n"
+                yield REVOKED_EVENT.decode()
                 return
             yield ": heartbeat\n\n"
 

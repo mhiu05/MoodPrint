@@ -8,17 +8,21 @@ header can neither evade nor change a counter. GE-07.1 extends this module with 
 import hashlib
 import hmac
 import ipaddress
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from uuid import UUID
+from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
 from fastapi import Request
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.contracts import GuestQuota
 from app.core.errors import DomainError
-from app.modules.guests.models import GuestAbuseBucket
+from app.core.security import digest
+from app.infrastructure.database.models import User
+from app.modules.guests.models import GuestAbuseBucket, GuestOperationLink, GuestUsage
 from app.modules.guests.policy import database_time
 
 BANGKOK = ZoneInfo("Asia/Bangkok")
@@ -202,3 +206,150 @@ async def release_guest_creation(db: AsyncSession, request: Request) -> None:
             )
             .values(count=GuestAbuseBucket.count - 1)
         )
+
+
+# ---- trial quotas (GE-07.1): durable lifetime counters + short operation claims -------------------
+
+ADMISSION_LOCK = 724_031  # one shared advisory lock serializes every guest paid admission
+QUOTA_LEASE_SECONDS = 45
+SEMANTIC_MEMORY_CAP = 20
+
+
+@dataclass(frozen=True)
+class QuotaClaim:
+    operation_key_hash: str
+    lease_token: UUID
+
+
+def _busy(code: str, message: str, wait: int = 5) -> DomainError:
+    return DomainError(429, code, message, True, retry_after=wait)
+
+
+async def reserve_guest_quota(
+    db: AsyncSession,
+    user: User,
+    *,
+    kind: str,
+    operation_key: str,
+    payload_digest: str,
+    settings,
+    voice_milliseconds: int = 0,
+) -> QuotaClaim:
+    """Admit one AI turn / voice clip / embedding for this trial, atomically and durably.
+
+    Counters live in ``guest_usage`` (lifetime, never per day, never reset by restart, a new tab or
+    rotated credentials). A repeated operation key with the same payload returns the existing claim
+    without a second increment; a different payload conflicts. Nothing is refunded after dispatch.
+    """
+    key_hash = digest(operation_key)
+    existing = await db.get(GuestOperationLink, (user.id, kind, key_hash))
+    if existing is not None:
+        if existing.payload_digest != payload_digest:
+            raise DomainError(
+                409, "IDEMPOTENCY_CONFLICT", "Mã thao tác đã được dùng với nội dung khác."
+            )
+        if kind == "voice" and existing.state in ("dispatched", "completed"):
+            raise DomainError(
+                409,
+                "VOICE_ALREADY_PROCESSED",
+                "Bản ghi âm này đã được xử lý. Hãy ghi một bản mới.",
+            )
+        return QuotaClaim(key_hash, existing.lease_token)
+    await db.execute(select(func.pg_advisory_xact_lock(ADMISSION_LOCK)))
+    now = await database_time(db)
+    usage = await db.scalar(select(GuestUsage).where(GuestUsage.user_id == user.id).with_for_update())
+    if usage is None:
+        raise DomainError(409, "GUEST_REQUIRED", "Không tìm thấy lượt dùng thử.")
+    caps = {
+        "ai": (settings.guest_ai_per_minute, settings.guest_ai_concurrency, settings.guest_ai_global_concurrency),
+        "voice": (settings.guest_voice_per_minute, settings.guest_voice_concurrency, settings.guest_voice_global_concurrency),
+        "embed": (settings.guest_ai_per_minute, 1, settings.guest_ai_global_concurrency),
+    }
+    per_minute, per_user, global_cap = caps[kind]
+    recent = await db.scalar(
+        select(func.count())
+        .select_from(GuestOperationLink)
+        .where(
+            GuestOperationLink.user_id == user.id,
+            GuestOperationLink.kind == kind,
+            GuestOperationLink.created_at > now - timedelta(seconds=60),
+        )
+    )
+    if (recent or 0) >= per_minute:
+        raise _busy("GUEST_RATE_LIMITED", "Bạn đang thao tác hơi nhanh. Vui lòng đợi một chút.", 10)
+    live = (
+        GuestOperationLink.kind == kind,
+        GuestOperationLink.state.in_(("claimed", "dispatched")),
+        GuestOperationLink.lease_until > now,
+    )
+    mine = await db.scalar(
+        select(func.count()).select_from(GuestOperationLink).where(GuestOperationLink.user_id == user.id, *live)
+    )
+    if (mine or 0) >= per_user:
+        raise _busy("GUEST_BUSY", "Đang xử lý yêu cầu trước của bạn. Vui lòng đợi xong rồi thử lại.")
+    everyone = await db.scalar(select(func.count()).select_from(GuestOperationLink).where(*live))
+    if (everyone or 0) >= global_cap:
+        raise _busy("GUEST_CAPACITY", "Hệ thống dùng thử đang bận. Vui lòng thử lại sau ít phút.", 15)
+    exhausted = DomainError(
+        429, "GUEST_QUOTA_EXHAUSTED", "Bạn đã dùng hết lượt thử của phiên này.", False
+    )
+    if kind == "ai":
+        if usage.ai_turns >= settings.guest_ai_turns:
+            raise exhausted
+        usage.ai_turns += 1
+    elif kind == "voice":
+        if (
+            usage.voice_clips >= settings.guest_voice_clips
+            or usage.voice_milliseconds + voice_milliseconds > settings.guest_voice_seconds * 1000
+        ):
+            raise exhausted
+        usage.voice_clips += 1
+        usage.voice_milliseconds += voice_milliseconds
+    else:
+        if usage.semantic_memories >= SEMANTIC_MEMORY_CAP:
+            raise exhausted
+        usage.semantic_memories += 1
+    token = uuid4()
+    db.add(
+        GuestOperationLink(
+            user_id=user.id,
+            kind=kind,
+            operation_key_hash=key_hash,
+            payload_digest=payload_digest,
+            state="claimed",
+            worker_id=uuid4(),
+            lease_token=token,
+            lease_until=now + timedelta(seconds=QUOTA_LEASE_SECONDS),
+        )
+    )
+    await db.flush()
+    return QuotaClaim(key_hash, token)
+
+
+async def finish_guest_quota(
+    db: AsyncSession, user_id: UUID, kind: str, operation_key_hash: str, lease_token: UUID
+) -> None:
+    """Mark a claim complete in its own owner-ordered transaction; a missing/fenced link is a no-op."""
+    await db.execute(
+        update(GuestOperationLink)
+        .where(
+            GuestOperationLink.user_id == user_id,
+            GuestOperationLink.kind == kind,
+            GuestOperationLink.operation_key_hash == operation_key_hash,
+            GuestOperationLink.lease_token == lease_token,
+            GuestOperationLink.state.in_(("claimed", "dispatched")),
+        )
+        .values(state="completed")
+    )
+
+
+async def guest_quota_view(db: AsyncSession, user: User, settings) -> GuestQuota:
+    usage = await db.get(GuestUsage, user.id)
+    turns, clips, millis = (
+        (usage.ai_turns, usage.voice_clips, usage.voice_milliseconds) if usage else (0, 0, 0)
+    )
+    return GuestQuota(
+        ai_turns_remaining=max(0, settings.guest_ai_turns - turns),
+        voice_clips_remaining=max(0, settings.guest_voice_clips - clips),
+        voice_seconds_remaining=max(0, settings.guest_voice_seconds * 1000 - millis) / 1000,
+    )

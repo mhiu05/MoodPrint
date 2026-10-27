@@ -2,10 +2,11 @@ import asyncio
 import json
 import logging
 import time
+from collections.abc import Awaitable, Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from agents import FunctionTool, RunContextWrapper, function_tool
@@ -58,6 +59,11 @@ class LiveRun:
     mood_evidence: EvidenceEnvelope | None = None
     # Conservative guest bound; None for registered users (their policy is unchanged).
     deadline: GuestDeadline | None = None
+    # Guest paid work: the quota claim, the detached reservation and the pre-dispatch guard.
+    quota: Any = None
+    reservation: Any = None
+    dispatched: bool = False
+    before_dispatch: Callable[[], Awaitable[None]] | None = None
 
 
 @dataclass
@@ -432,6 +438,58 @@ class AiRuntime:
             return [propose_memory] if memory_enabled else []
         return []
 
+    def guest_dispatch_guard(self, run: LiveRun) -> Callable[[], Awaitable[None]]:
+        """Last awaited authorization before each provider request of a guest run."""
+        from app.modules.guests.accounting import mark_guest_dispatched
+
+        async def guard() -> None:
+            if run.reservation is not None and not run.dispatched:
+                # Persisted BEFORE the send: a crash after this point charges the upper bound.
+                async with self.database.require()() as db, db.begin():
+                    await mark_guest_dispatched(db, run.reservation.id)
+                run.dispatched = True
+            await self.check(run)  # fresh database lifetime + live policy
+            if run.deadline is not None and run.deadline.remaining() <= 0:
+                raise guest_expired()
+
+        return guard
+
+    async def settle_guest(self, run: LiveRun, status: str) -> None:
+        """Settle the detached reservation once, then finish the quota claim (never an upsert)."""
+        if run.reservation is None:
+            return
+        from app.modules.guests import accounting, limits, pricing
+
+        actual: int | None = None
+        if (
+            status == "completed"
+            and run.dispatched
+            and run.usage.responses_received > 0
+            and (run.usage.input_tokens or run.usage.output_tokens)
+        ):
+            actual = pricing.actual_ai_cost(
+                self.settings.guest_pricing_json,
+                run.usage.input_tokens,
+                run.usage.cached_input_tokens,
+                run.usage.output_tokens,
+            )
+        try:
+            async with self.database.require()() as db, db.begin():
+                if not run.dispatched:
+                    await accounting.release_guest_operation(db, run.reservation.id)
+                else:
+                    await accounting.settle_guest_operation(db, run.reservation, actual)
+            if run.quota is not None:
+                async with self.database.require()() as db, db.begin():
+                    await limits.finish_guest_quota(
+                        db, run.actor.user_id, "ai", run.quota.operation_key_hash, run.quota.lease_token
+                    )
+        except Exception as error:
+            # The stale-reservation sweep charges it uncertain; never lose liability silently.
+            logging.getLogger("moodprint").error(
+                "guest_settlement_deferred error_type=%s", type(error).__name__
+            )
+
     async def _cancel_at_deadline(self, run: LiveRun) -> None:
         """Stop a guest run exactly at its bound, independent of the 0.5 s policy monitor."""
         assert run.deadline is not None
@@ -605,6 +663,7 @@ class AiRuntime:
                 expiry.cancel()
                 await asyncio.gather(expiry, return_exceptions=True)
             run.reserved_output_bytes = 0
+            await asyncio.shield(self.settle_guest(run, status))
             await asyncio.shield(self.finalize(run, status))
             # Saved threads reload from PostgreSQL; keep no idle RAM copy per thread.
             copy = self.store.conversations.get(run.conversation_id)

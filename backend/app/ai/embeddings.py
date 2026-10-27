@@ -202,6 +202,61 @@ async def _job_memory(db: AsyncSession, job: EmbeddingJob) -> Memory | None:
     )
 
 
+async def _guest_embed_admission(db: AsyncSession, owner: User, job: EmbeddingJob, settings):
+    """Quota claim + worst-case reservation for one guest embedding, or None (never raises)."""
+    from app.core.errors import DomainError
+    from app.modules.guests.accounting import reserve_guest_operation
+    from app.modules.guests.limits import reserve_guest_quota
+    from app.modules.guests.policy import guest_paid_available
+    from app.modules.guests.pricing import budget_nano, embed_upper
+
+    if not (getattr(settings, "guest_semantic_enabled", False) and guest_paid_available(settings, "embed")):
+        return None
+    upper = embed_upper(settings.guest_pricing_json)
+    if upper is None:
+        return None
+    key = f"embed:{job.id}"
+    payload = f"{job.memory_id}:{job.memory_version}"
+    try:
+        async with db.begin_nested():
+            quota = await reserve_guest_quota(
+                db, owner, kind="embed", operation_key=key, payload_digest=payload, settings=settings
+            )
+            reservation = await reserve_guest_operation(
+                db,
+                owner,
+                "embed",
+                upper[1],
+                operation_key=key,
+                payload_digest=payload,
+                limit_nano_usd=budget_nano(settings.guest_daily_budget_usd) or 0,
+            )
+    except DomainError:
+        return None
+    from app.modules.guests.models import GuestCostReservation
+
+    row = await db.get(GuestCostReservation, reservation.id)
+    if row is None or row.state != "reserved":
+        return None  # a replayed key can never fund a second paid dispatch
+    return quota, reservation
+
+
+async def _settle_guest_embed(database: "Database", user_id: UUID, ticket, *, known: bool) -> None:
+    from app.modules.guests.accounting import settle_guest_operation
+    from app.modules.guests.limits import finish_guest_quota
+
+    quota, reservation = ticket
+    try:
+        async with database.require()() as db, db.begin():
+            await settle_guest_operation(
+                db, reservation, reservation.upper_nano_usd if known else None
+            )
+        async with database.require()() as db, db.begin():
+            await finish_guest_quota(db, user_id, "embed", quota.operation_key_hash, quota.lease_token)
+    except Exception:  # the stale-reservation sweep charges it uncertain
+        log.warning("guest_embed_settlement_deferred")
+
+
 async def reconcile_embedding_jobs(database: "Database", settings: EmbeddingSettings) -> int:
     """Find bounded missing current snapshots; existing/failed jobs cannot starve later rows."""
     if not settings.semantic_memory_available:
@@ -314,6 +369,19 @@ async def process_embedding_jobs(
                 job.status, job.lease_token, job.lease_until = "cancelled", None, None
                 continue
             text = memory.text
+            ticket = None
+            owner = await db.get(User, user_id)
+            if owner is not None and owner.account_kind == "guest":
+                ticket = await _guest_embed_admission(db, owner, job, settings)
+                if ticket is None:
+                    # Unavailable price/budget, exhausted quota or an earlier attempt: no send, no retry.
+                    job.status, job.lease_token, job.lease_until = "cancelled", None, None
+                    continue
+        if ticket is not None:
+            async with database.require()() as db, db.begin():
+                from app.modules.guests.accounting import mark_guest_dispatched
+
+                await mark_guest_dispatched(db, ticket[1].id)
         error: str | None = None
         vector: list[float] = []
         try:
@@ -336,6 +404,8 @@ async def process_embedding_jobs(
             )
         except Exception:
             error = "embedding_provider_unavailable"
+        if ticket is not None:
+            await _settle_guest_embed(database, user_id, ticket, known=error is None)
         async with database.require()() as db, db.begin():
             await db.scalar(select(User.id).where(User.id == user_id).with_for_update())
             job = await db.get(EmbeddingJob, job_id, with_for_update=True)

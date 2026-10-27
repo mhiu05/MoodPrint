@@ -115,9 +115,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 guest_metrics,
                 process_guest_cleanup,
                 reconcile_guest_provisioning,
+                retention_tick,
+                settle_stale_liability,
             )
 
-            next_metrics = 0.0
+            next_metrics = next_retention = 0.0
             first = True
             while True:
                 if database.sessions:
@@ -125,7 +127,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         ensure_cleanup_jobs if first else None,
                         process_guest_cleanup,
                         reconcile_guest_provisioning,
+                        settle_stale_liability,
+                        retention_tick if time.monotonic() >= next_retention else None,
                     ):
+                        if work is retention_tick:
+                            next_retention = time.monotonic() + 60
                         if work is None:
                             continue
                         try:

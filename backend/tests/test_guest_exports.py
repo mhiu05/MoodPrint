@@ -10,7 +10,7 @@ import pytest
 from sqlalchemy import func, select, update
 
 from app.infrastructure.database.models import AuthSession
-from tests.guest_helpers import add_guest, db_now
+from tests.guest_helpers import add_guest, db_now, enable_paid_fixture
 
 pytestmark = pytest.mark.postgres
 LIFETIME = timedelta(seconds=7200)
@@ -162,6 +162,7 @@ async def test_voice_upload_and_result_crossing_t(clients):
     app, _ = clients
     transcriber = SlowTranscriber()
     app.state.transcriber = transcriber
+    enable_paid_fixture(app)
     guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=4), consents=True)
     pending = asyncio.create_task(
         guest.client.post(
@@ -193,6 +194,7 @@ async def test_voice_audio_is_not_dispatched_when_the_deadline_passes_during_upl
     app, _ = clients
     transcriber = SlowTranscriber()
     app.state.transcriber = transcriber
+    enable_paid_fixture(app)
     guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=2), consents=True)
 
     async def slow_body():

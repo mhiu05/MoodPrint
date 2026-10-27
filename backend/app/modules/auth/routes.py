@@ -87,10 +87,11 @@ async def session_view(request: Request, actor: Actor, csrf: str | None = None) 
                 voice_clips_remaining=max(0, settings.guest_voice_clips - clips),
                 voice_seconds_remaining=max(0, settings.guest_voice_seconds * 1000 - millis) / 1000,
             )
-            if not guest_paid_available(settings):
+            voice = voice and guest_paid_available(settings, "voice")
+            if not guest_paid_available(settings, "ai"):
                 # Paid guest work fails closed until the owner-approved budget and prices exist.
                 ai_status = "disabled" if not settings.guest_paid_enabled else "configuration_missing"
-                ai_available = voice = False
+                ai_available = False
             remaining = guest_quota.ai_turns_remaining if ai_available else None
         elif ai_available:
             from app.ai.persistence import daily_turns
