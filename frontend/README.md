@@ -2,6 +2,8 @@
 
 React 19 + Vite + TypeScript SPA cho MoodPrint. Ứng dụng production chỉ gọi API thật của backend FastAPI (`/api/v1`, cùng origin); không có dữ liệu mẫu, nhân vật hư cấu hay phản hồi soạn sẵn. Điểm vào duy nhất là `src/main.tsx` → `src/features/real/RealApp.tsx`.
 
+Tài liệu chi tiết: [kiến trúc frontend](../docs/frontend/README.md), [data flow](../docs/frontend/data-flow.md), [UI/accessibility](../docs/frontend/ui-accessibility.md), [các lớp kiểm thử](../docs/frontend/testing.md).
+
 ## Chạy local
 
 ```powershell
