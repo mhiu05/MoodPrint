@@ -278,17 +278,6 @@
   background: var(--color-selected-bg);
   border-color: var(--color-primary);
 }
-.typing {
-  font-size: var(--text-support);
-  color: var(--color-muted);
-  margin: 8px 0;
-  min-height: 24px;
-}
-.typing span span {
-  font-size: 1.6rem;
-  margin-left: 2px;
-  line-height: 0;
-}
 .srOnly {
   position: absolute;
   width: 1px;

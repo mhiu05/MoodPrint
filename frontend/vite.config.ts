@@ -8,6 +8,9 @@ export default defineConfig({
     // Keep scripts (the audio worklet) as same-origin files, allowed by script-src 'self'.
     assetsInlineLimit: (file) => (file.endsWith(".js") ? false : undefined),
   },
+  // The orb is imported lazily; pre-bundling it keeps a fresh dev server from
+  // reloading the page the first time an AI run shows it.
+  optimizeDeps: { include: ["thinking-orbs"] },
   server: {
     // Playwright traces contain HTML. Watching them reloads the app while a
     // different browser is using it, interrupting real sessions and screenshots.

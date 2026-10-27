@@ -42,7 +42,6 @@ import {
   cx,
   Dialog,
   StatePanel,
-  Typing,
 } from "../../components/UI";
 import { BrandMark, BotAvatar } from "../../companions/Avatar";
 import { botById, type BotId } from "../../companions/registry";
@@ -78,6 +77,8 @@ import { VoiceRecorder } from "./Voice";
 import { OwnIdentity } from "./Safety";
 import { DataControls } from "./Privacy";
 import { focusRouteHeading, useRouteFocus } from "./useRouteFocus";
+import { AIActivityStatus } from "./AIActivityStatus";
+import { deriveAIActivity, type AIActivityPhase } from "./aiActivityView";
 import { AIDataProvider, AIDataControls, ConversationHistory, useAIData, downloadConversation, type SavedConversation, type SavedConversationHeader } from "./AIData";
 
 const MessageMarkdown = lazy(() => import("./MessageMarkdown"));
@@ -700,7 +701,12 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
-  const [run, setRun] = useState<{ id: string; version: number }>();
+  const [run, setRun] = useState<{ id: string; version: number; key: string }>();
+  // Stop is a request until the run's own terminal event confirms the outcome.
+  const [stopRequested, setStopRequested] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [stopped, setStopped] = useState(false);
+  const activeRun = useRef<string | undefined>(undefined);
   const [revision, setRevision] = useState(0);
   const loadedRevision = useRef(0);
   const loadedSelection = useRef<string | undefined>(undefined);
@@ -739,8 +745,11 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       version: number,
       eventsUrl: string,
       signal: AbortSignal,
+      requestKey: string,
     ) => {
-      setRun({ id, version });
+      activeRun.current = id;
+      setRun({ id, version, key: requestKey });
+      setStopped(false);
       setBusy(true);
       try {
         const final = await consumeAIEvents(eventsUrl, signal);
@@ -760,6 +769,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
               },
             ],
           });
+          // The validated reply is already on screen; only reconciliation remains.
+          setSyncing(true);
           const stored = await api.request<SavedConversation>(
             `/ai/conversations/${before.conversationId}`,
             { signal },
@@ -772,7 +783,20 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           }
         }
       } catch (reason) {
-        if (!signal.aborted) {
+        if (!signal.aborted && reason instanceof ApiError && reason.code === "RUN_CANCELLED") {
+          // A confirmed terminal cancellation is a neutral outcome, not an error.
+          setStopped(true);
+          setSyncing(true);
+          try {
+            const thread = current.current;
+            if (thread) {
+              const stored = await api.request<SavedConversation>(`/ai/conversations/${thread.conversationId}`, { signal });
+              if (!signal.aborted) { update(stored); refreshHistory(); }
+            }
+          } catch (readError) {
+            if (!signal.aborted) setError(readError);
+          }
+        } else if (!signal.aborted) {
           setError(reason);
           setReady(false);
           if (reason instanceof ApiError && reason.code === "RUN_FAILED") {
@@ -783,8 +807,11 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         }
       } finally {
         if (!signal.aborted) {
+          activeRun.current = undefined;
           setRun(undefined);
           setBusy(false);
+          setStopRequested(false);
+          setSyncing(false);
         }
       }
     },
@@ -802,6 +829,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     const controller = new AbortController();
     lifetime.current = controller;
     setLoading(true); setReady(false); setBusy(false); setRun(undefined); setError(undefined); setNotice("");
+    activeRun.current = undefined; setStopRequested(false); setSyncing(false); setStopped(false);
     current.current = undefined; setConversation(undefined);
     const selection = `${bot.botId}/${selectedId || searchParams.get("new") || "latest"}`;
     // A different thread chosen in this conversation (not first open, not a new chat) moves focus to its heading once loaded.
@@ -823,7 +851,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       if (value.botId !== bot.botId) throw new ApiError(409, "CONVERSATION_BOT_MISMATCH", "Hội thoại thuộc một trợ lý khác. Chọn lại hội thoại trong lịch sử.");
       update(value); setReady(true); setAtBottom(true);
       if (switched) requestAnimationFrame(() => focusRouteHeading());
-      if (value.activeRunId && allowed) void stream(value.activeRunId, value.activeRunVersion || 1, `/api/v1/ai/runs/${value.activeRunId}/events`, controller.signal);
+      if (value.activeRunId && allowed) void stream(value.activeRunId, value.activeRunVersion || 1, `/api/v1/ai/runs/${value.activeRunId}/events`, controller.signal, `resume:${value.activeRunId}`);
     }
     void open().catch(reason => { if (!controller.signal.aborted) setError(reason); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
@@ -868,6 +896,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       return;
     const signal = lifetime.current.signal;
     setBusy(true);
+    setStopped(false);
     setError(undefined);
     const moodScope = moodSelected ? { fromDate: moodFrom, toDate: moodTo } : undefined;
     const scopeKey = moodScope ? `${moodScope.fromDate}/${moodScope.toDate}` : "";
@@ -932,6 +961,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           { id: intent.current!.clientMessageId, actor: "self", text },
         ],
       });
+      const requestKey = intent.current!.clientMessageId;
       intent.current = null;
       submittedText.current = text;
       if (moodScope) setLastMoodRange({ conversationId: thread.conversationId, ...moodScope });
@@ -943,6 +973,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         accepted.runVersion,
         accepted.eventsUrl,
         signal,
+        requestKey,
       );
     } catch (reason) {
       if (grantedSession) receive(grantedSession);
@@ -971,14 +1002,22 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     });
   }
   async function cancel() {
-    if (!run) return;
+    if (!run || stopRequested) return;
+    const runId = run.id;
+    setStopRequested(true);
+    setError(undefined);
     try {
-      await api.request(`/ai/runs/${run.id}/cancel`, {
+      // Keep reading the stream: only its terminal event says whether the run
+      // was cancelled or had already completed.
+      await api.request(`/ai/runs/${runId}/cancel`, {
         method: "POST",
         body: { expectedVersion: run.version } satisfies VersionInput,
       });
     } catch (reason) {
-      setError(reason);
+      if (activeRun.current === runId) {
+        setStopRequested(false);
+        setError(reason);
+      }
     }
   }
   function newConversation() {
@@ -986,6 +1025,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     lifetime.current = new AbortController();
     current.current = undefined; setConversation(undefined); setDraft(""); setError(undefined); setNotice("");
     setReady(true); setLoading(false); setBusy(false); setRun(undefined); intent.current = null; setShareMood(false); setLastMoodRange(undefined);
+    activeRun.current = undefined; setStopRequested(false); setSyncing(false); setStopped(false);
     // An explicit new marker prevents latest-thread auto-resume. Record it now:
     // the router applies the URL in a transition, and its effect must not wipe a
     // draft typed after this click.
@@ -1036,6 +1076,15 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     } catch (reason) { setError(reason); }
     finally { setManageBusy(false); }
   }
+  const lastSelf = conversation?.messages.filter((message) => message.actor === "self").at(-1);
+  const phase: AIActivityPhase = stopRequested ? "cancelling"
+    : syncing ? "reconciling"
+    : run ? "accepted"
+    : busy ? "submitting"
+    // The transcript turn status already says a reconciled turn stopped.
+    : stopped && lastSelf?.status !== "cancelled" ? "cancelled"
+    : "idle";
+  const activity = deriveAIActivity({ phase, requestKey: run?.key ?? intent.current?.clientMessageId, runId: run?.id });
   let conversationLabel = "Hội thoại tạm thời · không lưu vào lịch sử";
   if (conversation?.persistent) conversationLabel = "Hội thoại đã lưu";
   else if (!conversation && preferences?.historyEnabled && preferences.historyAvailable)
@@ -1132,23 +1181,19 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             <Link to="/memory">Xem đề xuất</Link>
           </p>
         ) : null}
-        {busy ? (
-          <div className="bot-pending">
-            <Typing />
-            {run ? (
-              <Button variant="text" onClick={cancel}>
-                Dừng
-              </Button>
-            ) : (
-              <span>Đang gửi…</span>
-            )}
-          </div>
-        ) : null}
+
         <ErrorNotice
           error={error}
           retry={() => setRevision((value) => value + 1)}
         />
       </div>
+      <AIActivityStatus
+        view={activity}
+        phase={phase}
+        identity={`${conversation?.conversationId ?? "new"}/${run?.key ?? intent.current?.clientMessageId ?? "idle"}`}
+        onStop={run && !syncing ? () => void cancel() : undefined}
+        stopDisabled={stopRequested}
+      />
       {session.features.aiStatus === "test_provider" ? <p className={cx.footnote} role="note">Môi trường kiểm thử · phản hồi từ model giả, không phải OpenAI.</p> : null}
       {!canSend ? <div className="chat-readonly" role="status"><p>{readOnlyMessage}</p>{allowed && preferences && !historyWritable && preferences.historyAvailable ? <Link to="/settings">Mở cài đặt lưu lịch sử</Link> : null}</div> : <div className="chat-bottom">
         <p className={cx.footnote}>Tin nhắn chỉ được gửi cho nhà cung cấp AI khi bạn chọn Gửi. Lịch sử máy chủ và ghi nhớ lâu dài là các lựa chọn riêng.</p>

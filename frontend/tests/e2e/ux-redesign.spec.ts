@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { app, baseSession, sessionWith } from "./ux-fixtures";
 
 const pendingProposal = {
@@ -223,5 +223,177 @@ test.describe("navigation and route focus (V-NAV / V-ROUTE-FOCUS)", () => {
     await expect(page.getByRole("heading", { level: 1, name: /^Mây/ })).toBeVisible();
     await page.waitForTimeout(300);
     await expect(page.getByRole("textbox", { name: "Tìm trợ lý" })).toBeFocused();
+  });
+});
+
+// ---- AI activity status (V-AI-STATUS / V-MOTION-LIFECYCLE) ----
+type Gate = { promise: Promise<void>; open: () => void };
+function gate(): Gate {
+  let open: () => void = () => {};
+  const promise = new Promise<void>((resolve) => { open = resolve; });
+  return { promise, open };
+}
+const RUN = "33333333-3333-4333-8333-333333333333";
+const CONV = "22222222-2222-4222-8222-222222222222";
+const sse = (events: { type: string; data?: unknown }[]) =>
+  events.map((event, index) => `id: ${index + 1}\ndata: ${JSON.stringify({ version: "ai-events-v1", seq: String(index + 1), type: event.type, data: event.data ?? {} })}\n\n`).join("");
+
+async function aiRun(page: Page, options: { terminal?: "completed" | "cancelled" } = {}) {
+  const accept = gate(), finish = gate(), cancelGate = gate();
+  const calls = { messages: 0, cancels: 0, transcript: 0 };
+  const thread = { conversationId: CONV, botId: "may", version: 1, persistent: false, expiresAt: "2026-10-24T08:00:00Z", messages: [] as unknown[], hasMoreMessages: false, activeRunId: null, activeRunVersion: null };
+  const terminal = options.terminal ?? "completed";
+  await app(page, baseSession, {
+    "/ai/conversations": (request) => (request.method() === "GET" ? { json: [] } : { status: 201, json: thread }),
+    [`/ai/conversations/${CONV}`]: () => { calls.transcript += 1; return { json: thread }; },
+  });
+  await page.route(`**/api/v1/ai/conversations/${CONV}/messages`, async (route) => {
+    calls.messages += 1;
+    await accept.promise;
+    await route.fulfill({ status: 202, json: { runId: RUN, conversationId: CONV, version: 2, runVersion: 1, eventsUrl: `/api/v1/ai/runs/${RUN}/events` } });
+  });
+  await page.route(`**/api/v1/ai/runs/${RUN}/events`, async (route) => {
+    await finish.promise;
+    const body = terminal === "completed"
+      ? sse([{ type: "progress" }, { type: "final", data: { text: "Mình nghe bạn đây.", cards: [] } }, { type: "completed" }])
+      : sse([{ type: "progress" }, { type: "cancelled" }]);
+    await route.fulfill({ contentType: "text/event-stream", body });
+  });
+  await page.route(`**/api/v1/ai/runs/${RUN}/cancel`, async (route) => {
+    calls.cancels += 1;
+    await cancelGate.promise;
+    await route.fulfill({ json: { runId: RUN, version: 2, status: "ended" } });
+  });
+  return { accept, finish, cancelGate, calls };
+}
+
+async function sendHello(page: Page) {
+  await page.goto("/#/assistants/may?new=1");
+  await page.getByRole("textbox", { name: "Tin nhắn cho Mây" }).fill("Xin chào");
+  await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
+}
+const status = (page: Page) => page.locator(".ai-status [role=status]");
+
+test.describe("AI activity status", () => {
+  test("sending, accepted and final states are truthful and the orb runs only after acceptance", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    const run = await aiRun(page);
+    await sendHello(page);
+    await expect(status(page)).toHaveText("Đang gửi tin nhắn…");
+    await expect(page.locator(".ai-status canvas")).toHaveCount(0);
+    run.accept.open();
+    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+    await expect(page.locator("canvas")).toHaveCount(1);
+    await expect(page.locator(".ai-status canvas")).toHaveAttribute("aria-hidden", "true");
+    await expect(page.getByRole("button", { name: "Dừng", exact: true })).toBeVisible();
+    run.finish.open();
+    await expect(page.locator(".from-bot .chat-bubble")).toContainText("Mình nghe bạn đây.");
+    await expect(page.locator("canvas")).toHaveCount(0);
+    await expect(status(page)).toHaveText("");
+    await expect(page.getByRole("button", { name: "Dừng", exact: true })).toHaveCount(0);
+  });
+
+  test("reduced motion keeps a static status and never mounts a canvas", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const run = await aiRun(page);
+    await sendHello(page);
+    run.accept.open();
+    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+    await page.waitForTimeout(300);
+    await expect(page.locator("canvas")).toHaveCount(0);
+    await expect(page.locator(".ai-status-visual svg")).toHaveCount(1);
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await expect(page.locator("canvas")).toHaveCount(1);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await expect(page.locator("canvas")).toHaveCount(0);
+    run.finish.open();
+    await expect(page.locator(".from-bot .chat-bubble")).toContainText("Mình nghe bạn đây.");
+  });
+
+  test("a failed orb import keeps the static status and the reply still arrives", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.route(/thinking-orbs|ThinkingOrbVisual/, (route) => route.abort());
+    const run = await aiRun(page);
+    await sendHello(page);
+    run.accept.open();
+    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+    await expect(page.locator(".ai-status-visual svg")).toHaveCount(1);
+    await expect(page.locator("canvas")).toHaveCount(0);
+    run.finish.open();
+    await expect(page.locator(".from-bot .chat-bubble")).toContainText("Mình nghe bạn đây.");
+    await expect(page.getByRole("alert")).toHaveCount(0);
+  });
+
+  test("a hidden page unmounts the loop and only an active run resumes it", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    const run = await aiRun(page);
+    await sendHello(page);
+    run.accept.open();
+    await expect(page.locator("canvas")).toHaveCount(1);
+    const setVisibility = (state: "hidden" | "visible") => page.evaluate((value) => {
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => value });
+      document.dispatchEvent(new Event("visibilitychange"));
+    }, state);
+    await setVisibility("hidden");
+    await expect(page.locator("canvas")).toHaveCount(0);
+    await setVisibility("visible");
+    await expect(page.locator("canvas")).toHaveCount(1);
+    run.finish.open();
+    await expect(page.locator(".from-bot .chat-bubble")).toContainText("Mình nghe bạn đây.");
+    await setVisibility("hidden");
+    await setVisibility("visible");
+    await expect(page.locator("canvas")).toHaveCount(0);
+  });
+
+  test("Dừng waits for the confirmed terminal event before saying the reply stopped", async ({ page }) => {
+    const run = await aiRun(page, { terminal: "cancelled" });
+    await sendHello(page);
+    run.accept.open();
+    const stop = page.getByRole("button", { name: "Dừng", exact: true });
+    await stop.click();
+    await expect(status(page)).toHaveText("Đang yêu cầu dừng…");
+    await expect(stop).toBeDisabled();
+    await expect.poll(() => run.calls.cancels).toBe(1);
+    run.cancelGate.open();
+    await page.waitForTimeout(200);
+    await expect(page.getByText("Đã dừng phản hồi.")).toHaveCount(0);
+    run.finish.open();
+    await expect(status(page)).toHaveText("Đã dừng phản hồi.");
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    expect(run.calls.cancels).toBe(1);
+    await expect(page.locator("canvas")).toHaveCount(0);
+  });
+
+  test("when the reply completes before the stop, it is shown and never labelled stopped", async ({ page }) => {
+    const run = await aiRun(page, { terminal: "completed" });
+    await sendHello(page);
+    run.accept.open();
+    await page.getByRole("button", { name: "Dừng", exact: true }).click();
+    await expect.poll(() => run.calls.cancels).toBe(1);
+    run.finish.open();
+    await expect(page.locator(".from-bot .chat-bubble")).toContainText("Mình nghe bạn đây.");
+    run.cancelGate.open();
+    await page.waitForTimeout(300);
+    await expect(page.getByText(/Đã dừng phản hồi/)).toHaveCount(0);
+    await expect(page.getByRole("alert")).toHaveCount(0);
+  });
+
+  test("leaving for another assistant cannot carry the old run status or reply into the new view", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    const run = await aiRun(page);
+    await page.route("**/api/v1/bots", (route) => route.fulfill({ json: [
+      { botId: "may", name: "Mây", role: "Lắng nghe", description: "Lắng nghe.", starters: [], avatarKey: "may" },
+      { botId: "guong", name: "Gương", role: "Nhìn lại", description: "Nhìn lại.", starters: [], avatarKey: "guong" },
+    ] }));
+    await sendHello(page);
+    run.accept.open();
+    await expect(page.locator("canvas")).toHaveCount(1);
+    await page.goto("/#/assistants/guong?new=1");
+    await expect(page.getByRole("textbox", { name: "Tin nhắn cho Gương" })).toBeVisible();
+    run.finish.open();
+    await page.waitForTimeout(400);
+    await expect(page.locator("canvas")).toHaveCount(0);
+    await expect(page.locator(".from-bot")).toHaveCount(0);
+    await expect(status(page)).toHaveText("");
   });
 });

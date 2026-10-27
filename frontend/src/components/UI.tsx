@@ -131,45 +131,6 @@ export function Dialog({
     </dialog>
   );
 }
-export function Typing() {
-  const ref = useRef<HTMLSpanElement>(null);
-  useGSAP(
-    () => {
-      const mm = gsap.matchMedia();
-      mm.add("(prefers-reduced-motion: no-preference)", () => {
-        const tween = gsap.to("[data-dot]", {
-          opacity: 0.35,
-          repeat: -1,
-          yoyo: true,
-          duration: 0.45,
-          stagger: 0.12,
-          ease: "sine.inOut",
-        });
-        const visibility = () => {
-          if (document.hidden) tween.pause();
-          else tween.resume();
-        };
-        document.addEventListener("visibilitychange", visibility);
-        return () =>
-          document.removeEventListener("visibilitychange", visibility);
-      });
-      return () => mm.revert();
-    },
-    { scope: ref },
-  );
-  return (
-    <p className={styles.typing} role="status">
-      Đang trả lời{" "}
-      <span ref={ref} aria-hidden="true">
-        {[0, 1, 2].map((i) => (
-          <span data-dot key={i}>
-            ·
-          </span>
-        ))}
-      </span>
-    </p>
-  );
-}
 export function Brand() {
   return (
     <span className={styles.brand}>

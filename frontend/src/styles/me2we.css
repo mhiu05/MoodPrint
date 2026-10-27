@@ -512,20 +512,37 @@ button {
   color: var(--color-on-primary);
   border-color: var(--color-primary);
 }
-.bot-pending {
+/* One status row above the composer; it only takes space while a run exists. */
+.ai-status {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  padding: 0 max(var(--gutter), calc((100% - 720px) / 2));
+  background: var(--color-bg);
+  flex: 0 0 auto;
 }
-.bot-pending > button {
-  border: 0;
-  background: transparent;
+.ai-status.is-shown {
+  min-height: 52px;
+  padding-block: 4px;
+  border-top: 1px solid var(--color-divider);
+}
+.ai-status [role="status"] {
+  flex: 1;
+  margin: 0;
   font-size: var(--text-support);
-  text-decoration: underline;
+  color: var(--color-muted);
+}
+.ai-status-visual {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  color: var(--color-primary);
+}
+.ai-status-stop {
   min-height: var(--target-min);
-}
-.bot-pending p {
-  font-size: var(--text-support);
+  padding-block: 8px;
 }
 .chat-bottom {
   padding: 12px max(var(--gutter), calc((100% - 720px) / 2)) 12px;
