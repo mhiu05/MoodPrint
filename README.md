@@ -3,14 +3,12 @@ Dự án startup chương trình tiền ươm tạo, dự án giúp cho người
 
 React/Vite/TypeScript frontend và Python 3.12.13/FastAPI backend dạng Modular Monolith. Pydantic là nguồn schema; TypeScript được tạo từ OpenAPI. Database chính thức: Supabase PostgreSQL/Auth. OpenAI Agents SDK Python dùng chung cho năm trợ lý.
 
-Trạng thái từng task và giới hạn kiểm chứng: [implementation-status](docs/plans/implementation-status.md). Hướng dẫn vận hành: [deploy/README.md](deploy/README.md).
-
-Kế hoạch sản phẩm hóa (matching v2, hoạt động chung, kiểm duyệt) và tiến độ triển khai: [docs/productization/README.md](docs/productization/README.md), [implementation-progress](docs/productization/evidence/implementation-progress.md).
+Tài liệu kỹ thuật: [kiến trúc tổng thể](ARCHITECTURE.md), [mục lục docs](docs/README.md), [agents](docs/agents/README.md), [frontend](docs/frontend/README.md), [backend](docs/backend/README.md), [Supabase](docs/supabase/README.md), [matching](docs/matching/README.md). Kết quả và giới hạn kiểm chứng: [verification](docs/verification.md). Hướng dẫn vận hành: [deploy/README.md](deploy/README.md).
 
 ## Chạy local
 
 Hướng dẫn cấu hình MVP local, phân biệt consent/lịch sử/provider và kiểm chứng
-bằng PostgreSQL riêng: [local MVP](docs/development/local-mvp.md).
+bằng PostgreSQL riêng: [chạy local và kiểm thử](docs/development.md).
 
 Frontend:
 
@@ -81,4 +79,4 @@ cd backend
 uv run --locked python ../scripts/test_fullstack.py
 ```
 
-Kiểm tra cấu hình không in secrets: `uv run python ../scripts/check_config.py`. Kiểm tra Supabase chỉ đọc: `uv run python ../scripts/inspect_database.py`. Xem [configuration required](docs/plans/validation-artifacts/configuration-required.md) để xử lý lỗi kết nối đã quan sát; không chạy remote migration trước khi review target/schema/role/SQL và được phép.
+Kiểm tra cấu hình không in secrets, từ `backend/`: `uv run --locked python ../scripts/check_config.py`. Kiểm tra Supabase chỉ đọc: `uv run --locked python ../scripts/inspect_database.py`. Xem [cấu hình](docs/backend/configuration.md), [xử lý sự cố](docs/backend/operations.md) và [migration runbook](docs/supabase/migrations.md); không chạy remote migration trước khi review target/schema/role/SQL và được phép.
