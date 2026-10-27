@@ -34,7 +34,7 @@ def main():
             if args.auth_rls
             else "supabase-initialization-review.sql"
         )
-        sql = (ROOT / "docs/plans/validation-artifacts" / filename).read_text(encoding="utf-8")
+        sql = (ROOT / "deploy/supabase/reviewed-sql" / filename).read_text(encoding="utf-8")
         # The reviewed SQL expects hosted database 'postgres'. Only this local copy is adapted.
         sql = sql.replace(
             "current_database() <> 'postgres'",
@@ -203,13 +203,14 @@ ALTER TABLE auth.sessions ENABLE ROW LEVEL SECURITY;
     )
     path = (
         ROOT
-        / "docs/plans/validation-artifacts"
+        / "deploy/supabase/reports"
         / (
             "supabase-auth-rls-rehearsal.json"
             if args.auth_rls
             else "supabase-migration-rehearsal.json"
         )
     )
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report, indent=2))
     if report["status"] != "PASS":

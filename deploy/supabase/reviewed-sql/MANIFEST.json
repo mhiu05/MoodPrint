@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "description": "SQL the Supabase scripts apply only after explicit per-file approval of its SHA256. Restoring or listing a file here is not approval to run it.",
+  "recoveredBecause": "docs/ was deleted in commit 41e27c7 ('chore: delete documents'); bytes below are the blobs of its parent, unmodified.",
+  "artifacts": [
+    {
+      "path": "supabase-initialization-review.sql",
+      "sha256": "7180c9e12748af574599a6fe56240643d57d877dd906a51d6dd9923262d9173e",
+      "bytes": 23560,
+      "recoveredFrom": {
+        "commit": "5e73a130fd0f081887c3c2ab2093c43674388012",
+        "path": "docs/plans/validation-artifacts/supabase-initialization-review.sql",
+        "blob": "f11268b954b2af941f4ad22b706af5d314454d2f"
+      }
+    },
+    {
+      "path": "supabase-initialization-auth-review.sql",
+      "sha256": "e6448c3a9684edb4c81f883f5e8c6681ede5a13a596699436a396b465975f872",
+      "bytes": 24557,
+      "recoveredFrom": {
+        "commit": "5e73a130fd0f081887c3c2ab2093c43674388012",
+        "path": "docs/plans/validation-artifacts/supabase-initialization-auth-review.sql",
+        "blob": "4f841ff330611d29faabdab3f27a1ef1a1c5e67d"
+      }
+    },
+    {
+      "path": "supabase-runtime-login-review.sql",
+      "sha256": "d9124bfd7747a7a04841b8e471a38ddfe6de04d87f91b20ffd63e3f79a1f0461",
+      "bytes": 539,
+      "recoveredFrom": {
+        "commit": "5e73a130fd0f081887c3c2ab2093c43674388012",
+        "path": "docs/plans/validation-artifacts/supabase-runtime-login-review.sql",
+        "blob": "e6dd29cdf9b08016b6aa6326d435a0d356f5eb87"
+      }
+    },
+    {
+      "path": "supabase-0006-0009-review.sql",
+      "sha256": "289b67aab763849c776893425b2fc92b498e79118442003318f9192e5df01121",
+      "bytes": 16825,
+      "recoveredFrom": {
+        "commit": "5e73a130fd0f081887c3c2ab2093c43674388012",
+        "path": "docs/ai-chat-memory/supabase-0006-0009-review.sql",
+        "blob": "b3ea031b5da487125930c8982f4f5d810263a1a2"
+      }
+    },
+    {
+      "path": "supabase-0010-review.sql",
+      "sha256": "b9fe14aa75e84ad435d052c206fdb75b4e0d53af10d9f2028255f87bd4f2419e",
+      "bytes": 1365,
+      "recoveredFrom": {
+        "commit": "5e73a130fd0f081887c3c2ab2093c43674388012",
+        "path": "docs/ai-chat-memory/supabase-0010-review.sql",
+        "blob": "4c3a39deb7d5e8a8af97bb415daca272175f2873"
+      }
+    },
+    {
+      "path": "0011-review.sql",
+      "sha256": "b12f30efdd01777caf200865d5b8052525c12ea007ecbc91616d5a8dafd8a082",
+      "bytes": 1955,
+      "recoveredFrom": {
+        "commit": "5e73a130fd0f081887c3c2ab2093c43674388012",
+        "path": "docs/productization/migrations/0011-review.sql",
+        "blob": "d73bf48af6f25fe3a3b518d85ccc8938f67e2c1f"
+      }
+    },
+    {
+      "path": "0012-review.sql",
+      "sha256": "59c37353a13bb6b747a4be2705d341107443c8639847f63efb040c046a141cee",
+      "bytes": 1545,
+      "recoveredFrom": {
+        "commit": "5e73a130fd0f081887c3c2ab2093c43674388012",
+        "path": "docs/productization/migrations/0012-review.sql",
+        "blob": "dadb7a2a0fa9a4d21f7a0e2260a74909c619ecea"
+      }
+    },
+    {
+      "path": "0013-review.sql",
+      "sha256": "eb3e73df3a9314f608f3e9267c008f0166a840a5e132fcd6e7454ffe1751e9f5",
+      "bytes": 6394,
+      "recoveredFrom": {
+        "commit": "5e73a130fd0f081887c3c2ab2093c43674388012",
+        "path": "docs/productization/migrations/0013-review.sql",
+        "blob": "1e7de58b5394b7050b15925e01bb1681c5aedf70"
+      }
+    },
+    {
+      "path": "0014-review.sql",
+      "sha256": "0678298210accc2916331b979656a15052e388c65a88f00a557647cfaac6e3c4",
+      "bytes": 3797,
+      "recoveredFrom": {
+        "commit": "5e73a130fd0f081887c3c2ab2093c43674388012",
+        "path": "docs/productization/migrations/0014-review.sql",
+        "blob": "97d6c6bb863c278480f04008917b388efe6fe50e"
+      }
+    }
+  ]
+}

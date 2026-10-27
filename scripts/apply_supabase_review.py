@@ -18,8 +18,12 @@ sys.path.insert(0, str(ROOT / "backend"))
 from app.core.config import Settings  # noqa: E402
 
 PROJECT = "roznanxbiyqybjpvtilq"
-REVIEW = ROOT / "docs/plans/validation-artifacts/supabase-initialization-review.sql"
-AUTH_REVIEW = ROOT / "docs/plans/validation-artifacts/supabase-initialization-auth-review.sql"
+# Approved SQL lives in one tracked directory pinned by MANIFEST.json (scripts/check_reviewed_artifacts.py).
+REVIEWED_SQL = ROOT / "deploy/supabase/reviewed-sql"
+REPORTS = ROOT / "deploy/supabase/reports"
+REVIEW = REVIEWED_SQL / "supabase-initialization-review.sql"
+AUTH_REVIEW = REVIEWED_SQL / "supabase-initialization-auth-review.sql"
+INITIAL_REVISION = "0005_export_scope"  # What the initialization approvals were generated from.
 POOLER_HOST = "aws-0-ap-northeast-1.pooler.supabase.com"  # Verified in Connect, not derived.
 
 
@@ -37,8 +41,8 @@ class UpgradePlan:
 
 UPGRADES = {
     "0009": UpgradePlan(
-        ROOT / "docs/ai-chat-memory/supabase-0006-0009-review.sql",
-        ROOT / "docs/ai-chat-memory/supabase-0006-0009-execution.json",
+        REVIEWED_SQL / "supabase-0006-0009-review.sql",
+        REPORTS / "supabase-0006-0009-execution.json",
         "0005_export_scope",
         "0009_memory_embeddings",
         tables=(
@@ -53,36 +57,36 @@ UPGRADES = {
         ),
     ),
     "0010": UpgradePlan(
-        ROOT / "docs/ai-chat-memory/supabase-0010-review.sql",
-        ROOT / "docs/ai-chat-memory/supabase-0010-execution.json",
+        REVIEWED_SQL / "supabase-0010-review.sql",
+        REPORTS / "supabase-0010-execution.json",
         "0009_memory_embeddings",
         "0010_account_deletion",
         functions=("moodprint.delete_provider_identity(uuid)",),
     ),
     "0011": UpgradePlan(
-        ROOT / "docs/productization/migrations/0011-review.sql",
-        ROOT / "docs/productization/migrations/0011-execution.json",
+        REVIEWED_SQL / "0011-review.sql",
+        REPORTS / "0011-execution.json",
         "0010_account_deletion",
         "0011_social_stabilization",
         tables=("connection_reads",),
     ),
     "0012": UpgradePlan(
-        ROOT / "docs/productization/migrations/0012-review.sql",
-        ROOT / "docs/productization/migrations/0012-execution.json",
+        REVIEWED_SQL / "0012-review.sql",
+        REPORTS / "0012-execution.json",
         "0011_social_stabilization",
         "0012_matching_v2",
         tables=("matching_stats_daily",),
     ),
     "0013": UpgradePlan(
-        ROOT / "docs/productization/migrations/0013-review.sql",
-        ROOT / "docs/productization/migrations/0013-execution.json",
+        REVIEWED_SQL / "0013-review.sql",
+        REPORTS / "0013-execution.json",
         "0012_matching_v2",
         "0013_shared_activities",
         tables=("activity_sessions", "activity_participants", "activity_responses"),
     ),
     "0014": UpgradePlan(
-        ROOT / "docs/productization/migrations/0014-review.sql",
-        ROOT / "docs/productization/migrations/0014-execution.json",
+        REVIEWED_SQL / "0014-review.sql",
+        REPORTS / "0014-execution.json",
         "0013_shared_activities",
         "0014_moderation",
         tables=("staff_roles", "moderation_actions"),
@@ -121,7 +125,7 @@ def review_artifact(approved_sha256: str | None, path: Path | None = None):
         "STT_ENABLED": "false",
     }
     export = subprocess.run(
-        [sys.executable, "-m", "alembic", "upgrade", "head", "--sql"],
+        [sys.executable, "-m", "alembic", "upgrade", INITIAL_REVISION, "--sql"],
         cwd=ROOT / "backend",
         env=env,
         capture_output=True,
@@ -346,6 +350,7 @@ def run_upgrade(
         if not report["ddlSubmitted"]:
             report["transactionOutcome"] = "not_submitted"
     if write:
+        plan.report.parent.mkdir(parents=True, exist_ok=True)
         plan.report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     return report
 
@@ -547,7 +552,8 @@ def main():
         )
         if not report["ddlSubmitted"]:
             report["transactionOutcome"] = "not_submitted"
-    path = ROOT / "docs/plans/validation-artifacts/supabase-migration-execution.json"
+    path = REPORTS / "supabase-migration-execution.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report, indent=2))
     if report["status"] != "PASS":
