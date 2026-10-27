@@ -30,20 +30,24 @@ export function HumanMessages() {
     );
   if (session.ageBand !== "adult")
     return (
-      <StatePanel title="Tính năng kết nối chưa khả dụng">
+      <StatePanel title="Bạn cần đủ 18 tuổi để kết nối">
         Nhắn tin người thật dành cho người đã đủ 18 tuổi.
       </StatePanel>
     );
   if (!session.consents.MATCH.enabled)
     return (
-      <StatePanel title="Bạn đang tắt quyền tìm bạn">
-        <Link to="/settings">Xem quyền tìm bạn</Link>
+      <StatePanel
+        title="Bạn chưa bật Tìm bạn"
+        action={<Link to="/connect?tab=profile">Mở hồ sơ tìm bạn</Link>}
+      >
+        Để trò chuyện với người thật trở lại, xem lại hồ sơ tìm bạn rồi chọn
+        Hiển thị hồ sơ. Hồ sơ chỉ hiện với người khác sau bước xem trước đó.
       </StatePanel>
     );
   return (
     <div className={cx.reading}>
       <h1 tabIndex={-1}>Tin nhắn</h1>
-      <p className={cx.lede}>Trò chuyện bắt đầu khi cả hai cùng đồng ý.</p>
+      <p className={cx.lede}>Bạn chỉ có thể nhắn tin sau khi cả hai đồng ý kết nối.</p>
       <ErrorNotice error={rooms.error} retry={rooms.refresh} />
       {rooms.loading && <p role="status">Đang tải kết nối…</p>}
       {rooms.data?.length === 0 && (
@@ -84,7 +88,7 @@ export function HumanMessages() {
         </Link>
       ))}
       <Button variant="text" onClick={rooms.refresh}>
-        Tải lại kết nối
+        Tải lại tin nhắn
       </Button>
     </div>
   );

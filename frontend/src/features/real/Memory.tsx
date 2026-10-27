@@ -49,19 +49,20 @@ function ProposalReview({
           ? "Đề xuất ghi nhớ"
           : "Đề xuất cho hồ sơ riêng"}{" "}
         từ {botById(proposal.botId)?.name}
+        {status === "pending" ? <span className="memory-state">Chưa lưu</span> : null}
       </h3>
       {status !== "pending" ? (
         <p>
           {status === "expired"
-            ? "Đề xuất đã hết hạn. Bạn có thể tạo đề xuất mới trong cuộc trò chuyện."
+            ? "Đề xuất đã hết hạn. Bạn có thể nhờ trợ lý tạo đề xuất mới."
             : status === "approved"
-              ? "Đề xuất đã được duyệt. Bạn có thể sửa hoặc xóa nội dung trong những mục đã lưu."
+              ? "Bạn đã duyệt đề xuất này. Có thể sửa hoặc xóa nội dung đã lưu."
               : "Bạn đã chọn không lưu đề xuất này."}
         </p>
       ) : (
         <>
           <p>
-            Đây là đề xuất để bạn xem lại. Chỉ nội dung bạn duyệt mới được lưu.
+            Bạn có thể sửa trước khi duyệt. Nội dung chỉ được lưu khi bạn chọn “Duyệt và lưu”.
           </p>
           {proposal.expiresAt ? (
             <p>
@@ -77,14 +78,15 @@ function ProposalReview({
           ) : null}
           {!allowed ? (
             <p>
-              Để duyệt đề xuất, hãy gửi một tin nhắn AI trước hoặc bật quyền AI trong{" "}
-              trong <Link to="/settings">quyền riêng tư</Link>. Bạn vẫn có thể
-              chọn không lưu.
+              Quyền xử lý AI đang tắt nên chưa thể duyệt đề xuất này. Bạn vẫn có
+              thể chọn không lưu. Để dùng trợ lý trở lại, mở cuộc trò chuyện và
+              chọn Gửi khi bạn muốn chia sẻ tin nhắn.{" "}
+              <Link to="/assistants">Mở trợ lý</Link>
             </p>
           ) : null}
           {proposal.purpose === "memory" ? <p>Chọn “Duyệt và lưu” sẽ cho phép trợ lý dùng các ghi nhớ bạn đã duyệt trong những lần trò chuyện sau. Bạn có thể rút quyền và xóa từng ghi nhớ.</p> : null}
           <label htmlFor={`proposal-${proposal.id}`}>
-            Nội dung bạn muốn duyệt
+            Nội dung sẽ lưu
           </label>
           <textarea
             id={`proposal-${proposal.id}`}
@@ -178,7 +180,7 @@ function MemoryItem({
       <h3>{botById(memory.botId)?.name}</h3>
       {editing ? (
         <>
-          <label htmlFor={`memory-${memory.id}`}>Chỉnh mục ghi nhớ</label>
+          <label htmlFor={`memory-${memory.id}`}>Sửa ghi nhớ</label>
           <textarea
             id={`memory-${memory.id}`}
             value={text}
@@ -196,7 +198,7 @@ function MemoryItem({
           disabled={busy}
           onClick={() => (editing ? void modify(false) : setEditing(true))}
         >
-          {editing ? "Lưu chỉnh sửa" : "Sửa"}
+          {editing ? "Lưu thay đổi" : "Sửa"}
         </Button>
         {confirmDelete ? (
           <>
@@ -205,7 +207,7 @@ function MemoryItem({
               disabled={busy}
               onClick={() => void modify(true)}
             >
-              Xác nhận xóa ghi nhớ
+              Xóa ghi nhớ này
             </Button>
             <Button
               variant="text"
@@ -232,7 +234,7 @@ function MemoryItem({
               setEditing(false);
             }}
           >
-            Hủy chỉnh sửa
+            Hủy sửa
           </Button>
         )}
       </div>
@@ -250,45 +252,47 @@ export function ApprovedMemories() {
     proposals.refresh();
     setNotice("Đã cập nhật ghi nhớ.");
   };
+  const now = Date.now();
+  const waiting = proposals.data?.filter(
+    (proposal) => (proposal.status || "pending") === "pending" && new Date(proposal.expiresAt).getTime() > now,
+  );
+  const decided = proposals.data?.filter((proposal) => !waiting?.includes(proposal));
   return (
     <div className={cx.reading}>
-      <h1 tabIndex={-1}>Ghi nhớ bạn đã duyệt</h1>
+      <h1 tabIndex={-1}>Thông tin AI ghi nhớ</h1>
       <p className={cx.lede}>
-        Mỗi trợ lý chỉ dùng những mục bạn đã duyệt cho trợ lý đó. Hồ sơ kết nối
-        không dùng các ghi nhớ này để xếp gợi ý.
+        Mỗi trợ lý chỉ dùng những mục bạn đã duyệt cho trợ lý đó. Hồ sơ tìm bạn
+        không dùng các ghi nhớ này để gợi ý.
       </p>
       <Link to="/profile">Về hồ sơ riêng</Link>
       {notice && <p role="status">{notice}</p>}
-      <ErrorNotice error={memories.error} retry={memories.refresh} />
-      {!session.consents.AI.enabled || !session.consents.MEM.enabled ? (
+      {!session.consents.AI.enabled ? (
+        <p>
+          Trợ lý hiện không dùng ghi nhớ vì quyền xử lý AI đang tắt. Bạn vẫn có
+          thể sửa và xóa các mục đã lưu. Để dùng trợ lý trở lại, mở cuộc trò
+          chuyện và chọn Gửi khi bạn muốn chia sẻ tin nhắn.{" "}
+          <Link to="/assistants">Mở trợ lý</Link>
+        </p>
+      ) : !session.consents.MEM.enabled ? (
         <p>
           Trợ lý hiện không dùng ghi nhớ. Bạn vẫn có thể sửa và xóa các mục đã
-          lưu. <Link to="/settings">Xem quyền ghi nhớ</Link>
+          lưu. Trợ lý chỉ dùng lại ghi nhớ sau khi bạn duyệt một đề xuất mới.
         </p>
       ) : null}
-      <ErrorNotice error={proposals.error} retry={proposals.refresh} />
-      {proposals.loading ? <p role="status">Đang tải đề xuất…</p> : null}
-      {proposals.data && (
-        <section className="real-section">
-          <h2>Đề xuất của trợ lý</h2>
-          {!proposals.data.some(
-            (proposal) =>
-              proposal.status === "pending" &&
-              new Date(proposal.expiresAt).getTime() > Date.now(),
-          ) && <p>Không có đề xuất đang chờ.</p>}
-          {proposals.data.map((proposal) => (
-            <ProposalReview
-              key={proposal.id}
-              proposal={proposal}
-              completed={refresh}
-            />
-          ))}
-        </section>
-      )}
-      <section className="real-section">
-        <h2>Những mục đã lưu</h2>
+      <section className="real-section" aria-labelledby="memory-waiting">
+        <h2 id="memory-waiting">Đề xuất chờ duyệt</h2>
+        <ErrorNotice error={proposals.error} retry={proposals.refresh} />
+        {proposals.loading ? <p role="status">Đang tải đề xuất…</p> : null}
+        {waiting && !waiting.length ? <p>Không có đề xuất đang chờ.</p> : null}
+        {waiting?.map((proposal) => (
+          <ProposalReview key={proposal.id} proposal={proposal} completed={refresh} />
+        ))}
+      </section>
+      <section className="real-section" aria-labelledby="memory-approved">
+        <h2 id="memory-approved">Đã duyệt</h2>
+        <ErrorNotice error={memories.error} retry={memories.refresh} />
         {memories.loading && <p role="status">Đang tải ghi nhớ…</p>}
-        {memories.data?.length === 0 && <p>Bạn chưa duyệt mục ghi nhớ nào.</p>}
+        {memories.data?.length === 0 && <p>Bạn chưa lưu ghi nhớ nào. Khi trò chuyện, bạn có thể nhờ trợ lý đề xuất điều cần nhớ rồi duyệt tại đây.</p>}
         {memories.data?.map((memory) => (
           <MemoryItem
             key={`${memory.id}-${memory.version}`}
@@ -297,6 +301,14 @@ export function ApprovedMemories() {
           />
         ))}
       </section>
+      {decided?.length ? (
+        <section className="real-section" aria-labelledby="memory-decided">
+          <h2 id="memory-decided">Đề xuất đã xử lý</h2>
+          {decided.map((proposal) => (
+            <ProposalReview key={proposal.id} proposal={proposal} completed={refresh} />
+          ))}
+        </section>
+      ) : null}
     </div>
   );
 }

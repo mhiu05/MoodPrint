@@ -55,7 +55,7 @@ test("Journey E: export contains only the owner's own data and downloads once", 
   await page.goto("/#/settings");
   const download = page.waitForEvent("download");
   await page
-    .getByRole("button", { name: "Xuất dữ liệu riêng", exact: true })
+    .getByRole("button", { name: "Tải bản sao dữ liệu", exact: true })
     .click();
   const file = await (await download).path();
   const data = JSON.parse(await readFile(file!, "utf-8"));
@@ -74,7 +74,7 @@ test("Journey E: export contains only the owner's own data and downloads once", 
   );
   expect(data.social.sentMessages).toEqual([]);
   await expect(
-    page.getByText("Đã chuẩn bị tệp dữ liệu riêng của bạn.", { exact: true }),
+    page.getByText("Đã tạo tệp dữ liệu để tải về.", { exact: true }),
   ).toBeVisible();
   await context.close();
 });
@@ -102,14 +102,14 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
     .getByRole("button", { name: "Lưu tâm trạng", exact: true })
     .click();
   await expect(
-    page.getByText("Đã lưu tâm trạng.", { exact: true }),
+    page.getByText(/^Đã lưu cảm xúc ngày \d{2}\/\d{2}\/\d{4}\.$/),
   ).toBeVisible();
   await expect(
     page.locator("article").getByText("Ghi chép MVP", { exact: true }),
   ).toBeVisible();
   await expect(page.getByText(/Trung bình từ 1\/7 ngày có ghi/)).toBeVisible();
   await expect(
-    page.getByText("Cần ghi nhận ở ít nhất 3 ngày để xem xu hướng."),
+    page.getByText("Cần ghi tâm trạng ít nhất 3 ngày để xem phần nhìn lại."),
   ).toBeVisible();
 
   await page.reload();
@@ -125,7 +125,7 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
     .getByRole("button", { name: "Cập nhật tâm trạng", exact: true })
     .click();
   await expect(
-    page.getByText("Đã cập nhật tâm trạng.", { exact: true }),
+    page.getByText(/^Đã cập nhật cảm xúc ngày \d{2}\/\d{2}\/\d{4}\.$/),
   ).toBeVisible();
   await expect(page.locator("article h3").first()).toContainText("2/5");
   const stored = (await call(context, 10, "GET", "/moods")).body;
@@ -145,7 +145,7 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
     .getByRole("button", { name: "Cập nhật tâm trạng", exact: true })
     .click();
   await expect(page.getByRole("alert")).toContainText(
-    "vừa thay đổi ở nơi khác",
+    "vừa được thay đổi ở nơi khác",
   );
   await expect(page.getByLabel("Ghi chú", { exact: true })).toHaveValue(
     "Bản nhập cần giữ",
@@ -167,7 +167,7 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
   await page.reload();
   await expect(
     page.getByText(
-      "Bạn đã dành thời gian cho mình trong 3/7 ngày. Mức tự ghi từ 1 đến 5/5.",
+      "Bạn đã ghi tâm trạng trong 3/7 ngày. Điểm bạn tự chọn từ 1 đến 5/5.",
     ),
   ).toBeVisible();
   await page.getByRole("button", { name: "30 ngày", exact: true }).click();
@@ -231,12 +231,12 @@ test("Journey B/C: two users match, request, accept and chat; stale tab loses ac
     .filter({ has: one.getByRole("heading", { name: pairAlias(11, 12) }) });
   await expect(card).toBeVisible();
   await expect(card.getByText(/Cùng thích/).first()).toBeVisible();
-  await card.getByRole("button", { name: "Gửi lời chào", exact: true }).click();
-  await expect(one.getByText("Đã gửi lời mời.", { exact: true })).toBeVisible();
+  await card.getByRole("button", { name: "Gửi lời mời kết nối", exact: true }).click();
+  await expect(one.getByText("Đã gửi lời mời kết nối.", { exact: true })).toBeVisible();
   // Outgoing and incoming invitations live under the Lời mời tab (H-01).
   await one.getByRole("tab", { name: /Lời mời/ }).click();
   await expect(
-    one.getByText(`Lời chào gửi ${pairAlias(11, 12)}`),
+    one.getByText(`Lời mời đã gửi cho ${pairAlias(11, 12)}`),
   ).toBeVisible();
 
   await two.goto("/#/connect?tab=requests");
@@ -252,14 +252,14 @@ test("Journey B/C: two users match, request, accept and chat; stale tab loses ac
   ).toBeVisible();
   await two.getByRole("link", { name: "Mở cuộc trò chuyện" }).click();
   await expect(
-    two.getByRole("heading", { name: "Một lời chào, một khởi đầu" }),
+    two.getByRole("heading", { name: "Bắt đầu cuộc trò chuyện" }),
   ).toBeVisible();
 
   await one.goto("/#/messages");
   await one.locator('a[href^="#/chat/"]').first().click();
   const room = one.url().split("/chat/")[1];
   const composer = one.getByRole("textbox", {
-    name: "Tin nhắn cho bạn kết nối",
+    name: "Nhắn tin cho người bạn kết nối",
   });
   await composer.fill("Xin chào từ 11");
   await one.getByRole("button", { name: "Gửi tin nhắn" }).dblclick();
@@ -267,7 +267,7 @@ test("Journey B/C: two users match, request, accept and chat; stale tab loses ac
     two.getByRole("log").getByText("Xin chào từ 11", { exact: true }),
   ).toBeVisible({ timeout: 15_000 });
   await two
-    .getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" })
+    .getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" })
     .fill("Chào 11, mình là 12");
   await two.getByRole("button", { name: "Gửi tin nhắn" }).click();
   await expect(
@@ -308,7 +308,7 @@ test("Journey B/C: two users match, request, accept and chat; stale tab loses ac
   // B withdraws MATCH from another page; A's open chat tab must lose access without reload.
   const settings = await b.newPage();
   await disable(settings, "tìm bạn");
-  await expect(one.getByText(/không còn khả dụng/)).toBeVisible({
+  await expect(one.getByText(/không còn mở/)).toBeVisible({
     timeout: 20_000,
   });
   await expect(composer).toBeDisabled();
@@ -363,16 +363,15 @@ test("Journey D: block keeps report-after-block possible, the peer's tab closes,
     one.getByRole("log").getByText("Tin nhắn cần báo cáo"),
   ).toBeVisible();
   await one
-    .locator("summary")
-    .filter({ hasText: "Chia sẻ và an toàn" })
+    .getByRole("button", { name: "Chia sẻ và an toàn" })
     .click();
   await one
     .getByRole("button", { name: "Chặn kết nối này", exact: true })
     .click();
-  await one.getByRole("button", { name: "Xác nhận chặn", exact: true }).click();
+  await one.getByRole("button", { name: "Chặn người này", exact: true }).click();
   await expect(one.getByText("Bạn đã chặn kết nối này.")).toBeVisible();
   await expect(
-    one.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" }),
+    one.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" }),
   ).toBeDisabled();
   await one
     .getByRole("textbox", { name: "Lý do báo cáo", exact: true })
@@ -382,9 +381,9 @@ test("Journey D: block keeps report-after-block possible, the peer's tab closes,
     .check();
   await one.getByRole("button", { name: "Gửi báo cáo", exact: true }).click();
   await expect(
-    one.getByText("Đã nhận báo cáo.", { exact: true }),
+    one.getByText("Đã gửi báo cáo.", { exact: true }),
   ).toBeVisible();
-  await expect(two.getByText(/không còn khả dụng/)).toBeVisible({
+  await expect(two.getByText(/không còn mở/)).toBeVisible({
     timeout: 20_000,
   });
   await expect(
@@ -411,6 +410,7 @@ test("Journey D: block keeps report-after-block possible, the peer's tab closes,
   const ended = await connectByApi(c, 16, d, 17, "shared-interests");
   const three = await c.newPage();
   await three.goto(`/#/chat/${ended}`);
+  await three.getByRole("button", { name: "Chia sẻ và an toàn" }).click();
   const end = three.getByRole("button", {
     name: "Kết thúc kết nối",
     exact: true,
@@ -420,7 +420,7 @@ test("Journey D: block keeps report-after-block possible, the peer's tab closes,
     three.getByRole("dialog", { name: "Kết thúc kết nối này?" }),
   ).toBeVisible();
   await three.keyboard.press("Escape");
-  await expect(three.getByRole("dialog")).toHaveCount(0);
+  await expect(three.getByRole("dialog", { name: "Kết thúc kết nối này?" })).toHaveCount(0);
   await expect(end).toBeFocused();
   expect(
     (await call(d, 17, "GET", `/connections/${ended}/messages`)).status,
@@ -457,7 +457,7 @@ test("Journey F: mood, matching and chat stay usable at 390px and 430px with the
   await one.getByLabel("Ghi chú", { exact: true }).fill("Ghi trên điện thoại");
   await one.getByRole("button", { name: "Lưu tâm trạng", exact: true }).click();
   await expect(
-    one.getByText("Đã lưu tâm trạng.", { exact: true }),
+    one.getByText(/^Đã lưu cảm xúc ngày \d{2}\/\d{2}\/\d{4}\.$/),
   ).toBeVisible();
   await expect(one.getByText(/Trung bình từ 1\/7 ngày có ghi/)).toBeVisible();
   await noHorizontalOverflow(one);
@@ -477,14 +477,14 @@ test("Journey F: mood, matching and chat stay usable at 390px and 430px with the
     await page.goto(`/#/chat/${room}`);
     await expect(
       page
-        .getByRole("heading", { name: "Một lời chào, một khởi đầu" })
+        .getByRole("heading", { name: "Bắt đầu cuộc trò chuyện" })
         .or(page.locator(".chat-bubble").first()),
     ).toBeVisible();
     await noHorizontalOverflow(page);
     await page.screenshot({ path: `${shots}/chat-${width}.png` });
   }
   const composer = one.getByRole("textbox", {
-    name: "Tin nhắn cho bạn kết nối",
+    name: "Nhắn tin cho người bạn kết nối",
   });
   await composer.tap();
   await composer.fill("Nhắn từ 390px");
@@ -529,8 +529,8 @@ test("Every real screen passes axe and reflows at 1440, 1280, 430 and 390 with r
   })).status).toBe(200);
   const page = await context.newPage();
   const routes = [
-    ["/assistants", "Bạn muốn kể gì"],
-    ["/self", "Cảm xúc của bạn"],
+    ["/assistants", "Bạn muốn chia sẻ điều gì"],
+    ["/self", "Nhật ký cảm xúc"],
     ["/profile", "Hồ sơ riêng"],
     ["/memory", ""],
     ["/settings", "Quyền riêng tư"],

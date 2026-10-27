@@ -20,7 +20,9 @@ sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(ROOT / "backend"))
 from apply_supabase_review import PROJECT, validate_target  # noqa: E402
 
-REVIEW = ROOT / "docs/plans/validation-artifacts/supabase-runtime-login-review.sql"
+# Approved SQL lives in one tracked directory pinned by MANIFEST.json (scripts/check_reviewed_artifacts.py).
+REVIEW = ROOT / "deploy/supabase/reviewed-sql/supabase-runtime-login-review.sql"
+REPORTS = ROOT / "deploy/supabase/reports"
 ROLE = "moodprint_backend"
 
 
@@ -117,7 +119,8 @@ def main():
         checks = verify_runtime(runtime.render_as_string(hide_password=False))
         report = {"projectId": PROJECT, "readOnly": True, "ddlSubmitted": False, "checks": checks,
                   "status": "PASS" if all(checks.values()) else "FAIL"}
-        (ROOT / "docs/plans/validation-artifacts/supabase-runtime-verification.json").write_text(
+        REPORTS.mkdir(parents=True, exist_ok=True)
+        (REPORTS / "supabase-runtime-verification.json").write_text(
             json.dumps(report, indent=2) + "\n", encoding="utf-8"
         )
         print(json.dumps(report, indent=2))
@@ -171,7 +174,8 @@ def main():
         report["status"] = "PASS" if all(report["checks"].values()) else "FAIL"
     except Exception as error:
         report.update(status="FAILED_REQUIRES_READ_ONLY_INSPECTION", errorType=type(error).__name__)
-    (ROOT / "docs/plans/validation-artifacts/supabase-runtime-provision.json").write_text(
+    REPORTS.mkdir(parents=True, exist_ok=True)
+    (REPORTS / "supabase-runtime-provision.json").write_text(
         json.dumps(report, indent=2) + "\n", encoding="utf-8"
     )
     print(json.dumps(report, indent=2))

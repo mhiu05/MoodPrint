@@ -86,7 +86,7 @@ test("bounded real provider browser smoke with local history and approved memory
       .getByRole("checkbox", { name: "Lưu lịch sử trò chuyện", exact: true })
       .check();
     await expect(
-      page.getByText("Đã cập nhật lựa chọn dữ liệu AI.", { exact: true }),
+      page.getByText("Đã lưu lựa chọn của bạn.", { exact: true }),
     ).toBeVisible();
     for (const [bot, name, prompt] of [
       [
@@ -130,7 +130,7 @@ test("bounded real provider browser smoke with local history and approved memory
     const proposal = page
       .locator("article")
       .filter({
-        has: page.getByLabel("Nội dung bạn muốn duyệt", { exact: true }),
+        has: page.getByLabel("Nội dung sẽ lưu", { exact: true }),
       })
       .first();
     await expect(proposal).toBeVisible();
@@ -148,7 +148,7 @@ test("bounded real provider browser smoke with local history and approved memory
       await page.goto("/#/settings");
       await page
         .getByRole("checkbox", {
-          name: "Tìm ghi nhớ theo ngữ nghĩa qua Voyage",
+          name: "Giúp trợ lý tìm lại ghi nhớ liên quan",
           exact: true,
         })
         .check();
@@ -178,7 +178,7 @@ test("bounded real provider browser smoke with local history and approved memory
       await page.goto("/#/settings");
       await page
         .getByRole("checkbox", {
-          name: "Tìm ghi nhớ theo ngữ nghĩa qua Voyage",
+          name: "Giúp trợ lý tìm lại ghi nhớ liên quan",
           exact: true,
         })
         .uncheck();
@@ -273,7 +273,7 @@ test("resume real semantic retrieval, re-indexing, revocation and one history co
     await page.goto("/#/settings");
     await page
       .getByRole("checkbox", {
-        name: "Tìm ghi nhớ theo ngữ nghĩa qua Voyage",
+        name: "Giúp trợ lý tìm lại ghi nhớ liên quan",
         exact: true,
       })
       .uncheck();

@@ -9,7 +9,7 @@ type Row = Schema["AdminReportView"];
 type Action = Schema["ResolveInput"]["action"];
 
 const ACTIONS: { action: Action; label: string; days?: boolean; danger?: boolean }[] = [
-  { action: "dismiss", label: "Bỏ qua (không vi phạm)" },
+  { action: "dismiss", label: "Không phát hiện vi phạm" },
   { action: "warn", label: "Cảnh báo" },
   { action: "restrict", label: "Hạn chế kết nối", days: true, danger: true },
   { action: "suspend", label: "Tạm khóa tài khoản", days: true, danger: true },
@@ -18,6 +18,12 @@ const STATUS: Record<string, string> = {
   received: "Mới",
   in_review: "Đang xem xét",
   resolved: "Đã xử lý",
+};
+const RESOLUTION: Record<string, string> = {
+  dismissed: "Không vi phạm",
+  warned: "Đã cảnh báo",
+  restricted: "Đã hạn chế kết nối",
+  suspended: "Đã tạm khóa tài khoản",
 };
 
 /** Staff-only queue (DR-11). The server re-checks the role on every request. */
@@ -78,7 +84,7 @@ export function Moderation() {
       {notice && <p role="status">{notice}</p>}
       {queue.loading && <p role="status">Đang tải báo cáo…</p>}
       {queue.data?.length === 0 && (
-        <StatePanel title="Không có báo cáo nào">Hàng đợi đang trống.</StatePanel>
+        <StatePanel title="Không có báo cáo nào">Thử chuyển bộ lọc để xem các báo cáo khác.</StatePanel>
       )}
       {queue.data?.map((row) => (
         <article className="real-item" key={row.id} aria-label={`Báo cáo ${row.subjectRef}`}>
@@ -88,7 +94,7 @@ export function Moderation() {
           <p className={cx.footnote}>
             Nhận lúc {new Date(row.createdAt).toLocaleString("vi-VN")} · Đối tượng{" "}
             {row.subjectRef.slice(0, 10)}… · {row.priorActions} quyết định trước đó
-            {row.resolution ? ` · Kết quả: ${row.resolution}` : ""}
+            {row.resolution ? ` · Kết quả: ${RESOLUTION[row.resolution] ?? "Đã xử lý"}` : ""}
           </p>
           {row.evidence.length === 0 ? (
             <p>Không có bằng chứng được chọn.</p>
@@ -161,7 +167,7 @@ export function Moderation() {
             </label>
           )}
           <label className="real-field">
-            Ghi chú nội bộ (không gửi cho người dùng)
+            Ghi chú xử lý (chỉ nội bộ)
             <textarea maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} />
           </label>
           <div className={cx.actions}>

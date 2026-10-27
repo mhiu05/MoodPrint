@@ -21,14 +21,19 @@ export function InviteCard({
 }) {
   const title = KIND_TITLES[session.kind];
   const minutes = catalog.find((item) => item.kind === session.kind)?.estimatedMinutes;
+  // A focus invitation names the exact plan both people would commit to.
+  const plan = session.kind === "focus" && session.timer?.plan?.length === 2
+    ? `${session.timer.plan[0]} phút tập trung / ${session.timer.plan[1]} phút nghỉ · ${session.timer.cycles} lượt`
+    : null;
   if (session.state === "invited")
     return (
       <div className="invite-card" role="group" aria-label={`Lời mời ${title}`}>
         {session.role === "inviter" ? (
           <>
             <p>
-              Bạn đã mời {alias} chơi <strong>{title}</strong>. Đang chờ {alias} đồng ý…
+              Bạn đã mời {alias} tham gia <strong>{title}</strong>. Đang chờ {alias} đồng ý…
             </p>
+            {plan ? <p className={cx.footnote}>{plan}</p> : null}
             <div className={cx.actions}>
               <Button variant="text" disabled={busy} onClick={onCancel}>
                 Hủy lời mời
@@ -38,15 +43,16 @@ export function InviteCard({
         ) : (
           <>
             <p>
-              {alias} mời bạn chơi <strong>{title}</strong>
+              {alias} mời bạn tham gia <strong>{title}</strong>
               {minutes ? ` (khoảng ${minutes} phút)` : ""}
             </p>
+            {plan ? <p className={cx.footnote}>{plan}</p> : null}
             <div className={cx.actions}>
               <Button disabled={busy} onClick={onAccept}>
-                Đồng ý
+                Tham gia
               </Button>
               <Button variant="secondary" disabled={busy} onClick={onDecline}>
-                Để sau
+                Từ chối lời mời
               </Button>
             </div>
           </>

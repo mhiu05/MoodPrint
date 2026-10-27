@@ -135,13 +135,13 @@ test("an invitee accepts, answers, waits, then sees both answers revealed", asyn
   await chat(page, state);
   await page.goto("/#/chat/room-1");
   const invite = page.getByRole("group", { name: "Lời mời Câu hỏi làm quen" });
-  await expect(invite).toContainText("Bạn đồng hành 3fa9c1 mời bạn chơi Câu hỏi làm quen (khoảng 5 phút)");
-  await invite.getByRole("button", { name: "Đồng ý" }).click();
+  await expect(invite).toContainText("Bạn đồng hành 3fa9c1 mời bạn tham gia Câu hỏi làm quen (khoảng 5 phút)");
+  await invite.getByRole("button", { name: "Tham gia" }).click();
   const dock = page.getByRole("region", { name: "Hoạt động chung: Câu hỏi làm quen" });
   await expect(dock.getByRole("heading", { name: item.prompt })).toBeVisible();
   await dock.getByRole("radio", { name: "Một ly cà phê" }).check();
-  await dock.getByRole("textbox", { name: /Hoặc viết vài chữ/ }).fill("cà phê sữa");
-  await dock.getByRole("textbox", { name: /Hoặc viết vài chữ/ }).fill("");
+  await dock.getByRole("textbox", { name: /Hoặc viết câu trả lời/ }).fill("cà phê sữa");
+  await dock.getByRole("textbox", { name: /Hoặc viết câu trả lời/ }).fill("");
   await dock.getByRole("button", { name: "Gửi câu trả lời" }).click();
   await expect(dock.getByRole("status")).toHaveText("Đang chờ Bạn đồng hành 3fa9c1 trả lời…");
   state.current = {
@@ -229,10 +229,10 @@ test("a decline cooldown disables only that invitation kind", async ({ page }) =
   await chat(page, state);
   await page.goto("/#/chat/room-1");
   await page.getByRole("button", { name: "Cùng làm gì đó?" }).click();
-  const invite = page.getByRole("button", { name: "Mời cùng chơi Câu hỏi làm quen" });
+  const invite = page.getByRole("button", { name: "Mời tham gia Câu hỏi làm quen" });
   await invite.click();
   await expect(invite).toBeDisabled();
-  await expect(page.getByRole("button", { name: "Mời cùng chơi Đố vui đồng đội" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Mời tham gia Đố vui đồng đội" })).toBeEnabled();
 });
 
 test("contact details in a message prompt a non-blocking advisory", async ({ page }) => {
@@ -246,7 +246,7 @@ test("contact details in a message prompt a non-blocking advisory", async ({ pag
   };
   await chat(page, state);
   await page.goto("/#/chat/room-1");
-  const composer = page.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" });
+  const composer = page.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" });
   await composer.fill("số mình 0912 345 678");
   await page.getByRole("button", { name: "Gửi tin nhắn" }).click();
   const dialog = page.getByRole("dialog", { name: "Tin nhắn có vẻ chứa thông tin liên hệ" });
@@ -254,7 +254,7 @@ test("contact details in a message prompt a non-blocking advisory", async ({ pag
   await expect(composer).toHaveValue("số mình 0912 345 678");
   expect(state.posts.filter((p: any) => p.path.endsWith("/messages"))).toHaveLength(0);
   await page.getByRole("button", { name: "Gửi tin nhắn" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Vẫn gửi" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Gửi thông tin này" }).click();
   await expect.poll(() => state.posts.filter((p: any) => p.path.endsWith("/messages")).length).toBe(1);
 });
 
@@ -267,17 +267,32 @@ const running = () =>
     current: { item, peerSubmitted: false },
   });
 
+/** Layout facts shown only when a geometry assertion fails, so a CI-only miss can be diagnosed. */
+const layout = (page: Page) => page.evaluate(() => {
+  const box = (element: Element) => {
+    const rect = element.getBoundingClientRect();
+    return `${element.tagName.toLowerCase()}.${element.className} ${Math.round(rect.top * 100) / 100}–${Math.round(rect.bottom * 100) / 100}`;
+  };
+  return JSON.stringify({
+    appHeight: getComputedStyle(document.documentElement).getPropertyValue("--app-height"),
+    innerHeight, visualHeight: visualViewport?.height, scrollY,
+    column: [...(document.querySelector(".real-human-chat")?.children ?? [])].map(box),
+    dockStyle: document.querySelector<HTMLElement>(".activity-dock")?.style.cssText,
+  });
+});
+
 test("on a phone the dock is a sheet above the composer that collapses and keeps the draft", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await chat(page, { current: running(), posts: [] });
   await page.goto("/#/chat/room-1");
   const dock = page.getByRole("region", { name: "Hoạt động chung: Câu hỏi làm quen" });
   await expect(dock.getByRole("heading", { name: item.prompt })).toBeVisible();
-  const composer = page.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" });
+  const composer = page.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" });
   await composer.fill("chờ chút nhé");
   const [sheet, input] = [await dock.boundingBox(), await composer.boundingBox()];
-  expect(sheet!.y + sheet!.height).toBeLessThanOrEqual(input!.y + 1);
-  expect(sheet!.height).toBeLessThanOrEqual(844 * 0.6 + 1);
+  const facts = await layout(page);
+  expect(sheet!.y + sheet!.height, facts).toBeLessThanOrEqual(input!.y + 1);
+  expect(sheet!.height, facts).toBeLessThanOrEqual(844 * 0.6 + 1);
   // Escape collapses the sheet and returns focus to its toggle.
   await dock.getByRole("radio", { name: "Một ly cà phê" }).focus();
   await page.keyboard.press("Escape");
@@ -302,7 +317,7 @@ test("on a desktop the dock is a side panel next to the log", async ({ page }) =
   const [panel, log] = [await dock.boundingBox(), await page.getByRole("log").boundingBox()];
   expect(panel!.x).toBeGreaterThanOrEqual(log!.x + log!.width);
   expect(panel!.width).toBeLessThanOrEqual(381);
-  await expect(page.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" })).toBeVisible();
 });
 
 test("finished activities appear in the log where they ended", async ({ page }) => {
@@ -320,7 +335,7 @@ test("finished activities appear in the log where they ended", async ({ page }) 
     ],
   });
   await page.goto("/#/chat/room-1");
-  const log = page.getByRole("log", { name: "Tin nhắn trong kết nối" });
+  const log = page.getByRole("log", { name: "Tin nhắn giữa hai bạn" });
   await expect(log.getByRole("group", { name: "Hoạt động đã qua: Đố vui đồng đội" })).toBeVisible();
   const order = (await log.locator(":scope > *").allInnerTexts()).map((text) => text.trim());
   expect(order).toEqual([
@@ -329,4 +344,132 @@ test("finished activities appear in the log where they ended", async ({ page }) 
     "Vui ghê",
     "Đố vui đồng đội: Bạn đồng hành 3fa9c1 chưa muốn chơi lúc này",
   ]);
+});
+
+test("a failed catalog read keeps the entry and offers a retry inside the dialog", async ({ page }) => {
+  // Fails until the user retries (StrictMode may issue the first read twice).
+  let failing = true;
+  await chat(page, { current: null, posts: [] });
+  await page.route("**/api/v1/activities/catalog", (route) => {
+    if (failing)
+      return route.fulfill({ status: 503, json: { error: { code: "UNAVAILABLE", message: "Dịch vụ tạm gián đoạn." } } });
+    return route.fulfill({ json: catalog });
+  });
+  await page.goto("/#/chat/room-1");
+  await page.getByRole("button", { name: "Cùng làm gì đó?", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Cùng làm gì đó?" });
+  await expect(dialog.getByRole("alert")).toContainText("Chưa tải được danh sách hoạt động.");
+  await expect(dialog.getByText("Chưa có hoạt động nào", { exact: false })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Mời tham gia Câu hỏi làm quen", exact: true })).toHaveCount(0);
+  failing = false;
+  await dialog.getByRole("button", { name: "Thử lại", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "Mời tham gia Câu hỏi làm quen", exact: true })).toBeEnabled();
+  await expect(dialog.getByRole("alert")).toHaveCount(0);
+});
+
+test("a failed first invitation stays visible in the dialog and retrying keeps the plan and intent", async ({ page }) => {
+  const state: any = { current: null, posts: [] };
+  let attempts = 0;
+  state.reply = (path: string) => {
+    if (path !== "/connections/room-1/activities") return undefined;
+    attempts += 1;
+    if (attempts === 1)
+      return { status: 503, json: { error: { code: "UNAVAILABLE", message: "Dịch vụ tạm gián đoạn." } } };
+    return { json: base({ kind: "focus", definitionVersion: "focus-v1", role: "inviter", self: { accepted: true, readyRound: 0, feedbackGiven: false }, peer: { accepted: false, readyRound: 0 } }) };
+  };
+  const keys: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST" && request.url().endsWith("/connections/room-1/activities"))
+      keys.push(request.headers()["idempotency-key"]);
+  });
+  await chat(page, state);
+  await page.goto("/#/chat/room-1");
+  await page.getByRole("button", { name: "Cùng làm gì đó?", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Cùng làm gì đó?" });
+  await dialog.getByLabel("Nhịp", { exact: true }).selectOption("15,3");
+  await dialog.getByLabel("Số lượt", { exact: true }).selectOption("2");
+  const invite = dialog.getByRole("button", { name: "Mời tham gia Cùng tập trung", exact: true });
+  await invite.click();
+  await expect(dialog.getByRole("alert")).toContainText("Chưa xác nhận được lời mời. Lựa chọn của bạn vẫn được giữ.");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel("Nhịp", { exact: true })).toHaveValue("15,3");
+  await expect(dialog.getByLabel("Số lượt", { exact: true })).toHaveValue("2");
+  await expect(invite).toBeEnabled();
+  await invite.click();
+  await expect(dialog).toHaveCount(0);
+  const invites = state.posts.filter((post: any) => post.path === "/connections/room-1/activities");
+  expect(invites).toHaveLength(2);
+  expect(invites[1].body).toEqual({ kind: "focus", options: { plan: [15, 3], cycles: 2 } });
+  expect(keys[0]).toBeTruthy();
+  expect(keys[1]).toBe(keys[0]);
+});
+
+// ---- Activity wording and dock motion (V-ACTIVITY-MOTION) ----
+test("a focus invitation names the exact plan and offers a real decline", async ({ page }) => {
+  const state: any = {
+    current: base({ kind: "focus", definitionVersion: "focus-v1", progress: { round: 0, totalRounds: null, phase: "invited" },
+      timer: { phase: "focus", cycle: 0, cycles: 2, plan: [15, 3], selfPresent: false, peerPresent: false } }),
+    posts: [],
+  };
+  await chat(page, state);
+  await page.goto("/#/chat/room-1");
+  const invite = page.getByRole("group", { name: "Lời mời Cùng tập trung" });
+  await expect(invite).toContainText("Bạn đồng hành 3fa9c1 mời bạn tham gia Cùng tập trung");
+  await expect(invite).toContainText("15 phút tập trung / 3 phút nghỉ · 2 lượt");
+  await expect(invite.getByRole("button", { name: "Tham gia" })).toBeVisible();
+  await expect(invite.getByRole("button", { name: "Từ chối lời mời" })).toBeVisible();
+  await expect(invite).not.toContainText("Để sau");
+});
+
+async function dockSamples(page: Page) {
+  await page.evaluate(() => {
+    const samples: string[] = [];
+    (window as any).dockSamples = samples;
+    const read = () => {
+      const dock = document.querySelector<HTMLElement>(".activity-dock");
+      if (dock) samples.push(getComputedStyle(dock).transform + "|" + getComputedStyle(dock.querySelector("h2")!).opacity);
+    };
+    new MutationObserver(read).observe(document.body, { childList: true, subtree: true });
+    const tick = () => { read(); requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  });
+}
+
+test("the dock enters with at most 16px of travel and fully readable text", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await chat(page, { current: null, posts: [] });
+  await page.goto("/#/chat/room-1");
+  await expect(page.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" })).toBeEnabled();
+  await dockSamples(page);
+  await page.unroute("**/api/v1/**");
+  await chat(page, { current: running(), posts: [] });
+  await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  await expect(page.getByRole("region", { name: /Hoạt động chung/ })).toBeVisible();
+  await page.waitForTimeout(400);
+  const samples: string[] = await page.evaluate(() => (window as any).dockSamples);
+  expect(samples.length).toBeGreaterThan(0);
+  expect(samples.some((sample) => !sample.startsWith("none"))).toBe(true);
+  for (const sample of samples) {
+    const [transform, opacity] = sample.split("|");
+    expect(opacity).toBe("1");
+    if (transform !== "none") expect(Math.abs(Number(transform.replace(/matrix\(|\)/g, "").split(",")[5]))).toBeLessThanOrEqual(16);
+  }
+  expect(await page.locator(".activity-dock").evaluate((element) => (element as HTMLElement).style.transform)).toBe("");
+});
+
+test("with reduced motion the dock appears in place", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await chat(page, { current: null, posts: [] });
+  await page.goto("/#/chat/room-1");
+  await expect(page.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" })).toBeEnabled();
+  await dockSamples(page);
+  await page.unroute("**/api/v1/**");
+  await chat(page, { current: running(), posts: [] });
+  await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  await expect(page.getByRole("region", { name: /Hoạt động chung/ })).toBeVisible();
+  await page.waitForTimeout(300);
+  const samples: string[] = await page.evaluate(() => (window as any).dockSamples);
+  expect(samples.every((sample) => sample.startsWith("none|1"))).toBe(true);
 });

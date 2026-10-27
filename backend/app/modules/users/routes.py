@@ -122,7 +122,7 @@ async def export(body: ExportInput, request: Request, actor: Actor = Depends(req
                 raise DomainError(
                     503,
                     "EXPORT_TOO_LARGE",
-                    "Phạm vi xuất quá lớn. Hãy yêu cầu hỗ trợ xuất dữ liệu.",
+                    "Dữ liệu quá lớn để tạo một bản sao. Ứng dụng chưa hỗ trợ chia nhỏ bản sao này.",
                 )
             result[target] = [
                 schema.model_validate(item).model_dump(mode="json", by_alias=True) for item in rows

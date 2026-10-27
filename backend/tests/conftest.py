@@ -40,6 +40,7 @@ def pytest_configure(config):
             "OPENAI_API_KEY": "",
             "OPENAI_MODEL": "",
             "AI_ENABLED": "false",
+            "STT_ENABLED": "false",
             "VOYAGE_API_KEY": "",
             "SEMANTIC_MEMORY_ENABLED": "false",
             "VOYAGE_DIMENSIONS": "1024",

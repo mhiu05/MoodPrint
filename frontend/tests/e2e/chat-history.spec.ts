@@ -127,7 +127,9 @@ test("latest saved history waits for a late preference response after login", as
   const ready = new Promise<void>(resolve => { release = resolve; });
   await fixture(page, true, { preferences: { historyEnabled: true }, preferencesReady: ready });
   await page.goto("/#/assistants/may");
-  await expect(page.getByRole("link", { name: "Đang kiểm tra lịch sử…", exact: true })).toBeVisible();
+  // History status now lives in the conversation info surface.
+  await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
+  await expect(page.getByText("Đang kiểm tra lịch sử…", { exact: true })).toBeVisible();
   release();
   await expect(page.getByRole("log").getByText("Tin đã lưu", { exact: true })).toBeVisible();
 });
@@ -135,7 +137,8 @@ test("latest saved history waits for a late preference response after login", as
 test("history server availability and user opt-out have distinct actions", async ({ page }) => {
   await fixture(page, true, { preferences: { historyAvailable: false } });
   await page.goto("/#/assistants/may?new=1");
-  await expect(page.getByRole("link", { name: "Lưu lịch sử chưa sẵn sàng", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
+  await expect(page.getByText("Lưu lịch sử chưa sẵn sàng.", { exact: true })).toBeVisible();
   await expect(page.getByText("Lưu lịch sử đang tắt", { exact: true })).toHaveCount(0);
 });
 
@@ -155,13 +158,15 @@ test("history is a separate explicit opt-in and semantic processing explains Voy
     name: "Lưu lịch sử trò chuyện",
   });
   const semantic = page.getByRole("checkbox", {
-    name: "Tìm ghi nhớ theo ngữ nghĩa qua Voyage",
+    name: "Giúp trợ lý tìm lại ghi nhớ liên quan",
   });
   await expect(history).not.toBeChecked();
   await expect(semantic).not.toBeChecked();
   await expect(page.getByText(/30 ngày/).first()).toBeVisible();
+  // The provider and data scope are disclosed on request beside the choice.
+  await page.getByText("Xem cách dữ liệu được xử lý", { exact: true }).click();
   await expect(
-    page.getByText(/Voyage.*ghi nhớ.*truy vấn/).first(),
+    page.getByText(/Voyage nhận nội dung ghi nhớ.*câu hỏi hiện tại/).first(),
   ).toBeVisible();
   expect(writes).toEqual([]);
   await history.click();
@@ -199,18 +204,20 @@ test("saved history remains readable, pageable, exportable and deletable when AI
     path: "evidence/ai-chat-memory/mock-history-desktop.png",
     fullPage: true,
   });
+  await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
   const download = page.waitForEvent("download");
   await page
-    .getByRole("button", { name: "Xuất hội thoại", exact: true })
+    .getByRole("button", { name: "Tải xuống cuộc trò chuyện", exact: true })
     .click();
   expect((await download).suggestedFilename()).toBe(
     `moodprint-conversation-${id}.json`,
   );
   await page
-    .getByRole("button", { name: "Xóa hội thoại", exact: true })
+    .getByRole("button", { name: "Xóa cuộc trò chuyện", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Xác nhận xóa hội thoại", exact: true })
+    .getByRole("dialog", { name: "Xóa cuộc trò chuyện này?" })
+    .getByRole("button", { name: "Xóa cuộc trò chuyện", exact: true })
     .click();
   await expect(
     page.getByRole("log").getByText("Tin đã lưu", { exact: true }),
@@ -229,8 +236,9 @@ test("history opt-out makes saved threads read-only and mobile history stays rea
   await expect(
     page.getByRole("button", { name: "Gửi tin cho AI" }),
   ).toHaveCount(0);
+  await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
   await page
-    .getByRole("button", { name: "Mở lịch sử hội thoại", exact: true })
+    .getByRole("button", { name: "Mở lịch sử trò chuyện", exact: true })
     .click();
   await expect(
     page.getByRole("dialog").getByRole("link", { name: /Một buổi sáng/ }),
@@ -275,7 +283,7 @@ test("expired proposals explain expiry and cannot be approved", async ({
   await page.goto("/#/memory");
   await expect(
     page.getByText(
-      "Đề xuất đã hết hạn. Bạn có thể tạo đề xuất mới trong cuộc trò chuyện.",
+      "Đề xuất đã hết hạn. Bạn có thể nhờ trợ lý tạo đề xuất mới.",
       { exact: true },
     ),
   ).toBeVisible();
@@ -366,15 +374,16 @@ test("a saved thread can be renamed and history is grouped by assistant", async 
   await expect(
     page.getByRole("log").getByText("Tin đã lưu", { exact: true }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
   await page.getByRole("button", { name: "Đổi tên", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Đổi tên hội thoại" });
-  const title = dialog.getByRole("textbox", { name: "Tên hội thoại" });
+  const dialog = page.getByRole("dialog", { name: "Đổi tên cuộc trò chuyện" });
+  const title = dialog.getByRole("textbox", { name: "Tên cuộc trò chuyện" });
   await expect(title).toHaveValue("Một buổi sáng");
   await title.fill("Kế hoạch tuần");
   await dialog.getByRole("button", { name: "Lưu tên", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(
-    page.getByText("Đã đổi tên hội thoại.", { exact: true }),
+    page.getByText("Đã đổi tên cuộc trò chuyện.", { exact: true }),
   ).toBeVisible();
   expect(writes).toContainEqual({ title: "Kế hoạch tuần" });
   await page.goto("/#/assistants");
@@ -429,7 +438,7 @@ test("pending proposals are linked from chat and memory deletion needs confirmat
   await expect(notice).toBeVisible();
   await notice.getByRole("link", { name: "Xem đề xuất" }).click();
   await expect(
-    page.getByRole("textbox", { name: "Nội dung bạn muốn duyệt" }),
+    page.getByRole("textbox", { name: "Nội dung sẽ lưu" }),
   ).toHaveValue("Mình thích trà");
   await expect(
     page.getByText("Không có đề xuất đang chờ.", { exact: true }),
@@ -440,10 +449,10 @@ test("pending proposals are linked from chat and memory deletion needs confirmat
   await expect(page.getByText("Thích đi bộ", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Xóa ghi nhớ", exact: true }).click();
   await page
-    .getByRole("button", { name: "Xác nhận xóa ghi nhớ", exact: true })
+    .getByRole("button", { name: "Xóa ghi nhớ này", exact: true })
     .click();
   await expect.poll(() => deletes.length).toBe(1);
   await expect(
-    page.getByText("Bạn chưa duyệt mục ghi nhớ nào.", { exact: true }),
+    page.getByText("Bạn chưa lưu ghi nhớ nào. Khi trò chuyện, bạn có thể nhờ trợ lý đề xuất điều cần nhớ rồi duyệt tại đây.", { exact: true }),
   ).toBeVisible();
 });

@@ -78,7 +78,7 @@ export function endedMessage(session: Session, alias: string) {
     case "pause_expired":
       return "Hoạt động đã dừng vì không có ai tiếp tục";
     case "completed":
-      return "Hoàn thành!";
+      return "Đã hoàn thành";
     default:
       return "Hoạt động đã dừng vì kết nối không còn khả dụng";
   }

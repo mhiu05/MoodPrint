@@ -15,7 +15,15 @@ type Recording = {
   clock: ReturnType<typeof setInterval>;
 };
 
-export function VoiceRecorder({ onUse }: { onUse: (text: string) => void }) {
+export type TranscriptPlacement = "fill" | "append" | "replace";
+
+/** The composer text after placing a transcript; null when it would exceed the limit. */
+export function placeTranscript(draft: string, transcript: string, placement: TranscriptPlacement): string | null {
+  const next = placement === "append" ? `${draft.trimEnd()} ${transcript.trim()}` : transcript.trim();
+  return next.length > 500 ? null : next;
+}
+
+export function VoiceRecorder({ draft, onUse }: { draft: string; onUse: (text: string) => void }) {
   const { api, session, receive } = useSession();
   const allowed = session.features.voice;
   const authorized = session.consents.AI.enabled && session.consents.VOICE.enabled;
@@ -26,7 +34,8 @@ export function VoiceRecorder({ onUse }: { onUse: (text: string) => void }) {
     >("idle"),
     [seconds, setSeconds] = useState(0),
     [text, setText] = useState(""),
-    [error, setError] = useState<unknown>();
+    [error, setError] = useState<unknown>(),
+    [placementError, setPlacementError] = useState("");
   const recording = useRef<Recording | undefined>(undefined),
     upload = useRef<AbortController | undefined>(undefined),
     alive = useRef(true);
@@ -62,6 +71,12 @@ export function VoiceRecorder({ onUse }: { onUse: (text: string) => void }) {
     const value = recording.current;
     if (!value) return;
     cleanup();
+    if (!value.frames) {
+      // Nothing was captured yet: say so instead of uploading an empty file.
+      setError(new ApiError(422, "RECORDING_TOO_SHORT", "Bản ghi quá ngắn để chuyển thành chữ. Bạn hãy ghi âm lại hoặc nhập tin nhắn."));
+      setState("idle");
+      return;
+    }
     setState("transcribing");
     const controller = new AbortController();
     upload.current = controller;
@@ -92,7 +107,7 @@ export function VoiceRecorder({ onUse }: { onUse: (text: string) => void }) {
         typeof result.text !== "string" ||
         Array.from(result.text).length > 500
       )
-        throw new Error("Invalid transcript");
+        throw new ApiError(502, "INVALID_TRANSCRIPT", "Chưa nhận được bản chép lời hợp lệ. Bạn vẫn có thể nhập tin nhắn.");
       if (alive.current) {
         setText(result.text);
         setState("preview");
@@ -200,7 +215,7 @@ export function VoiceRecorder({ onUse }: { onUse: (text: string) => void }) {
   if (!session.features.voice)
     return null;
   return (
-    <section className="real-voice" aria-label="Gửi bằng giọng nói">
+    <section className="real-voice" aria-label="Nhập bằng giọng nói">
       <p className={cx.footnote}>Chỉ ghi sau khi bạn chọn Ghi âm và trình duyệt cho phép. Âm thanh được gửi đến OpenAI để chuyển thành chữ, không lưu bản âm thanh; bạn xem và sửa chữ trước khi gửi.</p>
       <ErrorNotice error={error} />
       {state === "idle" && (
@@ -208,13 +223,13 @@ export function VoiceRecorder({ onUse }: { onUse: (text: string) => void }) {
           Ghi âm tối đa 30 giây
         </Button>
       )}
-      {state === "starting" ? <p role="status">Đang xin quyền microphone…</p> : null}
+      {state === "starting" ? <p role="status">Đang chờ quyền dùng micro…</p> : null}
       {state === "recording" && (
         <>
           <p role="status">Đang ghi âm · {seconds}/30 giây</p>
           <div className={cx.actions}>
             <Button variant="secondary" onClick={() => void finish()}>
-              Dừng và xem bản chữ
+              Dừng và chuyển thành văn bản
             </Button>
             <Button
               variant="text"
@@ -238,13 +253,13 @@ export function VoiceRecorder({ onUse }: { onUse: (text: string) => void }) {
               setState("idle");
             }}
           >
-            Hủy chuyển giọng nói
+            Hủy chuyển thành văn bản
           </Button>
         </>
       )}
       {state === "preview" && (
         <>
-          <label htmlFor="voice-preview">Xem và sửa bản chữ</label>
+          <label htmlFor="voice-preview">Xem và sửa bản chép lời</label>
           <textarea
             id="voice-preview"
             maxLength={500}
@@ -252,28 +267,41 @@ export function VoiceRecorder({ onUse }: { onUse: (text: string) => void }) {
             onChange={(event) => setText(event.target.value)}
           />
           <p>
-            Bản chữ chưa được gửi. Bạn quyết định có dùng nội dung này hay
+            Bản chép lời chưa được gửi. Bạn quyết định có dùng nội dung này hay
             không.
           </p>
+          {draft.trim() ? <p>Ô tin nhắn đang có nội dung bạn soạn.</p> : null}
+          {placementError ? <p role="alert">{placementError}</p> : null}
           <div className={cx.actions}>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                onUse(text);
-                setText("");
-                setState("idle");
-              }}
-            >
-              Dùng bản chữ trong ô nhắn
-            </Button>
+            {(draft.trim() ? (["append", "replace"] as const) : (["fill"] as const)).map((placement) => (
+              <Button
+                key={placement}
+                variant="secondary"
+                disabled={!text.trim()}
+                onClick={() => {
+                  const next = placeTranscript(draft, text, placement);
+                  if (next === null) {
+                    setPlacementError("Nội dung sau khi thêm sẽ dài hơn 500 ký tự. Hãy rút gọn bản chép lời hoặc chọn Thay nội dung.");
+                    return;
+                  }
+                  onUse(next);
+                  setPlacementError("");
+                  setText("");
+                  setState("idle");
+                }}
+              >
+                {placement === "fill" ? "Đưa vào ô tin nhắn" : placement === "append" ? "Thêm vào tin nhắn" : "Thay nội dung"}
+              </Button>
+            ))}
             <Button
               variant="text"
               onClick={() => {
+                setPlacementError("");
                 setText("");
                 setState("idle");
               }}
             >
-              Bỏ bản chữ
+              {draft.trim() ? "Giữ tin nhắn đang soạn" : "Bỏ bản chép lời"}
             </Button>
           </div>
         </>

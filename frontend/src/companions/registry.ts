@@ -81,7 +81,7 @@ export const bots: BotProfile[] = [
     starters: [
       "Tìm bạn cùng sở thích",
       "Cùng học tiếng Anh",
-      "Sửa hồ sơ kết nối",
+      "Sửa hồ sơ tìm bạn",
     ],
   },
 ];

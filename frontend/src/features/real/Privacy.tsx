@@ -9,10 +9,10 @@ import { ReauthForm } from "./Auth";
 type Job = components["schemas"]["DataJobView"];
 type Scope = components["schemas"]["DeletionInput"]["scope"];
 const choices = {
-  memories: "Ghi nhớ đã duyệt",
+  memories: "Thông tin AI ghi nhớ",
   moods: "Nhật ký tâm trạng",
   private_items: "Mục trong hồ sơ riêng",
-  all_private: "Toàn bộ dữ liệu riêng và hồ sơ kết nối",
+  all_private: "Toàn bộ dữ liệu riêng và hồ sơ tìm bạn",
 } as const;
 
 export function DataControls() {
@@ -39,7 +39,7 @@ export function DataControls() {
           if (!cancelled) {
             setJob(value);
             if (value.status === "completed")
-              setNotice("Đã xóa phạm vi dữ liệu bạn chọn trong ứng dụng.");
+              setNotice("Đã xóa dữ liệu bạn chọn trong ứng dụng.");
           }
         })
         .catch((reason) => {
@@ -97,7 +97,7 @@ export function DataControls() {
       link.download = "moodprint-data.json";
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      setNotice("Đã chuẩn bị tệp dữ liệu riêng của bạn.");
+      setNotice("Đã tạo tệp dữ liệu để tải về.");
     } catch (reason) {
       if (needsReauth(reason)) setReauthFor("export");
       else setError(reason);
@@ -140,14 +140,15 @@ export function DataControls() {
       </section>
     );
   return (
-    <section className="real-section">
-      <h2>Dữ liệu của bạn</h2>
+    <section className="real-section" aria-labelledby="privacy-data">
+      <h2 id="privacy-data">Xuất hoặc xóa dữ liệu</h2>
       <p>
         Bản xuất gồm thông tin tuổi, hồ sơ riêng, tâm trạng, ghi nhớ, lịch sử
         bật/tắt quyền, hồ sơ kết nối, lời mời, tin nhắn bạn đã gửi, báo cáo và
-        lượt chặn bạn đã tạo. Hội thoại AI đã lưu được xuất riêng trong lịch sử
-        trò chuyện. Hội thoại AI tạm, tin nhắn và thông tin riêng của người khác
-        không nằm trong bản xuất. Tệp chỉ tải được một lần trong 15 phút.
+        lượt chặn bạn đã tạo. Cuộc trò chuyện AI đã lưu được tải xuống riêng
+        trong thông tin của từng cuộc trò chuyện. Cuộc trò chuyện AI tạm thời,
+        tin nhắn và thông tin riêng của người khác không nằm trong bản sao. Tệp
+        chỉ tải được một lần trong 15 phút.
       </p>
       <ErrorNotice error={error} />
       {notice && <p role="status">{notice}</p>}
@@ -168,7 +169,7 @@ export function DataControls() {
         disabled={busy}
         onClick={() => void exportData()}
       >
-        Xuất dữ liệu riêng
+        Tải bản sao dữ liệu
       </Button>
       <div className="real-section">
         <label htmlFor="deletion-scope">Dữ liệu bạn muốn xóa</label>
@@ -197,9 +198,9 @@ export function DataControls() {
         {job && (
           <p role="status">
             {job.status === "completed"
-              ? "Yêu cầu đã hoàn tất trong ứng dụng."
+              ? "Đã xóa dữ liệu đã chọn trong ứng dụng."
               : job.status === "failed"
-                ? "Chưa hoàn tất yêu cầu. Vui lòng thử lại hoặc liên hệ hỗ trợ."
+                ? "Chưa hoàn tất yêu cầu xóa. Bạn hãy thử lại."
                 : "Đang xóa dữ liệu đã chọn. Dữ liệu này đã được chặn sử dụng."}
           </p>
         )}
@@ -246,6 +247,7 @@ export function DataControls() {
           <div className={cx.actions}>
             <Button
               variant="secondary"
+              data-cancel
               disabled={busy}
               onClick={() => setAccountDialog(false)}
             >
@@ -256,14 +258,14 @@ export function DataControls() {
               disabled={busy || !understood}
               onClick={() => void removeAccount()}
             >
-              Xóa vĩnh viễn
+              Xóa vĩnh viễn tài khoản
             </Button>
           </div>
         </Dialog>
       )}
       {confirm && (
         <Dialog
-          title="Xóa phạm vi dữ liệu này?"
+          title="Xóa dữ liệu đã chọn?"
           destructive
           onClose={() => !busy && setConfirm(false)}
         >
@@ -276,6 +278,7 @@ export function DataControls() {
           <div className={cx.actions}>
             <Button
               variant="secondary"
+              data-cancel
               disabled={busy}
               onClick={() => setConfirm(false)}
             >

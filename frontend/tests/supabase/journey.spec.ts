@@ -40,14 +40,14 @@ async function enable(page: Page, name: string) {
 async function publish(page: Page) {
   await enable(page, "tìm bạn");
   await page.goto(base + "/#/connect?tab=profile");
-  await page.getByRole("button", { name: "Chỉnh hồ sơ kết nối" }).click();
+  await page.getByRole("button", { name: "Chỉnh hồ sơ tìm bạn" }).click();
   for (const name of ["Đọc sách", "Âm nhạc", "Đi bộ", "Tôn trọng", "Chân thành", "Tiếng Việt"])
     await page.getByRole("checkbox", { name, exact: true }).check();
   await page.getByRole("button", { name: "Lưu bản nháp", exact: true }).click();
-  await expect(page.getByText("Đã lưu bản nháp.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Đã lưu bản nháp hồ sơ.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Xem trước hồ sơ", exact: true }).click();
-  await page.getByRole("button", { name: "Xuất bản hồ sơ", exact: true }).click();
-  await expect(page.getByText("Đã xuất bản hồ sơ.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Hiển thị hồ sơ", exact: true }).click();
+  await expect(page.getByText("Đã hiển thị hồ sơ tìm bạn.", { exact: true })).toBeVisible();
 }
 
 test("hosted Auth, age, consent, private data, SDK memory, social races, restart and revoke", async ({ browser }) => {
@@ -63,8 +63,8 @@ test("hosted Auth, age, consent, private data, SDK memory, social races, restart
         expect(Object.values(session.consents).every((c: any) => !c.enabled)).toBe(true);
         await page.getByLabel("Năm sinh", { exact: true }).fill(String(year - offset));
         await page.getByRole("checkbox", { name: "Tôi xác nhận mình đã đủ 16 tuổi.", exact: true }).check();
-        await page.getByRole("button", { name: "Xác nhận năm sinh", exact: true }).click();
-        await expect(page.getByRole("heading", { name: /Bạn muốn kể gì/ })).toBeVisible();
+        await page.getByRole("button", { name: "Xác nhận và tiếp tục", exact: true }).click();
+        await expect(page.getByRole("heading", { name: /Bạn muốn chia sẻ điều gì/ })).toBeVisible();
       }
     }
     if ((await request(a, "GET", "/session")).ageBand === "teen") {
@@ -109,7 +109,7 @@ test("hosted Auth, age, consent, private data, SDK memory, social races, restart
     await request(b, "POST", `/proposals/${proposals[0].id}/confirm`, { expectedVersion: 1, editedText: "must not approve" }, 404);
     const memoryText = `Supabase approved memory ${tag}`;
     await one.goto(base + "/#/memory");
-    await one.getByRole("textbox", { name: "Nội dung bạn muốn duyệt" }).first().fill(memoryText);
+    await one.getByRole("textbox", { name: "Nội dung sẽ lưu" }).first().fill(memoryText);
     await one.getByRole("button", { name: "Duyệt và lưu", exact: true }).first().click();
     await expect(one.getByText(memoryText, { exact: true })).toBeVisible();
     await one.reload(); await expect(one.getByText(memoryText, { exact: true })).toBeVisible();
@@ -130,7 +130,7 @@ test("hosted Auth, age, consent, private data, SDK memory, social races, restart
     record("publishMatchingAndConcurrentMutualRequestsSingleRoom");
     await one.goto(base + `/#/chat/${room}`); await two.goto(base + `/#/chat/${room}`);
     const chatText = `Supabase chat ${tag}`;
-    await one.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" }).fill(chatText);
+    await one.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" }).fill(chatText);
     await one.getByRole("button", { name: "Gửi tin nhắn", exact: true }).click();
     await expect(two.getByRole("log").getByText(chatText, { exact: true })).toBeVisible();
     const payload = { clientMessageId: randomUUID(), text: `Supabase duplicate ${tag}` };
@@ -145,21 +145,21 @@ test("hosted Auth, age, consent, private data, SDK memory, social races, restart
     expect((await request(a, "GET", "/profiles/private-items")).some((x: any) => x.id === item.id)).toBe(true);
     expect((await request(a, "GET", "/memories")).some((x: any) => x.text === memoryText)).toBe(true);
     record("backendProcessRestartRetainsSessionsPrivateMemoryAndChat");
-    await two.locator("summary").filter({ hasText: "Chia sẻ và an toàn" }).click();
-    await two.getByRole("button", { name: "Xin xem tên hiển thị", exact: true }).click();
-    await one.reload(); await one.locator("summary").filter({ hasText: "Chia sẻ và an toàn" }).click();
+    await two.getByRole("button", { name: "Chia sẻ và an toàn" }).click();
+    await two.getByRole("button", { name: "Yêu cầu xem tên hiển thị", exact: true }).click();
+    await one.reload(); await one.getByRole("button", { name: "Chia sẻ và an toàn" }).click();
     await one.getByRole("button", { name: "Đồng ý chia sẻ", exact: true }).click();
     await two.getByRole("button", { name: "Xem thông tin đã được chia sẻ", exact: true }).click();
     await expect(two.getByText(aliasText, { exact: true })).toBeVisible();
-    await one.getByRole("button", { name: "Thu hồi chia sẻ", exact: true }).click();
+    await one.getByRole("button", { name: "Ngừng chia sẻ", exact: true }).click();
     await expect(two.getByText(aliasText, { exact: true })).toHaveCount(0);
     record("ownerRevealGrantAndRevoke");
     await two.getByRole("textbox", { name: "Lý do báo cáo", exact: true }).fill("Synthetic hosted E2E report");
     await two.getByRole("checkbox", { name: chatText, exact: true }).check();
     await two.getByRole("button", { name: "Gửi báo cáo", exact: true }).click();
-    await expect(two.getByText("Đã nhận báo cáo.", { exact: true })).toBeVisible();
+    await expect(two.getByText("Đã gửi báo cáo.", { exact: true })).toBeVisible();
     await two.getByRole("button", { name: "Chặn kết nối này", exact: true }).click();
-    await two.getByRole("button", { name: "Xác nhận chặn", exact: true }).click();
+    await two.getByRole("button", { name: "Chặn người này", exact: true }).click();
     // Wait for the committed block before probing from the other account.
     await expect(two.getByText("Bạn đã chặn kết nối này.", { exact: true })).toBeVisible();
     await request(a, "GET", path, undefined, 403);
@@ -199,7 +199,7 @@ test("hosted Nhịp reads only the explicitly selected mood dates and never priv
     await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
     await expect(page.getByText("Chưa có khoảng thống kê được chia sẻ.", { exact: true })).toBeVisible();
     await page.getByText("Chia sẻ thống kê tâm trạng cho lượt này", { exact: true }).click();
-    await page.getByRole("checkbox", { name: "Cho Nhịp đọc khoảng ngày mình chọn", exact: true }).check();
+    await page.getByRole("checkbox", { name: "Cho Nhịp xem thống kê trong khoảng ngày đã chọn", exact: true }).check();
     const session = await request(context, "GET", "/session");
     const day = new Intl.DateTimeFormat("sv-SE", { timeZone: session.timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(session.serverTime));
     await page.getByLabel("Thống kê từ ngày", { exact: true }).fill(day);
@@ -214,7 +214,7 @@ test("hosted Nhịp reads only the explicitly selected mood dates and never priv
     await draft.fill("SYNTHETIC_MOOD_RANGE xem ngày mình chọn");
     await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
     await expect(page.getByText("Đã xem thống kê bạn chọn, không có ghi chú.", { exact: true })).toBeVisible();
-    await expect(page.getByRole("checkbox", { name: "Cho Nhịp đọc khoảng ngày mình chọn", exact: true })).not.toBeChecked();
+    await expect(page.getByRole("checkbox", { name: "Cho Nhịp xem thống kê trong khoảng ngày đã chọn", exact: true })).not.toBeChecked();
     const tool = JSON.parse(readFileSync(artifacts + "supabase-scoped-tool-proof.json", "utf8"));
     expect(tool.unselectedToolNotExposed && tool.selectedRangeToolInvoked && tool.notesExcluded).toBe(true);
     expect(tool.fromDate === day && tool.toDate === day && tool.recordedDays === 1).toBe(true);
@@ -259,7 +259,7 @@ test("hosted Auth fixture: mood lifecycle with insights, and MATCH restore never
       .getByRole("button", { name: "Lưu tâm trạng", exact: true })
       .click();
     await expect(
-      page.getByText("Đã lưu tâm trạng.", { exact: true }),
+      page.getByText(/^Đã lưu cảm xúc ngày \d{2}\/\d{2}\/\d{4}\.$/),
     ).toBeVisible();
     await page.reload();
     await page.getByLabel("Ngày", { exact: true }).fill(target);
@@ -271,7 +271,7 @@ test("hosted Auth fixture: mood lifecycle with insights, and MATCH restore never
       .getByRole("button", { name: "Cập nhật tâm trạng", exact: true })
       .click();
     await expect(
-      page.getByText("Đã cập nhật tâm trạng.", { exact: true }),
+      page.getByText(/^Đã cập nhật cảm xúc ngày \d{2}\/\d{2}\/\d{4}\.$/),
     ).toBeVisible();
     const summary = await request(context, "GET", "/moods/summary?days=7");
     expect(summary.buckets.find((b: any) => b.localDate === target).value).toBe(

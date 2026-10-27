@@ -6,7 +6,7 @@ import {
   type FormEvent,
 } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, ShieldCheck } from "lucide-react";
 import { Button, cx, Dialog } from "../../../components/UI";
 import type { components } from "../../../api/generated/schema";
 import { ApiError } from "../../../api/client";
@@ -14,6 +14,7 @@ import { ErrorNotice, useResource, useSession } from "../RealApp";
 import { ConnectionSafety } from "../Safety";
 import { useConnectionEvents } from "./useConnectionEvents";
 import { looksLikeContact } from "./pii";
+import { insertAtSelection } from "../draftInsert";
 import { ActivityCatalog, ActivityEntryButton } from "../activities/ActivityCatalog";
 import { ActivityDock } from "../activities/ActivityDock";
 import { HistoryCard, InviteCard } from "../activities/InviteCard";
@@ -27,7 +28,7 @@ type Page = Schema["MessagePage"];
 
 const REVOKED = [403, 404, 410];
 const UNAVAILABLE =
-  "Cuộc trò chuyện này không còn khả dụng. Kết nối có thể đã kết thúc, bị chặn, hoặc một bên đã tắt quyền tìm bạn.";
+  "Cuộc trò chuyện không còn mở. Kết nối có thể đã kết thúc, bị chặn hoặc một bên đã rút quyền Tìm bạn.";
 
 export function HumanChat() {
   const { connectionId } = useParams();
@@ -35,6 +36,7 @@ export function HumanChat() {
   const [room, setRoom] = useState<ConnectionView>(),
     [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState(""),
+    [draftNotice, setDraftNotice] = useState(""),
     [error, setError] = useState<unknown>(),
     [busy, setBusy] = useState(false),
     [ready, setReady] = useState(false);
@@ -43,6 +45,17 @@ export function HumanChat() {
   // Messages this user saw before they blocked or ended, kept only for a report.
   const [evidence, setEvidence] = useState<Message[]>();
   const [ending, setEnding] = useState(false);
+  const [safetyOpen, setSafetyOpen] = useState(false);
+  // Follow new messages only while the reader is at the newest one.
+  const [atBottom, setAtBottom] = useState(true);
+  const atBottomRef = useRef(true);
+  const [unseen, setUnseen] = useState(false);
+  // Counts draft edits so a receipt clears only the snapshot that was submitted.
+  const draftRevision = useRef(0);
+  const editDraft = useCallback((value: string) => {
+    draftRevision.current += 1;
+    setDraft(value);
+  }, []);
   const intent = useRef<{ text: string; id: string } | undefined>(undefined),
     cursor = useRef("0"),
     lastRead = useRef("0");
@@ -122,7 +135,8 @@ export function HumanChat() {
   // message in view, so mark it read once the tab is visible for a second.
   useEffect(() => {
     const newest = messages.at(-1)?.seq;
-    if (!newest || closed || !visible) return;
+    // Only what is actually on screen counts as read.
+    if (!newest || closed || !visible || !atBottom) return;
     if (BigInt(newest) <= BigInt(lastRead.current)) return;
     const timer = window.setTimeout(() => {
       const previous = lastRead.current;
@@ -137,7 +151,7 @@ export function HumanChat() {
         });
     }, 1000);
     return () => window.clearTimeout(timer);
-  }, [messages, closed, visible, api, connectionId]);
+  }, [messages, closed, visible, atBottom, api, connectionId]);
   useEffect(() => {
     cursor.current = "0";
     lastRead.current = "0";
@@ -199,8 +213,23 @@ export function HumanChat() {
       .map((past) => ({ at: past.endedAt ?? past.createdAt, message: undefined, past })),
   ].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
   useEffect(() => {
-    log.current?.scrollTo({ top: log.current.scrollHeight });
+    const last = messages.at(-1);
+    if (!last) return;
+    if (atBottomRef.current || last.sender === "self") {
+      log.current?.scrollTo({ top: log.current.scrollHeight });
+    } else setUnseen(true);
+    // Only a change in message count matters; position is read from the ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages.length]);
+  function jumpToLatest() {
+    const element = log.current;
+    if (!element) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    element.scrollTo({ top: element.scrollHeight, behavior: reduced ? "auto" : "smooth" });
+    atBottomRef.current = true;
+    setAtBottom(true);
+    setUnseen(false);
+  }
   async function send(event: FormEvent) {
     event.preventDefault();
     if (!ready || busy || closed || !draft.trim() || !online) return;
@@ -209,6 +238,7 @@ export function HumanChat() {
       setAdvising(true);
       return;
     }
+    const submittedRevision = draftRevision.current;
     setBusy(true);
     setError(undefined);
     if (intent.current?.text !== draft.trim())
@@ -229,7 +259,8 @@ export function HumanChat() {
           [...current, receipt].map((message) => [message.id, message]),
         ).values(),
       ]);
-      setDraft("");
+      // Text typed while the request was pending belongs to the next message.
+      if (draftRevision.current === submittedRevision) editDraft("");
       intent.current = undefined;
       void refresh();
     } catch (reason) {
@@ -240,6 +271,21 @@ export function HumanChat() {
     } finally {
       setBusy(false);
     }
+  }
+  /** A suggestion only edits the draft; sending stays an explicit choice. */
+  function insertStarter(text: string) {
+    const field = composer.current;
+    const result = insertAtSelection(draft, field?.selectionStart ?? draft.length, field?.selectionEnd ?? draft.length, text);
+    if (!result.ok) {
+      setDraftNotice("Gợi ý này sẽ làm tin nhắn dài hơn 500 ký tự. Hãy rút gọn trước khi thêm.");
+      return;
+    }
+    editDraft(result.next);
+    setDraftNotice("Đã thêm gợi ý vào ô nhắn.");
+    requestAnimationFrame(() => {
+      field?.focus();
+      field?.setSelectionRange(result.caret, result.caret);
+    });
   }
   const leave = (reason: string) => {
     setEvidence(seen.current);
@@ -255,6 +301,12 @@ export function HumanChat() {
           <ArrowLeft size={20} />
         </Link>
         <h1 tabIndex={-1}>{room?.alias || "Cuộc trò chuyện"}</h1>
+        {room && !closed ? (
+          <button type="button" className="header-action" onClick={() => setSafetyOpen(true)}>
+            <ShieldCheck size={18} aria-hidden="true" />
+            <span>Chia sẻ và an toàn</span>
+          </button>
+        ) : null}
       </header>
       <ErrorNotice
         error={error}
@@ -264,31 +316,37 @@ export function HumanChat() {
         <div className={cx.note} role="status">
           <p>{closed}</p>
           <p>Bạn không thể gửi thêm tin nhắn trong cuộc trò chuyện này.</p>
-          <Link to="/messages">Về danh sách tin nhắn</Link>
+          <Link to="/messages">Về Tin nhắn</Link>
         </div>
       )}
       {!closed && !ready && !error && (
         <p role="status">Đang tải cuộc trò chuyện…</p>
       )}
+      <div className="conversation-stage">
       <div
         className="conversation-log"
         ref={log}
         role="log"
         tabIndex={0}
-        aria-label="Tin nhắn trong kết nối"
+        aria-label="Tin nhắn giữa hai bạn"
+        onScroll={() => {
+          const element = log.current!;
+          const bottom = element.scrollHeight - element.scrollTop - element.clientHeight < 90;
+          atBottomRef.current = bottom;
+          setAtBottom(bottom);
+          if (bottom) setUnseen(false);
+        }}
       >
         {ready && messages.length === 0 && (
           <div className="human-chat-welcome">
-            <h2>Một lời chào, một khởi đầu</h2>
-            <p>Chọn một câu để sửa theo cách của bạn. Tin nhắn chỉ gửi khi bạn bấm gửi.</p>
+            <h2>Bắt đầu cuộc trò chuyện</h2>
+            <p>Chọn một câu để chỉnh sửa. Tin nhắn chỉ được gửi khi bạn chọn “Gửi”.</p>
             <div className="conversation-starters" role="group" aria-label="Lời mở đầu">
               {["Chào bạn! Gần đây có điều gì làm bạn vui không?", "Khi rảnh bạn thích làm gì nhất?", "Mình cùng thử một hoạt động làm quen nhé?"].map((text) => (
-                <button key={text} type="button" onClick={() => {
-                  setDraft(text);
-                  composer.current?.focus();
-                }}>{text}</button>
+                <button key={text} type="button" onClick={() => insertStarter(text)}>{text}</button>
               ))}
             </div>
+            {draftNotice ? <p className={cx.footnote} role="status">{draftNotice}</p> : null}
           </div>
         )}
         {timeline.map(({ message, past }) =>
@@ -322,6 +380,8 @@ export function HumanChat() {
           <p role="status">{activity.notice}</p>
         )}
       </div>
+      {unseen && !atBottom ? <button type="button" className="jump-latest" onClick={jumpToLatest}>Về tin mới</button> : null}
+      </div>
       {docked && (
         <ActivityDock
           activity={activity}
@@ -330,7 +390,7 @@ export function HumanChat() {
         />
       )}
       <form className="bot-composer" onSubmit={send}>
-        {ready && !closed && activity.catalog.length > 0 && (
+        {ready && !closed && (activity.catalogStatus === "ready" || activity.catalogStatus === "error" || catalogOpen) && (
           <ActivityEntryButton
             disabled={activity.open || activity.busy}
             onOpen={() => setCatalogOpen(true)}
@@ -340,13 +400,13 @@ export function HumanChat() {
           ref={composer}
           rows={1}
           maxLength={500}
-          aria-label="Tin nhắn cho bạn kết nối"
+          aria-label="Nhắn tin cho người bạn kết nối"
           placeholder={
-            closed ? "Cuộc trò chuyện đã đóng" : "Gửi một lời hỏi thăm…"
+            closed ? "Cuộc trò chuyện đã đóng" : "Nhập tin nhắn…"
           }
           value={draft}
           disabled={Boolean(closed)}
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) => { editDraft(event.target.value); setDraftNotice(""); }}
         />
         <button
           className="send-button"
@@ -384,7 +444,7 @@ export function HumanChat() {
                 composer.current?.form?.requestSubmit();
               }}
             >
-              Vẫn gửi
+              Gửi thông tin này
             </Button>
           </div>
         </Dialog>
@@ -392,22 +452,41 @@ export function HumanChat() {
       {catalogOpen && (
         <ActivityCatalog
           catalog={activity.catalog}
+          status={activity.catalogStatus}
+          onRetryCatalog={activity.reloadCatalog}
+          inviteError={activity.inviteError}
           current={activity.open ? activity.session : null}
           cooldown={activity.cooldown}
           busy={activity.busy}
+          pendingInvite={activity.pendingInvite}
           onInvite={(kind, options) =>
             void activity.invite(kind, options).then((sent) => {
               if (sent) setCatalogOpen(false);
             })
           }
-          onClose={() => setCatalogOpen(false)}
+          onClose={() => {
+            activity.clearInviteError();
+            setCatalogOpen(false);
+          }}
         />
       )}
-      {room && !closed && (
-        <Button variant="text" disabled={busy} onClick={() => setEnding(true)}>
-          Kết thúc kết nối
-        </Button>
-      )}
+      {safetyOpen && room && connectionId && !closed ? (
+        <Dialog title="Chia sẻ và an toàn" onClose={() => setSafetyOpen(false)}>
+          <ConnectionSafety
+            connectionId={connectionId}
+            messages={messages}
+            onBlocked={() => leave("Bạn đã chặn kết nối này.")}
+            panel
+          />
+          <section className="real-section">
+            <h3>Kết thúc kết nối</h3>
+            <p>Cả hai sẽ không thể gửi thêm tin nhắn, và hai bạn sẽ không được gợi ý lại cho nhau trong 30 ngày.</p>
+            <Button variant="secondary" disabled={busy} onClick={() => setEnding(true)}>
+              Kết thúc kết nối
+            </Button>
+          </section>
+        </Dialog>
+      ) : null}
       {ending && room && (
         <Dialog
           title="Kết thúc kết nối này?"
@@ -450,13 +529,7 @@ export function HumanChat() {
           </div>
         </Dialog>
       )}
-      {room && connectionId && !closed && (
-        <ConnectionSafety
-          connectionId={connectionId}
-          messages={messages}
-          onBlocked={() => leave("Bạn đã chặn kết nối này.")}
-        />
-      )}
+
       {closed && evidence && connectionId && (
         <ConnectionSafety
           connectionId={connectionId}

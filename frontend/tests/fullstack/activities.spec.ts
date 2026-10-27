@@ -10,13 +10,13 @@ async function invite(page: Page, title: string, setup?: (dialog: Locator) => Pr
   await page.getByRole("button", { name: "Cùng làm gì đó?" }).click();
   const dialog = page.getByRole("dialog", { name: "Cùng làm gì đó?" });
   if (setup) await setup(dialog);
-  await dialog.getByRole("button", { name: `Mời cùng chơi ${title}` }).click();
+  await dialog.getByRole("button", { name: `Mời tham gia ${title}` }).click();
 }
 
 async function accept(page: Page, title: string) {
   await page
     .getByRole("group", { name: `Lời mời ${title}` })
-    .getByRole("button", { name: "Đồng ý" })
+    .getByRole("button", { name: "Tham gia" })
     .click();
 }
 
@@ -43,7 +43,7 @@ test("an icebreaker keeps answers private until both answer and resumes after a 
         await expect(b).toContainText("Câu 2/3");
       }
       const secret = `TRA-LOI-B-${round}`;
-      await b.getByRole("textbox", { name: /Hoặc viết vài chữ/ }).fill(secret);
+      await b.getByRole("textbox", { name: /Hoặc viết câu trả lời/ }).fill(secret);
       await b.getByRole("button", { name: "Gửi câu trả lời" }).click();
       await expect(b.getByRole("status")).toContainText("Đang chờ");
       // Reciprocal reveal: the answer has not reached A's screen or A's API view.
@@ -58,15 +58,15 @@ test("an icebreaker keeps answers private until both answer and resumes after a 
       await a.getByRole("button", { name: next }).click();
       await b.getByRole("button", { name: next }).click();
     }
-    await expect(a.getByRole("heading", { name: "Hoàn thành!" })).toBeVisible();
-    await expect(b.getByRole("heading", { name: "Hoàn thành!" })).toBeVisible();
+    await expect(a.getByRole("heading", { name: "Đã hoàn thành" })).toBeVisible();
+    await expect(b.getByRole("heading", { name: "Đã hoàn thành" })).toBeVisible();
     await a.getByRole("button", { name: "Thích" }).click();
-    await expect(a.getByText("Cảm ơn bạn. Đánh giá này chỉ mình bạn biết.")).toBeVisible();
+    await expect(a.getByText("Đã nhận đánh giá. Người bạn kết nối không xem được đánh giá này.")).toBeVisible();
     // Feedback is private: the peer's view never carries it.
     const peerView = await call(pageB.context(), 22, "GET", `/activities/${sessionId}`);
     expect(peerView.text).not.toContain("liked");
     await a.getByRole("button", { name: "Tiếp tục trò chuyện" }).click();
-    await expect(pageA.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" })).toBeFocused();
+    await expect(pageA.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" })).toBeFocused();
     await expect(
       pageA.getByRole("log").getByRole("group", { name: `Hoạt động đã qua: ${title}` }),
     ).toBeVisible();
@@ -99,8 +99,8 @@ test("a cooperative quiz hides the answer until both choose and scores as a team
       await a.getByRole("button", { name: next }).click();
       await b.getByRole("button", { name: next }).click();
     }
-    await expect(a.getByRole("heading", { name: "Hoàn thành!" })).toBeVisible();
-    await expect(b.getByRole("heading", { name: "Hoàn thành!" })).toBeVisible();
+    await expect(a.getByRole("heading", { name: "Đã hoàn thành" })).toBeVisible();
+    await expect(b.getByRole("heading", { name: "Đã hoàn thành" })).toBeVisible();
     const [scoreA, scoreB] = await Promise.all(
       [a, b].map(async (panel) => (await panel.innerText()).match(/Đội của hai bạn: (\d+)\/15/)?.[1]),
     );
@@ -131,8 +131,8 @@ test("a one-cycle shared focus session runs on server time to completion", async
     await expect(dock(pageB, title).getByText(/đã tạm dừng/)).toBeVisible();
     await dock(pageB, title).getByRole("button", { name: "Tiếp tục", exact: true }).click();
     await expect(a.getByRole("button", { name: "Tạm dừng", exact: true })).toBeEnabled();
-    await expect(a.getByRole("heading", { name: "Hoàn thành!" })).toBeVisible({ timeout: 60_000 });
-    await expect(b.getByRole("heading", { name: "Hoàn thành!" })).toBeVisible({ timeout: 10_000 });
+    await expect(a.getByRole("heading", { name: "Đã hoàn thành" })).toBeVisible({ timeout: 60_000 });
+    await expect(b.getByRole("heading", { name: "Đã hoàn thành" })).toBeVisible({ timeout: 10_000 });
   } finally {
     await close();
   }
@@ -163,15 +163,15 @@ test("blocking mid-activity closes the peer's dock and the room", async ({ brows
     await invite(pageA, title);
     await accept(pageB, title);
     await expect(dock(pageB, title)).toContainText("Câu 1/3");
-    await pageA.getByText("Chia sẻ và an toàn").click();
+    await pageA.getByRole("button", { name: "Chia sẻ và an toàn" }).click();
     await pageA.getByRole("button", { name: "Chặn kết nối này" }).click();
     await pageA
       .getByRole("dialog", { name: "Chặn kết nối này?" })
-      .getByRole("button", { name: "Xác nhận chặn" })
+      .getByRole("button", { name: "Chặn người này" })
       .click();
     await expect(pageA.getByText("Bạn đã chặn kết nối này.")).toBeVisible();
     await expect(dock(pageB, title)).toHaveCount(0, { timeout: 15_000 });
-    await expect(pageB.getByText(/Cuộc trò chuyện này không còn khả dụng/)).toBeVisible();
+    await expect(pageB.getByText(/Cuộc trò chuyện không còn mở/)).toBeVisible();
     const after = await call(two, 28, "GET", `/connections/${room}/activities/current`);
     expect([403, 404, 410]).toContain(after.status);
   } finally {

@@ -104,7 +104,7 @@ export function IcebreakerPanel({
           </fieldset>
           {current.item.allowText && (
             <label className="activity-text">
-              Hoặc viết vài chữ (không bắt buộc)
+              Hoặc viết câu trả lời của bạn (không bắt buộc)
               <textarea
                 rows={2}
                 maxLength={140}

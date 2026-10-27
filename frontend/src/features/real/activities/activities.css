@@ -10,7 +10,7 @@
   background: var(--color-surface);
   color: var(--color-primary);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--text-support);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -41,9 +41,8 @@
   margin: 8px 0 12px;
 }
 .focus-options label {
-  display: grid;
-  gap: 4px;
-  font-size: 0.85rem;
+  margin-bottom: 4px;
+  font-size: 0.875rem;
 }
 .focus-options select {
   min-height: 44px;
@@ -68,7 +67,7 @@
 .invite-card.ended {
   border-style: solid;
   color: var(--color-muted);
-  font-size: 0.9rem;
+  font-size: var(--text-label);
 }
 .activity-dock {
   position: sticky;
@@ -108,7 +107,7 @@
 }
 .activity-dock-bar p {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--text-meta);
   color: var(--color-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -128,7 +127,7 @@
   align-items: center;
   gap: 10px;
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--text-support);
   color: var(--color-muted);
 }
 .progress-dots {
@@ -177,7 +176,7 @@
   display: grid;
   gap: 6px;
   margin-top: 12px;
-  font-size: 0.9rem;
+  font-size: var(--text-label);
 }
 .activity-text textarea {
   width: 100%;
@@ -190,7 +189,7 @@
   border-radius: 999px;
   background: var(--color-success-bg);
   color: var(--color-primary);
-  font-size: 0.8rem;
+  font-size: var(--text-meta);
 }
 .own-answer {
   padding: 10px 12px;
@@ -212,7 +211,7 @@
   background: var(--color-success-bg);
 }
 .reveal-bubble span {
-  font-size: 0.75rem;
+  font-size: var(--text-meta);
   font-weight: 600;
   color: var(--color-muted);
 }
@@ -261,7 +260,7 @@
   padding: 1px 8px;
   border-radius: 999px;
   border: 1px solid var(--color-border);
-  font-size: 0.75rem;
+  font-size: var(--text-meta);
 }
 .quiz-points {
   font-weight: 700;
@@ -289,7 +288,7 @@
   padding: 2px 10px;
   border-radius: 999px;
   border: 1px dashed var(--color-border);
-  font-size: 0.8rem;
+  font-size: var(--text-meta);
 }
 .presence li[data-on] {
   border-style: solid;
@@ -321,7 +320,7 @@
 .feedback-chips p {
   width: 100%;
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--text-support);
   color: var(--color-muted);
 }
 .feedback-chips button {
@@ -360,4 +359,13 @@
   .activity-dock {
     transition: none;
   }
+}
+
+.quiz-reveal li,
+.reveal-bubble,
+.quiz-options button,
+.invite-card {
+  transition:
+    border-color var(--duration-state) var(--ease-state),
+    background-color var(--duration-state) var(--ease-state);
 }

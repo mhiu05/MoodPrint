@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { Button, cx, Dialog } from "../../../components/UI";
+import { ApiError, errorMessage } from "../../../api/client";
 import { canInvite, isOpen, type Definition, type Kind, type Session } from "./activityView";
 
 const HOW_IT_WORKS: Record<Kind, string> = {
-  icebreaker: "3 câu hỏi nhỏ. Mỗi người trả lời riêng; chỉ mở câu trả lời khi cả hai đã gửi. Bạn có thể bỏ qua.",
-  coop_quiz: "5 vòng cùng một đội. Mỗi người chọn đáp án riêng; khi cả hai xong, cùng xem đáp án và điểm của đội.",
+  icebreaker: "Ba câu hỏi để làm quen. Mỗi người trả lời riêng; câu trả lời chỉ mở khi cả hai đã gửi. Bạn có thể bỏ qua câu hỏi.",
+  coop_quiz: "Năm vòng đố vui cùng một đội. Mỗi người chọn riêng; khi cả hai đã trả lời, đáp án và điểm của đội mới được mở.",
   focus: "Chọn nhịp học hoặc làm việc cùng nhau. Một người tạm dừng sẽ dừng đồng hồ của cả hai; bạn có thể rời phiên và vào lại.",
 };
 
@@ -32,26 +33,54 @@ export function ActivityEntryButton({
   );
 }
 
+/**
+ * A refused request (4xx) explains itself. A 5xx or a lost connection is ambiguous: the
+ * server may have created the invitation, so it is "unconfirmed", never "not sent". The
+ * choice is kept and the retry reuses the same idempotency key.
+ */
+function inviteFailure(error: unknown) {
+  if (error instanceof ApiError && error.status < 500) return errorMessage(error);
+  return "Chưa xác nhận được lời mời. Lựa chọn của bạn vẫn được giữ. Bạn hãy thử lại.";
+}
+
 export function ActivityCatalog({
   catalog,
+  status,
+  onRetryCatalog,
+  inviteError,
   current,
   cooldown,
   busy,
+  pendingInvite,
   onInvite,
   onClose,
 }: {
   catalog: Definition[];
+  status: "loading" | "ready" | "empty" | "error";
+  onRetryCatalog: () => void;
+  inviteError?: { kind: Kind; error: unknown };
   current: Session | null;
   cooldown: Partial<Record<Kind, number>>;
   busy: boolean;
+  /** The kind whose invitation is being sent; any other pending operation is not an invite. */
+  pendingInvite?: Kind;
   onInvite: (kind: Kind, options?: Record<string, unknown>) => void;
   onClose: () => void;
 }) {
   const [plan, setPlan] = useState("25,5");
   const [cycles, setCycles] = useState(1);
+  const id = useId();
   return (
     <Dialog title="Cùng làm gì đó?" onClose={() => !busy && onClose()}>
-      <p>Mời bạn kia cùng tham gia. Hoạt động chỉ bắt đầu khi cả hai đồng ý.</p>
+      <p>Mời người bạn kết nối cùng tham gia. Hoạt động bắt đầu khi cả hai đồng ý.</p>
+      {status === "loading" ? <p role="status">Đang tải danh sách hoạt động…</p> : null}
+      {status === "error" ? (
+        <div className={cx.error} role="alert">
+          <p>Chưa tải được danh sách hoạt động. Bạn hãy thử lại.</p>
+          <Button variant="secondary" onClick={onRetryCatalog}>Thử lại</Button>
+        </div>
+      ) : null}
+      {status === "empty" ? <p>Hiện chưa có hoạt động chung nào để mời.</p> : null}
       <ul className="activity-catalog">
         {catalog.map((definition) => {
           const allowed = canInvite(current, definition.kind, cooldown);
@@ -63,19 +92,20 @@ export function ActivityCatalog({
               <p className={cx.footnote}>Khoảng {definition.estimatedMinutes} phút</p>
               {definition.kind === "focus" && (
                 <div className="focus-options">
-                  <label>
-                    Nhịp
-                    <select value={plan} onChange={(event) => setPlan(event.target.value)}>
+                  <div>
+                    <label htmlFor={`${id}-plan`}>Nhịp</label>
+                    <select id={`${id}-plan`} value={plan} onChange={(event) => setPlan(event.target.value)}>
                       {(definition.focusPlans ?? [[25, 5]]).map(([work, rest]) => (
                         <option key={work} value={`${work},${rest}`}>
                           {work} phút tập trung / {rest} phút nghỉ
                         </option>
                       ))}
                     </select>
-                  </label>
-                  <label>
-                    Số lượt
+                  </div>
+                  <div>
+                    <label htmlFor={`${id}-cycles`}>Số lượt</label>
                     <select
+                      id={`${id}-cycles`}
                       value={cycles}
                       onChange={(event) => setCycles(Number(event.target.value))}
                     >
@@ -87,12 +117,15 @@ export function ActivityCatalog({
                         ),
                       )}
                     </select>
-                  </label>
+                  </div>
                 </div>
               )}
+              {inviteError?.kind === definition.kind ? (
+                <p className={cx.error} role="alert">{inviteFailure(inviteError.error)}</p>
+              ) : null}
               <Button
                 disabled={busy || !allowed}
-                aria-label={`Mời cùng chơi ${definition.title}`}
+                aria-label={`Mời tham gia ${definition.title}`}
                 onClick={() =>
                   onInvite(
                     definition.kind,
@@ -102,16 +135,16 @@ export function ActivityCatalog({
                   )
                 }
               >
-                Mời cùng chơi
+                {busy && pendingInvite === definition.kind ? "Đang gửi lời mời…" : "Mời tham gia"}
               </Button>
               {!allowed && !isOpen(current) && (
-                <p className={cx.footnote}>Hãy thử lại hoạt động này sau ít phút.</p>
+                <p className={cx.footnote}>Bạn có thể gửi lại lời mời cho hoạt động này sau ít phút.</p>
               )}
             </li>
           );
         })}
       </ul>
-      {isOpen(current) && <p className={cx.note}>Hai bạn đang có một hoạt động khác. Hoàn thành hoặc kết thúc hoạt động đó để gửi lời mời mới.</p>}
+      {isOpen(current) && <p className={cx.note}>Hai bạn đang có một hoạt động. Hoàn thành hoặc kết thúc hoạt động đó để gửi lời mời mới.</p>}
     </Dialog>
   );
 }

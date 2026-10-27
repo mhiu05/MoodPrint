@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -25,8 +26,11 @@ import {
 import {
   ArrowLeft,
   ArrowUpRight,
+  Copy,
+  Info,
   LockKeyhole,
   MessageCircle,
+  NotebookPen,
   Search,
   Send,
   ShieldCheck,
@@ -40,9 +44,7 @@ import {
   Button,
   cx,
   Dialog,
-  Motion,
   StatePanel,
-  Typing,
 } from "../../components/UI";
 import { BrandMark, BotAvatar } from "../../companions/Avatar";
 import { botById, type BotId } from "../../companions/registry";
@@ -77,6 +79,11 @@ import { Moods } from "./Mood";
 import { VoiceRecorder } from "./Voice";
 import { OwnIdentity } from "./Safety";
 import { DataControls } from "./Privacy";
+import { focusRouteHeading, useRouteFocus } from "./useRouteFocus";
+import { AIActivityStatus } from "./AIActivityStatus";
+import { ConversationInfo, useInfoPanelMounted } from "./ConversationInfo";
+import { insertAtSelection } from "./draftInsert";
+import { deriveAIActivity, type AIActivityPhase } from "./aiActivityView";
 import { AIDataProvider, AIDataControls, ConversationHistory, useAIData, downloadConversation, type SavedConversation, type SavedConversationHeader } from "./AIData";
 
 const MessageMarkdown = lazy(() => import("./MessageMarkdown"));
@@ -245,7 +252,7 @@ function SessionRoot() {
     return (
       <main className="real-auth">
         <Brand />
-        <h1 tabIndex={-1}>Chưa thể mở không gian của bạn</h1>
+        <h1 tabIndex={-1}>Chưa thể mở MoodPrint</h1>
         <ErrorNotice
           error={error}
           retry={() => {
@@ -259,7 +266,7 @@ function SessionRoot() {
     return (
       <main className="real-auth">
         <Brand />
-        <p role="status">Đang kiểm tra phiên…</p>
+        <p role="status">Đang kiểm tra đăng nhập…</p>
       </main>
     );
   if (session === null || callback?.kind === "recovery")
@@ -312,7 +319,7 @@ function QuotaHint() {
   return (
     <p className={cx.footnote} role="status">
       {remaining === 0
-        ? "Hôm nay bạn đã dùng hết lượt trò chuyện với trợ lý. Hẹn bạn ngày mai nhé."
+        ? "Bạn đã dùng hết lượt trò chuyện AI hôm nay. Bạn có thể tiếp tục vào ngày mai."
         : `Hôm nay bạn còn ${remaining} lượt trò chuyện với trợ lý.`}
     </p>
   );
@@ -326,6 +333,7 @@ function Navigation() {
     <nav className={cx.navigation} aria-label="Điều hướng chính">
       {[
         { to: "/assistants", label: "Trợ lý", Icon: Sparkles, count: 0, what: "" },
+        { to: "/self", label: "Cảm xúc", Icon: NotebookPen, count: 0, what: "" },
         {
           // Pending invitations open their tab directly (08 section 2).
           to: summary.pendingIncomingRequests ? "/connect?tab=requests" : "/connect",
@@ -341,7 +349,7 @@ function Navigation() {
           count: unread,
           what: "cuộc trò chuyện chưa đọc",
         },
-        { to: "/profile", label: "Tôi", Icon: UserRound, count: 0, what: "" },
+        { to: "/profile", label: "Cá nhân", Icon: UserRound, count: 0, what: "" },
       ].map(({ to, label, Icon, count, what }) => (
         <NavLink
           key={label}
@@ -389,9 +397,9 @@ function Shell() {
     };
   }, []);
   useEffect(() => {
-    document.querySelector<HTMLElement>("h1")?.focus({ preventScroll: true });
     window.scrollTo(0, 0);
   }, [location.pathname]);
+  useRouteFocus(location.pathname);
   return (
     <>
       <a
@@ -421,15 +429,9 @@ function Shell() {
               className="icon-button"
               to="/settings"
               aria-label="Quyền riêng tư"
+              title="Quyền riêng tư"
             >
               <ShieldCheck size={21} />
-            </Link>
-            <Link
-              className="self-avatar"
-              to="/profile"
-              aria-label="Hồ sơ của tôi"
-            >
-              {session.alias.charAt(0).toLocaleUpperCase("vi-VN")}
             </Link>
           </div>
         </aside>
@@ -454,8 +456,7 @@ function Shell() {
           ) : null}
           <OfflineBanner />
           <SessionNotices />
-          <Motion motionKey={location.pathname}>
-            <Routes>
+          <Routes>
               {session.staff && (
                 <Route path="/admin/reports" element={<Moderation />} />
               )}
@@ -472,8 +473,7 @@ function Shell() {
                 element={<HumanChat key={location.pathname} />}
               />
               <Route path="*" element={<Navigate replace to="/assistants" />} />
-            </Routes>
-          </Motion>
+          </Routes>
         </main>
       </div>
     </>
@@ -496,7 +496,7 @@ function Unavailable({
           Về trợ lý
         </Link>
         <Link className={`${cx.button} ${cx.secondary}`} to="/self">
-          Ghi tâm trạng
+          Ghi lại tâm trạng
         </Link>
       </div>
     </>
@@ -538,30 +538,28 @@ function Assistants() {
           <Link
             className="icon-button"
             to="/settings"
-            aria-label="Tùy chọn ứng dụng"
+            aria-label="Quyền riêng tư"
           >
             <SlidersHorizontal size={20} />
           </Link>
         </div>
         <div className="roster-heading">
           <h1 tabIndex={-1}>
-            Bạn muốn kể gì
-            <br />
-            <span>hôm nay?</span>
+            Bạn muốn chia sẻ <span>điều gì hôm nay?</span>
           </h1>
         </div>
         <label className="bot-search">
           <Search size={18} />
           <input
             aria-label="Tìm trợ lý"
-            placeholder="Tìm một người bạn AI…"
+            placeholder="Tìm theo tên hoặc vai trò"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
         </label>
         <div className="roster-section-label">
-          <h2>Trợ lý của bạn</h2>
-          <span>{String(bots.length).padStart(2, "0")}</span>
+          <h2>Chọn một trợ lý</h2>
+          {search.trim() && bots.length ? <span role="status">{filtered.length} kết quả</span> : null}
         </div>
         {resource.loading ? <p role="status">Đang tải trợ lý…</p> : null}
         <ErrorNotice error={resource.error} retry={resource.refresh} />
@@ -586,10 +584,13 @@ function Assistants() {
             </Link>
           ))}
         </div>
-        {!resource.loading && !resource.error && !filtered.length ? (
-          <p className="search-empty">
-            Chưa tìm thấy trợ lý. Thử tên khác nhé.
-          </p>
+        {!resource.loading && !resource.error && !bots.length ? (
+          <p className="search-empty">Chưa có trợ lý nào sẵn sàng. Bạn hãy thử lại sau.</p>
+        ) : !resource.loading && !resource.error && !filtered.length ? (
+          <div className="search-empty">
+            <p>Không có trợ lý nào khớp với “{search.trim()}”.</p>
+            <Button variant="text" onClick={() => setSearch("")}>Xóa tìm kiếm</Button>
+          </div>
         ) : null}
         <ConversationHistory />
         <ConnectBridge />
@@ -597,7 +598,7 @@ function Assistants() {
       <section
         className="conversation-pane"
         aria-label={
-          bot ? `Trò chuyện với ${bot.name}` : "Không gian trò chuyện"
+          bot ? `Trò chuyện với ${bot.name}` : "Cuộc trò chuyện"
         }
       >
         {bot ? (
@@ -631,7 +632,7 @@ function Assistants() {
             <p>
               Một nơi để lắng nghe bản thân
               <br />
-              và tìm những người cùng tần số.
+              và kết nối từ những điểm chung.
             </p>
             {bots[0] ? (
               <Link
@@ -652,39 +653,16 @@ function Assistants() {
 }
 
 function Conversation({ bot }: { bot: BotPublicDTO }) {
-  const [historyOpen, setHistoryOpen] = useState(false);
   return (
     <div className="bot-conversation">
-      <header className="conversation-header">
-        <Link
-          to="/assistants"
-          className="icon-button mobile-back"
-          aria-label="Về danh sách trợ lý"
-        >
-          <ArrowLeft size={21} />
-        </Link>
-        <button className="icon-button history-mobile-button" aria-label="Mở lịch sử hội thoại" onClick={() => setHistoryOpen(true)}><MessageCircle size={20} /></button>
-        <PublicAvatar bot={bot} size={43} />
-        <div>
-          <h1 tabIndex={-1}>
-            {bot.name} <span className="ai-tag">AI</span>
-          </h1>
-          <p>{bot.role}</p>
-        </div>
-        <Link
-          to="/settings"
-          className="icon-button"
-          aria-label="Quyền trò chuyện AI"
-        >
-          <ShieldCheck size={21} />
-        </Link>
-      </header>
-      {historyOpen ? <Dialog title="Lịch sử hội thoại" onClose={() => setHistoryOpen(false)}><ConversationHistory onSelect={() => setHistoryOpen(false)} /></Dialog> : null}
       <ConversationBody bot={bot} />
-
     </div>
   );
 }
+
+type RunOutcome = "completed" | "cancelled" | "failed" | "unknown";
+const UNCONFIRMED = "Chưa xác nhận được trạng thái. Kiểm tra lại cuộc trò chuyện.";
+const compactLayout = () => !window.matchMedia("(min-width: 1100px)").matches;
 
 function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const { api, session, receive } = useSession();
@@ -705,15 +683,56 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
-  const [run, setRun] = useState<{ id: string; version: number }>();
+  const [run, setRun] = useState<{ id: string; version: number; key: string }>();
+  // Stop is a request until the run's own terminal event confirms the outcome.
+  const [stopRequested, setStopRequested] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [stopped, setStopped] = useState(false);
+  const activeRun = useRef<string | undefined>(undefined);
   const [revision, setRevision] = useState(0);
   const loadedRevision = useRef(0);
   const loadedSelection = useRef<string | undefined>(undefined);
+  const openedFor = useRef<string | undefined>(undefined);
   const [atBottom, setAtBottom] = useState(true);
   const log = useRef<HTMLDivElement>(null),
     lifetime = useRef<AbortController | null>(null);
   const intent = useRef<{ text: string; scopeKey: string; clientMessageId: string } | null>(null);
-  const submittedText = useRef<string | undefined>(undefined);
+  const composer = useRef<HTMLTextAreaElement>(null);
+  const [draftNotice, setDraftNotice] = useState("");
+  const [infoOpen, setInfoOpen] = useState(false);
+  const infoTrigger = useRef<HTMLButtonElement>(null);
+  const infoId = useId();
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [newConfirmOpen, setNewConfirmOpen] = useState(false);
+  // The trigger may only reference a panel that is actually mounted.
+  const infoMounted = useInfoPanelMounted(infoOpen, historyOpen || renameOpen || deleteOpen || newConfirmOpen);
+  // "Dừng và mở mới" waits for the run's real terminal outcome before switching.
+  const pendingNew = useRef(false);
+  const [awaitingNew, setAwaitingNew] = useState(false);
+  const [previousConversation, setPreviousConversation] = useState<string>();
+  const [copyStatus, setCopyStatus] = useState<{ id: string; ok: boolean }>();
+  const [unseen, setUnseen] = useState(false);
+  const [manageError, setManageError] = useState<unknown>();
+  const [deleteError, setDeleteError] = useState<unknown>();
+  const renameField = useRef<HTMLInputElement>(null);
+  const onTerminal = useRef<((outcome: RunOutcome) => void) | undefined>(undefined);
+  // Run whose cancel request is already on its way; a second request reuses it.
+  const cancelRequested = useRef<string | undefined>(undefined);
+  // Draft edits are counted so a stale closure comparison never decides what to clear.
+  const draftRevision = useRef(0);
+  // Text a failed run may hand back belongs to one conversation, request and view generation.
+  const recovery = useRef<{ requestKey: string; conversationId: string; generation: number; text: string; revision: number } | undefined>(undefined);
+  // Bumped on every real selection change, New and unmount; URL canonicalisation does not bump it.
+  const viewGeneration = useRef(0);
+  // Where a pending New will land, so applying its URL is not mistaken for a selection.
+  const newMarker = useRef<string | undefined>(undefined);
+  // Terminal outcome of the last run that finished in this view, for a late New confirmation.
+  const settled = useRef<{ runId: string; conversationId: string; outcome: RunOutcome } | undefined>(undefined);
+  const confirmTarget = useRef<{ runId: string; conversationId: string } | undefined>(undefined);
+  const editDraft = useCallback((value: string) => {
+    draftRevision.current += 1;
+    setDraft(value);
+  }, []);
   const [shareMood, setShareMood] = useState(false);
   const [moodFrom, setMoodFrom] = useState("");
   const [moodTo, setMoodTo] = useState("");
@@ -736,15 +755,28 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     current.current = value;
     setConversation(value);
   }, []);
+  /** The server copy replaces the latest page; older pages the reader loaded stay. */
+  const withOlder = useCallback((stored: SavedConversation): SavedConversation => {
+    const latest = current.current;
+    if (!latest || latest.conversationId !== stored.conversationId || !stored.messages.length) return stored;
+    const first = latest.messages.findIndex((message) => message.id === stored.messages[0].id);
+    if (first <= 0) return stored;
+    return { ...stored, hasMoreMessages: latest.hasMoreMessages, messages: [...latest.messages.slice(0, first), ...stored.messages] };
+  }, []);
   const stream = useCallback(
     async (
       id: string,
       version: number,
       eventsUrl: string,
       signal: AbortSignal,
+      requestKey: string,
     ) => {
-      setRun({ id, version });
+      activeRun.current = id;
+      setRun({ id, version, key: requestKey });
+      setStopped(false);
       setBusy(true);
+      let outcome: RunOutcome = "unknown";
+      const ownerId = current.current?.conversationId;
       try {
         const final = await consumeAIEvents(eventsUrl, signal);
         if (!signal.aborted && current.current) {
@@ -763,51 +795,111 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
               },
             ],
           });
+          // The validated reply is already on screen; only reconciliation remains.
+          setSyncing(true);
           const stored = await api.request<SavedConversation>(
             `/ai/conversations/${before.conversationId}`,
             { signal },
           );
           if (!signal.aborted) {
-            update(stored);
+            update(withOlder(stored));
             setReady(true);
             refreshHistory();
             setProposalRevision((value) => value + 1);
+            outcome = "completed";
           }
         }
       } catch (reason) {
-        if (!signal.aborted) {
+        if (!signal.aborted && reason instanceof ApiError && reason.code === "RUN_CANCELLED") {
+          // A confirmed terminal cancellation is a neutral outcome, not an error.
+          setStopped(true);
+          setSyncing(true);
+          try {
+            const thread = current.current;
+            if (thread) {
+              const stored = await api.request<SavedConversation>(`/ai/conversations/${thread.conversationId}`, { signal });
+              if (!signal.aborted) { update(withOlder(stored)); refreshHistory(); outcome = "cancelled"; setReady(true); }
+            }
+          } catch (readError) {
+            // Only a successful authoritative read restores readiness; Retry reloads and reattaches.
+            if (!signal.aborted) { setError(readError); setReady(false); }
+          }
+        } else if (!signal.aborted) {
+          if (reason instanceof ApiError && ["RUN_FAILED", "RUN_INTERRUPTED"].includes(reason.code)) outcome = "failed";
           setError(reason);
           setReady(false);
-          if (reason instanceof ApiError && reason.code === "RUN_FAILED") {
-            // Restore only a confirmed terminal failure. A transport interruption
-            // can still complete on the server and must be reconciled by reload.
-            setDraft(value => value || submittedText.current || "");
+          const owned = recovery.current;
+          if (reason instanceof ApiError && reason.code === "RUN_FAILED" && owned &&
+              owned.requestKey === requestKey && owned.conversationId === current.current?.conversationId &&
+              owned.generation === viewGeneration.current && owned.revision === draftRevision.current) {
+            // Restore only this run's confirmed terminal failure, and only over the
+            // empty draft it left behind. A transport interruption can still complete
+            // on the server and must be reconciled by reload.
+            editDraft(owned.text);
           }
         }
       } finally {
         if (!signal.aborted) {
+          if (recovery.current?.requestKey === requestKey) recovery.current = undefined;
+          if (ownerId) settled.current = { runId: id, conversationId: ownerId, outcome };
+          activeRun.current = undefined; cancelRequested.current = undefined;
           setRun(undefined);
           setBusy(false);
+          setStopRequested(false);
+          setSyncing(false);
+          onTerminal.current?.(outcome);
         }
       }
     },
-    [api, update, refreshHistory],
+    [api, update, withOlder, refreshHistory, editDraft],
   );
-  useEffect(() => () => lifetime.current?.abort(), []);
+  useEffect(() => () => {
+    lifetime.current?.abort();
+    viewGeneration.current += 1; recovery.current = undefined; newMarker.current = undefined;
+    // An aborted open must run again if this view mounts again (StrictMode).
+    openedFor.current = undefined;
+  }, []);
   useEffect(() => {
     // A newly created thread receives a URL without interrupting its active stream.
-    if (selectedId && selectedId === current.current?.conversationId && loadedRevision.current === revision) return;
+    // That URL can commit before New's own marker URL ever renders here. The view
+    // New opened still owns the selection, exactly as if the marker had applied;
+    // otherwise Back to the previous chat matches its stale key and is skipped.
+    if (selectedId && selectedId === current.current?.conversationId && loadedRevision.current === revision) {
+      if (newMarker.current) { openedFor.current = newMarker.current; newMarker.current = undefined; }
+      return;
+    }
     // A fresh login must wait for the saved-history preference before selecting
     // the latest thread. Otherwise the first render silently skips saved threads.
     if (!selectedId && preferencesLoading) return;
+    // Preferences reload on every tab focus; that alone must not reopen (and abort)
+    // the selection already on screen, an in-flight send or a pending stop-and-new.
+    const openKey = `${bot.botId}/${selectedId || searchParams.get("new") || "latest"}#${revision}`;
+    if (openedFor.current === openKey) return;
+    if (newMarker.current === openKey) {
+      // Applying the URL of a New this view already opened is not a selection: its
+      // lifetime, draft and any send it owns stay as they are.
+      newMarker.current = undefined;
+      openedFor.current = openKey;
+      loadedRevision.current = revision;
+      return;
+    }
+    newMarker.current = undefined;
+    openedFor.current = openKey;
     loadedRevision.current = revision;
     lifetime.current?.abort();
     const controller = new AbortController();
     lifetime.current = controller;
-    setLoading(true); setReady(false); setBusy(false); setRun(undefined); setError(undefined); setNotice("");
+    viewGeneration.current += 1; recovery.current = undefined; settled.current = undefined; confirmTarget.current = undefined;
+    setNewConfirmOpen(false);
+    setLoading(true); setReady(false); setBusy(false); setRun(undefined); setError(undefined);
+    setNotice(""); setPreviousConversation(undefined);
+    activeRun.current = undefined; cancelRequested.current = undefined; setStopRequested(false); setSyncing(false); setStopped(false);
+    pendingNew.current = false; setAwaitingNew(false); setCopyStatus(undefined);
     current.current = undefined; setConversation(undefined);
     const selection = `${bot.botId}/${selectedId || searchParams.get("new") || "latest"}`;
-    if (loadedSelection.current !== selection) { intent.current = null; setDraft(""); setShareMood(false); }
+    // A different thread chosen in this conversation (not first open, not a new chat) moves focus to its heading once loaded.
+    const switched = Boolean(selectedId) && loadedSelection.current !== undefined && loadedSelection.current !== selection;
+    if (loadedSelection.current !== selection) { intent.current = null; editDraft(""); setDraftNotice(""); setManageError(undefined); setShareMood(false); }
     loadedSelection.current = selection;
     async function open() {
       // Explicit selection is authoritative; otherwise resume the latest temporary
@@ -821,15 +913,16 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       if (!id) { setReady(true); return; }
       const value = await api.request<SavedConversation>(`/ai/conversations/${encodeURIComponent(id)}`, { signal: controller.signal });
       if (controller.signal.aborted) return;
-      if (value.botId !== bot.botId) throw new ApiError(409, "CONVERSATION_BOT_MISMATCH", "Hội thoại thuộc một trợ lý khác. Chọn lại hội thoại trong lịch sử.");
+      if (value.botId !== bot.botId) throw new ApiError(409, "CONVERSATION_BOT_MISMATCH", "Cuộc trò chuyện thuộc trợ lý khác. Chọn lại trong lịch sử.");
       update(value); setReady(true); setAtBottom(true);
-      if (value.activeRunId && allowed) void stream(value.activeRunId, value.activeRunVersion || 1, `/api/v1/ai/runs/${value.activeRunId}/events`, controller.signal);
+      if (switched) requestAnimationFrame(() => focusRouteHeading());
+      if (value.activeRunId && allowed) void stream(value.activeRunId, value.activeRunVersion || 1, `/api/v1/ai/runs/${value.activeRunId}/events`, controller.signal, `resume:${value.activeRunId}`);
     }
     void open().catch(reason => { if (!controller.signal.aborted) setError(reason); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     // Lifetime is aborted above on a real selection and on unmount. URL updates
     // for the current thread must leave its in-flight request running.
-  }, [api, bot.botId, selectedId, searchParams.get("new"), revision, stream, update, preferencesLoading, preferences?.historyEnabled]);
+  }, [api, bot.botId, selectedId, searchParams.get("new"), revision, stream, update, preferencesLoading, preferences?.historyEnabled, editDraft]);
   useEffect(() => {
     if (!session.consents.AI.enabled) {
       setPendingProposals(0);
@@ -852,6 +945,15 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     if (atBottom && log.current)
       log.current.scrollTop = log.current.scrollHeight;
   }, [conversation?.messages.length, busy, atBottom]);
+  const lastMessageId = conversation?.messages.at(-1)?.id;
+  useEffect(() => {
+    if (lastMessageId && !atBottom) setUnseen(true);
+    // Only a new last message counts; prepending older history does not.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastMessageId]);
+  useEffect(() => {
+    if (atBottom) setUnseen(false);
+  }, [atBottom]);
   async function send(value = draft) {
     const text = value.trim();
     if (
@@ -867,7 +969,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     )
       return;
     const signal = lifetime.current.signal;
+    const submittedRevision = draftRevision.current, generation = viewGeneration.current;
     setBusy(true);
+    setStopped(false);
     setError(undefined);
     const moodScope = moodSelected ? { fromDate: moodFrom, toDate: moodTo } : undefined;
     const scopeKey = moodScope ? `${moodScope.fromDate}/${moodScope.toDate}` : "";
@@ -921,7 +1025,6 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         },
       );
       if (signal.aborted) return;
-      if (grantedSession) receive(grantedSession);
       update({
         ...thread,
         version: accepted.version,
@@ -932,46 +1035,90 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           { id: intent.current!.clientMessageId, actor: "self", text },
         ],
       });
+      const requestKey = intent.current!.clientMessageId;
       intent.current = null;
-      submittedText.current = text;
       if (moodScope) setLastMoodRange({ conversationId: thread.conversationId, ...moodScope });
       setShareMood(false);
-      setDraft("");
+      // Only the snapshot that was submitted is cleared; anything typed while the
+      // request was pending (even text equal to the old draft) stays.
+      const untouched = draftRevision.current === submittedRevision;
+      if (untouched) editDraft("");
+      recovery.current = { requestKey, conversationId: thread.conversationId, generation, text, revision: untouched ? draftRevision.current : -1 };
       setAtBottom(true);
       await stream(
         accepted.runId,
         accepted.runVersion,
         accepted.eventsUrl,
         signal,
+        requestKey,
       );
     } catch (reason) {
-      if (grantedSession) receive(grantedSession);
       if (!signal.aborted) setError(reason);
     } finally {
+      if (grantedSession) receive(grantedSession);
       if (!signal.aborted) setBusy(false);
     }
   }
-  async function cancel() {
-    if (!run) return;
+  /** A suggestion only edits the draft; sending stays an explicit choice. */
+  function insertStarter(text: string) {
+    const field = composer.current;
+    const result = insertAtSelection(draft, field?.selectionStart ?? draft.length, field?.selectionEnd ?? draft.length, text);
+    if (!result.ok) {
+      setDraftNotice("Gợi ý này sẽ làm tin nhắn dài hơn 500 ký tự. Hãy rút gọn trước khi thêm.");
+      return;
+    }
+    editDraft(result.next);
+    setDraftNotice("Đã thêm gợi ý vào ô nhắn.");
+    requestAnimationFrame(() => {
+      field?.focus();
+      field?.setSelectionRange(result.caret, result.caret);
+    });
+  }
+  /** "pending" means this run's cancel request already exists; its outcome is the stream's terminal event. */
+  async function cancel(): Promise<"accepted" | "pending" | "failed"> {
+    if (!run) return "failed";
+    const runId = run.id;
+    if (stopRequested || cancelRequested.current === runId) return "pending";
+    cancelRequested.current = runId;
+    setStopRequested(true);
+    setError(undefined);
     try {
-      await api.request(`/ai/runs/${run.id}/cancel`, {
+      // Keep reading the stream: only its terminal event says whether the run
+      // was cancelled or had already completed.
+      await api.request(`/ai/runs/${runId}/cancel`, {
         method: "POST",
         body: { expectedVersion: run.version } satisfies VersionInput,
       });
+      return "accepted";
     } catch (reason) {
-      setError(reason);
+      if (activeRun.current === runId) {
+        cancelRequested.current = undefined;
+        setStopRequested(false);
+        setError(reason);
+        // A New that was waiting on this cancellation cannot proceed; stay put.
+        if (pendingNew.current) {
+          pendingNew.current = false;
+          setAwaitingNew(false);
+          setError(new ApiError(0, "RUN_STATE_UNCONFIRMED", UNCONFIRMED));
+        }
+      }
+      return "failed";
     }
   }
   function newConversation() {
     lifetime.current?.abort();
     lifetime.current = new AbortController();
-    current.current = undefined; setConversation(undefined); setDraft(""); setError(undefined); setNotice("");
+    viewGeneration.current += 1; recovery.current = undefined; settled.current = undefined; confirmTarget.current = undefined;
+    current.current = undefined; setConversation(undefined); editDraft(""); setDraftNotice(""); setManageError(undefined); setError(undefined); setNotice("");
     setReady(true); setLoading(false); setBusy(false); setRun(undefined); intent.current = null; setShareMood(false); setLastMoodRange(undefined);
-    // An explicit new marker prevents latest-thread auto-resume. Record it now:
-    // the router applies the URL in a transition, and its effect must not wipe a
-    // draft typed after this click.
+    activeRun.current = undefined; cancelRequested.current = undefined; setStopRequested(false); setSyncing(false); setStopped(false);
+    pendingNew.current = false; setAwaitingNew(false); setPreviousConversation(undefined); setCopyStatus(undefined);
+    // An explicit new marker prevents latest-thread auto-resume. This view is
+    // already reset, so the router applying the marker URL (in a transition) must
+    // neither abort the fresh lifetime nor wipe a draft or send made since the click.
     const marker = crypto.randomUUID();
     loadedSelection.current = `${bot.botId}/${marker}`;
+    newMarker.current = `${bot.botId}/${marker}#${revision}`;
     setSearchParams({ new: marker });
   }
   async function olderMessages() {
@@ -998,63 +1145,216 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     try {
       const header = await api.request<SavedConversationHeader>(`/ai/conversations/${thread.conversationId}`, { method: "PATCH", body: { title } });
       if (current.current?.conversationId === thread.conversationId) update({ ...current.current, title: header.title });
-      setRenameOpen(false); refreshHistory(); setNotice("Đã đổi tên hội thoại.");
+      setRenameOpen(false); refreshHistory(); setNotice("Đã đổi tên cuộc trò chuyện.");
     } catch (reason) { setRenameError(reason); }
     finally { setManageBusy(false); }
   }
-  async function manage(deleting: boolean) {
+  async function removeConversation() {
     const thread = current.current;
     if (!thread || manageBusy) return;
-    setManageBusy(true); setError(undefined);
+    setManageBusy(true); setDeleteError(undefined);
     try {
-      if (deleting) {
-        await api.request(`/ai/conversations/${thread.conversationId}`, { method: "DELETE" });
-        setDeleteOpen(false); newConversation(); refreshHistory(); setNotice("Đã xóa hội thoại.");
-      } else {
-        const exported = await api.request<unknown>(`/ai/conversations/${thread.conversationId}/export`);
-        downloadConversation(exported, thread.conversationId);
-      }
-    } catch (reason) { setError(reason); }
+      await api.request(`/ai/conversations/${thread.conversationId}`, { method: "DELETE" });
+      setDeleteOpen(false); setInfoOpen(false); newConversation(); refreshHistory(); setNotice("Đã xóa cuộc trò chuyện.");
+    } catch (reason) { setDeleteError(reason); }
     finally { setManageBusy(false); }
   }
-  let conversationLabel = "Hội thoại tạm thời · không lưu vào lịch sử";
-  if (conversation?.persistent) conversationLabel = "Hội thoại đã lưu";
-  else if (!conversation && preferences?.historyEnabled && preferences.historyAvailable)
-    conversationLabel = "Hội thoại mới sẽ được lưu";
+  async function exportConversation() {
+    const thread = current.current;
+    if (!thread || manageBusy) return;
+    setManageBusy(true); setManageError(undefined);
+    try {
+      const exported = await api.request<unknown>(`/ai/conversations/${thread.conversationId}/export`);
+      downloadConversation(exported, thread.conversationId);
+    } catch (reason) { setManageError(reason); }
+    finally { setManageBusy(false); }
+  }
+  // Child dialogs replace a compact (modal) info sheet; on desktop the modeless
+  // panel stays and the dialog returns focus to the panel action.
+  function openRename() {
+    const thread = current.current;
+    if (!thread) return;
+    setRenameText(thread.title || ""); setRenameError(undefined);
+    if (compactLayout()) setInfoOpen(false);
+    setRenameOpen(true);
+  }
+  function openDelete() {
+    setDeleteError(undefined);
+    if (compactLayout()) setInfoOpen(false);
+    setDeleteOpen(true);
+  }
+  function openHistory() {
+    if (compactLayout()) setInfoOpen(false);
+    setHistoryOpen(true);
+  }
+  function closeInfo(restoreFocus: boolean) {
+    setInfoOpen(false);
+    if (restoreFocus) requestAnimationFrame(() => infoTrigger.current?.focus());
+  }
+  function requestNew() {
+    if (syncing || awaitingNew || (busy && !run)) return;
+    if (run) {
+      // The confirmation is about this run in this conversation; confirming later
+      // re-checks what became of it rather than assuming it is still active.
+      confirmTarget.current = current.current ? { runId: run.id, conversationId: current.current.conversationId } : undefined;
+      if (compactLayout()) setInfoOpen(false);
+      setNewConfirmOpen(true);
+      return;
+    }
+    setInfoOpen(false);
+    newConversation();
+  }
+  function openNewAfter(outcome: Exclude<RunOutcome, "unknown">) {
+    const previous = current.current?.conversationId;
+    setInfoOpen(false);
+    newConversation();
+    setPreviousConversation(outcome === "completed" ? previous : undefined);
+    setNotice(
+      outcome === "cancelled" ? "Đã dừng phản hồi và mở cuộc trò chuyện mới."
+        : outcome === "completed" ? "Câu trả lời vừa hoàn tất trước khi dừng. Đã mở cuộc trò chuyện mới."
+          : "Phản hồi đã kết thúc vì lỗi trước khi dừng. Đã mở cuộc trò chuyện mới.",
+    );
+  }
+  async function stopAndNew() {
+    setNewConfirmOpen(false);
+    const target = confirmTarget.current;
+    confirmTarget.current = undefined;
+    const thread = current.current;
+    if (!target || !thread || target.conversationId !== thread.conversationId) return;
+    if (run?.id !== target.runId) {
+      // The run being confirmed is no longer the active one. A missing run proves
+      // neither completion nor cancellation: use only an outcome this view validated.
+      const known = settled.current;
+      if (!run && known && known.runId === target.runId && known.conversationId === target.conversationId && known.outcome !== "unknown") {
+        openNewAfter(known.outcome);
+        return;
+      }
+      // Never cancel a newer run on behalf of an older confirmation.
+      setError(new ApiError(0, "RUN_STATE_UNCONFIRMED", UNCONFIRMED));
+      return;
+    }
+    pendingNew.current = true;
+    setAwaitingNew(true);
+    const result = await cancel();
+    // A failed cancel already cleared the pending New; "pending" reuses the Stop in flight.
+    if (result === "failed" && pendingNew.current) {
+      pendingNew.current = false;
+      setAwaitingNew(false);
+      setError(new ApiError(0, "RUN_STATE_UNCONFIRMED", UNCONFIRMED));
+    }
+  }
+  onTerminal.current = (outcome) => {
+    if (!pendingNew.current) return;
+    pendingNew.current = false;
+    setAwaitingNew(false);
+    if (outcome === "unknown") {
+      // Keep this conversation and its draft; nothing is replayed automatically.
+      setError(new ApiError(0, "RUN_STATE_UNCONFIRMED", UNCONFIRMED));
+      return;
+    }
+    openNewAfter(outcome);
+  };
+  async function copyReply(id: string, bubble: Element | null | undefined) {
+    // Plain text of the rendered, validated reply; never cards or metadata.
+    const root = bubble?.querySelector<HTMLElement>(".ai-markdown") ?? (bubble as HTMLElement | null | undefined);
+    const text = root?.innerText.trim() ?? "";
+    try {
+      if (!text || !navigator.clipboard) throw new Error("clipboard unavailable");
+      await navigator.clipboard.writeText(text);
+      setCopyStatus({ id, ok: true });
+    } catch {
+      setCopyStatus({ id, ok: false });
+    }
+  }
+  function jumpToLatest() {
+    const element = log.current;
+    if (!element) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    element.scrollTo({ top: element.scrollHeight, behavior: reduced ? "auto" : "smooth" });
+    setAtBottom(true);
+    setUnseen(false);
+  }
+  const lastSelf = conversation?.messages.filter((message) => message.actor === "self").at(-1);
+  const phase: AIActivityPhase = stopRequested ? "cancelling"
+    : syncing ? "reconciling"
+    : run ? "accepted"
+    : busy ? "submitting"
+    // The transcript turn status already says a reconciled turn stopped.
+    : stopped && lastSelf?.status !== "cancelled" ? "cancelled"
+    : "idle";
+  const activity = deriveAIActivity({ phase, requestKey: run?.key ?? intent.current?.clientMessageId, runId: run?.id });
+  const historyOnForNew = Boolean(preferences?.historyEnabled && preferences.historyAvailable);
+  const modeLabel = conversation ? (conversation.persistent ? "Đã lưu" : "Tạm thời") : historyOnForNew ? "Sẽ được lưu" : "Tạm thời";
+  const TEMPORARY = "Không lưu vào lịch sử. Phiên tạm có thể kết thúc khi phiên đăng nhập hoặc máy chủ thay đổi.";
+  let retentionLabel = TEMPORARY;
+  if (conversation?.persistent)
+    retentionLabel = conversation.expiresAt
+      ? `Đã lưu trong lịch sử đến ngày ${new Intl.DateTimeFormat("vi-VN", { timeZone: session.timezone, dateStyle: "short" }).format(new Date(conversation.expiresAt))}.`
+      : `Đã lưu trong lịch sử tối đa ${preferences?.retentionDays ?? 30} ngày.`;
+  else if (!conversation && historyOnForNew)
+    retentionLabel = `Cuộc trò chuyện này sẽ được lưu trong lịch sử tối đa ${preferences!.retentionDays} ngày khi bạn gửi tin đầu tiên.`;
 
-  let historyAction = "Bật lưu lịch sử trong cài đặt";
-  if (preferencesLoading) historyAction = "Đang kiểm tra lịch sử…";
-  else if (!preferences) historyAction = "Kiểm tra quyền lưu lịch sử";
-  else if (!preferences.historyAvailable) historyAction = "Lưu lịch sử chưa sẵn sàng";
-  else if (preferences.historyEnabled) historyAction = `Lưu tối đa ${preferences.retentionDays} ngày`;
+  let historyStatus = "Đang tắt lưu lịch sử. Cuộc trò chuyện mới là tạm thời.";
+  if (preferencesLoading) historyStatus = "Đang kiểm tra lịch sử…";
+  else if (!preferences) historyStatus = "Chưa kiểm tra được lựa chọn lưu lịch sử.";
+  else if (!preferences.historyAvailable) historyStatus = "Lưu lịch sử chưa sẵn sàng.";
+  else if (preferences.historyEnabled) historyStatus = `Đang lưu cuộc trò chuyện mới tối đa ${preferences.retentionDays} ngày.`;
 
-  let readOnlyMessage = "Đang kiểm tra lựa chọn dữ liệu AI…";
+  let readOnlyMessage = "Đang kiểm tra cài đặt trò chuyện AI…";
   if (!session.features.ai) readOnlyMessage = aiServiceMessage(session.features);
   else if (!preferences && !preferencesLoading)
-    readOnlyMessage = "Chưa tải được lựa chọn dữ liệu AI. Hãy thử tải lại trước khi nhắn.";
+    readOnlyMessage = "Chưa tải được cài đặt trò chuyện AI. Tải lại trước khi gửi tin nhắn.";
   else if (preferences && !historyWritable)
     readOnlyMessage = preferences.historyAvailable
-      ? "Bạn đang tắt lưu lịch sử. Bật lại trong cài đặt để tiếp tục hội thoại đã lưu, hoặc mở hội thoại tạm thời mới."
-      : "Lưu lịch sử hiện chưa sẵn sàng. Hội thoại đã lưu chỉ để xem; bạn có thể mở hội thoại tạm thời mới.";
+      ? "Bạn đang tắt lưu lịch sử nên cuộc trò chuyện đã lưu này chỉ để xem. Bật lại trong cài đặt lưu lịch sử để tiếp tục, hoặc mở một cuộc trò chuyện tạm thời mới."
+      : "Lưu lịch sử hiện chưa sẵn sàng. Cuộc trò chuyện đã lưu chỉ để xem; bạn có thể mở một cuộc trò chuyện tạm thời mới.";
+  const newDisabledReason = busy && !run ? "Đang xác nhận tin nhắn vừa gửi."
+    : syncing ? "Đang cập nhật cuộc trò chuyện…"
+      : awaitingNew ? "Đang chờ phản hồi hiện tại dừng lại…"
+        : undefined;
+  const infoTitle = conversation?.title?.trim() || "Cuộc trò chuyện mới";
   return (
     <>
-      <div className="chat-history-toolbar">
-        <div><span>{conversationLabel}</span>
-        <Link to="/settings">{historyAction}</Link></div>
-        <div className={cx.actions}>
-          <Button variant="text" onClick={newConversation}>Cuộc trò chuyện mới</Button>
-          {conversation?.persistent ? <><Button variant="text" disabled={manageBusy} onClick={() => { setRenameText(conversation.title || ""); setRenameError(undefined); setRenameOpen(true); }}>Đổi tên</Button><Button variant="text" disabled={manageBusy} onClick={() => void manage(false)}>Xuất hội thoại</Button><Button variant="text" disabled={manageBusy} onClick={() => setDeleteOpen(true)}>Xóa hội thoại</Button></> : null}
+      <header className="conversation-header">
+        <Link
+          to="/assistants"
+          className="icon-button mobile-back"
+          aria-label="Về danh sách trợ lý"
+        >
+          <ArrowLeft size={21} />
+        </Link>
+        <PublicAvatar bot={bot} size={43} />
+        <div>
+          <h1 tabIndex={-1} data-route-heading>
+            {bot.name} <span className="ai-tag">AI</span>
+          </h1>
+          <p>
+            {bot.role} · <span className="conversation-mode">{modeLabel}</span>
+          </p>
         </div>
-      </div>
-      {renameOpen ? <Dialog title="Đổi tên hội thoại" onClose={() => !manageBusy && setRenameOpen(false)}><form className="conversation-rename" onSubmit={(event) => { event.preventDefault(); void rename(); }}><label htmlFor="conversation-title">Tên hội thoại</label><input id="conversation-title" value={renameText} maxLength={100} required onChange={(event) => setRenameText(event.target.value)} /><p>Tên chỉ hiển thị cho bạn và không được gửi tới trợ lý.</p><ErrorNotice error={renameError} /><div className={cx.actions}><Button type="button" variant="secondary" disabled={manageBusy} onClick={() => setRenameOpen(false)}>Hủy</Button><Button type="submit" disabled={manageBusy || !renameText.trim()}>Lưu tên</Button></div></form></Dialog> : null}
-      {deleteOpen ? <Dialog title="Xóa hội thoại này?" destructive onClose={() => !manageBusy && setDeleteOpen(false)}><p>Hội thoại và các tin nhắn trong đó sẽ bị xóa. Thao tác này không thể hoàn tác.</p><ErrorNotice error={error} /><div className={cx.actions}><Button variant="secondary" data-cancel disabled={manageBusy} onClick={() => setDeleteOpen(false)}>Giữ hội thoại</Button><Button disabled={manageBusy} onClick={() => void manage(true)}>Xác nhận xóa hội thoại</Button></div></Dialog> : null}
+        <button
+          ref={infoTrigger}
+          type="button"
+          className="icon-button"
+          aria-label="Thông tin cuộc trò chuyện"
+          aria-expanded={infoOpen}
+          aria-controls={infoMounted ? infoId : undefined}
+          onClick={() => (infoOpen ? closeInfo(true) : setInfoOpen(true))}
+        >
+          <Info size={21} />
+        </button>
+      </header>
+      {historyOpen ? <Dialog title="Lịch sử trò chuyện" returnFocus={infoTrigger} onClose={() => setHistoryOpen(false)}><ConversationHistory onSelect={() => setHistoryOpen(false)} /></Dialog> : null}
+      {renameOpen ? <Dialog title="Đổi tên cuộc trò chuyện" initialFocus={renameField} returnFocus={infoTrigger} onClose={() => !manageBusy && setRenameOpen(false)}><form className="conversation-rename" onSubmit={(event) => { event.preventDefault(); void rename(); }}><label htmlFor="conversation-title">Tên cuộc trò chuyện</label><input id="conversation-title" ref={renameField} value={renameText} maxLength={100} required onChange={(event) => setRenameText(event.target.value)} /><p>Tên chỉ hiển thị cho bạn và không được gửi tới trợ lý.</p><ErrorNotice error={renameError} /><div className={cx.actions}><Button type="button" variant="secondary" disabled={manageBusy} onClick={() => setRenameOpen(false)}>Hủy</Button><Button type="submit" disabled={manageBusy || !renameText.trim()}>{manageBusy ? "Đang lưu tên…" : "Lưu tên"}</Button></div></form></Dialog> : null}
+      {deleteOpen ? <Dialog title="Xóa cuộc trò chuyện này?" destructive returnFocus={infoTrigger} onClose={() => !manageBusy && setDeleteOpen(false)}><p>Cuộc trò chuyện và các tin nhắn trong đó sẽ bị xóa. Thao tác này không thể hoàn tác.</p><ErrorNotice error={deleteError} /><div className={cx.actions}><Button variant="secondary" data-cancel disabled={manageBusy} onClick={() => setDeleteOpen(false)}>Giữ cuộc trò chuyện</Button><Button variant="danger" disabled={manageBusy} onClick={() => void removeConversation()}>{manageBusy ? "Đang xóa…" : "Xóa cuộc trò chuyện"}</Button></div></Dialog> : null}
+      {newConfirmOpen ? <Dialog title="Dừng phản hồi và mở cuộc trò chuyện mới?" destructive returnFocus={infoTrigger} onClose={() => setNewConfirmOpen(false)}><p>Phản hồi hiện tại sẽ được yêu cầu dừng. Cuộc trò chuyện mới chỉ mở sau khi xác nhận được kết quả; cuộc trò chuyện đã lưu vẫn được giữ.</p><div className={cx.actions}><Button variant="secondary" data-cancel onClick={() => setNewConfirmOpen(false)}>Tiếp tục trò chuyện</Button><Button onClick={() => void stopAndNew()}>Dừng và mở mới</Button></div></Dialog> : null}
+      <div className="conversation-stage">
       <div
         className="conversation-log"
         ref={log}
         role="log"
         tabIndex={0}
-        aria-label={`Hội thoại với ${bot.name}`}
-        aria-live="polite"
+        aria-label={`Cuộc trò chuyện với ${bot.name}`}
         onScroll={() => {
           const element = log.current!;
           setAtBottom(
@@ -1069,11 +1369,11 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           <p>{bot.description}</p>
           {!conversation?.messages.length && <AssistantGuide botId={bot.botId} />}
           <small>
-            <LockKeyhole size={11} /> Không chia sẻ với bạn kết nối
+            <LockKeyhole size={13} /> Không chia sẻ với bạn kết nối
           </small>
         </div>
-        {notice ? <p role="status">{notice}</p> : null}
-        {preferencesError ? <><p>Lựa chọn dữ liệu chưa xác minh được; cuộc trò chuyện mới chỉ là tạm thời.</p><ErrorNotice error={preferencesError} retry={reloadPreferences} /></> : null}
+        {notice ? <p role="status"><span>{notice}</span>{previousConversation ? <> <Link to={`/assistants/${bot.botId}?conversation=${encodeURIComponent(previousConversation)}`}>Xem cuộc trò chuyện trước</Link></> : null}</p> : null}
+        {preferencesError ? <><p>Chưa xác minh được lựa chọn lưu dữ liệu. Tải lại trước khi gửi tin nhắn.</p><ErrorNotice error={preferencesError} retry={reloadPreferences} /></> : null}
         {loading ? <p role="status">Đang mở cuộc trò chuyện…</p> : null}
         {conversation?.hasMoreMessages ? <Button variant="secondary" disabled={olderBusy || loading} onClick={() => void olderMessages()}>{olderBusy ? "Đang tải tin nhắn…" : "Tải tin nhắn cũ hơn"}</Button> : null}
         {conversation?.messages.map((message) => (
@@ -1089,6 +1389,19 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
                   </Suspense>
                 ) : <p>{message.text}</p>}
               </div>
+              {message.actor === "bot" ? (
+                <div className="message-actions">
+                  <button
+                    type="button"
+                    className="message-action"
+                    aria-label="Sao chép câu trả lời"
+                    onClick={(event) => void copyReply(message.id, event.currentTarget.closest(".message-content")?.querySelector(".chat-bubble"))}
+                  >
+                    <Copy size={15} aria-hidden="true" /> Sao chép
+                  </button>
+                  {copyStatus?.id === message.id ? <span role="status">{copyStatus.ok ? "Đã sao chép câu trả lời." : "Chưa sao chép được. Bạn có thể chọn và sao chép nội dung."}</span> : null}
+                </div>
+              ) : null}
               {message.actor === "self" && message.status && ["failed", "interrupted", "cancelled"].includes(message.status) ? <small className="message-turn-status" role="status">{message.status === "interrupted" ? "Phản hồi bị gián đoạn; lượt này không tự chạy lại." : message.status === "cancelled" ? "Đã dừng phản hồi." : "Phản hồi chưa hoàn tất."}</small> : null}
               {validCards(message.cards) &&
                 message.cards.map((card, index) => (
@@ -1113,28 +1426,46 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             <Link to="/memory">Xem đề xuất</Link>
           </p>
         ) : null}
-        {busy ? (
-          <div className="bot-pending">
-            <Typing />
-            {run ? (
-              <Button variant="text" onClick={cancel}>
-                Dừng
-              </Button>
-            ) : (
-              <span>Đang gửi…</span>
-            )}
-          </div>
-        ) : null}
+
         <ErrorNotice
           error={error}
           retry={() => setRevision((value) => value + 1)}
         />
       </div>
+      {unseen && !atBottom ? <button type="button" className="jump-latest" onClick={jumpToLatest}>Về tin mới</button> : null}
+      <ConversationInfo
+        open={infoOpen}
+        suspended={historyOpen || renameOpen || deleteOpen || newConfirmOpen}
+        onClose={closeInfo}
+        triggerRef={infoTrigger}
+        panelId={infoId}
+        title={infoTitle}
+        botName={bot.name}
+        persistent={Boolean(conversation?.persistent)}
+        modeLabel={modeLabel}
+        retentionLabel={retentionLabel}
+        historyStatus={historyStatus}
+        pendingProposals={pendingProposals}
+        manageBusy={manageBusy}
+        manageError={<ErrorNotice error={manageError} />}
+        newDisabledReason={newDisabledReason}
+        onHistory={openHistory}
+        onRename={openRename}
+        onExport={() => void exportConversation()}
+        onDelete={openDelete}
+        onNew={requestNew}
+      />
+      </div>
+      <AIActivityStatus
+        view={activity}
+        phase={phase}
+        identity={`${conversation?.conversationId ?? "new"}/${run?.key ?? intent.current?.clientMessageId ?? "idle"}`}
+        onStop={run && !syncing ? () => void cancel() : undefined}
+        stopDisabled={stopRequested || awaitingNew}
+      />
       {session.features.aiStatus === "test_provider" ? <p className={cx.footnote} role="note">Môi trường kiểm thử · phản hồi từ model giả, không phải OpenAI.</p> : null}
-      {!canSend ? <div className="chat-readonly" role="status"><p>{readOnlyMessage}</p><Link to="/settings">Xem quyền dữ liệu AI</Link></div> : <div className="chat-bottom">
-        <p className={cx.footnote}>Tin nhắn chỉ được gửi cho nhà cung cấp AI khi bạn chọn Gửi. Lịch sử máy chủ và ghi nhớ lâu dài là các lựa chọn riêng.</p>
-        {!session.consents.AI.enabled ? <p role="note">Lần gửi đầu tiên sẽ ghi nhận quyền xử lý tin nhắn AI. Bạn có thể rút quyền trong Quyền riêng tư.</p> : null}
-        <details><summary>Lưu lịch sử trò chuyện</summary><AIDataControls historyOnly /></details>
+      {!canSend ? <div className="chat-readonly" role="status"><p>{readOnlyMessage}</p>{allowed && preferences && !historyWritable ? <div className={cx.actions}>{preferences.historyAvailable ? <Link to="/settings">Mở cài đặt lưu lịch sử</Link> : null}<Button variant="secondary" onClick={requestNew}>Mở cuộc trò chuyện mới</Button></div> : null}</div> : <div className="chat-bottom">
+        {!session.consents.AI.enabled ? <p className={cx.footnote} role="note">Khi chọn Gửi, bạn đồng ý để dịch vụ AI xử lý tin nhắn này. Bạn có thể rút quyền trong Quyền riêng tư.</p> : null}
         {bot.botId === "nhip" ? (
           <>
           {lastMoodRange && lastMoodRange.conversationId === conversation?.conversationId && !shareMood ? (
@@ -1153,7 +1484,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             <fieldset disabled={busy || loading || !ready}>
               <label className="mood-share-choice">
                 <input type="checkbox" checked={shareMood} onChange={event => setShareMood(event.target.checked)} />
-                Cho Nhịp đọc khoảng ngày mình chọn
+                Cho Nhịp xem thống kê trong khoảng ngày đã chọn
               </label>
               <p>Chỉ chia sẻ điểm tâm trạng và những ngày đã ghi, không gửi ghi chú. Bạn chọn lại quyền này cho mỗi lượt.</p>
               {shareMood ? <div className="mood-share-dates">
@@ -1163,27 +1494,33 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
                 <label htmlFor="mood-share-to">Thống kê đến ngày
                   <input id="mood-share-to" type="date" min={moodFrom || moodWindow.earliest} max={moodWindow.today} value={moodTo} onChange={event => setMoodTo(event.target.value)} />
                 </label>
-                {moodInvalid ? <p role="alert">Chọn đủ ngày bắt đầu và kết thúc theo đúng thứ tự, trong 90 ngày gần đây.</p> : null}
+                {moodInvalid ? <p role="alert">Chọn ngày bắt đầu và kết thúc trong 90 ngày gần đây. Ngày kết thúc phải từ ngày bắt đầu trở đi.</p> : null}
               </div> : null}
             </fieldset>
           </details>
           </>
         ) : null}
-        <VoiceRecorder onUse={setDraft} />
+        <VoiceRecorder
+          draft={draft}
+          onUse={(text) => {
+            editDraft(text);
+            setDraftNotice("");
+            requestAnimationFrame(() => composer.current?.focus());
+          }}
+        />
         <div className="quick-replies" aria-label="Gợi ý trò chuyện">
           {bot.starters.map((text) => (
             <button
+              type="button"
               key={text}
-              disabled={busy || loading || !ready || moodInvalid}
-              onClick={() => {
-                setDraft(text);
-                void send(text);
-              }}
+              disabled={loading || !ready}
+              onClick={() => insertStarter(text)}
             >
               {text}
             </button>
           ))}
         </div>
+        {draftNotice ? <p className={cx.footnote} role="status">{draftNotice}</p> : null}
         <QuotaHint />
         <form
           className="bot-composer"
@@ -1194,10 +1531,11 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         >
           <textarea
             aria-label={`Tin nhắn cho ${bot.name}`}
+            ref={composer}
             value={draft}
             maxLength={500}
             rows={1}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={(event) => { editDraft(event.target.value); setDraftNotice(""); }}
             placeholder={`Nhắn cho ${bot.name}…`}
             onKeyDown={(event) => {
               if (
@@ -1232,11 +1570,11 @@ const consentLabels: Record<ConsentPurpose, string> = {
 };
 /** What withdrawing each permission does, matching backend/app/modules/consent/routes.py. */
 const consentWithdrawal: Record<ConsentPurpose, string> = {
-  AI: "Khi tắt: dừng ngay các lượt AI đang chạy, hủy đề xuất ghi nhớ chưa duyệt và xóa chỉ mục tìm kiếm ghi nhớ. Vẫn giữ: lịch sử trò chuyện đã lưu (chỉ đọc) và các ghi nhớ bạn đã duyệt — bạn có thể xuất hoặc xóa chúng bên dưới.",
-  MEM: "Khi tắt: trợ lý ngừng nhắc lại ghi nhớ, hủy đề xuất chưa duyệt và xóa chỉ mục tìm kiếm. Vẫn giữ: các ghi nhớ đã duyệt để bạn xem, sửa hoặc xóa.",
+  AI: "Khi rút quyền, các phản hồi AI đang chạy sẽ dừng, đề xuất chưa duyệt bị hủy và dữ liệu tìm kiếm ghi nhớ bị xóa. Cuộc trò chuyện đã lưu vẫn xem được; ghi nhớ đã duyệt vẫn được giữ. Bạn có thể tải hoặc xóa từng loại dữ liệu.",
+  MEM: "Khi rút quyền, trợ lý ngừng dùng ghi nhớ, đề xuất chưa duyệt bị hủy và dữ liệu tìm kiếm ghi nhớ bị xóa. Ghi nhớ đã duyệt vẫn được giữ để bạn xem, sửa hoặc xóa.",
   MATCH:
-    "Khi tắt: đóng mọi cuộc trò chuyện với người thật, hủy lời mời đang chờ, và hồ sơ kết nối bị ẩn. Bật lại không tự chia sẻ lại hồ sơ — bạn cần xem lại và xuất bản lại. Những người đang trò chuyện hoặc có lời mời chờ với bạn sẽ không được gợi ý lại cho nhau trong 30 ngày. Mọi hoạt động chung đang diễn ra cũng dừng lại.",
-  VOICE: "Khi tắt: không thể ghi âm nữa. Âm thanh không bao giờ được lưu lại.",
+    "Khi tắt: đóng mọi cuộc trò chuyện với người thật, hủy lời mời đang chờ, và hồ sơ tìm bạn bị ẩn. Quyền này không tự bật lại: bạn cần xem lại hồ sơ và chọn Hiển thị hồ sơ. Những người đang trò chuyện hoặc có lời mời chờ với bạn sẽ không được gợi ý lại cho nhau trong 30 ngày. Mọi hoạt động chung đang diễn ra cũng dừng lại.",
+  VOICE: "Khi rút quyền, bạn không thể ghi âm. Bản ghi âm không được lưu lại.",
 };
 function Settings() {
   const { api, session, receive, logout } = useSession();
@@ -1277,39 +1615,63 @@ function Settings() {
     } catch (reason) { setError(reason); }
     finally { setBusy(undefined); }
   }
+  const withdraw = (purpose: ConsentPurpose) => (
+    <div className="privacy-withdraw">
+      <p>{consentWithdrawal[purpose]}</p>
+      <Button variant="secondary" disabled={!!busy} onClick={() => void change(purpose)}>
+        {busy === purpose ? "Đang cập nhật…" : `Rút quyền ${consentLabels[purpose]}`}
+      </Button>
+    </div>
+  );
   return (
     <div className={cx.reading}>
       <h1 tabIndex={-1}>Quyền riêng tư</h1>
-      <p className={cx.lede}>Bạn chọn nội dung được lưu, dùng để ghi nhớ hoặc chia sẻ với người khác.</p>
+      <p className={cx.lede}>Mỗi lựa chọn bên dưới độc lập với nhau. Bạn quyết định nội dung nào được xử lý, lưu lại hoặc chia sẻ.</p>
       <ErrorNotice error={error} />
-      <section className="real-section">
-        <h2>AI và ghi nhớ</h2>
-        <p>Trợ lý xử lý tin nhắn khi bạn chọn Gửi. Ghi nhớ chỉ được lưu sau khi bạn duyệt từng đề xuất.</p>
-        <Link to="/memory">Xem và quản lý ghi nhớ đã duyệt</Link>
-        <AIDataControls />
-      </section>
-      <section className="real-section">
-        <h2>Kết nối và khám phá</h2>
-        {published.loading ? <p role="status">Đang kiểm tra hồ sơ kết nối…</p> : published.error ? null :
-          <p role="status">{published.data?.state === "live" ? "Hồ sơ đang chia sẻ" : "Hồ sơ chưa hiển thị trong gợi ý"}</p>}
-        <ErrorNotice error={published.error} retry={published.refresh} />
-        <p>Chỉ thẻ kết nối bạn xem trước và xuất bản mới hiển thị với người khác. Nhật ký, cảm xúc và hội thoại AI không dùng để gợi ý.</p>
-        <Link to="/connect?tab=profile">Xem hoặc sửa hồ sơ kết nối</Link>
-        {published.data?.state === "live" ? <Button variant="secondary" disabled={!!busy} onClick={() => void unpublish()}>{busy === "unpublish" ? "Đang ngừng chia sẻ…" : "Ngừng chia sẻ hồ sơ"}</Button> : null}
-      </section>
-      <details className="real-section">
-        <summary>Rút quyền xử lý đã cấp</summary>
-        <p>Các lựa chọn đã rút vẫn được ghi nhận. Bạn có thể tiếp tục dùng tính năng sau khi chọn hành động có thông báo phù hợp.</p>
-        {(["AI", "MEM", "MATCH", "VOICE"] as ConsentPurpose[]).filter(purpose => session.consents[purpose].enabled).map(purpose =>
-          <div key={purpose}>
-            <p>{consentWithdrawal[purpose]}</p>
-            <Button variant="secondary" disabled={!!busy} onClick={() => void change(purpose)}>{busy === purpose ? "Đang cập nhật…" : `Rút quyền ${consentLabels[purpose]}`}</Button>
-          </div>
+      <section className="real-section" aria-labelledby="privacy-ai">
+        <h2 id="privacy-ai">Tin nhắn AI</h2>
+        <p>Trợ lý chỉ xử lý tin nhắn khi bạn chọn Gửi trong một cuộc trò chuyện.</p>
+        {session.consents.AI.enabled ? withdraw("AI") : (
+          <p>
+            Quyền xử lý AI đang tắt. Để dùng trợ lý trở lại, mở cuộc trò chuyện và chọn Gửi khi bạn muốn chia sẻ tin nhắn.{" "}
+            <Link to="/assistants">Mở trợ lý</Link>
+          </p>
         )}
-      </details>
-      <AdultEligibility />
-      <section className="real-section">
-        <h2>Phiên đăng nhập</h2>
+        {session.consents.VOICE.enabled ? (
+          <div className="privacy-subsection">
+            <h3>Nhập bằng giọng nói</h3>
+            {withdraw("VOICE")}
+          </div>
+        ) : null}
+      </section>
+      <section className="real-section" aria-labelledby="privacy-history">
+        <h2 id="privacy-history">Lịch sử trò chuyện</h2>
+        <AIDataControls part="history" />
+      </section>
+      <section className="real-section" aria-labelledby="privacy-memory">
+        <h2 id="privacy-memory">Thông tin AI ghi nhớ</h2>
+        <p>Trợ lý chỉ dùng những ghi nhớ bạn đã duyệt. Chưa có gì được lưu cho đến khi bạn duyệt từng đề xuất.</p>
+        <Link to="/memory">Xem đề xuất và ghi nhớ đã duyệt</Link>
+        {session.consents.MEM.enabled ? withdraw("MEM") : (
+          <p>Trợ lý hiện không dùng ghi nhớ. Trợ lý chỉ dùng lại ghi nhớ sau khi bạn duyệt một đề xuất mới.</p>
+        )}
+        <AIDataControls part="memory" />
+      </section>
+      <section className="real-section" aria-labelledby="privacy-match">
+        <h2 id="privacy-match">Hồ sơ và kết nối</h2>
+        {published.loading ? <p role="status">Đang kiểm tra hồ sơ tìm bạn…</p> : published.error ? null :
+          <p role="status">{published.data?.state === "live" ? "Hồ sơ tìm bạn đang hiển thị" : "Hồ sơ tìm bạn chưa hiển thị trong gợi ý"}</p>}
+        <ErrorNotice error={published.error} retry={published.refresh} />
+        <p>Chỉ thẻ hồ sơ bạn xem trước và chọn Hiển thị hồ sơ mới hiện với người khác. Nhật ký, cảm xúc và cuộc trò chuyện AI không dùng để gợi ý.</p>
+        <Link to="/connect?tab=profile">Xem hoặc sửa hồ sơ tìm bạn</Link>
+        {published.data?.state === "live" ? <div><Button variant="secondary" disabled={!!busy} onClick={() => void unpublish()}>{busy === "unpublish" ? "Đang ngừng hiển thị…" : "Ngừng hiển thị hồ sơ"}</Button></div> : null}
+        {session.consents.MATCH.enabled ? withdraw("MATCH") : (
+          <p>Quyền tìm bạn đang tắt. Để kết nối trở lại, xem lại hồ sơ tìm bạn rồi chọn Hiển thị hồ sơ.</p>
+        )}
+        <AdultEligibility />
+      </section>
+      <section className="real-section" aria-labelledby="privacy-session">
+        <h2 id="privacy-session">Phiên đăng nhập</h2>
         <p>{session.alias}</p>
         <Button
           variant="secondary"
@@ -1423,10 +1785,10 @@ function PrivateProfile() {
       </p>
       <div className={cx.actions}>
         <Link className={`${cx.button} ${cx.secondary}`} to="/self">
-          Cảm xúc của tôi
+          Nhật ký cảm xúc
         </Link>
         <Link className={`${cx.button} ${cx.secondary}`} to="/memory">
-          Ghi nhớ đã duyệt
+          Thông tin AI ghi nhớ
         </Link>
         <Link className={`${cx.button} ${cx.secondary}`} to="/settings">
           Quyền riêng tư
@@ -1441,9 +1803,13 @@ function PrivateProfile() {
           rows={3}
           maxLength={120}
           value={text}
+          aria-describedby="private-text-count"
           onChange={(event) => setText(event.target.value)}
           required
         />
+        <p id="private-text-count" className={cx.footnote}>
+          {text.length}/120 ký tự · Chỉ bạn xem.
+        </p>
         <div className={cx.actions}>
           <Button
             type="submit"
@@ -1473,9 +1839,9 @@ function PrivateProfile() {
       {receipt ? <p role="status">{receipt}</p> : null}
       {resource.loading ? <p role="status">Đang tải hồ sơ riêng…</p> : null}
       <section className="real-section">
-        <h2>Những điều về bạn</h2>
+        <h2>Những điều tôi ghi về mình</h2>
         {resource.data?.length === 0 ? (
-          <p>Chưa có mục nào. Ghi lại một điều bạn muốn hiểu thêm về mình.</p>
+          <p>Chưa có ghi chép. Thêm một điều bạn muốn lưu về mình ở ô phía trên.</p>
         ) : null}
         {resource.data?.map((item) => (
           <article className="real-item" key={item.id}>
@@ -1484,7 +1850,7 @@ function PrivateProfile() {
               {item.origin === "ai"
                 ? "AI đề xuất · Bạn đã duyệt"
                 : "Bạn tự ghi"}{" "}
-              · {item.status === "edited" ? "Đã chỉnh sửa" : "Đã xác nhận"}
+              · {item.status === "edited" ? "Đã chỉnh sửa" : "Đã lưu"}
             </small>
             <div className={cx.actions}>
               <Button
@@ -1521,7 +1887,7 @@ function PrivateProfile() {
           }}
         >
           <p>{deleting.text}</p>
-          <p>Mục này sẽ bị xóa sau khi máy chủ xác nhận.</p>
+          <p>Mục này sẽ được xóa khỏi hồ sơ riêng.</p>
           <div className={cx.actions}>
             <Button
               variant="secondary"
@@ -1536,7 +1902,7 @@ function PrivateProfile() {
               disabled={busy}
               onClick={() => void remove()}
             >
-              Xác nhận xóa
+              Xóa mục này
             </Button>
           </div>
         </Dialog>

@@ -111,7 +111,7 @@ export function Moods() {
         new ApiError(
           422,
           "DATE_RANGE",
-          "Chỉ có thể ghi tâm trạng trong 90 ngày gần đây, tính đến hôm nay.",
+          "Chọn ngày trong 90 ngày gần đây, tính đến hôm nay.",
         ),
       );
       return;
@@ -137,7 +137,7 @@ export function Moods() {
       ]);
       setNote(saved.note);
       setSummaryRevision((n) => n + 1);
-      setReceipt(existing ? "Đã cập nhật tâm trạng." : "Đã lưu tâm trạng.");
+      setReceipt(`${existing ? "Đã cập nhật" : "Đã lưu"} cảm xúc ngày ${displayDate(saved.localDate)}.`);
     } catch (reason) {
       setError(reason);
       if (reason instanceof ApiError && reason.status === 409) {
@@ -152,7 +152,7 @@ export function Moods() {
             new ApiError(
               409,
               "STALE_VERSION",
-              "Ghi chép ngày này vừa thay đổi ở nơi khác. Dữ liệu mới đã được tải; nội dung bạn nhập vẫn được giữ — hãy kiểm tra rồi lưu lại.",
+              "Ghi chép này vừa được thay đổi ở nơi khác. Nội dung mới đã được tải; phần bạn đang nhập vẫn được giữ. Kiểm tra rồi chọn lưu lại.",
             ),
           );
         } catch {
@@ -191,9 +191,9 @@ export function Moods() {
 
   return (
     <div className={cx.reading}>
-      <h1 tabIndex={-1}>Cảm xúc của bạn</h1>
+      <h1 tabIndex={-1}>Nhật ký cảm xúc</h1>
       <p className={cx.lede}>
-        Dành một nhịp để lắng nghe bản thân. Chỉ bạn xem những ghi chép này.
+        Ghi lại tâm trạng theo cách bạn cảm nhận. Chỉ bạn xem ghi chép và ghi chú này.
       </p>
       <ErrorNotice error={resource.error} retry={resource.refresh} />
       {resource.loading ? <p role="status">Đang tải tâm trạng…</p> : null}
@@ -366,7 +366,7 @@ function MoodInsights({ revision }: { revision: number }) {
     <section className="real-section" aria-labelledby="mood-insights">
       <div className={cx.sectionHeading}>
         <div>
-          <h2 id="mood-insights">Nhìn lại những ngày bạn đã ghi</h2>
+          <h2 id="mood-insights">Nhìn lại tâm trạng</h2>
           <p>Chỉ từ dữ liệu bạn tự ghi. Đây không phải đánh giá sức khỏe.</p>
         </div>
       </div>
@@ -383,7 +383,7 @@ function MoodInsights({ revision }: { revision: number }) {
         ))}
       </div>
       <ErrorNotice error={summary.error} retry={summary.refresh} />
-      {summary.loading && !data ? <p role="status">Đang tổng hợp…</p> : null}
+      {summary.loading && !data ? <p role="status">Đang tải thống kê tâm trạng…</p> : null}
       {data ? (
         <>
           <div className={cx.weekSummary}>
@@ -406,7 +406,7 @@ function MoodInsights({ revision }: { revision: number }) {
             </p>
           </div>
           {data.count === 0 ? (
-            <p className={cx.note}>Chưa có ghi nhận trong khoảng này.</p>
+            <p className={cx.note}>Bạn chưa ghi tâm trạng trong khoảng này. Chọn khoảng khác hoặc ghi lại hôm nay.</p>
           ) : (
             <>
               <svg
@@ -467,8 +467,8 @@ function MoodInsights({ revision }: { revision: number }) {
               </svg>
               <p className={cx.note}>
                 {data.insightAvailable
-                  ? `Bạn đã dành thời gian cho mình trong ${data.count}/${data.buckets.length} ngày. Mức tự ghi từ ${data.min} đến ${data.max}/5.`
-                  : "Cần ghi nhận ở ít nhất 3 ngày để xem xu hướng."}
+                  ? `Bạn đã ghi tâm trạng trong ${data.count}/${data.buckets.length} ngày. Điểm bạn tự chọn từ ${data.min} đến ${data.max}/5.`
+                  : "Cần ghi tâm trạng ít nhất 3 ngày để xem phần nhìn lại."}
               </p>
               <details>
                 <summary>Xem từng ngày</summary>
@@ -479,7 +479,7 @@ function MoodInsights({ revision }: { revision: number }) {
                   <thead>
                     <tr>
                       <th scope="col">Ngày</th>
-                      <th scope="col">Mức tự chọn</th>
+                      <th scope="col">Tâm trạng tự chọn</th>
                     </tr>
                   </thead>
                   <tbody>

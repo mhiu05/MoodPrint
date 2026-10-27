@@ -69,7 +69,7 @@ export function AuthScreen({
         : callback?.kind === "failed"
           ? callback.expired
             ? "Liên kết trong email đã hết hạn. Hãy yêu cầu gửi lại."
-            : "Liên kết trong email không hợp lệ. Hãy thử lại."
+            : "Liên kết trong email không hợp lệ. Quay lại bước đăng ký hoặc quên mật khẩu để yêu cầu liên kết mới."
           : "",
     ),
     [unconfirmed, setUnconfirmed] = useState(false);
@@ -101,7 +101,7 @@ export function AuthScreen({
   function submit(event: FormEvent) {
     event.preventDefault();
     if ((mode === "signup" || mode === "reset") && password !== confirm) {
-      setError(new ApiError(422, "PASSWORD_MISMATCH", "Hai mật khẩu chưa khớp nhau."));
+      setError(new ApiError(422, "PASSWORD_MISMATCH", "Mật khẩu nhập lại chưa khớp. Hãy kiểm tra hai ô mật khẩu."));
       return;
     }
     void run(async () => {
@@ -156,15 +156,15 @@ export function AuthScreen({
   }
 
   const titles: Record<Mode, [string, string]> = {
-    login: ["Chào bạn trở lại", "Đăng nhập để tiếp tục không gian riêng của bạn."],
-    signup: ["Tạo tài khoản", "Dùng email bạn có thể mở được để xác nhận tài khoản."],
+    login: ["Chào bạn trở lại", "Đăng nhập để tiếp tục với MoodPrint."],
+    signup: ["Tạo tài khoản", "Dùng email bạn đang sử dụng để nhận thư xác nhận tài khoản."],
     recover: ["Quên mật khẩu", "Nhập email đã đăng ký để nhận liên kết đặt lại mật khẩu."],
     reset: ["Đặt mật khẩu mới", "Mật khẩu mới cần ít nhất 8 ký tự."],
   };
   const submitLabels: Record<Mode, [string, string]> = {
     login: ["Đăng nhập", "Đang đăng nhập…"],
     signup: ["Tạo tài khoản", "Đang gửi…"],
-    recover: ["Gửi liên kết", "Đang gửi…"],
+    recover: ["Gửi liên kết đặt lại mật khẩu", "Đang gửi…"],
     reset: ["Lưu mật khẩu mới", "Đang lưu…"],
   };
   const newPassword = mode === "signup" || mode === "reset";
@@ -172,6 +172,9 @@ export function AuthScreen({
     <main id="main" className="real-auth">
       <Brand />
       <h1 tabIndex={-1}>{titles[mode][0]}</h1>
+      {mode === "login" || mode === "signup" ? (
+        <p>MoodPrint là nơi ghi lại cảm xúc, trò chuyện với trợ lý AI và kết nối với người khác qua những điểm chung bạn chọn chia sẻ.</p>
+      ) : null}
       <p className={cx.lede}>{titles[mode][1]}</p>
       {notice && <p role="status">{notice}</p>}
       <ErrorNotice error={error} />
@@ -273,8 +276,8 @@ export function ReauthForm({
   }
   return (
     <form className="real-reauth" onSubmit={submit} aria-busy={busy} aria-labelledby="reauth-title">
-      <h3 id="reauth-title">Xác nhận lại mật khẩu</h3>
-      <p>Vì đây là thao tác quan trọng, hãy nhập lại email và mật khẩu của tài khoản này.</p>
+      <h3 id="reauth-title">Xác nhận tài khoản</h3>
+      <p>Nhập lại email và mật khẩu để tiếp tục thao tác này.</p>
       <ErrorNotice error={error} />
       <Field
         id="reauth-email"

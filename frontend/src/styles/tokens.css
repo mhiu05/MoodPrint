@@ -16,8 +16,18 @@
   --color-danger-bg: #fbeae7;
   --color-disabled-bg: #e5e7e2;
   --color-disabled-text: #52645d;
-  --font-display: "Segoe UI", Arial, sans-serif;
-  --font-body: "Segoe UI", Arial, sans-serif;
+  --color-surface-soft: #f0f3ed;
+  --color-selected-bg: #e0e9de;
+  --font-display: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  --font-body: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  /* Type roles (04): body 16px, supporting 14px, metadata 13px. */
+  --text-label: 0.9375rem;
+  --text-support: 0.875rem;
+  --text-meta: 0.8125rem;
+  --text-nav-mobile: 0.75rem;
+  --text-nav-desktop: 0.8125rem;
+  --target-min: 44px;
+  --control-min: 48px;
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -32,10 +42,45 @@
   --shadow-raised: 0 8px 24px rgb(36 58 53 / 0.08);
   --shadow-dialog: 0 20px 48px rgb(36 58 53 / 0.16);
   --content-max: 70rem;
+  --shell-max: 72rem;
   --reading-max: 45rem;
+  --rail-desktop: 104px;
+  --rail-tablet: 72px;
+  --pane-desktop: 248px;
+  --bottom-nav: 72px;
+  --gutter: 32px;
+  color-scheme: light;
+  /* Motion (14): durations, easing and travel limits. */
+  --duration-feedback: 100ms;
+  --duration-state: 160ms;
+  --duration-overlay: 220ms;
+  --duration-panel: 260ms;
+  --duration-layout: 300ms;
+  --duration-exit: 160ms;
+  --duration-reduced: 80ms;
+  --ease-state: cubic-bezier(0.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --motion-travel-max: 24px;
   font-family: var(--font-body);
   color: var(--color-ink);
   background: var(--color-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+}
+
+@media (max-width: 1099px) {
+  :root {
+    --gutter: 24px;
+  }
+}
+@media (max-width: 767px) {
+  :root {
+    --gutter: 20px;
+  }
+}
+@media (max-width: 375px) {
+  :root {
+    --gutter: 16px;
+  }
 }

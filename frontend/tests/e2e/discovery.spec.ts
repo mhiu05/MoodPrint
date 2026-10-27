@@ -77,11 +77,11 @@ test("discovery tabs follow the arrow keys and keep the tab in the URL", async (
   await mock(page);
   await page.goto("/#/connect");
   const tabs = page.getByRole("tablist", { name: "Tìm bạn" });
-  const profile = tabs.getByRole("tab", { name: "Hồ sơ kết nối" });
+  const profile = tabs.getByRole("tab", { name: "Hồ sơ tìm bạn" });
   // Without a live profile the editor tab comes first.
   await expect(profile).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tabpanel", { name: "Hồ sơ kết nối" })).toContainText(
-    "Chỉnh hồ sơ kết nối",
+  await expect(page.getByRole("tabpanel", { name: "Hồ sơ tìm bạn" })).toContainText(
+    "Chỉnh hồ sơ tìm bạn",
   );
   await profile.focus();
   await page.keyboard.press("ArrowRight");
@@ -90,7 +90,7 @@ test("discovery tabs follow the arrow keys and keep the tab in the URL", async (
   await expect(suggestions).toHaveAttribute("aria-selected", "true");
   await expect(page).toHaveURL(/#\/connect\?tab=suggestions$/);
   await expect(page.getByRole("tabpanel", { name: "Gợi ý" })).toContainText(
-    "Hãy xuất bản hồ sơ kết nối để nhận gợi ý.",
+    "Hãy hiển thị hồ sơ tìm bạn để nhận gợi ý.",
   );
   await page.keyboard.press("End");
   await expect(profile).toBeFocused();
@@ -130,23 +130,23 @@ test("pending invitations badge the nav and the tab, and the nav opens them", as
 test("the profile nudge shows only for adults without a live profile", async ({ page }) => {
   await mock(page);
   await page.goto("/#/assistants");
-  const nudge = page.getByRole("link", { name: /Sẵn sàng tìm người cùng tần số\?/ });
-  await expect(nudge).toContainText("Tạo hồ sơ kết nối");
+  const nudge = page.getByRole("link", { name: /Muốn tìm bạn từ những điểm chung?\?/ });
+  await expect(nudge).toContainText("Tạo hồ sơ tìm bạn");
   await expect(nudge).toHaveAttribute("href", "#/connect?tab=profile");
   await nudge.click();
-  await expect(page.getByRole("tab", { name: "Hồ sơ kết nối" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Hồ sơ tìm bạn" })).toHaveAttribute("aria-selected", "true");
 });
 
 test("a live profile keeps the plain bridge link instead of the nudge", async ({ page }) => {
   await mock(page, { live: true });
   await page.goto("/#/assistants");
-  await expect(page.getByRole("link", { name: /Từ hiểu mình/ })).toHaveAttribute("href", "#/connect");
-  await expect(page.getByText("Sẵn sàng tìm người cùng tần số?")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /Tìm người có cùng sở thích/ })).toHaveAttribute("href", "#/connect");
+  await expect(page.getByText("Muốn tìm bạn từ những điểm chung?")).toHaveCount(0);
 });
 
 test("minors never see the nudge", async ({ page }) => {
   await mock(page, { ageBand: "teen" });
   await page.goto("/#/assistants");
-  await expect(page.getByRole("link", { name: /Từ hiểu mình/ })).toBeVisible();
-  await expect(page.getByText("Sẵn sàng tìm người cùng tần số?")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /Tìm người có cùng sở thích/ })).toBeVisible();
+  await expect(page.getByText("Muốn tìm bạn từ những điểm chung?")).toHaveCount(0);
 });

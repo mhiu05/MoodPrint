@@ -670,7 +670,7 @@ async def export_conversation(
             )
         ).all()
         if len(rows) > 10000:
-            raise DomainError(503, "EXPORT_TOO_LARGE", "Hãy xuất các trang tin nhắn riêng.")
+            raise DomainError(503, "EXPORT_TOO_LARGE", "Cuộc trò chuyện quá dài để tải xuống một lần. Ứng dụng chưa hỗ trợ tải xuống từng phần.")
         result = conversation_header(c).model_dump(mode="json", by_alias=True)
         result["messages"] = [
             AIMessage(

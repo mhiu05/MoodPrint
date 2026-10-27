@@ -3,11 +3,11 @@ import type { AICard, AiOutput } from "./contracts";
 
 // Never render arbitrary provider error bodies from a stream.
 const aiFailureMessages: Record<string, string> = {
-  AI_PROVIDER_CONFIGURATION: "Kết nối dịch vụ AI cần được kiểm tra. Bạn hãy thử lại sau khi dịch vụ được khôi phục.",
+  AI_PROVIDER_CONFIGURATION: "Trợ lý đang gặp lỗi kết nối. Bạn có thể thử lại sau.",
   AI_PROVIDER_RATE_LIMIT: "Nhà cung cấp AI đang giới hạn lượt dùng. Bạn hãy thử lại sau ít phút.",
   AI_PROVIDER_UNAVAILABLE: "Chưa kết nối được nhà cung cấp AI. Bạn có thể thử lại sau.",
   AI_TIMEOUT: "Trợ lý chưa phản hồi kịp. Bạn có thể thử lại sau.",
-  AI_STORAGE_UNAVAILABLE: "Chưa đồng bộ được cuộc trò chuyện. Hãy tải lại để kiểm tra trước khi gửi tiếp.",
+  AI_STORAGE_UNAVAILABLE: "Chưa tải được trạng thái mới nhất. Tải lại cuộc trò chuyện trước khi gửi tiếp.",
 };
 
 export type ValidatedFinal = AiOutput & { cards: AICard[] };
@@ -133,7 +133,7 @@ export async function consumeAIEvents(
             throw new ApiError(
               409,
               "RUN_INTERRUPTED",
-              "Phản hồi đã bị gián đoạn. Lượt này không tự chạy lại; tải lại hội thoại rồi chủ động gửi tin mới.",
+              "Phản hồi bị gián đoạn và không tự tiếp tục. Tải lại cuộc trò chuyện để kiểm tra trước khi gửi tin mới.",
             );
           const code = typeof event.data.code === "string" ? event.data.code : "";
           if (Object.hasOwn(aiFailureMessages, code))

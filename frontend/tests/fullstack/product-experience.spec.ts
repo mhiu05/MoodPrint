@@ -87,10 +87,10 @@ test("all five assistants explain their purpose and link to the related real fea
       await page.setViewportSize({ width, height });
       for (const [id, action, destination] of [
         ["may", "Ghi lại cảm xúc hôm nay", "/self"],
-        ["guong", "Xem hồ sơ riêng của mình", "/profile"],
+        ["guong", "Xem hồ sơ riêng", "/profile"],
         ["nhip", "Mở nhật ký cảm xúc", "/self"],
-        ["rure", "Hoạt động cùng bạn kết nối", "/messages"],
-        ["caunoi", "Xem hồ sơ kết nối", "/connect?tab=profile"],
+        ["rure", "Xem tin nhắn và hoạt động chung", "/messages"],
+        ["caunoi", "Xem hồ sơ tìm bạn", "/connect?tab=profile"],
       ]) {
         await page.goto(`/#/assistants/${id}`);
         const link = page.getByRole("link", { name: action, exact: true });
@@ -124,7 +124,7 @@ test("a conversation starter stays editable and reaches the other account only a
     });
     await starter.click();
     const composer = pageA.getByRole("textbox", {
-      name: "Tin nhắn cho bạn kết nối",
+      name: "Nhắn tin cho người bạn kết nối",
     });
     await expect(composer).toHaveValue("Khi rảnh bạn thích làm gì nhất?");
     await expect(composer).toBeFocused();
@@ -156,7 +156,7 @@ test("a conversation starter stays editable and reaches the other account only a
       .click();
     const catalog = pageA.getByRole("dialog", { name: "Cùng làm gì đó?" });
     await expect(catalog).toContainText("Mỗi người trả lời riêng");
-    await expect(catalog).toContainText("5 vòng cùng một đội");
+    await expect(catalog).toContainText("Năm vòng đố vui cùng một đội");
     await expect(catalog).toContainText(
       "Một người tạm dừng sẽ dừng đồng hồ của cả hai",
     );

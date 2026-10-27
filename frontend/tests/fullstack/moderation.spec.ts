@@ -11,7 +11,7 @@ test("a report reaches the staff queue and a restriction removes the subject fro
   const staff = await browser.newContext();
   try {
     const evidence = "LOI-LE-QUAY-ROI";
-    await pageB.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" }).fill(evidence);
+    await pageB.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" }).fill(evidence);
     await pageB.getByRole("button", { name: "Gửi tin nhắn" }).click();
     await expect(pageA.getByRole("log")).toContainText(evidence);
 
@@ -20,11 +20,11 @@ test("a report reaches the staff queue and a restriction removes the subject fro
     expect(denied.status).toBe(403);
     expect(denied.body.error.code).toBe("STAFF_REQUIRED");
 
-    await pageA.getByText("Chia sẻ và an toàn").click();
+    await pageA.getByRole("button", { name: "Chia sẻ và an toàn" }).click();
     await pageA.getByLabel("Lý do báo cáo").fill("Quấy rối");
     await pageA.getByRole("checkbox", { name: evidence }).check();
     await pageA.getByRole("button", { name: "Gửi báo cáo" }).click();
-    await expect(pageA.getByText("Đã nhận báo cáo.")).toBeVisible();
+    await expect(pageA.getByText("Đã gửi báo cáo.")).toBeVisible();
 
     await session(staff, 37);
     const queue = await staff.newPage();
@@ -38,7 +38,7 @@ test("a report reaches the staff queue and a restriction removes the subject fro
     await card.getByRole("button", { name: "Hạn chế kết nối" }).click();
     const dialog = queue.getByRole("dialog", { name: "Xác nhận: Hạn chế kết nối" });
     await dialog.getByRole("spinbutton", { name: "Số ngày (1–90)" }).fill("7");
-    await dialog.getByRole("textbox", { name: /Ghi chú nội bộ/ }).fill("E2E restriction");
+    await dialog.getByRole("textbox", { name: /Ghi chú xử lý/ }).fill("E2E restriction");
     await dialog.getByRole("button", { name: "Xác nhận" }).click();
     await expect(queue.getByText("Đã ghi nhận quyết định.")).toBeVisible();
 

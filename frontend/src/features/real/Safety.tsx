@@ -31,7 +31,7 @@ export function OwnIdentity() {
   }, [resource.data, loaded]);
   return (
     <section className="real-section">
-      <h2>Thông tin bạn có thể chọn chia sẻ</h2>
+      <h2>Thông tin riêng có thể chia sẻ</h2>
       <p>
         Thông tin này được giữ riêng. Chỉ người bạn chọn trong một kết nối mới
         được xem sau khi bạn đồng ý. Sửa giá trị sẽ thu hồi quyền chia sẻ cũ.
@@ -89,12 +89,15 @@ export function ConnectionSafety({
   messages,
   onBlocked,
   reportOnly = false,
+  panel = false,
 }: {
   connectionId: string;
   messages: Schema["MessageView"][];
   onBlocked: () => void;
   /** After the room closed: identity sharing is gone, but reporting stays possible. */
   reportOnly?: boolean;
+  /** Rendered inside the header's safety dialog instead of a disclosure. */
+  panel?: boolean;
 }) {
   const { api } = useSession();
   const reveals = useResource<Schema["RevealView"][]>(
@@ -174,11 +177,14 @@ export function ConnectionSafety({
       setBusy(false);
     }
   }
+  const Wrapper = panel ? "div" : "details";
   return (
-    <details className="real-safety" open={reportOnly || undefined}>
-      <summary>
-        {reportOnly ? "Báo cáo nội dung" : "Chia sẻ và an toàn"}
-      </summary>
+    <Wrapper className={panel ? "real-safety-panel" : "real-safety"} open={!panel && reportOnly ? true : undefined}>
+      {panel ? null : (
+        <summary>
+          {reportOnly ? "Báo cáo nội dung" : "Chia sẻ và an toàn"}
+        </summary>
+      )}
       {reportOnly ? (
         <>
           <ErrorNotice error={error} />
@@ -186,7 +192,7 @@ export function ConnectionSafety({
         </>
       ) : (
         <>
-          <h2>Chia sẻ theo lựa chọn của bạn</h2>
+          <h2>Chia sẻ thông tin riêng</h2>
           <p>
             Mỗi thông tin có quyền riêng. Chia sẻ không mở quyền xem các ghi
             chép hay hội thoại khác.
@@ -217,7 +223,7 @@ export function ConnectionSafety({
                   )
                 }
               >
-                Xin xem {fields[field].toLocaleLowerCase("vi-VN")}
+                Yêu cầu xem {fields[field].toLocaleLowerCase("vi-VN")}
               </Button>
             ))}
           </div>
@@ -231,7 +237,7 @@ export function ConnectionSafety({
               </h3>
               <p>
                 {item.status === "pending"
-                  ? "Đang chờ chủ thông tin quyết định"
+                  ? "Đang chờ người sở hữu thông tin đồng ý"
                   : item.status === "granted"
                     ? "Đang được chia sẻ"
                     : "Yêu cầu chia sẻ đã kết thúc"}
@@ -295,11 +301,11 @@ export function ConnectionSafety({
                           method: "DELETE",
                           body: { expectedVersion: item.version },
                         }),
-                      "Đã thu hồi quyền xem tiếp theo.",
+                      "Đã thu hồi quyền xem thông tin.",
                     )
                   }
                 >
-                  Thu hồi chia sẻ
+                  Ngừng chia sẻ
                 </Button>
               )}
               {item.ownerSide === "peer" && item.status === "granted" && (
@@ -342,7 +348,7 @@ export function ConnectionSafety({
           onChange={(event) => setReason(event.target.value)}
         />
         <fieldset className="real-choices">
-          <legend>Tin nhắn bạn muốn chọn</legend>
+          <legend>Chọn tin nhắn làm bằng chứng (tối đa 2)</legend>
           {messages.slice(-20).map((message) => (
             <label key={message.id}>
               <input
@@ -365,7 +371,7 @@ export function ConnectionSafety({
         </fieldset>
         {answers.length > 0 && (
           <fieldset className="real-choices">
-            <legend>Câu trả lời trong hoạt động chung (tối đa hai)</legend>
+            <legend>Chọn câu trả lời hoạt động làm bằng chứng (tối đa 2)</legend>
             {answers.map((answer) => (
               <label key={answer.key}>
                 <input
@@ -410,7 +416,7 @@ export function ConnectionSafety({
               setReason("");
               setSelected([]);
               setChosenAnswers([]);
-            }, "Đã nhận báo cáo.")
+            }, "Đã gửi báo cáo.")
           }
         >
           Gửi báo cáo
@@ -432,13 +438,14 @@ export function ConnectionSafety({
           onClose={() => !busy && setBlocking(false)}
         >
           <p>
-            Hai người sẽ không thể tiếp tục xem hoặc gửi tin trong kết nối này.
-            Bỏ chặn sau này không khôi phục cuộc trò chuyện hay quyền chia sẻ
-            cũ.
+            Hai bạn sẽ không thể xem hoặc gửi tiếp tin nhắn trong kết nối này.
+            Việc chặn không thể hoàn tác trong ứng dụng.
           </p>
+          <p>Chặn không tự gửi báo cáo. Bạn vẫn có thể báo cáo sau khi chặn.</p>
           <div className={cx.actions}>
             <Button
               variant="secondary"
+              data-cancel
               disabled={busy}
               onClick={() => setBlocking(false)}
             >
@@ -458,11 +465,11 @@ export function ConnectionSafety({
                 }, "Đã chặn kết nối.")
               }
             >
-              Xác nhận chặn
+              Chặn người này
             </Button>
           </div>
         </Dialog>
       )}
-    </details>
+    </Wrapper>
   );
 }

@@ -9,7 +9,10 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ARTIFACTS = ROOT / "docs/plans/validation-artifacts"
+# Review SQL goes straight into the pinned directory, so it must be added to MANIFEST.json
+# (and re-approved) before scripts/check_reviewed_artifacts.py accepts it.
+REVIEWED_SQL = ROOT / "deploy/supabase/reviewed-sql"
+REPORTS = ROOT / "deploy/supabase/reports"
 
 
 def main():
@@ -41,7 +44,8 @@ def main():
         raise RuntimeError("Migration scope changed; review the generator before proceeding")
     if re.search(r"(?:CREATE|ALTER)\s+(?:TABLE|SCHEMA)\s+(?!moodprint[.\s])", migration, re.I):
         raise RuntimeError("Migration must touch only moodprint schema")
-    (ARTIFACTS / "supabase-migrations-0001-0005.sql").write_text(migration, encoding="utf-8")
+    REPORTS.mkdir(parents=True, exist_ok=True)
+    (REPORTS / "supabase-migrations-0001-0005.sql").write_text(migration, encoding="utf-8")
     prelude = """-- REVIEW ONLY. Target: roznanxbiyqybjpvtilq. Explicit user approval required.
 -- Generated offline; not executed remotely. Application login stays disabled.
 BEGIN;
@@ -98,7 +102,7 @@ GRANT SELECT (id, user_id) ON auth.sessions TO moodprint_runtime;
         security += "\nREVOKE ALL ON FUNCTION moodprint.is_provider_session_active(uuid,uuid) FROM anon, authenticated, service_role;\n"
         security += "GRANT EXECUTE ON FUNCTION moodprint.is_provider_session_active(uuid,uuid) TO moodprint_runtime;\n"
     sql = prelude + body + security + "COMMIT;\n"
-    path = ARTIFACTS / (
+    path = REVIEWED_SQL / (
         "supabase-initialization-auth-review.sql"
         if args.auth_rls
         else "supabase-initialization-review.sql"

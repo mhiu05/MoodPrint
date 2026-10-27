@@ -13,9 +13,9 @@ export type Limits = Record<Facet, [number, number]>;
 
 export const STEPS = [
   { id: "interests", title: "Sở thích" },
-  { id: "values", title: "Giá trị" },
-  { id: "style", title: "Cách trò chuyện & mục tiêu" },
-  { id: "activities", title: "Hoạt động & thời gian" },
+  { id: "values", title: "Điều coi trọng" },
+  { id: "style", title: "Cách trò chuyện và mục tiêu" },
+  { id: "activities", title: "Hoạt động và thời gian" },
   { id: "preview", title: "Xem trước" },
 ] as const;
 export type StepId = (typeof STEPS)[number]["id"];

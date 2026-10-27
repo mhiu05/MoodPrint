@@ -138,6 +138,8 @@ async def test_oversize_export_fails_gracefully(clients):
     response = await a.post("/api/v1/exports", json={"scopes": ["consents"]}, headers=key())
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "EXPORT_TOO_LARGE"
+    # No support channel or partial export exists, so the message must not promise one.
+    assert "yêu cầu hỗ trợ" not in response.json()["error"]["message"]
     assert (await a.get("/api/v1/session")).status_code == 200
 
 

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 import { Button, cx, Dialog } from "../../../components/UI";
 import { ErrorNotice } from "../RealApp";
 import { ActivitySummary } from "./ActivitySummary";
@@ -27,6 +29,25 @@ export function ActivityDock({
   const [collapsed, setCollapsed] = useState(false);
   const [ending, setEnding] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
+  const dock = useRef<HTMLElement>(null);
+  const visible = Boolean(session && session.state !== "invited");
+  // M16: the dock wrapper (never its text or the timer) arrives with ≤16px
+  // travel when it appears or expands. Server state, not the tween, drives it.
+  useGSAP(
+    () => {
+      if (!visible || collapsed || !dock.current) return;
+      const media = gsap.matchMedia();
+      media.add(
+        { side: "(min-width: 1100px) and (prefers-reduced-motion: no-preference)", sheet: "(max-width: 1099px) and (prefers-reduced-motion: no-preference)" },
+        (context) => {
+          const side = Boolean(context.conditions?.side);
+          gsap.from(dock.current, { ...(side ? { x: 16 } : { y: 16 }), duration: 0.22, ease: "power2.out", clearProps: "transform" });
+        },
+      );
+      return () => media.revert();
+    },
+    { dependencies: [visible, collapsed, session?.id], revertOnUpdate: true },
+  );
   useEffect(() => {
     if (session?.state === "active" && session.progress.round === 1) setCollapsed(false);
   }, [session?.id, session?.state, session?.progress.round]);
@@ -35,6 +56,7 @@ export function ActivityDock({
   const title = KIND_TITLES[session.kind];
   return (
     <section
+      ref={dock}
       className="activity-dock"
       data-collapsed={collapsed || undefined}
       aria-label={`Hoạt động chung: ${title}`}
@@ -118,7 +140,7 @@ export function ActivityDock({
           <p>Hoạt động sẽ dừng cho cả hai. Hai bạn vẫn có thể tiếp tục trò chuyện.</p>
           <div className={cx.actions}>
             <Button variant="secondary" data-cancel onClick={() => setEnding(false)}>
-              Ở lại
+              Tiếp tục hoạt động
             </Button>
             <Button
               variant="danger"

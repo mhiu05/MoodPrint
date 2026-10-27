@@ -122,7 +122,7 @@ export function FocusPanel({
       </div>
       {ending && (
         <Dialog title="Kết thúc phiên tập trung?" destructive onClose={() => setEnding(false)}>
-          <p>Phiên sẽ kết thúc cho cả hai. Số phút đã tập trung vẫn được ghi trong tổng kết.</p>
+          <p>Phiên sẽ kết thúc với cả hai. Số phút đã tập trung vẫn xuất hiện trong phần tổng kết.</p>
           <div className={cx.actions}>
             <Button variant="secondary" data-cancel onClick={() => setEnding(false)}>
               Tiếp tục tập trung

@@ -19,9 +19,16 @@ export function useActivity(
   const { api } = useSession();
   const [session, setSession] = useState<Session | null>(null);
   const [catalog, setCatalog] = useState<Definition[]>([]);
+  // An empty catalog means activities are switched off; a failed read is not that.
+  const [catalogStatus, setCatalogStatus] = useState<"loading" | "ready" | "empty" | "error">("loading");
+  const [catalogError, setCatalogError] = useState<unknown>();
+  const [catalogRevision, setCatalogRevision] = useState(0);
+  const [inviteError, setInviteError] = useState<{ kind: Kind; error: unknown }>();
   const [error, setError] = useState<unknown>();
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  // Which kind's invitation is in flight, so only that choice says it is sending.
+  const [pendingInvite, setPendingInvite] = useState<Kind>();
   const [clock, setClock] = useState<Clock>(() => createClock(new Date().toISOString()));
   const [cooldown, setCooldown] = useState<Partial<Record<Kind, number>>>({});
   const loading = useRef(false);
@@ -51,11 +58,24 @@ export function useActivity(
 
   useEffect(() => {
     if (!enabled) return;
+    const controller = new AbortController();
+    setCatalogStatus("loading");
+    setCatalogError(undefined);
     api
-      .request<Definition[]>("/activities/catalog")
-      .then(setCatalog)
-      .catch(() => setCatalog([]));
-  }, [api, enabled]);
+      .request<Definition[]>("/activities/catalog", { signal: controller.signal })
+      .then((value) => {
+        if (controller.signal.aborted) return;
+        setCatalog(value);
+        setCatalogStatus(value.length ? "ready" : "empty");
+      })
+      .catch((reason) => {
+        if (controller.signal.aborted) return;
+        setCatalogError(reason);
+        setCatalogStatus("error");
+      });
+    return () => controller.abort();
+  }, [api, enabled, catalogRevision]);
+  const reloadCatalog = useCallback(() => setCatalogRevision((value) => value + 1), []);
 
   useEffect(() => {
     setSession(null);
@@ -110,7 +130,9 @@ export function useActivity(
   };
 
   const invite = async (kind: Kind, options?: Record<string, unknown>) => {
-    if (!connectionId) return false;
+    if (!connectionId || busy) return false;
+    setInviteError(undefined);
+    setPendingInvite(kind);
     try {
       const result = await send<Session>(`/connections/${connectionId}/activities`, {
         kind,
@@ -122,8 +144,14 @@ export function useActivity(
       if (reason instanceof ApiError && reason.code === "ACTIVITY_COOLDOWN") {
         const seconds = Number(reason.retryAfter || 600);
         setCooldown((value) => ({ ...value, [kind]: Date.now() + seconds * 1000 }));
+      } else if (!(reason instanceof ApiError && CHANGED.includes(reason.code))) {
+        // Shown inside the catalog next to the chosen activity, which stays open.
+        setInviteError({ kind, error: reason });
+        setError(undefined);
       }
       return false;
+    } finally {
+      setPendingInvite(undefined);
     }
   };
 
@@ -142,9 +170,15 @@ export function useActivity(
     session,
     open: isOpen(session),
     catalog,
+    catalogStatus,
+    catalogError,
+    reloadCatalog,
+    inviteError,
+    clearInviteError: () => setInviteError(undefined),
     clock,
     cooldown,
     busy,
+    pendingInvite,
     error,
     notice,
     setNotice,

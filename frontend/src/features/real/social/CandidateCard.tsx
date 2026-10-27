@@ -71,7 +71,7 @@ export function PeerCard({
           <dd>{(profile.interests ?? []).map(label).join(" · ")}</dd>
         </div>
         <div>
-          <dt>Giá trị</dt>
+          <dt>Điều coi trọng</dt>
           <dd>{(profile.values ?? []).map(label).join(" · ")}</dd>
         </div>
         <div>
@@ -85,7 +85,7 @@ export function PeerCard({
         </div>
         {activities.length > 0 && (
           <div>
-            <dt>Muốn thử</dt>
+            <dt>Muốn cùng thử</dt>
             <dd>
               {activities
                 .map((key) =>
@@ -97,7 +97,7 @@ export function PeerCard({
         )}
         {(profile.availability ?? []).length > 0 && (
           <div>
-            <dt>Hay rảnh</dt>
+            <dt>Thời gian rảnh</dt>
             <dd>{(profile.availability ?? []).map(label).join(" · ")}</dd>
           </div>
         )}
@@ -139,12 +139,12 @@ export function CandidateCard({
     >
       {sent ? (
         <p role="status" className="peer-card-sent">
-          Đã gửi lời chào
+          Đã gửi lời mời kết nối
         </p>
       ) : (
         <>
           <Button disabled={busy} onClick={onGreet}>
-            Gửi lời chào
+            Gửi lời mời kết nối
           </Button>
           <Button variant="secondary" disabled={busy} onClick={onSkip}>
             Bỏ qua
