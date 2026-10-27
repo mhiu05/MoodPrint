@@ -71,7 +71,7 @@ export async function disable(page: Page, name: string) {
 
 /** Drives the five-step profile editor with the shared synthetic profile. */
 export async function fillProfileEditor(page: Page) {
-  await page.getByRole("button", { name: "Chỉnh hồ sơ kết nối" }).click();
+  await page.getByRole("button", { name: "Chỉnh hồ sơ tìm bạn" }).click();
   const next = page.getByRole("button", { name: "Tiếp tục", exact: true });
   for (const labels of [
     ["Đọc sách", "Âm nhạc", "Đi bộ"],
@@ -89,10 +89,10 @@ export async function fillProfileEditor(page: Page) {
     page.getByText("Đã lưu bản nháp.", { exact: true }),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "Xuất bản hồ sơ", exact: true })
+    .getByRole("button", { name: "Hiển thị hồ sơ", exact: true })
     .click();
   await expect(
-    page.getByText("Đã xuất bản hồ sơ.", { exact: true }),
+    page.getByText("Đã hiển thị hồ sơ tìm bạn.", { exact: true }),
   ).toBeVisible();
 }
 

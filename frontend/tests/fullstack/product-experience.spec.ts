@@ -90,7 +90,7 @@ test("all five assistants explain their purpose and link to the related real fea
         ["guong", "Xem hồ sơ riêng của mình", "/profile"],
         ["nhip", "Mở nhật ký cảm xúc", "/self"],
         ["rure", "Hoạt động cùng bạn kết nối", "/messages"],
-        ["caunoi", "Xem hồ sơ kết nối", "/connect?tab=profile"],
+        ["caunoi", "Xem hồ sơ tìm bạn", "/connect?tab=profile"],
       ]) {
         await page.goto(`/#/assistants/${id}`);
         const link = page.getByRole("link", { name: action, exact: true });

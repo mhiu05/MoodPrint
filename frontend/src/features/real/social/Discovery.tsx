@@ -62,7 +62,7 @@ export function Discovery() {
   const titles: Record<Tab, string> = {
     suggestions: "Gợi ý",
     requests: pending ? `Lời mời (${pending})` : "Lời mời",
-    profile: "Hồ sơ kết nối",
+    profile: "Hồ sơ tìm bạn",
   };
   function select(next: Tab, focus = false) {
     // Replace, so Back leaves Discovery instead of stepping through tabs.
@@ -176,14 +176,21 @@ export function Discovery() {
       >
         {tab === "profile" && (
           <>
-            <p>Hồ sơ chỉ xuất hiện với người khác sau khi bạn xem trước và chọn xuất bản. Trò chuyện AI, nhật ký cảm xúc và ghi nhớ không dùng để gợi ý bạn bè.</p>
+            <p>Hồ sơ chỉ hiện với người khác sau khi bạn xem trước và chọn Hiển thị hồ sơ. Trò chuyện AI, nhật ký cảm xúc và ghi nhớ không dùng để gợi ý bạn bè.</p>
+            {!session.consents.MATCH.enabled ? (
+              <p className={cx.note}>
+                Quyền tìm bạn đang tắt. Khi bạn xem lại hồ sơ và chọn Hiển thị
+                hồ sơ, quyền này được bật lại và thẻ của bạn hiện với người phù
+                hợp.
+              </p>
+            ) : null}
             {!editing && (
               <Button
                 variant="secondary"
                 disabled={!draft.data || !taxonomy.data}
                 onClick={() => setEditing(true)}
               >
-                Chỉnh hồ sơ kết nối
+                Chỉnh hồ sơ tìm bạn
               </Button>
             )}
             {editing && taxonomy.data && draft.data && (
@@ -203,7 +210,7 @@ export function Discovery() {
                       },
                   );
                   setEditing(false);
-                  setNotice("Đã xuất bản hồ sơ.");
+                  setNotice("Đã hiển thị hồ sơ tìm bạn.");
                   suggestions.refresh();
                   requests.refresh();
                   select("suggestions");
@@ -213,18 +220,18 @@ export function Discovery() {
             )}
             {published.data && (
               <section className="real-section">
-                <h2>{live ? "Hồ sơ đang chia sẻ" : "Hồ sơ đang tạm ẩn"}</h2>
+                <h2>{live ? "Hồ sơ đang hiển thị" : "Hồ sơ đang tạm ẩn"}</h2>
                 {published.data.state === "needs_republish" && (
                   <p className={cx.note}>
                     Hồ sơ này không xuất hiện trong gợi ý (ví dụ sau khi bạn tắt
-                    rồi bật lại quyền tìm bạn). Hãy xem lại và xuất bản lại nếu
-                    bạn muốn chia sẻ tiếp; hệ thống không tự chia sẻ lại.
+                    rồi bật lại quyền tìm bạn). Hãy xem lại và chọn Hiển thị hồ
+                    sơ nếu bạn muốn chia sẻ tiếp; hệ thống không tự chia sẻ lại.
                   </p>
                 )}
                 {published.data.state === "stale" && (
                   <p className={cx.note}>
-                    Hồ sơ tạm ẩn vì lâu chưa cập nhật. Mở “Chỉnh hồ sơ kết nối”,
-                    xem lại và xuất bản để xác nhận hồ sơ vẫn đúng.
+                    Hồ sơ tạm ẩn vì lâu chưa cập nhật. Mở “Chỉnh hồ sơ tìm bạn”,
+                    xem lại và chọn Hiển thị hồ sơ để xác nhận hồ sơ vẫn đúng.
                   </p>
                 )}
                 <p>
@@ -246,10 +253,10 @@ export function Discovery() {
                       });
                       published.setData(null);
                       draft.refresh();
-                    }, "Đã ngừng chia sẻ hồ sơ.")
+                    }, "Đã ngừng hiển thị hồ sơ.")
                   }
                 >
-                  Ngừng chia sẻ hồ sơ
+                  Ngừng hiển thị hồ sơ
                 </Button>
               </section>
             )}
@@ -269,9 +276,9 @@ export function Discovery() {
               {suggestions.loading && <p role="status">Đang tìm điểm chung…</p>}
               {!suggestions.loading && !live && (
                 <p>
-                  Hãy xuất bản hồ sơ kết nối để nhận gợi ý.{" "}
+                  Hãy hiển thị hồ sơ tìm bạn để nhận gợi ý.{" "}
                   <Button variant="text" onClick={() => select("profile", true)}>
-                    Mở hồ sơ kết nối
+                    Mở hồ sơ tìm bạn
                   </Button>
                 </p>
               )}
@@ -290,7 +297,7 @@ export function Discovery() {
                     điều mình thích để nhận gợi ý.
                   </p>
                   <Button variant="secondary" onClick={() => select("profile", true)}>
-                    Mở rộng hồ sơ kết nối
+                    Mở rộng hồ sơ tìm bạn
                   </Button>
                 </>
               )}
@@ -309,7 +316,7 @@ export function Discovery() {
                           body: { candidateRef: candidate.candidateRef },
                         });
                         setSent((value) => [...value, candidate.candidateRef]);
-                      }, "Đã gửi lời mời.")
+                      }, "Đã gửi lời mời kết nối.")
                     }
                     onSkip={() =>
                       void act(
@@ -439,7 +446,7 @@ export function ConnectBridge() {
       </span>
       <span>
         <strong>Sẵn sàng tìm người cùng tần số?</strong>
-        <small>Tạo hồ sơ kết nối</small>
+        <small>Tạo hồ sơ tìm bạn</small>
       </span>
       <ArrowUpRight size={18} />
     </Link>

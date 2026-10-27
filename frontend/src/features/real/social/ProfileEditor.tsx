@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Button, cx } from "../../../components/UI";
+import { Button, cx, Dialog } from "../../../components/UI";
 import type { components } from "../../../api/generated/schema";
 import { ErrorNotice, useSession } from "../RealApp";
 import { PeerCard } from "./CandidateCard";
@@ -61,6 +61,9 @@ export function ProfileEditor({
   const [error, setError] = useState<unknown>();
   const [notice, setNotice] = useState("");
   const heading = useRef<HTMLHeadingElement>(null);
+  // Leaving with unsaved choices asks first; drafts stay in memory, never in browser storage.
+  const savedSnapshot = useRef(JSON.stringify(profile));
+  const [confirmClose, setConfirmClose] = useState(false);
   const current = STEPS[step];
   useEffect(() => {
     heading.current?.focus();
@@ -102,6 +105,8 @@ export function ProfileEditor({
       } satisfies Schema["DraftInput"],
     });
     onDraft(saved);
+    // What was just sent is now the saved state.
+    savedSnapshot.current = JSON.stringify(profile);
     setNotice("Đã lưu bản nháp.");
     return saved;
   }
@@ -246,7 +251,7 @@ export function ProfileEditor({
       {current.id === "preview" && preview && (
         <>
           <p>Người khác chỉ thấy đúng thẻ này. Ghi chép riêng, cảm xúc và hội thoại với trợ lý không bao giờ được đưa vào.</p>
-          <p>Chọn “Xuất bản hồ sơ” là đồng ý tham gia gợi ý kết nối và cho người đủ điều kiện thấy thẻ này. Bạn có thể ngừng chia sẻ bất cứ lúc nào.</p>
+          <p>Chọn “Hiển thị hồ sơ” là đồng ý tham gia gợi ý kết nối và cho người đủ điều kiện thấy thẻ này. Bạn có thể ngừng hiển thị bất cứ lúc nào.</p>
           <PeerCard
             alias="Bạn"
             avatarSeed="00"
@@ -276,16 +281,46 @@ export function ProfileEditor({
           </Button>
         ) : (
           <Button disabled={busy || !preview} onClick={() => void run(publish)}>
-            Xuất bản hồ sơ
+            {busy ? "Đang hiển thị hồ sơ…" : "Hiển thị hồ sơ"}
           </Button>
         )}
         <Button variant="text" disabled={busy} onClick={() => void run(async () => void (await saveDraft()))}>
           Lưu bản nháp
         </Button>
-        <Button variant="text" disabled={busy} onClick={onClose}>
+        <Button
+          variant="text"
+          disabled={busy}
+          onClick={() => (JSON.stringify(profile) === savedSnapshot.current ? onClose() : setConfirmClose(true))}
+        >
           Đóng
         </Button>
       </div>
+      {confirmClose ? (
+        <Dialog title="Đóng mà chưa lưu thay đổi?" destructive onClose={() => !busy && setConfirmClose(false)}>
+          <p>Những lựa chọn chưa lưu sẽ mất nếu bạn đóng. Bản nháp đã lưu và hồ sơ đang hiển thị không thay đổi.</p>
+          <ErrorNotice error={error} />
+          <div className={cx.actions}>
+            <Button variant="secondary" data-cancel disabled={busy} onClick={() => setConfirmClose(false)}>
+              Tiếp tục chỉnh
+            </Button>
+            <Button
+              disabled={busy}
+              onClick={() =>
+                void run(async () => {
+                  await saveDraft();
+                  setConfirmClose(false);
+                  onClose();
+                })
+              }
+            >
+              Lưu bản nháp và đóng
+            </Button>
+            <Button variant="text" disabled={busy} onClick={onClose}>
+              Bỏ thay đổi
+            </Button>
+          </div>
+        </Dialog>
+      ) : null}
     </section>
   );
 }

@@ -256,8 +256,8 @@ test("real FastAPI/PostgreSQL preserves private records and mood, streams throug
   await publish(two);
   await one.goto("/#/connect");
   await one.getByRole("button", { name: "Tải lại gợi ý", exact: true }).click();
-  await one.getByRole("button", { name: "Gửi lời chào", exact: true }).click();
-  await expect(one.getByText("Đã gửi lời mời.", { exact: true })).toBeVisible();
+  await one.getByRole("button", { name: "Gửi lời mời kết nối", exact: true }).click();
+  await expect(one.getByText("Đã gửi lời mời kết nối.", { exact: true })).toBeVisible();
   await two.goto("/#/connect?tab=requests");
   await two
     .getByRole("button", { name: "Tải lại lời mời", exact: true })

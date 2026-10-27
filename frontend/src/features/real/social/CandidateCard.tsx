@@ -139,12 +139,12 @@ export function CandidateCard({
     >
       {sent ? (
         <p role="status" className="peer-card-sent">
-          Đã gửi lời chào
+          Đã gửi lời mời kết nối
         </p>
       ) : (
         <>
           <Button disabled={busy} onClick={onGreet}>
-            Gửi lời chào
+            Gửi lời mời kết nối
           </Button>
           <Button variant="secondary" disabled={busy} onClick={onSkip}>
             Bỏ qua

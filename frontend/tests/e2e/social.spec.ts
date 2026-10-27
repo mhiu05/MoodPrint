@@ -35,8 +35,8 @@ const TAXONOMY = {
   },
 };
 
-function sessionFor() {
-  return {
+function sessionFor(consents: Record<string, boolean> = {}) {
+  const base = {
     userId: "11111111-1111-4111-8111-111111111111",
     alias: "An",
     ageBand: "adult",
@@ -48,17 +48,19 @@ function sessionFor() {
     consents: Object.fromEntries(
       ["AI", "MEM", "MATCH", "VOICE"].map((p) => [
         p,
-        { enabled: p === "MATCH", version: 1, policyVersion: "v1" },
+        { enabled: consents[p] ?? p === "MATCH", version: 1, policyVersion: "v1" },
       ]),
     ),
   };
+  return base;
 }
 
 async function mockDiscovery(
   page: Page,
   state: { draft?: unknown; published: boolean; candidates: unknown[] },
+  consents: Record<string, boolean> = {},
 ) {
-  const session = sessionFor();
+  const session = sessionFor(consents);
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request(),
       path = new URL(request.url()).pathname;
@@ -136,7 +138,7 @@ test("matching publishes the reviewed profile only after a committed receipt", a
   const state = { published: false, candidates: [] as unknown[], draft: undefined };
   await mockDiscovery(page, state);
   await page.goto("/#/connect");
-  await page.getByRole("button", { name: "Chỉnh hồ sơ kết nối" }).click();
+  await page.getByRole("button", { name: "Chỉnh hồ sơ tìm bạn" }).click();
   await expect(page.getByRole("heading", { name: "Bước 1/5: Sở thích" })).toBeFocused();
   const next = page.getByRole("button", { name: "Tiếp tục" });
   await page.getByRole("checkbox", { name: "Đọc sách", exact: true }).check();
@@ -160,9 +162,9 @@ test("matching publishes the reviewed profile only after a committed receipt", a
   await expect(card).toContainText("Cùng tập trung");
   await expect(card).not.toContainText("Cà phê");
   expect(state.published).toBe(false);
-  await page.getByRole("button", { name: "Xuất bản hồ sơ" }).click();
+  await page.getByRole("button", { name: "Hiển thị hồ sơ" }).click();
   await expect(
-    page.getByText("Đã xuất bản hồ sơ.", { exact: true }),
+    page.getByText("Đã hiển thị hồ sơ tìm bạn.", { exact: true }),
   ).toBeVisible();
   expect(state.published).toBe(true);
   await expect(
@@ -212,7 +214,7 @@ test("candidate cards show a qualitative label and at most three reasons, never 
   await expect(shown.getByRole("listitem")).toHaveCount(3);
   await expect(shown).toContainText("Cùng tập trung (cả hai)");
   expect(await shown.innerText()).not.toMatch(/\d\s*%/);
-  await expect(shown.getByRole("button", { name: "Gửi lời chào" })).toBeVisible();
+  await expect(shown.getByRole("button", { name: "Gửi lời mời kết nối" })).toBeVisible();
   await expect(
     page.getByText(/không phải đánh giá mức độ hợp nhau/),
   ).toBeVisible();
@@ -435,4 +437,72 @@ test("navigation badges, unread rows and the private read marker", async ({
   await expect.poll(() => reads).toEqual([{ seq: "2" }]);
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect(page.getByRole("link", { name: "Tin nhắn", exact: true })).toBeVisible();
+});
+
+// ---- Reviewed sharing and invitations (V-PUBLISH / V-MATCH-SAFETY / V-CONSENT-COPY) ----
+async function reviewProfile(page: Page) {
+  await page.getByRole("button", { name: "Chỉnh hồ sơ tìm bạn" }).click();
+  for (const label of ["Đọc sách", "Âm nhạc", "Đi bộ"]) await page.getByRole("checkbox", { name: label, exact: true }).check();
+  await page.getByRole("button", { name: "Tiếp tục" }).click();
+  for (const label of ["Tôn trọng", "Chân thành"]) await page.getByRole("checkbox", { name: label, exact: true }).check();
+  await page.getByRole("button", { name: "Tiếp tục" }).click();
+  await page.getByRole("checkbox", { name: "Tiếng Việt", exact: true }).check();
+  await page.getByRole("button", { name: "Tiếp tục" }).click();
+  await page.getByRole("button", { name: "Xem trước hồ sơ" }).click();
+  await expect(page.getByLabel("Hồ sơ của Bạn")).toContainText("Đọc sách · Âm nhạc · Đi bộ");
+}
+
+test("a refused publish keeps the reviewed choices and never claims the profile is shown", async ({ page }) => {
+  const state = { published: false, candidates: [] as unknown[], draft: undefined };
+  await mockDiscovery(page, state);
+  await page.route("**/api/v1/profiles/published", (route) =>
+    route.fulfill({ status: 409, json: { error: { code: "PREVIEW_CHANGED", message: "Hãy xem lại bản xem trước mới nhất." } } }));
+  await page.goto("/#/connect");
+  await reviewProfile(page);
+  await page.getByRole("button", { name: "Hiển thị hồ sơ", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("Hãy xem lại bản xem trước mới nhất.");
+  await expect(page.getByText(/Đã hiển thị hồ sơ/)).toHaveCount(0);
+  await expect(page.getByLabel("Hồ sơ của Bạn")).toContainText("Đọc sách · Âm nhạc · Đi bộ");
+  expect(state.published).toBe(false);
+});
+
+test("closing the editor with unsaved choices asks before discarding them", async ({ page }) => {
+  await mockDiscovery(page, { published: false, candidates: [] });
+  await page.goto("/#/connect");
+  await page.getByRole("button", { name: "Chỉnh hồ sơ tìm bạn" }).click();
+  await page.getByRole("checkbox", { name: "Đọc sách", exact: true }).check();
+  await page.getByRole("button", { name: "Đóng", exact: true }).click();
+  const confirm = page.getByRole("dialog", { name: "Đóng mà chưa lưu thay đổi?" });
+  await expect(confirm.getByRole("button", { name: "Tiếp tục chỉnh" })).toBeFocused();
+  await confirm.getByRole("button", { name: "Tiếp tục chỉnh" }).click();
+  await expect(page.getByRole("checkbox", { name: "Đọc sách", exact: true })).toBeChecked();
+  await page.getByRole("button", { name: "Đóng", exact: true }).click();
+  await page.getByRole("dialog", { name: "Đóng mà chưa lưu thay đổi?" }).getByRole("button", { name: "Bỏ thay đổi" }).click();
+  await expect(page.getByRole("button", { name: "Chỉnh hồ sơ tìm bạn" })).toBeVisible();
+});
+
+test("with MATCH withdrawn the profile tab says showing a reviewed profile is the way back", async ({ page }) => {
+  await mockDiscovery(page, { published: false, candidates: [] }, { MATCH: false });
+  await page.goto("/#/connect");
+  const panel = page.getByRole("tabpanel", { name: "Hồ sơ tìm bạn" });
+  await expect(panel).toContainText("Quyền tìm bạn đang tắt.");
+  await expect(panel).toContainText("Hiển thị hồ sơ");
+  await expect(panel.getByRole("link", { name: /cài đặt/i })).toHaveCount(0);
+});
+
+test("sending an invitation is named as an invitation, with a matching receipt", async ({ page }) => {
+  const card = {
+    candidateRef: "ref-1", alias: "Bạn đồng hành 7c1e02", avatarSeed: "7c1e02aa",
+    profile: { interests: ["reading", "coffee", "music"], values: ["respect", "humor"], style: "listening", goal: "study-buddy", languages: ["vi"], activities: ["focus"], availability: ["weekday_evening"], strictGoal: false },
+    reasons: ["Cùng thích đọc sách"], matchLabel: "some", sharedActivities: ["focus"], scoringVersion: "rules-v2", profileVersion: 1, peerVersion: 1,
+  };
+  await mockDiscovery(page, { published: true, candidates: [card] });
+  await page.route("**/api/v1/profiles/published/current", (route) => route.fulfill({ json: { id: "p", profile: card.profile, version: 1, state: "live", profileVersion: 1 } }));
+  await page.route("**/api/v1/connection-requests", (route) =>
+    route.request().method() === "POST" ? route.fulfill({ status: 201, json: { id: "req-1" } }) : route.fulfill({ json: [] }));
+  await page.goto("/#/connect");
+  const shown = page.getByLabel("Hồ sơ của Bạn đồng hành 7c1e02");
+  await shown.getByRole("button", { name: "Gửi lời mời kết nối" }).click();
+  await expect(page.getByText("Đã gửi lời mời kết nối.", { exact: true })).toBeVisible();
+  await expect(shown).toContainText("Đã gửi lời mời kết nối");
 });

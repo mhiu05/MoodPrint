@@ -30,7 +30,7 @@ const GUIDES: Record<string, { purpose: string; to: string; action: string }> =
       purpose:
         "Chọn những điều bạn muốn công khai trong hồ sơ kết nối. Chuyện riêng với AI, tâm trạng và ghi nhớ không dùng để tìm bạn.",
       to: "/connect?tab=profile",
-      action: "Xem hồ sơ kết nối",
+      action: "Xem hồ sơ tìm bạn",
     },
   };
 

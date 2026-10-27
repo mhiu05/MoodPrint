@@ -40,14 +40,14 @@ async function enable(page: Page, name: string) {
 async function publish(page: Page) {
   await enable(page, "tìm bạn");
   await page.goto(base + "/#/connect?tab=profile");
-  await page.getByRole("button", { name: "Chỉnh hồ sơ kết nối" }).click();
+  await page.getByRole("button", { name: "Chỉnh hồ sơ tìm bạn" }).click();
   for (const name of ["Đọc sách", "Âm nhạc", "Đi bộ", "Tôn trọng", "Chân thành", "Tiếng Việt"])
     await page.getByRole("checkbox", { name, exact: true }).check();
   await page.getByRole("button", { name: "Lưu bản nháp", exact: true }).click();
   await expect(page.getByText("Đã lưu bản nháp.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Xem trước hồ sơ", exact: true }).click();
-  await page.getByRole("button", { name: "Xuất bản hồ sơ", exact: true }).click();
-  await expect(page.getByText("Đã xuất bản hồ sơ.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Hiển thị hồ sơ", exact: true }).click();
+  await expect(page.getByText("Đã hiển thị hồ sơ tìm bạn.", { exact: true })).toBeVisible();
 }
 
 test("hosted Auth, age, consent, private data, SDK memory, social races, restart and revoke", async ({ browser }) => {
