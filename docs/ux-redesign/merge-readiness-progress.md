@@ -159,3 +159,13 @@ Re-verification after these changes. Evidence is in `canonical-back-fix-20261027
 | Full configured E2E, Linux Chromium + DejaVu (container) | PASS, 185/185 (`linux-probe/e2e-full-linux.txt`) |
 | `ux-redesign.spec.ts` alone | PASS, 60/60 |
 | `npm.cmd run typecheck` / `npm.cmd test` / `npm.cmd run build` | PASS / 73/73 / PASS (`typecheck-2.txt`, `unit-2.txt`, `build-2.txt`) |
+
+### CI on `6f82681`
+
+The pull_request run passed every step (backend, migration/load, frontend + E2E, full stack, reviewed SQL, AWS poller, actionlint, Docker packaging, image builds). The push run of the same SHA failed one test: `redesigned screens have no automated WCAG violations at 390px` → `mood: color-contrast: ._primary_…`.
+
+- **Root cause (test timing).** The sweep's ready marker for `/#/self` (`Tâm trạng`) appears before `/moods` has loaded. The Save button is disabled until then, and on enabling it runs the 100 ms `--duration-feedback` colour transition from the disabled pair to the primary pair. Both end states pass, but intermediate frames do not. On a slow runner the response can arrive while axe is measuring.
+- **Deterministic proof** (`axe-transition-probe.spec.ts`): freezing that transition with the Web Animations API at 25 % gives exactly `color-contrast: ._primary_…`, `1.85:1`, `#bbc2bf` on `#729386`. At 0, 50, 75 and 100 % it passes. Before this, a 3 s slowed transition probe and 20 Linux repeats of the sweep could not reproduce it, which is why those hypotheses were dropped.
+- **Fix (test only; no assertion removed, no tag excluded, no timeout raised).** The sweep's `axe` helper now waits until no `Đang tải…` status remains and every finite animation or transition has finished, then measures. `axe-settle-probe.spec.ts` starts from the failing 25 % state with the transition left running: after the guard the colours are final (`#fff` on `#285c4b`) and there is no violation.
+- Sweep after the fix: Windows `--repeat-each 5`, 25/25; Linux + DejaVu 390 px `--repeat-each 10`, 20/20.
+- Full configured E2E after the fix: Linux Chromium + DejaVu 185/185 (`linux-probe/e2e-full-linux-3.txt`); Windows Chromium 185/185, 0 skipped, 0 flaky (`results-full-3.json`). `npm.cmd run typecheck`: PASS.

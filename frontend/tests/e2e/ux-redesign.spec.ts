@@ -900,9 +900,17 @@ test.describe("personal journeys", () => {
 
 // ---- Accessibility sweep (V-REFLOW / V-ROUTE-FOCUS / QA04 / QA15 automated part) ----
 test.describe("accessibility sweep", () => {
-  const axe = async (page: Page) =>
-    (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze()).violations
+  // axe samples colours as they are at that instant. A control enabled by a late
+  // response is still in its disabled→enabled colour transition for a moment, so
+  // each screen is measured once its loads and finite transitions have settled.
+  const axe = async (page: Page) => {
+    await expect(page.getByText(/^Đang tải/)).toHaveCount(0);
+    await page.evaluate(() => Promise.all(document.getAnimations()
+      .filter((animation) => animation.effect?.getComputedTiming().endTime !== Infinity)
+      .map((animation) => animation.finished.catch(() => undefined))));
+    return (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze()).violations
       .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(" ")).join(", ")}`);
+  };
 
   for (const width of [390, 1280]) {
     test(`redesigned screens have no automated WCAG violations at ${width}px`, async ({ page }) => {
