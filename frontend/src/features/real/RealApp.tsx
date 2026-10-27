@@ -82,6 +82,7 @@ import { DataControls } from "./Privacy";
 import { focusRouteHeading, useRouteFocus } from "./useRouteFocus";
 import { AIActivityStatus } from "./AIActivityStatus";
 import { ConversationInfo } from "./ConversationInfo";
+import { insertAtSelection } from "./draftInsert";
 import { deriveAIActivity, type AIActivityPhase } from "./aiActivityView";
 import { AIDataProvider, AIDataControls, ConversationHistory, useAIData, downloadConversation, type SavedConversation, type SavedConversationHeader } from "./AIData";
 
@@ -713,9 +714,23 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const [deleteError, setDeleteError] = useState<unknown>();
   const renameField = useRef<HTMLInputElement>(null);
   const onTerminal = useRef<((outcome: RunOutcome) => void) | undefined>(undefined);
-  // A receipt set right after opening a new chat must survive its URL change.
-  const keepNotice = useRef(false);
-  const submittedText = useRef<string | undefined>(undefined);
+  // Run whose cancel request is already on its way; a second request reuses it.
+  const cancelRequested = useRef<string | undefined>(undefined);
+  // Draft edits are counted so a stale closure comparison never decides what to clear.
+  const draftRevision = useRef(0);
+  // Text a failed run may hand back belongs to one conversation, request and view generation.
+  const recovery = useRef<{ requestKey: string; conversationId: string; generation: number; text: string; revision: number } | undefined>(undefined);
+  // Bumped on every real selection change, New and unmount; URL canonicalisation does not bump it.
+  const viewGeneration = useRef(0);
+  // Where a pending New will land, so applying its URL is not mistaken for a selection.
+  const newMarker = useRef<string | undefined>(undefined);
+  // Terminal outcome of the last run that finished in this view, for a late New confirmation.
+  const settled = useRef<{ runId: string; conversationId: string; outcome: RunOutcome } | undefined>(undefined);
+  const confirmTarget = useRef<{ runId: string; conversationId: string } | undefined>(undefined);
+  const editDraft = useCallback((value: string) => {
+    draftRevision.current += 1;
+    setDraft(value);
+  }, []);
   const [shareMood, setShareMood] = useState(false);
   const [moodFrom, setMoodFrom] = useState("");
   const [moodTo, setMoodTo] = useState("");
@@ -759,6 +774,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       setStopped(false);
       setBusy(true);
       let outcome: RunOutcome = "unknown";
+      const ownerId = current.current?.conversationId;
       try {
         const final = await consumeAIEvents(eventsUrl, signal);
         if (!signal.aborted && current.current) {
@@ -800,24 +816,31 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             const thread = current.current;
             if (thread) {
               const stored = await api.request<SavedConversation>(`/ai/conversations/${thread.conversationId}`, { signal });
-              if (!signal.aborted) { update(withOlder(stored)); refreshHistory(); outcome = "cancelled"; }
+              if (!signal.aborted) { update(withOlder(stored)); refreshHistory(); outcome = "cancelled"; setReady(true); }
             }
           } catch (readError) {
-            if (!signal.aborted) setError(readError);
+            // Only a successful authoritative read restores readiness; Retry reloads and reattaches.
+            if (!signal.aborted) { setError(readError); setReady(false); }
           }
         } else if (!signal.aborted) {
           if (reason instanceof ApiError && ["RUN_FAILED", "RUN_INTERRUPTED"].includes(reason.code)) outcome = "failed";
           setError(reason);
           setReady(false);
-          if (reason instanceof ApiError && reason.code === "RUN_FAILED") {
-            // Restore only a confirmed terminal failure. A transport interruption
-            // can still complete on the server and must be reconciled by reload.
-            setDraft(value => value || submittedText.current || "");
+          const owned = recovery.current;
+          if (reason instanceof ApiError && reason.code === "RUN_FAILED" && owned &&
+              owned.requestKey === requestKey && owned.conversationId === current.current?.conversationId &&
+              owned.generation === viewGeneration.current && owned.revision === draftRevision.current) {
+            // Restore only this run's confirmed terminal failure, and only over the
+            // empty draft it left behind. A transport interruption can still complete
+            // on the server and must be reconciled by reload.
+            editDraft(owned.text);
           }
         }
       } finally {
         if (!signal.aborted) {
-          activeRun.current = undefined;
+          if (recovery.current?.requestKey === requestKey) recovery.current = undefined;
+          if (ownerId) settled.current = { runId: id, conversationId: ownerId, outcome };
+          activeRun.current = undefined; cancelRequested.current = undefined;
           setRun(undefined);
           setBusy(false);
           setStopRequested(false);
@@ -826,10 +849,11 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         }
       }
     },
-    [api, update, withOlder, refreshHistory],
+    [api, update, withOlder, refreshHistory, editDraft],
   );
   useEffect(() => () => {
     lifetime.current?.abort();
+    viewGeneration.current += 1; recovery.current = undefined; newMarker.current = undefined;
     // An aborted open must run again if this view mounts again (StrictMode).
     openedFor.current = undefined;
   }, []);
@@ -843,21 +867,31 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     // the selection already on screen, an in-flight send or a pending stop-and-new.
     const openKey = `${bot.botId}/${selectedId || searchParams.get("new") || "latest"}#${revision}`;
     if (openedFor.current === openKey) return;
+    if (newMarker.current === openKey) {
+      // Applying the URL of a New this view already opened is not a selection: its
+      // lifetime, draft and any send it owns stay as they are.
+      newMarker.current = undefined;
+      openedFor.current = openKey;
+      loadedRevision.current = revision;
+      return;
+    }
+    newMarker.current = undefined;
     openedFor.current = openKey;
     loadedRevision.current = revision;
     lifetime.current?.abort();
     const controller = new AbortController();
     lifetime.current = controller;
+    viewGeneration.current += 1; recovery.current = undefined; settled.current = undefined; confirmTarget.current = undefined;
+    setNewConfirmOpen(false);
     setLoading(true); setReady(false); setBusy(false); setRun(undefined); setError(undefined);
-    if (!keepNotice.current) { setNotice(""); setPreviousConversation(undefined); }
-    keepNotice.current = false;
-    activeRun.current = undefined; setStopRequested(false); setSyncing(false); setStopped(false);
+    setNotice(""); setPreviousConversation(undefined);
+    activeRun.current = undefined; cancelRequested.current = undefined; setStopRequested(false); setSyncing(false); setStopped(false);
     pendingNew.current = false; setAwaitingNew(false); setCopyStatus(undefined);
     current.current = undefined; setConversation(undefined);
     const selection = `${bot.botId}/${selectedId || searchParams.get("new") || "latest"}`;
     // A different thread chosen in this conversation (not first open, not a new chat) moves focus to its heading once loaded.
     const switched = Boolean(selectedId) && loadedSelection.current !== undefined && loadedSelection.current !== selection;
-    if (loadedSelection.current !== selection) { intent.current = null; setDraft(""); setShareMood(false); }
+    if (loadedSelection.current !== selection) { intent.current = null; editDraft(""); setDraftNotice(""); setManageError(undefined); setShareMood(false); }
     loadedSelection.current = selection;
     async function open() {
       // Explicit selection is authoritative; otherwise resume the latest temporary
@@ -880,7 +914,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     // Lifetime is aborted above on a real selection and on unmount. URL updates
     // for the current thread must leave its in-flight request running.
-  }, [api, bot.botId, selectedId, searchParams.get("new"), revision, stream, update, preferencesLoading, preferences?.historyEnabled]);
+  }, [api, bot.botId, selectedId, searchParams.get("new"), revision, stream, update, preferencesLoading, preferences?.historyEnabled, editDraft]);
   useEffect(() => {
     if (!session.consents.AI.enabled) {
       setPendingProposals(0);
@@ -927,6 +961,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     )
       return;
     const signal = lifetime.current.signal;
+    const submittedRevision = draftRevision.current, generation = viewGeneration.current;
     setBusy(true);
     setStopped(false);
     setError(undefined);
@@ -994,10 +1029,13 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       });
       const requestKey = intent.current!.clientMessageId;
       intent.current = null;
-      submittedText.current = text;
       if (moodScope) setLastMoodRange({ conversationId: thread.conversationId, ...moodScope });
       setShareMood(false);
-      setDraft("");
+      // Only the snapshot that was submitted is cleared; anything typed while the
+      // request was pending (even text equal to the old draft) stays.
+      const untouched = draftRevision.current === submittedRevision;
+      if (untouched) editDraft("");
+      recovery.current = { requestKey, conversationId: thread.conversationId, generation, text, revision: untouched ? draftRevision.current : -1 };
       setAtBottom(true);
       await stream(
         accepted.runId,
@@ -1016,25 +1054,24 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   /** A suggestion only edits the draft; sending stays an explicit choice. */
   function insertStarter(text: string) {
     const field = composer.current;
-    const start = field?.selectionStart ?? draft.length;
-    const end = field?.selectionEnd ?? draft.length;
-    const before = draft.slice(0, start), after = draft.slice(end);
-    const head = before && !/\s$/.test(before) ? `${before} ${text}` : `${before}${text}`;
-    const next = head + (after && !/^\s/.test(after) ? ` ${after}` : after);
-    if (next.length > 500) {
+    const result = insertAtSelection(draft, field?.selectionStart ?? draft.length, field?.selectionEnd ?? draft.length, text);
+    if (!result.ok) {
       setDraftNotice("Gợi ý này sẽ làm tin nhắn dài hơn 500 ký tự. Hãy rút gọn trước khi thêm.");
       return;
     }
-    setDraft(next);
+    editDraft(result.next);
     setDraftNotice("Đã thêm gợi ý vào ô nhắn.");
     requestAnimationFrame(() => {
       field?.focus();
-      field?.setSelectionRange(head.length, head.length);
+      field?.setSelectionRange(result.caret, result.caret);
     });
   }
-  async function cancel(): Promise<boolean> {
-    if (!run || stopRequested) return false;
+  /** "pending" means this run's cancel request already exists; its outcome is the stream's terminal event. */
+  async function cancel(): Promise<"accepted" | "pending" | "failed"> {
+    if (!run) return "failed";
     const runId = run.id;
+    if (stopRequested || cancelRequested.current === runId) return "pending";
+    cancelRequested.current = runId;
     setStopRequested(true);
     setError(undefined);
     try {
@@ -1044,28 +1081,36 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         method: "POST",
         body: { expectedVersion: run.version } satisfies VersionInput,
       });
-      return true;
+      return "accepted";
     } catch (reason) {
       if (activeRun.current === runId) {
+        cancelRequested.current = undefined;
         setStopRequested(false);
         setError(reason);
+        // A New that was waiting on this cancellation cannot proceed; stay put.
+        if (pendingNew.current) {
+          pendingNew.current = false;
+          setAwaitingNew(false);
+          setError(new ApiError(0, "RUN_STATE_UNCONFIRMED", UNCONFIRMED));
+        }
       }
-      return false;
+      return "failed";
     }
   }
   function newConversation() {
     lifetime.current?.abort();
     lifetime.current = new AbortController();
-    current.current = undefined; setConversation(undefined); setDraft(""); setError(undefined); setNotice("");
+    viewGeneration.current += 1; recovery.current = undefined; settled.current = undefined; confirmTarget.current = undefined;
+    current.current = undefined; setConversation(undefined); editDraft(""); setDraftNotice(""); setManageError(undefined); setError(undefined); setNotice("");
     setReady(true); setLoading(false); setBusy(false); setRun(undefined); intent.current = null; setShareMood(false); setLastMoodRange(undefined);
-    activeRun.current = undefined; setStopRequested(false); setSyncing(false); setStopped(false);
+    activeRun.current = undefined; cancelRequested.current = undefined; setStopRequested(false); setSyncing(false); setStopped(false);
     pendingNew.current = false; setAwaitingNew(false); setPreviousConversation(undefined); setCopyStatus(undefined);
-    // An explicit new marker prevents latest-thread auto-resume. Record it now:
-    // the router applies the URL in a transition, and its effect must not wipe a
-    // draft typed after this click.
+    // An explicit new marker prevents latest-thread auto-resume. This view is
+    // already reset, so the router applying the marker URL (in a transition) must
+    // neither abort the fresh lifetime nor wipe a draft or send made since the click.
     const marker = crypto.randomUUID();
     loadedSelection.current = `${bot.botId}/${marker}`;
-    keepNotice.current = true;
+    newMarker.current = `${bot.botId}/${marker}#${revision}`;
     setSearchParams({ new: marker });
   }
   async function olderMessages() {
@@ -1141,6 +1186,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   function requestNew() {
     if (syncing || awaitingNew || (busy && !run)) return;
     if (run) {
+      // The confirmation is about this run in this conversation; confirming later
+      // re-checks what became of it rather than assuming it is still active.
+      confirmTarget.current = current.current ? { runId: run.id, conversationId: current.current.conversationId } : undefined;
       if (compactLayout()) setInfoOpen(false);
       setNewConfirmOpen(true);
       return;
@@ -1148,12 +1196,40 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     setInfoOpen(false);
     newConversation();
   }
+  function openNewAfter(outcome: Exclude<RunOutcome, "unknown">) {
+    const previous = current.current?.conversationId;
+    setInfoOpen(false);
+    newConversation();
+    setPreviousConversation(outcome === "completed" ? previous : undefined);
+    setNotice(
+      outcome === "cancelled" ? "Đã dừng phản hồi và mở cuộc trò chuyện mới."
+        : outcome === "completed" ? "Câu trả lời vừa hoàn tất trước khi dừng. Đã mở cuộc trò chuyện mới."
+          : "Phản hồi đã kết thúc vì lỗi trước khi dừng. Đã mở cuộc trò chuyện mới.",
+    );
+  }
   async function stopAndNew() {
     setNewConfirmOpen(false);
+    const target = confirmTarget.current;
+    confirmTarget.current = undefined;
+    const thread = current.current;
+    if (!target || !thread || target.conversationId !== thread.conversationId) return;
+    if (run?.id !== target.runId) {
+      // The run being confirmed is no longer the active one. A missing run proves
+      // neither completion nor cancellation: use only an outcome this view validated.
+      const known = settled.current;
+      if (!run && known && known.runId === target.runId && known.conversationId === target.conversationId && known.outcome !== "unknown") {
+        openNewAfter(known.outcome);
+        return;
+      }
+      // Never cancel a newer run on behalf of an older confirmation.
+      setError(new ApiError(0, "RUN_STATE_UNCONFIRMED", UNCONFIRMED));
+      return;
+    }
     pendingNew.current = true;
     setAwaitingNew(true);
-    const accepted = await cancel();
-    if (!accepted && pendingNew.current) {
+    const result = await cancel();
+    // A failed cancel already cleared the pending New; "pending" reuses the Stop in flight.
+    if (result === "failed" && pendingNew.current) {
       pendingNew.current = false;
       setAwaitingNew(false);
       setError(new ApiError(0, "RUN_STATE_UNCONFIRMED", UNCONFIRMED));
@@ -1168,15 +1244,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       setError(new ApiError(0, "RUN_STATE_UNCONFIRMED", UNCONFIRMED));
       return;
     }
-    const previous = current.current?.conversationId;
-    setInfoOpen(false);
-    newConversation();
-    setPreviousConversation(outcome === "completed" ? previous : undefined);
-    setNotice(
-      outcome === "cancelled" ? "Đã dừng phản hồi và mở cuộc trò chuyện mới."
-        : outcome === "completed" ? "Câu trả lời vừa hoàn tất trước khi dừng. Đã mở cuộc trò chuyện mới."
-          : "Phản hồi đã kết thúc vì lỗi trước khi dừng. Đã mở cuộc trò chuyện mới.",
-    );
+    openNewAfter(outcome);
   };
   async function copyReply(id: string, bubble: Element | null | undefined) {
     // Plain text of the rendered, validated reply; never cards or metadata.
@@ -1427,7 +1495,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         <VoiceRecorder
           draft={draft}
           onUse={(text) => {
-            setDraft(text);
+            editDraft(text);
             setDraftNotice("");
             requestAnimationFrame(() => composer.current?.focus());
           }}
@@ -1459,7 +1527,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             value={draft}
             maxLength={500}
             rows={1}
-            onChange={(event) => { setDraft(event.target.value); setDraftNotice(""); }}
+            onChange={(event) => { editDraft(event.target.value); setDraftNotice(""); }}
             placeholder={`Nhắn cho ${bot.name}…`}
             onKeyDown={(event) => {
               if (

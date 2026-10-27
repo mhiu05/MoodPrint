@@ -14,6 +14,7 @@ import { ErrorNotice, useResource, useSession } from "../RealApp";
 import { ConnectionSafety } from "../Safety";
 import { useConnectionEvents } from "./useConnectionEvents";
 import { looksLikeContact } from "./pii";
+import { insertAtSelection } from "../draftInsert";
 import { ActivityCatalog, ActivityEntryButton } from "../activities/ActivityCatalog";
 import { ActivityDock } from "../activities/ActivityDock";
 import { HistoryCard, InviteCard } from "../activities/InviteCard";
@@ -35,6 +36,7 @@ export function HumanChat() {
   const [room, setRoom] = useState<ConnectionView>(),
     [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState(""),
+    [draftNotice, setDraftNotice] = useState(""),
     [error, setError] = useState<unknown>(),
     [busy, setBusy] = useState(false),
     [ready, setReady] = useState(false);
@@ -48,6 +50,12 @@ export function HumanChat() {
   const [atBottom, setAtBottom] = useState(true);
   const atBottomRef = useRef(true);
   const [unseen, setUnseen] = useState(false);
+  // Counts draft edits so a receipt clears only the snapshot that was submitted.
+  const draftRevision = useRef(0);
+  const editDraft = useCallback((value: string) => {
+    draftRevision.current += 1;
+    setDraft(value);
+  }, []);
   const intent = useRef<{ text: string; id: string } | undefined>(undefined),
     cursor = useRef("0"),
     lastRead = useRef("0");
@@ -230,6 +238,7 @@ export function HumanChat() {
       setAdvising(true);
       return;
     }
+    const submittedRevision = draftRevision.current;
     setBusy(true);
     setError(undefined);
     if (intent.current?.text !== draft.trim())
@@ -250,7 +259,8 @@ export function HumanChat() {
           [...current, receipt].map((message) => [message.id, message]),
         ).values(),
       ]);
-      setDraft("");
+      // Text typed while the request was pending belongs to the next message.
+      if (draftRevision.current === submittedRevision) editDraft("");
       intent.current = undefined;
       void refresh();
     } catch (reason) {
@@ -261,6 +271,21 @@ export function HumanChat() {
     } finally {
       setBusy(false);
     }
+  }
+  /** A suggestion only edits the draft; sending stays an explicit choice. */
+  function insertStarter(text: string) {
+    const field = composer.current;
+    const result = insertAtSelection(draft, field?.selectionStart ?? draft.length, field?.selectionEnd ?? draft.length, text);
+    if (!result.ok) {
+      setDraftNotice("Gợi ý này sẽ làm tin nhắn dài hơn 500 ký tự. Hãy rút gọn trước khi thêm.");
+      return;
+    }
+    editDraft(result.next);
+    setDraftNotice("Đã thêm gợi ý vào ô nhắn.");
+    requestAnimationFrame(() => {
+      field?.focus();
+      field?.setSelectionRange(result.caret, result.caret);
+    });
   }
   const leave = (reason: string) => {
     setEvidence(seen.current);
@@ -318,12 +343,10 @@ export function HumanChat() {
             <p>Chọn một câu để chỉnh sửa. Tin nhắn chỉ được gửi khi bạn chọn “Gửi”.</p>
             <div className="conversation-starters" role="group" aria-label="Lời mở đầu">
               {["Chào bạn! Gần đây có điều gì làm bạn vui không?", "Khi rảnh bạn thích làm gì nhất?", "Mình cùng thử một hoạt động làm quen nhé?"].map((text) => (
-                <button key={text} type="button" onClick={() => {
-                  setDraft(text);
-                  composer.current?.focus();
-                }}>{text}</button>
+                <button key={text} type="button" onClick={() => insertStarter(text)}>{text}</button>
               ))}
             </div>
+            {draftNotice ? <p className={cx.footnote} role="status">{draftNotice}</p> : null}
           </div>
         )}
         {timeline.map(({ message, past }) =>
@@ -383,7 +406,7 @@ export function HumanChat() {
           }
           value={draft}
           disabled={Boolean(closed)}
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) => { editDraft(event.target.value); setDraftNotice(""); }}
         />
         <button
           className="send-button"
