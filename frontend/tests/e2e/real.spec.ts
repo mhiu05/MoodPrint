@@ -98,7 +98,7 @@ async function scopedNhip(page: Page, submitted: any[], fail = false) {
 test("Nhịp requires an explicit valid mood range and consumes permission after one accepted turn", async ({ page }) => {
   const submitted: any[] = [];
   await scopedNhip(page, submitted);
-  await page.getByRole("checkbox", { name: "Cho Nhịp đọc khoảng ngày mình chọn", exact: true }).check();
+  await page.getByRole("checkbox", { name: "Cho Nhịp xem thống kê trong khoảng ngày đã chọn", exact: true }).check();
   await page.getByLabel("Thống kê từ ngày", { exact: true }).fill("2026-10-02");
   await page.getByLabel("Thống kê đến ngày", { exact: true }).fill("2026-10-01");
   await page.getByRole("textbox", { name: "Tin nhắn cho Nhịp" }).fill("Nhìn lại những ngày mình chọn");
@@ -110,7 +110,7 @@ test("Nhịp requires an explicit valid mood range and consumes permission after
   await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
   await expect.poll(() => submitted.length).toBe(1);
   expect(submitted[0].moodScope).toEqual({ fromDate: "2026-10-01", toDate: "2026-10-02" });
-  await expect(page.getByRole("checkbox", { name: "Cho Nhịp đọc khoảng ngày mình chọn", exact: true })).not.toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Cho Nhịp xem thống kê trong khoảng ngày đã chọn", exact: true })).not.toBeChecked();
   await page.getByRole("textbox", { name: "Tin nhắn cho Nhịp" }).fill("Một lượt trò chuyện riêng");
   await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
   await expect.poll(() => submitted.length).toBe(2);
@@ -121,7 +121,7 @@ test("Nhịp requires an explicit valid mood range and consumes permission after
 test("Nhịp retries preserve the exact range intent and changing dates creates a new intent", async ({ page }) => {
   const submitted: any[] = [];
   await scopedNhip(page, submitted, true);
-  await page.getByRole("checkbox", { name: "Cho Nhịp đọc khoảng ngày mình chọn", exact: true }).check();
+  await page.getByRole("checkbox", { name: "Cho Nhịp xem thống kê trong khoảng ngày đã chọn", exact: true }).check();
   await page.getByLabel("Thống kê từ ngày", { exact: true }).fill("2026-10-01");
   await page.getByLabel("Thống kê đến ngày", { exact: true }).fill("2026-10-02");
   await page.getByRole("textbox", { name: "Tin nhắn cho Nhịp" }).fill("Cùng một lời nhắn");
@@ -144,7 +144,7 @@ for (const width of [1280, 390]) {
     const errors: string[] = [];
     page.on("pageerror", error => errors.push(error.message));
     await scopedNhip(page, submitted);
-    await page.getByRole("checkbox", { name: "Cho Nhịp đọc khoảng ngày mình chọn", exact: true }).check();
+    await page.getByRole("checkbox", { name: "Cho Nhịp xem thống kê trong khoảng ngày đã chọn", exact: true }).check();
     await page.getByLabel("Thống kê từ ngày", { exact: true }).fill("2026-10-01");
     await page.getByLabel("Thống kê đến ngày", { exact: true }).fill("2026-10-02");
     const input = page.getByRole("textbox", { name: "Tin nhắn cho Nhịp" });
@@ -154,14 +154,14 @@ for (const width of [1280, 390]) {
     await expect(reshare).toBeEnabled();
     await reshare.focus();
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("checkbox", { name: "Cho Nhịp đọc khoảng ngày mình chọn", exact: true })).toBeChecked();
+    await expect(page.getByRole("checkbox", { name: "Cho Nhịp xem thống kê trong khoảng ngày đã chọn", exact: true })).toBeChecked();
     await expect(page.getByRole("status").filter({ hasText: "Nhịp chỉ đọc khi bạn gửi tin nhắn" })).toBeVisible();
     expect(submitted).toHaveLength(1);
     await input.fill("Bạn cứ nhận xét đi");
     await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
     await expect.poll(() => submitted.length).toBe(2);
     expect(submitted[1].moodScope).toEqual(submitted[0].moodScope);
-    await expect(page.getByRole("checkbox", { name: "Cho Nhịp đọc khoảng ngày mình chọn", exact: true })).not.toBeChecked();
+    await expect(page.getByRole("checkbox", { name: "Cho Nhịp xem thống kê trong khoảng ngày đã chọn", exact: true })).not.toBeChecked();
     expect(errors).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
@@ -177,7 +177,7 @@ test("terminal AI failure restores text without regranting the consumed mood sco
   await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(input).toHaveValue("Một lời nhắn cần thử lại");
-  await expect(page.getByRole("checkbox", { name: "Cho Nhịp đọc khoảng ngày mình chọn", exact: true })).not.toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Cho Nhịp xem thống kê trong khoảng ngày đã chọn", exact: true })).not.toBeChecked();
   expect(submitted).toHaveLength(1);
 });
 
@@ -249,10 +249,10 @@ test("year onboarding requires confirmation and server success, retaining input 
   });
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "Trước khi bắt đầu" }),
+    page.getByRole("heading", { name: "Xác nhận độ tuổi" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Xác nhận năm sinh", exact: true }),
+    page.getByRole("button", { name: "Xác nhận và tiếp tục", exact: true }),
   ).toBeDisabled();
   await page.getByLabel("Năm sinh", { exact: true }).fill("2007");
   await page
@@ -263,17 +263,17 @@ test("year onboarding requires confirmation and server success, retaining input 
     .check();
   await expect(page.getByRole("textbox", { name: /Tin nhắn/ })).toHaveCount(0);
   await page
-    .getByRole("button", { name: "Xác nhận năm sinh", exact: true })
+    .getByRole("button", { name: "Xác nhận và tiếp tục", exact: true })
     .click();
   await expect(page.getByRole("alert")).toContainText("Chưa thể xác nhận");
   await expect(page.getByLabel("Năm sinh", { exact: true })).toHaveValue(
     "2007",
   );
   await page
-    .getByRole("button", { name: "Xác nhận năm sinh", exact: true })
+    .getByRole("button", { name: "Xác nhận và tiếp tục", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Trước khi bắt đầu" }),
+    page.getByRole("heading", { name: "Xác nhận độ tuổi" }),
   ).toBeVisible();
   release();
   await expect(

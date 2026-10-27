@@ -690,7 +690,7 @@ test.describe("privacy and memory comprehension", () => {
     await page.goto("/#/memory");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Thông tin AI ghi nhớ");
     const waiting = page.getByRole("region", { name: "Đề xuất chờ duyệt" });
-    await expect(waiting.getByRole("textbox", { name: "Nội dung bạn muốn duyệt" })).toHaveValue("Thích trà buổi tối");
+    await expect(waiting.getByRole("textbox", { name: "Nội dung sẽ lưu" })).toHaveValue("Thích trà buổi tối");
     await expect(waiting).toContainText("Chưa lưu");
     await expect(waiting).not.toContainText("Bạn đã chọn không lưu đề xuất này.");
     await expect(page.getByRole("region", { name: "Đã duyệt" })).toContainText("Thích đi bộ");
@@ -703,7 +703,7 @@ test.describe("privacy and memory comprehension", () => {
     await page.route("**/api/v1/memories/m-1", (route) => route.fulfill({ status: 503, json: { error: { code: "UNAVAILABLE", message: "Dịch vụ tạm gián đoạn." } } }));
     await page.goto("/#/memory");
     await page.getByRole("button", { name: "Xóa ghi nhớ", exact: true }).click();
-    await page.getByRole("button", { name: "Xác nhận xóa ghi nhớ", exact: true }).click();
+    await page.getByRole("button", { name: "Xóa ghi nhớ này", exact: true }).click();
     await expect(page.getByRole("alert")).toContainText("Dịch vụ tạm gián đoạn.");
     await expect(page.getByText("Thích đi bộ", { exact: true })).toBeVisible();
   });
@@ -756,7 +756,7 @@ test.describe("human chat continuity and safety", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await app(page, sessionWith({ AI: false }));
     await page.goto(`/#/chat/${room.id}`);
-    await expect(page.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" })).toBeEnabled();
+    await expect(page.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" })).toBeEnabled();
     const composer = page.locator("form.bot-composer");
     await expect(composer.getByRole("button", { name: /Kết thúc|Chặn/ })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Kết thúc kết nối" })).toHaveCount(0);
@@ -804,8 +804,8 @@ test.describe("personal journeys", () => {
   async function transcribe(page: Page) {
     await page.getByRole("button", { name: "Ghi âm tối đa 30 giây" }).click();
     await expect(page.getByText(/Đang ghi âm · [1-9]/)).toBeVisible();
-    await page.getByRole("button", { name: "Dừng và xem bản chữ" }).click();
-    await expect(page.getByRole("textbox", { name: "Xem và sửa bản chữ" })).toHaveValue("Bản chép lời thử");
+    await page.getByRole("button", { name: "Dừng và chuyển thành văn bản" }).click();
+    await expect(page.getByRole("textbox", { name: "Xem và sửa bản chép lời" })).toHaveValue("Bản chép lời thử");
   }
 
   test("a transcript fills an empty composer only when chosen, and never sends", async ({ page }) => {
@@ -850,7 +850,7 @@ test.describe("personal journeys", () => {
     const uploads: string[] = [];
     page.on("request", (request) => { if (request.url().includes("/voice/transcriptions")) uploads.push(request.url()); });
     await page.getByRole("button", { name: "Ghi âm tối đa 30 giây" }).click();
-    await page.getByRole("button", { name: "Dừng và xem bản chữ" }).click();
+    await page.getByRole("button", { name: "Dừng và chuyển thành văn bản" }).click();
     await expect(page.getByRole("alert")).toContainText("Bản ghi quá ngắn");
     await expect(page.getByRole("alert")).not.toContainText("kết nối");
     expect(uploads).toEqual([]);
@@ -918,7 +918,7 @@ test.describe("accessibility sweep", () => {
         ["memory", "/#/memory", "Đề xuất chờ duyệt"],
         ["messages", "/#/messages", "Tin nhắn"],
         ["mood", "/#/self", "Tâm trạng"],
-        ["human", `/#/chat/${room.id}`, "Một lời chào"],
+        ["human", `/#/chat/${room.id}`, "Bắt đầu cuộc trò chuyện"],
       ] as const) {
         await page.goto(url);
         await expect(page.getByText(ready).first()).toBeVisible();

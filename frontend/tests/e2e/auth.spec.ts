@@ -90,7 +90,7 @@ test("forgot password sends a uniform notice", async ({ page }) => {
   await page.getByRole("button", { name: "Quên mật khẩu?" }).click();
   await expect(page.getByLabel("Mật khẩu", { exact: true })).toHaveCount(0);
   await page.getByLabel("Email", { exact: true }).fill("who@example.test");
-  await page.getByRole("button", { name: "Gửi liên kết" }).click();
+  await page.getByRole("button", { name: "Gửi liên kết đặt lại mật khẩu" }).click();
   await expect(page.getByRole("status")).toContainText("Nếu email có tài khoản");
   expect(calls.find((call) => call.path === "/auth/password-recovery")!.body).toEqual({ email: "who@example.test" });
 });
@@ -136,7 +136,7 @@ test("export asks for step-up re-authentication instead of signing the user out"
   });
   await page.goto("/#/settings");
   await page.getByRole("button", { name: "Tải bản sao dữ liệu" }).click();
-  await expect(page.getByRole("heading", { name: "Xác nhận lại mật khẩu" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Xác nhận tài khoản" })).toBeVisible();
   // Still signed in: the login screen must not appear.
   await expect(page.getByRole("heading", { name: "Chào bạn trở lại" })).toHaveCount(0);
   await page.locator("#reauth-email").fill("an@example.test");
@@ -155,7 +155,7 @@ test("account deletion requires explicit acknowledgement and confirms sign-out",
   });
   await page.goto("/#/settings");
   await page.getByRole("button", { name: "Xóa tài khoản" }).click();
-  const confirm = page.getByRole("button", { name: "Xóa vĩnh viễn" });
+  const confirm = page.getByRole("button", { name: "Xóa vĩnh viễn tài khoản" });
   await expect(confirm).toBeDisabled();
   await page.getByLabel("Tôi hiểu tài khoản không thể khôi phục.").check();
   await confirm.click();

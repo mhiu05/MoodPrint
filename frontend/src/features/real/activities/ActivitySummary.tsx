@@ -19,10 +19,10 @@ export function FeedbackChips({
 }) {
   if (session.state !== "completed") return null;
   if (session.self.feedbackGiven)
-    return <p role="status">Cảm ơn bạn. Đánh giá này chỉ mình bạn biết.</p>;
+    return <p role="status">Đã nhận đánh giá. Người bạn kết nối không xem được đánh giá này.</p>;
   return (
-    <div className="feedback-chips" role="group" aria-label="Bạn thấy hoạt động này thế nào? (chỉ mình bạn biết)">
-      <p>Bạn thấy hoạt động này thế nào? (chỉ mình bạn biết)</p>
+    <div className="feedback-chips" role="group" aria-label="Bạn thấy hoạt động này thế nào? Đánh giá không hiển thị với người bạn kết nối.">
+      <p>Bạn thấy hoạt động này thế nào? Đánh giá không hiển thị với người bạn kết nối.</p>
       {RATINGS.map(([value, label]) => (
         <button type="button" key={value} disabled={busy} onClick={() => onRate(value)}>
           {label}
@@ -60,7 +60,7 @@ export function ActivitySummary({
   const summary = session.summary;
   return (
     <div className="activity-summary">
-      <h3>{session.state === "completed" ? "Hoàn thành!" : endedMessage(session, alias)}</h3>
+      <h3>{session.state === "completed" ? "Đã hoàn thành" : endedMessage(session, alias)}</h3>
       {session.kind === "icebreaker" && summary?.answeredTogether != null && (
         <p>Hai bạn cùng trả lời {summary.answeredTogether}/3 câu.</p>
       )}

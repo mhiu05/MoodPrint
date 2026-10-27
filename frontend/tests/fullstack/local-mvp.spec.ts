@@ -40,7 +40,7 @@ test("five assistants persist, recover after logout/login and deny a separately 
       .getByRole("checkbox", { name: "Lưu lịch sử trò chuyện", exact: true })
       .click();
     await expect(
-      a.getByText("Đã cập nhật lựa chọn dữ liệu AI.", { exact: true }),
+      a.getByText("Đã lưu lựa chọn của bạn.", { exact: true }),
     ).toBeVisible();
     const urls: string[] = [];
     for (const [bot, name] of [

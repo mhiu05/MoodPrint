@@ -99,7 +99,7 @@ function AgeForm({ upgrade = false }: { upgrade?: boolean }) {
           ? "Đang xác nhận…"
           : upgrade
             ? "Xác nhận đủ 18 tuổi"
-            : "Xác nhận năm sinh"}
+            : "Xác nhận và tiếp tục"}
       </Button>
     </form>
   );
@@ -119,7 +119,7 @@ export function EligibilityGate() {
       <Brand />
       <h1 tabIndex={-1}>
         {canDeclare
-          ? "Trước khi bắt đầu"
+          ? "Xác nhận độ tuổi"
           : "Ứng dụng dành cho người từ 16 tuổi"}
       </h1>
       {canDeclare ? (
@@ -128,7 +128,7 @@ export function EligibilityGate() {
             Hãy nhập năm sinh và xác nhận bạn đã đủ 16 tuổi. Tìm bạn và nhắn tin
             người thật dành cho người đã đủ 18 tuổi.
           </p>
-          <p>Năm sinh không xuất hiện trong hồ sơ kết nối của bạn.</p>
+          <p>Năm sinh không xuất hiện trong hồ sơ tìm bạn của bạn.</p>
           <AgeForm />
         </>
       ) : (
@@ -166,7 +166,7 @@ export function AdultEligibility() {
     currentYear(session.serverTime) - session.birthYear >= 18;
   return (
     <section className="privacy-subsection">
-      <h3>Điều kiện kết nối</h3>
+      <h3>Điều kiện dùng Tìm bạn và Tin nhắn</h3>
       <p>
         Tìm bạn và nhắn tin người thật dành cho người đã đủ 18 tuổi. Bạn vẫn có
         thể dùng các tính năng cá nhân.

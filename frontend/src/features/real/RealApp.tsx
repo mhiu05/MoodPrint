@@ -251,7 +251,7 @@ function SessionRoot() {
     return (
       <main className="real-auth">
         <Brand />
-        <h1 tabIndex={-1}>Chưa thể mở không gian của bạn</h1>
+        <h1 tabIndex={-1}>Chưa thể mở MoodPrint</h1>
         <ErrorNotice
           error={error}
           retry={() => {
@@ -265,7 +265,7 @@ function SessionRoot() {
     return (
       <main className="real-auth">
         <Brand />
-        <p role="status">Đang kiểm tra phiên…</p>
+        <p role="status">Đang kiểm tra đăng nhập…</p>
       </main>
     );
   if (session === null || callback?.kind === "recovery")
@@ -318,7 +318,7 @@ function QuotaHint() {
   return (
     <p className={cx.footnote} role="status">
       {remaining === 0
-        ? "Hôm nay bạn đã dùng hết lượt trò chuyện với trợ lý. Hẹn bạn ngày mai nhé."
+        ? "Bạn đã dùng hết lượt trò chuyện AI hôm nay. Bạn có thể tiếp tục vào ngày mai."
         : `Hôm nay bạn còn ${remaining} lượt trò chuyện với trợ lý.`}
     </p>
   );
@@ -495,7 +495,7 @@ function Unavailable({
           Về trợ lý
         </Link>
         <Link className={`${cx.button} ${cx.secondary}`} to="/self">
-          Ghi tâm trạng
+          Ghi lại tâm trạng
         </Link>
       </div>
     </>
@@ -537,7 +537,7 @@ function Assistants() {
           <Link
             className="icon-button"
             to="/settings"
-            aria-label="Tùy chọn ứng dụng"
+            aria-label="Quyền riêng tư"
           >
             <SlidersHorizontal size={20} />
           </Link>
@@ -597,7 +597,7 @@ function Assistants() {
       <section
         className="conversation-pane"
         aria-label={
-          bot ? `Trò chuyện với ${bot.name}` : "Không gian trò chuyện"
+          bot ? `Trò chuyện với ${bot.name}` : "Cuộc trò chuyện"
         }
       >
         {bot ? (
@@ -631,7 +631,7 @@ function Assistants() {
             <p>
               Một nơi để lắng nghe bản thân
               <br />
-              và tìm những người cùng tần số.
+              và kết nối từ những điểm chung.
             </p>
             {bots[0] ? (
               <Link
@@ -853,7 +853,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       if (!id) { setReady(true); return; }
       const value = await api.request<SavedConversation>(`/ai/conversations/${encodeURIComponent(id)}`, { signal: controller.signal });
       if (controller.signal.aborted) return;
-      if (value.botId !== bot.botId) throw new ApiError(409, "CONVERSATION_BOT_MISMATCH", "Hội thoại thuộc một trợ lý khác. Chọn lại hội thoại trong lịch sử.");
+      if (value.botId !== bot.botId) throw new ApiError(409, "CONVERSATION_BOT_MISMATCH", "Cuộc trò chuyện thuộc trợ lý khác. Chọn lại trong lịch sử.");
       update(value); setReady(true); setAtBottom(true);
       if (switched) requestAnimationFrame(() => focusRouteHeading());
       if (value.activeRunId && allowed) void stream(value.activeRunId, value.activeRunVersion || 1, `/api/v1/ai/runs/${value.activeRunId}/events`, controller.signal, `resume:${value.activeRunId}`);
@@ -1207,10 +1207,10 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   else if (!preferences.historyAvailable) historyStatus = "Lưu lịch sử chưa sẵn sàng.";
   else if (preferences.historyEnabled) historyStatus = `Đang lưu cuộc trò chuyện mới tối đa ${preferences.retentionDays} ngày.`;
 
-  let readOnlyMessage = "Đang kiểm tra lựa chọn dữ liệu AI…";
+  let readOnlyMessage = "Đang kiểm tra cài đặt trò chuyện AI…";
   if (!session.features.ai) readOnlyMessage = aiServiceMessage(session.features);
   else if (!preferences && !preferencesLoading)
-    readOnlyMessage = "Chưa tải được lựa chọn dữ liệu AI. Hãy thử tải lại trước khi nhắn.";
+    readOnlyMessage = "Chưa tải được cài đặt trò chuyện AI. Tải lại trước khi gửi tin nhắn.";
   else if (preferences && !historyWritable)
     readOnlyMessage = preferences.historyAvailable
       ? "Bạn đang tắt lưu lịch sử nên cuộc trò chuyện đã lưu này chỉ để xem. Bật lại trong cài đặt lưu lịch sử để tiếp tục, hoặc mở một cuộc trò chuyện tạm thời mới."
@@ -1280,7 +1280,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           </small>
         </div>
         {notice ? <p role="status"><span>{notice}</span>{previousConversation ? <> <Link to={`/assistants/${bot.botId}?conversation=${encodeURIComponent(previousConversation)}`}>Xem cuộc trò chuyện trước</Link></> : null}</p> : null}
-        {preferencesError ? <><p>Lựa chọn dữ liệu chưa xác minh được; cuộc trò chuyện mới chỉ là tạm thời.</p><ErrorNotice error={preferencesError} retry={reloadPreferences} /></> : null}
+        {preferencesError ? <><p>Chưa xác minh được lựa chọn lưu dữ liệu. Tải lại trước khi gửi tin nhắn.</p><ErrorNotice error={preferencesError} retry={reloadPreferences} /></> : null}
         {loading ? <p role="status">Đang mở cuộc trò chuyện…</p> : null}
         {conversation?.hasMoreMessages ? <Button variant="secondary" disabled={olderBusy || loading} onClick={() => void olderMessages()}>{olderBusy ? "Đang tải tin nhắn…" : "Tải tin nhắn cũ hơn"}</Button> : null}
         {conversation?.messages.map((message) => (
@@ -1390,7 +1390,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             <fieldset disabled={busy || loading || !ready}>
               <label className="mood-share-choice">
                 <input type="checkbox" checked={shareMood} onChange={event => setShareMood(event.target.checked)} />
-                Cho Nhịp đọc khoảng ngày mình chọn
+                Cho Nhịp xem thống kê trong khoảng ngày đã chọn
               </label>
               <p>Chỉ chia sẻ điểm tâm trạng và những ngày đã ghi, không gửi ghi chú. Bạn chọn lại quyền này cho mỗi lượt.</p>
               {shareMood ? <div className="mood-share-dates">
@@ -1400,7 +1400,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
                 <label htmlFor="mood-share-to">Thống kê đến ngày
                   <input id="mood-share-to" type="date" min={moodFrom || moodWindow.earliest} max={moodWindow.today} value={moodTo} onChange={event => setMoodTo(event.target.value)} />
                 </label>
-                {moodInvalid ? <p role="alert">Chọn đủ ngày bắt đầu và kết thúc theo đúng thứ tự, trong 90 ngày gần đây.</p> : null}
+                {moodInvalid ? <p role="alert">Chọn ngày bắt đầu và kết thúc trong 90 ngày gần đây. Ngày kết thúc phải từ ngày bắt đầu trở đi.</p> : null}
               </div> : null}
             </fieldset>
           </details>
@@ -1476,11 +1476,11 @@ const consentLabels: Record<ConsentPurpose, string> = {
 };
 /** What withdrawing each permission does, matching backend/app/modules/consent/routes.py. */
 const consentWithdrawal: Record<ConsentPurpose, string> = {
-  AI: "Khi tắt: dừng ngay các lượt AI đang chạy, hủy đề xuất ghi nhớ chưa duyệt và xóa chỉ mục tìm kiếm ghi nhớ. Vẫn giữ: lịch sử trò chuyện đã lưu (chỉ đọc) và các ghi nhớ bạn đã duyệt — bạn có thể xuất hoặc xóa chúng bên dưới.",
-  MEM: "Khi tắt: trợ lý ngừng nhắc lại ghi nhớ, hủy đề xuất chưa duyệt và xóa chỉ mục tìm kiếm. Vẫn giữ: các ghi nhớ đã duyệt để bạn xem, sửa hoặc xóa.",
+  AI: "Khi rút quyền, các phản hồi AI đang chạy sẽ dừng, đề xuất chưa duyệt bị hủy và dữ liệu tìm kiếm ghi nhớ bị xóa. Cuộc trò chuyện đã lưu vẫn xem được; ghi nhớ đã duyệt vẫn được giữ. Bạn có thể tải hoặc xóa từng loại dữ liệu.",
+  MEM: "Khi rút quyền, trợ lý ngừng dùng ghi nhớ, đề xuất chưa duyệt bị hủy và dữ liệu tìm kiếm ghi nhớ bị xóa. Ghi nhớ đã duyệt vẫn được giữ để bạn xem, sửa hoặc xóa.",
   MATCH:
     "Khi tắt: đóng mọi cuộc trò chuyện với người thật, hủy lời mời đang chờ, và hồ sơ tìm bạn bị ẩn. Quyền này không tự bật lại: bạn cần xem lại hồ sơ và chọn Hiển thị hồ sơ. Những người đang trò chuyện hoặc có lời mời chờ với bạn sẽ không được gợi ý lại cho nhau trong 30 ngày. Mọi hoạt động chung đang diễn ra cũng dừng lại.",
-  VOICE: "Khi tắt: không thể ghi âm nữa. Âm thanh không bao giờ được lưu lại.",
+  VOICE: "Khi rút quyền, bạn không thể ghi âm. Bản ghi âm không được lưu lại.",
 };
 function Settings() {
   const { api, session, receive, logout } = useSession();
@@ -1691,10 +1691,10 @@ function PrivateProfile() {
       </p>
       <div className={cx.actions}>
         <Link className={`${cx.button} ${cx.secondary}`} to="/self">
-          Cảm xúc của tôi
+          Nhật ký cảm xúc
         </Link>
         <Link className={`${cx.button} ${cx.secondary}`} to="/memory">
-          Ghi nhớ đã duyệt
+          Thông tin AI ghi nhớ
         </Link>
         <Link className={`${cx.button} ${cx.secondary}`} to="/settings">
           Quyền riêng tư
@@ -1745,9 +1745,9 @@ function PrivateProfile() {
       {receipt ? <p role="status">{receipt}</p> : null}
       {resource.loading ? <p role="status">Đang tải hồ sơ riêng…</p> : null}
       <section className="real-section">
-        <h2>Những điều về bạn</h2>
+        <h2>Những điều tôi ghi về mình</h2>
         {resource.data?.length === 0 ? (
-          <p>Chưa có mục nào. Ghi lại một điều bạn muốn hiểu thêm về mình.</p>
+          <p>Chưa có ghi chép. Thêm một điều bạn muốn lưu về mình ở ô phía trên.</p>
         ) : null}
         {resource.data?.map((item) => (
           <article className="real-item" key={item.id}>
@@ -1756,7 +1756,7 @@ function PrivateProfile() {
               {item.origin === "ai"
                 ? "AI đề xuất · Bạn đã duyệt"
                 : "Bạn tự ghi"}{" "}
-              · {item.status === "edited" ? "Đã chỉnh sửa" : "Đã xác nhận"}
+              · {item.status === "edited" ? "Đã chỉnh sửa" : "Đã lưu"}
             </small>
             <div className={cx.actions}>
               <Button
@@ -1793,7 +1793,7 @@ function PrivateProfile() {
           }}
         >
           <p>{deleting.text}</p>
-          <p>Mục này sẽ bị xóa sau khi máy chủ xác nhận.</p>
+          <p>Mục này sẽ được xóa khỏi hồ sơ riêng.</p>
           <div className={cx.actions}>
             <Button
               variant="secondary"
@@ -1808,7 +1808,7 @@ function PrivateProfile() {
               disabled={busy}
               onClick={() => void remove()}
             >
-              Xác nhận xóa
+              Xóa mục này
             </Button>
           </div>
         </Dialog>

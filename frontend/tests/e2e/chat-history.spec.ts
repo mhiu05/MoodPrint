@@ -283,7 +283,7 @@ test("expired proposals explain expiry and cannot be approved", async ({
   await page.goto("/#/memory");
   await expect(
     page.getByText(
-      "Đề xuất đã hết hạn. Bạn có thể tạo đề xuất mới trong cuộc trò chuyện.",
+      "Đề xuất đã hết hạn. Bạn có thể nhờ trợ lý tạo đề xuất mới.",
       { exact: true },
     ),
   ).toBeVisible();
@@ -438,7 +438,7 @@ test("pending proposals are linked from chat and memory deletion needs confirmat
   await expect(notice).toBeVisible();
   await notice.getByRole("link", { name: "Xem đề xuất" }).click();
   await expect(
-    page.getByRole("textbox", { name: "Nội dung bạn muốn duyệt" }),
+    page.getByRole("textbox", { name: "Nội dung sẽ lưu" }),
   ).toHaveValue("Mình thích trà");
   await expect(
     page.getByText("Không có đề xuất đang chờ.", { exact: true }),
@@ -449,10 +449,10 @@ test("pending proposals are linked from chat and memory deletion needs confirmat
   await expect(page.getByText("Thích đi bộ", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Xóa ghi nhớ", exact: true }).click();
   await page
-    .getByRole("button", { name: "Xác nhận xóa ghi nhớ", exact: true })
+    .getByRole("button", { name: "Xóa ghi nhớ này", exact: true })
     .click();
   await expect.poll(() => deletes.length).toBe(1);
   await expect(
-    page.getByText("Bạn chưa duyệt mục ghi nhớ nào.", { exact: true }),
+    page.getByText("Bạn chưa lưu ghi nhớ nào. Khi trò chuyện, bạn có thể nhờ trợ lý đề xuất điều cần nhớ rồi duyệt tại đây.", { exact: true }),
   ).toBeVisible();
 });

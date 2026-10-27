@@ -87,12 +87,12 @@ const failure = { status: 500, json: { error: { code: "INTERNAL_ERROR", message:
 test("offline shows one banner, disables sending and keeps the draft", async ({ page, context }) => {
   await mock(page);
   await page.goto("/#/chat/room-1");
-  const composer = page.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" });
+  const composer = page.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" });
   await composer.fill("mình đây");
   const send = page.getByRole("button", { name: "Gửi tin nhắn" });
   await expect(send).toBeEnabled();
   await context.setOffline(true);
-  const banner = page.getByRole("status").filter({ hasText: "Mất kết nối mạng. Nội dung đang nhập vẫn được giữ." });
+  const banner = page.getByRole("status").filter({ hasText: "Bạn đang mất kết nối mạng. Nội dung đang nhập được giữ trên màn hình này." });
   await expect(banner).toHaveCount(1);
   await expect(send).toBeDisabled();
   await expect(send).toHaveAttribute("title", "Đang mất kết nối mạng");
@@ -113,7 +113,7 @@ test("a failed list shows retry, and coming back online retries by itself", asyn
   fail = false;
   const offlineBanner = page
     .getByRole("status")
-    .filter({ hasText: "Mất kết nối mạng. Nội dung đang nhập vẫn được giữ." });
+    .filter({ hasText: "Bạn đang mất kết nối mạng. Nội dung đang nhập được giữ trên màn hình này." });
   await context.setOffline(true);
   await expect(offlineBanner).toBeVisible();
   await context.setOffline(false);
@@ -148,7 +148,7 @@ test("empty screens say so honestly and offer one next step", async ({ page }) =
   await expect(page.getByText("Bạn chưa có lời mời nào.")).toBeVisible();
   await page.getByRole("button", { name: "Xem gợi ý" }).click();
   await expect(page.getByRole("tab", { name: "Gợi ý" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByText("Chưa có gợi ý phù hợp.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Chưa có gợi ý kết nối.", { exact: true })).toBeVisible();
   await expect(page.getByText(/Có thể hiện chưa có người cùng điểm chung/)).toBeVisible();
   await page.getByRole("button", { name: "Mở rộng hồ sơ tìm bạn" }).click();
   await expect(page.getByRole("tab", { name: "Hồ sơ tìm bạn" })).toHaveAttribute("aria-selected", "true");
@@ -157,6 +157,6 @@ test("empty screens say so honestly and offer one next step", async ({ page }) =
 test("with activities switched off the chat has no activity entry", async ({ page }) => {
   await mock(page, (route, path) => (path === "/activities/catalog" ? route.fulfill({ json: [] }) : false));
   await page.goto("/#/chat/room-1");
-  await expect(page.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" })).toBeEnabled();
+  await expect(page.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" })).toBeEnabled();
   await expect(page.getByRole("button", { name: "Cùng làm gì đó?" })).toHaveCount(0);
 });

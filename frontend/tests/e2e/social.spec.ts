@@ -168,7 +168,7 @@ test("matching publishes the reviewed profile only after a committed receipt", a
   ).toBeVisible();
   expect(state.published).toBe(true);
   await expect(
-    page.getByText("Chưa có gợi ý phù hợp.", { exact: true }),
+    page.getByText("Chưa có gợi ý kết nối.", { exact: true }),
   ).toBeVisible();
 });
 

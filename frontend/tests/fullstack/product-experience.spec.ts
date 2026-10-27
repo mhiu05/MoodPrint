@@ -87,9 +87,9 @@ test("all five assistants explain their purpose and link to the related real fea
       await page.setViewportSize({ width, height });
       for (const [id, action, destination] of [
         ["may", "Ghi lại cảm xúc hôm nay", "/self"],
-        ["guong", "Xem hồ sơ riêng của mình", "/profile"],
+        ["guong", "Xem hồ sơ riêng", "/profile"],
         ["nhip", "Mở nhật ký cảm xúc", "/self"],
-        ["rure", "Hoạt động cùng bạn kết nối", "/messages"],
+        ["rure", "Xem tin nhắn và hoạt động chung", "/messages"],
         ["caunoi", "Xem hồ sơ tìm bạn", "/connect?tab=profile"],
       ]) {
         await page.goto(`/#/assistants/${id}`);
@@ -124,7 +124,7 @@ test("a conversation starter stays editable and reaches the other account only a
     });
     await starter.click();
     const composer = pageA.getByRole("textbox", {
-      name: "Tin nhắn cho bạn kết nối",
+      name: "Nhắn tin cho người bạn kết nối",
     });
     await expect(composer).toHaveValue("Khi rảnh bạn thích làm gì nhất?");
     await expect(composer).toBeFocused();

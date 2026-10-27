@@ -140,7 +140,7 @@ export function ActivityDock({
           <p>Hoạt động sẽ dừng cho cả hai. Hai bạn vẫn có thể tiếp tục trò chuyện.</p>
           <div className={cx.actions}>
             <Button variant="secondary" data-cancel onClick={() => setEnding(false)}>
-              Ở lại
+              Tiếp tục hoạt động
             </Button>
             <Button
               variant="danger"

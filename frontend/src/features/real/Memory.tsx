@@ -54,15 +54,15 @@ function ProposalReview({
       {status !== "pending" ? (
         <p>
           {status === "expired"
-            ? "Đề xuất đã hết hạn. Bạn có thể tạo đề xuất mới trong cuộc trò chuyện."
+            ? "Đề xuất đã hết hạn. Bạn có thể nhờ trợ lý tạo đề xuất mới."
             : status === "approved"
-              ? "Đề xuất đã được duyệt. Bạn có thể sửa hoặc xóa nội dung trong những mục đã lưu."
+              ? "Bạn đã duyệt đề xuất này. Có thể sửa hoặc xóa nội dung đã lưu."
               : "Bạn đã chọn không lưu đề xuất này."}
         </p>
       ) : (
         <>
           <p>
-            Đây là đề xuất để bạn xem lại. Chỉ nội dung bạn duyệt mới được lưu.
+            Bạn có thể sửa trước khi duyệt. Nội dung chỉ được lưu khi bạn chọn “Duyệt và lưu”.
           </p>
           {proposal.expiresAt ? (
             <p>
@@ -86,7 +86,7 @@ function ProposalReview({
           ) : null}
           {proposal.purpose === "memory" ? <p>Chọn “Duyệt và lưu” sẽ cho phép trợ lý dùng các ghi nhớ bạn đã duyệt trong những lần trò chuyện sau. Bạn có thể rút quyền và xóa từng ghi nhớ.</p> : null}
           <label htmlFor={`proposal-${proposal.id}`}>
-            Nội dung bạn muốn duyệt
+            Nội dung sẽ lưu
           </label>
           <textarea
             id={`proposal-${proposal.id}`}
@@ -180,7 +180,7 @@ function MemoryItem({
       <h3>{botById(memory.botId)?.name}</h3>
       {editing ? (
         <>
-          <label htmlFor={`memory-${memory.id}`}>Chỉnh mục ghi nhớ</label>
+          <label htmlFor={`memory-${memory.id}`}>Sửa ghi nhớ</label>
           <textarea
             id={`memory-${memory.id}`}
             value={text}
@@ -198,7 +198,7 @@ function MemoryItem({
           disabled={busy}
           onClick={() => (editing ? void modify(false) : setEditing(true))}
         >
-          {editing ? "Lưu chỉnh sửa" : "Sửa"}
+          {editing ? "Lưu thay đổi" : "Sửa"}
         </Button>
         {confirmDelete ? (
           <>
@@ -207,7 +207,7 @@ function MemoryItem({
               disabled={busy}
               onClick={() => void modify(true)}
             >
-              Xác nhận xóa ghi nhớ
+              Xóa ghi nhớ này
             </Button>
             <Button
               variant="text"
@@ -234,7 +234,7 @@ function MemoryItem({
               setEditing(false);
             }}
           >
-            Hủy chỉnh sửa
+            Hủy sửa
           </Button>
         )}
       </div>
@@ -292,7 +292,7 @@ export function ApprovedMemories() {
         <h2 id="memory-approved">Đã duyệt</h2>
         <ErrorNotice error={memories.error} retry={memories.refresh} />
         {memories.loading && <p role="status">Đang tải ghi nhớ…</p>}
-        {memories.data?.length === 0 && <p>Bạn chưa duyệt mục ghi nhớ nào.</p>}
+        {memories.data?.length === 0 && <p>Bạn chưa lưu ghi nhớ nào. Khi trò chuyện, bạn có thể nhờ trợ lý đề xuất điều cần nhớ rồi duyệt tại đây.</p>}
         {memories.data?.map((memory) => (
           <MemoryItem
             key={`${memory.id}-${memory.version}`}

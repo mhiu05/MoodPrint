@@ -29,7 +29,7 @@ for (const [index, width] of [1280, 390].entries()) {
     }
     await page.goto("/#/assistants/nhip?new=1");
     await page.getByText("Chia sẻ thống kê tâm trạng cho lượt này", { exact: true }).click();
-    await page.getByRole("checkbox", { name: "Cho Nhịp đọc khoảng ngày mình chọn", exact: true }).check();
+    await page.getByRole("checkbox", { name: "Cho Nhịp xem thống kê trong khoảng ngày đã chọn", exact: true }).check();
     await page.getByLabel("Thống kê từ ngày", { exact: true }).fill(start);
     await page.getByLabel("Thống kê đến ngày", { exact: true }).fill(today);
     const input = page.getByRole("textbox", { name: "Tin nhắn cho Nhịp", exact: true });
@@ -49,7 +49,7 @@ for (const [index, width] of [1280, 390].entries()) {
     await input.fill("Bạn cứ nhận xét đi");
     await send.click();
     await expect(page.getByRole("log").getByText(/Trong khoảng .*2\/7 ngày ghi tâm trạng/)).toHaveCount(2);
-    await expect(page.getByRole("checkbox", { name: "Cho Nhịp đọc khoảng ngày mình chọn", exact: true })).not.toBeChecked();
+    await expect(page.getByRole("checkbox", { name: "Cho Nhịp xem thống kê trong khoảng ngày đã chọn", exact: true })).not.toBeChecked();
     await expect(reshare).toBeEnabled();
     const accessibility = await new AxeBuilder({ page }).analyze();
     expect(accessibility.violations).toEqual([]);

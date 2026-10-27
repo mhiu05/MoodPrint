@@ -19,7 +19,7 @@ const TABS = ["suggestions", "requests", "profile"] as const;
 type Tab = (typeof TABS)[number];
 const isTab = (value: string | null): value is Tab => TABS.includes(value as Tab);
 
-/** Tabs per 08 section 2: Gợi ý · Lời mời (count) · Hồ sơ kết nối, kept in `?tab=`. */
+/** Tabs per 08 section 2: Gợi ý · Lời mời (count) · Hồ sơ tìm bạn, kept in `?tab=`. */
 export function Discovery() {
   const { api, session, receive } = useSession();
   const restricted = session.notices?.some((notice) => notice.kind === "restricted");
@@ -116,7 +116,7 @@ export function Discovery() {
     key;
   if (restricted)
     return (
-      <StatePanel title="Tìm bạn đang tạm dừng">
+      <StatePanel title="Tìm bạn đang tạm bị hạn chế">
         Bạn có thể quay lại sau thời gian hạn chế được thông báo ở trên.
         Trong lúc này, không gian riêng của bạn vẫn ở đây.
       </StatePanel>
@@ -129,7 +129,7 @@ export function Discovery() {
     );
   if (session.ageBand !== "adult")
     return (
-      <StatePanel title="Tính năng kết nối chưa khả dụng">
+      <StatePanel title="Bạn cần đủ 18 tuổi để kết nối">
         Tìm bạn và nhắn tin người thật dành cho người đã đủ 18 tuổi.
       </StatePanel>
     );
@@ -265,7 +265,7 @@ export function Discovery() {
         {tab === "suggestions" &&
           (
             <section className="real-section">
-              <h2>Người cùng điểm chung</h2>
+              <h2>Gợi ý từ những điểm chung</h2>
               <Button
                 variant="text"
                 disabled={suggestions.loading}
@@ -273,7 +273,7 @@ export function Discovery() {
               >
                 Tải lại gợi ý
               </Button>
-              {suggestions.loading && <p role="status">Đang tìm điểm chung…</p>}
+              {suggestions.loading && <p role="status">Đang tải gợi ý kết nối…</p>}
               {!suggestions.loading && !live && (
                 <p>
                   Hãy hiển thị hồ sơ tìm bạn để nhận gợi ý.{" "}
@@ -290,7 +290,7 @@ export function Discovery() {
               )}
               {live && suggestions.data?.candidates.length === 0 && (
                 <>
-                  <p>Chưa có gợi ý phù hợp.</p>
+                  <p>Chưa có gợi ý kết nối.</p>
                   <p className={cx.footnote}>
                     Có thể hiện chưa có người cùng điểm chung, hoặc họ chưa bật
                     chia sẻ hồ sơ. Bạn có thể quay lại sau; không cần thay đổi
@@ -417,7 +417,7 @@ export function Discovery() {
                 }, "Đã chặn kết nối.")
               }
             >
-              Xác nhận chặn
+              Chặn người này
             </Button>
           </div>
         </Dialog>
@@ -445,7 +445,7 @@ export function ConnectBridge() {
         <Users size={21} />
       </span>
       <span>
-        <strong>Sẵn sàng tìm người cùng tần số?</strong>
+        <strong>Muốn tìm bạn từ những điểm chung?</strong>
         <small>Tạo hồ sơ tìm bạn</small>
       </span>
       <ArrowUpRight size={18} />
@@ -456,7 +456,7 @@ export function ConnectBridge() {
         <Users size={21} />
       </span>
       <span>
-        <strong>Từ hiểu mình, đến hiểu mọi người xung quanh</strong>
+        <strong>Tìm người có cùng sở thích</strong>
       </span>
       <ArrowUpRight size={18} />
     </Link>

@@ -9,7 +9,7 @@ type Row = Schema["AdminReportView"];
 type Action = Schema["ResolveInput"]["action"];
 
 const ACTIONS: { action: Action; label: string; days?: boolean; danger?: boolean }[] = [
-  { action: "dismiss", label: "Bỏ qua (không vi phạm)" },
+  { action: "dismiss", label: "Không phát hiện vi phạm" },
   { action: "warn", label: "Cảnh báo" },
   { action: "restrict", label: "Hạn chế kết nối", days: true, danger: true },
   { action: "suspend", label: "Tạm khóa tài khoản", days: true, danger: true },
@@ -84,7 +84,7 @@ export function Moderation() {
       {notice && <p role="status">{notice}</p>}
       {queue.loading && <p role="status">Đang tải báo cáo…</p>}
       {queue.data?.length === 0 && (
-        <StatePanel title="Không có báo cáo nào">Hàng đợi đang trống.</StatePanel>
+        <StatePanel title="Không có báo cáo nào">Thử chuyển bộ lọc để xem các báo cáo khác.</StatePanel>
       )}
       {queue.data?.map((row) => (
         <article className="real-item" key={row.id} aria-label={`Báo cáo ${row.subjectRef}`}>
@@ -167,7 +167,7 @@ export function Moderation() {
             </label>
           )}
           <label className="real-field">
-            Ghi chú nội bộ (không gửi cho người dùng)
+            Ghi chú xử lý (chỉ nội bộ)
             <textarea maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} />
           </label>
           <div className={cx.actions}>

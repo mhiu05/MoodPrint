@@ -45,7 +45,7 @@ test("real saved history requires opt-in, resumes by URL, and stays manageable a
   await expect(semantic).not.toBeChecked();
   await history.click();
   await expect(
-    page.getByText("Đã cập nhật lựa chọn dữ liệu AI.", { exact: true }),
+    page.getByText("Đã lưu lựa chọn của bạn.", { exact: true }),
   ).toBeVisible();
   await expect(history).toBeChecked();
   await page.goto("/#/assistants/may");
@@ -120,7 +120,7 @@ test("real saved history requires opt-in, resumes by URL, and stays manageable a
   await page.goto("/#/settings");
   await history.click();
   await expect(
-    page.getByText("Đã cập nhật lựa chọn dữ liệu AI.", { exact: true }),
+    page.getByText("Đã lưu lựa chọn của bạn.", { exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Rút quyền trò chuyện AI", exact: true }).click();
   await expect(

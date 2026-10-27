@@ -13,7 +13,7 @@ const STATUS: Record<string, string> = {
   cancelled: "Lời mời đã được hủy",
   expired: "Lời mời đã hết hạn",
   invalidated:
-    "Lời mời không còn hiệu lực vì quyền tìm bạn hoặc trạng thái kết nối đã thay đổi",
+    "Lời mời không còn hiệu lực do quyền Tìm bạn hoặc kết nối đã thay đổi.",
 };
 
 function daysLeft(expiresAt: string, now = Date.now()) {
@@ -71,7 +71,7 @@ export function RequestCard({
         heading={
           incoming
             ? `${item.peer.alias} muốn kết nối với bạn`
-            : `Lời chào gửi ${item.peer.alias}`
+            : `Lời mời đã gửi cho ${item.peer.alias}`
         }
         label={label}
       >
@@ -81,7 +81,7 @@ export function RequestCard({
     );
   return (
     <article className="real-item">
-      <h3>{incoming ? "Một lời chào dành cho bạn" : "Lời chào bạn đã gửi"}</h3>
+      <h3>{incoming ? "Lời mời dành cho bạn" : "Lời mời bạn đã gửi"}</h3>
       {status}
       {actions}
       {open}

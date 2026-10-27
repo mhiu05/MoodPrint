@@ -107,7 +107,7 @@ export function ProfileEditor({
     onDraft(saved);
     // What was just sent is now the saved state.
     savedSnapshot.current = JSON.stringify(profile);
-    setNotice("Đã lưu bản nháp.");
+    setNotice("Đã lưu bản nháp hồ sơ.");
     return saved;
   }
   async function toPreview() {
@@ -143,7 +143,7 @@ export function ProfileEditor({
   );
 
   return (
-    <section className="real-section profile-editor" aria-label="Hồ sơ kết nối">
+    <section className="real-section profile-editor" aria-label="Hồ sơ tìm bạn">
       <ol className="editor-steps" aria-label="Các bước">
         {STEPS.map((item, index) => (
           <li key={item.id} aria-current={index === step ? "step" : undefined}>
@@ -191,7 +191,7 @@ export function ProfileEditor({
           {(
             [
               ["style", "Cách trò chuyện", taxonomy.styles],
-              ["goal", "Bạn đang tìm kiếm", taxonomy.goals],
+              ["goal", "Mục tiêu kết nối", taxonomy.goals],
             ] as const
           ).map(([kind, title, options]) => (
             <fieldset className="tag-picker" key={kind}>
@@ -232,7 +232,7 @@ export function ProfileEditor({
         <>
           <TagPicker
             legend="Hoạt động muốn thử cùng nhau"
-            hint="Không bắt buộc. Giúp gợi ý người muốn làm cùng một điều."
+            hint="Không bắt buộc. Dùng để gợi ý người muốn tham gia cùng hoạt động."
             options={taxonomy.activities}
             value={profile.activities ?? []}
             limits={limits.activities}

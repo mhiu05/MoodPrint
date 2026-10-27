@@ -20,7 +20,7 @@ export function OfflineBanner() {
   if (useOnline()) return null;
   return (
     <p className={cx.note} role="status">
-      Mất kết nối mạng. Nội dung đang nhập vẫn được giữ.
+      Bạn đang mất kết nối mạng. Nội dung đang nhập được giữ trên màn hình này.
     </p>
   );
 }

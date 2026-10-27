@@ -82,9 +82,9 @@ test("staff claim and resolve a report after confirming", async ({ page }) => {
   await card.getByRole("button", { name: "Hạn chế kết nối" }).click();
   const dialog = page.getByRole("dialog", { name: "Xác nhận: Hạn chế kết nối" });
   await dialog.getByRole("spinbutton", { name: "Số ngày (1–90)" }).fill("14");
-  await dialog.getByRole("textbox", { name: /Ghi chú nội bộ/ }).fill("Lặp lại nhiều lần");
+  await dialog.getByRole("textbox", { name: /Ghi chú xử lý/ }).fill("Lặp lại nhiều lần");
   await dialog.getByRole("button", { name: "Xác nhận" }).click();
-  await expect(page.getByText("Hàng đợi đang trống.")).toBeVisible();
+  await expect(page.getByText("Thử chuyển bộ lọc để xem các báo cáo khác.")).toBeVisible();
   expect(posts.at(-1)).toEqual({
     path: "/admin/reports/r1/resolve",
     body: { expectedVersion: 2, action: "restrict", note: "Lặp lại nhiều lần", days: 14 },

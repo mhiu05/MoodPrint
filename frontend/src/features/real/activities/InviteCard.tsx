@@ -49,7 +49,7 @@ export function InviteCard({
             {plan ? <p className={cx.footnote}>{plan}</p> : null}
             <div className={cx.actions}>
               <Button disabled={busy} onClick={onAccept}>
-                Đồng ý
+                Tham gia
               </Button>
               <Button variant="secondary" disabled={busy} onClick={onDecline}>
                 Từ chối lời mời

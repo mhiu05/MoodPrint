@@ -136,12 +136,12 @@ test("an invitee accepts, answers, waits, then sees both answers revealed", asyn
   await page.goto("/#/chat/room-1");
   const invite = page.getByRole("group", { name: "Lời mời Câu hỏi làm quen" });
   await expect(invite).toContainText("Bạn đồng hành 3fa9c1 mời bạn tham gia Câu hỏi làm quen (khoảng 5 phút)");
-  await invite.getByRole("button", { name: "Đồng ý" }).click();
+  await invite.getByRole("button", { name: "Tham gia" }).click();
   const dock = page.getByRole("region", { name: "Hoạt động chung: Câu hỏi làm quen" });
   await expect(dock.getByRole("heading", { name: item.prompt })).toBeVisible();
   await dock.getByRole("radio", { name: "Một ly cà phê" }).check();
-  await dock.getByRole("textbox", { name: /Hoặc viết vài chữ/ }).fill("cà phê sữa");
-  await dock.getByRole("textbox", { name: /Hoặc viết vài chữ/ }).fill("");
+  await dock.getByRole("textbox", { name: /Hoặc viết câu trả lời/ }).fill("cà phê sữa");
+  await dock.getByRole("textbox", { name: /Hoặc viết câu trả lời/ }).fill("");
   await dock.getByRole("button", { name: "Gửi câu trả lời" }).click();
   await expect(dock.getByRole("status")).toHaveText("Đang chờ Bạn đồng hành 3fa9c1 trả lời…");
   state.current = {
@@ -246,7 +246,7 @@ test("contact details in a message prompt a non-blocking advisory", async ({ pag
   };
   await chat(page, state);
   await page.goto("/#/chat/room-1");
-  const composer = page.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" });
+  const composer = page.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" });
   await composer.fill("số mình 0912 345 678");
   await page.getByRole("button", { name: "Gửi tin nhắn" }).click();
   const dialog = page.getByRole("dialog", { name: "Tin nhắn có vẻ chứa thông tin liên hệ" });
@@ -254,7 +254,7 @@ test("contact details in a message prompt a non-blocking advisory", async ({ pag
   await expect(composer).toHaveValue("số mình 0912 345 678");
   expect(state.posts.filter((p: any) => p.path.endsWith("/messages"))).toHaveLength(0);
   await page.getByRole("button", { name: "Gửi tin nhắn" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Vẫn gửi" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Gửi thông tin này" }).click();
   await expect.poll(() => state.posts.filter((p: any) => p.path.endsWith("/messages")).length).toBe(1);
 });
 
@@ -273,7 +273,7 @@ test("on a phone the dock is a sheet above the composer that collapses and keeps
   await page.goto("/#/chat/room-1");
   const dock = page.getByRole("region", { name: "Hoạt động chung: Câu hỏi làm quen" });
   await expect(dock.getByRole("heading", { name: item.prompt })).toBeVisible();
-  const composer = page.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" });
+  const composer = page.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" });
   await composer.fill("chờ chút nhé");
   const [sheet, input] = [await dock.boundingBox(), await composer.boundingBox()];
   expect(sheet!.y + sheet!.height).toBeLessThanOrEqual(input!.y + 1);
@@ -302,7 +302,7 @@ test("on a desktop the dock is a side panel next to the log", async ({ page }) =
   const [panel, log] = [await dock.boundingBox(), await page.getByRole("log").boundingBox()];
   expect(panel!.x).toBeGreaterThanOrEqual(log!.x + log!.width);
   expect(panel!.width).toBeLessThanOrEqual(381);
-  await expect(page.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" })).toBeVisible();
 });
 
 test("finished activities appear in the log where they ended", async ({ page }) => {
@@ -320,7 +320,7 @@ test("finished activities appear in the log where they ended", async ({ page }) 
     ],
   });
   await page.goto("/#/chat/room-1");
-  const log = page.getByRole("log", { name: "Tin nhắn trong kết nối" });
+  const log = page.getByRole("log", { name: "Tin nhắn giữa hai bạn" });
   await expect(log.getByRole("group", { name: "Hoạt động đã qua: Đố vui đồng đội" })).toBeVisible();
   const order = (await log.locator(":scope > *").allInnerTexts()).map((text) => text.trim());
   expect(order).toEqual([
@@ -401,7 +401,7 @@ test("a focus invitation names the exact plan and offers a real decline", async 
   const invite = page.getByRole("group", { name: "Lời mời Cùng tập trung" });
   await expect(invite).toContainText("Bạn đồng hành 3fa9c1 mời bạn tham gia Cùng tập trung");
   await expect(invite).toContainText("15 phút tập trung / 3 phút nghỉ · 2 lượt");
-  await expect(invite.getByRole("button", { name: "Đồng ý" })).toBeVisible();
+  await expect(invite.getByRole("button", { name: "Tham gia" })).toBeVisible();
   await expect(invite.getByRole("button", { name: "Từ chối lời mời" })).toBeVisible();
   await expect(invite).not.toContainText("Để sau");
 });
@@ -425,7 +425,7 @@ test("the dock enters with at most 16px of travel and fully readable text", asyn
   await page.setViewportSize({ width: 390, height: 844 });
   await chat(page, { current: null, posts: [] });
   await page.goto("/#/chat/room-1");
-  await expect(page.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" })).toBeEnabled();
+  await expect(page.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" })).toBeEnabled();
   await dockSamples(page);
   await page.unroute("**/api/v1/**");
   await chat(page, { current: running(), posts: [] });
@@ -448,7 +448,7 @@ test("with reduced motion the dock appears in place", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await chat(page, { current: null, posts: [] });
   await page.goto("/#/chat/room-1");
-  await expect(page.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" })).toBeEnabled();
+  await expect(page.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" })).toBeEnabled();
   await dockSamples(page);
   await page.unroute("**/api/v1/**");
   await chat(page, { current: running(), posts: [] });

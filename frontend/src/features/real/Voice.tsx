@@ -223,13 +223,13 @@ export function VoiceRecorder({ draft, onUse }: { draft: string; onUse: (text: s
           Ghi âm tối đa 30 giây
         </Button>
       )}
-      {state === "starting" ? <p role="status">Đang xin quyền microphone…</p> : null}
+      {state === "starting" ? <p role="status">Đang chờ quyền dùng micro…</p> : null}
       {state === "recording" && (
         <>
           <p role="status">Đang ghi âm · {seconds}/30 giây</p>
           <div className={cx.actions}>
             <Button variant="secondary" onClick={() => void finish()}>
-              Dừng và xem bản chữ
+              Dừng và chuyển thành văn bản
             </Button>
             <Button
               variant="text"
@@ -253,13 +253,13 @@ export function VoiceRecorder({ draft, onUse }: { draft: string; onUse: (text: s
               setState("idle");
             }}
           >
-            Hủy chuyển giọng nói
+            Hủy chuyển thành văn bản
           </Button>
         </>
       )}
       {state === "preview" && (
         <>
-          <label htmlFor="voice-preview">Xem và sửa bản chữ</label>
+          <label htmlFor="voice-preview">Xem và sửa bản chép lời</label>
           <textarea
             id="voice-preview"
             maxLength={500}

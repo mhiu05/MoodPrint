@@ -79,7 +79,7 @@ test("real five companions, scoped mood tool, memory proposal and explicit appro
     }
     await page.goto(base + "/#/assistants/nhip");
     await page.getByText("Chia sẻ thống kê tâm trạng cho lượt này", { exact: true }).click();
-    await page.getByRole("checkbox", { name: "Cho Nhịp đọc khoảng ngày mình chọn", exact: true }).check();
+    await page.getByRole("checkbox", { name: "Cho Nhịp xem thống kê trong khoảng ngày đã chọn", exact: true }).check();
     await page.getByLabel("Thống kê từ ngày", { exact: true }).fill(moodDay!);
     await page.getByLabel("Thống kê đến ngày", { exact: true }).fill(moodDay!);
     const moodReply = await send(page, "Nhịp", "Hãy dùng công cụ đọc thống kê khoảng ngày mình chọn, nói số ngày đã ghi và điểm trung bình. Không đọc ghi chú.");
@@ -99,7 +99,7 @@ test("real five companions, scoped mood tool, memory proposal and explicit appro
     expect(await request(a, "GET", "/memories")).toHaveLength(memoriesBefore.length);
     await request(b, "POST", `/proposals/${proposal.id}/confirm`, { expectedVersion: proposal.version }, 404);
     await page.goto(base + "/#/memory");
-    const card = page.locator("article").filter({ has: page.getByLabel("Nội dung bạn muốn duyệt", { exact: true }) }).filter({ hasText: "Gương" }).first();
+    const card = page.locator("article").filter({ has: page.getByLabel("Nội dung sẽ lưu", { exact: true }) }).filter({ hasText: "Gương" }).first();
     await card.getByRole("button", { name: "Duyệt và lưu", exact: true }).click();
     await expect(page.getByText("Đã cập nhật ghi nhớ.", { exact: true })).toBeVisible();
     const memoriesAfter = await request(a, "GET", "/memories");
@@ -242,8 +242,8 @@ test("synthetic media stream, real STT preview, edit, explicit send and proposal
     await page.reload();
     await page.getByRole("button", { name: "Ghi âm tối đa 30 giây", exact: true }).click();
     await expect(page.getByRole("status").filter({ hasText: "Đang ghi âm" }), `Microphone startup errors: ${browserErrors.join("; ")}`).toContainText(/8\/30/);
-    await page.getByRole("button", { name: "Dừng và xem bản chữ", exact: true }).click();
-    const preview = page.getByRole("textbox", { name: "Xem và sửa bản chữ", exact: true });
+    await page.getByRole("button", { name: "Dừng và chuyển thành văn bản", exact: true }).click();
+    const preview = page.getByRole("textbox", { name: "Xem và sửa bản chép lời", exact: true });
     await expect(preview).toBeVisible();
     expect((await preview.inputValue()).toLowerCase()).toContain("màu nước");
     const botCount = await page.locator(".from-bot").count();

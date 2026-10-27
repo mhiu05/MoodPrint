@@ -27,7 +27,7 @@ type Page = Schema["MessagePage"];
 
 const REVOKED = [403, 404, 410];
 const UNAVAILABLE =
-  "Cuộc trò chuyện này không còn khả dụng. Kết nối có thể đã kết thúc, bị chặn, hoặc một bên đã tắt quyền tìm bạn.";
+  "Cuộc trò chuyện không còn mở. Kết nối có thể đã kết thúc, bị chặn hoặc một bên đã rút quyền Tìm bạn.";
 
 export function HumanChat() {
   const { connectionId } = useParams();
@@ -291,7 +291,7 @@ export function HumanChat() {
         <div className={cx.note} role="status">
           <p>{closed}</p>
           <p>Bạn không thể gửi thêm tin nhắn trong cuộc trò chuyện này.</p>
-          <Link to="/messages">Về danh sách tin nhắn</Link>
+          <Link to="/messages">Về Tin nhắn</Link>
         </div>
       )}
       {!closed && !ready && !error && (
@@ -303,7 +303,7 @@ export function HumanChat() {
         ref={log}
         role="log"
         tabIndex={0}
-        aria-label="Tin nhắn trong kết nối"
+        aria-label="Tin nhắn giữa hai bạn"
         onScroll={() => {
           const element = log.current!;
           const bottom = element.scrollHeight - element.scrollTop - element.clientHeight < 90;
@@ -314,8 +314,8 @@ export function HumanChat() {
       >
         {ready && messages.length === 0 && (
           <div className="human-chat-welcome">
-            <h2>Một lời chào, một khởi đầu</h2>
-            <p>Chọn một câu để sửa theo cách của bạn. Tin nhắn chỉ gửi khi bạn bấm gửi.</p>
+            <h2>Bắt đầu cuộc trò chuyện</h2>
+            <p>Chọn một câu để chỉnh sửa. Tin nhắn chỉ được gửi khi bạn chọn “Gửi”.</p>
             <div className="conversation-starters" role="group" aria-label="Lời mở đầu">
               {["Chào bạn! Gần đây có điều gì làm bạn vui không?", "Khi rảnh bạn thích làm gì nhất?", "Mình cùng thử một hoạt động làm quen nhé?"].map((text) => (
                 <button key={text} type="button" onClick={() => {
@@ -377,9 +377,9 @@ export function HumanChat() {
           ref={composer}
           rows={1}
           maxLength={500}
-          aria-label="Tin nhắn cho bạn kết nối"
+          aria-label="Nhắn tin cho người bạn kết nối"
           placeholder={
-            closed ? "Cuộc trò chuyện đã đóng" : "Gửi một lời hỏi thăm…"
+            closed ? "Cuộc trò chuyện đã đóng" : "Nhập tin nhắn…"
           }
           value={draft}
           disabled={Boolean(closed)}
@@ -421,7 +421,7 @@ export function HumanChat() {
                 composer.current?.form?.requestSubmit();
               }}
             >
-              Vẫn gửi
+              Gửi thông tin này
             </Button>
           </div>
         </Dialog>

@@ -74,7 +74,7 @@ test("Journey E: export contains only the owner's own data and downloads once", 
   );
   expect(data.social.sentMessages).toEqual([]);
   await expect(
-    page.getByText("Đã chuẩn bị tệp dữ liệu riêng của bạn.", { exact: true }),
+    page.getByText("Đã tạo tệp dữ liệu để tải về.", { exact: true }),
   ).toBeVisible();
   await context.close();
 });
@@ -109,7 +109,7 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
   ).toBeVisible();
   await expect(page.getByText(/Trung bình từ 1\/7 ngày có ghi/)).toBeVisible();
   await expect(
-    page.getByText("Cần ghi nhận ở ít nhất 3 ngày để xem xu hướng."),
+    page.getByText("Cần ghi tâm trạng ít nhất 3 ngày để xem phần nhìn lại."),
   ).toBeVisible();
 
   await page.reload();
@@ -252,14 +252,14 @@ test("Journey B/C: two users match, request, accept and chat; stale tab loses ac
   ).toBeVisible();
   await two.getByRole("link", { name: "Mở cuộc trò chuyện" }).click();
   await expect(
-    two.getByRole("heading", { name: "Một lời chào, một khởi đầu" }),
+    two.getByRole("heading", { name: "Bắt đầu cuộc trò chuyện" }),
   ).toBeVisible();
 
   await one.goto("/#/messages");
   await one.locator('a[href^="#/chat/"]').first().click();
   const room = one.url().split("/chat/")[1];
   const composer = one.getByRole("textbox", {
-    name: "Tin nhắn cho bạn kết nối",
+    name: "Nhắn tin cho người bạn kết nối",
   });
   await composer.fill("Xin chào từ 11");
   await one.getByRole("button", { name: "Gửi tin nhắn" }).dblclick();
@@ -267,7 +267,7 @@ test("Journey B/C: two users match, request, accept and chat; stale tab loses ac
     two.getByRole("log").getByText("Xin chào từ 11", { exact: true }),
   ).toBeVisible({ timeout: 15_000 });
   await two
-    .getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" })
+    .getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" })
     .fill("Chào 11, mình là 12");
   await two.getByRole("button", { name: "Gửi tin nhắn" }).click();
   await expect(
@@ -368,10 +368,10 @@ test("Journey D: block keeps report-after-block possible, the peer's tab closes,
   await one
     .getByRole("button", { name: "Chặn kết nối này", exact: true })
     .click();
-  await one.getByRole("button", { name: "Xác nhận chặn", exact: true }).click();
+  await one.getByRole("button", { name: "Chặn người này", exact: true }).click();
   await expect(one.getByText("Bạn đã chặn kết nối này.")).toBeVisible();
   await expect(
-    one.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" }),
+    one.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" }),
   ).toBeDisabled();
   await one
     .getByRole("textbox", { name: "Lý do báo cáo", exact: true })
@@ -381,7 +381,7 @@ test("Journey D: block keeps report-after-block possible, the peer's tab closes,
     .check();
   await one.getByRole("button", { name: "Gửi báo cáo", exact: true }).click();
   await expect(
-    one.getByText("Đã nhận báo cáo.", { exact: true }),
+    one.getByText("Đã gửi báo cáo.", { exact: true }),
   ).toBeVisible();
   await expect(two.getByText(/không còn khả dụng/)).toBeVisible({
     timeout: 20_000,
@@ -477,14 +477,14 @@ test("Journey F: mood, matching and chat stay usable at 390px and 430px with the
     await page.goto(`/#/chat/${room}`);
     await expect(
       page
-        .getByRole("heading", { name: "Một lời chào, một khởi đầu" })
+        .getByRole("heading", { name: "Bắt đầu cuộc trò chuyện" })
         .or(page.locator(".chat-bubble").first()),
     ).toBeVisible();
     await noHorizontalOverflow(page);
     await page.screenshot({ path: `${shots}/chat-${width}.png` });
   }
   const composer = one.getByRole("textbox", {
-    name: "Tin nhắn cho bạn kết nối",
+    name: "Nhắn tin cho người bạn kết nối",
   });
   await composer.tap();
   await composer.fill("Nhắn từ 390px");
@@ -530,7 +530,7 @@ test("Every real screen passes axe and reflows at 1440, 1280, 430 and 390 with r
   const page = await context.newPage();
   const routes = [
     ["/assistants", "Bạn muốn chia sẻ điều gì"],
-    ["/self", "Cảm xúc của bạn"],
+    ["/self", "Nhật ký cảm xúc"],
     ["/profile", "Hồ sơ riêng"],
     ["/memory", ""],
     ["/settings", "Quyền riêng tư"],

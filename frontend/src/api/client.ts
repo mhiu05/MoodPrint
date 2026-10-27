@@ -66,7 +66,7 @@ export class ApiClient {
           throw new ApiError(
             409,
             "PENDING_WRITES",
-            "Còn thao tác chưa xác nhận. Vui lòng tải lại dữ liệu trước khi tiếp tục.",
+            "Một số thao tác chưa được xác nhận. Tải lại dữ liệu để kiểm tra trước khi tiếp tục.",
           );
         key = crypto.randomUUID();
         this.intents.set(intent, key);

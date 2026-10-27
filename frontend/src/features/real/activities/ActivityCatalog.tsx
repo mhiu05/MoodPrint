@@ -5,8 +5,8 @@ import { ApiError, errorMessage } from "../../../api/client";
 import { canInvite, isOpen, type Definition, type Kind, type Session } from "./activityView";
 
 const HOW_IT_WORKS: Record<Kind, string> = {
-  icebreaker: "3 câu hỏi nhỏ. Mỗi người trả lời riêng; chỉ mở câu trả lời khi cả hai đã gửi. Bạn có thể bỏ qua.",
-  coop_quiz: "5 vòng cùng một đội. Mỗi người chọn đáp án riêng; khi cả hai xong, cùng xem đáp án và điểm của đội.",
+  icebreaker: "Ba câu hỏi để làm quen. Mỗi người trả lời riêng; câu trả lời chỉ mở khi cả hai đã gửi. Bạn có thể bỏ qua câu hỏi.",
+  coop_quiz: "Năm vòng đố vui cùng một đội. Mỗi người chọn riêng; khi cả hai đã trả lời, đáp án và điểm của đội mới được mở.",
   focus: "Chọn nhịp học hoặc làm việc cùng nhau. Một người tạm dừng sẽ dừng đồng hồ của cả hai; bạn có thể rời phiên và vào lại.",
 };
 
@@ -65,7 +65,7 @@ export function ActivityCatalog({
   const id = useId();
   return (
     <Dialog title="Cùng làm gì đó?" onClose={() => !busy && onClose()}>
-      <p>Mời bạn kia cùng tham gia. Hoạt động chỉ bắt đầu khi cả hai đồng ý.</p>
+      <p>Mời người bạn kết nối cùng tham gia. Hoạt động bắt đầu khi cả hai đồng ý.</p>
       {status === "loading" ? <p role="status">Đang tải danh sách hoạt động…</p> : null}
       {status === "error" ? (
         <div className={cx.error} role="alert">
@@ -131,13 +131,13 @@ export function ActivityCatalog({
                 {busy ? "Đang gửi lời mời…" : "Mời tham gia"}
               </Button>
               {!allowed && !isOpen(current) && (
-                <p className={cx.footnote}>Hãy thử lại hoạt động này sau ít phút.</p>
+                <p className={cx.footnote}>Bạn có thể gửi lại lời mời cho hoạt động này sau ít phút.</p>
               )}
             </li>
           );
         })}
       </ul>
-      {isOpen(current) && <p className={cx.note}>Hai bạn đang có một hoạt động khác. Hoàn thành hoặc kết thúc hoạt động đó để gửi lời mời mới.</p>}
+      {isOpen(current) && <p className={cx.note}>Hai bạn đang có một hoạt động. Hoàn thành hoặc kết thúc hoạt động đó để gửi lời mời mới.</p>}
     </Dialog>
   );
 }

@@ -9,10 +9,10 @@ import { ReauthForm } from "./Auth";
 type Job = components["schemas"]["DataJobView"];
 type Scope = components["schemas"]["DeletionInput"]["scope"];
 const choices = {
-  memories: "Ghi nhớ đã duyệt",
+  memories: "Thông tin AI ghi nhớ",
   moods: "Nhật ký tâm trạng",
   private_items: "Mục trong hồ sơ riêng",
-  all_private: "Toàn bộ dữ liệu riêng và hồ sơ kết nối",
+  all_private: "Toàn bộ dữ liệu riêng và hồ sơ tìm bạn",
 } as const;
 
 export function DataControls() {
@@ -39,7 +39,7 @@ export function DataControls() {
           if (!cancelled) {
             setJob(value);
             if (value.status === "completed")
-              setNotice("Đã xóa phạm vi dữ liệu bạn chọn trong ứng dụng.");
+              setNotice("Đã xóa dữ liệu bạn chọn trong ứng dụng.");
           }
         })
         .catch((reason) => {
@@ -97,7 +97,7 @@ export function DataControls() {
       link.download = "moodprint-data.json";
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      setNotice("Đã chuẩn bị tệp dữ liệu riêng của bạn.");
+      setNotice("Đã tạo tệp dữ liệu để tải về.");
     } catch (reason) {
       if (needsReauth(reason)) setReauthFor("export");
       else setError(reason);
@@ -198,7 +198,7 @@ export function DataControls() {
         {job && (
           <p role="status">
             {job.status === "completed"
-              ? "Yêu cầu đã hoàn tất trong ứng dụng."
+              ? "Đã xóa dữ liệu đã chọn trong ứng dụng."
               : job.status === "failed"
                 ? "Chưa hoàn tất yêu cầu xóa. Bạn hãy thử lại."
                 : "Đang xóa dữ liệu đã chọn. Dữ liệu này đã được chặn sử dụng."}
@@ -258,14 +258,14 @@ export function DataControls() {
               disabled={busy || !understood}
               onClick={() => void removeAccount()}
             >
-              Xóa vĩnh viễn
+              Xóa vĩnh viễn tài khoản
             </Button>
           </div>
         </Dialog>
       )}
       {confirm && (
         <Dialog
-          title="Xóa phạm vi dữ liệu này?"
+          title="Xóa dữ liệu đã chọn?"
           destructive
           onClose={() => !busy && setConfirm(false)}
         >

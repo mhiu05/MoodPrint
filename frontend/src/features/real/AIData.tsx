@@ -130,7 +130,7 @@ export function AIDataControls({ part }: { part: "history" | "memory" }) {
         },
       });
       receive(next);
-      setNotice("Đã cập nhật lựa chọn dữ liệu AI.");
+      setNotice("Đã lưu lựa chọn của bạn.");
     } catch (reason) {
       setSaveError(reason);
       reload();

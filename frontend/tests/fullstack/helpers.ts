@@ -86,7 +86,7 @@ export async function fillProfileEditor(page: Page) {
   }
   await page.getByRole("button", { name: "Xem trước hồ sơ" }).click();
   await expect(
-    page.getByText("Đã lưu bản nháp.", { exact: true }),
+    page.getByText("Đã lưu bản nháp hồ sơ.", { exact: true }),
   ).toBeVisible();
   await page
     .getByRole("button", { name: "Hiển thị hồ sơ", exact: true })

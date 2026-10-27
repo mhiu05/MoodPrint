@@ -53,7 +53,7 @@ test("social screens are responsive and pass axe at every acceptance size", asyn
       await pageA.goto("/#/connect?tab=suggestions");
       await expect(pageA.getByRole("tab", { name: "Gợi ý" })).toHaveAttribute("aria-selected", "true");
       // Audit and capture the settled screen, not its loading state.
-      await expect(pageA.getByText("Đang tìm điểm chung…")).toHaveCount(0);
+      await expect(pageA.getByText("Đang tải gợi ý kết nối…")).toHaveCount(0);
       await audit(pageA, "connect", width, height);
       await pageA.goto("/#/messages");
       await expect(pageA.getByRole("heading", { level: 1, name: "Tin nhắn" })).toBeVisible();
@@ -63,7 +63,7 @@ test("social screens are responsive and pass axe at every acceptance size", asyn
       await pageA.goto(`/#/chat/${room}`);
       const dock = pageA.getByRole("region", { name: "Hoạt động chung: Câu hỏi làm quen" });
       await expect(dock).toContainText("Câu 1/3");
-      await expect(pageA.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" })).toBeInViewport();
+      await expect(pageA.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" })).toBeInViewport();
       await audit(pageA, "chat-dock", width, height);
       await admin.setViewportSize({ width, height });
       await admin.goto("/#/admin/reports");
@@ -76,7 +76,7 @@ test("social screens are responsive and pass axe at every acceptance size", asyn
     await pageA.goto(`/#/chat/${room}`);
     const dock = pageA.getByRole("region", { name: "Hoạt động chung: Câu hỏi làm quen" });
     await dock.getByRole("button", { name: "Thu gọn hoạt động" }).click();
-    const composer = pageA.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" });
+    const composer = pageA.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" });
     await composer.focus();
     await expect(composer).toBeInViewport();
     await audit(pageA, "chat-dock-collapsed", 390, 480);

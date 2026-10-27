@@ -12,7 +12,7 @@ const GUIDES: Record<string, { purpose: string; to: string; action: string }> =
       purpose:
         "Khám phá sở thích, điều bạn coi trọng và những điều làm bạn là chính mình. Mọi đề xuất đều chờ bạn duyệt.",
       to: "/profile",
-      action: "Xem hồ sơ riêng của mình",
+      action: "Xem hồ sơ riêng",
     },
     nhip: {
       purpose:
@@ -24,11 +24,11 @@ const GUIDES: Record<string, { purpose: string; to: string; action: string }> =
       purpose:
         "Thử câu đố hoặc học một điều mới cùng AI. Muốn chơi với người thật? Mở một cuộc trò chuyện đã kết nối để gửi lời mời.",
       to: "/messages",
-      action: "Hoạt động cùng bạn kết nối",
+      action: "Xem tin nhắn và hoạt động chung",
     },
     caunoi: {
       purpose:
-        "Chọn những điều bạn muốn công khai trong hồ sơ kết nối. Chuyện riêng với AI, tâm trạng và ghi nhớ không dùng để tìm bạn.",
+        "Chọn thông tin bạn muốn chia sẻ trên hồ sơ tìm bạn. Cuộc trò chuyện với AI, tâm trạng và ghi nhớ không dùng để gợi ý kết nối.",
       to: "/connect?tab=profile",
       action: "Xem hồ sơ tìm bạn",
     },
