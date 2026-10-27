@@ -267,6 +267,20 @@ const running = () =>
     current: { item, peerSubmitted: false },
   });
 
+/** Layout facts shown only when a geometry assertion fails, so a CI-only miss can be diagnosed. */
+const layout = (page: Page) => page.evaluate(() => {
+  const box = (element: Element) => {
+    const rect = element.getBoundingClientRect();
+    return `${element.tagName.toLowerCase()}.${element.className} ${Math.round(rect.top * 100) / 100}–${Math.round(rect.bottom * 100) / 100}`;
+  };
+  return JSON.stringify({
+    appHeight: getComputedStyle(document.documentElement).getPropertyValue("--app-height"),
+    innerHeight, visualHeight: visualViewport?.height, scrollY,
+    column: [...(document.querySelector(".real-human-chat")?.children ?? [])].map(box),
+    dockStyle: document.querySelector<HTMLElement>(".activity-dock")?.style.cssText,
+  });
+});
+
 test("on a phone the dock is a sheet above the composer that collapses and keeps the draft", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await chat(page, { current: running(), posts: [] });
@@ -276,8 +290,9 @@ test("on a phone the dock is a sheet above the composer that collapses and keeps
   const composer = page.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" });
   await composer.fill("chờ chút nhé");
   const [sheet, input] = [await dock.boundingBox(), await composer.boundingBox()];
-  expect(sheet!.y + sheet!.height).toBeLessThanOrEqual(input!.y + 1);
-  expect(sheet!.height).toBeLessThanOrEqual(844 * 0.6 + 1);
+  const facts = await layout(page);
+  expect(sheet!.y + sheet!.height, facts).toBeLessThanOrEqual(input!.y + 1);
+  expect(sheet!.height, facts).toBeLessThanOrEqual(844 * 0.6 + 1);
   // Escape collapses the sheet and returns focus to its toggle.
   await dock.getByRole("radio", { name: "Một ly cà phê" }).focus();
   await page.keyboard.press("Escape");

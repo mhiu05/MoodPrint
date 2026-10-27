@@ -169,3 +169,17 @@ The pull_request run passed every step (backend, migration/load, frontend + E2E,
 - **Fix (test only; no assertion removed, no tag excluded, no timeout raised).** The sweep's `axe` helper now waits until no `Đang tải…` status remains and every finite animation or transition has finished, then measures. `axe-settle-probe.spec.ts` starts from the failing 25 % state with the transition left running: after the guard the colours are final (`#fff` on `#285c4b`) and there is no violation.
 - Sweep after the fix: Windows `--repeat-each 5`, 25/25; Linux + DejaVu 390 px `--repeat-each 10`, 20/20.
 - Full configured E2E after the fix: Linux Chromium + DejaVu 185/185 (`linux-probe/e2e-full-linux-3.txt`); Windows Chromium 185/185, 0 skipped, 0 flaky (`results-full-3.json`). `npm.cmd run typecheck`: PASS.
+
+### CI on `6a7682f`
+
+The push run passed every step. The pull_request run of the same SHA failed one test: `activities.spec.ts › on a phone the dock is a sheet above the composer…`. The sheet bottom was 790.91 against composer top 789 + 1, so it was 1.91 px over. Both runs used the same `ubuntu-26.04` image version (20261012.163.1), so this is timing, not fonts. It also passed in all five other CI runs of this branch.
+
+- **Root cause: not established. No fix claimed.** Ruled out with evidence:
+  - CSS transition: the dock has none, and the reduced-motion `transition: none` rule is vestigial.
+  - GSAP entrance: GSAP 3.13 writes `translate`, and per-frame sampling from the frame the dock appears shows the bottom fixed at 782 (`dock-entrance-frames.txt`, `dock-entrance-red.txt`).
+  - Fonts or runner image.
+  - `.page-app-header` change: it is `display: none` on full chat.
+
+  It did not reproduce on Windows, on Linux + DejaVu, or with 6× CDP CPU throttling × 25 (`dock-throttle-linux.txt`).
+- **Change:** the two geometry assertions now carry a failure-only message with `--app-height`, `innerHeight`, `visualViewport.height`, `scrollY`, each chat-column child's top–bottom, and the dock's inline style. A recurrence in CI then shows the actual layout. The assertions themselves are unchanged.
+- Remaining risk: an intermittent ≈2 px phone-layout miss of unknown origin, seen once in six CI runs.
