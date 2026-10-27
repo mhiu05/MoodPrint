@@ -35,7 +35,8 @@ AUTH_FIXTURE_STATEMENTS = (
     "create table auth.users (id uuid primary key, is_anonymous boolean not null default false,"
     " raw_user_meta_data jsonb not null default '{}'::jsonb,"
     " created_at timestamptz not null default clock_timestamp())",
-    "create table auth.sessions (id uuid primary key, user_id uuid not null)",
+    "create table auth.sessions (id uuid primary key,"
+    " user_id uuid not null references auth.users(id) on delete cascade)",
     """create or replace function auth.ensure_session_owner() returns trigger
 language plpgsql as $$
 begin
@@ -60,3 +61,13 @@ async def install_auth_fixture(connection) -> None:
         await connection.exec_driver_sql(statement)
     await connection.exec_driver_sql(SECURITY_MIGRATION.HELPER_SQL)
     await connection.exec_driver_sql(f"revoke all on function {SECURITY_MIGRATION.HELPER} from public")
+    await connection.exec_driver_sql(SECURITY_MIGRATION.DELETE_GUEST_SQL)
+    await connection.exec_driver_sql(
+        f"revoke all on function {SECURITY_MIGRATION.DELETE_GUEST_HELPER} from public"
+    )
+    for sql, function in (
+        (SECURITY_MIGRATION.FIND_ORPHAN_SQL, SECURITY_MIGRATION.FIND_ORPHAN_HELPER),
+        (SECURITY_MIGRATION.DELETE_ORPHAN_SQL, SECURITY_MIGRATION.DELETE_ORPHAN_HELPER),
+    ):
+        await connection.exec_driver_sql(sql)
+        await connection.exec_driver_sql(f"revoke all on function {function} from public")

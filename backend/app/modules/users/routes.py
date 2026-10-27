@@ -27,6 +27,8 @@ from app.infrastructure.database.models import (
     PrivateItem,
     now,
 )
+from app.modules.guests.deadlines import guest_deadline
+from app.modules.guests.service import cleared_response, end_guest
 from app.modules.users.export import consent_section, social_section
 from app.modules.users.models import DataJob
 from app.modules.users.schemas import DataJobView, DeletionInput, ExportInput
@@ -34,9 +36,27 @@ from app.modules.users.schemas import DataJobView, DeletionInput, ExportInput
 router = APIRouter()
 
 
-@router.post("/data-deletions", response_model=DataJobView, status_code=202)
+def require_guest_confirmation(value: str | None) -> None:
+    if value != "guest-data-v1":
+        raise DomainError(
+            422, "GUEST_CONFIRMATION_REQUIRED", "Hãy xác nhận rõ ràng để tiếp tục thao tác dữ liệu này."
+        )
+
+
+@router.post(
+    "/data-deletions",
+    response_model=DataJobView,
+    status_code=202,
+    responses={204: {"description": "A guest trial was ended and queued for hard purge"}},
+)
 async def deletion(body: DeletionInput, request: Request, actor: Actor = Depends(require_actor)):
     key, payload = idempotency_key(request), body.model_dump(mode="json")
+    if actor.account_kind == "guest":
+        require_guest_confirmation(body.guest_confirmation)
+        if body.scope == "account":
+            # Ending the trial is the account deletion: revoke now and hard-purge, no password.
+            await end_guest(request, actor)
+            return cleared_response()
     async with transaction(request, actor, eligible=False) as (db, user):
         old = await previous_receipt(db, user, "data:delete", key, payload)
         if old:
@@ -79,10 +99,22 @@ async def deletion_status(job_id: UUID, request: Request, actor: Actor = Depends
 @router.post("/exports", response_model=DataJobView, status_code=201)
 async def export(body: ExportInput, request: Request, actor: Actor = Depends(require_actor)):
     key, payload = idempotency_key(request), body.model_dump(mode="json")
+    guest = actor.account_kind == "guest"
+    if guest:
+        require_guest_confirmation(body.guest_confirmation)
+        if "social" in body.scopes:
+            # Rejected before any social query: a guest has no social data to export.
+            raise DomainError(
+                403, "REGISTERED_REQUIRED", "Lượt dùng thử không có dữ liệu tìm bạn để xuất."
+            )
     async with transaction(request, actor) as (db, user):
         session = await db.get(AuthSession, actor.session_id)
-        if session.reauthenticated_at < now() - timedelta(minutes=5):
+        if not guest and session.reauthenticated_at < now() - timedelta(minutes=5):
             raise DomainError(401, "REAUTH_REQUIRED", "Hãy đăng nhập lại trước khi xuất dữ liệu.")
+        ttl = 900.0
+        if guest:
+            bound = await guest_deadline(db, user)
+            ttl = min(ttl, bound.remaining_seconds if bound else ttl)
         old = await previous_receipt(db, user, "data:export", key, payload)
         if old:
             row = await db.get(DataJob, UUID(old["resourceId"]))
@@ -156,7 +188,7 @@ async def export(body: ExportInput, request: Request, actor: Actor = Depends(req
         "owner": actor.user_id,
         "session": actor.session_id,
         "version": version,
-        "expires": time.monotonic() + 900,
+        "expires": time.monotonic() + ttl,
         "data": result,
     }
     return view

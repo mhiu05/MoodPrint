@@ -220,6 +220,8 @@ class GuestOperationLink(Base):
     worker_id: Mapped[UUID] = mapped_column(PGUUID)
     lease_token: Mapped[UUID] = mapped_column(PGUUID)
     lease_until: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # Per-minute admission counts links by creation time, so no identity-keyed bucket is needed.
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=DB_NOW)
     __table_args__ = (
         PrimaryKeyConstraint("user_id", "kind", "operation_key_hash", name="pk_guest_operation_links"),
         CheckConstraint(_in("kind", RESERVATION_KINDS), name="kind"),

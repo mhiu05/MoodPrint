@@ -22,6 +22,7 @@ from app.core.errors import DomainError, install_errors
 from app.core.revisions import READY_REVISIONS
 from app.infrastructure.database.connection import Database
 from app.infrastructure.database.models import AiRun
+from app.modules.guests.output import GuestOutputMiddleware
 
 
 def warn_unenforced_budget(config) -> None:
@@ -107,14 +108,57 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         logging.getLogger("moodprint").error("embedding_worker_retry error_type=%s", type(error).__name__)
                 await asyncio.sleep(1)
 
+        async def guest_worker():
+            """Guest expiry cleanup and orphan reconciliation: always on, isolated per work class."""
+            from app.modules.guests.jobs import (
+                ensure_cleanup_jobs,
+                guest_metrics,
+                process_guest_cleanup,
+                reconcile_guest_provisioning,
+            )
+
+            next_metrics = 0.0
+            first = True
+            while True:
+                if database.sessions:
+                    for work in (
+                        ensure_cleanup_jobs if first else None,
+                        process_guest_cleanup,
+                        reconcile_guest_provisioning,
+                    ):
+                        if work is None:
+                            continue
+                        try:
+                            await work(app)
+                        except Exception as error:
+                            logging.getLogger("moodprint").error(
+                                "guest_worker_retry task=%s error_type=%s sqlstate=%s",
+                                work.__name__,
+                                type(error).__name__,
+                                getattr(getattr(error, "orig", None), "sqlstate", None),
+                            )
+                    first = False
+                    if time.monotonic() >= next_metrics:
+                        try:
+                            for name, value in (await guest_metrics(app)).items():
+                                logging.getLogger("moodprint").info("metric=%s value=%s", name, value)
+                        except Exception as error:
+                            logging.getLogger("moodprint").error(
+                                "guest_metrics_failed error_type=%s", type(error).__name__
+                            )
+                        next_metrics = time.monotonic() + 30
+                await asyncio.sleep(1)
+
         sweeper = asyncio.create_task(sweep_context())
         indexer = asyncio.create_task(embedding_worker())
+        guests = asyncio.create_task(guest_worker())
         try:
             yield
         finally:
             sweeper.cancel()
             indexer.cancel()
-            await asyncio.gather(sweeper, indexer, return_exceptions=True)
+            guests.cancel()
+            await asyncio.gather(sweeper, indexer, guests, return_exceptions=True)
             await app.state.ai.close()
             if database.engine:
                 await database.engine.dispose()
@@ -284,6 +328,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     if config.static_dir:
         install_static(app, Path(config.static_dir))
     app.add_middleware(BodyLimitMiddleware)
+    # Outermost: wraps the send every other middleware ultimately calls.
+    app.add_middleware(GuestOutputMiddleware)
     return app
 
 

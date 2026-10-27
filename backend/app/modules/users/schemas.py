@@ -9,6 +9,9 @@ from app.contracts import DTO, VersionInput
 
 class DeletionInput(VersionInput):
     scope: Literal["memories", "moods", "private_items", "all_private", "account"]
+    # A guest has no password: an explicit confirmation replaces step-up. Registered accounts
+    # ignore it and keep their recent-reauthentication rule.
+    guest_confirmation: Literal["guest-data-v1"] | None = None
 
 
 class DataJobView(DTO):
@@ -24,3 +27,4 @@ class ExportInput(DTO):
     scopes: list[
         Literal["account", "private_items", "memories", "moods", "consents", "social"]
     ] = Field(min_length=1, max_length=6)
+    guest_confirmation: Literal["guest-data-v1"] | None = None

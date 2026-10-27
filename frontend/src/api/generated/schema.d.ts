@@ -2058,6 +2058,8 @@ export interface components {
              * @enum {string}
              */
             scope: "memories" | "moods" | "private_items" | "all_private" | "account";
+            /** Guestconfirmation */
+            guestConfirmation?: "guest-data-v1" | null;
         };
         /** DiscoveryCard */
         DiscoveryCard: {
@@ -2161,6 +2163,8 @@ export interface components {
         ExportInput: {
             /** Scopes */
             scopes: ("account" | "private_items" | "memories" | "moods" | "consents" | "social")[];
+            /** Guestconfirmation */
+            guestConfirmation?: "guest-data-v1" | null;
         };
         /** FeatureView */
         FeatureView: {
@@ -13498,6 +13502,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["DataJobView"];
                 };
+            };
+            /** @description A guest trial was ended and queued for hard purge */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Unauthorized */
             401: {

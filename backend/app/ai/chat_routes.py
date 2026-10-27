@@ -266,16 +266,28 @@ async def create_conversation(
                 raise DomainError(
                     429, "CONVERSATION_LIMIT", "Hãy xóa bớt hội thoại đã lưu trước khi tạo thêm."
                 )
+            retention = now() + timedelta(days=min(settings.chat_retention_days, 30))
             c = AiConversation(
                 user_id=user.id,
                 bot_id=body.bot_id,
-                expires_at=now() + timedelta(days=min(settings.chat_retention_days, 30)),
+                expires_at=(
+                    min(retention, user.guest_expires_at)
+                    if user.account_kind == "guest" and user.guest_expires_at
+                    else retention
+                ),
             )
             db.add(c)
             await db.flush()
             result = conversation_header(c)
         else:
-            created = runtime.store.create(str(user.id), str(actor.session_id), body.bot_id)
+            bound = getattr(request.state, "guest_output", None)
+            created = runtime.store.create(
+                str(user.id),
+                str(actor.session_id),
+                body.bot_id,
+                hard_deadline=bound.monotonic_deadline if bound else None,
+                hard_expires_at=bound.expires_at if bound else None,
+            )
             created.ai_consent_version = consents["AI"].version
             result = ephemeral_header(created)
         save_receipt(
@@ -451,6 +463,7 @@ async def send(
             run_id,
             mood_scope=body.mood_scope,
             persistent=bool(persistent),
+            deadline=getattr(request.state, "guest_output", None),
         )
         runtime.runs[run_id] = run
         runtime.event(run, "progress", {})
@@ -549,9 +562,17 @@ async def events(
         finally:
             release()
 
+    deadline = getattr(request.state, "guest_output", None)
+
+    def past_deadline() -> bool:
+        return deadline is not None and deadline.remaining() <= 0
+
     async def poll(cursor, tick):
         while not await request.is_disconnected():
             tick += 1
+            if past_deadline():
+                yield "event: revoked\ndata: {}\n\n"
+                return
             try:
                 # lock_actor in the polling read re-verifies the session each tick.
                 if persistent:
@@ -589,12 +610,19 @@ async def events(
                 yield "event: revoked\ndata: {}\n\n"
                 return
             while cursor < len(data):
+                if past_deadline():
+                    # Each event (buffered or replayed, including the final) is judged on its own.
+                    yield "event: revoked\ndata: {}\n\n"
+                    return
                 event = data[cursor]
                 cursor += 1
                 yield f"id: {event.seq}\nevent: {event.type}\ndata: {event.model_dump_json(by_alias=True)}\n\n"
             if terminal:
                 return
             await asyncio.sleep(0.25 if persistent else 0.1)
+            if past_deadline():
+                yield "event: revoked\ndata: {}\n\n"
+                return
             yield ": heartbeat\n\n"
 
     return StreamingResponse(

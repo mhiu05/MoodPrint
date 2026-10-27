@@ -495,7 +495,7 @@ async def end_guest(request: Request, actor: Actor) -> None:
             .values(due_at=func.least(GuestCleanupJob.due_at, now), next_attempt_at=now)
         )
     # After commit: drop every in-memory copy (context, runs, proposals, pending exports).
-    request.app.state.ai.invalidate(str(actor.user_id))
+    request.app.state.ai.expire_guest(actor.user_id)
     request.app.state.exports = {
         key: value
         for key, value in request.app.state.exports.items()

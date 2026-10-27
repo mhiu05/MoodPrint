@@ -12244,6 +12244,9 @@
                 }
               }
             }
+          },
+          "204": {
+            "description": "A guest trial was ended and queued for hard purge"
           }
         }
       }
@@ -14140,6 +14143,18 @@
               "account"
             ],
             "title": "Scope"
+          },
+          "guestConfirmation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "guest-data-v1"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guestconfirmation"
           }
         },
         "additionalProperties": false,
@@ -14396,6 +14411,18 @@
             "maxItems": 6,
             "minItems": 1,
             "title": "Scopes"
+          },
+          "guestConfirmation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "guest-data-v1"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guestconfirmation"
           }
         },
         "additionalProperties": false,

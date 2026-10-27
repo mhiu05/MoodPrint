@@ -19,6 +19,7 @@ from app.ai.models import AiPreference
 from app.ai.voyage import EmbeddingError, EmbeddingProvider, VoyageProvider, validate_vector
 from app.core.security import Actor, lock_actor
 from app.infrastructure.database.models import Consent, Memory, PrivateItem, User, now
+from app.modules.guests.policy import database_time, lifetime_allows
 
 if TYPE_CHECKING:
     from app.infrastructure.database.connection import Database
@@ -46,6 +47,9 @@ async def _authorization(db: AsyncSession, user_id: UUID) -> Authorization | Non
         or user.deletion_pending
         or user.age_band not in ("teen", "adult")
     ):
+        return None
+    if user.account_kind == "guest" and not lifetime_allows(user, await database_time(db)):
+        # Owner lock + fresh database clock: an expired guest never authorizes publication.
         return None
     consents = {
         c.purpose: c
@@ -110,6 +114,11 @@ async def enqueue_memory(db: AsyncSession, memory: Memory, settings: EmbeddingSe
         return
     await db.flush()
     auth = await _authorization(db, memory.user_id)
+    owner = await db.get(User, memory.user_id)
+    if owner is not None and owner.account_kind == "guest" and not getattr(
+        settings, "guest_semantic_enabled", False
+    ):
+        return
     if (
         not auth
         or not auth.semantic
@@ -223,6 +232,10 @@ async def reconcile_embedding_jobs(database: "Database", settings: EmbeddingSett
                         User.status == "active",
                         User.deletion_pending.is_(False),
                         User.age_band.in_(("teen", "adult")),
+                        or_(
+                            User.account_kind == "registered",
+                            User.guest_expires_at > func.clock_timestamp(),
+                        ),
                         AiPreference.semantic_memory_enabled.is_(True),
                         AiPreference.policy_version == "ai-data-v1",
                         ai.enabled.is_(True),

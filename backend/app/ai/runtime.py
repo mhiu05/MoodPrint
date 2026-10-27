@@ -26,6 +26,8 @@ from app.core.errors import DomainError
 from app.core.security import Actor, assert_purpose, lock_actor
 from app.core.streams import StreamSlots
 from app.infrastructure.database.models import AiRun, AiUsage, Consent, now
+from app.modules.guests.deadlines import GuestDeadline, final_guest_authorization
+from app.modules.guests.policy import guest_expired
 
 
 @dataclass
@@ -54,6 +56,8 @@ class LiveRun:
     first_progress_ms: int | None = None
     sources: dict[str, SourceState] = field(default_factory=dict)
     mood_evidence: EvidenceEnvelope | None = None
+    # Conservative guest bound; None for registered users (their policy is unchanged).
+    deadline: GuestDeadline | None = None
 
 
 @dataclass
@@ -261,6 +265,8 @@ class AiRuntime:
         run.wake.set()
 
     async def check(self, run: LiveRun) -> None:
+        if run.deadline is not None and run.deadline.remaining() <= 0:
+            raise guest_expired()
         if run.terminal or time.monotonic() - run.started > self.settings.ai_timeout_seconds:
             raise DomainError(410, "RUN_ENDED", "Lượt trò chuyện đã kết thúc.")
         self.store.get(run.conversation_id, str(run.actor.user_id), str(run.actor.session_id))
@@ -426,12 +432,37 @@ class AiRuntime:
             return [propose_memory] if memory_enabled else []
         return []
 
+    async def _cancel_at_deadline(self, run: LiveRun) -> None:
+        """Stop a guest run exactly at its bound, independent of the 0.5 s policy monitor."""
+        assert run.deadline is not None
+        await asyncio.sleep(max(0.0, run.deadline.remaining()))
+        self.request_cancel(run)
+
+    def expire_guest(self, user_id: UUID) -> None:
+        """Cancel and drop every in-memory copy for an ended or expired guest."""
+        uid = str(user_id)
+        self.invalidate(uid)
+        for identity, run in list(self.runs.items()):
+            if str(run.actor.user_id) == uid:
+                run.events.clear()
+                run.mood_evidence = None
+                run.sources.clear()
+                del self.runs[identity]
+        for identity, pending in list(self.pending_terminal.items()):
+            if str(pending.actor.user_id) == uid:
+                del self.pending_terminal[identity]
+
     async def drive(self, run: LiveRun) -> None:
         run.drive_started = True
         status = "failed"
         monitor = None
+        expiry = None
+        budget = self.settings.ai_timeout_seconds
+        if run.deadline is not None:
+            budget = min(budget, max(0.0, run.deadline.remaining()))
+            expiry = asyncio.create_task(self._cancel_at_deadline(run))
         try:
-            async with asyncio.timeout(self.settings.ai_timeout_seconds), self.slots:
+            async with asyncio.timeout(budget), self.slots:
                 await self.check(run)
                 c = self.store.get(
                     run.conversation_id, str(run.actor.user_id), str(run.actor.session_id)
@@ -521,6 +552,8 @@ class AiRuntime:
                     if user.data_version != run.data_version:
                         raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
                     await current_turn(db, run, self.worker_id)
+                    if run.deadline is not None:
+                        await final_guest_authorization(db, user)
                     if run.persistent:
                         durable = await owned_conversation(db, c.id, user.id, lock=True)
                         if durable is None:
@@ -545,6 +578,9 @@ class AiRuntime:
                         durable.version += 1
                         durable.updated_at = now()
                         db.add(AiMessageRecord(conversation_id=c.id, sequence=durable.version, actor="bot", text=output.text, cards=[card.model_dump(mode="json", by_alias=True) for card in output.cards], run_id=run.id))
+                if run.deadline is not None and run.deadline.remaining() <= 0:
+                    # Decided before T but published after it: drop, never append late output.
+                    raise guest_expired()
                 # Do not publish tokens/JSON before output and live policy have both passed.
                 c.messages.append(
                     AIMessage(id=uuid4(), actor="bot", text=output.text, cards=output.cards, created_at=now(), run_id=run.id, status="completed")
@@ -565,6 +601,9 @@ class AiRuntime:
             if monitor:
                 monitor.cancel()
                 await asyncio.gather(monitor, return_exceptions=True)
+            if expiry:
+                expiry.cancel()
+                await asyncio.gather(expiry, return_exceptions=True)
             run.reserved_output_bytes = 0
             await asyncio.shield(self.finalize(run, status))
             # Saved threads reload from PostgreSQL; keep no idle RAM copy per thread.

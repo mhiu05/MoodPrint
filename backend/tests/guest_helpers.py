@@ -36,7 +36,7 @@ async def add_guest(
 ) -> SeededGuest:
     """Seed one guest whose deadline is exactly ``start + 7200s`` with a capped opaque session."""
     from app.infrastructure.database.models import AuthSession, Consent, User
-    from app.modules.guests.models import GuestUsage
+    from app.modules.guests.models import GuestCleanupJob, GuestUsage
 
     uid, sid, provider_sid = uuid4(), uuid4(), uuid4()
     token, csrf = f"guest-session-{uuid4()}", f"csrf-{uuid4()}"
@@ -68,6 +68,7 @@ async def add_guest(
         for purpose in ("AI", "MEM", "MATCH", "VOICE"):
             db.add(Consent(user_id=uid, purpose=purpose, enabled=consents, version=1))
         db.add(GuestUsage(user_id=uid, **(usage or {})))
+        db.add(GuestCleanupJob(user_id=uid, due_at=expires))
         # The verified provider classification of a guest is anonymous; a permanent flag would deny.
         await db.execute(
             text("insert into auth.users(id,is_anonymous) values (:uid,true)"), {"uid": uid}

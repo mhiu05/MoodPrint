@@ -380,6 +380,7 @@ def upgrade():
         sa.Column("worker_id", sa.UUID(), nullable=False),
         sa.Column("lease_token", sa.UUID(), nullable=False),
         timestamp("lease_until"),
+        timestamp("created_at", default="clock_timestamp()"),
         sa.PrimaryKeyConstraint(
             "user_id", "kind", "operation_key_hash", name=op.f("pk_guest_operation_links")
         ),

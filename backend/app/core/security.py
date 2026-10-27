@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import DomainError
 from app.infrastructure.database.models import AuthSession, Consent, Idempotency, User, now
+from app.modules.guests.deadlines import final_guest_authorization, guest_deadline
 from app.modules.guests.policy import assert_guest_active
 
 
@@ -69,6 +70,9 @@ async def require_actor(request: Request) -> Actor:
             raise DomainError(401, "SESSION_EXPIRED", "Phiên đã kết thúc. Vui lòng đăng nhập lại.")
         session, user = identity
         await verify_session(db, session, user)
+        if user.account_kind == "guest":
+            # Conservative bound for the outermost output guard (never a lifetime grant).
+            request.state.guest_output = await guest_deadline(db, user)
         idle = timedelta(hours=request.app.state.settings.session_idle_hours)
         if user.account_kind == "registered" and session.expires_at < now() + idle - timedelta(
             minutes=15
@@ -157,7 +161,16 @@ async def verify_actor(
 async def transaction(request: Request, actor: Actor, *, eligible: bool = True, lock: bool = True):
     async with request.app.state.database.require()() as db, db.begin():
         user = await lock_actor(db, actor, eligible=eligible, lock=lock)
+        deadline = await guest_deadline(db, user)
+        if deadline is not None:
+            # Lock waits and statements may never outlive the remaining trial.
+            bound = str(max(1, int(deadline.remaining_seconds * 1000)))
+            await db.execute(text("select set_config('statement_timeout', :ms, true)"), {"ms": bound})
+            await db.execute(text("select set_config('lock_timeout', :ms, true)"), {"ms": bound})
         yield db, user
+        if deadline is not None:
+            # Reached only on a normal exit: a body that crossed T rolls back mutation and receipt.
+            await final_guest_authorization(db, user)
 
 
 async def assert_purpose(db: AsyncSession, user: User, purpose: str) -> dict[str, Consent]:
