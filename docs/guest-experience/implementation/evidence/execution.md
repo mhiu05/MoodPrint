@@ -46,6 +46,30 @@ bd93165ef0c8edfd2644fca60008234712075a3a5e9e71f7953fc4271a404c94  docs/guest-exp
 65fa6114b8a7c85399da0af60f7400b638d57da25637cb5e2dff2baa16071f9a  docs/guest-experience/implementation/08-interface-and-dependency-matrix.md
 ```
 
+## Baseline (GE-00.1) — fresh results on `main` @ 9847533
+
+Environment: Windows 11, uv 0.11.14 with locked Python 3.12.13 (host `py` also has 3.11/3.14, never used for application commands), Node v24.13.0 / npm 11.6.2, Docker 29.8.2. Owned disposable container `moodprint-guest-impl-db` (`pgvector/pgvector:0.8.2-pg17`, loopback `127.0.0.1:26432`, public synthetic password); databases `moodprint_guest_{unit,dev,migration,review,fullstack,load}_test`. No `.env` exists in the worktree; external keys blank. Other containers/ports on the host (e.g. `moodprint-ai-memory-pg` on 16432) were not touched. Pristine-tree commands ran from a throwaway detached worktree of the baseline commit (removed at the end) so uncommitted feature edits could not taint them.
+
+| Check | Command (from) | Result |
+|---|---|---|
+| Backend lint | `uv run --locked ruff check app tests evals alembic` (backend) | PASS (All checks passed) |
+| Backend types | `uv run --locked mypy app` | PASS (89 source files) |
+| Backend tests | `uv run --locked pytest -q` (unit DB) | PASS: **642 passed** in 571.69s (matches the audit's historical 642) |
+| Migrations | `alembic upgrade head` / `current` / `check` (migration DB, via pristine tree) | PASS: `0015_context_privacy (head)`; "No new upgrade operations detected." |
+| OpenAPI | `python ../scripts/export_openapi.py` | PASS: no drift, 100 operations |
+| Frontend contracts/typecheck/unit | `npm.cmd run contracts:generate`, `typecheck`, `npm.cmd test` | PASS: 73 unit tests in 13 files (matches audit). `schema.d.ts` regenerates byte-identical content (Windows CRLF only) |
+| Frontend build | `npm.cmd run build` | PASS, warning kept: main chunk 528.02 kB (matches audit) |
+| Owned browser fixtures | `npm.cmd exec -- playwright test --config playwright.owned.config.ts` (pristine tree) | **186 passed, 1 failed (187 total, 6.0 min)** — failure `real.spec.ts:798 validated AI cards navigate to existing tools…`: `locator.fill` test timeout 45s waiting for the Mây textbox. Rerun in isolation: PASS (3.4s). Attributed as a load-sensitive timeout flake: my backend pytest was running concurrently on the same machine during the full browser run. Not proven; recorded as a baseline flake, not an introduced failure. (The audit's historical "44 selected cases" is a subset; the owned config actually runs 187.) |
+| Synthetic fullstack | `uv run --locked python ../scripts/test_fullstack.py --reporter=list` (fullstack DB, pristine tree) | PASS: **28 passed** in 4.6 min (matches audit) |
+| Docs / artifacts | `python scripts/check_docs.py`, `python scripts/check_reviewed_artifacts.py` | PASS (before feature edits: 51 files/390 links; 9 pinned approvals) |
+| 50-user isolated load | `load_chat_memory.py --workers 1 --users 50 --port 8017` (load DB) | see "Baseline load" below |
+
+Quirks learned (affect later commands): `npm.cmd exec -- playwright test … -g "text with spaces"` fails on this host with `'C:\Program' is not recognized…` — use a space-free regex such as `-g "validated.AI.cards"`; the session harness refuses compound shell commands that expand `$TEMP` or `cd` into another tree while also invoking git, so scratch paths are written literally.
+
+Not run in the baseline (recorded as gaps, not passes): Linux/Node 22 CI jobs, poller/proxy/packaging checks (`deploy/aws/tests` needs Linux `fcntl`), hosted Auth/CAPTCHA, real model/Voyage, NVDA/VoiceOver.
+
+Owner decisions (all unresolved, flags stay off): D01 deletion/backup/provider/security-counter disclosure and cleanup targets; D02 numerical daily guest budget (and any real-provider test budget); D03 180-day unlinked feedback retention and notice; D04 non-production hosted Auth/DB/CAPTCHA target. Local implementation proceeds; these gate public enablement, paid actions and GE-01.2 hosted proof.
+
 ## Task ledger
 
 (Entries are appended below, one block per task, in plan 08 order. A task with a `complete` line is DONE; do not redo it.)
@@ -70,6 +94,16 @@ bd93165ef0c8edfd2644fca60008234712075a3a5e9e71f7953fc4271a404c94  docs/guest-exp
 - Ruling: `auth_sessions.created_at` added as `DEFAULT now()` then `SET DEFAULT clock_timestamp()` — a volatile default on ADD COLUMN rewrites the table; existing rows get the migration time (true creation time is unknown). Cost if wrong: historical `created_at` is approximate; nothing reads it for registered rows.
 - Ruling: `benchmark.py` and `evals/scenarios_live.py` fixtures were not given the guard installer — they never create guest rows; `create_all` still builds the new columns. Cost if wrong: a later guest test there would lack the trigger.
 - Ruling: abuse-bucket `scope` allowlist is fixed to `intent, intent_global, creation_hour, creation_day, failed_signup, feedback, ai_minute, voice_minute` (derived from plan 03 limits); 0016 is unshipped so a later task may extend it before the first approved release.
+
+### GE-02.2 — Publish flags and session contracts
+
+- RED: `uv run --locked pytest -q tests/test_guest_contracts.py` → 3 failed (`KeyError: 'accountKind'`; `GET /public/experience` 404; `ModuleNotFoundError: app.modules.guests.schemas`).
+- GREEN: same command → 3 passed. Regression `test_guest_contracts test_production_settings test_auth_flows test_guest_schema test_guest_provider test_eligibility test_foundation test_readiness` → 90 passed. `ruff` clean, `mypy app` clean (94 files); `export_openapi.py` + `contracts:generate` + `typecheck` clean; `npm.cmd test` 73 passed; `check_docs.py` PASS (101 operations, 67 settings, 45 tables).
+- Added: six flags (all `False`), `GUEST_DAILY_BUDGET_USD` (Decimal, unset = paid guest closed), `GUEST_PRICING_JSON`, `GUEST_ABUSE_HMAC_KEY` (≥32 chars), `GUEST_CAPTCHA_SITE_KEY`, the AI/voice quota knobs with `GUEST_AI_GLOBAL_CONCURRENCY ≤ AI_GLOBAL_CONCURRENCY`; `GuestQuota`/`SessionView.{accountKind,guestStartedAt,guestExpiresAt,guestQuota}`/`FeatureView.feedback`; `GuestInput` (CAPTCHA token `repr=False`, `disclosureVersion: 'guest-v1'`, first declaration only) and `PublicExperience`; `GET /api/v1/public/experience` (no identity, `no-store`, availability needs flag + provider + CAPTCHA site key + HMAC key + database; budget/secrets never published); guest-aware `session_view` (database `clock_timestamp()` for `serverTime`, durable usage counters, no staff/moderation/social reads, `matching=false`, AI/voice closed unless `guest_paid_available`).
+- Ruling: pulled forward from GE-03.1 a two-line change in `require_actor` so the sliding 12h renewal runs only for `account_kind == 'registered'` (without it the 0016 session-cap trigger would turn every guest request into a 500 and the guest session contract could not be exercised). GE-03.1 still owns the full refresh/clock work and tests (`test_refresh_never_extends_guest`).
+- Ruling: `GuestQuota` lives in `contracts.py` (SessionView imports it) and is re-exported from `guests/schemas.py` to avoid a circular import; the public route lives in the new `guests/routes.py`, which GE-04.1 extends rather than re-registers.
+- Ruling: under-16/missing-confirmation `GUEST_INELIGIBLE` mapping is deferred to GE-04.2's route (DTO validation would otherwise return `VALIDATION_ERROR`); no provider call can happen before then because no creation route exists yet.
+- Env examples (`backend/.env.example`, `deploy/runtime.env.example`) document the new settings with empty/`false` values only — no secret, budget or price.
 
 ### Open risk carried from GE-01.1
 

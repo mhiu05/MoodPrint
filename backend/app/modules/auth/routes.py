@@ -3,7 +3,7 @@ from datetime import timedelta
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Request, Response
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 
 from app.contracts import (
@@ -12,6 +12,7 @@ from app.contracts import (
     EligibilityInput,
     EmailInput,
     FeatureView,
+    GuestQuota,
     LoginInput,
     NoticeView,
     PasswordResetInput,
@@ -37,33 +38,64 @@ router = APIRouter()
 
 
 async def session_view(request: Request, actor: Actor, csrf: str | None = None) -> SessionView:
+    settings = request.app.state.settings
     async with transaction(request, actor, eligible=False) as (db, user):
         consents = (await db.scalars(select(Consent).where(Consent.user_id == user.id))).all()
         declaration = await db.get(AgeDeclaration, user.id)
-        from app.modules.moderation.models import ModerationAction, StaffRole
-
-        staff = await db.get(StaffRole, user.id)
+        guest = user.account_kind == "guest"
+        staff = None
         notices = []
-        if user.social_restricted_until and user.social_restricted_until > now():
-            notices.append(NoticeView(kind="restricted", until=user.social_restricted_until))
-        warned = await db.scalar(
-            select(ModerationAction.created_at)
-            .where(
-                ModerationAction.subject_id == user.id,
-                ModerationAction.action == "warn",
-                ModerationAction.created_at > now() - timedelta(days=30),
+        if not guest:
+            # Guests never read staff, moderation or social rows, even if a forged row exists.
+            from app.modules.moderation.models import ModerationAction, StaffRole
+
+            staff = await db.get(StaffRole, user.id)
+            if user.social_restricted_until and user.social_restricted_until > now():
+                notices.append(NoticeView(kind="restricted", until=user.social_restricted_until))
+            warned = await db.scalar(
+                select(ModerationAction.created_at)
+                .where(
+                    ModerationAction.subject_id == user.id,
+                    ModerationAction.action == "warn",
+                    ModerationAction.created_at > now() - timedelta(days=30),
+                )
+                .limit(1)
             )
-            .limit(1)
-        )
-        if warned:
-            notices.append(NoticeView(kind="warning"))
+            if warned:
+                notices.append(NoticeView(kind="warning"))
         ai_available = request.app.state.ai.available_for(actor.user_id)
+        ai_status = request.app.state.ai.status_for(actor.user_id)
+        voice = request.app.state.transcriber is not None and (
+            not settings.ai_local_test_user_ids or ai_available
+        )
         remaining = None
-        if ai_available:
+        guest_quota = None
+        server_time = now()
+        if guest:
+            from app.modules.guests.models import GuestUsage
+            from app.modules.guests.policy import guest_paid_available
+
+            # The database clock, not this process, anchors every guest deadline and display.
+            server_time = await db.scalar(select(func.clock_timestamp()))
+            usage = await db.get(GuestUsage, user.id)
+            ai_turns, clips, millis = (
+                (usage.ai_turns, usage.voice_clips, usage.voice_milliseconds) if usage else (0, 0, 0)
+            )
+            guest_quota = GuestQuota(
+                ai_turns_remaining=max(0, settings.guest_ai_turns - ai_turns),
+                voice_clips_remaining=max(0, settings.guest_voice_clips - clips),
+                voice_seconds_remaining=max(0, settings.guest_voice_seconds * 1000 - millis) / 1000,
+            )
+            if not guest_paid_available(settings):
+                # Paid guest work fails closed until the owner-approved budget and prices exist.
+                ai_status = "disabled" if not settings.guest_paid_enabled else "configuration_missing"
+                ai_available = voice = False
+            remaining = guest_quota.ai_turns_remaining if ai_available else None
+        elif ai_available:
             from app.ai.persistence import daily_turns
 
             used = await daily_turns(db, user.id, now())
-            remaining = max(0, request.app.state.settings.ai_daily_turns_per_user - used)
+            remaining = max(0, settings.ai_daily_turns_per_user - used)
         return SessionView(
             staff=staff.role if staff else None,  # type: ignore[arg-type]
             notices=notices,
@@ -75,21 +107,23 @@ async def session_view(request: Request, actor: Actor, csrf: str | None = None) 
             csrf_token=csrf
             or request.cookies.get("moodprint_csrf")
             or request.headers.get("X-CSRF-Token", ""),
-            server_time=now(),
+            server_time=server_time,
             timezone=user.timezone,
             data_version=user.data_version,
             birth_year=declaration.birth_year if declaration else None,
             eligibility_version=declaration.version if declaration else 0,
             features=FeatureView(
                 ai=ai_available,
-                ai_status=request.app.state.ai.status_for(actor.user_id),
+                ai_status=ai_status,
                 ai_quota_remaining=remaining,
-                matching=True,
-                voice=request.app.state.transcriber is not None and (
-                    not request.app.state.settings.ai_local_test_user_ids
-                    or request.app.state.ai.available_for(actor.user_id)
-                ),
+                matching=not guest,
+                voice=voice,
+                feedback=settings.feedback_enabled,
             ),
+            account_kind=user.account_kind,  # type: ignore[arg-type]
+            guest_started_at=user.guest_started_at,
+            guest_expires_at=user.guest_expires_at,
+            guest_quota=guest_quota,
         )
 
 

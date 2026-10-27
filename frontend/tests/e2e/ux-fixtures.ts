@@ -12,7 +12,11 @@ export const baseSession = {
   csrfToken: "csrf-ux",
   timezone: "Asia/Bangkok",
   serverTime: "2026-10-23T08:00:00Z",
-  features: { ai: true, matching: true, voice: false },
+  accountKind: "registered",
+  guestStartedAt: null,
+  guestExpiresAt: null,
+  guestQuota: null,
+  features: { ai: true, matching: true, voice: false, feedback: false },
   consents: {
     AI: { enabled: true, version: 1, policyVersion: "v1" },
     MEM: { enabled: true, version: 1, policyVersion: "v1" },

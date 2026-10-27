@@ -41,6 +41,25 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 | `MODERATION_ADMIN_ENABLED` | `bool` | `False` |
 | `AI_DAILY_TURNS_PER_USER` | `int` | `60` |
 | `AI_DAILY_BUDGET_USD` | `float` | `0` |
+| `GUEST_AUTH_ENABLED` | `bool` | `False` |
+| `GUEST_PAID_ENABLED` | `bool` | `False` |
+| `GUEST_SEMANTIC_ENABLED` | `bool` | `False` |
+| `FEEDBACK_ENABLED` | `bool` | `False` |
+| `FEEDBACK_ADMIN_ENABLED` | `bool` | `False` |
+| `PRODUCT_TOUR_ENABLED` | `bool` | `False` |
+| `GUEST_DAILY_BUDGET_USD` | `Decimal &#124; None` | `None` |
+| `GUEST_PRICING_JSON` | `dict[str, Any]` | `dict` |
+| `GUEST_ABUSE_HMAC_KEY` | `SecretStr` | `SecretStr('')` |
+| `GUEST_CAPTCHA_SITE_KEY` | `str` | `''` |
+| `GUEST_AI_TURNS` | `int` | `25` |
+| `GUEST_AI_PER_MINUTE` | `int` | `6` |
+| `GUEST_AI_CONCURRENCY` | `int` | `1` |
+| `GUEST_AI_GLOBAL_CONCURRENCY` | `int` | `10` |
+| `GUEST_VOICE_CLIPS` | `int` | `6` |
+| `GUEST_VOICE_SECONDS` | `int` | `180` |
+| `GUEST_VOICE_PER_MINUTE` | `int` | `2` |
+| `GUEST_VOICE_CONCURRENCY` | `int` | `1` |
+| `GUEST_VOICE_GLOBAL_CONCURRENCY` | `int` | `3` |
 | `SEMANTIC_MEMORY_ENABLED` | `bool` | `False` |
 | `VOYAGE_API_KEY` | `SecretStr` | `SecretStr('')` |
 | `VOYAGE_MODEL` | `str` | `'voyage-4-lite'` |

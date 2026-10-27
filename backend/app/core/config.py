@@ -1,4 +1,5 @@
-from typing import Literal
+from decimal import Decimal
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import Field, SecretStr, field_validator, model_validator
@@ -55,6 +56,43 @@ class Settings(EmbeddingSettings, BaseSettings):
     # estimated-spend ceiling in USD (0 disables; needs AI_ACCOUNTING_ENABLED=true).
     ai_daily_turns_per_user: int = Field(default=60, ge=1, le=1000)
     ai_daily_budget_usd: float = Field(default=0, ge=0)
+    # Guest trial and feedback rollout. Every flag defaults off; none of them can disable guest
+    # expiry, cleanup, orphan reconciliation or liability settlement (those always run).
+    guest_auth_enabled: bool = False
+    guest_paid_enabled: bool = False
+    guest_semantic_enabled: bool = False
+    feedback_enabled: bool = False
+    feedback_admin_enabled: bool = False
+    product_tour_enabled: bool = False
+    # Owner-approved daily guest spend (D02). Unset or zero means paid guest work is unavailable,
+    # never unlimited; pricing must also be known or paid dispatch stays closed.
+    guest_daily_budget_usd: Decimal | None = Field(default=None, ge=0)
+    guest_pricing_json: dict[str, Any] = Field(default_factory=dict)
+    guest_abuse_hmac_key: SecretStr = SecretStr("")
+    guest_captcha_site_key: str = ""
+    guest_ai_turns: int = Field(default=25, ge=1, le=1000)
+    guest_ai_per_minute: int = Field(default=6, ge=1, le=120)
+    guest_ai_concurrency: int = Field(default=1, ge=1, le=5)
+    guest_ai_global_concurrency: int = Field(default=10, ge=1, le=100)
+    guest_voice_clips: int = Field(default=6, ge=1, le=100)
+    guest_voice_seconds: int = Field(default=180, ge=1, le=3600)
+    guest_voice_per_minute: int = Field(default=2, ge=1, le=60)
+    guest_voice_concurrency: int = Field(default=1, ge=1, le=5)
+    guest_voice_global_concurrency: int = Field(default=3, ge=1, le=100)
+
+    @field_validator("guest_abuse_hmac_key")
+    @classmethod
+    def strong_abuse_key(cls, value: SecretStr) -> SecretStr:
+        # Keys the rotating network/identity digests; a weak key makes the counters guessable.
+        if value.get_secret_value() and len(value.get_secret_value()) < 32:
+            raise ValueError("GUEST_ABUSE_HMAC_KEY must hold at least 32 characters")
+        return value
+
+    @model_validator(mode="after")
+    def guest_capacity_within_global(self):
+        if self.guest_ai_global_concurrency > self.ai_global_concurrency:
+            raise ValueError("GUEST_AI_GLOBAL_CONCURRENCY cannot exceed AI_GLOBAL_CONCURRENCY")
+        return self
 
     @model_validator(mode="after")
     def local_live_scope(self):

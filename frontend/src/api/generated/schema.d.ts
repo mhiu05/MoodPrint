@@ -191,6 +191,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/experience": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public Experience */
+        get: operations["public_experience_api_v1_public_experience_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/consents/{purpose}": {
         parameters: {
             query?: never;
@@ -2119,6 +2136,11 @@ export interface components {
             voice: boolean;
             /** Aiquotaremaining */
             aiQuotaRemaining?: number | null;
+            /**
+             * Feedback
+             * @default false
+             */
+            feedback: boolean;
         };
         /** FeedbackInput */
         FeedbackInput: {
@@ -2137,6 +2159,18 @@ export interface components {
              * @default 1
              */
             cycles: number;
+        };
+        /**
+         * GuestQuota
+         * @description Durable remaining allowance for one trial (never per day, never reset by a new tab).
+         */
+        GuestQuota: {
+            /** Aiturnsremaining */
+            aiTurnsRemaining: number;
+            /** Voiceclipsremaining */
+            voiceClipsRemaining: number;
+            /** Voicesecondsremaining */
+            voiceSecondsRemaining: number;
         };
         /** HistoryRound */
         HistoryRound: {
@@ -2515,6 +2549,22 @@ export interface components {
             expiresAt: string;
         };
         /**
+         * PublicExperience
+         * @description Identity-free landing readiness. Publishes capability, never secrets, budget or quota.
+         */
+        PublicExperience: {
+            /** Guestavailable */
+            guestAvailable: boolean;
+            /** Guestunavailablereason */
+            guestUnavailableReason: ("disabled" | "configuration_missing" | "temporarily_unavailable") | null;
+            /** Feedbackavailable */
+            feedbackAvailable: boolean;
+            /** Producttouravailable */
+            productTourAvailable: boolean;
+            /** Captchasitekey */
+            captchaSiteKey: string | null;
+        };
+        /**
          * PublicProfile
          * @description The only data another member can see or be matched on (taxonomy v2 tags).
          *
@@ -2804,6 +2854,17 @@ export interface components {
             staff?: ("moderator" | "admin") | null;
             /** Notices */
             notices?: components["schemas"]["NoticeView"][];
+            /**
+             * Accountkind
+             * @default registered
+             * @enum {string}
+             */
+            accountKind: "registered" | "guest";
+            /** Gueststartedat */
+            guestStartedAt?: string | null;
+            /** Guestexpiresat */
+            guestExpiresAt?: string | null;
+            guestQuota?: components["schemas"]["GuestQuota"] | null;
         };
         /** SignupInput */
         SignupInput: {
@@ -4028,6 +4089,107 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    public_experience_api_v1_public_experience_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicExperience"];
+                };
             };
             /** @description Unauthorized */
             401: {

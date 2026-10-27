@@ -64,8 +64,11 @@ async def require_actor(request: Request) -> Actor:
         session, user = identity
         await verify_session(db, session, user)
         idle = timedelta(hours=request.app.state.settings.session_idle_hours)
-        if session.expires_at < now() + idle - timedelta(minutes=15):
-            # Sliding idle expiry, written at most every 15 minutes per session.
+        if user.account_kind == "registered" and session.expires_at < now() + idle - timedelta(
+            minutes=15
+        ):
+            # Sliding idle expiry, written at most every 15 minutes per session. A guest session
+            # is capped at the immutable trial deadline and is never renewed.
             await db.execute(
                 update(AuthSession)
                 .where(AuthSession.id == session.id, AuthSession.revoked.is_(False))

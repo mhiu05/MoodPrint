@@ -1252,6 +1252,114 @@
         }
       }
     },
+    "/api/v1/public/experience": {
+      "get": {
+        "summary": "Public Experience",
+        "operationId": "public_experience_api_v1_public_experience_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicExperience"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/consents/{purpose}": {
       "put": {
         "summary": "Update Consent",
@@ -13996,6 +14104,11 @@
               }
             ],
             "title": "Aiquotaremaining"
+          },
+          "feedback": {
+            "type": "boolean",
+            "title": "Feedback",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -14043,6 +14156,34 @@
         "additionalProperties": false,
         "type": "object",
         "title": "FocusOptions"
+      },
+      "GuestQuota": {
+        "properties": {
+          "aiTurnsRemaining": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Aiturnsremaining"
+          },
+          "voiceClipsRemaining": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Voiceclipsremaining"
+          },
+          "voiceSecondsRemaining": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Voicesecondsremaining"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "aiTurnsRemaining",
+          "voiceClipsRemaining",
+          "voiceSecondsRemaining"
+        ],
+        "title": "GuestQuota",
+        "description": "Durable remaining allowance for one trial (never per day, never reset by a new tab)."
       },
       "HistoryRound": {
         "properties": {
@@ -14946,6 +15087,60 @@
         ],
         "title": "ProposalDTO"
       },
+      "PublicExperience": {
+        "properties": {
+          "guestAvailable": {
+            "type": "boolean",
+            "title": "Guestavailable"
+          },
+          "guestUnavailableReason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "disabled",
+                  "configuration_missing",
+                  "temporarily_unavailable"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guestunavailablereason"
+          },
+          "feedbackAvailable": {
+            "type": "boolean",
+            "title": "Feedbackavailable"
+          },
+          "productTourAvailable": {
+            "type": "boolean",
+            "title": "Producttouravailable"
+          },
+          "captchaSiteKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captchasitekey"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "guestAvailable",
+          "guestUnavailableReason",
+          "feedbackAvailable",
+          "productTourAvailable",
+          "captchaSiteKey"
+        ],
+        "title": "PublicExperience",
+        "description": "Identity-free landing readiness. Publishes capability, never secrets, budget or quota."
+      },
       "PublicProfile": {
         "properties": {
           "interests": {
@@ -15642,6 +15837,49 @@
             },
             "type": "array",
             "title": "Notices"
+          },
+          "accountKind": {
+            "type": "string",
+            "enum": [
+              "registered",
+              "guest"
+            ],
+            "title": "Accountkind",
+            "default": "registered"
+          },
+          "guestStartedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gueststartedat"
+          },
+          "guestExpiresAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guestexpiresat"
+          },
+          "guestQuota": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GuestQuota"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,

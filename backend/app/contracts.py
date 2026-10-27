@@ -53,11 +53,21 @@ class FeatureView(DTO):
     voice: bool = False
     # Remaining AI turns today (Asia/Bangkok day); null when AI is unavailable.
     ai_quota_remaining: int | None = None
+    # Voluntary ratings are open to live eligible visitors only while the rollout flag is on.
+    feedback: bool = False
 
 
 class NoticeView(DTO):
     kind: Literal["warning", "restricted"]
     until: datetime | None = None
+
+
+class GuestQuota(DTO):
+    """Durable remaining allowance for one trial (never per day, never reset by a new tab)."""
+
+    ai_turns_remaining: int = Field(ge=0)
+    voice_clips_remaining: int = Field(ge=0)
+    voice_seconds_remaining: float = Field(ge=0)
 
 
 class SessionView(DTO):
@@ -76,6 +86,11 @@ class SessionView(DTO):
     # Present only for operator-granted staff; drives the hidden /admin/reports route.
     staff: Literal["moderator", "admin"] | None = None
     notices: list[NoticeView] = Field(default_factory=list)
+    # Server-owned lifecycle. Registered responses carry explicit nulls for the guest fields.
+    account_kind: Literal["registered", "guest"] = "registered"
+    guest_started_at: datetime | None = None
+    guest_expires_at: datetime | None = None
+    guest_quota: GuestQuota | None = None
 
 
 class EligibilityInput(VersionInput):

@@ -93,6 +93,7 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 | GET | `/api/v1/proposals` | `proposals_api_v1_proposals_get` |
 | POST | `/api/v1/proposals/{proposal_id}/confirm` | `confirm_api_v1_proposals__proposal_id__confirm_post` |
 | POST | `/api/v1/proposals/{proposal_id}/reject` | `reject_proposal_api_v1_proposals__proposal_id__reject_post` |
+| GET | `/api/v1/public/experience` | `public_experience_api_v1_public_experience_get` |
 | POST | `/api/v1/reports` | `report_api_v1_reports_post` |
 | GET | `/api/v1/reports/{report_id}` | `report_status_api_v1_reports__report_id__get` |
 | DELETE | `/api/v1/reveal-grants/{reveal_id}` | `revoke_api_v1_reveal_grants__reveal_id__delete` |
