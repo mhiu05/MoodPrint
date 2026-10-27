@@ -242,6 +242,7 @@ const sse = (events: { type: string; data?: unknown }[]) =>
 async function aiRun(page: Page, options: { terminal?: "completed" | "cancelled" } = {}) {
   const accept = gate(), finish = gate(), cancelGate = gate();
   const calls = { messages: 0, cancels: 0, transcript: 0 };
+  // The stored transcript records what the server accepted and produced, as a real server would.
   const thread = { conversationId: CONV, botId: "may", version: 1, persistent: false, expiresAt: "2026-10-24T08:00:00Z", messages: [] as unknown[], hasMoreMessages: false, activeRunId: null, activeRunVersion: null };
   const terminal = options.terminal ?? "completed";
   await app(page, baseSession, {
@@ -251,10 +252,13 @@ async function aiRun(page: Page, options: { terminal?: "completed" | "cancelled"
   await page.route(`**/api/v1/ai/conversations/${CONV}/messages`, async (route) => {
     calls.messages += 1;
     await accept.promise;
+    const sent = route.request().postDataJSON();
+    thread.messages.push({ id: sent.clientMessageId, actor: "self", text: sent.text });
     await route.fulfill({ status: 202, json: { runId: RUN, conversationId: CONV, version: 2, runVersion: 1, eventsUrl: `/api/v1/ai/runs/${RUN}/events` } });
   });
   await page.route(`**/api/v1/ai/runs/${RUN}/events`, async (route) => {
     await finish.promise;
+    if (terminal === "completed") thread.messages.push({ id: `${RUN}-bot`, actor: "bot", text: "Mình nghe bạn đây.", cards: [] });
     const body = terminal === "completed"
       ? sse([{ type: "progress" }, { type: "final", data: { text: "Mình nghe bạn đây.", cards: [] } }, { type: "completed" }])
       : sse([{ type: "progress" }, { type: "cancelled" }]);
@@ -288,10 +292,12 @@ test.describe("AI activity status", () => {
     await expect(page.locator(".ai-status canvas")).toHaveAttribute("aria-hidden", "true");
     await expect(page.getByRole("button", { name: "Dừng", exact: true })).toBeVisible();
     run.finish.open();
+    // Settled means the stored transcript has replaced the streamed copy; the reply must survive that.
+    await expect(page.getByRole("button", { name: "Dừng", exact: true })).toHaveCount(0);
+    expect(run.calls.transcript).toBe(1);
     await expect(page.locator(".from-bot .chat-bubble")).toContainText("Mình nghe bạn đây.");
     await expect(page.locator("canvas")).toHaveCount(0);
     await expect(status(page)).toHaveText("");
-    await expect(page.getByRole("button", { name: "Dừng", exact: true })).toHaveCount(0);
   });
 
   test("reduced motion keeps a static status and never mounts a canvas", async ({ page }) => {

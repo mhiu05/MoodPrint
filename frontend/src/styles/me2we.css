@@ -110,14 +110,21 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   margin-bottom: 16px;
 }
 .page-app-header > a {
   text-decoration: none;
 }
+/* At 200% text a wide fallback font can make the one-word brand wider than the
+   space beside the privacy button; it may then wrap instead of pushing the button off-screen. */
+.page-app-header > a:first-child {
+  min-width: 0;
+}
 .page-app-header span[class*="brand"] {
   font-size: 1.5rem;
   letter-spacing: -1px;
+  overflow-wrap: anywhere;
 }
 .me-assistants > div:not([role="status"]) {
   height: 100dvh;

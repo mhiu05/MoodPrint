@@ -141,3 +141,21 @@ The review of `c1599c6` reproduced one remaining P2 (twice, Chromium, gated synt
 | `git diff --check 5872b72` (tracked changes) | PASS | — |
 
 Remaining (not fixed, lower severity): choosing the *same* previous chat again while New's own transition is still held leaves the effect's dependencies unchanged. The URL can then name A while the fresh New view stays empty. No other conversation's content or run is involved, and it needs a held scheduler like the race above. Backend, full-stack, packaging and actionlint are left to remote CI for this candidate; the frontend change touches no backend, API or schema.
+
+### First remote CI for the branch (`ee67707`) and its two failures
+
+PR #19 started the first remote `Verify local application` runs for this branch. Both runs passed the backend and migration/load steps and failed in "Frontend and contract drift". The later steps did not run.
+
+| Test | Runs | Root cause | Fix | RED → GREEN |
+|---|---|---|---|---|
+| `200% text keeps the chat and privacy screens readable without sideways scrolling` | pull_request and push, overflow 5 px | On the runner, the `"Segoe UI", system-ui` stack falls back to DejaVu Sans, which is wider. At 390 px with 200% text, the one-word brand link (a flex item with `min-width:auto`) plus the 44 px privacy button no longer fit. The button ended at x=395 on `/#/settings`. Windows and the stock Playwright image resolve narrower fonts, so it passed locally | `me2we.css`: header `gap: 8px`; the brand link may shrink (`min-width: 0`) and the brand word may wrap (`overflow-wrap: anywhere`) only when it cannot fit. No change at ordinary sizes | Reproduced with Chromium from `mcr.microsoft.com/playwright:v1.64.1-noble` plus `fonts-dejavu-core` (run-server, loopback exposed): `Received: 5`. A probe listed `a.icon-button < header.page-app-header` at right=395. After the fix: overflow 0, test passes |
+| `sending, accepted and final states are truthful and the orb runs only after acceptance` | push only | Test-fixture defect: the `aiRun` synthetic transcript always returned `messages: []`, so the reconciliation read after `final` wiped the reply, which no real server does. The assertion passed only when its first poll landed inside the short window before reconciliation | `aiRun` now stores the accepted self message and, on completion, the reply. The test waits for the run to settle (Stop gone, one transcript read) before asserting the reply, so it checks the stored result rather than a transient frame. No assertion removed or timeout raised | Reordered test with the old fixture: deterministic RED 3/3, `element(s) not found`, the CI error. With the faithful fixture: GREEN 10/10 |
+
+Re-verification after these changes. Evidence is in `canonical-back-fix-20261027/` and its `linux-probe/`; the container was removed afterwards.
+
+| Check | Result |
+|---|---|
+| Full configured E2E, Windows Chromium, owned Vite 5191 | PASS, 185/185, 0 skipped, 0 flaky (`e2e-full-2.txt`, `results-full-2.json`) |
+| Full configured E2E, Linux Chromium + DejaVu (container) | PASS, 185/185 (`linux-probe/e2e-full-linux.txt`) |
+| `ux-redesign.spec.ts` alone | PASS, 60/60 |
+| `npm.cmd run typecheck` / `npm.cmd test` / `npm.cmd run build` | PASS / 73/73 / PASS (`typecheck-2.txt`, `unit-2.txt`, `build-2.txt`) |
