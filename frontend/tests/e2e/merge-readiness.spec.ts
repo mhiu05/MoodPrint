@@ -428,6 +428,87 @@ test.describe("New, cancellation and reconciliation races (MR04-MR07)", () => {
     await expect(page.locator(".from-bot .chat-bubble")).toHaveCount(0);
   });
 
+  // The complementary order to the first MR04 test: the new thread's canonical URL
+  // commits together with the still-held New render, so the view never sees New's URL.
+  for (const late of ["completed", "failed"] as const) {
+    test(`MR04: a fast canonical first-send URL still lets Back select the previous chat (late ${late})`, async ({ page }) => {
+      const pageErrors: string[] = [];
+      page.on("pageerror", (error) => pageErrors.push(error.message));
+      const failed: string[] = [];
+      page.on("requestfailed", (request) => failed.push(new URL(request.url()).pathname));
+      const events = `/api/v1/ai/runs/${R}/events`;
+      const readerAborts = () => failed.filter((path) => path === events).length;
+      let released = false;
+      await holdScheduler(page);
+      const store = await mount(page, async ({ path, store }) => {
+        // Only observes the delayed terminal; the shared fixture still delivers it.
+        if (path === `/ai/runs/${R}/events`) { await store.finish[R].promise; released = true; }
+      });
+      store.threads[A].messages.push({ id: "a-1", actor: "self", text: "Tin nhắn cũ của A" });
+      store.finish[R] = gate();
+      store.terminal[R] = late;
+      const readA = new RegExp(`^/ai/conversations/${A}$`), readC = new RegExp(`^/ai/conversations/${C}$`);
+      const text = "Tin riêng của cuộc trò chuyện mới";
+      const own = page.locator(".from-self .chat-bubble");
+      await openChat(page, A);
+      await expect(own).toHaveText(["Tin nhắn cũ của A"]);
+      await infoButton(page).click();
+      await page.evaluate(() => {
+        (window as any).__hold = true;
+        [...document.querySelectorAll<HTMLButtonElement>(".conversation-info button")].find((button) => button.textContent === "Cuộc trò chuyện mới")!.click();
+      });
+      await field(page).fill(text);
+      await field(page).press("Enter");
+      // Creation and acceptance both finish, and the URL is already canonical, while New's render is held.
+      await expect.poll(() => store.count("POST", /\/messages$/)).toBe(1);
+      await expect(page).toHaveURL(new RegExp(`conversation=${C}`));
+      expect(await page.evaluate(() => (window as any).__held.length)).toBeGreaterThan(0);
+      await page.evaluate(() => (window as any).__release());
+      await expect(own).toHaveText([text]);
+      await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+      await expect(page).toHaveURL(new RegExp(`conversation=${C}`));
+      // Same-view canonicalisation keeps the accepted run's reader.
+      expect(store.count("GET", /\/events$/)).toBe(1);
+      expect(readerAborts()).toBe(0);
+
+      const readsBeforeBack = store.count("GET", readA);
+      await page.goBack();
+      await expect(page).toHaveURL(new RegExp(`conversation=${A}`));
+      await expect(own).toHaveText(["Tin nhắn cũ của A"]);
+      await expect(page.getByText(text)).toHaveCount(0);
+      await expect(status(page)).toHaveText("");
+      expect(store.count("GET", readA)).toBeGreaterThan(readsBeforeBack);
+      await expect.poll(readerAborts).toBe(1);
+      const heading = page.locator("[data-route-heading]");
+      await expect(heading).toBeFocused();
+
+      // C's delayed terminal arrives only after Back and must not reach A.
+      store.finish[R].open();
+      await expect.poll(() => released).toBe(true);
+      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+      await expect(own).toHaveText(["Tin nhắn cũ của A"]);
+      await expect(page.locator(".from-bot .chat-bubble")).toHaveCount(0);
+      await expect(status(page)).toHaveText("");
+      await expect(field(page)).toHaveValue("");
+      await expect(page.getByRole("alert")).toHaveCount(0);
+      await expect(heading).toBeFocused();
+
+      // Forward rebuilds C from its stored transcript; nothing is sent again.
+      const readsBeforeForward = store.count("GET", readC);
+      await page.goForward();
+      await expect(page).toHaveURL(new RegExp(`conversation=${C}`));
+      await expect(own).toHaveText([text]);
+      if (late === "completed") await expect(page.locator(".from-bot .chat-bubble")).toHaveText(["Mình nghe bạn đây."]);
+      else await expect(page.locator(".from-bot .chat-bubble")).toHaveCount(0);
+      expect(store.count("GET", readC)).toBeGreaterThan(readsBeforeForward);
+      await expect(field(page)).toHaveValue("");
+      expect(store.count("POST", /^\/ai\/conversations$/)).toBe(1);
+      expect(store.count("POST", /\/messages$/)).toBe(1);
+      expect(store.count("GET", /\/events$/)).toBe(1);
+      expect(pageErrors).toEqual([]);
+    });
+  }
+
   test("MR05: a reply that finishes while the New confirmation is open still permits New", async ({ page }) => {
     const store = await mount(page);
     store.finish[R] = gate();

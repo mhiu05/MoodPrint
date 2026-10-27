@@ -110,3 +110,34 @@ Isolated environment: the checkout-with-`.env` result above is shown, not hidden
 - Retention of `frontend/playwright.owned.config.ts`: untracked local helper (copy kept in the evidence folder); commit it only if the owner wants a documented isolated-server config.
 
 **Overall status: PARTIAL** — every local gate passes, but required remote CI for the exact SHA is NOT RUN and device/AT coverage is outstanding. This is not a merge approval; the branch is unpushed, unmerged and nothing was deployed.
+
+## Continuation — canonical first-send URL vs Back (review of `c1599c6`)
+
+The review of `c1599c6` reproduced one remaining P2 (twice, Chromium, gated synthetic API and held scheduler): A open, New with React's scheduler held, an immediate send, and C created **and** accepted before the scheduler is released. C's canonical `?conversation=C` then commits together with New's held render. The same-view early return in the selection effect kept `openedFor` at A's key (and the New marker unconsumed), so Back to A matched that stale key and was skipped. The URL named A while C's message and working status stayed on screen, and A was not read again. Its precise historical origin is not established. This is a frontend selection race, not a proven cross-user backend disclosure.
+
+- **Fix** (`frontend/src/features/real/RealApp.tsx`, selection effect): when the canonical URL applies to the thread already on screen while a New marker is still pending, the marker becomes the opened key, just as if the marker URL had applied first. The early return is otherwise unchanged: no abort, and no change to view generation, draft, recovery or `loadedSelection`. A later Back or selection is a real selection again: it bumps the generation, aborts C's UI reader (a local abort, not a server cancel) and loads A. The normal order is untouched; the fast order now ends in the same bookkeeping state.
+- **Regression** `merge-readiness.spec.ts`: `MR04: a fast canonical first-send URL still lets Back select the previous chat (late completed | late failed)`. It reuses `mount`, the gates and `holdScheduler` and asserts:
+  - Creation and acceptance finish before release, with held work still pending.
+  - One conversation POST and one message POST; the reader is not aborted by canonicalisation.
+  - C's message and status render under C's URL.
+  - Back: A's URL and transcript, more reads of A than before Back, C's reader aborted, C's content and status absent, route heading focused.
+  - C's delayed terminal released after Back: A's transcript, draft, status, alerts and focus are unchanged.
+  - Forward rebuilds C from its stored transcript with no additional message POST or events stream.
+  - No page errors.
+
+  The original MR04 order (release before creation) stays and passes.
+- **Evidence** (Git-ignored): `docs/ux-redesign/evidence/implementation/merge-readiness/canonical-back-fix-20261027/`, run on an owned Vite on 5191 with `reuseExistingServer:false` and the API proxy on unused 59997.
+
+| Check | Result | Evidence |
+|---|---|---|
+| New regression before the fix | RED, 2/2 failed at the post-Back transcript assertion: received `Tin riêng của cuộc trò chuyện mới` under A's URL; every pre-Back assertion passed | `red.txt` |
+| `merge-readiness.spec.ts` after the fix | PASS, 39/39 | `green.txt` |
+| MR04–MR07 `--repeat-each 10` | PASS, 110/110 | `repeat-mr04.txt` |
+| `npm.cmd run typecheck` | PASS, exit 0 | `typecheck.txt` |
+| `npm.cmd test` | PASS, 73/73 in 13 files | `unit.txt` |
+| `npm.cmd run build` | PASS (existing >500 kB chunk warning) | `build.txt` |
+| Full configured E2E (`playwright.config.ts` testMatch, owned server) | PASS, 185/185, 0 skipped, 0 flaky | `e2e-full.txt`, `results-full.json` |
+| `python scripts/check_reviewed_artifacts.py` | PASS, 9 pinned / 9 consumed | `reviewed-sql.txt` |
+| `git diff --check 5872b72` (tracked changes) | PASS | — |
+
+Remaining (not fixed, lower severity): choosing the *same* previous chat again while New's own transition is still held leaves the effect's dependencies unchanged. The URL can then name A while the fresh New view stays empty. No other conversation's content or run is involved, and it needs a held scheduler like the race above. Backend, full-stack, packaging and actionlint are left to remote CI for this candidate; the frontend change touches no backend, API or schema.

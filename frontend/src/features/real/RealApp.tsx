@@ -861,7 +861,13 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   }, []);
   useEffect(() => {
     // A newly created thread receives a URL without interrupting its active stream.
-    if (selectedId && selectedId === current.current?.conversationId && loadedRevision.current === revision) return;
+    // That URL can commit before New's own marker URL ever renders here. The view
+    // New opened still owns the selection, exactly as if the marker had applied;
+    // otherwise Back to the previous chat matches its stale key and is skipped.
+    if (selectedId && selectedId === current.current?.conversationId && loadedRevision.current === revision) {
+      if (newMarker.current) { openedFor.current = newMarker.current; newMarker.current = undefined; }
+      return;
+    }
     // A fresh login must wait for the saved-history preference before selecting
     // the latest thread. Otherwise the first render silently skips saved threads.
     if (!selectedId && preferencesLoading) return;
