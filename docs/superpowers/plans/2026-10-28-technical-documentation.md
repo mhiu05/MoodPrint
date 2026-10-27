@@ -42,7 +42,9 @@
 
 ## Task 3: Xác minh và phát hành Git
 
-- [ ] Hoàn tất pytest, Playwright UI và full-stack tổng hợp; migration upgrade/check trên DB riêng.
+- [x] Hoàn tất pytest (642), Playwright UI (187) và full-stack tổng hợp (28 + 2 matching v2); migration upgrade/check trên DB riêng.
 - [x] Xuất OpenAPI, sinh TypeScript và kiểm tra drift; chạy kiểm tra SQL review và deployment unit tests.
 - [x] Review độc lập; khắc phục sai lệch tài liệu và bổ sung regression cho thay đổi frontend có sẵn.
-- [ ] Ghi kết quả, chia commit có mô tả, push main, xác minh remote và working tree.
+- [x] Ghi kết quả và giới hạn trong `docs/verification.md`; chia commit có subject/body theo nhóm nội dung.
+
+Phát hành Git: sau commit bằng chứng cuối, chạy `git push origin main`, so sánh remote SHA và working tree, báo trạng thái CI riêng trong bàn giao. Người dùng đã xác nhận commit cả việc xóa `.env.example` ở gốc; screenshot/trace tổng hợp được giữ ngoài repository. `.gitignore` không thay đổi.

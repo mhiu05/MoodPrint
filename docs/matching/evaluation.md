@@ -42,3 +42,5 @@ Benchmark 600 tạo bản sao/mutation từ 60 persona; không phải production
 ## Test lựa chọn
 
 `test_matching_eval.py` dùng slice nhỏ cho harness CI. `test_scoring_v2.py`, `test_ranking.py`, `test_explain.py`, `test_matching_retrieval_v2.py`, `test_matching_stats.py` bảo vệ behavior. [Fullstack matching spec](../../frontend/tests/fullstack/matching-v2.spec.ts) xác minh HTTP/browser integration với synthetic actors.
+
+Fullstack mặc định phục vụ v1. Để kiểm tra nhánh v2, đặt `E2E_MATCHING_SCORER=v2` cho cả harness/server và browser, rồi từ backend chạy `uv run --locked python ../scripts/test_fullstack.py matching-v2.spec.ts`; vẫn cần `TEST_DATABASE_URL` riêng như development runbook. Không dùng tên file `matching-v2.spec.ts` để suy ra v2 đã được chọn.

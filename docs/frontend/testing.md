@@ -48,4 +48,6 @@ Runner kiểm tra ports 8002/5174, tạo process riêng và dừng process do n�
 - Fixture E2E: auth/recovery, consent/states, AI history/error handling, discovery/social, activity dock/timer, admin, responsive/a11y/motion.
 - Fullstack: HTTP thật, isolation hai user, privacy/revocation, matching v2, hoạt động chung, moderation, persistent chat và mood evidence.
 
+Scorer của fullstack mặc định là v1; riêng nhánh v2 của matching spec cần `E2E_MATCHING_SCORER=v2` trong môi trường harness. Xem lệnh và giới hạn trong [matching evaluation](../matching/evaluation.md).
+
 E2E fixture không chứng minh backend persistence; synthetic fullstack không chứng minh live provider; unit test không chứng minh browser permission micro trên máy thật. Báo rõ skipped, warning và phần không chạy.
