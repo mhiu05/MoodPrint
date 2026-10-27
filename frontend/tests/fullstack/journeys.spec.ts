@@ -68,11 +68,11 @@ test("birth-year onboarding persists16+ access while the server rejects social a
     .getByRole("button", { name: "Xác nhận năm sinh", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: /Bạn muốn kể gì/ }),
+    page.getByRole("heading", { name: /Bạn muốn chia sẻ điều gì/ }),
   ).toBeVisible();
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: /Bạn muốn kể gì/ }),
+    page.getByRole("heading", { name: /Bạn muốn chia sẻ điều gì/ }),
   ).toBeVisible();
   await page.goto("/#/connect");
   await expect(
@@ -170,7 +170,7 @@ test("the eighteenth-year account explicitly confirms18 in settings without auto
     .getByRole("button", { name: "Xác nhận năm sinh", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: /Bạn muốn kể gì/ }),
+    page.getByRole("heading", { name: /Bạn muốn chia sẻ điều gì/ }),
   ).toBeVisible();
   await page.goto("/#/settings");
   await expect(page.getByRole("link", { name: "Xem hoặc sửa hồ sơ kết nối" })).toBeVisible();
@@ -511,7 +511,7 @@ test("real authenticated screens reflow and pass automated accessibility checks 
   for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     for (const [route, heading] of [
-      ["/assistants", "Bạn muốn kể gì"],
+      ["/assistants", "Bạn muốn chia sẻ điều gì"],
       ["/profile", "Hồ sơ riêng"],
       ["/settings", "Quyền riêng tư"],
       ["/self", "Cảm xúc của bạn"],

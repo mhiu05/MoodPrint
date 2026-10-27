@@ -197,7 +197,7 @@ test("login failure retains credentials and never opens a sample session", async
     "private-passphrase",
   );
   await expect(
-    page.getByRole("heading", { name: /Bạn muốn kể gì/ }),
+    page.getByRole("heading", { name: /Bạn muốn chia sẻ điều gì/ }),
   ).toHaveCount(0);
 });
 
@@ -277,7 +277,7 @@ test("year onboarding requires confirmation and server success, retaining input 
   ).toBeVisible();
   release();
   await expect(
-    page.getByRole("heading", { name: /Bạn muốn kể gì/ }),
+    page.getByRole("heading", { name: /Bạn muốn chia sẻ điều gì/ }),
   ).toBeVisible();
 });
 
@@ -304,12 +304,12 @@ test("an unavailable session remains an explicit error until retry succeeds", as
   await page.goto("/");
   await expect(page.getByRole("alert")).toContainText("Dịch vụ chưa sẵn sàng");
   await expect(
-    page.getByRole("heading", { name: /Bạn muốn kể gì/ }),
+    page.getByRole("heading", { name: /Bạn muốn chia sẻ điều gì/ }),
   ).toHaveCount(0);
   available = true;
   await page.getByRole("button", { name: "Thử lại", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: /Bạn muốn kể gì/ }),
+    page.getByRole("heading", { name: /Bạn muốn chia sẻ điều gì/ }),
   ).toBeVisible();
 });
 

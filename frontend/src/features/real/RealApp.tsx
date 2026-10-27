@@ -27,6 +27,7 @@ import {
   ArrowUpRight,
   LockKeyhole,
   MessageCircle,
+  NotebookPen,
   Search,
   Send,
   ShieldCheck,
@@ -77,6 +78,7 @@ import { Moods } from "./Mood";
 import { VoiceRecorder } from "./Voice";
 import { OwnIdentity } from "./Safety";
 import { DataControls } from "./Privacy";
+import { focusRouteHeading, useRouteFocus } from "./useRouteFocus";
 import { AIDataProvider, AIDataControls, ConversationHistory, useAIData, downloadConversation, type SavedConversation, type SavedConversationHeader } from "./AIData";
 
 const MessageMarkdown = lazy(() => import("./MessageMarkdown"));
@@ -326,6 +328,7 @@ function Navigation() {
     <nav className={cx.navigation} aria-label="Điều hướng chính">
       {[
         { to: "/assistants", label: "Trợ lý", Icon: Sparkles, count: 0, what: "" },
+        { to: "/self", label: "Cảm xúc", Icon: NotebookPen, count: 0, what: "" },
         {
           // Pending invitations open their tab directly (08 section 2).
           to: summary.pendingIncomingRequests ? "/connect?tab=requests" : "/connect",
@@ -341,7 +344,7 @@ function Navigation() {
           count: unread,
           what: "cuộc trò chuyện chưa đọc",
         },
-        { to: "/profile", label: "Tôi", Icon: UserRound, count: 0, what: "" },
+        { to: "/profile", label: "Cá nhân", Icon: UserRound, count: 0, what: "" },
       ].map(({ to, label, Icon, count, what }) => (
         <NavLink
           key={label}
@@ -389,9 +392,9 @@ function Shell() {
     };
   }, []);
   useEffect(() => {
-    document.querySelector<HTMLElement>("h1")?.focus({ preventScroll: true });
     window.scrollTo(0, 0);
   }, [location.pathname]);
+  useRouteFocus(location.pathname);
   return (
     <>
       <a
@@ -421,15 +424,9 @@ function Shell() {
               className="icon-button"
               to="/settings"
               aria-label="Quyền riêng tư"
+              title="Quyền riêng tư"
             >
               <ShieldCheck size={21} />
-            </Link>
-            <Link
-              className="self-avatar"
-              to="/profile"
-              aria-label="Hồ sơ của tôi"
-            >
-              {session.alias.charAt(0).toLocaleUpperCase("vi-VN")}
             </Link>
           </div>
         </aside>
@@ -545,23 +542,21 @@ function Assistants() {
         </div>
         <div className="roster-heading">
           <h1 tabIndex={-1}>
-            Bạn muốn kể gì
-            <br />
-            <span>hôm nay?</span>
+            Bạn muốn chia sẻ <span>điều gì hôm nay?</span>
           </h1>
         </div>
         <label className="bot-search">
           <Search size={18} />
           <input
             aria-label="Tìm trợ lý"
-            placeholder="Tìm một người bạn AI…"
+            placeholder="Tìm theo tên hoặc vai trò"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
         </label>
         <div className="roster-section-label">
-          <h2>Trợ lý của bạn</h2>
-          <span>{String(bots.length).padStart(2, "0")}</span>
+          <h2>Chọn một trợ lý</h2>
+          {search.trim() && bots.length ? <span role="status">{filtered.length} kết quả</span> : null}
         </div>
         {resource.loading ? <p role="status">Đang tải trợ lý…</p> : null}
         <ErrorNotice error={resource.error} retry={resource.refresh} />
@@ -586,10 +581,13 @@ function Assistants() {
             </Link>
           ))}
         </div>
-        {!resource.loading && !resource.error && !filtered.length ? (
-          <p className="search-empty">
-            Chưa tìm thấy trợ lý. Thử tên khác nhé.
-          </p>
+        {!resource.loading && !resource.error && !bots.length ? (
+          <p className="search-empty">Chưa có trợ lý nào sẵn sàng. Bạn hãy thử lại sau.</p>
+        ) : !resource.loading && !resource.error && !filtered.length ? (
+          <div className="search-empty">
+            <p>Không có trợ lý nào khớp với “{search.trim()}”.</p>
+            <Button variant="text" onClick={() => setSearch("")}>Xóa tìm kiếm</Button>
+          </div>
         ) : null}
         <ConversationHistory />
         <ConnectBridge />
@@ -666,7 +664,7 @@ function Conversation({ bot }: { bot: BotPublicDTO }) {
         <button className="icon-button history-mobile-button" aria-label="Mở lịch sử hội thoại" onClick={() => setHistoryOpen(true)}><MessageCircle size={20} /></button>
         <PublicAvatar bot={bot} size={43} />
         <div>
-          <h1 tabIndex={-1}>
+          <h1 tabIndex={-1} data-route-heading>
             {bot.name} <span className="ai-tag">AI</span>
           </h1>
           <p>{bot.role}</p>
@@ -809,6 +807,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     setLoading(true); setReady(false); setBusy(false); setRun(undefined); setError(undefined); setNotice("");
     current.current = undefined; setConversation(undefined);
     const selection = `${bot.botId}/${selectedId || searchParams.get("new") || "latest"}`;
+    // A different thread chosen in this conversation (not first open, not a new chat) moves focus to its heading once loaded.
+    const switched = Boolean(selectedId) && loadedSelection.current !== undefined && loadedSelection.current !== selection;
     if (loadedSelection.current !== selection) { intent.current = null; setDraft(""); setShareMood(false); }
     loadedSelection.current = selection;
     async function open() {
@@ -825,6 +825,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       if (controller.signal.aborted) return;
       if (value.botId !== bot.botId) throw new ApiError(409, "CONVERSATION_BOT_MISMATCH", "Hội thoại thuộc một trợ lý khác. Chọn lại hội thoại trong lịch sử.");
       update(value); setReady(true); setAtBottom(true);
+      if (switched) requestAnimationFrame(() => focusRouteHeading());
       if (value.activeRunId && allowed) void stream(value.activeRunId, value.activeRunVersion || 1, `/api/v1/ai/runs/${value.activeRunId}/events`, controller.signal);
     }
     void open().catch(reason => { if (!controller.signal.aborted) setError(reason); })

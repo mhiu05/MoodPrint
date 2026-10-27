@@ -529,7 +529,7 @@ test("Every real screen passes axe and reflows at 1440, 1280, 430 and 390 with r
   })).status).toBe(200);
   const page = await context.newPage();
   const routes = [
-    ["/assistants", "Bạn muốn kể gì"],
+    ["/assistants", "Bạn muốn chia sẻ điều gì"],
     ["/self", "Cảm xúc của bạn"],
     ["/profile", "Hồ sơ riêng"],
     ["/memory", ""],

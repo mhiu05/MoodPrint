@@ -176,3 +176,52 @@ test.describe("readable foundations (V-TOKENS / V-REFLOW)", () => {
     expect(metrics.overflow).toBeLessThanOrEqual(1);
   });
 });
+
+test.describe("navigation and route focus (V-NAV / V-ROUTE-FOCUS)", () => {
+  const moodRoutes = {
+    "/moods": () => ({ json: [] }),
+    "/moods/summary": () => ({ json: { from: "2026-10-17", to: "2026-10-23", count: 0, mean: null, min: null, max: null, insightAvailable: false, buckets: [] } }),
+  };
+
+  test("five primary destinations, with Cảm xúc opening the mood journal directly", async ({ page }) => {
+    await app(page, baseSession, moodRoutes);
+    for (const width of [320, 768, 1280]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.goto("/#/messages");
+      const nav = page.getByRole("navigation", { name: "Điều hướng chính" });
+      await expect(nav.getByRole("link")).toHaveText(["Trợ lý", "Cảm xúc", "Tìm bạn", "Tin nhắn", "Cá nhân"]);
+      await nav.getByRole("link", { name: "Cảm xúc" }).click();
+      await expect(page).toHaveURL(/#\/self$/);
+      await expect(nav.getByRole("link", { name: "Cảm xúc" })).toHaveAttribute("aria-current", "page");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  for (const width of [390, 1280]) {
+    test(`choosing an assistant focuses the visible conversation heading at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 844 });
+      await app(page, baseSession);
+      await page.goto("/#/assistants");
+      await page.getByRole("link", { name: /Mây/ }).first().click();
+      await expect(page.getByRole("heading", { level: 1, name: /^Mây/ })).toBeVisible();
+      await expect.poll(() => page.evaluate(() => {
+        const active = document.activeElement as HTMLElement;
+        return active?.tagName === "H1" && active.getClientRects().length > 0 ? active.textContent?.trim() : active?.tagName;
+      })).toMatch(/^Mây/);
+    });
+  }
+
+  test("route focus never moves focus away from a control the person already chose", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    await app(page, baseSession);
+    await page.route("**/api/v1/bots", async (route) => { await held; await route.fulfill({ json: [{ botId: "may", name: "Mây", role: "Lắng nghe", description: "Lắng nghe.", starters: [], avatarKey: "may" }] }); });
+    await page.goto("/#/assistants/may");
+    await page.getByRole("textbox", { name: "Tìm trợ lý" }).focus();
+    release();
+    await expect(page.getByRole("heading", { level: 1, name: /^Mây/ })).toBeVisible();
+    await page.waitForTimeout(300);
+    await expect(page.getByRole("textbox", { name: "Tìm trợ lý" })).toBeFocused();
+  });
+});
