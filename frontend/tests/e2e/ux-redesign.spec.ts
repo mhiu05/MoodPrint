@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 import { app, baseSession, room, sessionWith } from "./ux-fixtures";
 
 const pendingProposal = {
@@ -889,4 +890,106 @@ test.describe("personal journeys", () => {
     await page.getByRole("button", { name: "Lưu tâm trạng", exact: true }).click();
     await expect(page.getByText("Đã lưu cảm xúc ngày 23/10/2026.", { exact: true })).toBeVisible();
   });
+});
+
+// ---- Accessibility sweep (V-REFLOW / V-ROUTE-FOCUS / QA04 / QA15 automated part) ----
+test.describe("accessibility sweep", () => {
+  const axe = async (page: Page) =>
+    (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze()).violations
+      .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(" ")).join(", ")}`);
+
+  for (const width of [390, 1280]) {
+    test(`redesigned screens have no automated WCAG violations at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 844 });
+      const thread = savedThread();
+      await app(page, sessionWith({ AI: true, MEM: false }), {
+        "/ai/preferences": () => ({ json: historyOn }),
+        "/ai/conversations": () => ({ json: [thread] }),
+        [`/ai/conversations/${CONV}`]: () => ({ json: thread }),
+        "/moods": () => ({ json: [] }),
+        "/moods/summary": () => ({ json: { from: "2026-10-17", to: "2026-10-23", count: 0, mean: null, min: null, max: null, insightAvailable: false, buckets: [] } }),
+        "/connections": () => ({ json: [room] }),
+      });
+      const results: Record<string, string[]> = {};
+      for (const [name, url, ready] of [
+        ["assistants", "/#/assistants", "Bạn muốn chia sẻ"],
+        ["chat", `/#/assistants/may?conversation=${CONV}`, "Một điều nhỏ"],
+        ["settings", "/#/settings", "Tin nhắn AI"],
+        ["memory", "/#/memory", "Đề xuất chờ duyệt"],
+        ["messages", "/#/messages", "Tin nhắn"],
+        ["mood", "/#/self", "Tâm trạng"],
+        ["human", `/#/chat/${room.id}`, "Một lời chào"],
+      ] as const) {
+        await page.goto(url);
+        await expect(page.getByText(ready).first()).toBeVisible();
+        results[name] = await axe(page);
+      }
+      await page.goto(`/#/assistants/may?conversation=${CONV}`);
+      await expect(page.getByText("Một điều nhỏ").first()).toBeVisible();
+      await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
+      await expect(page.getByRole("heading", { name: "Thông tin cuộc trò chuyện" })).toBeFocused();
+      results["chat-info"] = await axe(page);
+      expect(results).toEqual(Object.fromEntries(Object.keys(results).map((key) => [key, []])));
+    });
+  }
+
+  test("resizing across 1100px while the info surface is open swaps modal and modeless cleanly", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await savedChat(page);
+    await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
+    await expect(page.getByRole("region", { name: "Thông tin cuộc trò chuyện" })).toBeVisible();
+    await page.setViewportSize({ width: 900, height: 900 });
+    const dialog = page.getByRole("dialog", { name: "Thông tin cuộc trò chuyện" });
+    await expect(dialog).toBeVisible();
+    await expect(page.locator(".conversation-info")).toHaveCount(1);
+    await expect.poll(() => page.evaluate(() => document.querySelector("dialog.conversation-info")?.contains(document.activeElement))).toBe(true);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(page.getByRole("region", { name: "Thông tin cuộc trò chuyện" })).toBeVisible();
+    await expect(page.locator("dialog[open]")).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".conversation-info")).toHaveCount(0);
+    await expect(page.getByRole("textbox", { name: "Tin nhắn cho Mây" })).toBeEditable();
+  });
+
+  test("ordinary buttons on the redesigned chat, info and privacy screens are at least 44px tall", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await savedChat(page);
+    const small = async () => page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>("button")]
+        .filter((button) => button.getClientRects().length && !button.closest("[inert]"))
+        .map((button) => ({ name: button.getAttribute("aria-label") || button.textContent?.trim(), height: Math.round(button.getBoundingClientRect().height) }))
+        .filter((item) => item.height < 44));
+    expect(await small()).toEqual([]);
+    await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
+    expect(await small()).toEqual([]);
+    await page.goto("/#/settings");
+    await expect(page.getByRole("heading", { name: "Tin nhắn AI" })).toBeVisible();
+    expect(await small()).toEqual([]);
+  });
+
+  test("200% text keeps the chat and privacy screens readable without sideways scrolling", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await savedChat(page);
+    await page.addStyleTag({ content: "html { font-size: 200% !important; } body { font-size: 2rem !important; }" });
+    await expect(page.getByRole("textbox", { name: "Tin nhắn cho Mây" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+    await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Đóng thông tin cuộc trò chuyện" })).toBeInViewport();
+    await page.keyboard.press("Escape");
+    await page.goto("/#/settings");
+    await page.addStyleTag({ content: "html { font-size: 200% !important; } body { font-size: 2rem !important; }" });
+    await expect(page.getByRole("heading", { name: "Tin nhắn AI" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+  });
+});
+
+test("the skip link stays hidden until focused, then appears and moves focus to main", async ({ page }) => {
+  await app(page, baseSession);
+  await page.goto("/#/messages");
+  const skip = page.getByRole("link", { name: "Đến nội dung chính" });
+  await expect(skip).not.toBeInViewport();
+  await skip.focus();
+  await expect(skip).toBeInViewport();
+  await skip.press("Enter");
+  await expect(page.locator("#main")).toBeFocused();
 });
