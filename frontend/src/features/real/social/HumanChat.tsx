@@ -458,6 +458,7 @@ export function HumanChat() {
           current={activity.open ? activity.session : null}
           cooldown={activity.cooldown}
           busy={activity.busy}
+          pendingInvite={activity.pendingInvite}
           onInvite={(kind, options) =>
             void activity.invite(kind, options).then((sent) => {
               if (sent) setCatalogOpen(false);

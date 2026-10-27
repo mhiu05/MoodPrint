@@ -601,3 +601,187 @@ test.describe("conversation-scoped notices (MR08)", () => {
     await expect(receipt).toHaveCount(0);
   });
 });
+
+// ---- Activity invitations (MR09 / MR10) ----
+const definitions = [
+  { kind: "icebreaker", definitionVersion: "icebreaker-v1", title: "Câu hỏi làm quen", description: "Ba câu hỏi nhẹ nhàng.", estimatedMinutes: 5, rounds: 3 },
+  { kind: "coop_quiz", definitionVersion: "coop_quiz-v1", title: "Đố vui đồng đội", description: "Năm câu đố vui.", estimatedMinutes: 7, rounds: 5 },
+  { kind: "focus", definitionVersion: "focus-v1", title: "Cùng tập trung", description: "Pomodoro chung.", estimatedMinutes: 30, focusPlans: [[25, 5], [15, 3], [50, 10]], maxCycles: 4 },
+];
+const invitationFor = (kind: string, options?: { plan?: number[]; cycles?: number }) => ({
+  id: "s1", connectionId: "room-1", kind, definitionVersion: `${kind}-v1`, state: "invited", version: 1, role: "inviter",
+  createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 600_000).toISOString(), serverTime: new Date().toISOString(),
+  self: { accepted: true, readyRound: 0, feedbackGiven: false }, peer: { accepted: false, readyRound: 0 },
+  progress: { round: 0, totalRounds: kind === "focus" ? null : 3, phase: "invited" }, current: null, history: [],
+  ...(kind === "focus" ? { timer: { phase: "focus", cycle: 0, cycles: options?.cycles ?? 1, plan: options?.plan ?? [25, 5], selfPresent: false, peerPresent: false } } : {}),
+});
+
+test.describe("activity invitations (MR09/MR10)", () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  /** `outcome` decides the answer to each invite POST; an idempotent server commits once per Idempotency-Key. */
+  async function inviteRoom(page: Page, outcome: (attempt: number) => "ok" | "commit-then-503" | "commit-then-abort" | "422", hold?: Gate) {
+    const committed = new Map<string, any>();
+    const keys: string[] = [];
+    let attempts = 0;
+    let current: unknown = null;
+    await app(page, baseSession);
+    await page.route("**/api/v1/**", async (route) => {
+      const request = route.request();
+      const path = new URL(request.url()).pathname.replace("/api/v1", "");
+      if (path === "/activities/catalog") return route.fulfill({ json: definitions });
+      if (path === "/connections/room-1/activities/current") return route.fulfill({ json: current });
+      if (path === "/connections/room-1/activities" && request.method() === "POST") {
+        attempts += 1;
+        const key = request.headers()["idempotency-key"];
+        keys.push(key);
+        await hold?.promise;
+        const answer = outcome(attempts);
+        if (answer === "422") return route.fulfill({ status: 422, json: { error: { code: "VALIDATION_ERROR", message: "Hoạt động này chưa mở cho hai bạn." } } });
+        const body = request.postDataJSON();
+        if (!committed.has(key)) committed.set(key, invitationFor(body.kind, body.options));
+        if (answer === "commit-then-503") return route.fulfill({ status: 503, json: { error: { code: "UNAVAILABLE", message: "Dịch vụ tạm gián đoạn." } } });
+        if (answer === "commit-then-abort") return route.abort("connectionreset");
+        current = committed.get(key);
+        return route.fulfill({ json: current });
+      }
+      return route.fallback();
+    });
+    await page.goto("/#/chat/room-1");
+    await page.getByRole("button", { name: "Cùng làm gì đó?", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Cùng làm gì đó?" });
+    await expect(dialog).toBeVisible();
+    return { dialog, committed, keys };
+  }
+  const inviteButton = (dialog: ReturnType<Page["getByRole"]>, title: string) => dialog.getByRole("button", { name: `Mời tham gia ${title}`, exact: true });
+
+  test("MR09: a committed-but-lost response is reported as unconfirmed, keeps the plan, and the retry creates one invitation", async ({ page }) => {
+    const { dialog, committed, keys } = await inviteRoom(page, (attempt) => (attempt === 1 ? "commit-then-503" : "ok"));
+    await dialog.getByLabel("Nhịp", { exact: true }).selectOption("15,3");
+    await dialog.getByLabel("Số lượt", { exact: true }).selectOption("2");
+    await inviteButton(dialog, "Cùng tập trung").click();
+    await expect(dialog.getByRole("alert")).toHaveText("Chưa xác nhận được lời mời. Lựa chọn của bạn vẫn được giữ. Bạn hãy thử lại.");
+    await expect(dialog.getByText("Chưa gửi được lời mời")).toHaveCount(0);
+    await expect(dialog.getByLabel("Nhịp", { exact: true })).toHaveValue("15,3");
+    await expect(dialog.getByLabel("Số lượt", { exact: true })).toHaveValue("2");
+    await inviteButton(dialog, "Cùng tập trung").click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByRole("group", { name: "Lời mời Cùng tập trung" })).toContainText("15 phút tập trung / 3 phút nghỉ · 2 lượt");
+    expect(keys).toHaveLength(2);
+    expect(keys[1]).toBe(keys[0]);
+    expect(committed.size).toBe(1);
+  });
+
+  test("MR09: a dropped connection is also unconfirmed, not a definite failure", async ({ page }) => {
+    const { dialog, committed } = await inviteRoom(page, (attempt) => (attempt === 1 ? "commit-then-abort" : "ok"));
+    await inviteButton(dialog, "Câu hỏi làm quen").click();
+    await expect(dialog.getByRole("alert")).toContainText("Chưa xác nhận được lời mời.");
+    await inviteButton(dialog, "Câu hỏi làm quen").click();
+    await expect(dialog).toHaveCount(0);
+    expect(committed.size).toBe(1);
+  });
+
+  test("MR09: a refusal keeps the server's own explanation", async ({ page }) => {
+    const { dialog } = await inviteRoom(page, () => "422");
+    await inviteButton(dialog, "Đố vui đồng đội").click();
+    await expect(dialog.getByRole("alert")).toHaveText("Hoạt động này chưa mở cho hai bạn.");
+    await expect(dialog.getByText("Chưa xác nhận được lời mời")).toHaveCount(0);
+  });
+
+  test("MR10: only the invitation being sent says it is sending", async ({ page }) => {
+    const hold = gate();
+    const { dialog } = await inviteRoom(page, () => "ok", hold);
+    await inviteButton(dialog, "Câu hỏi làm quen").click();
+    await expect(inviteButton(dialog, "Câu hỏi làm quen")).toHaveText("Đang gửi lời mời…");
+    for (const title of ["Đố vui đồng đội", "Cùng tập trung"]) {
+      await expect(inviteButton(dialog, title)).toHaveText("Mời tham gia");
+      await expect(inviteButton(dialog, title)).toBeDisabled();
+    }
+    hold.open();
+    await expect(dialog).toHaveCount(0);
+  });
+});
+
+// ---- Info panel ARIA (MR11) ----
+test.describe("aria-controls relationships (MR11)", () => {
+  const trigger = (page: Page) => page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true });
+  const danglingControls = (page: Page) =>
+    page.evaluate(() => [...document.querySelectorAll("[aria-controls]")]
+      .flatMap((node) => node.getAttribute("aria-controls")!.split(/\s+/).filter((id) => !document.getElementById(id))));
+
+  test("MR11: a closed panel is not referenced, an open one is", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await mount(page);
+    await openChat(page, A);
+    await expect(trigger(page)).toHaveAttribute("aria-expanded", "false");
+    await expect(trigger(page)).not.toHaveAttribute("aria-controls", /.+/);
+    expect(await danglingControls(page)).toEqual([]);
+    await trigger(page).click();
+    await expect(trigger(page)).toHaveAttribute("aria-expanded", "true");
+    const id = await trigger(page).getAttribute("aria-controls");
+    expect(id).toBeTruthy();
+    await expect(page.locator(`[id="${id}"]`)).toBeVisible();
+    expect(await danglingControls(page)).toEqual([]);
+  });
+
+  test("MR11: on a phone the sheet is referenced while open and not once a child dialog replaces it", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mount(page);
+    await openChat(page, A);
+    await trigger(page).click();
+    const id = await trigger(page).getAttribute("aria-controls");
+    await expect(page.locator(`dialog[id="${id}"]`)).toBeVisible();
+    await page.getByRole("dialog", { name: "Thông tin cuộc trò chuyện" }).getByRole("button", { name: "Đổi tên", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "Đổi tên cuộc trò chuyện" })).toBeVisible();
+    await expect(trigger(page)).not.toHaveAttribute("aria-controls", /.+/);
+    expect(await danglingControls(page)).toEqual([]);
+  });
+
+  test("MR11: narrowing while a child dialog is open suspends the panel without leaving a dangling reference", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await mount(page);
+    await openChat(page, A);
+    await trigger(page).click();
+    await page.getByRole("region", { name: "Thông tin cuộc trò chuyện" }).getByRole("button", { name: "Đổi tên", exact: true }).click();
+    const field = page.getByRole("dialog", { name: "Đổi tên cuộc trò chuyện" }).getByRole("textbox", { name: "Tên cuộc trò chuyện" });
+    await expect(field).toBeVisible();
+    await expect(field).toBeFocused();
+    await expect(trigger(page)).toHaveAttribute("aria-controls", /.+/);
+    expect(await danglingControls(page)).toEqual([]);
+    await page.setViewportSize({ width: 900, height: 900 });
+    await expect(trigger(page)).not.toHaveAttribute("aria-controls", /.+/);
+    await expect(trigger(page)).toHaveAttribute("aria-expanded", "true");
+    await expect(field).toBeFocused();
+    expect(await danglingControls(page)).toEqual([]);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(trigger(page)).toHaveAttribute("aria-controls", /.+/);
+    expect(await danglingControls(page)).toEqual([]);
+  });
+
+  test("MR11: Escape still closes the open panel and returns focus to its trigger", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await mount(page);
+    await openChat(page, A);
+    await trigger(page).click();
+    await page.keyboard.press("Escape");
+    await expect(trigger(page)).toHaveAttribute("aria-expanded", "false");
+    await expect(trigger(page)).toBeFocused();
+    await expect(trigger(page)).not.toHaveAttribute("aria-controls", /.+/);
+  });
+
+  test("MR11: every tab in the discovery tablist points at a panel that exists", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await app(page, baseSession);
+    await page.goto("/#/connect");
+    await expect(page.getByRole("tablist", { name: "Tìm bạn" })).toBeVisible();
+    expect(await danglingControls(page)).toEqual([]);
+    const tabs = page.getByRole("tab");
+    const count = await tabs.count();
+    expect(count).toBeGreaterThan(1);
+    for (let index = 0; index < count; index += 1) {
+      await tabs.nth(index).click();
+      await expect(tabs.nth(index)).toHaveAttribute("aria-selected", "true");
+      expect(await danglingControls(page)).toEqual([]);
+    }
+  });
+});

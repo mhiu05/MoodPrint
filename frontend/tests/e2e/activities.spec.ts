@@ -375,7 +375,7 @@ test("a failed first invitation stays visible in the dialog and retrying keeps t
   await dialog.getByLabel("Số lượt", { exact: true }).selectOption("2");
   const invite = dialog.getByRole("button", { name: "Mời tham gia Cùng tập trung", exact: true });
   await invite.click();
-  await expect(dialog.getByRole("alert")).toContainText("Chưa gửi được lời mời. Lựa chọn của bạn vẫn được giữ.");
+  await expect(dialog.getByRole("alert")).toContainText("Chưa xác nhận được lời mời. Lựa chọn của bạn vẫn được giữ.");
   await expect(dialog).toBeVisible();
   await expect(dialog.getByLabel("Nhịp", { exact: true })).toHaveValue("15,3");
   await expect(dialog.getByLabel("Số lượt", { exact: true })).toHaveValue("2");

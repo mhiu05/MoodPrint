@@ -45,6 +45,16 @@ export type ConversationInfoProps = {
   onNew: () => void;
 };
 
+/** Whether the panel is in the DOM: open, and not suspended behind a child dialog on a compact layout. */
+function panelMounted(open: boolean, suspended: boolean | undefined, desktop: boolean) {
+  return open && !(suspended && !desktop);
+}
+
+/** For the trigger's aria-controls, which may only name a panel that is actually mounted. */
+export function useInfoPanelMounted(open: boolean, suspended: boolean | undefined) {
+  return panelMounted(open, suspended, useMedia(DESKTOP));
+}
+
 /**
  * Secondary conversation details and actions, outside the transcript so opening
  * it never resizes or scrolls the log. Desktop (≥1100px): modeless overlay, no
@@ -60,7 +70,8 @@ export function ConversationInfo(props: ConversationInfoProps) {
     if (!props.open) setOpenedMode(null);
     else setOpenedMode((value) => value ?? mode);
   }, [props.open, mode]);
-  if (!props.open || (props.suspended && !desktop)) return null;
+  // One media subscription decides both this and the layout below: two could disagree for a frame.
+  if (!panelMounted(props.open, props.suspended, desktop)) return null;
   const animate = openedMode === null || openedMode === mode;
   return desktop ? (
     <ModelessPanel {...props} animate={animate} />

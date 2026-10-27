@@ -33,10 +33,14 @@ export function ActivityEntryButton({
   );
 }
 
-/** A server/network failure keeps the choice; a refused request explains itself. */
+/**
+ * A refused request (4xx) explains itself. A 5xx or a lost connection is ambiguous: the
+ * server may have created the invitation, so it is "unconfirmed", never "not sent". The
+ * choice is kept and the retry reuses the same idempotency key.
+ */
 function inviteFailure(error: unknown) {
   if (error instanceof ApiError && error.status < 500) return errorMessage(error);
-  return "Chưa gửi được lời mời. Lựa chọn của bạn vẫn được giữ. Bạn hãy thử lại.";
+  return "Chưa xác nhận được lời mời. Lựa chọn của bạn vẫn được giữ. Bạn hãy thử lại.";
 }
 
 export function ActivityCatalog({
@@ -47,6 +51,7 @@ export function ActivityCatalog({
   current,
   cooldown,
   busy,
+  pendingInvite,
   onInvite,
   onClose,
 }: {
@@ -57,6 +62,8 @@ export function ActivityCatalog({
   current: Session | null;
   cooldown: Partial<Record<Kind, number>>;
   busy: boolean;
+  /** The kind whose invitation is being sent; any other pending operation is not an invite. */
+  pendingInvite?: Kind;
   onInvite: (kind: Kind, options?: Record<string, unknown>) => void;
   onClose: () => void;
 }) {
@@ -128,7 +135,7 @@ export function ActivityCatalog({
                   )
                 }
               >
-                {busy ? "Đang gửi lời mời…" : "Mời tham gia"}
+                {busy && pendingInvite === definition.kind ? "Đang gửi lời mời…" : "Mời tham gia"}
               </Button>
               {!allowed && !isOpen(current) && (
                 <p className={cx.footnote}>Bạn có thể gửi lại lời mời cho hoạt động này sau ít phút.</p>

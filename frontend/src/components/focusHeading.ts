@@ -19,4 +19,3 @@ export function focusRouteHeading(): boolean {
   target.focus({ preventScroll: true });
   return true;
 }
-

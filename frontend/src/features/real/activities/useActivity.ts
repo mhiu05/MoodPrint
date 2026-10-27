@@ -27,6 +27,8 @@ export function useActivity(
   const [error, setError] = useState<unknown>();
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  // Which kind's invitation is in flight, so only that choice says it is sending.
+  const [pendingInvite, setPendingInvite] = useState<Kind>();
   const [clock, setClock] = useState<Clock>(() => createClock(new Date().toISOString()));
   const [cooldown, setCooldown] = useState<Partial<Record<Kind, number>>>({});
   const loading = useRef(false);
@@ -128,8 +130,9 @@ export function useActivity(
   };
 
   const invite = async (kind: Kind, options?: Record<string, unknown>) => {
-    if (!connectionId) return false;
+    if (!connectionId || busy) return false;
     setInviteError(undefined);
+    setPendingInvite(kind);
     try {
       const result = await send<Session>(`/connections/${connectionId}/activities`, {
         kind,
@@ -147,6 +150,8 @@ export function useActivity(
         setError(undefined);
       }
       return false;
+    } finally {
+      setPendingInvite(undefined);
     }
   };
 
@@ -173,6 +178,7 @@ export function useActivity(
     clock,
     cooldown,
     busy,
+    pendingInvite,
     error,
     notice,
     setNotice,

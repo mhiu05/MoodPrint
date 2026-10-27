@@ -158,7 +158,7 @@ export function Discovery() {
             type="button"
             role="tab"
             id={`discovery-tab-${key}`}
-            aria-controls={`discovery-panel-${key}`}
+            aria-controls={tab === key ? `discovery-panel-${key}` : undefined}
             aria-selected={tab === key}
             tabIndex={tab === key ? 0 : -1}
             onClick={() => select(key)}

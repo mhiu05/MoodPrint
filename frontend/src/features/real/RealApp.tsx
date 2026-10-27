@@ -81,7 +81,7 @@ import { OwnIdentity } from "./Safety";
 import { DataControls } from "./Privacy";
 import { focusRouteHeading, useRouteFocus } from "./useRouteFocus";
 import { AIActivityStatus } from "./AIActivityStatus";
-import { ConversationInfo } from "./ConversationInfo";
+import { ConversationInfo, useInfoPanelMounted } from "./ConversationInfo";
 import { insertAtSelection } from "./draftInsert";
 import { deriveAIActivity, type AIActivityPhase } from "./aiActivityView";
 import { AIDataProvider, AIDataControls, ConversationHistory, useAIData, downloadConversation, type SavedConversation, type SavedConversationHeader } from "./AIData";
@@ -704,6 +704,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const infoId = useId();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [newConfirmOpen, setNewConfirmOpen] = useState(false);
+  // The trigger may only reference a panel that is actually mounted.
+  const infoMounted = useInfoPanelMounted(infoOpen, historyOpen || renameOpen || deleteOpen || newConfirmOpen);
   // "Dừng và mở mới" waits for the run's real terminal outcome before switching.
   const pendingNew = useRef(false);
   const [awaitingNew, setAwaitingNew] = useState(false);
@@ -1330,7 +1332,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           className="icon-button"
           aria-label="Thông tin cuộc trò chuyện"
           aria-expanded={infoOpen}
-          aria-controls={infoId}
+          aria-controls={infoMounted ? infoId : undefined}
           onClick={() => (infoOpen ? closeInfo(true) : setInfoOpen(true))}
         >
           <Info size={21} />

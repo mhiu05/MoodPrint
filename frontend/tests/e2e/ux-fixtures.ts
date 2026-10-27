@@ -64,4 +64,3 @@ export async function app(page: Page, session: unknown, routes: Routes = {}) {
     return route.fulfill({ status: 404, json: { error: { code: "NOT_FOUND", message: "Missing fixture" } } });
   });
 }
-
