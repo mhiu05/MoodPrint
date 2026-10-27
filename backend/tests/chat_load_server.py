@@ -48,7 +48,9 @@ from app.core.config import Settings
 from app.core.security import digest
 from app.infrastructure.database.models import AuthSession, Base, Consent, Memory, User, now
 from app.main import create_app
+from app.modules.guests import models as guest_models  # noqa: F401 -- register before reset
 from tests.fakes import completed_response, message_output
+from tests.guest_schema import install_guest_guards
 
 COUNTERS = {
     "sdk_calls": 0,
@@ -239,6 +241,7 @@ async def seed(count: int):
         )
         await connection.run_sync(Base.metadata.drop_all)
         await connection.run_sync(Base.metadata.create_all)
+        await install_guest_guards(connection)
         await connection.execute(text("create schema if not exists auth"))
         await connection.execute(
             text(

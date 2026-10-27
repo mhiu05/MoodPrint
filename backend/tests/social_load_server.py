@@ -40,9 +40,11 @@ from app.ai import models as chat_models  # noqa: F401
 from app.core.config import Settings
 from app.infrastructure.database.models import AuthSession, Base, Consent, User
 from app.main import create_app
+from app.modules.guests import models as guest_models  # noqa: F401
 from app.modules.moderation import models as safety_models  # noqa: F401
 from app.modules.social import models as social_models  # noqa: F401
 from app.modules.users import models as lifecycle_models  # noqa: F401
+from tests.guest_schema import install_guest_guards
 
 USERS = int(os.environ.get("MOODPRINT_LOAD_USERS", "50"))
 PORT = int(os.environ.get("MOODPRINT_LOAD_PORT", "8005"))
@@ -107,6 +109,7 @@ async def seed():
         )
         await connection.run_sync(Base.metadata.drop_all)
         await connection.run_sync(Base.metadata.create_all)
+        await install_guest_guards(connection)
         await connection.execute(text("create schema if not exists auth"))
         await connection.execute(
             text(

@@ -67,9 +67,11 @@ async def database():
     from app.ai import models as chat_models  # noqa: F401
     from app.infrastructure.database.models import Base
     from app.modules.activities import models as activity_models  # noqa: F401
+    from app.modules.guests import models as guest_models  # noqa: F401
     from app.modules.moderation import models as safety_models  # noqa: F401
     from app.modules.social import models  # noqa: F401 -- register every table before reset
     from app.modules.users import models as lifecycle_models  # noqa: F401
+    from tests.guest_schema import install_guest_guards
 
     engine = create_async_engine(url, connect_args={"prepare_threshold": None})
     async with engine.begin() as conn:
@@ -82,6 +84,7 @@ async def database():
         await conn.execute(text("create extension if not exists vector with schema extensions"))
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
+        await install_guest_guards(conn)
         await conn.execute(text("create schema if not exists auth"))
         await conn.execute(
             text(

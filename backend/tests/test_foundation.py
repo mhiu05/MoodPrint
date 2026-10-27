@@ -22,7 +22,7 @@ def test_ready_revisions_cover_the_reviewed_migration_window():
     from app.core.revisions import READY_REVISIONS
 
     assert READY_REVISIONS == (
-        "0015_context_privacy",
+        "0016_guest_foundation",
     )
 
 
@@ -34,8 +34,9 @@ def test_ready_revisions_cover_the_reviewed_migration_window():
         ("0012_matching_v2", 503),
         ("0013_shared_activities", 503),
         ("0014_moderation", 503),
-        ("0015_context_privacy", 200),
-        ("0015_unreviewed", 503),
+        ("0015_context_privacy", 503),
+        ("0016_guest_foundation", 200),
+        ("0016_unreviewed", 503),
     ],
 )
 async def test_ready_supports_expand_migration_window_and_rejects_unknown(

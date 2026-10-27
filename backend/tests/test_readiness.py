@@ -14,8 +14,9 @@ pytestmark = pytest.mark.postgres
         ("0012_matching_v2", 503),
         ("0013_shared_activities", 503),
         ("0014_moderation", 503),
-        ("0015_context_privacy", 200),
-        ("0015_unreviewed", 503),
+        ("0015_context_privacy", 503),
+        ("0016_guest_foundation", 200),
+        ("0016_unreviewed", 503),
         ("9999_unknown", 503),
     ],
 )

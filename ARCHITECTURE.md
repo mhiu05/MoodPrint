@@ -141,7 +141,7 @@ Identity field và reveal grant là dữ liệu riêng: người dùng chủ đ�
 
 Schema private `moodprint` ngoài Supabase Data API. Authorization hiện tại dựa backend ownership/purpose/pair gates và runtime role tối thiểu; không tuyên bố đã có bộ RLS end-user cho schema này. Role migration tách runtime. ORM đặt `hide_parameters=True`, psycopg `prepare_threshold=None`.
 
-Head hiện tại `0015_context_privacy`; readiness chỉ chấp nhận giá trị trong `READY_REVISIONS` và yêu cầu provider-session helper. Không tự migration khi startup. Local Alembic runner từ chối remote host; hosted DDL đi qua SQL review/approval riêng. [Runbook migration](docs/supabase/migrations.md) giải thích database disposable và hosted workflow.
+Head hiện tại `0016_guest_foundation`; readiness chỉ chấp nhận giá trị trong `READY_REVISIONS` và yêu cầu provider-session helper. Không tự migration khi startup. Local Alembic runner từ chối remote host; hosted DDL đi qua SQL review/approval riêng. [Runbook migration](docs/supabase/migrations.md) giải thích database disposable và hosted workflow.
 
 Topology được hỗ trợ là **một backend worker/một replica**: active runs, stream slots, limits và temporary context có state trong process. PostgreSQL locks không biến các state RAM đó thành shared state. Muốn scale cần shared ephemeral state, fencing, revocation và kiểm thử mới.
 
