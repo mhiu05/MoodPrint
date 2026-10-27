@@ -41,7 +41,6 @@ import {
   Button,
   cx,
   Dialog,
-  Motion,
   StatePanel,
   Typing,
 } from "../../components/UI";
@@ -451,8 +450,7 @@ function Shell() {
           ) : null}
           <OfflineBanner />
           <SessionNotices />
-          <Motion motionKey={location.pathname}>
-            <Routes>
+          <Routes>
               {session.staff && (
                 <Route path="/admin/reports" element={<Moderation />} />
               )}
@@ -469,8 +467,7 @@ function Shell() {
                 element={<HumanChat key={location.pathname} />}
               />
               <Route path="*" element={<Navigate replace to="/assistants" />} />
-            </Routes>
-          </Motion>
+          </Routes>
         </main>
       </div>
     </>

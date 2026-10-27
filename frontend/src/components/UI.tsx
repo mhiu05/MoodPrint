@@ -60,15 +60,17 @@ export function Dialog({
     id = useId();
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
+  // M06: the dialog only owns its transform; text stays opaque and focus,
+  // showModal and Escape never wait for the tween.
   useGSAP(
     () => {
       const media = gsap.matchMedia();
       media.add("(prefers-reduced-motion: no-preference)", () => {
         gsap.from(ref.current, {
-          y: 14,
+          y: 8,
           duration: 0.22,
           ease: "power2.out",
-          clearProps: "all",
+          clearProps: "transform",
         });
       });
       return () => media.revert();
@@ -127,44 +129,6 @@ export function Dialog({
       </div>
       {children}
     </dialog>
-  );
-}
-export function Motion({
-  children,
-  motionKey,
-  kind = "page",
-  className = "",
-}: {
-  children: ReactNode;
-  motionKey: string | number;
-  kind?: "page" | "mood" | "cards" | "success" | "activity";
-  className?: string;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  useGSAP(
-    () => {
-      const mm = gsap.matchMedia();
-      mm.add("(prefers-reduced-motion: no-preference)", () => {
-        const targets = kind === "cards" ? ref.current!.children : ref.current;
-        gsap.from(targets, {
-          opacity: kind === "mood" ? 1 : 0,
-          y: ["page", "cards"].includes(kind) ? 6 : 0,
-          x: kind === "activity" ? 6 : 0,
-          scale: kind === "mood" ? 0.97 : kind === "success" ? 0.98 : 1,
-          duration: kind === "mood" ? 0.14 : kind === "page" ? 0.18 : 0.22,
-          stagger: kind === "cards" ? 0.035 : 0,
-          ease: "power1.out",
-          clearProps: "all",
-        });
-      });
-      return () => mm.revert();
-    },
-    { scope: ref, dependencies: [motionKey], revertOnUpdate: true },
-  );
-  return (
-    <div ref={ref} className={className}>
-      {children}
-    </div>
   );
 }
 export function Typing() {
