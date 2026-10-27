@@ -19,6 +19,12 @@ const STATUS: Record<string, string> = {
   in_review: "Đang xem xét",
   resolved: "Đã xử lý",
 };
+const RESOLUTION: Record<string, string> = {
+  dismissed: "Không vi phạm",
+  warned: "Đã cảnh báo",
+  restricted: "Đã hạn chế kết nối",
+  suspended: "Đã tạm khóa tài khoản",
+};
 
 /** Staff-only queue (DR-11). The server re-checks the role on every request. */
 export function Moderation() {
@@ -88,7 +94,7 @@ export function Moderation() {
           <p className={cx.footnote}>
             Nhận lúc {new Date(row.createdAt).toLocaleString("vi-VN")} · Đối tượng{" "}
             {row.subjectRef.slice(0, 10)}… · {row.priorActions} quyết định trước đó
-            {row.resolution ? ` · Kết quả: ${row.resolution}` : ""}
+            {row.resolution ? ` · Kết quả: ${RESOLUTION[row.resolution] ?? "Đã xử lý"}` : ""}
           </p>
           {row.evidence.length === 0 ? (
             <p>Không có bằng chứng được chọn.</p>

@@ -432,13 +432,14 @@ export function ConnectionSafety({
           onClose={() => !busy && setBlocking(false)}
         >
           <p>
-            Hai người sẽ không thể tiếp tục xem hoặc gửi tin trong kết nối này.
-            Bỏ chặn sau này không khôi phục cuộc trò chuyện hay quyền chia sẻ
-            cũ.
+            Hai bạn sẽ không thể xem hoặc gửi tiếp tin nhắn trong kết nối này.
+            Việc chặn không thể hoàn tác trong ứng dụng.
           </p>
+          <p>Chặn không tự gửi báo cáo. Bạn vẫn có thể báo cáo sau khi chặn.</p>
           <div className={cx.actions}>
             <Button
               variant="secondary"
+              data-cancel
               disabled={busy}
               onClick={() => setBlocking(false)}
             >

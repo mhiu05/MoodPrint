@@ -1152,9 +1152,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         />
       </div>
       {session.features.aiStatus === "test_provider" ? <p className={cx.footnote} role="note">Môi trường kiểm thử · phản hồi từ model giả, không phải OpenAI.</p> : null}
-      {!canSend ? <div className="chat-readonly" role="status"><p>{readOnlyMessage}</p><Link to="/settings">Xem quyền dữ liệu AI</Link></div> : <div className="chat-bottom">
+      {!canSend ? <div className="chat-readonly" role="status"><p>{readOnlyMessage}</p>{allowed && preferences && !historyWritable && preferences.historyAvailable ? <Link to="/settings">Mở cài đặt lưu lịch sử</Link> : null}</div> : <div className="chat-bottom">
         <p className={cx.footnote}>Tin nhắn chỉ được gửi cho nhà cung cấp AI khi bạn chọn Gửi. Lịch sử máy chủ và ghi nhớ lâu dài là các lựa chọn riêng.</p>
-        {!session.consents.AI.enabled ? <p role="note">Lần gửi đầu tiên sẽ ghi nhận quyền xử lý tin nhắn AI. Bạn có thể rút quyền trong Quyền riêng tư.</p> : null}
+        {!session.consents.AI.enabled ? <p role="note">Khi chọn Gửi, bạn đồng ý để dịch vụ AI xử lý tin nhắn này. Bạn có thể rút quyền trong Quyền riêng tư.</p> : null}
         <details><summary>Lưu lịch sử trò chuyện</summary><AIDataControls historyOnly /></details>
         {bot.botId === "nhip" ? (
           <>

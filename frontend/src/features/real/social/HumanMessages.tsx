@@ -36,8 +36,12 @@ export function HumanMessages() {
     );
   if (!session.consents.MATCH.enabled)
     return (
-      <StatePanel title="Bạn đang tắt quyền tìm bạn">
-        <Link to="/settings">Xem quyền tìm bạn</Link>
+      <StatePanel
+        title="Bạn đang tắt quyền tìm bạn"
+        action={<Link to="/connect?tab=profile">Mở hồ sơ tìm bạn</Link>}
+      >
+        Để trò chuyện với người thật trở lại, xem lại hồ sơ tìm bạn rồi chọn
+        Hiển thị hồ sơ. Hồ sơ chỉ hiện với người khác sau bước xem trước đó.
       </StatePanel>
     );
   return (

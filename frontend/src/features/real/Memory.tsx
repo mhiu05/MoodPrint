@@ -77,9 +77,10 @@ function ProposalReview({
           ) : null}
           {!allowed ? (
             <p>
-              Để duyệt đề xuất, hãy gửi một tin nhắn AI trước hoặc bật quyền AI trong{" "}
-              trong <Link to="/settings">quyền riêng tư</Link>. Bạn vẫn có thể
-              chọn không lưu.
+              Quyền xử lý AI đang tắt nên chưa thể duyệt đề xuất này. Bạn vẫn có
+              thể chọn không lưu. Để dùng trợ lý trở lại, mở cuộc trò chuyện và
+              chọn Gửi khi bạn muốn chia sẻ tin nhắn.{" "}
+              <Link to="/assistants">Mở trợ lý</Link>
             </p>
           ) : null}
           {proposal.purpose === "memory" ? <p>Chọn “Duyệt và lưu” sẽ cho phép trợ lý dùng các ghi nhớ bạn đã duyệt trong những lần trò chuyện sau. Bạn có thể rút quyền và xóa từng ghi nhớ.</p> : null}
@@ -260,10 +261,17 @@ export function ApprovedMemories() {
       <Link to="/profile">Về hồ sơ riêng</Link>
       {notice && <p role="status">{notice}</p>}
       <ErrorNotice error={memories.error} retry={memories.refresh} />
-      {!session.consents.AI.enabled || !session.consents.MEM.enabled ? (
+      {!session.consents.AI.enabled ? (
+        <p>
+          Trợ lý hiện không dùng ghi nhớ vì quyền xử lý AI đang tắt. Bạn vẫn có
+          thể sửa và xóa các mục đã lưu. Để dùng trợ lý trở lại, mở cuộc trò
+          chuyện và chọn Gửi khi bạn muốn chia sẻ tin nhắn.{" "}
+          <Link to="/assistants">Mở trợ lý</Link>
+        </p>
+      ) : !session.consents.MEM.enabled ? (
         <p>
           Trợ lý hiện không dùng ghi nhớ. Bạn vẫn có thể sửa và xóa các mục đã
-          lưu. <Link to="/settings">Xem quyền ghi nhớ</Link>
+          lưu. Trợ lý chỉ dùng lại ghi nhớ sau khi bạn duyệt một đề xuất mới.
         </p>
       ) : null}
       <ErrorNotice error={proposals.error} retry={proposals.refresh} />

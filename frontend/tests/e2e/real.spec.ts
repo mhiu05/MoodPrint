@@ -413,7 +413,7 @@ test("returning to the app rechecks consent and keeps chat accessible", async ({
   allowed = false;
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect(
-    page.getByText("Lần gửi đầu tiên sẽ ghi nhận quyền xử lý tin nhắn AI. Bạn có thể rút quyền trong Quyền riêng tư.", { exact: true }),
+    page.getByText("Khi chọn Gửi, bạn đồng ý để dịch vụ AI xử lý tin nhắn này. Bạn có thể rút quyền trong Quyền riêng tư.", { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("textbox", { name: "Tin nhắn cho Mây" }),

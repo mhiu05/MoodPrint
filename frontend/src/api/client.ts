@@ -19,7 +19,7 @@ function record(value: unknown): Record<string, unknown> {
 export function errorMessage(error: unknown): string {
   return error instanceof ApiError
     ? error.message
-    : "Chưa thể kết nối dịch vụ. Nội dung bạn nhập vẫn được giữ lại. Vui lòng thử lại.";
+    : "Chưa thể kết nối. Bạn hãy thử lại.";
 }
 
 /** Same-origin BFF transport. Auth credentials are never kept in browser storage. */
@@ -105,9 +105,10 @@ export class ApiClient {
         throw new ApiError(
           response.status,
           typeof detail.code === "string" ? detail.code : "API_ERROR",
+          // Without a server explanation the cause is unknown: never blame the input.
           typeof detail.message === "string"
             ? detail.message
-            : "Chưa hoàn tất thao tác. Vui lòng kiểm tra nội dung và thử lại.",
+            : "Chưa hoàn tất yêu cầu. Bạn hãy thử lại.",
           response.headers.get("Retry-After"),
         );
       }

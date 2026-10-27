@@ -31,7 +31,7 @@ async def _rows(db: AsyncSession, statement):
     rows = (await db.scalars(statement.limit(ROW_LIMIT + 1))).all()
     if len(rows) > ROW_LIMIT:
         raise DomainError(
-            503, "EXPORT_TOO_LARGE", "Phạm vi xuất quá lớn. Hãy yêu cầu hỗ trợ xuất dữ liệu."
+            503, "EXPORT_TOO_LARGE", "Dữ liệu quá lớn để tạo một bản sao. Ứng dụng chưa hỗ trợ chia nhỏ bản sao này."
         )
     return rows
 
