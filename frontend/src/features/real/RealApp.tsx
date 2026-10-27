@@ -713,6 +713,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const log = useRef<HTMLDivElement>(null),
     lifetime = useRef<AbortController | null>(null);
   const intent = useRef<{ text: string; scopeKey: string; clientMessageId: string } | null>(null);
+  const composer = useRef<HTMLTextAreaElement>(null);
+  const [draftNotice, setDraftNotice] = useState("");
   const submittedText = useRef<string | undefined>(undefined);
   const [shareMood, setShareMood] = useState(false);
   const [moodFrom, setMoodFrom] = useState("");
@@ -951,6 +953,25 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       if (!signal.aborted) setBusy(false);
     }
   }
+  /** A suggestion only edits the draft; sending stays an explicit choice. */
+  function insertStarter(text: string) {
+    const field = composer.current;
+    const start = field?.selectionStart ?? draft.length;
+    const end = field?.selectionEnd ?? draft.length;
+    const before = draft.slice(0, start), after = draft.slice(end);
+    const head = before && !/\s$/.test(before) ? `${before} ${text}` : `${before}${text}`;
+    const next = head + (after && !/^\s/.test(after) ? ` ${after}` : after);
+    if (next.length > 500) {
+      setDraftNotice("Gợi ý này sẽ làm tin nhắn dài hơn 500 ký tự. Hãy rút gọn trước khi thêm.");
+      return;
+    }
+    setDraft(next);
+    setDraftNotice("Đã thêm gợi ý vào ô nhắn.");
+    requestAnimationFrame(() => {
+      field?.focus();
+      field?.setSelectionRange(head.length, head.length);
+    });
+  }
   async function cancel() {
     if (!run) return;
     try {
@@ -1173,17 +1194,16 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         <div className="quick-replies" aria-label="Gợi ý trò chuyện">
           {bot.starters.map((text) => (
             <button
+              type="button"
               key={text}
-              disabled={busy || loading || !ready || moodInvalid}
-              onClick={() => {
-                setDraft(text);
-                void send(text);
-              }}
+              disabled={loading || !ready}
+              onClick={() => insertStarter(text)}
             >
               {text}
             </button>
           ))}
         </div>
+        {draftNotice ? <p className={cx.footnote} role="status">{draftNotice}</p> : null}
         <QuotaHint />
         <form
           className="bot-composer"
@@ -1194,10 +1214,11 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         >
           <textarea
             aria-label={`Tin nhắn cho ${bot.name}`}
+            ref={composer}
             value={draft}
             maxLength={500}
             rows={1}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={(event) => { setDraft(event.target.value); setDraftNotice(""); }}
             placeholder={`Nhắn cho ${bot.name}…`}
             onKeyDown={(event) => {
               if (

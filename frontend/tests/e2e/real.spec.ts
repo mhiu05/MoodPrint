@@ -829,3 +829,82 @@ test("validated AI cards navigate to existing tools without claiming a saved act
   ).toHaveAttribute("href", "#/connect");
   await expect(page.getByText("Đã lưu", { exact: true })).toHaveCount(0);
 });
+
+async function starterFixture(page: Page, aiEnabled: boolean) {
+  await api(page);
+  const writes: string[] = [];
+  await page.route("**/api/v1/session", route => route.fulfill({ json: {
+    ...session, consents: { ...session.consents,
+      AI: { enabled: aiEnabled, version: 1, policyVersion: "v1" } },
+  } }));
+  page.on("request", request => {
+    if (request.method() !== "GET" && request.url().includes("/api/v1/")) writes.push(`${request.method()} ${new URL(request.url()).pathname}`);
+  });
+  await page.goto("/#/assistants/may");
+  const draft = page.getByRole("textbox", { name: "Tin nhắn cho Mây" });
+  await expect(draft).toBeVisible();
+  return { writes, draft };
+}
+
+test("AI starter prepares an editable draft without any consent or message write", async ({ page }) => {
+  const { writes, draft } = await starterFixture(page, false);
+  await page.getByRole("button", { name: "Hôm nay mình hơi mệt", exact: true }).click();
+  await expect(draft).toHaveValue("Hôm nay mình hơi mệt");
+  await expect(draft).toBeFocused();
+  await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toBeVisible();
+  await draft.press("End");
+  await draft.pressSequentially(" quá");
+  await expect(draft).toHaveValue("Hôm nay mình hơi mệt quá");
+  // Give any accidental side effect time to reach the network before asserting none happened.
+  await page.waitForTimeout(300);
+  expect(writes).toEqual([]);
+});
+
+test("a starter is inserted at the caret of a nonempty draft instead of replacing it", async ({ page }) => {
+  const { writes, draft } = await starterFixture(page, true);
+  await draft.fill("Chào Mây.");
+  await draft.press("End");
+  await page.getByRole("button", { name: "Hôm nay mình hơi mệt", exact: true }).click();
+  await expect(draft).toHaveValue("Chào Mây. Hôm nay mình hơi mệt");
+  await page.waitForTimeout(300);
+  expect(writes).toEqual([]);
+});
+
+test("a starter that would exceed 500 characters keeps the draft and asks to shorten it", async ({ page }) => {
+  const { writes, draft } = await starterFixture(page, true);
+  const long = "a".repeat(490);
+  await draft.fill(long);
+  await page.getByRole("button", { name: "Hôm nay mình hơi mệt", exact: true }).click();
+  await expect(draft).toHaveValue(long);
+  await expect(page.getByText("Gợi ý này sẽ làm tin nhắn dài hơn 500 ký tự. Hãy rút gọn trước khi thêm.", { exact: true })).toBeVisible();
+  expect(writes).toEqual([]);
+});
+
+test("only explicit Send submits: Shift+Enter, IME Enter and double activation create one intent", async ({ page }) => {
+  const { draft } = await starterFixture(page, true);
+  const posted: any[] = [];
+  let release: () => void = () => {};
+  const held = new Promise<void>(resolve => { release = resolve; });
+  await page.route(`**/api/v1/ai/conversations/${conversation.conversationId}/messages`, async route => {
+    posted.push(route.request().postDataJSON());
+    await held;
+    return route.fulfill({ status: 503, json: { error: { code: "UNAVAILABLE", message: "Chưa gửi được." } } });
+  });
+  await page.getByRole("button", { name: "Hôm nay mình hơi mệt", exact: true }).click();
+  await draft.press("Shift+Enter");
+  await draft.pressSequentially("dòng hai");
+  await expect(draft).toHaveValue("Hôm nay mình hơi mệt\ndòng hai");
+  await draft.evaluate((element) => element.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", isComposing: true, bubbles: true, cancelable: true })));
+  await page.waitForTimeout(200);
+  expect(posted).toHaveLength(0);
+  const send = page.getByRole("button", { name: "Gửi tin cho AI", exact: true });
+  await send.click();
+  await expect.poll(() => posted.length).toBe(1);
+  await draft.press("Enter");
+  await send.click({ force: true }).catch(() => undefined);
+  await page.waitForTimeout(200);
+  expect(posted).toHaveLength(1);
+  release();
+  await expect(page.getByRole("alert").filter({ hasText: "Chưa gửi được." })).toBeVisible();
+  await expect(draft).toHaveValue("Hôm nay mình hơi mệt\ndòng hai");
+});
