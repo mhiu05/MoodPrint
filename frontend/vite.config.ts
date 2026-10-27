@@ -4,6 +4,8 @@ export default defineConfig({
   plugins: [react()],
   // Absolute: index.html is also served for deep links such as /auth/callback.
   base: "/",
+  // Keep third-party license headers (GSAP's terms forbid removing its notice).
+  esbuild: { legalComments: "inline" },
   build: {
     // Keep scripts (the audio worklet) as same-origin files, allowed by script-src 'self'.
     assetsInlineLimit: (file) => (file.endsWith(".js") ? false : undefined),

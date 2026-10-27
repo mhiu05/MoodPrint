@@ -32,4 +32,4 @@ SOFTWARE.
 
 ## GSAP 3 and @gsap/react
 
-GSAP is distributed under the GreenSock standard "no charge" license, not MIT. Re-read the current terms at https://gsap.com/standard-license before each release; the full text could not be retrieved during this implementation (see docs/ux-redesign/implementation-progress.md).
+GSAP is distributed under the GreenSock standard "no charge" license, not MIT. Terms reviewed 2026-10-27 at https://gsap.com/standard-license (effective 2025-04-30, last modified 2025-05-30): free for use in websites and web apps including commercial use; prohibited for visual no-code animation builders competing with Webflow; proprietary notices must not be removed (the build keeps license comments). Re-read before each release.
