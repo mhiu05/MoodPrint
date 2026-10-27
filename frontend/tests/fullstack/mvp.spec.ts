@@ -363,8 +363,7 @@ test("Journey D: block keeps report-after-block possible, the peer's tab closes,
     one.getByRole("log").getByText("Tin nhắn cần báo cáo"),
   ).toBeVisible();
   await one
-    .locator("summary")
-    .filter({ hasText: "Chia sẻ và an toàn" })
+    .getByRole("button", { name: "Chia sẻ và an toàn" })
     .click();
   await one
     .getByRole("button", { name: "Chặn kết nối này", exact: true })
@@ -411,6 +410,7 @@ test("Journey D: block keeps report-after-block possible, the peer's tab closes,
   const ended = await connectByApi(c, 16, d, 17, "shared-interests");
   const three = await c.newPage();
   await three.goto(`/#/chat/${ended}`);
+  await three.getByRole("button", { name: "Chia sẻ và an toàn" }).click();
   const end = three.getByRole("button", {
     name: "Kết thúc kết nối",
     exact: true,
@@ -420,7 +420,7 @@ test("Journey D: block keeps report-after-block possible, the peer's tab closes,
     three.getByRole("dialog", { name: "Kết thúc kết nối này?" }),
   ).toBeVisible();
   await three.keyboard.press("Escape");
-  await expect(three.getByRole("dialog")).toHaveCount(0);
+  await expect(three.getByRole("dialog", { name: "Kết thúc kết nối này?" })).toHaveCount(0);
   await expect(end).toBeFocused();
   expect(
     (await call(d, 17, "GET", `/connections/${ended}/messages`)).status,

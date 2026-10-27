@@ -145,9 +145,9 @@ test("hosted Auth, age, consent, private data, SDK memory, social races, restart
     expect((await request(a, "GET", "/profiles/private-items")).some((x: any) => x.id === item.id)).toBe(true);
     expect((await request(a, "GET", "/memories")).some((x: any) => x.text === memoryText)).toBe(true);
     record("backendProcessRestartRetainsSessionsPrivateMemoryAndChat");
-    await two.locator("summary").filter({ hasText: "Chia sẻ và an toàn" }).click();
+    await two.getByRole("button", { name: "Chia sẻ và an toàn" }).click();
     await two.getByRole("button", { name: "Xin xem tên hiển thị", exact: true }).click();
-    await one.reload(); await one.locator("summary").filter({ hasText: "Chia sẻ và an toàn" }).click();
+    await one.reload(); await one.getByRole("button", { name: "Chia sẻ và an toàn" }).click();
     await one.getByRole("button", { name: "Đồng ý chia sẻ", exact: true }).click();
     await two.getByRole("button", { name: "Xem thông tin đã được chia sẻ", exact: true }).click();
     await expect(two.getByText(aliasText, { exact: true })).toBeVisible();

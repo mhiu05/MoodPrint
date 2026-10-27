@@ -6,7 +6,7 @@ import {
   type FormEvent,
 } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, ShieldCheck } from "lucide-react";
 import { Button, cx, Dialog } from "../../../components/UI";
 import type { components } from "../../../api/generated/schema";
 import { ApiError } from "../../../api/client";
@@ -43,6 +43,11 @@ export function HumanChat() {
   // Messages this user saw before they blocked or ended, kept only for a report.
   const [evidence, setEvidence] = useState<Message[]>();
   const [ending, setEnding] = useState(false);
+  const [safetyOpen, setSafetyOpen] = useState(false);
+  // Follow new messages only while the reader is at the newest one.
+  const [atBottom, setAtBottom] = useState(true);
+  const atBottomRef = useRef(true);
+  const [unseen, setUnseen] = useState(false);
   const intent = useRef<{ text: string; id: string } | undefined>(undefined),
     cursor = useRef("0"),
     lastRead = useRef("0");
@@ -122,7 +127,8 @@ export function HumanChat() {
   // message in view, so mark it read once the tab is visible for a second.
   useEffect(() => {
     const newest = messages.at(-1)?.seq;
-    if (!newest || closed || !visible) return;
+    // Only what is actually on screen counts as read.
+    if (!newest || closed || !visible || !atBottom) return;
     if (BigInt(newest) <= BigInt(lastRead.current)) return;
     const timer = window.setTimeout(() => {
       const previous = lastRead.current;
@@ -137,7 +143,7 @@ export function HumanChat() {
         });
     }, 1000);
     return () => window.clearTimeout(timer);
-  }, [messages, closed, visible, api, connectionId]);
+  }, [messages, closed, visible, atBottom, api, connectionId]);
   useEffect(() => {
     cursor.current = "0";
     lastRead.current = "0";
@@ -199,8 +205,23 @@ export function HumanChat() {
       .map((past) => ({ at: past.endedAt ?? past.createdAt, message: undefined, past })),
   ].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
   useEffect(() => {
-    log.current?.scrollTo({ top: log.current.scrollHeight });
+    const last = messages.at(-1);
+    if (!last) return;
+    if (atBottomRef.current || last.sender === "self") {
+      log.current?.scrollTo({ top: log.current.scrollHeight });
+    } else setUnseen(true);
+    // Only a change in message count matters; position is read from the ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages.length]);
+  function jumpToLatest() {
+    const element = log.current;
+    if (!element) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    element.scrollTo({ top: element.scrollHeight, behavior: reduced ? "auto" : "smooth" });
+    atBottomRef.current = true;
+    setAtBottom(true);
+    setUnseen(false);
+  }
   async function send(event: FormEvent) {
     event.preventDefault();
     if (!ready || busy || closed || !draft.trim() || !online) return;
@@ -255,6 +276,12 @@ export function HumanChat() {
           <ArrowLeft size={20} />
         </Link>
         <h1 tabIndex={-1}>{room?.alias || "Cuộc trò chuyện"}</h1>
+        {room && !closed ? (
+          <button type="button" className="header-action" onClick={() => setSafetyOpen(true)}>
+            <ShieldCheck size={18} aria-hidden="true" />
+            <span>Chia sẻ và an toàn</span>
+          </button>
+        ) : null}
       </header>
       <ErrorNotice
         error={error}
@@ -270,12 +297,20 @@ export function HumanChat() {
       {!closed && !ready && !error && (
         <p role="status">Đang tải cuộc trò chuyện…</p>
       )}
+      <div className="conversation-stage">
       <div
         className="conversation-log"
         ref={log}
         role="log"
         tabIndex={0}
         aria-label="Tin nhắn trong kết nối"
+        onScroll={() => {
+          const element = log.current!;
+          const bottom = element.scrollHeight - element.scrollTop - element.clientHeight < 90;
+          atBottomRef.current = bottom;
+          setAtBottom(bottom);
+          if (bottom) setUnseen(false);
+        }}
       >
         {ready && messages.length === 0 && (
           <div className="human-chat-welcome">
@@ -321,6 +356,8 @@ export function HumanChat() {
         {!closed && activity.session?.state === "invited" && activity.notice && (
           <p role="status">{activity.notice}</p>
         )}
+      </div>
+      {unseen && !atBottom ? <button type="button" className="jump-latest" onClick={jumpToLatest}>Về tin mới</button> : null}
       </div>
       {docked && (
         <ActivityDock
@@ -409,11 +446,23 @@ export function HumanChat() {
           }}
         />
       )}
-      {room && !closed && (
-        <Button variant="text" disabled={busy} onClick={() => setEnding(true)}>
-          Kết thúc kết nối
-        </Button>
-      )}
+      {safetyOpen && room && connectionId && !closed ? (
+        <Dialog title="Chia sẻ và an toàn" onClose={() => setSafetyOpen(false)}>
+          <ConnectionSafety
+            connectionId={connectionId}
+            messages={messages}
+            onBlocked={() => leave("Bạn đã chặn kết nối này.")}
+            panel
+          />
+          <section className="real-section">
+            <h3>Kết thúc kết nối</h3>
+            <p>Cả hai sẽ không thể gửi thêm tin nhắn, và hai bạn sẽ không được gợi ý lại cho nhau trong 30 ngày.</p>
+            <Button variant="secondary" disabled={busy} onClick={() => setEnding(true)}>
+              Kết thúc kết nối
+            </Button>
+          </section>
+        </Dialog>
+      ) : null}
       {ending && room && (
         <Dialog
           title="Kết thúc kết nối này?"
@@ -456,13 +505,7 @@ export function HumanChat() {
           </div>
         </Dialog>
       )}
-      {room && connectionId && !closed && (
-        <ConnectionSafety
-          connectionId={connectionId}
-          messages={messages}
-          onBlocked={() => leave("Bạn đã chặn kết nối này.")}
-        />
-      )}
+
       {closed && evidence && connectionId && (
         <ConnectionSafety
           connectionId={connectionId}

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { app, baseSession, sessionWith } from "./ux-fixtures";
+import { app, baseSession, room, sessionWith } from "./ux-fixtures";
 
 const pendingProposal = {
   id: "p-1",
@@ -46,7 +46,7 @@ test.describe("truthful blocking (F04)", () => {
     });
     await app(page, sessionWith({ AI: false }));
     await page.goto("/#/chat/room-1");
-    await page.getByText("Chia sẻ và an toàn", { exact: true }).click();
+    await page.getByRole("button", { name: "Chia sẻ và an toàn" }).click();
     await page.getByRole("button", { name: "Chặn kết nối này", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Chặn kết nối này?" });
     await expect(dialog).toContainText("Hai bạn sẽ không thể xem hoặc gửi tiếp tin nhắn trong kết nối này.");
@@ -715,5 +715,57 @@ test.describe("privacy and memory comprehension", () => {
     await page.keyboard.press("Escape");
     await page.getByRole("button", { name: "Xóa tài khoản", exact: true }).click();
     await expect(page.getByRole("button", { name: "Giữ tài khoản", exact: true })).toBeFocused();
+  });
+});
+
+// ---- Human chat continuity and safety access (V-CHAT-SCROLL / V-SAFETY) ----
+test.describe("human chat continuity and safety", () => {
+  const message = (seq: number, sender: "self" | "peer", text: string) => ({
+    id: `msg-${seq}`, connectionId: room.id, clientMessageId: `c-${seq}`, seq: String(seq), sender, text, acceptedAt: new Date(Date.UTC(2026, 9, 23, 8, 0, seq)).toISOString(),
+  });
+
+  test("a peer message arriving while reading older messages keeps the place and is not marked read", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 700 });
+    const messages = Array.from({ length: 40 }, (_, index) => message(index + 1, index % 2 ? "peer" : "self", `Tin số ${index + 1}. `.repeat(5)));
+    const reads: number[] = [];
+    await app(page, sessionWith({ AI: false }), {
+      [`/connections/${room.id}/messages`]: (request) => {
+        const after = BigInt(new URL(request.url()).searchParams.get("afterSeq") ?? "0");
+        return { json: { messages: messages.filter((item) => BigInt(item.seq) > after), highWaterSeq: messages.at(-1)!.seq } };
+      },
+    });
+    await page.route(`**/api/v1/connections/${room.id}/read`, (route) => { reads.push(Number(route.request().postDataJSON().seq)); return route.fulfill({ json: {} }); });
+    await page.goto(`/#/chat/${room.id}`);
+    const log = page.getByRole("log");
+    await expect(log.getByText(/Tin số 40\./)).toBeVisible();
+    await log.evaluate((element) => { element.scrollTop = 300; element.dispatchEvent(new Event("scroll")); });
+    const top = await log.evaluate((element) => element.scrollTop);
+    const before = reads.length ? Math.max(...reads) : 0;
+    messages.push(message(41, "peer", "Một tin mới từ bạn kia."));
+    await expect(page.getByRole("button", { name: "Về tin mới" })).toBeVisible({ timeout: 10_000 });
+    expect(await log.evaluate((element) => element.scrollTop)).toBe(top);
+    await page.waitForTimeout(1300);
+    expect(reads.filter((seq) => seq >= 41)).toEqual([]);
+    expect(before).toBeLessThan(41);
+    await page.getByRole("button", { name: "Về tin mới" }).click();
+    await expect.poll(() => reads.includes(41), { timeout: 5000 }).toBe(true);
+  });
+
+  test("safety actions open from the conversation header and stay away from Send", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await app(page, sessionWith({ AI: false }));
+    await page.goto(`/#/chat/${room.id}`);
+    await expect(page.getByRole("textbox", { name: "Tin nhắn cho bạn kết nối" })).toBeEnabled();
+    const composer = page.locator("form.bot-composer");
+    await expect(composer.getByRole("button", { name: /Kết thúc|Chặn/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Kết thúc kết nối" })).toHaveCount(0);
+    const open = page.locator(".conversation-header").getByRole("button", { name: "Chia sẻ và an toàn" });
+    await open.click();
+    const dialog = page.getByRole("dialog", { name: "Chia sẻ và an toàn" });
+    for (const name of ["Gửi báo cáo", "Chặn kết nối này", "Kết thúc kết nối"])
+      await expect(dialog.getByRole("button", { name, exact: true })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(open).toBeFocused();
   });
 });

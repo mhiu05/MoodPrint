@@ -89,12 +89,15 @@ export function ConnectionSafety({
   messages,
   onBlocked,
   reportOnly = false,
+  panel = false,
 }: {
   connectionId: string;
   messages: Schema["MessageView"][];
   onBlocked: () => void;
   /** After the room closed: identity sharing is gone, but reporting stays possible. */
   reportOnly?: boolean;
+  /** Rendered inside the header's safety dialog instead of a disclosure. */
+  panel?: boolean;
 }) {
   const { api } = useSession();
   const reveals = useResource<Schema["RevealView"][]>(
@@ -174,11 +177,14 @@ export function ConnectionSafety({
       setBusy(false);
     }
   }
+  const Wrapper = panel ? "div" : "details";
   return (
-    <details className="real-safety" open={reportOnly || undefined}>
-      <summary>
-        {reportOnly ? "Báo cáo nội dung" : "Chia sẻ và an toàn"}
-      </summary>
+    <Wrapper className={panel ? "real-safety-panel" : "real-safety"} open={!panel && reportOnly ? true : undefined}>
+      {panel ? null : (
+        <summary>
+          {reportOnly ? "Báo cáo nội dung" : "Chia sẻ và an toàn"}
+        </summary>
+      )}
       {reportOnly ? (
         <>
           <ErrorNotice error={error} />
@@ -464,6 +470,6 @@ export function ConnectionSafety({
           </div>
         </Dialog>
       )}
-    </details>
+    </Wrapper>
   );
 }

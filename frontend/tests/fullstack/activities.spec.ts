@@ -163,7 +163,7 @@ test("blocking mid-activity closes the peer's dock and the room", async ({ brows
     await invite(pageA, title);
     await accept(pageB, title);
     await expect(dock(pageB, title)).toContainText("Câu 1/3");
-    await pageA.getByText("Chia sẻ và an toàn").click();
+    await pageA.getByRole("button", { name: "Chia sẻ và an toàn" }).click();
     await pageA.getByRole("button", { name: "Chặn kết nối này" }).click();
     await pageA
       .getByRole("dialog", { name: "Chặn kết nối này?" })

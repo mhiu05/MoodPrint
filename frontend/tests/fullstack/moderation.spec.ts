@@ -20,7 +20,7 @@ test("a report reaches the staff queue and a restriction removes the subject fro
     expect(denied.status).toBe(403);
     expect(denied.body.error.code).toBe("STAFF_REQUIRED");
 
-    await pageA.getByText("Chia sẻ và an toàn").click();
+    await pageA.getByRole("button", { name: "Chia sẻ và an toàn" }).click();
     await pageA.getByLabel("Lý do báo cáo").fill("Quấy rối");
     await pageA.getByRole("checkbox", { name: evidence }).check();
     await pageA.getByRole("button", { name: "Gửi báo cáo" }).click();

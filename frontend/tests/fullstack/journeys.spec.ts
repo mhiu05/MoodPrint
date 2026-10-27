@@ -394,15 +394,13 @@ test("only the identity owner grants reveal, revocation removes access, and repo
       .getByText("Một tin nhắn để chọn báo cáo", { exact: true }),
   ).toBeVisible();
   await two
-    .locator("summary")
-    .filter({ hasText: "Chia sẻ và an toàn" })
+    .getByRole("button", { name: "Chia sẻ và an toàn" })
     .click();
   await two
     .getByRole("button", { name: "Xin xem tên hiển thị", exact: true })
     .click();
   await one
-    .locator("summary")
-    .filter({ hasText: "Chia sẻ và an toàn" })
+    .getByRole("button", { name: "Chia sẻ và an toàn" })
     .click();
   await one
     .getByRole("button", { name: "Đồng ý chia sẻ", exact: true })
