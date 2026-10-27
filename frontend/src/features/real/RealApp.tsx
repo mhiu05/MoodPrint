@@ -1472,7 +1472,7 @@ const consentWithdrawal: Record<ConsentPurpose, string> = {
   AI: "Khi tắt: dừng ngay các lượt AI đang chạy, hủy đề xuất ghi nhớ chưa duyệt và xóa chỉ mục tìm kiếm ghi nhớ. Vẫn giữ: lịch sử trò chuyện đã lưu (chỉ đọc) và các ghi nhớ bạn đã duyệt — bạn có thể xuất hoặc xóa chúng bên dưới.",
   MEM: "Khi tắt: trợ lý ngừng nhắc lại ghi nhớ, hủy đề xuất chưa duyệt và xóa chỉ mục tìm kiếm. Vẫn giữ: các ghi nhớ đã duyệt để bạn xem, sửa hoặc xóa.",
   MATCH:
-    "Khi tắt: đóng mọi cuộc trò chuyện với người thật, hủy lời mời đang chờ, và hồ sơ kết nối bị ẩn. Bật lại không tự chia sẻ lại hồ sơ — bạn cần xem lại và xuất bản lại. Những người đang trò chuyện hoặc có lời mời chờ với bạn sẽ không được gợi ý lại cho nhau trong 30 ngày. Mọi hoạt động chung đang diễn ra cũng dừng lại.",
+    "Khi tắt: đóng mọi cuộc trò chuyện với người thật, hủy lời mời đang chờ, và hồ sơ tìm bạn bị ẩn. Quyền này không tự bật lại: bạn cần xem lại hồ sơ và chọn Hiển thị hồ sơ. Những người đang trò chuyện hoặc có lời mời chờ với bạn sẽ không được gợi ý lại cho nhau trong 30 ngày. Mọi hoạt động chung đang diễn ra cũng dừng lại.",
   VOICE: "Khi tắt: không thể ghi âm nữa. Âm thanh không bao giờ được lưu lại.",
 };
 function Settings() {
@@ -1514,39 +1514,63 @@ function Settings() {
     } catch (reason) { setError(reason); }
     finally { setBusy(undefined); }
   }
+  const withdraw = (purpose: ConsentPurpose) => (
+    <div className="privacy-withdraw">
+      <p>{consentWithdrawal[purpose]}</p>
+      <Button variant="secondary" disabled={!!busy} onClick={() => void change(purpose)}>
+        {busy === purpose ? "Đang cập nhật…" : `Rút quyền ${consentLabels[purpose]}`}
+      </Button>
+    </div>
+  );
   return (
     <div className={cx.reading}>
       <h1 tabIndex={-1}>Quyền riêng tư</h1>
-      <p className={cx.lede}>Bạn chọn nội dung được lưu, dùng để ghi nhớ hoặc chia sẻ với người khác.</p>
+      <p className={cx.lede}>Mỗi lựa chọn bên dưới độc lập với nhau. Bạn quyết định nội dung nào được xử lý, lưu lại hoặc chia sẻ.</p>
       <ErrorNotice error={error} />
-      <section className="real-section">
-        <h2>AI và ghi nhớ</h2>
-        <p>Trợ lý xử lý tin nhắn khi bạn chọn Gửi. Ghi nhớ chỉ được lưu sau khi bạn duyệt từng đề xuất.</p>
-        <Link to="/memory">Xem và quản lý ghi nhớ đã duyệt</Link>
-        <AIDataControls />
-      </section>
-      <section className="real-section">
-        <h2>Kết nối và khám phá</h2>
-        {published.loading ? <p role="status">Đang kiểm tra hồ sơ kết nối…</p> : published.error ? null :
-          <p role="status">{published.data?.state === "live" ? "Hồ sơ đang chia sẻ" : "Hồ sơ chưa hiển thị trong gợi ý"}</p>}
-        <ErrorNotice error={published.error} retry={published.refresh} />
-        <p>Chỉ thẻ kết nối bạn xem trước và xuất bản mới hiển thị với người khác. Nhật ký, cảm xúc và hội thoại AI không dùng để gợi ý.</p>
-        <Link to="/connect?tab=profile">Xem hoặc sửa hồ sơ kết nối</Link>
-        {published.data?.state === "live" ? <Button variant="secondary" disabled={!!busy} onClick={() => void unpublish()}>{busy === "unpublish" ? "Đang ngừng chia sẻ…" : "Ngừng chia sẻ hồ sơ"}</Button> : null}
-      </section>
-      <details className="real-section">
-        <summary>Rút quyền xử lý đã cấp</summary>
-        <p>Các lựa chọn đã rút vẫn được ghi nhận. Bạn có thể tiếp tục dùng tính năng sau khi chọn hành động có thông báo phù hợp.</p>
-        {(["AI", "MEM", "MATCH", "VOICE"] as ConsentPurpose[]).filter(purpose => session.consents[purpose].enabled).map(purpose =>
-          <div key={purpose}>
-            <p>{consentWithdrawal[purpose]}</p>
-            <Button variant="secondary" disabled={!!busy} onClick={() => void change(purpose)}>{busy === purpose ? "Đang cập nhật…" : `Rút quyền ${consentLabels[purpose]}`}</Button>
-          </div>
+      <section className="real-section" aria-labelledby="privacy-ai">
+        <h2 id="privacy-ai">Tin nhắn AI</h2>
+        <p>Trợ lý chỉ xử lý tin nhắn khi bạn chọn Gửi trong một cuộc trò chuyện.</p>
+        {session.consents.AI.enabled ? withdraw("AI") : (
+          <p>
+            Quyền xử lý AI đang tắt. Để dùng trợ lý trở lại, mở cuộc trò chuyện và chọn Gửi khi bạn muốn chia sẻ tin nhắn.{" "}
+            <Link to="/assistants">Mở trợ lý</Link>
+          </p>
         )}
-      </details>
-      <AdultEligibility />
-      <section className="real-section">
-        <h2>Phiên đăng nhập</h2>
+        {session.consents.VOICE.enabled ? (
+          <div className="privacy-subsection">
+            <h3>Nhập bằng giọng nói</h3>
+            {withdraw("VOICE")}
+          </div>
+        ) : null}
+      </section>
+      <section className="real-section" aria-labelledby="privacy-history">
+        <h2 id="privacy-history">Lịch sử trò chuyện</h2>
+        <AIDataControls part="history" />
+      </section>
+      <section className="real-section" aria-labelledby="privacy-memory">
+        <h2 id="privacy-memory">Thông tin AI ghi nhớ</h2>
+        <p>Trợ lý chỉ dùng những ghi nhớ bạn đã duyệt. Chưa có gì được lưu cho đến khi bạn duyệt từng đề xuất.</p>
+        <Link to="/memory">Xem đề xuất và ghi nhớ đã duyệt</Link>
+        {session.consents.MEM.enabled ? withdraw("MEM") : (
+          <p>Trợ lý hiện không dùng ghi nhớ. Trợ lý chỉ dùng lại ghi nhớ sau khi bạn duyệt một đề xuất mới.</p>
+        )}
+        <AIDataControls part="memory" />
+      </section>
+      <section className="real-section" aria-labelledby="privacy-match">
+        <h2 id="privacy-match">Hồ sơ và kết nối</h2>
+        {published.loading ? <p role="status">Đang kiểm tra hồ sơ tìm bạn…</p> : published.error ? null :
+          <p role="status">{published.data?.state === "live" ? "Hồ sơ tìm bạn đang hiển thị" : "Hồ sơ tìm bạn chưa hiển thị trong gợi ý"}</p>}
+        <ErrorNotice error={published.error} retry={published.refresh} />
+        <p>Chỉ thẻ hồ sơ bạn xem trước và chọn Hiển thị hồ sơ mới hiện với người khác. Nhật ký, cảm xúc và cuộc trò chuyện AI không dùng để gợi ý.</p>
+        <Link to="/connect?tab=profile">Xem hoặc sửa hồ sơ tìm bạn</Link>
+        {published.data?.state === "live" ? <div><Button variant="secondary" disabled={!!busy} onClick={() => void unpublish()}>{busy === "unpublish" ? "Đang ngừng hiển thị…" : "Ngừng hiển thị hồ sơ"}</Button></div> : null}
+        {session.consents.MATCH.enabled ? withdraw("MATCH") : (
+          <p>Quyền tìm bạn đang tắt. Để kết nối trở lại, xem lại hồ sơ tìm bạn rồi chọn Hiển thị hồ sơ.</p>
+        )}
+        <AdultEligibility />
+      </section>
+      <section className="real-section" aria-labelledby="privacy-session">
+        <h2 id="privacy-session">Phiên đăng nhập</h2>
         <p>{session.alias}</p>
         <Button
           variant="secondary"

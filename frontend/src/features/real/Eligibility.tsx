@@ -165,8 +165,8 @@ export function AdultEligibility() {
     session.birthYear != null &&
     currentYear(session.serverTime) - session.birthYear >= 18;
   return (
-    <section className="real-section">
-      <h2>Điều kiện kết nối</h2>
+    <section className="privacy-subsection">
+      <h3>Điều kiện kết nối</h3>
       <p>
         Tìm bạn và nhắn tin người thật dành cho người đã đủ 18 tuổi. Bạn vẫn có
         thể dùng các tính năng cá nhân.

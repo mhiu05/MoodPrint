@@ -38,7 +38,7 @@ test("real saved history requires opt-in, resumes by URL, and stays manageable a
     exact: true,
   });
   const semantic = page.getByRole("checkbox", {
-    name: "Tìm ghi nhớ theo ngữ nghĩa qua Voyage",
+    name: "Giúp trợ lý tìm lại ghi nhớ liên quan",
     exact: true,
   });
   await expect(history).not.toBeChecked();
@@ -122,7 +122,6 @@ test("real saved history requires opt-in, resumes by URL, and stays manageable a
   await expect(
     page.getByText("Đã cập nhật lựa chọn dữ liệu AI.", { exact: true }),
   ).toBeVisible();
-  await page.getByText("Rút quyền xử lý đã cấp", { exact: true }).click();
   await page.getByRole("button", { name: "Rút quyền trò chuyện AI", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Rút quyền trò chuyện AI", exact: true }),

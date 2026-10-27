@@ -63,7 +63,6 @@ export async function call(
 
 export async function disable(page: Page, name: string) {
   await page.goto("/#/settings");
-  await page.getByText("Rút quyền xử lý đã cấp", { exact: true }).click();
   await page.getByRole("button", { name: `Rút quyền ${name}`, exact: true }).click();
   await expect(
     page.getByRole("button", { name: `Rút quyền ${name}`, exact: true }),

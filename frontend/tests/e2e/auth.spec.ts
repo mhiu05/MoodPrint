@@ -135,7 +135,7 @@ test("export asks for step-up re-authentication instead of signing the user out"
     "GET /exports/33333333-3333-4333-8333-333333333333/download": () => ({ json: { account: {} } }),
   });
   await page.goto("/#/settings");
-  await page.getByRole("button", { name: "Xuất dữ liệu riêng" }).click();
+  await page.getByRole("button", { name: "Tải bản sao dữ liệu" }).click();
   await expect(page.getByRole("heading", { name: "Xác nhận lại mật khẩu" })).toBeVisible();
   // Still signed in: the login screen must not appear.
   await expect(page.getByRole("heading", { name: "Chào bạn trở lại" })).toHaveCount(0);

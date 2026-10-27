@@ -158,13 +158,15 @@ test("history is a separate explicit opt-in and semantic processing explains Voy
     name: "Lưu lịch sử trò chuyện",
   });
   const semantic = page.getByRole("checkbox", {
-    name: "Tìm ghi nhớ theo ngữ nghĩa qua Voyage",
+    name: "Giúp trợ lý tìm lại ghi nhớ liên quan",
   });
   await expect(history).not.toBeChecked();
   await expect(semantic).not.toBeChecked();
   await expect(page.getByText(/30 ngày/).first()).toBeVisible();
+  // The provider and data scope are disclosed on request beside the choice.
+  await page.getByText("Xem cách dữ liệu được xử lý", { exact: true }).click();
   await expect(
-    page.getByText(/Voyage.*ghi nhớ.*truy vấn/).first(),
+    page.getByText(/Voyage nhận nội dung ghi nhớ.*câu hỏi hiện tại/).first(),
   ).toBeVisible();
   expect(writes).toEqual([]);
   await history.click();

@@ -314,3 +314,41 @@
   gap: 12px;
   margin-top: 16px;
 }
+
+.privacy-withdraw {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+}
+.privacy-withdraw p {
+  font-size: var(--text-support);
+}
+.privacy-subsection {
+  margin-top: 20px;
+}
+.privacy-subsection h3 {
+  font-size: 1.0625rem;
+}
+.ai-data-disclosure {
+  margin: 4px 0 12px;
+}
+.ai-data-disclosure summary {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.ai-data-disclosure p {
+  margin-top: 8px;
+  font-size: var(--text-support);
+}
+.memory-state {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: var(--text-meta);
+  font-weight: 600;
+  color: var(--color-muted);
+  vertical-align: middle;
+}

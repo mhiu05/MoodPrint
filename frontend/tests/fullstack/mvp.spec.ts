@@ -55,7 +55,7 @@ test("Journey E: export contains only the owner's own data and downloads once", 
   await page.goto("/#/settings");
   const download = page.waitForEvent("download");
   await page
-    .getByRole("button", { name: "Xuất dữ liệu riêng", exact: true })
+    .getByRole("button", { name: "Tải bản sao dữ liệu", exact: true })
     .click();
   const file = await (await download).path();
   const data = JSON.parse(await readFile(file!, "utf-8"));

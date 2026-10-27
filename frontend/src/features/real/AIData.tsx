@@ -100,7 +100,11 @@ export function useAIData() {
   return value;
 }
 
-export function AIDataControls({ historyOnly = false }: { historyOnly?: boolean }) {
+/**
+ * History storage and external memory lookup are separate choices, each shown
+ * in its own privacy section. Both default off; neither enables the other.
+ */
+export function AIDataControls({ part }: { part: "history" | "memory" }) {
   const { api, session } = useSession();
   const { preferences, loading, error, reload, receive } = useAIData();
   const [busy, setBusy] = useState(false),
@@ -134,17 +138,13 @@ export function AIDataControls({ historyOnly = false }: { historyOnly?: boolean 
       setBusy(false);
     }
   }
+  const memoryAllowed = session.consents.AI.enabled && session.consents.MEM.enabled;
   return (
-    <section
-      className="real-section ai-data-controls"
-      aria-labelledby="ai-data-heading"
-    >
-      <h2 id="ai-data-heading">{historyOnly ? "Lưu lịch sử trò chuyện" : "Lịch sử và tìm ghi nhớ"}</h2>
-      {!historyOnly ? <p>Hai lựa chọn lưu lịch sử và dùng Voyage độc lập, mặc định tắt.</p> : null}
+    <div className="ai-data-controls">
       {loading ? <p role="status">Đang tải lựa chọn dữ liệu AI…</p> : null}
       <ErrorNotice error={error} retry={reload} />
       <ErrorNotice error={saveError} />
-      {preferences ? (
+      {preferences && part === "history" ? (
         <>
           <label className="ai-data-choice">
             <input
@@ -164,24 +164,25 @@ export function AIDataControls({ historyOnly = false }: { historyOnly?: boolean 
           <p>
             Lưu các cuộc trò chuyện mới trên máy chủ trong{" "}
             {preferences.retentionDays} ngày để bạn tiếp tục trên thiết bị khác.
-            Tắt lựa chọn này sẽ dừng lưu mới; lịch sử cũ vẫn xem, xuất và xóa
-            được cho đến khi hết hạn. Hội thoại tạm trước đó không được chuyển
-            sang lịch sử.
+            Tắt lựa chọn này sẽ dừng lưu mới; lịch sử cũ vẫn xem, tải xuống và
+            xóa được cho đến khi hết hạn. Cuộc trò chuyện tạm thời trước đó
+            không được chuyển sang lịch sử.
           </p>
           {!preferences.historyAvailable ? (
-            <p>Lưu lịch sử hiện chưa khả dụng.</p>
+            <p>Lưu lịch sử hiện chưa sẵn sàng.</p>
           ) : null}
-          {!historyOnly ? <><label className="ai-data-choice">
+        </>
+      ) : null}
+      {preferences && part === "memory" ? (
+        <>
+          <label className="ai-data-choice">
             <input
               type="checkbox"
-              checked={
-                preferences.semanticMemoryEnabled
-              }
+              checked={preferences.semanticMemoryEnabled}
               disabled={
                 busy ||
                 loading ||
-                (!preferences.semanticMemoryEnabled &&
-                  (!session.consents.AI.enabled || !session.consents.MEM.enabled)) ||
+                (!preferences.semanticMemoryEnabled && !memoryAllowed) ||
                 (!preferences.semanticMemoryAvailable &&
                   !preferences.semanticMemoryEnabled)
               }
@@ -189,26 +190,30 @@ export function AIDataControls({ historyOnly = false }: { historyOnly?: boolean 
                 void change("semanticMemoryEnabled", event.target.checked)
               }
             />
-            Tìm ghi nhớ theo ngữ nghĩa qua Voyage
+            Giúp trợ lý tìm lại ghi nhớ liên quan
           </label>
-          <p>
-            Khi bạn bật, Voyage xử lý bên ngoài chỉ nội dung ghi nhớ bạn đã
-            duyệt và truy vấn hiện tại để tìm ghi nhớ liên quan. Nhật ký và toàn
-            bộ bản chép hội thoại không được gửi tới Voyage. Chỉ dùng khi quyền
-            AI và ghi nhớ đã duyệt cùng bật. Tắt lựa chọn này sẽ ngừng xử lý và
-            loại bỏ dữ liệu tìm kiếm dẫn xuất.
-          </p>
-          {(!session.consents.AI.enabled || !session.consents.MEM.enabled) ? (
-            <p>Để dùng Voyage, hãy gửi tin nhắn AI và duyệt ít nhất một ghi nhớ trước.</p>
+          <details className="ai-data-disclosure">
+            <summary>Xem cách dữ liệu được xử lý</summary>
+            <p>
+              Khi bật, dịch vụ Voyage nhận nội dung ghi nhớ bạn đã duyệt và câu
+              hỏi hiện tại để tìm thông tin liên quan. Nhật ký cảm xúc và toàn
+              bộ cuộc trò chuyện không được gửi tới Voyage. Khi tắt, việc xử lý
+              dừng lại và dữ liệu tìm kiếm tạo từ ghi nhớ sẽ được xóa.
+            </p>
+          </details>
+          {!memoryAllowed ? (
+            <p>
+              Lựa chọn này dùng được khi quyền xử lý AI đang bật và bạn đã
+              duyệt ít nhất một ghi nhớ.
+            </p>
           ) : null}
           {!preferences.semanticMemoryAvailable ? (
-            <p>Tìm ghi nhớ qua Voyage hiện chưa khả dụng.</p>
-          ) : null}</> : null}
+            <p>Tính năng tìm lại ghi nhớ hiện chưa sẵn sàng.</p>
+          ) : null}
         </>
       ) : null}
       {notice ? <p role="status">{notice}</p> : null}
-      {!historyOnly ? <Link to="/memory">Quản lý ghi nhớ đã duyệt</Link> : null}
-    </section>
+    </div>
   );
 }
 

@@ -173,7 +173,7 @@ test("the eighteenth-year account explicitly confirms18 in settings without auto
     page.getByRole("heading", { name: /Bạn muốn chia sẻ điều gì/ }),
   ).toBeVisible();
   await page.goto("/#/settings");
-  await expect(page.getByRole("link", { name: "Xem hoặc sửa hồ sơ kết nối" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Xem hoặc sửa hồ sơ tìm bạn" })).toBeVisible();
   await page
     .getByRole("checkbox", {
       name: "Tôi xác nhận mình đã đủ 18 tuổi để sử dụng Tìm bạn và nhắn tin người thật.",
@@ -184,7 +184,7 @@ test("the eighteenth-year account explicitly confirms18 in settings without auto
     .getByRole("button", { name: "Xác nhận đủ 18 tuổi", exact: true })
     .click();
   await page.reload();
-  await expect(page.getByRole("link", { name: "Xem hoặc sửa hồ sơ kết nối" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Xem hoặc sửa hồ sơ tìm bạn" })).toBeVisible();
   const stored = await (
     await context.request.get("http://127.0.0.1:5174/api/v1/session")
   ).json();
@@ -470,7 +470,7 @@ test("approved memory uses the edited approval, survives reload, and local priva
   await page.goto("/#/settings");
   const download = page.waitForEvent("download");
   await page
-    .getByRole("button", { name: "Xuất dữ liệu riêng", exact: true })
+    .getByRole("button", { name: "Tải bản sao dữ liệu", exact: true })
     .click();
   expect((await download).suggestedFilename()).toBe("moodprint-data.json");
   await page

@@ -148,7 +148,7 @@ test("bounded real provider browser smoke with local history and approved memory
       await page.goto("/#/settings");
       await page
         .getByRole("checkbox", {
-          name: "Tìm ghi nhớ theo ngữ nghĩa qua Voyage",
+          name: "Giúp trợ lý tìm lại ghi nhớ liên quan",
           exact: true,
         })
         .check();
@@ -178,7 +178,7 @@ test("bounded real provider browser smoke with local history and approved memory
       await page.goto("/#/settings");
       await page
         .getByRole("checkbox", {
-          name: "Tìm ghi nhớ theo ngữ nghĩa qua Voyage",
+          name: "Giúp trợ lý tìm lại ghi nhớ liên quan",
           exact: true,
         })
         .uncheck();
@@ -273,7 +273,7 @@ test("resume real semantic retrieval, re-indexing, revocation and one history co
     await page.goto("/#/settings");
     await page
       .getByRole("checkbox", {
-        name: "Tìm ghi nhớ theo ngữ nghĩa qua Voyage",
+        name: "Giúp trợ lý tìm lại ghi nhớ liên quan",
         exact: true,
       })
       .uncheck();

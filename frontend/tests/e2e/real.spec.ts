@@ -337,7 +337,6 @@ test("consent changes wait for the server receipt and include session protection
     });
   });
   await page.goto("/#/settings");
-  await page.getByText("Rút quyền xử lý đã cấp", { exact: true }).click();
   await page
     .getByRole("button", { name: "Rút quyền trò chuyện AI", exact: true })
     .click();
@@ -456,8 +455,8 @@ test("privacy controls remain readable on mobile and desktop", async ({ page }) 
   for (const width of [390, 768, 1280]) {
     await page.setViewportSize({ width, height: 844 });
     await page.goto("/#/settings");
-    await expect(page.getByRole("heading", { name: "AI và ghi nhớ" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Kết nối và khám phá" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tin nhắn AI" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Hồ sơ và kết nối" })).toBeVisible();
     await expect(page.getByRole("checkbox", { name: "Lưu lịch sử trò chuyện" })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   }

@@ -635,3 +635,85 @@ test("a reply arriving while someone reads older messages does not move them, an
   await expect.poll(() => log.evaluate((element) => element.scrollHeight - element.scrollTop - element.clientHeight)).toBeLessThan(90);
   await expect(page.getByRole("button", { name: "Về tin mới" })).toHaveCount(0);
 });
+
+// ---- Privacy and memory comprehension (V-PRIVACY-COPY / V-MEMORY / V-DATA-DELETE) ----
+test.describe("privacy and memory comprehension", () => {
+  const prefs = { historyEnabled: false, semanticMemoryEnabled: false, version: 1, policyVersion: "ai-data-v1", retentionDays: 30, historyAvailable: true, semanticMemoryAvailable: true };
+
+  test("privacy is five named sections, each with its own withdrawal and real way back", async ({ page }) => {
+    await app(page, sessionWith({ AI: true, MEM: false, MATCH: true, VOICE: false }), { "/ai/preferences": () => ({ json: prefs }) });
+    await page.goto("/#/settings");
+    await expect(page.getByRole("heading", { level: 2 })).toContainText([
+      "Tin nhắn AI", "Lịch sử trò chuyện", "Thông tin AI ghi nhớ", "Hồ sơ và kết nối", "Xuất hoặc xóa dữ liệu",
+    ]);
+    const ai = page.getByRole("region", { name: "Tin nhắn AI" });
+    await expect(ai.getByRole("button", { name: "Rút quyền trò chuyện AI" })).toBeVisible();
+    const memory = page.getByRole("region", { name: "Thông tin AI ghi nhớ" });
+    // MEM is off: no enable toggle is invented, the real path is approving a proposal.
+    await expect(memory).toContainText("duyệt một đề xuất mới");
+    await expect(memory.getByRole("button", { name: /Bật/ })).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Hồ sơ và kết nối" }).getByRole("button", { name: "Rút quyền tìm bạn" })).toBeVisible();
+  });
+
+  test("with AI withdrawn the section explains that sending a message is how to resume", async ({ page }) => {
+    await app(page, sessionWith({ AI: false, MEM: false }), { "/ai/preferences": () => ({ json: prefs }) });
+    await page.goto("/#/settings");
+    const ai = page.getByRole("region", { name: "Tin nhắn AI" });
+    await expect(ai).toContainText("chọn Gửi");
+    await expect(ai.getByRole("link", { name: "Mở trợ lý" })).toHaveAttribute("href", "#/assistants");
+    await expect(ai.getByRole("button")).toHaveCount(0);
+  });
+
+  test("external memory lookup uses a plain label and discloses Voyage and its data scope on request", async ({ page }) => {
+    await app(page, sessionWith({ AI: true, MEM: true }), { "/ai/preferences": () => ({ json: prefs }) });
+    await page.goto("/#/settings");
+    const toggle = page.getByRole("checkbox", { name: "Giúp trợ lý tìm lại ghi nhớ liên quan" });
+    await expect(toggle).toBeVisible();
+    await expect(toggle).not.toBeChecked();
+    await page.getByText("Xem cách dữ liệu được xử lý", { exact: true }).click();
+    const disclosure = page.locator("details", { hasText: "Xem cách dữ liệu được xử lý" });
+    await expect(disclosure).toContainText("Voyage");
+    await expect(disclosure).toContainText("ghi nhớ bạn đã duyệt");
+    await expect(disclosure).toContainText("không được gửi tới Voyage");
+    await expect(page.getByText(/ngữ nghĩa|dẫn xuất/)).toHaveCount(0);
+  });
+
+  test("memory separates proposals waiting for review from approved items", async ({ page }) => {
+    await app(page, sessionWith({ AI: true, MEM: true }), {
+      "/proposals": () => ({ json: [
+        { id: "p-1", botId: "may", purpose: "memory", text: "Thích trà buổi tối", status: "pending", version: 1, expiresAt: "2099-01-01T00:00:00Z" },
+        { id: "p-2", botId: "may", purpose: "memory", text: "", status: "rejected", version: 2, expiresAt: "2020-01-01T00:00:00Z" },
+      ] }),
+      "/memories": () => ({ json: [{ id: "m-1", botId: "may", text: "Thích đi bộ", version: 1 }] }),
+    });
+    await page.goto("/#/memory");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Thông tin AI ghi nhớ");
+    const waiting = page.getByRole("region", { name: "Đề xuất chờ duyệt" });
+    await expect(waiting.getByRole("textbox", { name: "Nội dung bạn muốn duyệt" })).toHaveValue("Thích trà buổi tối");
+    await expect(waiting).toContainText("Chưa lưu");
+    await expect(waiting).not.toContainText("Bạn đã chọn không lưu đề xuất này.");
+    await expect(page.getByRole("region", { name: "Đã duyệt" })).toContainText("Thích đi bộ");
+  });
+
+  test("a failed memory deletion keeps the item and explains the failure", async ({ page }) => {
+    await app(page, sessionWith({ AI: true, MEM: true }), {
+      "/memories": () => ({ json: [{ id: "m-1", botId: "may", text: "Thích đi bộ", version: 1 }] }),
+    });
+    await page.route("**/api/v1/memories/m-1", (route) => route.fulfill({ status: 503, json: { error: { code: "UNAVAILABLE", message: "Dịch vụ tạm gián đoạn." } } }));
+    await page.goto("/#/memory");
+    await page.getByRole("button", { name: "Xóa ghi nhớ", exact: true }).click();
+    await page.getByRole("button", { name: "Xác nhận xóa ghi nhớ", exact: true }).click();
+    await expect(page.getByRole("alert")).toContainText("Dịch vụ tạm gián đoạn.");
+    await expect(page.getByText("Thích đi bộ", { exact: true })).toBeVisible();
+  });
+
+  test("data deletion dialogs focus the keep action first", async ({ page }) => {
+    await app(page, sessionWith({}), { "/ai/preferences": () => ({ json: prefs }) });
+    await page.goto("/#/settings");
+    await page.getByRole("button", { name: "Xóa dữ liệu đã chọn", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Giữ dữ liệu", exact: true })).toBeFocused();
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Xóa tài khoản", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Giữ tài khoản", exact: true })).toBeFocused();
+  });
+});
