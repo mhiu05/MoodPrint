@@ -13,7 +13,7 @@ uv run --locked python -m evals.matching.benchmark --out evals/matching/report.j
 - `personas_v2.json` — 60 synthetic personas from seven interest archetypes: 12 v1-shaped (v1 vocabulary, no v2 facets), 6 sparse (minimum selections, no activities/availability), 42 full v2; 24 of the 48 non-v1 personas have no availability.
 - `pair_labels.json` — 300 random persona pairs, each labelled 0/1/2 ("would plausibly enjoy a first conversation") by **three rule-based proxy raters** `r1` (intent/archetype), `r2` (shared interests) and `r3` (language + activities + shared items), with 10 % seeded disagreement. Krippendorff's α is reported in the report.
 
-**The labels are provisional.** They are not human judgments and partly reuse the same signals the scorers see, so a passing gate on them is necessary but not sufficient to switch production to `rules-v2`. Replace them with three human raters (`r1..r3`, guidelines in `docs/productization/05-matching-design.md` §12) before relying on the gate.
+**The labels are provisional.** They are not human judgments and partly reuse the same signals the scorers see, so a passing gate on them is necessary but not sufficient to switch production to `rules-v2`. Obtain independent human judgments before relying on the quality gate. Current algorithm and evidence limits: [matching algorithm](../../../docs/matching/algorithm.md), [evaluation](../../../docs/matching/evaluation.md).
 
 ## Metrics
 
