@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -25,6 +26,8 @@ import {
 import {
   ArrowLeft,
   ArrowUpRight,
+  Copy,
+  Info,
   LockKeyhole,
   MessageCircle,
   NotebookPen,
@@ -78,6 +81,7 @@ import { OwnIdentity } from "./Safety";
 import { DataControls } from "./Privacy";
 import { focusRouteHeading, useRouteFocus } from "./useRouteFocus";
 import { AIActivityStatus } from "./AIActivityStatus";
+import { ConversationInfo } from "./ConversationInfo";
 import { deriveAIActivity, type AIActivityPhase } from "./aiActivityView";
 import { AIDataProvider, AIDataControls, ConversationHistory, useAIData, downloadConversation, type SavedConversation, type SavedConversationHeader } from "./AIData";
 
@@ -648,39 +652,16 @@ function Assistants() {
 }
 
 function Conversation({ bot }: { bot: BotPublicDTO }) {
-  const [historyOpen, setHistoryOpen] = useState(false);
   return (
     <div className="bot-conversation">
-      <header className="conversation-header">
-        <Link
-          to="/assistants"
-          className="icon-button mobile-back"
-          aria-label="Về danh sách trợ lý"
-        >
-          <ArrowLeft size={21} />
-        </Link>
-        <button className="icon-button history-mobile-button" aria-label="Mở lịch sử hội thoại" onClick={() => setHistoryOpen(true)}><MessageCircle size={20} /></button>
-        <PublicAvatar bot={bot} size={43} />
-        <div>
-          <h1 tabIndex={-1} data-route-heading>
-            {bot.name} <span className="ai-tag">AI</span>
-          </h1>
-          <p>{bot.role}</p>
-        </div>
-        <Link
-          to="/settings"
-          className="icon-button"
-          aria-label="Quyền trò chuyện AI"
-        >
-          <ShieldCheck size={21} />
-        </Link>
-      </header>
-      {historyOpen ? <Dialog title="Lịch sử hội thoại" onClose={() => setHistoryOpen(false)}><ConversationHistory onSelect={() => setHistoryOpen(false)} /></Dialog> : null}
       <ConversationBody bot={bot} />
-
     </div>
   );
 }
+
+type RunOutcome = "completed" | "cancelled" | "failed" | "unknown";
+const UNCONFIRMED = "Chưa xác nhận được trạng thái. Kiểm tra lại cuộc trò chuyện.";
+const compactLayout = () => !window.matchMedia("(min-width: 1100px)").matches;
 
 function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const { api, session, receive } = useSession();
@@ -716,6 +697,23 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const intent = useRef<{ text: string; scopeKey: string; clientMessageId: string } | null>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
   const [draftNotice, setDraftNotice] = useState("");
+  const [infoOpen, setInfoOpen] = useState(false);
+  const infoTrigger = useRef<HTMLButtonElement>(null);
+  const infoId = useId();
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [newConfirmOpen, setNewConfirmOpen] = useState(false);
+  // "Dừng và mở mới" waits for the run's real terminal outcome before switching.
+  const pendingNew = useRef(false);
+  const [awaitingNew, setAwaitingNew] = useState(false);
+  const [previousConversation, setPreviousConversation] = useState<string>();
+  const [copyStatus, setCopyStatus] = useState<{ id: string; ok: boolean }>();
+  const [unseen, setUnseen] = useState(false);
+  const [manageError, setManageError] = useState<unknown>();
+  const [deleteError, setDeleteError] = useState<unknown>();
+  const renameField = useRef<HTMLInputElement>(null);
+  const onTerminal = useRef<((outcome: RunOutcome) => void) | undefined>(undefined);
+  // A receipt set right after opening a new chat must survive its URL change.
+  const keepNotice = useRef(false);
   const submittedText = useRef<string | undefined>(undefined);
   const [shareMood, setShareMood] = useState(false);
   const [moodFrom, setMoodFrom] = useState("");
@@ -751,6 +749,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       setRun({ id, version, key: requestKey });
       setStopped(false);
       setBusy(true);
+      let outcome: RunOutcome = "unknown";
       try {
         const final = await consumeAIEvents(eventsUrl, signal);
         if (!signal.aborted && current.current) {
@@ -780,6 +779,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             setReady(true);
             refreshHistory();
             setProposalRevision((value) => value + 1);
+            outcome = "completed";
           }
         }
       } catch (reason) {
@@ -791,12 +791,13 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             const thread = current.current;
             if (thread) {
               const stored = await api.request<SavedConversation>(`/ai/conversations/${thread.conversationId}`, { signal });
-              if (!signal.aborted) { update(stored); refreshHistory(); }
+              if (!signal.aborted) { update(stored); refreshHistory(); outcome = "cancelled"; }
             }
           } catch (readError) {
             if (!signal.aborted) setError(readError);
           }
         } else if (!signal.aborted) {
+          if (reason instanceof ApiError && ["RUN_FAILED", "RUN_INTERRUPTED"].includes(reason.code)) outcome = "failed";
           setError(reason);
           setReady(false);
           if (reason instanceof ApiError && reason.code === "RUN_FAILED") {
@@ -812,6 +813,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           setBusy(false);
           setStopRequested(false);
           setSyncing(false);
+          onTerminal.current?.(outcome);
         }
       }
     },
@@ -828,8 +830,11 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     lifetime.current?.abort();
     const controller = new AbortController();
     lifetime.current = controller;
-    setLoading(true); setReady(false); setBusy(false); setRun(undefined); setError(undefined); setNotice("");
+    setLoading(true); setReady(false); setBusy(false); setRun(undefined); setError(undefined);
+    if (!keepNotice.current) { setNotice(""); setPreviousConversation(undefined); }
+    keepNotice.current = false;
     activeRun.current = undefined; setStopRequested(false); setSyncing(false); setStopped(false);
+    pendingNew.current = false; setAwaitingNew(false); setCopyStatus(undefined);
     current.current = undefined; setConversation(undefined);
     const selection = `${bot.botId}/${selectedId || searchParams.get("new") || "latest"}`;
     // A different thread chosen in this conversation (not first open, not a new chat) moves focus to its heading once loaded.
@@ -880,6 +885,15 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     if (atBottom && log.current)
       log.current.scrollTop = log.current.scrollHeight;
   }, [conversation?.messages.length, busy, atBottom]);
+  const lastMessageId = conversation?.messages.at(-1)?.id;
+  useEffect(() => {
+    if (lastMessageId && !atBottom) setUnseen(true);
+    // Only a new last message counts; prepending older history does not.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastMessageId]);
+  useEffect(() => {
+    if (atBottom) setUnseen(false);
+  }, [atBottom]);
   async function send(value = draft) {
     const text = value.trim();
     if (
@@ -1001,8 +1015,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       field?.setSelectionRange(head.length, head.length);
     });
   }
-  async function cancel() {
-    if (!run || stopRequested) return;
+  async function cancel(): Promise<boolean> {
+    if (!run || stopRequested) return false;
     const runId = run.id;
     setStopRequested(true);
     setError(undefined);
@@ -1013,11 +1027,13 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         method: "POST",
         body: { expectedVersion: run.version } satisfies VersionInput,
       });
+      return true;
     } catch (reason) {
       if (activeRun.current === runId) {
         setStopRequested(false);
         setError(reason);
       }
+      return false;
     }
   }
   function newConversation() {
@@ -1026,11 +1042,13 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     current.current = undefined; setConversation(undefined); setDraft(""); setError(undefined); setNotice("");
     setReady(true); setLoading(false); setBusy(false); setRun(undefined); intent.current = null; setShareMood(false); setLastMoodRange(undefined);
     activeRun.current = undefined; setStopRequested(false); setSyncing(false); setStopped(false);
+    pendingNew.current = false; setAwaitingNew(false); setPreviousConversation(undefined); setCopyStatus(undefined);
     // An explicit new marker prevents latest-thread auto-resume. Record it now:
     // the router applies the URL in a transition, and its effect must not wipe a
     // draft typed after this click.
     const marker = crypto.randomUUID();
     loadedSelection.current = `${bot.botId}/${marker}`;
+    keepNotice.current = true;
     setSearchParams({ new: marker });
   }
   async function olderMessages() {
@@ -1057,24 +1075,111 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     try {
       const header = await api.request<SavedConversationHeader>(`/ai/conversations/${thread.conversationId}`, { method: "PATCH", body: { title } });
       if (current.current?.conversationId === thread.conversationId) update({ ...current.current, title: header.title });
-      setRenameOpen(false); refreshHistory(); setNotice("Đã đổi tên hội thoại.");
+      setRenameOpen(false); refreshHistory(); setNotice("Đã đổi tên cuộc trò chuyện.");
     } catch (reason) { setRenameError(reason); }
     finally { setManageBusy(false); }
   }
-  async function manage(deleting: boolean) {
+  async function removeConversation() {
     const thread = current.current;
     if (!thread || manageBusy) return;
-    setManageBusy(true); setError(undefined);
+    setManageBusy(true); setDeleteError(undefined);
     try {
-      if (deleting) {
-        await api.request(`/ai/conversations/${thread.conversationId}`, { method: "DELETE" });
-        setDeleteOpen(false); newConversation(); refreshHistory(); setNotice("Đã xóa hội thoại.");
-      } else {
-        const exported = await api.request<unknown>(`/ai/conversations/${thread.conversationId}/export`);
-        downloadConversation(exported, thread.conversationId);
-      }
-    } catch (reason) { setError(reason); }
+      await api.request(`/ai/conversations/${thread.conversationId}`, { method: "DELETE" });
+      setDeleteOpen(false); setInfoOpen(false); newConversation(); refreshHistory(); setNotice("Đã xóa cuộc trò chuyện.");
+    } catch (reason) { setDeleteError(reason); }
     finally { setManageBusy(false); }
+  }
+  async function exportConversation() {
+    const thread = current.current;
+    if (!thread || manageBusy) return;
+    setManageBusy(true); setManageError(undefined);
+    try {
+      const exported = await api.request<unknown>(`/ai/conversations/${thread.conversationId}/export`);
+      downloadConversation(exported, thread.conversationId);
+    } catch (reason) { setManageError(reason); }
+    finally { setManageBusy(false); }
+  }
+  // Child dialogs replace a compact (modal) info sheet; on desktop the modeless
+  // panel stays and the dialog returns focus to the panel action.
+  function openRename() {
+    const thread = current.current;
+    if (!thread) return;
+    setRenameText(thread.title || ""); setRenameError(undefined);
+    if (compactLayout()) setInfoOpen(false);
+    setRenameOpen(true);
+  }
+  function openDelete() {
+    setDeleteError(undefined);
+    if (compactLayout()) setInfoOpen(false);
+    setDeleteOpen(true);
+  }
+  function openHistory() {
+    if (compactLayout()) setInfoOpen(false);
+    setHistoryOpen(true);
+  }
+  function closeInfo(restoreFocus: boolean) {
+    setInfoOpen(false);
+    if (restoreFocus) requestAnimationFrame(() => infoTrigger.current?.focus());
+  }
+  function requestNew() {
+    if (syncing || awaitingNew || (busy && !run)) return;
+    if (run) {
+      if (compactLayout()) setInfoOpen(false);
+      setNewConfirmOpen(true);
+      return;
+    }
+    setInfoOpen(false);
+    newConversation();
+  }
+  async function stopAndNew() {
+    setNewConfirmOpen(false);
+    pendingNew.current = true;
+    setAwaitingNew(true);
+    const accepted = await cancel();
+    if (!accepted && pendingNew.current) {
+      pendingNew.current = false;
+      setAwaitingNew(false);
+      setError(new ApiError(0, "RUN_STATE_UNCONFIRMED", UNCONFIRMED));
+    }
+  }
+  onTerminal.current = (outcome) => {
+    if (!pendingNew.current) return;
+    pendingNew.current = false;
+    setAwaitingNew(false);
+    if (outcome === "unknown") {
+      // Keep this conversation and its draft; nothing is replayed automatically.
+      setError(new ApiError(0, "RUN_STATE_UNCONFIRMED", UNCONFIRMED));
+      return;
+    }
+    const previous = current.current?.conversationId;
+    setInfoOpen(false);
+    newConversation();
+    setPreviousConversation(outcome === "completed" ? previous : undefined);
+    setNotice(
+      outcome === "cancelled" ? "Đã dừng phản hồi và mở cuộc trò chuyện mới."
+        : outcome === "completed" ? "Câu trả lời vừa hoàn tất trước khi dừng. Đã mở cuộc trò chuyện mới."
+          : "Phản hồi đã kết thúc vì lỗi trước khi dừng. Đã mở cuộc trò chuyện mới.",
+    );
+  };
+  async function copyReply(id: string, bubble: Element | null | undefined) {
+    // Plain text of the rendered, validated reply; never cards or metadata.
+    const root = bubble?.querySelector<HTMLElement>(".ai-markdown") ?? (bubble as HTMLElement | null | undefined);
+    const text = root?.innerText.trim() ?? "";
+    try {
+      if (!text || !navigator.clipboard) throw new Error("clipboard unavailable");
+      await navigator.clipboard.writeText(text);
+      setCopyStatus({ id, ok: true });
+    } catch {
+      setCopyStatus({ id, ok: false });
+    }
+  }
+  function jumpToLatest() {
+    const element = log.current;
+    if (!element) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    element.scrollTo({ top: element.scrollHeight, behavior: reduced ? "auto" : "smooth" });
+    setAtBottom(true);
+    setUnseen(false);
   }
   const lastSelf = conversation?.messages.filter((message) => message.actor === "self").at(-1);
   const phase: AIActivityPhase = stopRequested ? "cancelling"
@@ -1085,16 +1190,22 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     : stopped && lastSelf?.status !== "cancelled" ? "cancelled"
     : "idle";
   const activity = deriveAIActivity({ phase, requestKey: run?.key ?? intent.current?.clientMessageId, runId: run?.id });
-  let conversationLabel = "Hội thoại tạm thời · không lưu vào lịch sử";
-  if (conversation?.persistent) conversationLabel = "Hội thoại đã lưu";
-  else if (!conversation && preferences?.historyEnabled && preferences.historyAvailable)
-    conversationLabel = "Hội thoại mới sẽ được lưu";
+  const historyOnForNew = Boolean(preferences?.historyEnabled && preferences.historyAvailable);
+  const modeLabel = conversation ? (conversation.persistent ? "Đã lưu" : "Tạm thời") : historyOnForNew ? "Sẽ được lưu" : "Tạm thời";
+  const TEMPORARY = "Không lưu vào lịch sử. Phiên tạm có thể kết thúc khi phiên đăng nhập hoặc máy chủ thay đổi.";
+  let retentionLabel = TEMPORARY;
+  if (conversation?.persistent)
+    retentionLabel = conversation.expiresAt
+      ? `Đã lưu trong lịch sử đến ngày ${new Intl.DateTimeFormat("vi-VN", { timeZone: session.timezone, dateStyle: "short" }).format(new Date(conversation.expiresAt))}.`
+      : `Đã lưu trong lịch sử tối đa ${preferences?.retentionDays ?? 30} ngày.`;
+  else if (!conversation && historyOnForNew)
+    retentionLabel = `Cuộc trò chuyện này sẽ được lưu trong lịch sử tối đa ${preferences!.retentionDays} ngày khi bạn gửi tin đầu tiên.`;
 
-  let historyAction = "Bật lưu lịch sử trong cài đặt";
-  if (preferencesLoading) historyAction = "Đang kiểm tra lịch sử…";
-  else if (!preferences) historyAction = "Kiểm tra quyền lưu lịch sử";
-  else if (!preferences.historyAvailable) historyAction = "Lưu lịch sử chưa sẵn sàng";
-  else if (preferences.historyEnabled) historyAction = `Lưu tối đa ${preferences.retentionDays} ngày`;
+  let historyStatus = "Đang tắt lưu lịch sử. Cuộc trò chuyện mới là tạm thời.";
+  if (preferencesLoading) historyStatus = "Đang kiểm tra lịch sử…";
+  else if (!preferences) historyStatus = "Chưa kiểm tra được lựa chọn lưu lịch sử.";
+  else if (!preferences.historyAvailable) historyStatus = "Lưu lịch sử chưa sẵn sàng.";
+  else if (preferences.historyEnabled) historyStatus = `Đang lưu cuộc trò chuyện mới tối đa ${preferences.retentionDays} ngày.`;
 
   let readOnlyMessage = "Đang kiểm tra lựa chọn dữ liệu AI…";
   if (!session.features.ai) readOnlyMessage = aiServiceMessage(session.features);
@@ -1102,27 +1213,55 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     readOnlyMessage = "Chưa tải được lựa chọn dữ liệu AI. Hãy thử tải lại trước khi nhắn.";
   else if (preferences && !historyWritable)
     readOnlyMessage = preferences.historyAvailable
-      ? "Bạn đang tắt lưu lịch sử. Bật lại trong cài đặt để tiếp tục hội thoại đã lưu, hoặc mở hội thoại tạm thời mới."
-      : "Lưu lịch sử hiện chưa sẵn sàng. Hội thoại đã lưu chỉ để xem; bạn có thể mở hội thoại tạm thời mới.";
+      ? "Bạn đang tắt lưu lịch sử nên cuộc trò chuyện đã lưu này chỉ để xem. Bật lại trong cài đặt lưu lịch sử để tiếp tục, hoặc mở một cuộc trò chuyện tạm thời mới."
+      : "Lưu lịch sử hiện chưa sẵn sàng. Cuộc trò chuyện đã lưu chỉ để xem; bạn có thể mở một cuộc trò chuyện tạm thời mới.";
+  const newDisabledReason = busy && !run ? "Đang xác nhận tin nhắn vừa gửi."
+    : syncing ? "Đang cập nhật cuộc trò chuyện…"
+      : awaitingNew ? "Đang chờ phản hồi hiện tại dừng lại…"
+        : undefined;
+  const infoTitle = conversation?.title?.trim() || "Cuộc trò chuyện mới";
   return (
     <>
-      <div className="chat-history-toolbar">
-        <div><span>{conversationLabel}</span>
-        <Link to="/settings">{historyAction}</Link></div>
-        <div className={cx.actions}>
-          <Button variant="text" onClick={newConversation}>Cuộc trò chuyện mới</Button>
-          {conversation?.persistent ? <><Button variant="text" disabled={manageBusy} onClick={() => { setRenameText(conversation.title || ""); setRenameError(undefined); setRenameOpen(true); }}>Đổi tên</Button><Button variant="text" disabled={manageBusy} onClick={() => void manage(false)}>Xuất hội thoại</Button><Button variant="text" disabled={manageBusy} onClick={() => setDeleteOpen(true)}>Xóa hội thoại</Button></> : null}
+      <header className="conversation-header">
+        <Link
+          to="/assistants"
+          className="icon-button mobile-back"
+          aria-label="Về danh sách trợ lý"
+        >
+          <ArrowLeft size={21} />
+        </Link>
+        <PublicAvatar bot={bot} size={43} />
+        <div>
+          <h1 tabIndex={-1} data-route-heading>
+            {bot.name} <span className="ai-tag">AI</span>
+          </h1>
+          <p>
+            {bot.role} · <span className="conversation-mode">{modeLabel}</span>
+          </p>
         </div>
-      </div>
-      {renameOpen ? <Dialog title="Đổi tên hội thoại" onClose={() => !manageBusy && setRenameOpen(false)}><form className="conversation-rename" onSubmit={(event) => { event.preventDefault(); void rename(); }}><label htmlFor="conversation-title">Tên hội thoại</label><input id="conversation-title" value={renameText} maxLength={100} required onChange={(event) => setRenameText(event.target.value)} /><p>Tên chỉ hiển thị cho bạn và không được gửi tới trợ lý.</p><ErrorNotice error={renameError} /><div className={cx.actions}><Button type="button" variant="secondary" disabled={manageBusy} onClick={() => setRenameOpen(false)}>Hủy</Button><Button type="submit" disabled={manageBusy || !renameText.trim()}>Lưu tên</Button></div></form></Dialog> : null}
-      {deleteOpen ? <Dialog title="Xóa hội thoại này?" destructive onClose={() => !manageBusy && setDeleteOpen(false)}><p>Hội thoại và các tin nhắn trong đó sẽ bị xóa. Thao tác này không thể hoàn tác.</p><ErrorNotice error={error} /><div className={cx.actions}><Button variant="secondary" data-cancel disabled={manageBusy} onClick={() => setDeleteOpen(false)}>Giữ hội thoại</Button><Button disabled={manageBusy} onClick={() => void manage(true)}>Xác nhận xóa hội thoại</Button></div></Dialog> : null}
+        <button
+          ref={infoTrigger}
+          type="button"
+          className="icon-button"
+          aria-label="Thông tin cuộc trò chuyện"
+          aria-expanded={infoOpen}
+          aria-controls={infoId}
+          onClick={() => (infoOpen ? closeInfo(true) : setInfoOpen(true))}
+        >
+          <Info size={21} />
+        </button>
+      </header>
+      {historyOpen ? <Dialog title="Lịch sử trò chuyện" onClose={() => setHistoryOpen(false)}><ConversationHistory onSelect={() => setHistoryOpen(false)} /></Dialog> : null}
+      {renameOpen ? <Dialog title="Đổi tên cuộc trò chuyện" initialFocus={renameField} onClose={() => !manageBusy && setRenameOpen(false)}><form className="conversation-rename" onSubmit={(event) => { event.preventDefault(); void rename(); }}><label htmlFor="conversation-title">Tên cuộc trò chuyện</label><input id="conversation-title" ref={renameField} value={renameText} maxLength={100} required onChange={(event) => setRenameText(event.target.value)} /><p>Tên chỉ hiển thị cho bạn và không được gửi tới trợ lý.</p><ErrorNotice error={renameError} /><div className={cx.actions}><Button type="button" variant="secondary" disabled={manageBusy} onClick={() => setRenameOpen(false)}>Hủy</Button><Button type="submit" disabled={manageBusy || !renameText.trim()}>{manageBusy ? "Đang lưu tên…" : "Lưu tên"}</Button></div></form></Dialog> : null}
+      {deleteOpen ? <Dialog title="Xóa cuộc trò chuyện này?" destructive onClose={() => !manageBusy && setDeleteOpen(false)}><p>Cuộc trò chuyện và các tin nhắn trong đó sẽ bị xóa. Thao tác này không thể hoàn tác.</p><ErrorNotice error={deleteError} /><div className={cx.actions}><Button variant="secondary" data-cancel disabled={manageBusy} onClick={() => setDeleteOpen(false)}>Giữ cuộc trò chuyện</Button><Button variant="danger" disabled={manageBusy} onClick={() => void removeConversation()}>{manageBusy ? "Đang xóa…" : "Xóa cuộc trò chuyện"}</Button></div></Dialog> : null}
+      {newConfirmOpen ? <Dialog title="Dừng phản hồi và mở cuộc trò chuyện mới?" destructive onClose={() => setNewConfirmOpen(false)}><p>Phản hồi hiện tại sẽ được yêu cầu dừng. Cuộc trò chuyện mới chỉ mở sau khi xác nhận được kết quả; cuộc trò chuyện đã lưu vẫn được giữ.</p><div className={cx.actions}><Button variant="secondary" data-cancel onClick={() => setNewConfirmOpen(false)}>Tiếp tục trò chuyện</Button><Button onClick={() => void stopAndNew()}>Dừng và mở mới</Button></div></Dialog> : null}
+      <div className="conversation-stage">
       <div
         className="conversation-log"
         ref={log}
         role="log"
         tabIndex={0}
-        aria-label={`Hội thoại với ${bot.name}`}
-        aria-live="polite"
+        aria-label={`Cuộc trò chuyện với ${bot.name}`}
         onScroll={() => {
           const element = log.current!;
           setAtBottom(
@@ -1137,10 +1276,10 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           <p>{bot.description}</p>
           {!conversation?.messages.length && <AssistantGuide botId={bot.botId} />}
           <small>
-            <LockKeyhole size={11} /> Không chia sẻ với bạn kết nối
+            <LockKeyhole size={13} /> Không chia sẻ với bạn kết nối
           </small>
         </div>
-        {notice ? <p role="status">{notice}</p> : null}
+        {notice ? <p role="status"><span>{notice}</span>{previousConversation ? <> <Link to={`/assistants/${bot.botId}?conversation=${encodeURIComponent(previousConversation)}`}>Xem cuộc trò chuyện trước</Link></> : null}</p> : null}
         {preferencesError ? <><p>Lựa chọn dữ liệu chưa xác minh được; cuộc trò chuyện mới chỉ là tạm thời.</p><ErrorNotice error={preferencesError} retry={reloadPreferences} /></> : null}
         {loading ? <p role="status">Đang mở cuộc trò chuyện…</p> : null}
         {conversation?.hasMoreMessages ? <Button variant="secondary" disabled={olderBusy || loading} onClick={() => void olderMessages()}>{olderBusy ? "Đang tải tin nhắn…" : "Tải tin nhắn cũ hơn"}</Button> : null}
@@ -1157,6 +1296,19 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
                   </Suspense>
                 ) : <p>{message.text}</p>}
               </div>
+              {message.actor === "bot" ? (
+                <div className="message-actions">
+                  <button
+                    type="button"
+                    className="message-action"
+                    aria-label="Sao chép câu trả lời"
+                    onClick={(event) => void copyReply(message.id, event.currentTarget.closest(".message-content")?.querySelector(".chat-bubble"))}
+                  >
+                    <Copy size={15} aria-hidden="true" /> Sao chép
+                  </button>
+                  {copyStatus?.id === message.id ? <span role="status">{copyStatus.ok ? "Đã sao chép câu trả lời." : "Chưa sao chép được. Bạn có thể chọn và sao chép nội dung."}</span> : null}
+                </div>
+              ) : null}
               {message.actor === "self" && message.status && ["failed", "interrupted", "cancelled"].includes(message.status) ? <small className="message-turn-status" role="status">{message.status === "interrupted" ? "Phản hồi bị gián đoạn; lượt này không tự chạy lại." : message.status === "cancelled" ? "Đã dừng phản hồi." : "Phản hồi chưa hoàn tất."}</small> : null}
               {validCards(message.cards) &&
                 message.cards.map((card, index) => (
@@ -1187,18 +1339,39 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           retry={() => setRevision((value) => value + 1)}
         />
       </div>
+      {unseen && !atBottom ? <button type="button" className="jump-latest" onClick={jumpToLatest}>Về tin mới</button> : null}
+      <ConversationInfo
+        open={infoOpen}
+        onClose={closeInfo}
+        triggerRef={infoTrigger}
+        panelId={infoId}
+        title={infoTitle}
+        botName={bot.name}
+        persistent={Boolean(conversation?.persistent)}
+        modeLabel={modeLabel}
+        retentionLabel={retentionLabel}
+        historyStatus={historyStatus}
+        pendingProposals={pendingProposals}
+        manageBusy={manageBusy}
+        manageError={<ErrorNotice error={manageError} />}
+        newDisabledReason={newDisabledReason}
+        onHistory={openHistory}
+        onRename={openRename}
+        onExport={() => void exportConversation()}
+        onDelete={openDelete}
+        onNew={requestNew}
+      />
+      </div>
       <AIActivityStatus
         view={activity}
         phase={phase}
         identity={`${conversation?.conversationId ?? "new"}/${run?.key ?? intent.current?.clientMessageId ?? "idle"}`}
         onStop={run && !syncing ? () => void cancel() : undefined}
-        stopDisabled={stopRequested}
+        stopDisabled={stopRequested || awaitingNew}
       />
       {session.features.aiStatus === "test_provider" ? <p className={cx.footnote} role="note">Môi trường kiểm thử · phản hồi từ model giả, không phải OpenAI.</p> : null}
-      {!canSend ? <div className="chat-readonly" role="status"><p>{readOnlyMessage}</p>{allowed && preferences && !historyWritable && preferences.historyAvailable ? <Link to="/settings">Mở cài đặt lưu lịch sử</Link> : null}</div> : <div className="chat-bottom">
-        <p className={cx.footnote}>Tin nhắn chỉ được gửi cho nhà cung cấp AI khi bạn chọn Gửi. Lịch sử máy chủ và ghi nhớ lâu dài là các lựa chọn riêng.</p>
-        {!session.consents.AI.enabled ? <p role="note">Khi chọn Gửi, bạn đồng ý để dịch vụ AI xử lý tin nhắn này. Bạn có thể rút quyền trong Quyền riêng tư.</p> : null}
-        <details><summary>Lưu lịch sử trò chuyện</summary><AIDataControls historyOnly /></details>
+      {!canSend ? <div className="chat-readonly" role="status"><p>{readOnlyMessage}</p>{allowed && preferences && !historyWritable ? <div className={cx.actions}>{preferences.historyAvailable ? <Link to="/settings">Mở cài đặt lưu lịch sử</Link> : null}<Button variant="secondary" onClick={requestNew}>Mở cuộc trò chuyện mới</Button></div> : null}</div> : <div className="chat-bottom">
+        {!session.consents.AI.enabled ? <p className={cx.footnote} role="note">Khi chọn Gửi, bạn đồng ý để dịch vụ AI xử lý tin nhắn này. Bạn có thể rút quyền trong Quyền riêng tư.</p> : null}
         {bot.botId === "nhip" ? (
           <>
           {lastMoodRange && lastMoodRange.conversationId === conversation?.conversationId && !shareMood ? (

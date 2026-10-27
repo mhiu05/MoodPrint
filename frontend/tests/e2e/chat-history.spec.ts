@@ -127,7 +127,9 @@ test("latest saved history waits for a late preference response after login", as
   const ready = new Promise<void>(resolve => { release = resolve; });
   await fixture(page, true, { preferences: { historyEnabled: true }, preferencesReady: ready });
   await page.goto("/#/assistants/may");
-  await expect(page.getByRole("link", { name: "Đang kiểm tra lịch sử…", exact: true })).toBeVisible();
+  // History status now lives in the conversation info surface.
+  await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
+  await expect(page.getByText("Đang kiểm tra lịch sử…", { exact: true })).toBeVisible();
   release();
   await expect(page.getByRole("log").getByText("Tin đã lưu", { exact: true })).toBeVisible();
 });
@@ -135,7 +137,8 @@ test("latest saved history waits for a late preference response after login", as
 test("history server availability and user opt-out have distinct actions", async ({ page }) => {
   await fixture(page, true, { preferences: { historyAvailable: false } });
   await page.goto("/#/assistants/may?new=1");
-  await expect(page.getByRole("link", { name: "Lưu lịch sử chưa sẵn sàng", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
+  await expect(page.getByText("Lưu lịch sử chưa sẵn sàng.", { exact: true })).toBeVisible();
   await expect(page.getByText("Lưu lịch sử đang tắt", { exact: true })).toHaveCount(0);
 });
 
@@ -199,18 +202,20 @@ test("saved history remains readable, pageable, exportable and deletable when AI
     path: "evidence/ai-chat-memory/mock-history-desktop.png",
     fullPage: true,
   });
+  await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
   const download = page.waitForEvent("download");
   await page
-    .getByRole("button", { name: "Xuất hội thoại", exact: true })
+    .getByRole("button", { name: "Tải xuống cuộc trò chuyện", exact: true })
     .click();
   expect((await download).suggestedFilename()).toBe(
     `moodprint-conversation-${id}.json`,
   );
   await page
-    .getByRole("button", { name: "Xóa hội thoại", exact: true })
+    .getByRole("button", { name: "Xóa cuộc trò chuyện", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Xác nhận xóa hội thoại", exact: true })
+    .getByRole("dialog", { name: "Xóa cuộc trò chuyện này?" })
+    .getByRole("button", { name: "Xóa cuộc trò chuyện", exact: true })
     .click();
   await expect(
     page.getByRole("log").getByText("Tin đã lưu", { exact: true }),
@@ -229,8 +234,9 @@ test("history opt-out makes saved threads read-only and mobile history stays rea
   await expect(
     page.getByRole("button", { name: "Gửi tin cho AI" }),
   ).toHaveCount(0);
+  await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
   await page
-    .getByRole("button", { name: "Mở lịch sử hội thoại", exact: true })
+    .getByRole("button", { name: "Mở lịch sử trò chuyện", exact: true })
     .click();
   await expect(
     page.getByRole("dialog").getByRole("link", { name: /Một buổi sáng/ }),
@@ -366,15 +372,16 @@ test("a saved thread can be renamed and history is grouped by assistant", async 
   await expect(
     page.getByRole("log").getByText("Tin đã lưu", { exact: true }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
   await page.getByRole("button", { name: "Đổi tên", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Đổi tên hội thoại" });
-  const title = dialog.getByRole("textbox", { name: "Tên hội thoại" });
+  const dialog = page.getByRole("dialog", { name: "Đổi tên cuộc trò chuyện" });
+  const title = dialog.getByRole("textbox", { name: "Tên cuộc trò chuyện" });
   await expect(title).toHaveValue("Một buổi sáng");
   await title.fill("Kế hoạch tuần");
   await dialog.getByRole("button", { name: "Lưu tên", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(
-    page.getByText("Đã đổi tên hội thoại.", { exact: true }),
+    page.getByText("Đã đổi tên cuộc trò chuyện.", { exact: true }),
   ).toBeVisible();
   expect(writes).toContainEqual({ title: "Kế hoạch tuần" });
   await page.goto("/#/assistants");

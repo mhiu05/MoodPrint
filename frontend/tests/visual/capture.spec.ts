@@ -50,6 +50,11 @@ for (const width of widths) {
     await page.goto(`/#/assistants/may?conversation=${conversation.conversationId}`);
     await expect(page.getByText("Nghe như một ngày rất dài.", { exact: false })).toBeVisible();
     await shot(page, "chat-saved", width);
+    await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Thông tin cuộc trò chuyện" })).toBeFocused();
+    await page.waitForTimeout(350);
+    await shot(page, "chat-info", width);
+    await page.keyboard.press("Escape");
     await page.goto("/#/settings");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await shot(page, "settings", width);

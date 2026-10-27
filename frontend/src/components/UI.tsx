@@ -4,8 +4,10 @@ import {
   useId,
   useRef,
   type ReactNode,
+  type RefObject,
   type ButtonHTMLAttributes,
 } from "react";
+import { focusRouteHeading } from "./focusHeading";
 import { X, ShieldCheck } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -50,11 +52,15 @@ export function Dialog({
   children,
   onClose,
   destructive = false,
+  initialFocus,
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
+  /** Destructive dialogs focus their [data-cancel] action first. */
   destructive?: boolean;
+  /** Explicit first focus, e.g. the field a rename dialog exists for. */
+  initialFocus?: RefObject<HTMLElement | null>;
 }) {
   const ref = useRef<HTMLDialogElement>(null),
     id = useId();
@@ -81,14 +87,17 @@ export function Dialog({
     const before = document.activeElement as HTMLElement;
     const el = ref.current!;
     el.showModal();
-    const first = destructive
-      ? el.querySelector<HTMLElement>("[data-cancel]")
-      : el.querySelector<HTMLElement>("button,input,textarea,select");
+    const first = initialFocus?.current
+      ?? (destructive
+        ? el.querySelector<HTMLElement>("[data-cancel]")
+        : el.querySelector<HTMLElement>("button,input,textarea,select"));
     first?.focus();
+    if (first instanceof HTMLInputElement) first.select();
     return () => {
       el.close();
-      if (before?.isConnected) before.focus();
-      else document.querySelector<HTMLElement>("h1")?.focus();
+      // Back to the trigger; if it is gone, to the visible destination heading.
+      if (before?.isConnected && before.getClientRects().length > 0) before.focus();
+      else focusRouteHeading();
     };
   }, [destructive]);
   return (
@@ -123,7 +132,7 @@ export function Dialog({
     >
       <div className={styles.dialogHeader}>
         <h2 id={id}>{title}</h2>
-        <Button variant="text" aria-label="Đóng hộp thoại" onClick={onClose}>
+        <Button variant="text" aria-label="Đóng hộp thoại" data-dialog-close onClick={onClose}>
           <X size={21} />
         </Button>
       </div>

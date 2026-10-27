@@ -281,9 +281,9 @@ export function ConversationHistory({ onSelect }: { onSelect?: () => void }) {
     else groups.push([item.botId, [item]]);
   }
   return (
-    <section className="conversation-history" aria-label="Lịch sử hội thoại">
+    <section className="conversation-history" aria-label="Lịch sử trò chuyện">
       <div className="history-heading">
-        <h2>Hội thoại của bạn</h2>
+        <h2>Lịch sử trò chuyện</h2>
         <Button
           variant="text"
           disabled={loading}
@@ -292,13 +292,13 @@ export function ConversationHistory({ onSelect }: { onSelect?: () => void }) {
           Làm mới
         </Button>
       </div>
-      {loading ? <p role="status">Đang tải hội thoại…</p> : null}
+      {loading ? <p role="status">Đang tải lịch sử trò chuyện…</p> : null}
       <ErrorNotice
         error={error}
         retry={() => setRevision((value) => value + 1)}
       />
       {!loading && !error && !items.length ? (
-        <p>Chưa có hội thoại. Chọn một trợ lý để bắt đầu.</p>
+        <p>Chưa có cuộc trò chuyện nào. Chọn một trợ lý để bắt đầu.</p>
       ) : null}
       {groups.map(([botId, group]) => (
         <div className="history-group" key={botId}>
@@ -336,12 +336,12 @@ export function ConversationHistory({ onSelect }: { onSelect?: () => void }) {
           disabled={olderBusy || loading}
           onClick={() => void older()}
         >
-          {olderBusy ? "Đang tải…" : "Tải hội thoại cũ hơn"}
+          {olderBusy ? "Đang tải…" : "Tải cuộc trò chuyện cũ hơn"}
         </Button>
       ) : null}
       <p>
         <Link to="/settings" onClick={onSelect}>
-          Lựa chọn lưu lịch sử
+          Cài đặt lưu lịch sử
         </Link>
       </p>
     </section>

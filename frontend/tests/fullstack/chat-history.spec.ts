@@ -79,6 +79,7 @@ test("real saved history requires opt-in, resumes by URL, and stays manageable a
       .getByRole("log")
       .getByText("Một buổi sáng tổng hợp để kiểm tra lịch sử", { exact: true }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
   await page
     .getByRole("button", { name: "Cuộc trò chuyện mới", exact: true })
     .click();
@@ -99,7 +100,7 @@ test("real saved history requires opt-in, resumes by URL, and stays manageable a
       .getByText("Mây đã nhận được chia sẻ của bạn qua SDK.", { exact: true }),
   ).toBeVisible();
   await page
-    .getByRole("region", { name: "Lịch sử hội thoại", exact: true })
+    .getByRole("region", { name: "Lịch sử trò chuyện", exact: true })
     .getByRole("link", { name: /Một buổi sáng tổng hợp/ })
     .click();
   await expect(
@@ -136,8 +137,9 @@ test("real saved history requires opt-in, resumes by URL, and stays manageable a
     page.getByRole("button", { name: "Gửi tin cho AI", exact: true }),
   ).toHaveCount(0);
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
   await page
-    .getByRole("button", { name: "Mở lịch sử hội thoại", exact: true })
+    .getByRole("button", { name: "Mở lịch sử trò chuyện", exact: true })
     .click();
   await expect(
     page
@@ -160,18 +162,20 @@ test("real saved history requires opt-in, resumes by URL, and stays manageable a
     fullPage: true,
   });
   // Renaming is history management, so it works with AI and saving both off.
+  await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
   await page.getByRole("button", { name: "Đổi tên", exact: true }).click();
   await page
-    .getByRole("dialog", { name: "Đổi tên hội thoại" })
-    .getByRole("textbox", { name: "Tên hội thoại", exact: true })
+    .getByRole("dialog", { name: "Đổi tên cuộc trò chuyện" })
+    .getByRole("textbox", { name: "Tên cuộc trò chuyện", exact: true })
     .fill("Buổi sáng đã đặt tên");
   await page.getByRole("button", { name: "Lưu tên", exact: true }).click();
   await expect(
-    page.getByText("Đã đổi tên hội thoại.", { exact: true }),
+    page.getByText("Đã đổi tên cuộc trò chuyện.", { exact: true }),
   ).toBeVisible();
   await page.reload();
+  await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
   await page
-    .getByRole("button", { name: "Mở lịch sử hội thoại", exact: true })
+    .getByRole("button", { name: "Mở lịch sử trò chuyện", exact: true })
     .click();
   await expect(
     page
@@ -179,18 +183,20 @@ test("real saved history requires opt-in, resumes by URL, and stays manageable a
       .getByRole("link", { name: /Buổi sáng đã đặt tên/ }),
   ).toBeVisible();
   await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
   const downloaded = page.waitForEvent("download");
   await page
-    .getByRole("button", { name: "Xuất hội thoại", exact: true })
+    .getByRole("button", { name: "Tải xuống cuộc trò chuyện", exact: true })
     .click();
   expect((await downloaded).suggestedFilename()).toBe(
     `moodprint-conversation-${conversationId}.json`,
   );
   await page
-    .getByRole("button", { name: "Xóa hội thoại", exact: true })
+    .getByRole("button", { name: "Xóa cuộc trò chuyện", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Xác nhận xóa hội thoại", exact: true })
+    .getByRole("dialog", { name: "Xóa cuộc trò chuyện này?" })
+    .getByRole("button", { name: "Xóa cuộc trò chuyện", exact: true })
     .click();
   await expect(
     page

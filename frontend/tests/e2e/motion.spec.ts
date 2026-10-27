@@ -52,8 +52,8 @@ async function openRename(page: Page) {
 
 async function openRenameDialog(page: Page) {
   // Rename lives in the conversation info surface once it exists.
-  const info = page.getByRole("button", { name: "Thông tin cuộc trò chuyện" });
-  if (await info.count()) await info.click();
+  const info = page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true });
+  if ((await info.getAttribute("aria-expanded")) !== "true") await info.click();
   await page.getByRole("button", { name: "Đổi tên", exact: true }).click();
 }
 
