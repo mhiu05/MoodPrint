@@ -808,7 +808,7 @@ test.describe("personal journeys", () => {
     return writes;
   }
   async function transcribe(page: Page) {
-    await page.getByRole("button", { name: "Ghi âm tối đa 30 giây" }).click();
+    await page.getByRole("button", { name: "Ghi âm", exact: true }).click();
     await expect(page.getByText(/Đang ghi âm · [1-9]/)).toBeVisible();
     await page.getByRole("button", { name: "Dừng và chuyển thành văn bản" }).click();
     await expect(page.getByRole("textbox", { name: "Xem và sửa bản chép lời" })).toHaveValue("Bản chép lời thử");
@@ -855,12 +855,12 @@ test.describe("personal journeys", () => {
     await voiceChat(page);
     const uploads: string[] = [];
     page.on("request", (request) => { if (request.url().includes("/voice/transcriptions")) uploads.push(request.url()); });
-    await page.getByRole("button", { name: "Ghi âm tối đa 30 giây" }).click();
+    await page.getByRole("button", { name: "Ghi âm", exact: true }).click();
     await page.getByRole("button", { name: "Dừng và chuyển thành văn bản" }).click();
     await expect(page.getByRole("alert")).toContainText("Bản ghi quá ngắn");
     await expect(page.getByRole("alert")).not.toContainText("kết nối");
     expect(uploads).toEqual([]);
-    await expect(page.getByRole("button", { name: "Ghi âm tối đa 30 giây" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Ghi âm", exact: true })).toBeVisible();
   });
 
   test("first-time sign in explains what MoodPrint is in one sentence", async ({ page }) => {

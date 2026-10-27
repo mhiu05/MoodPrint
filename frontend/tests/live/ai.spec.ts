@@ -240,7 +240,7 @@ test("synthetic media stream, real STT preview, edit, explicit send and proposal
     for (const purpose of ["AI", "MEM", "VOICE"]) await consent(context, purpose, true);
     await page.goto(base + "/#/assistants/may");
     await page.reload();
-    await page.getByRole("button", { name: "Ghi âm tối đa 30 giây", exact: true }).click();
+    await page.getByRole("button", { name: "Ghi âm", exact: true }).click();
     await expect(page.getByRole("status").filter({ hasText: "Đang ghi âm" }), `Microphone startup errors: ${browserErrors.join("; ")}`).toContainText(/8\/30/);
     await page.getByRole("button", { name: "Dừng và chuyển thành văn bản", exact: true }).click();
     const preview = page.getByRole("textbox", { name: "Xem và sửa bản chép lời", exact: true });

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowUpRight, Users } from "lucide-react";
 import { Button, cx, Dialog, StatePanel } from "../../../components/UI";
 import type { components } from "../../../api/generated/schema";
 import { ErrorNotice, useResource, useSession } from "../RealApp";
@@ -423,42 +422,5 @@ export function Discovery() {
         </Dialog>
       )}
     </div>
-  );
-}
-
-/**
- * The bridge under the assistant list. Adults with matching available but no live
- * profile get the nudge to create one (08 section 1, step 3); everyone else keeps the
- * plain link.
- */
-export function ConnectBridge() {
-  const { session } = useSession();
-  const eligible = session.features.matching && session.ageBand === "adult";
-  const published = useResource<Published | null>(
-    "/profiles/published/current",
-    eligible,
-  );
-  const nudge = eligible && !published.loading && !published.error && published.data?.state !== "live";
-  return nudge ? (
-    <Link className="human-bridge" to="/connect?tab=profile">
-      <span className="bridge-icon">
-        <Users size={21} />
-      </span>
-      <span>
-        <strong>Muốn tìm bạn từ những điểm chung?</strong>
-        <small>Tạo hồ sơ tìm bạn</small>
-      </span>
-      <ArrowUpRight size={18} />
-    </Link>
-  ) : (
-    <Link className="human-bridge" to="/connect">
-      <span className="bridge-icon">
-        <Users size={21} />
-      </span>
-      <span>
-        <strong>Tìm người có cùng sở thích</strong>
-      </span>
-      <ArrowUpRight size={18} />
-    </Link>
   );
 }

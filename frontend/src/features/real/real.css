@@ -80,6 +80,36 @@
 .real-voice {
   margin: 0 12px 12px;
 }
+.bot-composer > .real-voice-idle {
+  flex: 0 0 var(--control-min);
+  margin: 0;
+}
+.bot-composer > .real-voice:not(.real-voice-idle) {
+  flex: 1 0 100%;
+  order: -1;
+  margin: 0;
+}
+.voice-record-button {
+  display: grid;
+  width: var(--control-min);
+  height: var(--control-min);
+  flex: 0 0 var(--control-min);
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: background var(--duration-feedback) var(--ease-state);
+}
+.voice-record-button:hover {
+  background: var(--color-success-bg);
+}
+.voice-record-button:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
 
 .ai-markdown > :first-child {
   margin-top: 0;

@@ -127,26 +127,32 @@ test("pending invitations badge the nav and the tab, and the nav opens them", as
   await expect(page.getByRole("tab", { name: "Gợi ý" })).toHaveAttribute("aria-selected", "true");
 });
 
-test("the profile nudge shows only for adults without a live profile", async ({ page }) => {
+test("the main navigation opens the profile editor for adults without a live profile", async ({ page }) => {
   await mock(page);
   await page.goto("/#/assistants");
-  const nudge = page.getByRole("link", { name: /Muốn tìm bạn từ những điểm chung?\?/ });
-  await expect(nudge).toContainText("Tạo hồ sơ tìm bạn");
-  await expect(nudge).toHaveAttribute("href", "#/connect?tab=profile");
-  await nudge.click();
+  const connect = page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("link", { name: "Tìm bạn", exact: true });
+  await expect(connect).toHaveAttribute("href", "#/connect");
+  await connect.click();
   await expect(page.getByRole("tab", { name: "Hồ sơ tìm bạn" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tabpanel", { name: "Hồ sơ tìm bạn" })).toContainText("Chỉnh hồ sơ tìm bạn");
 });
 
-test("a live profile keeps the plain bridge link instead of the nudge", async ({ page }) => {
+test("the main navigation opens suggestions for a live profile", async ({ page }) => {
   await mock(page, { live: true });
   await page.goto("/#/assistants");
-  await expect(page.getByRole("link", { name: /Tìm người có cùng sở thích/ })).toHaveAttribute("href", "#/connect");
-  await expect(page.getByText("Muốn tìm bạn từ những điểm chung?")).toHaveCount(0);
+  await page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("link", { name: "Tìm bạn", exact: true }).click();
+  await expect(page.getByRole("tab", { name: "Gợi ý" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tabpanel", { name: "Gợi ý" })).toBeVisible();
 });
 
-test("minors never see the nudge", async ({ page }) => {
+test("minors can navigate to the matching eligibility explanation without loading candidates", async ({ page }) => {
+  const reads: string[] = [];
+  page.on("request", (request) => { if (request.url().includes("/matching/candidates")) reads.push(request.url()); });
   await mock(page, { ageBand: "teen" });
   await page.goto("/#/assistants");
-  await expect(page.getByRole("link", { name: /Tìm người có cùng sở thích/ })).toBeVisible();
-  await expect(page.getByText("Muốn tìm bạn từ những điểm chung?")).toHaveCount(0);
+  await page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("link", { name: "Tìm bạn", exact: true }).click();
+  await expect(page).toHaveURL(/#\/connect$/);
+  await expect(page.getByRole("tablist", { name: "Tìm bạn" })).toHaveCount(0);
+  await expect(page.getByRole("main")).toContainText("18");
+  expect(reads).toEqual([]);
 });

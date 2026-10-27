@@ -305,40 +305,6 @@ button {
 .roster-arrow {
   display: none;
 }
-.human-bridge {
-  margin: 20px 0 12px;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  padding: 14px 12px;
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md);
-  background: #fbfaf3;
-  text-decoration: none;
-  color: var(--color-ink);
-}
-.human-bridge > span:nth-child(2) {
-  flex: 1;
-  min-width: 0;
-}
-.human-bridge strong {
-  display: block;
-  font-weight: 600;
-  font-size: var(--text-label);
-}
-.human-bridge small {
-  font-size: var(--text-meta);
-  color: var(--color-muted);
-}
-.bridge-icon {
-  display: grid;
-  place-items: center;
-  background: #ecefdc;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  flex: 0 0 36px;
-}
 .conversation-pane {
   background: var(--color-bg);
   min-width: 0;
@@ -734,6 +700,7 @@ button {
 }
 .bot-composer {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: 8px;
   background: var(--color-surface);
@@ -746,6 +713,8 @@ button {
   outline-offset: 2px;
 }
 .bot-composer textarea {
+  flex: 1 1 0;
+  min-width: 0;
   background: transparent;
   padding: 10px;
   min-height: var(--control-min);

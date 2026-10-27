@@ -75,6 +75,44 @@ async function api(page: Page, authenticated = true) {
   });
 }
 
+test("AI starters edit the draft without sending and stay hidden after the first accepted user message", async ({ page }) => {
+  await api(page);
+  const sent: unknown[] = [];
+  await page.route(`**/api/v1/ai/conversations/${conversation.conversationId}`, (route) => route.fulfill({
+    json: {
+      ...conversation, version: sent.length ? 3 : 1,
+      messages: sent.length ? [
+        { id: "stored-self", actor: "self", text: "Hôm nay mình hơi mệt" },
+        { id: "stored-final", actor: "bot", text: "Mình đang lắng nghe bạn." },
+      ] : [],
+    },
+  }));
+  await page.route(`**/api/v1/ai/conversations/${conversation.conversationId}/messages`, (route) => {
+    sent.push(route.request().postDataJSON());
+    return route.fulfill({ status: 202, json: {
+      runId: "33333333-3333-4333-8333-333333333333",
+      conversationId: conversation.conversationId, version: 2, runVersion: 1,
+      eventsUrl: "/api/v1/ai/runs/33333333-3333-4333-8333-333333333333/events",
+    } });
+  });
+  await page.route("**/api/v1/ai/runs/*/events", (route) => route.fulfill({
+    contentType: "text/event-stream",
+    body: [
+      { version: "ai-events-v1", seq: "1", type: "final", data: { text: "Mình đang lắng nghe bạn.", cards: [] } },
+      { version: "ai-events-v1", seq: "2", type: "completed", data: {} },
+    ].map((event) => `data: ${JSON.stringify(event)}\n\n`).join(""),
+  }));
+  await page.goto("/#/assistants/may?new=1");
+  const starter = page.getByRole("button", { name: "Hôm nay mình hơi mệt", exact: true });
+  await starter.click();
+  await expect(page.getByRole("textbox", { name: "Tin nhắn cho Mây" })).toHaveValue("Hôm nay mình hơi mệt");
+  expect(sent).toEqual([]);
+  await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
+  await expect(page.getByText("Mình đang lắng nghe bạn.", { exact: true })).toBeVisible();
+  await expect(starter).toHaveCount(0);
+  expect(sent).toHaveLength(1);
+});
+
 async function scopedNhip(page: Page, submitted: any[], fail = false) {
   await api(page);
   await page.route("**/api/v1/bots", route => route.fulfill({ json: [{ ...bot, botId: "nhip", name: "Nhịp", avatarKey: "nhip" }] }));
@@ -482,12 +520,12 @@ test("voice waits for a click and handles microphone denial", async ({ page }) =
     consents: { ...session.consents, VOICE: { enabled: true, version: 2, policyVersion: "v1" } },
   } }));
   await page.goto("/#/assistants/may");
-  await expect(page.getByRole("button", { name: "Ghi âm tối đa 30 giây" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ghi âm", exact: true })).toBeVisible();
   expect(await page.evaluate(() => (window as any).__microphoneCalls)).toBe(0);
-  await page.getByRole("button", { name: "Ghi âm tối đa 30 giây" }).click();
+  await page.getByRole("button", { name: "Ghi âm", exact: true }).click();
   await expect.poll(() => page.evaluate(() => (window as any).__microphoneCalls)).toBe(1);
   await expect(page.getByRole("alert").first()).toBeVisible();
-  await expect(page.getByRole("button", { name: "Ghi âm tối đa 30 giây" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ghi âm", exact: true })).toBeVisible();
 });
 
 test("AI presents the validated final and rejects raw stream deltas", async ({

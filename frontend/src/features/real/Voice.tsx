@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Mic } from "lucide-react";
 import { Button, cx } from "../../components/UI";
 import { ApiError } from "../../api/client";
 import { ErrorNotice, useSession } from "./RealApp";
@@ -215,13 +216,18 @@ export function VoiceRecorder({ draft, onUse }: { draft: string; onUse: (text: s
   if (!session.features.voice)
     return null;
   return (
-    <section className="real-voice" aria-label="Nhập bằng giọng nói">
-      <p className={cx.footnote}>Chỉ ghi sau khi bạn chọn Ghi âm và trình duyệt cho phép. Âm thanh được gửi đến OpenAI để chuyển thành chữ, không lưu bản âm thanh; bạn xem và sửa chữ trước khi gửi.</p>
+    <section className={`real-voice${state === "idle" && !error ? " real-voice-idle" : ""}`} aria-label="Nhập bằng giọng nói">
       <ErrorNotice error={error} />
       {state === "idle" && (
-        <Button variant="text" onClick={() => void start()}>
-          Ghi âm tối đa 30 giây
-        </Button>
+        <button
+          type="button"
+          className="voice-record-button"
+          aria-label="Ghi âm"
+          title="Ghi âm"
+          onClick={() => void start()}
+        >
+          <Mic size={20} aria-hidden="true" />
+        </button>
       )}
       {state === "starting" ? <p role="status">Đang chờ quyền dùng micro…</p> : null}
       {state === "recording" && (

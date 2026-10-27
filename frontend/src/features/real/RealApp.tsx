@@ -66,7 +66,7 @@ import type {
   VersionInput,
 } from "../../api/contracts";
 import "./real.css";
-import { ConnectBridge, Discovery } from "./social/Discovery";
+import { Discovery } from "./social/Discovery";
 import { OfflineBanner } from "./OfflineBanner";
 import { AssistantGuide } from "./AssistantGuide";
 import { aiServiceMessage } from "./aiStatus";
@@ -593,7 +593,6 @@ function Assistants() {
           </div>
         ) : null}
         <ConversationHistory />
-        <ConnectBridge />
       </section>
       <section
         className="conversation-pane"
@@ -751,6 +750,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const moodSelected = bot.botId === "nhip" && shareMood;
   const moodInvalid = moodSelected && (!moodFrom || !moodTo || moodFrom > moodTo ||
     moodFrom < moodWindow.earliest || moodTo > moodWindow.today);
+  const hasUserMessages = conversation?.messages.some((message) => message.actor === "self") ?? false;
+  const showStarters = !loading && !busy && !hasUserMessages;
   const update = useCallback((value: SavedConversation) => {
     current.current = value;
     setConversation(value);
@@ -1500,26 +1501,20 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           </details>
           </>
         ) : null}
-        <VoiceRecorder
-          draft={draft}
-          onUse={(text) => {
-            editDraft(text);
-            setDraftNotice("");
-            requestAnimationFrame(() => composer.current?.focus());
-          }}
-        />
-        <div className="quick-replies" aria-label="Gợi ý trò chuyện">
-          {bot.starters.map((text) => (
-            <button
-              type="button"
-              key={text}
-              disabled={loading || !ready}
-              onClick={() => insertStarter(text)}
-            >
-              {text}
-            </button>
-          ))}
-        </div>
+        {showStarters ? (
+          <div className="quick-replies" aria-label="Gợi ý trò chuyện">
+            {bot.starters.map((text) => (
+              <button
+                type="button"
+                key={text}
+                disabled={loading || !ready}
+                onClick={() => insertStarter(text)}
+              >
+                {text}
+              </button>
+            ))}
+          </div>
+        ) : null}
         {draftNotice ? <p className={cx.footnote} role="status">{draftNotice}</p> : null}
         <QuotaHint />
         <form
@@ -1546,6 +1541,14 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
                 event.preventDefault();
                 void send();
               }
+            }}
+          />
+          <VoiceRecorder
+            draft={draft}
+            onUse={(text) => {
+              editDraft(text);
+              setDraftNotice("");
+              requestAnimationFrame(() => composer.current?.focus());
             }}
           />
           <button
