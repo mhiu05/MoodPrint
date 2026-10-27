@@ -51,7 +51,7 @@ DEFINITIONS: dict[str, Definition] = {
         timedelta(minutes=10),
         None,
         "Cùng tập trung",
-        "Một phiên Pomodoro chung: cùng tập trung, cùng nghỉ, đồng hồ do máy chủ giữ.",
+        "Cùng tập trung theo thời gian đã chọn. Hai bạn có thể tạm dừng hoặc kết thúc phiên.",
         30,
     ),
 }

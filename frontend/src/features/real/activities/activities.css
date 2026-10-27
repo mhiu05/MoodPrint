@@ -360,3 +360,12 @@
     transition: none;
   }
 }
+
+.quiz-reveal li,
+.reveal-bubble,
+.quiz-options button,
+.invite-card {
+  transition:
+    border-color var(--duration-state) var(--ease-state),
+    background-color var(--duration-state) var(--ease-state);
+}
