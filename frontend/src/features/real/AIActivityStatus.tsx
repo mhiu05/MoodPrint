@@ -49,10 +49,13 @@ export function AIActivityStatus({
   const { animate } = useMotionPolicy();
   const loop = view.orbState === "working" && animate;
   const shown = Boolean(view.label);
-  // M10: the wrapper (never the canvas or text) rises at most 4px on a phase change.
+  // M10: the wrapper (never the canvas or text) rises at most 4px only when an
+  // accepted run begins. Sending stays static (14), and terminal/reconciling
+  // changes coincide with the validated reply, which must render without extra work.
+  const entering = phase === "accepted";
   useGSAP(
     () => {
-      if (!shown) return;
+      if (!shown || !entering) return;
       const media = gsap.matchMedia();
       media.add("(prefers-reduced-motion: no-preference)", () => {
         gsap.from(wrapper.current, { y: 4, duration: 0.16, ease: "power2.out", clearProps: "transform" });

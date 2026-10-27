@@ -127,3 +127,46 @@ test("rapidly opening and closing a dialog leaves no open dialog, inert page or 
   expect(state).toEqual({ inert: 0, styled: [] });
   await expect(page.getByRole("textbox", { name: "Tin nhắn cho Mây" })).toBeEditable();
 });
+
+test("the AI status wrapper moves only when an accepted run begins, never while sending or as the reply lands", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  const CONV = "22222222-2222-4222-8222-222222222222", RUN = "33333333-3333-4333-8333-333333333333";
+  const thread = { conversationId: CONV, botId: "may", version: 1, persistent: false, messages: [], hasMoreMessages: false, activeRunId: null, activeRunVersion: null };
+  let accept: () => void = () => {}, finish: () => void = () => {};
+  const accepted = new Promise<void>((resolve) => { accept = resolve; });
+  const finished = new Promise<void>((resolve) => { finish = resolve; });
+  await app(page, baseSession, { "/ai/conversations": (request) => (request.method() === "GET" ? { json: [] } : { status: 201, json: thread }), [`/ai/conversations/${CONV}`]: () => ({ json: thread }) });
+  await page.route(`**/api/v1/ai/conversations/${CONV}/messages`, async (route) => { await accepted; await route.fulfill({ status: 202, json: { runId: RUN, conversationId: CONV, version: 2, runVersion: 1, eventsUrl: `/api/v1/ai/runs/${RUN}/events` } }); });
+  await page.route(`**/api/v1/ai/runs/${RUN}/events`, async (route) => {
+    await finished;
+    await route.fulfill({ contentType: "text/event-stream", body: [{ type: "final", data: { text: "Xong.", cards: [] } }, { type: "completed", data: {} }].map((event, index) => `data: ${JSON.stringify({ version: "ai-events-v1", seq: String(index + 1), ...event })}\n\n`).join("") });
+  });
+  await page.goto("/#/assistants/may?new=1");
+  await page.evaluate(() => {
+    const samples: Record<string, string[]> = {};
+    (window as any).statusSamples = samples;
+    const read = () => {
+      const wrapper = document.querySelector<HTMLElement>(".ai-status");
+      const label = wrapper?.querySelector("[role=status]")?.textContent || "idle";
+      const key = /gửi/.test(label) ? "sending" : /chuẩn bị/.test(label) ? "accepted" : document.querySelector(".from-bot") ? "final" : "other";
+      (samples[key] ||= []).push(wrapper ? getComputedStyle(wrapper).transform : "none");
+    };
+    new MutationObserver(read).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true });
+    const tick = () => { read(); requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  });
+  await page.getByRole("textbox", { name: "Tin nhắn cho Mây" }).fill("Xin chào");
+  await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
+  await expect(page.locator(".ai-status [role=status]")).toHaveText("Đang gửi tin nhắn…");
+  await page.waitForTimeout(250);
+  accept();
+  await expect(page.locator(".ai-status [role=status]")).toHaveText("Đang chuẩn bị câu trả lời…");
+  await page.waitForTimeout(300);
+  finish();
+  await expect(page.locator(".from-bot .chat-bubble")).toContainText("Xong.");
+  await page.waitForTimeout(300);
+  const samples: Record<string, string[]> = await page.evaluate(() => (window as any).statusSamples);
+  expect(samples.sending.every((value) => value === "none")).toBe(true);
+  expect((samples.final ?? []).every((value) => value === "none")).toBe(true);
+  for (const value of samples.accepted) if (value !== "none") expect(Math.abs(Number(value.replace(/matrix\(|\)/g, "").split(",")[5]))).toBeLessThanOrEqual(4);
+});
