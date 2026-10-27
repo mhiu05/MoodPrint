@@ -229,7 +229,7 @@ test("real FastAPI/PostgreSQL preserves private records and mood, streams throug
     .fill("Một ngày bình yên");
   await one.getByRole("button", { name: "Lưu tâm trạng", exact: true }).click();
   await expect(
-    one.getByText("Đã lưu tâm trạng.", { exact: true }),
+    one.getByText(/^Đã lưu cảm xúc ngày \d{2}\/\d{2}\/\d{4}\.$/),
   ).toBeVisible();
   await one.reload();
   await expect(

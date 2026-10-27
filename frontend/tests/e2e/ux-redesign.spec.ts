@@ -769,3 +769,124 @@ test.describe("human chat continuity and safety", () => {
     await expect(open).toBeFocused();
   });
 });
+
+// ---- Auth orientation, personal profile, mood and voice (V-AUTH / V-MOOD / V-VOICE-DRAFT) ----
+test.describe("personal journeys", () => {
+  async function voiceChat(page: Page) {
+    const writes: string[] = [];
+    page.on("request", (request) => {
+      if (request.method() !== "GET" && /ai\/conversations|consents/.test(request.url())) writes.push(request.url());
+    });
+    await page.addInitScript(() => {
+      // A synthetic microphone: a quiet oscillator through the real AudioWorklet path.
+      Object.defineProperty(navigator, "mediaDevices", {
+        configurable: true,
+        value: {
+          getUserMedia: async () => {
+            const context = new AudioContext();
+            const oscillator = context.createOscillator();
+            const destination = context.createMediaStreamDestination();
+            oscillator.connect(destination);
+            oscillator.start();
+            return destination.stream;
+          },
+        },
+      });
+    });
+    await app(page, sessionWith({ AI: true, VOICE: true }, { features: { ai: true, matching: true, voice: true } }), {
+      "/voice/transcriptions": () => ({ json: { text: "Bản chép lời thử", durationSeconds: 1 } }),
+    });
+    await page.route("**/api/v1/voice/transcriptions", (route) => route.fulfill({ json: { text: "Bản chép lời thử", durationSeconds: 1 } }));
+    await page.goto("/#/assistants/may?new=1");
+    return writes;
+  }
+  async function transcribe(page: Page) {
+    await page.getByRole("button", { name: "Ghi âm tối đa 30 giây" }).click();
+    await expect(page.getByText(/Đang ghi âm · [1-9]/)).toBeVisible();
+    await page.getByRole("button", { name: "Dừng và xem bản chữ" }).click();
+    await expect(page.getByRole("textbox", { name: "Xem và sửa bản chữ" })).toHaveValue("Bản chép lời thử");
+  }
+
+  test("a transcript fills an empty composer only when chosen, and never sends", async ({ page }) => {
+    const writes = await voiceChat(page);
+    const draft = page.getByRole("textbox", { name: "Tin nhắn cho Mây" });
+    await transcribe(page);
+    await page.getByRole("button", { name: "Đưa vào ô tin nhắn" }).click();
+    await expect(draft).toHaveValue("Bản chép lời thử");
+    await expect(draft).toBeFocused();
+    expect(writes).toEqual([]);
+  });
+
+  test("with a draft already typed, the transcript is appended or replaces it only by explicit choice", async ({ page }) => {
+    const writes = await voiceChat(page);
+    const draft = page.getByRole("textbox", { name: "Tin nhắn cho Mây" });
+    await draft.fill("Chào Mây.");
+    await transcribe(page);
+    await expect(page.getByRole("button", { name: "Đưa vào ô tin nhắn" })).toHaveCount(0);
+    await page.getByRole("button", { name: "Thêm vào tin nhắn" }).click();
+    await expect(draft).toHaveValue("Chào Mây. Bản chép lời thử");
+    await transcribe(page);
+    await page.getByRole("button", { name: "Giữ tin nhắn đang soạn" }).click();
+    await expect(draft).toHaveValue("Chào Mây. Bản chép lời thử");
+    await transcribe(page);
+    await page.getByRole("button", { name: "Thay nội dung" }).click();
+    await expect(draft).toHaveValue("Bản chép lời thử");
+    expect(writes).toEqual([]);
+  });
+
+  test("stopping before any sound is captured says the recording is too short, without uploading", async ({ page }) => {
+    // A microphone that has not delivered any audio yet: frames never reach the app.
+    await page.addInitScript(() => {
+      const Original = window.AudioWorkletNode;
+      window.AudioWorkletNode = class extends Original {
+        constructor(...args: ConstructorParameters<typeof AudioWorkletNode>) {
+          super(...args);
+          Object.defineProperty(this.port, "onmessage", { configurable: true, get: () => null, set: () => undefined });
+        }
+      };
+    });
+    await voiceChat(page);
+    const uploads: string[] = [];
+    page.on("request", (request) => { if (request.url().includes("/voice/transcriptions")) uploads.push(request.url()); });
+    await page.getByRole("button", { name: "Ghi âm tối đa 30 giây" }).click();
+    await page.getByRole("button", { name: "Dừng và xem bản chữ" }).click();
+    await expect(page.getByRole("alert")).toContainText("Bản ghi quá ngắn");
+    await expect(page.getByRole("alert")).not.toContainText("kết nối");
+    expect(uploads).toEqual([]);
+    await expect(page.getByRole("button", { name: "Ghi âm tối đa 30 giây" })).toBeVisible();
+  });
+
+  test("first-time sign in explains what MoodPrint is in one sentence", async ({ page }) => {
+    await page.route("**/api/v1/session", (route) => route.fulfill({ status: 401, json: { error: { code: "AUTH_REQUIRED", message: "Vui lòng đăng nhập." } } }));
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: "Chào bạn trở lại" })).toBeVisible();
+    await expect(page.getByText(/MoodPrint là nơi/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Đăng nhập", exact: true })).toBeInViewport();
+  });
+
+  test("the private profile field shows its remaining characters", async ({ page }) => {
+    await app(page, baseSession, { "/profiles/private-items": () => ({ json: [] }), "/users/me/identity": () => ({ json: [] }) });
+    await page.goto("/#/profile");
+    const field = page.getByLabel("Điều bạn muốn ghi lại");
+    await field.fill("Mình thích đi bộ");
+    await expect(field).toHaveAccessibleDescription(/16\/120 ký tự/);
+  });
+
+  test("saving a mood confirms the exact day next to the form", async ({ page }) => {
+    let saved: unknown;
+    await app(page, baseSession, {
+      "/moods": () => ({ json: saved ? [saved] : [] }),
+      "/moods/summary": () => ({ json: { from: "2026-10-17", to: "2026-10-23", count: 0, mean: null, min: null, max: null, insightAvailable: false, buckets: [] } }),
+    });
+    await page.route("**/api/v1/moods/*", (route) => {
+      if (route.request().method() !== "PUT") return route.fallback();
+      const body = route.request().postDataJSON();
+      saved = { localDate: "2026-10-23", value: body.value, note: body.note, version: 1 };
+      return route.fulfill({ json: saved });
+    });
+    await page.goto("/#/self");
+    await page.getByLabel("Tâm trạng", { exact: true }).selectOption("4");
+    await page.getByRole("button", { name: "Lưu tâm trạng", exact: true }).click();
+    await expect(page.getByText("Đã lưu cảm xúc ngày 23/10/2026.", { exact: true })).toBeVisible();
+  });
+});

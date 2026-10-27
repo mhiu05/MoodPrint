@@ -102,7 +102,7 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
     .getByRole("button", { name: "Lưu tâm trạng", exact: true })
     .click();
   await expect(
-    page.getByText("Đã lưu tâm trạng.", { exact: true }),
+    page.getByText(/^Đã lưu cảm xúc ngày \d{2}\/\d{2}\/\d{4}\.$/),
   ).toBeVisible();
   await expect(
     page.locator("article").getByText("Ghi chép MVP", { exact: true }),
@@ -125,7 +125,7 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
     .getByRole("button", { name: "Cập nhật tâm trạng", exact: true })
     .click();
   await expect(
-    page.getByText("Đã cập nhật tâm trạng.", { exact: true }),
+    page.getByText(/^Đã cập nhật cảm xúc ngày \d{2}\/\d{2}\/\d{4}\.$/),
   ).toBeVisible();
   await expect(page.locator("article h3").first()).toContainText("2/5");
   const stored = (await call(context, 10, "GET", "/moods")).body;
@@ -457,7 +457,7 @@ test("Journey F: mood, matching and chat stay usable at 390px and 430px with the
   await one.getByLabel("Ghi chú", { exact: true }).fill("Ghi trên điện thoại");
   await one.getByRole("button", { name: "Lưu tâm trạng", exact: true }).click();
   await expect(
-    one.getByText("Đã lưu tâm trạng.", { exact: true }),
+    one.getByText(/^Đã lưu cảm xúc ngày \d{2}\/\d{2}\/\d{4}\.$/),
   ).toBeVisible();
   await expect(one.getByText(/Trung bình từ 1\/7 ngày có ghi/)).toBeVisible();
   await noHorizontalOverflow(one);

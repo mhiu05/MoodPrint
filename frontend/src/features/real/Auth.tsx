@@ -172,6 +172,9 @@ export function AuthScreen({
     <main id="main" className="real-auth">
       <Brand />
       <h1 tabIndex={-1}>{titles[mode][0]}</h1>
+      {mode === "login" || mode === "signup" ? (
+        <p>MoodPrint là nơi ghi lại cảm xúc, trò chuyện với trợ lý AI và kết nối với người khác qua những điểm chung bạn chọn chia sẻ.</p>
+      ) : null}
       <p className={cx.lede}>{titles[mode][1]}</p>
       {notice && <p role="status">{notice}</p>}
       <ErrorNotice error={error} />

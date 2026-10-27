@@ -248,7 +248,7 @@ test("synthetic media stream, real STT preview, edit, explicit send and proposal
     expect((await preview.inputValue()).toLowerCase()).toContain("màu nước");
     const botCount = await page.locator(".from-bot").count();
     await preview.fill("Mình muốn đi dạo mười phút, chỉ trò chuyện thôi.");
-    await page.getByRole("button", { name: "Dùng bản chữ trong ô nhắn", exact: true }).click();
+    await page.getByRole("button", { name: "Đưa vào ô tin nhắn", exact: true }).click();
     const input = page.getByRole("textbox", { name: "Tin nhắn cho Mây" });
     await expect(input).toHaveValue("Mình muốn đi dạo mười phút, chỉ trò chuyện thôi.");
     expect(await page.locator(".from-bot").count()).toBe(botCount);

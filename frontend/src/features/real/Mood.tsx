@@ -137,7 +137,7 @@ export function Moods() {
       ]);
       setNote(saved.note);
       setSummaryRevision((n) => n + 1);
-      setReceipt(existing ? "Đã cập nhật tâm trạng." : "Đã lưu tâm trạng.");
+      setReceipt(`${existing ? "Đã cập nhật" : "Đã lưu"} cảm xúc ngày ${displayDate(saved.localDate)}.`);
     } catch (reason) {
       setError(reason);
       if (reason instanceof ApiError && reason.status === 409) {

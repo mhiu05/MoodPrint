@@ -1406,7 +1406,14 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           </details>
           </>
         ) : null}
-        <VoiceRecorder onUse={setDraft} />
+        <VoiceRecorder
+          draft={draft}
+          onUse={(text) => {
+            setDraft(text);
+            setDraftNotice("");
+            requestAnimationFrame(() => composer.current?.focus());
+          }}
+        />
         <div className="quick-replies" aria-label="Gợi ý trò chuyện">
           {bot.starters.map((text) => (
             <button
@@ -1702,9 +1709,13 @@ function PrivateProfile() {
           rows={3}
           maxLength={120}
           value={text}
+          aria-describedby="private-text-count"
           onChange={(event) => setText(event.target.value)}
           required
         />
+        <p id="private-text-count" className={cx.footnote}>
+          {text.length}/120 ký tự · Chỉ bạn xem.
+        </p>
         <div className={cx.actions}>
           <Button
             type="submit"

@@ -259,7 +259,7 @@ test("hosted Auth fixture: mood lifecycle with insights, and MATCH restore never
       .getByRole("button", { name: "Lưu tâm trạng", exact: true })
       .click();
     await expect(
-      page.getByText("Đã lưu tâm trạng.", { exact: true }),
+      page.getByText(/^Đã lưu cảm xúc ngày \d{2}\/\d{2}\/\d{4}\.$/),
     ).toBeVisible();
     await page.reload();
     await page.getByLabel("Ngày", { exact: true }).fill(target);
@@ -271,7 +271,7 @@ test("hosted Auth fixture: mood lifecycle with insights, and MATCH restore never
       .getByRole("button", { name: "Cập nhật tâm trạng", exact: true })
       .click();
     await expect(
-      page.getByText("Đã cập nhật tâm trạng.", { exact: true }),
+      page.getByText(/^Đã cập nhật cảm xúc ngày \d{2}\/\d{2}\/\d{4}\.$/),
     ).toBeVisible();
     const summary = await request(context, "GET", "/moods/summary?days=7");
     expect(summary.buckets.find((b: any) => b.localDate === target).value).toBe(
