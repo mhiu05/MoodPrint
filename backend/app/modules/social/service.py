@@ -70,6 +70,9 @@ def public_payload(body):
 
 async def match_consent(db: AsyncSession, user: User) -> Consent:
     consent = await db.get(Consent, (user.id, "MATCH"))
+    if user.account_kind != "registered":
+        # Requester or peer: a guest (even with forged consent/profile/room rows) is never social.
+        deny("MATCH_UNAVAILABLE")
     if user.social_restricted_until and user.social_restricted_until > now():
         # Their own moderation state: say so (the session also carries the notice).
         raise DomainError(
@@ -179,6 +182,9 @@ async def pair_transaction(request, actor: Actor, peer_id: UUID, lock: bool = Tr
         if len(mapping) != 2:
             missing()
         user = await verify_actor(db, actor, mapping[actor.user_id])
+        if user.account_kind != "registered" or mapping[peer_id].account_kind != "registered":
+            # No existence or content signal about a malformed legacy room or forged peer row.
+            missing()
         yield db, user, mapping[peer_id]
 
 

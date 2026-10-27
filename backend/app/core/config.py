@@ -91,7 +91,11 @@ class Settings(EmbeddingSettings, BaseSettings):
     @model_validator(mode="after")
     def guest_capacity_within_global(self):
         if self.guest_ai_global_concurrency > self.ai_global_concurrency:
-            raise ValueError("GUEST_AI_GLOBAL_CONCURRENCY cannot exceed AI_GLOBAL_CONCURRENCY")
+            if "guest_ai_global_concurrency" in self.model_fields_set:
+                raise ValueError("GUEST_AI_GLOBAL_CONCURRENCY cannot exceed AI_GLOBAL_CONCURRENCY")
+            # Existing deployments that only lowered the global cap keep working: the unset
+            # guest default is clamped instead of rejected.
+            self.guest_ai_global_concurrency = self.ai_global_concurrency
         return self
 
     @model_validator(mode="after")

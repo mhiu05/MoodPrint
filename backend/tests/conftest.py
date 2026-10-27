@@ -10,10 +10,6 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
-SESSION_HELPER = (
-    Path(__file__).resolve().parents[1] / "app/infrastructure/database/provider_session.sql"
-).read_text(encoding="utf-8")
-
 
 def _identity_helper() -> str:
     import importlib.util
@@ -71,7 +67,7 @@ async def database():
     from app.modules.moderation import models as safety_models  # noqa: F401
     from app.modules.social import models  # noqa: F401 -- register every table before reset
     from app.modules.users import models as lifecycle_models  # noqa: F401
-    from tests.guest_schema import install_guest_guards
+    from tests.guest_schema import install_auth_fixture, install_guest_guards
 
     engine = create_async_engine(url, connect_args={"prepare_threshold": None})
     async with engine.begin() as conn:
@@ -85,18 +81,7 @@ async def database():
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
         await install_guest_guards(conn)
-        await conn.execute(text("create schema if not exists auth"))
-        await conn.execute(
-            text(
-                "create table if not exists auth.sessions (id uuid primary key, user_id uuid not null)"
-            )
-        )
-        await conn.execute(text("truncate auth.sessions"))
-        await conn.execute(text("create table if not exists auth.users (id uuid primary key)"))
-        await conn.execute(text("truncate auth.users"))
-        await conn.execute(
-            text(SESSION_HELPER.replace("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION", 1))
-        )
+        await install_auth_fixture(conn)
         await conn.execute(text(IDENTITY_HELPER))
     yield engine
     await engine.dispose()

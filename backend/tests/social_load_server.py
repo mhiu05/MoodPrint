@@ -6,7 +6,6 @@ import hashlib
 import os
 import time
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5
 
 from tests.database_target import require_local_test_database
@@ -44,14 +43,10 @@ from app.modules.guests import models as guest_models  # noqa: F401
 from app.modules.moderation import models as safety_models  # noqa: F401
 from app.modules.social import models as social_models  # noqa: F401
 from app.modules.users import models as lifecycle_models  # noqa: F401
-from tests.guest_schema import install_guest_guards
+from tests.guest_schema import install_auth_fixture, install_guest_guards
 
 USERS = int(os.environ.get("MOODPRINT_LOAD_USERS", "50"))
 PORT = int(os.environ.get("MOODPRINT_LOAD_PORT", "8005"))
-SESSION_HELPER = (
-    Path(__file__).resolve().parents[1] / "app/infrastructure/database/provider_session.sql"
-).read_text(encoding="utf-8")
-
 
 def identity(kind: str, number: int):
     return uuid5(NAMESPACE_URL, f"moodprint-social-load:{kind}:{number}")
@@ -110,16 +105,7 @@ async def seed():
         await connection.run_sync(Base.metadata.drop_all)
         await connection.run_sync(Base.metadata.create_all)
         await install_guest_guards(connection)
-        await connection.execute(text("create schema if not exists auth"))
-        await connection.execute(
-            text(
-                "create table if not exists auth.sessions (id uuid primary key,user_id uuid not null)"
-            )
-        )
-        await connection.execute(text("truncate auth.sessions"))
-        await connection.execute(
-            text(SESSION_HELPER.replace("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION", 1))
-        )
+        await install_auth_fixture(connection)
     async with app.state.database.sessions.begin() as db:
         for number in range(USERS):
             uid, provider = identity("user", number), identity("provider", number)

@@ -27,6 +27,7 @@ from app.core.security import (
     idempotency_key,
     previous_receipt,
     require_actor,
+    require_registered_actor,
     save_receipt,
     transaction,
 )
@@ -184,6 +185,8 @@ async def login(body: LoginInput, request: Request, response: Response):
     provider = await SupabaseAuth(request).password_session(email, body.password)
     if provider.expires_at <= now():
         raise DomainError(503, "AUTH_UNAVAILABLE", "Chưa kết nối được dịch vụ đăng nhập.", True)
+    if provider.is_anonymous:
+        raise DomainError(403, "REGISTERED_REQUIRED", "Tính năng này cần tài khoản đã đăng ký.")
     uid, provider_id = provider.user_id, provider.session_id
     # Every request re-checks the live Supabase session row, so the app session can outlive
     # the 1-hour access token without storing provider tokens. Activity slides the expiry.
@@ -196,7 +199,8 @@ async def login(body: LoginInput, request: Request, response: Response):
             .on_conflict_do_nothing(index_elements=[User.auth_subject])
         )
         user = await db.scalar(select(User).where(User.auth_subject == uid).with_for_update())
-        if user is None or user.status != "active":
+        if user is None or user.status != "active" or user.account_kind != "registered":
+            # A guest identity can never be reached through the permanent login path.
             raise DomainError(403, "ACCOUNT_UNAVAILABLE", "Tài khoản không khả dụng.")
         if user.suspended_until and user.suspended_until > now():
             raise DomainError(
@@ -287,7 +291,9 @@ async def reset_password(body: PasswordResetInput, request: Request):
 
 
 @router.post("/auth/reauthenticate", response_model=AuthNotice)
-async def reauthenticate(body: LoginInput, request: Request, actor: Actor = Depends(require_actor)):
+async def reauthenticate(
+    body: LoginInput, request: Request, actor: Actor = Depends(require_registered_actor)
+):
     LOGIN_LIMIT.check("reauth:" + str(actor.user_id))
     provider = SupabaseAuth(request)
     checked = await provider.password_session(body.email.strip().lower(), body.password)
@@ -302,6 +308,12 @@ async def reauthenticate(body: LoginInput, request: Request, actor: Actor = Depe
 
 @router.post("/auth/logout", status_code=204)
 async def logout(request: Request, actor: Actor = Depends(require_actor)):
+    if actor.account_kind == "guest":
+        # A guest has no password: logging out ends the whole trial and queues its purge now.
+        from app.modules.guests.service import cleared_response, end_guest
+
+        await end_guest(request, actor)
+        return cleared_response()
     async with transaction(request, actor, eligible=False) as (db, user):
         session = await db.get(AuthSession, actor.session_id)
         session.revoked = True

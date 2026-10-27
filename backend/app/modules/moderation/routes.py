@@ -14,6 +14,7 @@ from app.core.security import (
     idempotency_key,
     previous_receipt,
     require_actor,
+    require_registered_actor,
     save_receipt,
     transaction,
 )
@@ -39,7 +40,7 @@ REPORTS_PER_DAY = 5
 
 @router.post("/connections/{connection_id}/peer-reference", response_model=PeerReferenceView)
 async def peer_reference(
-    connection_id: UUID, body: EmptyInput, request: Request, actor: Actor = Depends(require_actor)
+    connection_id: UUID, body: EmptyInput, request: Request, actor: Actor = Depends(require_registered_actor)
 ):
     peer_id = await svc.room_peer(request, actor, connection_id)
     key, payload = idempotency_key(request), {"connectionId": str(connection_id)}
@@ -131,7 +132,7 @@ async def edit_identity(
     "/connections/{connection_id}/reveal-requests", response_model=RevealView, status_code=201
 )
 async def request_reveal(
-    connection_id: UUID, body: RevealInput, request: Request, actor: Actor = Depends(require_actor)
+    connection_id: UUID, body: RevealInput, request: Request, actor: Actor = Depends(require_registered_actor)
 ):
     peer_id = await svc.room_peer(request, actor, connection_id)
     key, payload = idempotency_key(request), body.model_dump(mode="json")
@@ -197,7 +198,7 @@ async def request_reveal(
 
 @router.get("/connections/{connection_id}/reveal-requests", response_model=list[RevealView])
 async def list_reveals(
-    connection_id: UUID, request: Request, actor: Actor = Depends(require_actor)
+    connection_id: UUID, request: Request, actor: Actor = Depends(require_registered_actor)
 ):
     peer_id = await svc.room_peer(request, actor, connection_id)
     # Polled read: live-policy checks without row locks.
@@ -236,7 +237,7 @@ async def find_reveal(request, actor, identity):
 
 @router.post("/reveal-requests/{reveal_id}/grant", response_model=RevealView)
 async def grant(
-    reveal_id: UUID, body: RevealDecision, request: Request, actor: Actor = Depends(require_actor)
+    reveal_id: UUID, body: RevealDecision, request: Request, actor: Actor = Depends(require_registered_actor)
 ):
     connection_id, peer_id = await find_reveal(request, actor, reveal_id)
     key, payload = idempotency_key(request), body.model_dump(mode="json")
@@ -268,7 +269,7 @@ async def grant(
 
 @router.post("/reveal-requests/{reveal_id}/decline", response_model=ActionReceipt)
 async def decline(
-    reveal_id: UUID, body: VersionInput, request: Request, actor: Actor = Depends(require_actor)
+    reveal_id: UUID, body: VersionInput, request: Request, actor: Actor = Depends(require_registered_actor)
 ):
     _, peer_id = await find_reveal(request, actor, reveal_id)
     key, payload = idempotency_key(request), body.model_dump(mode="json")
@@ -299,7 +300,7 @@ async def decline(
 
 
 @router.get("/reveal-grants/{reveal_id}/value", response_model=IdentityView)
-async def revealed_value(reveal_id: UUID, request: Request, actor: Actor = Depends(require_actor)):
+async def revealed_value(reveal_id: UUID, request: Request, actor: Actor = Depends(require_registered_actor)):
     connection_id, peer_id = await find_reveal(request, actor, reveal_id)
     async with svc.pair_transaction(request, actor, peer_id) as (db, user, peer):
         await svc.live_room(db, user, peer, connection_id)
@@ -317,7 +318,7 @@ async def revealed_value(reveal_id: UUID, request: Request, actor: Actor = Depen
 
 @router.delete("/reveal-grants/{reveal_id}", response_model=ActionReceipt)
 async def revoke(
-    reveal_id: UUID, body: VersionInput, request: Request, actor: Actor = Depends(require_actor)
+    reveal_id: UUID, body: VersionInput, request: Request, actor: Actor = Depends(require_registered_actor)
 ):
     _, peer_id = await find_reveal(request, actor, reveal_id)
     key, payload = idempotency_key(request), body.model_dump(mode="json")
@@ -381,7 +382,7 @@ async def activity_evidence(db, reporter_id, subject_id, rooms, body) -> list[di
 
 
 @router.post("/reports", response_model=ReportView, status_code=201)
-async def report(body: ReportInput, request: Request, actor: Actor = Depends(require_actor)):
+async def report(body: ReportInput, request: Request, actor: Actor = Depends(require_registered_actor)):
     key, payload = idempotency_key(request), body.model_dump(mode="json")
     async with request.app.state.database.require()() as db:
         ref = await db.get(CandidateReference, body.peer_ref)
@@ -450,7 +451,7 @@ async def report(body: ReportInput, request: Request, actor: Actor = Depends(req
 
 
 @router.get("/reports/{report_id}", response_model=ReportView)
-async def report_status(report_id: UUID, request: Request, actor: Actor = Depends(require_actor)):
+async def report_status(report_id: UUID, request: Request, actor: Actor = Depends(require_registered_actor)):
     async with transaction(request, actor) as (db, user):
         row = await db.get(Report, report_id)
         if not row or row.reporter_id != user.id:

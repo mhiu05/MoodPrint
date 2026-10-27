@@ -36,6 +36,9 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 | POST | `/api/v1/ai/runs/{run_id}/cancel` | `cancel_api_v1_ai_runs__run_id__cancel_post` |
 | GET | `/api/v1/ai/runs/{run_id}/events` | `events_api_v1_ai_runs__run_id__events_get` |
 | POST | `/api/v1/auth/confirmation` | `resend_confirmation_api_v1_auth_confirmation_post` |
+| POST | `/api/v1/auth/guest` | `guest_create_api_v1_auth_guest_post` |
+| POST | `/api/v1/auth/guest-intents` | `guest_intents_api_v1_auth_guest_intents_post` |
+| POST | `/api/v1/auth/guest/end` | `guest_end_api_v1_auth_guest_end_post` |
 | POST | `/api/v1/auth/login` | `login_api_v1_auth_login_post` |
 | POST | `/api/v1/auth/logout` | `logout_api_v1_auth_logout_post` |
 | POST | `/api/v1/auth/password-recovery` | `request_password_recovery_api_v1_auth_password_recovery_post` |

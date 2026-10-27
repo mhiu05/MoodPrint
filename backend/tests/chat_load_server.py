@@ -50,7 +50,7 @@ from app.infrastructure.database.models import AuthSession, Base, Consent, Memor
 from app.main import create_app
 from app.modules.guests import models as guest_models  # noqa: F401 -- register before reset
 from tests.fakes import completed_response, message_output
-from tests.guest_schema import install_guest_guards
+from tests.guest_schema import install_auth_fixture, install_guest_guards
 
 COUNTERS = {
     "sdk_calls": 0,
@@ -230,9 +230,6 @@ async def stats():
 
 async def seed(count: int):
     # Only the parent driver invokes this, once, before either server worker starts.
-    helper = (
-        Path(__file__).parents[1] / "app/infrastructure/database/provider_session.sql"
-    ).read_text(encoding="utf-8")
     async with app.state.database.engine.begin() as connection:
         await connection.execute(text("create schema if not exists moodprint"))
         await connection.execute(text("create schema if not exists extensions"))
@@ -242,16 +239,7 @@ async def seed(count: int):
         await connection.run_sync(Base.metadata.drop_all)
         await connection.run_sync(Base.metadata.create_all)
         await install_guest_guards(connection)
-        await connection.execute(text("create schema if not exists auth"))
-        await connection.execute(
-            text(
-                "create table if not exists auth.sessions(id uuid primary key,user_id uuid not null)"
-            )
-        )
-        await connection.execute(text("truncate auth.sessions"))
-        await connection.execute(
-            text(helper.replace("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION", 1))
-        )
+        await install_auth_fixture(connection)
     async with app.state.database.sessions.begin() as db:
         for number in range(count):
             uid, sid = identity("user", number), identity("provider", number)

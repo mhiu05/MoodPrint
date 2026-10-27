@@ -170,7 +170,12 @@ def test_guest_input_and_settings_defaults_fail_closed():
 
     with pytest.raises(ValidationError):
         Settings(_env_file=None, guest_abuse_hmac_key=SecretStr("short"))
+    # An explicit guest cap above the global cap is a configuration error...
     with pytest.raises(ValidationError):
         Settings(_env_file=None, ai_global_concurrency=5, guest_ai_global_concurrency=6)
+    # ...but an existing deployment that only lowers the global cap keeps working: the unset
+    # guest default is clamped, never rejected (registered configurations must not break).
+    assert Settings(_env_file=None, ai_global_concurrency=2).guest_ai_global_concurrency == 2
+    assert Settings(_env_file=None, ai_global_concurrency=50).guest_ai_global_concurrency == 10
     with pytest.raises(ValidationError):
         Settings(_env_file=None, guest_daily_budget_usd="-1")

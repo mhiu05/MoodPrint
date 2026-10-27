@@ -43,6 +43,11 @@ async def _abort(db, rooms: list[Connection], reason: str) -> int:
     return aborted
 
 
+async def abort_rooms(db, rooms: list[Connection], reason: str) -> int:
+    """Abort every open session in already locked rooms (caller took the room locks first)."""
+    return await _abort(db, rooms, reason)
+
+
 async def abort_for_pair(db, pair_id: UUID, reason: str) -> int:
     rooms = (
         await db.scalars(

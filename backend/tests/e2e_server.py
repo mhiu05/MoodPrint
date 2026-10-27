@@ -5,7 +5,6 @@ import asyncio
 import hashlib
 import os
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from uuid import UUID
 
 import httpx
@@ -48,12 +47,8 @@ from app.main import create_app
 from app.modules.guests import models as guest_models  # noqa: F401 -- register before reset
 from app.modules.moderation.models import StaffRole
 from tests.e2e_auth import LocalAuth
-from tests.guest_schema import install_guest_guards
+from tests.guest_schema import install_auth_fixture, install_guest_guards
 from tests.mood_e2e_model import MoodE2EModel
-
-SESSION_HELPER = (
-    Path(__file__).resolve().parents[1] / "app/infrastructure/database/provider_session.sql"
-).read_text(encoding="utf-8")
 
 # Phase D-I features on, as in a beta deployment; focus phases shortened to seconds
 # (test env only). MATCHING_SCORER follows E2E_MATCHING_SCORER so the v2 spec can run
@@ -86,16 +81,7 @@ async def seed():
         await connection.run_sync(Base.metadata.drop_all)
         await connection.run_sync(Base.metadata.create_all)
         await install_guest_guards(connection)
-        await connection.execute(text("create schema if not exists auth"))
-        await connection.execute(
-            text(
-                "create table if not exists auth.sessions (id uuid primary key,user_id uuid not null)"
-            )
-        )
-        await connection.execute(text("truncate auth.sessions"))
-        await connection.execute(
-            text(SESSION_HELPER.replace("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION", 1))
-        )
+        await install_auth_fixture(connection)
     async with app.state.database.sessions.begin() as db:
         # 1-9 back the original journeys; 10-20 are fresh adults for the MVP journeys;
         # 21-36 back the activity, matching-v2 and moderation journeys; 37 is staff;

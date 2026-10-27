@@ -7,12 +7,13 @@ from datetime import timedelta
 from typing import Any
 from uuid import UUID
 
-from fastapi import Request
+from fastapi import Depends, Request
 from sqlalchemy import select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import DomainError
 from app.infrastructure.database.models import AuthSession, Consent, Idempotency, User, now
+from app.modules.guests.policy import assert_guest_active
 
 
 def digest(value: str) -> str:
@@ -24,9 +25,14 @@ class Actor:
     user_id: UUID
     session_id: UUID
     auth_version: int
+    # Server-owned kind loaded with the session; never taken from a request or provider metadata.
+    account_kind: str = "registered"
 
 
 async def verify_session(db: AsyncSession, session: AuthSession, user: User) -> None:
+    # The immutable trial deadline is judged first, on the database clock, so a retained guest
+    # row at T reports GUEST_EXPIRED (and clears cookies) rather than a generic expiry.
+    await assert_guest_active(db, user)
     if (
         session.revoked
         or session.expires_at <= now()
@@ -88,7 +94,22 @@ async def require_actor(request: Request) -> Actor:
                 "/"
             ):
                 raise DomainError(403, "ORIGIN_DENIED", "Nguồn yêu cầu không hợp lệ.")
-        return Actor(user.id, session.id, user.auth_version)
+        return Actor(user.id, session.id, user.auth_version, user.account_kind)
+
+
+async def require_registered_actor(actor: Actor = Depends(require_actor)) -> Actor:
+    """Social, shared-activity, safety and staff surfaces are for permanent accounts only.
+
+    ``require_actor`` runs first, so an expired guest is answered 401 GUEST_EXPIRED before this
+    403. Frontend hiding is never the control; this is the default-deny gate.
+    """
+    if actor.account_kind != "registered":
+        raise DomainError(
+            403,
+            "REGISTERED_REQUIRED",
+            "Tạo tài khoản để dùng tính năng này. Lượt dùng thử không có tìm bạn và nhắn tin.",
+        )
+    return actor
 
 
 async def lock_actor(

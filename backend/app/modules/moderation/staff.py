@@ -12,7 +12,7 @@ from uuid import UUID
 from fastapi import Depends, Request
 
 from app.core.errors import DomainError
-from app.core.security import Actor, require_actor
+from app.core.security import Actor, require_registered_actor
 from app.infrastructure.database.models import AuthSession, now
 from app.modules.moderation.models import StaffRole
 
@@ -36,7 +36,7 @@ async def staff_role(db, user_id: UUID) -> str | None:
 
 
 def require_staff(role: str = "moderator"):
-    async def dependency(request: Request, actor: Actor = Depends(require_actor)) -> Staff:
+    async def dependency(request: Request, actor: Actor = Depends(require_registered_actor)) -> Staff:
         if not request.app.state.settings.moderation_admin_enabled:
             raise DomainError(404, "NOT_FOUND", "Không tìm thấy nội dung.")
         async with request.app.state.database.require()() as db:

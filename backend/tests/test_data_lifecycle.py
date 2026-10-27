@@ -56,7 +56,10 @@ async def _auth_rows(app, *uids):
 
     async with app.state.database.sessions.begin() as db:
         for uid in uids:
-            await db.execute(text("insert into auth.users(id) values (:id)"), {"id": uid})
+            await db.execute(
+                text("insert into auth.users(id) values (:id) on conflict (id) do nothing"),
+                {"id": uid},
+            )
 
 
 async def _auth_exists(app, uid):
