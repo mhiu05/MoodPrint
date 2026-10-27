@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { app, baseSession, room, sessionWith } from "./ux-fixtures";
+import { app, baseSession, room, sessionWith, type Routes } from "./ux-fixtures";
 
 const pendingProposal = {
   id: "p-1",
@@ -992,4 +992,104 @@ test("the skip link stays hidden until focused, then appears and moves focus to 
   await expect(skip).toBeInViewport();
   await skip.press("Enter");
   await expect(page.locator("#main")).toBeFocused();
+});
+
+// ---- Final review regressions ----
+test.describe("final review regressions", () => {
+  const paged = () => {
+    const recent = Array.from({ length: 4 }, (_, index) => ({ id: `new-${index}`, actor: index % 2 ? "bot" : "self", text: `Tin gần đây ${index}`, cards: [] }));
+    const older = [{ id: "old-1", actor: "self", text: "Một tin cũ hơn", cards: [] }];
+    return { recent, older };
+  };
+  async function pagedChat(page: Page, url: string, extra: Routes = {}) {
+    const { recent, older } = paged();
+    const thread = savedThread({ messages: recent, hasMoreMessages: true });
+    await app(page, baseSession, {
+      "/ai/preferences": () => ({ json: historyOn }),
+      "/ai/conversations": () => ({ json: [thread] }),
+      [`/ai/conversations/${CONV}`]: (request) => ({ json: new URL(request.url()).searchParams.has("before") ? { ...thread, messages: older, hasMoreMessages: false } : thread }),
+      ...extra,
+    });
+    await page.goto(url);
+    await expect(page.getByText("Tin gần đây 3")).toBeVisible();
+    await page.getByRole("button", { name: "Tải tin nhắn cũ hơn" }).click();
+    await expect(page.getByText("Một tin cũ hơn")).toBeVisible();
+  }
+
+  test("returning to the tab on the default chat URL keeps loaded history and an in-flight send", async ({ page }) => {
+    await pagedChat(page, "/#/assistants/may");
+    const posted: unknown[] = [];
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    await page.route(`**/api/v1/ai/conversations/${CONV}/messages`, async (route) => { posted.push(route.request().postDataJSON()); await held; await route.fulfill({ status: 503, json: { error: { code: "UNAVAILABLE", message: "Chưa gửi được." } } }); });
+    await page.getByRole("textbox", { name: "Tin nhắn cho Mây" }).fill("Một câu hỏi");
+    await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
+    await expect.poll(() => posted.length).toBe(1);
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await page.waitForTimeout(500);
+    release();
+    await expect(page.getByRole("alert").filter({ hasText: "Chưa gửi được." })).toBeVisible();
+    await expect(page.getByText("Một tin cũ hơn")).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Tin nhắn cho Mây" })).toHaveValue("Một câu hỏi");
+  });
+
+  test("a completed reply keeps older messages the reader loaded", async ({ page }) => {
+    await pagedChat(page, `/#/assistants/may?conversation=${CONV}`);
+    await page.route(`**/api/v1/ai/conversations/${CONV}/messages`, (route) => route.fulfill({ status: 202, json: { runId: RUN, conversationId: CONV, version: 4, runVersion: 1, eventsUrl: `/api/v1/ai/runs/${RUN}/events` } }));
+    await page.route(`**/api/v1/ai/runs/${RUN}/events`, (route) => route.fulfill({ contentType: "text/event-stream", body: sse([{ type: "final", data: { text: "Câu trả lời mới.", cards: [] } }, { type: "completed" }]) }));
+    await page.getByRole("textbox", { name: "Tin nhắn cho Mây" }).fill("Một câu hỏi");
+    await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
+    await expect(status(page)).toHaveText("");
+    await expect(page.getByText("Một tin cũ hơn")).toBeVisible();
+    await expect(page.getByText("Tin gần đây 3")).toBeVisible();
+  });
+
+  test("a consent the server recorded stays in the session when the send is abandoned", async ({ page }) => {
+    let held: () => void = () => {};
+    const hold = new Promise<void>((resolve) => { held = resolve; });
+    const granted = sessionWith({ AI: true });
+    granted.consents.AI.version = 2;
+    await app(page, sessionWith({ AI: false }), {
+      "/ai/conversations": (request) => (request.method() === "GET" ? { json: [] } : { status: 201, json: savedThread({ persistent: false, messages: [] }) }),
+      "/ai/preferences": () => ({ json: historyOn }),
+    });
+    await page.route("**/api/v1/consents/AI", (route) => route.fulfill({ json: granted }));
+    await page.route(`**/api/v1/ai/conversations/${CONV}/messages`, async (route) => { await hold; await route.fulfill({ status: 503, json: { error: { code: "UNAVAILABLE", message: "x" } } }); });
+    await page.goto("/#/assistants/may?new=1");
+    await page.getByRole("textbox", { name: "Tin nhắn cho Mây" }).fill("Xin chào");
+    await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
+    await expect(status(page)).toHaveText("Đang gửi tin nhắn…");
+    await page.waitForTimeout(300);
+    await page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("link", { name: "Cá nhân" }).click();
+    held();
+    await page.getByRole("button", { name: "Quyền riêng tư" }).or(page.getByRole("link", { name: "Quyền riêng tư" })).first().click();
+    await expect(page.getByRole("region", { name: "Tin nhắn AI" }).getByRole("button", { name: "Rút quyền trò chuyện AI" })).toBeVisible();
+  });
+
+  for (const action of ["Đổi tên", "Mở lịch sử trò chuyện"]) {
+    test(`on a phone, closing ${action} from the info sheet returns focus to its trigger`, async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await savedChat(page);
+      await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
+      await page.getByRole("button", { name: action, exact: true }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(1);
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true })).toBeFocused();
+    });
+  }
+
+  test("narrowing the window while a rename dialog is open keeps that dialog in charge", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await savedChat(page);
+    await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
+    await page.getByRole("region", { name: "Thông tin cuộc trò chuyện" }).getByRole("button", { name: "Đổi tên", exact: true }).click();
+    const field = page.getByRole("dialog", { name: "Đổi tên cuộc trò chuyện" }).getByRole("textbox", { name: "Tên cuộc trò chuyện" });
+    await field.fill("Tên chưa lưu");
+    await page.setViewportSize({ width: 900, height: 900 });
+    await page.waitForTimeout(300);
+    await expect(page.locator("dialog[open]")).toHaveCount(1);
+    await expect(field).toBeFocused();
+    await expect(field).toHaveValue("Tên chưa lưu");
+  });
 });

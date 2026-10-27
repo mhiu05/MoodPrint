@@ -53,6 +53,7 @@ export function Dialog({
   onClose,
   destructive = false,
   initialFocus,
+  returnFocus,
 }: {
   title: string;
   children: ReactNode;
@@ -61,6 +62,8 @@ export function Dialog({
   destructive?: boolean;
   /** Explicit first focus, e.g. the field a rename dialog exists for. */
   initialFocus?: RefObject<HTMLElement | null>;
+  /** Where focus goes on close if the element that opened the dialog is gone. */
+  returnFocus?: RefObject<HTMLElement | null>;
 }) {
   const ref = useRef<HTMLDialogElement>(null),
     id = useId();
@@ -95,8 +98,11 @@ export function Dialog({
     if (first instanceof HTMLInputElement) first.select();
     return () => {
       el.close();
-      // Back to the trigger; if it is gone, to the visible destination heading.
-      if (before?.isConnected && before.getClientRects().length > 0) before.focus();
+      // Back to the trigger; if it is gone (or was <body>), to the given return
+      // target, else to the visible destination heading.
+      const fallback = returnFocus?.current;
+      if (before && before !== document.body && before.isConnected && before.getClientRects().length > 0) before.focus();
+      else if (fallback?.isConnected && fallback.getClientRects().length > 0) fallback.focus();
       else focusRouteHeading();
     };
   }, [destructive]);

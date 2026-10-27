@@ -22,6 +22,8 @@ function useMedia(query: string) {
 
 export type ConversationInfoProps = {
   open: boolean;
+  /** A dialog opened from the panel is in charge; a compact sheet must not stack over it. */
+  suspended?: boolean;
   /** Close; `restoreFocus` returns focus to the trigger (Escape, close button). */
   onClose: (restoreFocus: boolean) => void;
   triggerRef: RefObject<HTMLButtonElement | null>;
@@ -58,7 +60,7 @@ export function ConversationInfo(props: ConversationInfoProps) {
     if (!props.open) setOpenedMode(null);
     else setOpenedMode((value) => value ?? mode);
   }, [props.open, mode]);
-  if (!props.open) return null;
+  if (!props.open || (props.suspended && !desktop)) return null;
   const animate = openedMode === null || openedMode === mode;
   return desktop ? (
     <ModelessPanel {...props} animate={animate} />

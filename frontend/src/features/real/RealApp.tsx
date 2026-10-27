@@ -691,6 +691,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const [revision, setRevision] = useState(0);
   const loadedRevision = useRef(0);
   const loadedSelection = useRef<string | undefined>(undefined);
+  const openedFor = useRef<string | undefined>(undefined);
   const [atBottom, setAtBottom] = useState(true);
   const log = useRef<HTMLDivElement>(null),
     lifetime = useRef<AbortController | null>(null);
@@ -737,6 +738,14 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     current.current = value;
     setConversation(value);
   }, []);
+  /** The server copy replaces the latest page; older pages the reader loaded stay. */
+  const withOlder = useCallback((stored: SavedConversation): SavedConversation => {
+    const latest = current.current;
+    if (!latest || latest.conversationId !== stored.conversationId || !stored.messages.length) return stored;
+    const first = latest.messages.findIndex((message) => message.id === stored.messages[0].id);
+    if (first <= 0) return stored;
+    return { ...stored, hasMoreMessages: latest.hasMoreMessages, messages: [...latest.messages.slice(0, first), ...stored.messages] };
+  }, []);
   const stream = useCallback(
     async (
       id: string,
@@ -775,7 +784,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             { signal },
           );
           if (!signal.aborted) {
-            update(stored);
+            update(withOlder(stored));
             setReady(true);
             refreshHistory();
             setProposalRevision((value) => value + 1);
@@ -791,7 +800,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             const thread = current.current;
             if (thread) {
               const stored = await api.request<SavedConversation>(`/ai/conversations/${thread.conversationId}`, { signal });
-              if (!signal.aborted) { update(stored); refreshHistory(); outcome = "cancelled"; }
+              if (!signal.aborted) { update(withOlder(stored)); refreshHistory(); outcome = "cancelled"; }
             }
           } catch (readError) {
             if (!signal.aborted) setError(readError);
@@ -817,15 +826,24 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         }
       }
     },
-    [api, update, refreshHistory],
+    [api, update, withOlder, refreshHistory],
   );
-  useEffect(() => () => lifetime.current?.abort(), []);
+  useEffect(() => () => {
+    lifetime.current?.abort();
+    // An aborted open must run again if this view mounts again (StrictMode).
+    openedFor.current = undefined;
+  }, []);
   useEffect(() => {
     // A newly created thread receives a URL without interrupting its active stream.
     if (selectedId && selectedId === current.current?.conversationId && loadedRevision.current === revision) return;
     // A fresh login must wait for the saved-history preference before selecting
     // the latest thread. Otherwise the first render silently skips saved threads.
     if (!selectedId && preferencesLoading) return;
+    // Preferences reload on every tab focus; that alone must not reopen (and abort)
+    // the selection already on screen, an in-flight send or a pending stop-and-new.
+    const openKey = `${bot.botId}/${selectedId || searchParams.get("new") || "latest"}#${revision}`;
+    if (openedFor.current === openKey) return;
+    openedFor.current = openKey;
     loadedRevision.current = revision;
     lifetime.current?.abort();
     const controller = new AbortController();
@@ -964,7 +982,6 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         },
       );
       if (signal.aborted) return;
-      if (grantedSession) receive(grantedSession);
       update({
         ...thread,
         version: accepted.version,
@@ -990,9 +1007,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         requestKey,
       );
     } catch (reason) {
-      if (grantedSession) receive(grantedSession);
       if (!signal.aborted) setError(reason);
     } finally {
+      if (grantedSession) receive(grantedSession);
       if (!signal.aborted) setBusy(false);
     }
   }
@@ -1251,10 +1268,10 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           <Info size={21} />
         </button>
       </header>
-      {historyOpen ? <Dialog title="Lịch sử trò chuyện" onClose={() => setHistoryOpen(false)}><ConversationHistory onSelect={() => setHistoryOpen(false)} /></Dialog> : null}
-      {renameOpen ? <Dialog title="Đổi tên cuộc trò chuyện" initialFocus={renameField} onClose={() => !manageBusy && setRenameOpen(false)}><form className="conversation-rename" onSubmit={(event) => { event.preventDefault(); void rename(); }}><label htmlFor="conversation-title">Tên cuộc trò chuyện</label><input id="conversation-title" ref={renameField} value={renameText} maxLength={100} required onChange={(event) => setRenameText(event.target.value)} /><p>Tên chỉ hiển thị cho bạn và không được gửi tới trợ lý.</p><ErrorNotice error={renameError} /><div className={cx.actions}><Button type="button" variant="secondary" disabled={manageBusy} onClick={() => setRenameOpen(false)}>Hủy</Button><Button type="submit" disabled={manageBusy || !renameText.trim()}>{manageBusy ? "Đang lưu tên…" : "Lưu tên"}</Button></div></form></Dialog> : null}
-      {deleteOpen ? <Dialog title="Xóa cuộc trò chuyện này?" destructive onClose={() => !manageBusy && setDeleteOpen(false)}><p>Cuộc trò chuyện và các tin nhắn trong đó sẽ bị xóa. Thao tác này không thể hoàn tác.</p><ErrorNotice error={deleteError} /><div className={cx.actions}><Button variant="secondary" data-cancel disabled={manageBusy} onClick={() => setDeleteOpen(false)}>Giữ cuộc trò chuyện</Button><Button variant="danger" disabled={manageBusy} onClick={() => void removeConversation()}>{manageBusy ? "Đang xóa…" : "Xóa cuộc trò chuyện"}</Button></div></Dialog> : null}
-      {newConfirmOpen ? <Dialog title="Dừng phản hồi và mở cuộc trò chuyện mới?" destructive onClose={() => setNewConfirmOpen(false)}><p>Phản hồi hiện tại sẽ được yêu cầu dừng. Cuộc trò chuyện mới chỉ mở sau khi xác nhận được kết quả; cuộc trò chuyện đã lưu vẫn được giữ.</p><div className={cx.actions}><Button variant="secondary" data-cancel onClick={() => setNewConfirmOpen(false)}>Tiếp tục trò chuyện</Button><Button onClick={() => void stopAndNew()}>Dừng và mở mới</Button></div></Dialog> : null}
+      {historyOpen ? <Dialog title="Lịch sử trò chuyện" returnFocus={infoTrigger} onClose={() => setHistoryOpen(false)}><ConversationHistory onSelect={() => setHistoryOpen(false)} /></Dialog> : null}
+      {renameOpen ? <Dialog title="Đổi tên cuộc trò chuyện" initialFocus={renameField} returnFocus={infoTrigger} onClose={() => !manageBusy && setRenameOpen(false)}><form className="conversation-rename" onSubmit={(event) => { event.preventDefault(); void rename(); }}><label htmlFor="conversation-title">Tên cuộc trò chuyện</label><input id="conversation-title" ref={renameField} value={renameText} maxLength={100} required onChange={(event) => setRenameText(event.target.value)} /><p>Tên chỉ hiển thị cho bạn và không được gửi tới trợ lý.</p><ErrorNotice error={renameError} /><div className={cx.actions}><Button type="button" variant="secondary" disabled={manageBusy} onClick={() => setRenameOpen(false)}>Hủy</Button><Button type="submit" disabled={manageBusy || !renameText.trim()}>{manageBusy ? "Đang lưu tên…" : "Lưu tên"}</Button></div></form></Dialog> : null}
+      {deleteOpen ? <Dialog title="Xóa cuộc trò chuyện này?" destructive returnFocus={infoTrigger} onClose={() => !manageBusy && setDeleteOpen(false)}><p>Cuộc trò chuyện và các tin nhắn trong đó sẽ bị xóa. Thao tác này không thể hoàn tác.</p><ErrorNotice error={deleteError} /><div className={cx.actions}><Button variant="secondary" data-cancel disabled={manageBusy} onClick={() => setDeleteOpen(false)}>Giữ cuộc trò chuyện</Button><Button variant="danger" disabled={manageBusy} onClick={() => void removeConversation()}>{manageBusy ? "Đang xóa…" : "Xóa cuộc trò chuyện"}</Button></div></Dialog> : null}
+      {newConfirmOpen ? <Dialog title="Dừng phản hồi và mở cuộc trò chuyện mới?" destructive returnFocus={infoTrigger} onClose={() => setNewConfirmOpen(false)}><p>Phản hồi hiện tại sẽ được yêu cầu dừng. Cuộc trò chuyện mới chỉ mở sau khi xác nhận được kết quả; cuộc trò chuyện đã lưu vẫn được giữ.</p><div className={cx.actions}><Button variant="secondary" data-cancel onClick={() => setNewConfirmOpen(false)}>Tiếp tục trò chuyện</Button><Button onClick={() => void stopAndNew()}>Dừng và mở mới</Button></div></Dialog> : null}
       <div className="conversation-stage">
       <div
         className="conversation-log"
@@ -1342,6 +1359,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       {unseen && !atBottom ? <button type="button" className="jump-latest" onClick={jumpToLatest}>Về tin mới</button> : null}
       <ConversationInfo
         open={infoOpen}
+        suspended={historyOpen || renameOpen || deleteOpen || newConfirmOpen}
         onClose={closeInfo}
         triggerRef={infoTrigger}
         panelId={infoId}
