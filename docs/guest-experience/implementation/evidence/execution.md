@@ -52,4 +52,13 @@ bd93165ef0c8edfd2644fca60008234712075a3a5e9e71f7953fc4271a404c94  docs/guest-exp
 
 | Task | Status | Base..Head | Evidence |
 |---|---|---|---|
-| GE-00.1 | in progress | 9847533.. | docs committed; baseline pending |
+| GE-00.1 | in progress | 9847533.. | docs committed (41bc1b6); backend full-suite baseline still running; see Baseline section |
+
+### GE-01.1 — Verify anonymous provider contract locally (backend/app/modules/auth/provider.py)
+
+- RED: `uv run --locked pytest -q tests/test_guest_provider.py` → 35 failed / 1 passed (`AttributeError: 'SupabaseAuth' object has no attribute 'anonymous_session'`, `'ProviderSession' object has no attribute 'is_anonymous'`).
+- GREEN: same command → 36 passed. Regression `tests/test_auth_flows.py tests/test_runtime_provision.py tests/test_guest_provider.py` on a separate disposable DB → 51 passed. `ruff check app tests evals alembic` clean; `mypy app` clean (89 files).
+- Changed: `ProviderSession` gains `is_anonymous` (token hidden from repr); `verify_token` now also enforces audience `authenticated`, finite future `exp` and strict boolean `is_anonymous` agreement between claims and `GET /user` (missing/non-boolean fails closed as `AUTH_UNAVAILABLE`); `anonymous_session(captcha_token, *, correlation_id)` performs one `POST /signup` and classifies `AnonymousSignupError.outcome` rejected (explicit 4xx) vs ambiguous (transport failure, 3xx/5xx, unusable body, `/user` failure or claim mismatch); `password_session` and `update_password` reject verified anonymous sessions with 403 `REGISTERED_REQUIRED` before any `PUT /user`.
+- Fakes updated to emit `aud` + explicit `is_anonymous=false`: `tests/test_auth_flows.py`, `tests/e2e_auth.py`. Added `test_anonymous_token_cannot_use_the_permanent_recovery_path` (zero `PUT /user`).
+- Ruling: plan step 5 asks conftest.add_actor/LocalAuth/load servers to also insert `auth.users(is_anonymous=false)` — deferred to GE-03.1, the first task that changes the SQL helper to join `auth.users`; inserting an unused column now would be untested scaffolding. Cost if wrong: one fixture edit moved earlier.
+- Risk (hosted, unverified until GE-01.2): registered login now fails closed if the hosted Auth access token or `GET /user` omits `is_anonymous`; GoTrue is expected to include it, but only the hosted proof can confirm. Do not enable/deploy before G1.

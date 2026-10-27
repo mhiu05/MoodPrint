@@ -15,7 +15,7 @@ ORIGIN = "http://127.0.0.1:5173"
 SUPABASE = "https://example-project.supabase.co"
 
 
-def jwt(sub, session_id, exp=None):
+def jwt(sub, session_id, exp=None, anonymous=False):
     def part(value):
         return base64.urlsafe_b64encode(json.dumps(value).encode()).rstrip(b"=").decode()
 
@@ -23,7 +23,9 @@ def jwt(sub, session_id, exp=None):
         "sub": str(sub),
         "session_id": str(session_id),
         "iss": SUPABASE + "/auth/v1",
+        "aud": "authenticated",
         "exp": exp or int(time.time()) + 3600,
+        "is_anonymous": anonymous,
     }
     return f"{part({'alg': 'none'})}.{part(claims)}.signature"
 
@@ -66,7 +68,9 @@ class FakeSupabase:
         if path == "/user" and request.method == "GET":
             token = request.headers["Authorization"].removeprefix("Bearer ")
             claims = json.loads(base64.urlsafe_b64decode(token.split(".")[1] + "=="))
-            return httpx.Response(200, json={"id": claims["sub"]})
+            return httpx.Response(
+                200, json={"id": claims["sub"], "is_anonymous": claims["is_anonymous"]}
+            )
         if path == "/user" and request.method == "PUT":
             if len(body["password"]) < 10:
                 return httpx.Response(422, json={"error_code": "weak_password"})
@@ -236,6 +240,20 @@ async def test_password_reset_updates_provider_and_ends_existing_sessions(auth_e
     assert done.status_code == 200 and done.json() == {"status": "updated"}
     assert ("POST", "/logout") in [(m, p) for m, p, _, _ in fake.calls]
     assert (await client.get("/api/v1/session")).status_code == 401
+
+
+@pytest.mark.postgres
+async def test_anonymous_token_cannot_use_the_permanent_recovery_path(auth_env):
+    _, fake, client, _ = auth_env
+    anonymous = jwt(uuid4(), uuid4(), anonymous=True)
+    response = await client.post(
+        "/api/v1/auth/password-reset",
+        json={"accessToken": anonymous, "password": "a much better pass"},
+    )
+    assert response.status_code == 403 and response.json()["error"]["code"] == "REGISTERED_REQUIRED"
+    # No conversion: the provider never receives PUT /user and no session is revoked or logged out.
+    assert [(m, p) for m, p, _, _ in fake.calls if m == "PUT"] == []
+    assert ("POST", "/logout") not in [(m, p) for m, p, _, _ in fake.calls]
 
 
 @pytest.mark.postgres

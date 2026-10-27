@@ -41,6 +41,8 @@ class LocalAuth:
                             "session_id": str(sid),
                             "exp": int(time.time()) + 3600,
                             "iss": "https://local-auth.invalid/auth/v1",
+                            "aud": "authenticated",
+                            "is_anonymous": False,
                         }
                     ),
                     "synthetic-only",
@@ -50,5 +52,7 @@ class LocalAuth:
             return httpx.Response(200, json={"access_token": token})
         if request.url.path == "/auth/v1/user":
             uid = self.tokens.get(request.headers.get("Authorization", "").removeprefix("Bearer "))
-            return httpx.Response(200, json={"id": uid}) if uid else httpx.Response(401)
+            if not uid:
+                return httpx.Response(401)
+            return httpx.Response(200, json={"id": uid, "is_anonymous": False})
         return httpx.Response(404)
