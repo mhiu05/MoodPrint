@@ -1,69 +1,5 @@
-import { expect, test, type Page, type Request } from "@playwright/test";
-
-// Synthetic fixtures only: no real accounts, conversations or provider calls.
-type Reply = { status?: number; json?: unknown; body?: string; contentType?: string };
-type Routes = Record<string, (request: Request) => Reply | undefined>;
-
-const baseSession = {
-  userId: "11111111-1111-4111-8111-111111111111",
-  alias: "An",
-  ageBand: "adult",
-  eligible: true,
-  csrfToken: "csrf-ux",
-  timezone: "Asia/Bangkok",
-  serverTime: "2026-10-23T08:00:00Z",
-  features: { ai: true, matching: true, voice: false },
-  consents: {
-    AI: { enabled: true, version: 1, policyVersion: "v1" },
-    MEM: { enabled: true, version: 1, policyVersion: "v1" },
-    MATCH: { enabled: true, version: 1, policyVersion: "v1" },
-    VOICE: { enabled: false, version: 1, policyVersion: "v1" },
-  },
-};
-
-export function sessionWith(consents: Partial<Record<"AI" | "MEM" | "MATCH" | "VOICE", boolean>>, patch: Record<string, unknown> = {}) {
-  const next = structuredClone(baseSession) as typeof baseSession & Record<string, unknown>;
-  for (const [purpose, enabled] of Object.entries(consents))
-    next.consents[purpose as keyof typeof next.consents].enabled = enabled;
-  return { ...next, ...patch };
-}
-
-const bots = [
-  { botId: "may", name: "Mây", role: "Lắng nghe & tâm sự", description: "Một khoảng nhỏ để được lắng nghe.", starters: ["Hôm nay mình hơi mệt"], avatarKey: "may" },
-];
-const room = { id: "room-1", alias: "Bạn đồng hành 3fa9c1", status: "open", version: 1, highWaterSeq: "0", unreadCount: 0 };
-
-async function app(page: Page, session: unknown, routes: Routes = {}) {
-  await page.route("**/api/v1/**", async (route) => {
-    const request = route.request();
-    const path = new URL(request.url()).pathname.replace("/api/v1", "");
-    const custom = routes[path]?.(request);
-    if (custom)
-      return custom.body !== undefined
-        ? route.fulfill({ status: custom.status ?? 200, body: custom.body, contentType: custom.contentType ?? "text/plain" })
-        : route.fulfill({ status: custom.status ?? 200, json: custom.json });
-    const fixed: Record<string, unknown> = {
-      "/session": session,
-      "/bots": bots,
-      "/ai/preferences": { historyEnabled: false, semanticMemoryEnabled: false, version: 1, policyVersion: "ai-data-v1", retentionDays: 30, historyAvailable: true, semanticMemoryAvailable: true },
-      "/ai/conversations": [],
-      "/social/summary": { pendingIncomingRequests: 0, unreadConnections: 0, activityInvites: 0 },
-      "/proposals": [],
-      "/memories": [],
-      "/connections": [],
-      "/connection-requests": [],
-      "/activities/catalog": [],
-      [`/connections/${room.id}`]: room,
-      [`/connections/${room.id}/messages`]: { messages: [], highWaterSeq: "0" },
-      [`/connections/${room.id}/activities`]: [],
-      [`/connections/${room.id}/activities/current`]: null,
-      [`/connections/${room.id}/reveal-requests`]: [],
-      "/profiles/published/current": null,
-    };
-    if (request.method() === "GET" && path in fixed) return route.fulfill({ json: fixed[path] });
-    return route.fulfill({ status: 404, json: { error: { code: "NOT_FOUND", message: "Missing fixture" } } });
-  });
-}
+import { expect, test } from "@playwright/test";
+import { app, baseSession, sessionWith } from "./ux-fixtures";
 
 const pendingProposal = {
   id: "p-1",
@@ -157,4 +93,86 @@ test("an unavailable AI service is not sent to Settings for a fix that does not 
   const notice = page.locator(".chat-readonly");
   await expect(notice).toContainText("Trợ lý chưa được kết nối với dịch vụ AI.");
   await expect(notice.getByRole("link")).toHaveCount(0);
+});
+
+const longBots = [
+  { botId: "may", name: "Mây", role: "Lắng nghe & tâm sự", description: "Một khoảng nhỏ để được lắng nghe, không phán xét và không vội vàng.", starters: ["Hôm nay mình hơi mệt"], avatarKey: "may" },
+  { botId: "guong", name: "Gương", role: "Nhìn lại bản thân", description: "Cùng nhìn lại một ngày đã qua bằng những câu hỏi nhẹ nhàng.", starters: ["Mình muốn nhìn lại hôm nay"], avatarKey: "guong" },
+];
+const WIDTHS = [320, 375, 390, 768, 1280, 1440];
+
+test.describe("readable foundations (V-TOKENS / V-REFLOW)", () => {
+  test("body text is 16px and persona descriptions are readable without truncation at every width", async ({ page }) => {
+    await app(page, baseSession, { "/bots": () => ({ json: longBots }) });
+    for (const width of WIDTHS) {
+      await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
+      await page.goto("/#/assistants");
+      const row = page.getByRole("link", { name: /Gương/ }).first();
+      await expect(row).toBeVisible();
+      const metrics = await page.evaluate(() => {
+        const body = parseFloat(getComputedStyle(document.body).fontSize);
+        const description = document.querySelector<HTMLElement>(".bot-row-text p")!;
+        const role = document.querySelector<HTMLElement>(".bot-row-text small")!;
+        const style = getComputedStyle(description);
+        return {
+          body,
+          description: parseFloat(style.fontSize),
+          role: parseFloat(getComputedStyle(role).fontSize),
+          ellipsis: style.textOverflow === "ellipsis" && style.whiteSpace === "nowrap",
+          overflow: document.documentElement.scrollWidth - innerWidth,
+        };
+      });
+      expect(metrics.body, `body at ${width}`).toBe(16);
+      expect(metrics.description, `description at ${width}`).toBeGreaterThanOrEqual(14);
+      expect(metrics.role, `role at ${width}`).toBeGreaterThanOrEqual(13);
+      expect(metrics.ellipsis, `description truncated at ${width}`).toBe(false);
+      expect(metrics.overflow, `horizontal overflow at ${width}`).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test("navigation labels are readable and ordinary targets are at least 44px", async ({ page }) => {
+    await app(page, baseSession, { "/bots": () => ({ json: longBots }) });
+    for (const width of [320, 1280]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.goto("/#/messages");
+      const nav = page.getByRole("navigation", { name: "Điều hướng chính" });
+      const sizes = await nav.getByRole("link").evaluateAll((links) =>
+        links.map((link) => ({
+          font: parseFloat(getComputedStyle(link).fontSize),
+          height: link.getBoundingClientRect().height,
+          width: link.getBoundingClientRect().width,
+        })),
+      );
+      for (const size of sizes) {
+        expect(size.font).toBeGreaterThanOrEqual(width < 768 ? 12 : 13);
+        expect(size.height).toBeGreaterThanOrEqual(44);
+        expect(size.width).toBeGreaterThanOrEqual(44);
+      }
+    }
+  });
+
+  test("chat text, starters and composer controls are readable and touch-sized on a phone", async ({ page }) => {
+    await app(page, baseSession, { "/bots": () => ({ json: longBots }) });
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto("/#/assistants/may");
+    await expect(page.getByRole("textbox", { name: "Tin nhắn cho Mây" })).toBeVisible();
+    const metrics = await page.evaluate(() => {
+      const box = (selector: string) => document.querySelector<HTMLElement>(selector)!.getBoundingClientRect();
+      const font = (selector: string) => parseFloat(getComputedStyle(document.querySelector<HTMLElement>(selector)!).fontSize);
+      return {
+        starterFont: font(".quick-replies button"),
+        starterHeight: box(".quick-replies button").height,
+        composerFont: font(".bot-composer textarea"),
+        sendHeight: box(".send-button").height,
+        headerRole: font(".conversation-header p"),
+        overflow: document.documentElement.scrollWidth - innerWidth,
+      };
+    });
+    expect(metrics.starterFont).toBeGreaterThanOrEqual(14);
+    expect(metrics.starterHeight).toBeGreaterThanOrEqual(44);
+    expect(metrics.composerFont).toBe(16);
+    expect(metrics.sendHeight).toBeGreaterThanOrEqual(44);
+    expect(metrics.headerRole).toBeGreaterThanOrEqual(13);
+    expect(metrics.overflow).toBeLessThanOrEqual(1);
+  });
 });

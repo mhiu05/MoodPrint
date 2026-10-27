@@ -21,7 +21,7 @@
   background: var(--color-surface);
   color: var(--color-muted);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--text-support);
   cursor: pointer;
 }
 .editor-steps button span {
@@ -31,7 +31,7 @@
   height: 22px;
   border-radius: 50%;
   background: var(--color-disabled-bg);
-  font-size: 0.75rem;
+  font-size: var(--text-meta);
 }
 .editor-steps [aria-current="step"] button {
   border-color: var(--color-primary);
@@ -59,7 +59,7 @@
 .tag-hint,
 .tag-counter {
   margin: 0 0 10px;
-  font-size: 0.88rem;
+  font-size: var(--text-support);
   color: var(--color-muted);
 }
 .tag-counter[data-short] {
@@ -67,7 +67,7 @@
 }
 .tag-group-title {
   margin: 12px 0 6px;
-  font-size: 0.8rem;
+  font-size: var(--text-meta);
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--color-muted);
@@ -147,7 +147,7 @@
   height: 44px;
   border-radius: 50%;
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: var(--text-support);
 }
 .match-label {
   display: inline-block;
@@ -156,7 +156,7 @@
   border-radius: 999px;
   background: var(--color-success-bg);
   color: var(--color-primary);
-  font-size: 0.8rem;
+  font-size: var(--text-meta);
   font-weight: 600;
 }
 .reason-chips {
@@ -172,7 +172,7 @@
   border-radius: 999px;
   background: var(--color-bg);
   border: 1px solid var(--color-divider);
-  font-size: 0.85rem;
+  font-size: var(--text-support);
 }
 .peer-facts {
   margin: 12px 0 0;
@@ -186,11 +186,11 @@
 }
 .peer-facts dt {
   color: var(--color-muted);
-  font-size: 0.85rem;
+  font-size: var(--text-support);
 }
 .peer-facts dd {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--text-label);
 }
 .peer-card-actions {
   display: flex;
@@ -206,10 +206,10 @@
 .request-status {
   margin: 0;
   color: var(--color-muted);
-  font-size: 0.9rem;
+  font-size: var(--text-label);
 }
 .discovery-footnote {
-  font-size: 0.85rem;
+  font-size: var(--text-support);
   color: var(--color-muted);
 }
 @media (min-width: 768px) {
