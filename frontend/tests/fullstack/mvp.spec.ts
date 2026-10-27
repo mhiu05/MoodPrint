@@ -145,7 +145,7 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
     .getByRole("button", { name: "Cập nhật tâm trạng", exact: true })
     .click();
   await expect(page.getByRole("alert")).toContainText(
-    "vừa thay đổi ở nơi khác",
+    "vừa được thay đổi ở nơi khác",
   );
   await expect(page.getByLabel("Ghi chú", { exact: true })).toHaveValue(
     "Bản nhập cần giữ",
@@ -167,7 +167,7 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
   await page.reload();
   await expect(
     page.getByText(
-      "Bạn đã dành thời gian cho mình trong 3/7 ngày. Mức tự ghi từ 1 đến 5/5.",
+      "Bạn đã ghi tâm trạng trong 3/7 ngày. Điểm bạn tự chọn từ 1 đến 5/5.",
     ),
   ).toBeVisible();
   await page.getByRole("button", { name: "30 ngày", exact: true }).click();
@@ -236,7 +236,7 @@ test("Journey B/C: two users match, request, accept and chat; stale tab loses ac
   // Outgoing and incoming invitations live under the Lời mời tab (H-01).
   await one.getByRole("tab", { name: /Lời mời/ }).click();
   await expect(
-    one.getByText(`Lời chào gửi ${pairAlias(11, 12)}`),
+    one.getByText(`Lời mời đã gửi cho ${pairAlias(11, 12)}`),
   ).toBeVisible();
 
   await two.goto("/#/connect?tab=requests");
@@ -308,7 +308,7 @@ test("Journey B/C: two users match, request, accept and chat; stale tab loses ac
   // B withdraws MATCH from another page; A's open chat tab must lose access without reload.
   const settings = await b.newPage();
   await disable(settings, "tìm bạn");
-  await expect(one.getByText(/không còn khả dụng/)).toBeVisible({
+  await expect(one.getByText(/không còn mở/)).toBeVisible({
     timeout: 20_000,
   });
   await expect(composer).toBeDisabled();
@@ -383,7 +383,7 @@ test("Journey D: block keeps report-after-block possible, the peer's tab closes,
   await expect(
     one.getByText("Đã gửi báo cáo.", { exact: true }),
   ).toBeVisible();
-  await expect(two.getByText(/không còn khả dụng/)).toBeVisible({
+  await expect(two.getByText(/không còn mở/)).toBeVisible({
     timeout: 20_000,
   });
   await expect(

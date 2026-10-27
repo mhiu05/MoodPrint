@@ -156,7 +156,7 @@ test("a conversation starter stays editable and reaches the other account only a
       .click();
     const catalog = pageA.getByRole("dialog", { name: "Cùng làm gì đó?" });
     await expect(catalog).toContainText("Mỗi người trả lời riêng");
-    await expect(catalog).toContainText("5 vòng cùng một đội");
+    await expect(catalog).toContainText("Năm vòng đố vui cùng một đội");
     await expect(catalog).toContainText(
       "Một người tạm dừng sẽ dừng đồng hồ của cả hai",
     );

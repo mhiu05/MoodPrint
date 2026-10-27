@@ -171,7 +171,7 @@ test("blocking mid-activity closes the peer's dock and the room", async ({ brows
       .click();
     await expect(pageA.getByText("Bạn đã chặn kết nối này.")).toBeVisible();
     await expect(dock(pageB, title)).toHaveCount(0, { timeout: 15_000 });
-    await expect(pageB.getByText(/Cuộc trò chuyện này không còn khả dụng/)).toBeVisible();
+    await expect(pageB.getByText(/Cuộc trò chuyện không còn mở/)).toBeVisible();
     const after = await call(two, 28, "GET", `/connections/${room}/activities/current`);
     expect([403, 404, 410]).toContain(after.status);
   } finally {
