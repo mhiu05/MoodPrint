@@ -65,6 +65,8 @@ jobs:
         run: uv run python ../scripts/test_fullstack.py
       - name: Reviewed SQL approvals integrity
         run: python scripts/check_reviewed_artifacts.py
+      - name: Technical documentation links and inventories
+        run: python scripts/check_docs.py
       - name: AWS release poller validation
         run: python3 -m unittest discover -s deploy/aws/tests -v
       - name: Workflow syntax
