@@ -6,6 +6,15 @@ import { answerText } from "./activities/ActivitySummary";
 
 type Schema = components["schemas"];
 const fields = { displayName: "Tên hiển thị", gender: "Giới tính" } as const;
+const genders = ["Nam", "Nữ", "Khác"] as const;
+
+function normalizeGender(value: string) {
+  const normalized = value.trim().toLocaleLowerCase("vi-VN");
+  if (normalized === "nam") return "Nam";
+  if (normalized === "nữ" || normalized === "nu") return "Nữ";
+  if (normalized === "khác" || normalized === "khac") return "Khác";
+  return "";
+}
 
 export function OwnIdentity() {
   const { api } = useSession();
@@ -24,8 +33,9 @@ export function OwnIdentity() {
         displayName:
           resource.data.find((item) => item.field === "displayName")?.value ||
           "",
-        gender:
+        gender: normalizeGender(
           resource.data.find((item) => item.field === "gender")?.value || "",
+        ),
       });
     }
   }, [resource.data, loaded]);
@@ -41,15 +51,33 @@ export function OwnIdentity() {
       {(Object.keys(fields) as (keyof typeof fields)[]).map((field) => (
         <div className="real-item" key={field}>
           <label htmlFor={`identity-${field}`}>{fields[field]}</label>
-          <input
-            id={`identity-${field}`}
-            disabled={!loaded || busy}
-            maxLength={40}
-            value={values[field]}
-            onChange={(event) =>
-              setValues({ ...values, [field]: event.target.value })
-            }
-          />
+          {field === "gender" ? (
+            <select
+              id={`identity-${field}`}
+              disabled={!loaded || busy}
+              value={values.gender}
+              onChange={(event) =>
+                setValues({ ...values, gender: event.target.value })
+              }
+            >
+              <option value="">Chọn giới tính</option>
+              {genders.map((gender) => (
+                <option key={gender} value={gender}>
+                  {gender}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              id={`identity-${field}`}
+              disabled={!loaded || busy}
+              maxLength={40}
+              value={values.displayName}
+              onChange={(event) =>
+                setValues({ ...values, displayName: event.target.value })
+              }
+            />
+          )}
           <Button
             variant="secondary"
             disabled={busy || !loaded || !values[field].trim()}

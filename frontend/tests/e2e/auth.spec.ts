@@ -184,3 +184,26 @@ test("identity values typed while the stored value loads are never overwritten",
   await expect(page.getByText("Đã cập nhật thông tin riêng.")).toBeVisible();
   expect(saved).toMatchObject({ field: "displayName", value: "New typed name", expectedVersion: 1 });
 });
+
+test("the gender selector normalizes a stored value and saves the chosen canonical value only on request", async ({ page }) => {
+  let stored = " nu ";
+  const calls = await api(page, true, {
+    "GET /users/me/identity": () => ({ json: [{ field: "gender", value: stored, version: 3 }] }),
+    "PATCH /users/me/identity": (request) => {
+      stored = request.postDataJSON().value;
+      return { json: { field: "gender", value: stored, version: 4 } };
+    },
+  });
+  await page.goto("/#/profile");
+  const gender = page.getByRole("combobox", { name: "Giới tính", exact: true });
+  await expect(gender).toHaveValue("Nữ");
+  await gender.selectOption("Khác");
+  expect(calls.filter((call) => call.method === "PATCH")).toEqual([]);
+  await page.getByRole("button", { name: "Lưu giới tính", exact: true }).click();
+  await expect(page.getByText("Đã cập nhật thông tin riêng.")).toBeVisible();
+  expect(calls.find((call) => call.method === "PATCH")?.body).toEqual({
+    field: "gender", value: "Khác", expectedVersion: 3,
+  });
+  await page.reload();
+  await expect(page.getByRole("combobox", { name: "Giới tính", exact: true })).toHaveValue("Khác");
+});
