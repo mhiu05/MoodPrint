@@ -42,3 +42,10 @@ Final latency distributions/statuses and content-free metrics live in `$TEMP/moo
 Commands from `backend` require `TEST_DATABASE_URL` explicitly set to loopback `moodprint_guest_load_test`; output paths are distinct temp JSON files. The CLI refuses workers other than1, users other than50, remote/non-test/query-overridden targets and occupied ports; it stops only its own process. Crash/physical restore is pinned to the inspected local `moodprint-guest-impl-db` container on26432, creates a uniquely named empty restore DB and keeps its contents synthetic.
 
 `tests/test_guest_restore.py` separately proves the quarantine gate and unsafe-target refusal; `tests/test_guest_cleanup_recovery.py` covers flags-off cleanup, lease theft/crash/retry/failure and compatible rollback. The [release gates](release-readiness.md) still hold D01/D02/D03/D04 and actual hosted recovery/capacity. See [rollback](rollback.md).
+
+Final frontend-only follow-up: native Back guard at6316f82 is independently
+approved and its push CI passed. A terminal activity stale-refresh fence and
+settled-geometry regression now require final scoped review/latest-head CI.
+Backend/load/schema results remain applicable to unchanged backend source;
+release HOLD, all six flags off, unset paid budget and D01?D04 remain unchanged.
+See [current finish evidence](final-review-and-merge.md).

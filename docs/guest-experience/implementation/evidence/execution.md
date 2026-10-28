@@ -588,3 +588,29 @@ the historical CI failure's precise cause. The cost is another focused source
 review/CI cycle. b49 attempt3 is obsolete after the new head is pushed; its
 result cannot approve that new head. Backend/load evidence remains applicable
 to unchanged backend code; frontend browser/build gates refresh below/CI.
+
+### 2026-10-29 ? terminal activity dismissal and settled geometry
+
+6316f82 source independently APPROVED; push CI40733052335 SUCCESS:1047 backend/
+1D04 skip403.72s,91units,265browser5.8m,32fullstack3.8m,18deploy and packaging/
+load gates. Parallel PR40733063405 failed original phone dock geometry while
+computed transform was translate3d(0,6.0401px,0); bottom790.0532 exceeded790.
+The original assertion sampled the220ms GSAP entrance. Wait for computed
+transform none before unchanged geometry/focus/draft assertions:8 repeats PASS.
+This checks settled layout; it makes no transient-animation-overlap claim.
+
+Local6316 owned264 PASS/1 ERR_NO_BUFFER_SPACE at navigation is not a full pass.
+Local fullstack31 PASS/1 icebreaker Continue failure revealed a real stale-refresh
+race: dismiss clears current session, pending GET reinstalls the same terminal
+ID and HumanChat hides that ID from history. Controlled held-response regression
+RED1; RAM room-local Set of dismissed terminal IDs fences receive, preserving
+new invitations and clearing on room lifecycle. GREEN32 activity cases/2rounds
+1.1m;91units/typecheck/build19.69s PASS. Initial fullstack launch with async-driver
+URL was rejected at Settings before tests; standard PostgreSQL URL rerun follows.
+New commit needs independent scoped approval and complete latest-head CI.
+No backend, timing oracle, budget, flag, schema, dependency or hold change.
+
+Activity actual-HTTP fullstack target:5 PASS1.6m, including the previously
+failing icebreaker Continue. Docs67Markdown/445links/109operations/68settings/
+48tables and9approval pins PASS; unstaged diff check clean. Complete final
+browser/fullstack and new-head Linux CI follow this focused commit.

@@ -1,95 +1,78 @@
-# Guest experience — final review and merge evidence
+# Guest experience ? final review and merge evidence
 
-Status: **history-navigation fix verification pending; release HOLD**.
-This pre-merge snapshot follows
-[prompt10](../10-codex-finish-pr-merge-prompt.md). No hosted migration, deployment,
-paid call or public enablement is authorized by source integration.
+Status: **final activity-race delta awaiting exact-SHA review/CI; release HOLD**.
+This pre-merge report follows [prompt10](../10-codex-finish-pr-merge-prompt.md).
+Actual final head/review verdict, PR merge/main SHAs and post-merge run results
+will be recorded in [PR20](https://github.com/mhiu05/MoodPrint/pull/20) and the
+final response. No post-merge evidence commit is needed.
 
-Base/main verified `984753389aa8bd4b3112b19a8beceb1e538fd659`; original finish
-start `b8c7efb990447d329599b3bf038430b12aa14084`. Fixes through
-`26ca93d141b38f8c963a8c2ec0279280eb830594` implement REL1/F1–F6/UX1. Complete
-[independent review](independent-review-26ca93d.md) requests three additional P2
-fixes; their regression and later-SHA re-review are in progress. Merge is gated.
+Base/main: `984753389aa8bd4b3112b19a8beceb1e538fd659`. Finish start:
+`b8c7efb990447d329599b3bf038430b12aa14084`. REL1/F1?F6/UX1 code through
+`26ca93d141b38f8c963a8c2ec0279280eb830594`; review corrections through
+`11538b233c9ae9e127df7d133a73e01e0e242ec2`; deadline test/evidence refinement
+`b49e1094939e4a44732fa5cf08c21f2deec10b24`; browser-history guard
+`6316f824ccc6d9df87de730de170e2c7e0f595c1`. New activity source/test delta is
+identified by the commit containing this report; latest-head CI remains mandatory.
 
-Follow-up at862e036 resolved R1–R3 but [scoped review](independent-review-862e036.md)
-identified provider-start/admission-clock coupling. The correction keeps bucket
-time request-local for refunds and restores fresh post-admission provider time;
-54 targeted tests pass including actual orphan deletion. Later-SHA verdict and
-remaining integrated/load/CI evidence are still required.
-
-| Scope | Actual command / observed result at26ca93d | Limit |
+| Scope | Commands actually run / observed results | Coverage / limit |
 | --- | --- | --- |
-| Backend | `uv sync --locked`; full CI Ruff list; mypy114 clean; `uv run --locked pytest -q -rs`:1042 pass/1 skip,1141.01s | Only D04 hosted-target skip; must refresh after review fixes |
-| Frontend | npm ci/audit0/contracts generation/typecheck/91 units/build exit0; generated drift empty | Node24 local; separate Node22/Linux91 units pass |
-| Browser | Full owned264 pass/8.0m; default CI command264 pass/7.5m | First default run competed with builds/servers and hit600s after256; unchanged sequential rerun passed |
-| Fullstack | New signup/five-bot guest journeys2 pass; first full run31 pass/1 fail | Trace proves504 Outdated Optimize Dep on react-markdown with concurrent Vite cache; isolated registered-history rerun1 pass; complete sequential rerun required |
-| Migration | Distinct local DB upgrade/current/check:0018_app_feedback/no drift | No hosted SQL applied; historical9 approvals unchanged |
-| Oracles | All21 backend and4 browser exact commands exit0; browser selected1/3/11/18 tests | Fresh results in owned temp; affected backend selectors refreshed after fixes |
-| Linux/package | API/web/combined builds;18 deployment tests; pinned actionlint; Compose/Caddy/UID10001/no.env/no maps/no test entrypoint/proxy/CSP/callback/SSE pass | Rebuild changed backend after review fixes |
-| Docs/flags |61 Markdown/420 links/109 operations/68 settings/48 tables;9 SQL pins pass;6 defaults/examples false;budget unset; .gitignore no diff | Latest docs counts will change with this report |
-| Load/recovery | Pending new50 registered/50 guest/50 crash sequential run | Prior b8c7efb workloads are historical |
-| GitHub | CLI push/merge rights verified; all merge methods allowed; no branch protection/rulesets; no existing PR found | Superseded by PR20/results below |
+| REL1 | `python -m unittest discover -s deploy/aws/tests -v`:18 Linux tests; pinned actionlint PASS; tracked marker and fail-closed hold helper inspected | Both workflow events fence eligibility/build/publish/release; post-merge workflow must be observed |
+| F1/F2 | Actual PostgreSQL final-lock/consent, document-job token/lease/source and funded query tests RED?GREEN;54 review correction tests PASS | No provider call after rejected final admission; source/semantic publication fencing retained |
+| F3 | Budget/audio/route regressions RED?GREEN at sample boundaries across8/16/44.1/48kHz | Fractional15s reserves210 synthetic nano-USD/15001ms; replay/limits preserved |
+| F4/F5 | Three grant/recovery output barriers and guest DB-clock tests RED?GREEN | Final private bytes/cookies fenced; registered sliding behavior retained |
+| F6/UX1 | Guest log privacy and one-action end?signup regressions RED?GREEN; actual HTTP guest journeys2 PASS | No guest identifier logs; end failure stays retryable; private tree unmounted before signup |
+| Independent review | [Whole branch](independent-review-26ca93d.md), [interaction](independent-review-862e036.md), [11538b2 approval](independent-review-11538b2.md), [b49 approval](independent-review-b49e109.md), [6316 approval](independent-review-6316f82.md) | Three P2 findings and clock coupling fixed; newest activity delta needs scoped approval |
+| Backend | `uv sync --locked`; exact CI Ruff list; mypy114 clean; b49 full local `pytest -q -rs`:1047 PASS/1 D04 skip923.47s | Backend unchanged by subsequent frontend fixes; latest full Linux CI below |
+| Frontend | Locked npm install/audit0/contracts drift empty; typecheck/91 units/build PASS after activity fix | Build19.69s; Linux/Node22 packaging must pass at final head |
+| History guard | Controlled delayed-router Back regression RED1; native popstate guard GREEN57 onboarding/3rounds, final mutation assertion1 PASS; negative-oracle21 refreshed19 PASS50.2s | Historical CI Back failure's precise cause unproven; controlled gap independently reproduced |
+| Activity race | Held-refresh regression RED1; room-local terminal-ID dismissal fence GREEN32 activity tests/2rounds1.1m; original phone geometry test8 repeats PASS20.4s; actual-HTTP activity fullstack5 PASS1.6m | Different new invitation accepted; no POST; geometry waits for actual GSAP transform removal, original bounds unchanged; no transient-animation-overlap claim |
+| Full browser/fullstack | Prior complete local264 owned/264 default/32 actual-HTTP fullstack PASS;6316 Linux265 browser/32 fullstack PASS | Final activity head full owned/fullstack and CI still pending; failures below remain visible |
+| Negative matrix | All25 exact plan07 commands exit0;21 backend/4 browser commands; affected backend rows2/8/9/10/13/15/24/25 refreshed with1 selected each | Browser rows3/19/20/21 select1/3/11/19 after history regression |
+|50 registered/1worker | `load_chat_memory.py --workers 1 --users 50 --port 8017`:PASS;50 AI completions/941 non-AI;p95 non-AI1958.53ms/AI10729.77ms;RSS192643072;12 connections/10 pool slots | Synthetic SDK only; no production SLO/headroom inference |
+|50 guest normal/1worker | `load_guest_experience.py --workers 1 --users 50 --port 8018`:PASS;AI10 admitted40 clean429/STT3 success47 clean429;10 SSE;peak10/3;cleanup10.375s | Detached synthetic liability186315 retained; registered canary successful |
+|50 guest crash/1worker | Same command plus `--crash-kill`:PASS;owned kill/restart,provider replay0;physical quarantine restore expired/anonymous references0,no listener;cleanup+restore16.86s | Detached liability204915 retained; canary successful; no hosted restore |
+| Schema/SQL | Local upgrade/current/check0018_app_feedback/no drift;9 historical approval pins PASS; pending0015?0018 hash4a5abfbfc6ab09d0ba7ab01dd65bcacea2598abcb07fa12a7da1ffcbbba47606 transaction rehearsal PASS/DDL rolled back/remoteExecuted=false | Distinct loopback test databases; no hosted mutation |
+| Packaging | Prior API/web/combined Linux images,UID10001/no.env/no test entrypoint/no web maps;Node22 91units;Compose/Caddy/proxy/CSP/callback/SSE PASS | Latest frontend runtime must rebuild via final-head Linux CI; no image publication |
+|6316 CI | [Push40733052335](https://github.com/mhiu05/MoodPrint/actions/runs/40733052335) SUCCESS:1047 backend/1 skip403.72s;91 units;265 browser5.8m;32 fullstack3.8m;18deploy;remaining workflow/package/load gates PASS | Parallel PR run40733063405 failed phone geometry sampled mid-animation; no timeout/assertion/threshold relaxed |
 
-## Completed finish validation
+## Retained failures and diagnosis
 
-The table above is a chronological pre-review snapshot. These results supersede
-its pending checks. Functional code is11538b233c9ae9e127df7d133a73e01e0e242ec2;
-the final test/evidence delta changes no runtime/schema/flags/budget/dependencies.
+Earlier default browser run hit600s while competing with builds; unchanged
+sequential rerun passed. Shared Vite cache caused504 Outdated Optimize Dep;
+sequential actual-HTTP rerun32 passed. Docker Desktop stopped during a backend
+rerun; only owned blocked processes were stopped and original container restarted
+with databases preserved. Interrupted runs are not passes.
 
-Subsequent frontend delta (2026-10-29): native popstate cancellation closes a
-controlled delayed-router gap. b49 local1047/1skip and pushCI40706860084 passed;
-[independent b49 source approval](independent-review-b49e109.md) is complete.
-PR attempt2 then failed original browser Back case; exact historical cause
-unproven. Back-only12 and whole onboarding54 unchanged passes retained. New
-controlled router-event barrier RED1 → guard fix →57 onboarding/3rounds PASS,
-typecheck/91units PASS,final added zero-mutation assertion1PASS. New source SHA
-requires independent extension,full browser/build and exact-head CI. All prior
-backend/load/retention/hold boundaries remain unchanged; old runtime image IDs
-and counts are historical until the new frontend build verifies.
+862e036 backend1044 PASS/1 fail/1 skip confused financial settlement completion
+with provider cancellation. Deterministic blocked-settlement RED proved the
+assertion error; corrected oracle still enforces provider cancellation<=T+150ms
+and no late final while awaiting financial terminal state separately. b49 local
+full1047/1skip and CI passed. Earlier social-session load samples539.5/516.3ms
+failed the unchanged500ms limit; other complete unchanged runs passed. No
+threshold or workload was weakened.
 
-| Gate | Actual evidence / result |
-| --- | --- |
-| Independent review | [Whole branch](independent-review-26ca93d.md), [interaction](independent-review-862e036.md), [APPROVED11538b2](independent-review-11538b2.md). R1–R3/clock coupling resolved; no material finding. Final test-only delta receives scoped review. |
-| Linux CI11538b2 | [Run40702269445](https://github.com/mhiu05/MoodPrint/actions/runs/40702269445) SUCCESS:1047 backend/1 D04 skip in453.95s;91 units;264 browser/6.1m;32 fullstack/4.1m; migration/load/docs/pins/18deploy tests/actionlint/3image builds/proxy pass. Job14:03:56–14:25:44UTC, within25min; runtime budget unchanged. |
-| Local backend |26ca93d full1042/1 D04 skip PASS.862e036 full1044 pass/1 deadline-oracle fail/1 D04 skip retained accurately. Blocked-settlement RED then inflight20+review5=25 pass; final changed case1 pass8.25s. Provider cancellation still<=T+150ms/no late final; settlement terminal separately bounded. Latest-head full CI remains mandatory. |
-| Local frontend/fullstack |91 units/typecheck/build/contracts/audit0;264 owned/8.0m,264 default/7.5m; sequential32 fullstack/6.2m PASS. Earlier shared-Vite504 and interrupted runs are not passes. |
-| Negative matrix | All25 exact commands pass; affected rows2/8/9/10/13/15/24/25 refreshed after fixes, each selects1/exit0. Browser rows3/19/20/21 select1/3/11/18. |
-|50 registered/1worker | PASS;50 AI completions,941 non-AI requests,p95 non-AI1958.53ms/AI10729.77ms,RSS192643072,12 connections,10 pool slots. |
-|50 guest normal/1worker | PASS;10 AI202+40 clean429;3 voice200+47 clean429;10 SSE;actual peakAI10/STT3;cleanup10.375s;186315 synthetic nano-USD retained;canary success. |
-|50 guest crash/1worker | PASS;owned kill/restart,replay0;physical dump restored in quarantine,expired/anonymous references0,canary success,no listener;cleanup+restore16.86s;204915 synthetic nano-USD retained. |
-| Migration/SQL | Final local0018/no drift; pending0015→0018 SHA4a5abfbfc6ab09d0ba7ab01dd65bcacea2598abcb07fa12a7da1ffcbbba47606 rehearsal/DDL rolled back/remoteExecuted=false;9 approvals intact. |
-| Final local packaging | API/web/combined Linux builds;18deploy tests;Node22 91units;Compose/Caddy/UID10001/no.env/no test entrypoint/no maps/proxy/CSP/callback/SSE PASS. IDs in release evidence. |
-| PR/remote gate | [PR20](https://github.com/mhiu05/MoodPrint/pull/20), draft until final test/evidence SHA passes review and latest-head CI.11538b2 push CI failed social session p95539.5ms vs500ms; parallel PR CI passed unchanged. No threshold relaxed; latest head must pass independently. |
+6316 local owned264 PASS/1 environment failure (`ERR_NO_BUFFER_SPACE` at page.goto
+before app assertions), and fullstack31 PASS/1 failure at icebreaker Continue are
+not full passes. The latter revealed late current-session refresh reopening a
+terminal summary; new controlled regression reproduces it and the dismissal
+fence fixes it. A first activity fullstack launch used an incompatible URL driver
+prefix and never reached tests; rerun uses standard PostgreSQL URL. All raw logs
+remain outside Git under `%TEMP%/moodprint-guest-finish`.
 
-Final PR head, review extension, actual merge/main SHAs and post-merge workflow/
-release observations belong in PR20 and the final task response after they occur.
-Do not fabricate them in this pre-merge commit or create a post-merge evidence
-commit merely to insert IDs. Merge requires green latest-head checks; merged-main
-verification and held publication must then be observed.
+## Preserved boundaries
 
-Raw logs, screenshots and JSON stay at `%TEMP%/moodprint-guest-finish`; no dumps,
-browser profiles, secrets or private output are committed. Tools: Python3.12.13,
-uv0.11.14, Node24.13.0/npm11.6.2 local, Node22.16.0 in Linux build, gh2.97.0,
-Docker29.8.2. All database targets are explicit loopback26432 `_test` databases
-in owned pgvector0.8.2/PG17 container. No `.env` fallback.
+All six defaults/examples remain false; paid daily budget is unset; tracked
+`deploy/guest-experience.release-hold` remains. D01 provider/log/backup/deletion
+facts and cleanup target, D02 approved numerical budget, D03 proposed180-day
+unlinked-feedback retention and D04 hosted Auth/CAPTCHA/DB approval remain
+unresolved. Driver spotlight remains deferred with inline guidance fallback.
+Manual assistive technology, physical keyboard/microphone and actual target
+checks remain gaps. The review's forced out-of-band token-replacement concern
+is deferred hardening: no normal takeover path found; five-second heartbeat and
+expiry cancellation retained. No paid calls, hosted migration or AWS changes.
 
-Docker Desktop stopped during a rerun: only owned blocked test processes stopped;
-the original exited container was inspected and restarted with its databases
-preserved. Interrupted runs are not passes. A recreate attempt failed on the
-existing container name and changed nothing.
-
-## Preserved release boundaries
-
-Tracked `deploy/guest-experience.release-hold` remains. Both workflow events
-fail closed before eligibility/publication; normal CI remains active. D01 cleanup/
-provider/log/backup facts, D02 approved paid budget, D03 proposed180-day retention,
-D04 approved hosted target and manual device checks remain unresolved. Driver
-spotlight remains deferred; optional inline guidance is the accepted fallback.
-The review's nonblocking forced-token-tampering hardening concern is recorded,
-not represented as a confirmed production defect or silently omitted.
-
-Original workspace remains untouched on local main with its untracked guest docs;
-feature worktree retains unrelated `docs/plans/` and `frontend/evidence/`. No
-reset/clean/force push, branch deletion, `.gitignore` change or original-workspace
-pull is permitted. Remote-main integration and post-merge verification remain
-required before this report can state PASS.
+Original `E:/MoodPrint` stays on its original local main; overlapping untracked
+docs are preserved. Feature worktree/branch and pre-existing untracked
+`docs/plans/` and `frontend/evidence/` stay. `.gitignore` has no branch diff.
+Tools:Python3.12.13,uv0.11.14,Node24.13/npm11.6.2 local,Node22.16 Linux,
+gh2.97,Docker29.8.2. Synthetic DB container pgvector0.8.2/PG17 on loopback26432.

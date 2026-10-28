@@ -29,3 +29,10 @@ Both automatic and manual publication honor it; no exact-main staging release
 is produced for the deployment poller. Do not remove the marker to validate a
 merge or relax schema0018 readiness. A separate owner-approved release change
 must resolve hosted/schema/decision/manual prerequisites before removal.
+
+Final frontend-only follow-up: native Back guard at6316f82 is independently
+approved and its push CI passed. A terminal activity stale-refresh fence and
+settled-geometry regression now require final scoped review/latest-head CI.
+Backend/load/schema results remain applicable to unchanged backend source;
+release HOLD, all six flags off, unset paid budget and D01?D04 remain unchanged.
+See [current finish evidence](final-review-and-merge.md).

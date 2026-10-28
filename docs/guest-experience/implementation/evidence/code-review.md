@@ -3,8 +3,8 @@
 Current finish status: [complete whole-branch review](independent-review-26ca93d.md)
 found3 additional P2; [scoped review](independent-review-862e036.md) found one
 timestamp interaction, all resolved. [Independent11538b2 approval](independent-review-11538b2.md)
-supersedes the historical incomplete verdict below. Final test/evidence delta
-still requires scoped approval/latest-head CI before merge. See
+supersedes the historical incomplete verdict below. [6316f82 source approval](independent-review-6316f82.md) extends the test/evidence
+review. The final activity-race delta requires scoped approval/latest-head CI. See
 [finish verification](final-review-and-merge.md). Release remains HOLD.
 
 ## Historical review before b8c7efb

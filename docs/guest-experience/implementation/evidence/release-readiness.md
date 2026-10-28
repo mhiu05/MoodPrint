@@ -80,3 +80,10 @@ delayed router observation. New controlled RED→GREEN and57 repeated onboarding
 tests pass; b49 approval/CI successes remain historical. New head requires
 fresh review/browser/build/CI, while schema/backend/load safety evidence remains
 unchanged. Release hold,flags,budget and D01–D04 remain intact.
+
+Final frontend-only follow-up: native Back guard at6316f82 is independently
+approved and its push CI passed. A terminal activity stale-refresh fence and
+settled-geometry regression now require final scoped review/latest-head CI.
+Backend/load/schema results remain applicable to unchanged backend source;
+release HOLD, all six flags off, unset paid budget and D01?D04 remain unchanged.
+See [current finish evidence](final-review-and-merge.md).
