@@ -4,6 +4,24 @@ import { createGuest, guestCall } from "./guest-support";
 
 test.beforeEach(async ({ request }) => { expect((await request.post("http://127.0.0.1:5174/__test/reset-admission")).ok()).toBe(true); });
 
+test("end and register opens signup after one confirmed HTTP end", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    await createGuest(context);
+    const page = await context.newPage();
+    await page.goto('/#/connect');
+    await page.getByRole('button', { name: 'Tạo tài khoản', exact: true }).click();
+    const response = page.waitForResponse(r => r.url().endsWith('/auth/guest/end') && r.request().method() === 'POST');
+    await page.getByRole('dialog').getByRole('button', { name: 'Kết thúc và tạo tài khoản' }).click();
+    expect((await response).status()).toBe(204);
+    await expect(page.getByLabel('Nhập lại mật khẩu', { exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/#\/login\?mode=signup$/);
+    await expect(page.getByTestId('guest-status')).toHaveCount(0);
+    expect((await context.request.get(api + '/session')).status()).toBe(401);
+    expect((await context.cookies()).some(c => c.name === 'moodprint_session')).toBe(false);
+  } finally { await context.close(); }
+});
+
 test("guest uses five assistants with explicit consent, mood, memory and voice preview only", async ({ browser }) => {
   const context = await browser.newContext({ permissions: ["microphone"], viewport: { width: 390, height: 844 } });
   try {

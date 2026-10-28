@@ -309,7 +309,14 @@ function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback
   return (
     <SessionContext.Provider value={{ api, session, receive, logout }}>
       {session.accountKind === "guest" ? (
-        <GuestHost session={session} api={api} onExpired={expireGuest} onEnd={requestEnd}>
+        <GuestHost session={session} api={api} onExpired={expireGuest} onEnd={requestEnd}
+          onRegisterAfterEnd={() => {
+            // expire() already aborted requests, broadcast the end and discarded
+            // the private tree. Choose signup explicitly over the terminal screen.
+            knewGuest.current = false;
+            setEnded(null);
+            window.location.hash = "#/login?mode=signup";
+          }}>
           {content}
         </GuestHost>
       ) : (
@@ -324,12 +331,14 @@ function GuestHost({
   api,
   onExpired,
   onEnd,
+  onRegisterAfterEnd,
   children,
 }: {
   session: SessionView;
   api: ApiClient;
   onExpired: (reason: "expired" | "ended") => void;
   onEnd: () => void | Promise<void>;
+  onRegisterAfterEnd: () => void;
   children: ReactNode;
 }) {
   const { remainingMs, expire } = useGuestLifecycle({ session, api, onExpired });
@@ -373,7 +382,7 @@ function GuestHost({
                   await onEnd();
                   setConfirm(null);
                   expire("ended");
-                  if (next === "register") window.location.hash = "#/login?mode=signup";
+                  if (next === "register") onRegisterAfterEnd();
                 } catch (reason) {
                   setEndError(reason);
                 } finally { setEnding(false); }

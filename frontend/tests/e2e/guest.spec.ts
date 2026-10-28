@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { app, guestSession, type Reply } from "./ux-fixtures";
+import { artifactPath } from "../artifacts";
 
 const READY = {
   guestAvailable: true,
@@ -250,6 +251,93 @@ test("failed end is reported and never claims deletion was accepted", async ({ p
   await page.getByRole("dialog").getByRole("button", { name: "Kết thúc và xóa", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Lượt dùng thử đã kết thúc" })).toBeVisible();
 });
+
+for (const width of [390, 1280]) {
+  test(`end and register opens signup after one confirmation at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    const session = guestSession(7_000_000);
+    let ends = 0;
+    await app(page, session, {
+      "/auth/guest/end": () => { ends += 1; return { status: 204 }; },
+    });
+    await page.goto("/#/connect");
+    await page.getByRole("button", { name: "Tạo tài khoản", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Tạo tài khoản?", exact: true });
+    await expect(dialog).toContainText("sẽ không chuyển sang tài khoản mới");
+    await page.screenshot({ path: artifactPath(`ux1-confirm-${width}.png`) });
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    let held = 0, returned = 0;
+    await page.route("**/api/v1/session", async route => {
+      held += 1;
+      await gate;
+      returned += 1;
+      await route.fulfill({ json: session }).catch(() => undefined);
+    });
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await expect.poll(() => held).toBeGreaterThan(0);
+    try {
+      const confirmed = page.waitForResponse(r => r.url().endsWith('/auth/guest/end') && r.status() === 204);
+      await dialog.getByRole("button", { name: "Kết thúc và tạo tài khoản" }).click();
+      await confirmed;
+      await expect(page.getByLabel("Nhập lại mật khẩu", { exact: true })).toBeVisible();
+      await expect(page).toHaveURL(/#\/login\?mode=signup$/);
+      await expect(page.getByTestId("guest-status")).toHaveCount(0);
+      expect(ends).toBe(1);
+    } finally { release(); }
+    await expect.poll(() => returned).toBe(held);
+    await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Lượt dùng thử đã kết thúc" })).toHaveCount(0);
+    await page.getByLabel("Email", { exact: true }).focus();
+    await page.keyboard.press("Tab");
+    await expect(page.getByLabel("Mật khẩu mới", { exact: true })).toBeFocused();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: artifactPath(`ux1-signup-${width}.png`) });
+  });
+}
+
+test("end and register cancellation keeps the private view and restores focus", async ({ page }) => {
+  let ends = 0;
+  await app(page, guestSession(7_000_000), {
+    "/auth/guest/end": () => { ends += 1; return { status: 204 }; },
+  });
+  await page.goto("/#/connect");
+  const trigger = page.getByRole("button", { name: "Tạo tài khoản", exact: true });
+  await trigger.click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  await expect(page.getByTestId("guest-status")).toBeVisible();
+  expect(ends).toBe(0);
+});
+
+for (const failureKind of ["503", "network"]) {
+  test(`end and register ${failureKind} failure stays honest and retryable`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await app(page, guestSession(7_000_000));
+    let ends = 0;
+    await page.route("**/api/v1/auth/guest/end", async route => {
+      ends += 1;
+      if (ends > 1) return route.fulfill({ status: 204 });
+      if (failureKind === "network") return route.abort("connectionfailed");
+      return route.fulfill({ status: 503, json: { error: {
+        code: "GUEST_END_UNAVAILABLE", message: "Chưa thể kết thúc lượt dùng thử.", retryable: true,
+      } } });
+    });
+    await page.goto("/#/connect");
+    await page.getByRole("button", { name: "Tạo tài khoản", exact: true }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: "Kết thúc và tạo tài khoản" }).click();
+    await expect(dialog.getByRole("alert")).toBeVisible();
+    await expect(page.getByTestId("guest-status")).toBeVisible();
+    await expect(page.getByLabel("Nhập lại mật khẩu", { exact: true })).toHaveCount(0);
+    expect(ends).toBe(1);
+    await page.screenshot({ path: artifactPath(`ux1-error-${failureKind}.png`) });
+    await dialog.getByRole("button", { name: "Kết thúc và tạo tài khoản" }).click();
+    await expect(page.getByLabel("Nhập lại mật khẩu", { exact: true })).toBeVisible();
+    expect(ends).toBe(2);
+  });
+}
 
 test.describe("inside a trial", () => {
   async function inTrial(page: Page, hash: string) {

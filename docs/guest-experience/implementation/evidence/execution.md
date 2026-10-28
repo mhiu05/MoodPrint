@@ -388,7 +388,7 @@ the generic executing-plans skill prescribes only one review or an approval stop
 | F4 | Guest grant/recovery queued past T | RED6 → GREEN6 new/44 inflight+auth+provisioning tests |
 | F5 | DB clock vs ahead process clock | RED2 → GREEN5 new/79 expiration+auth+provider+output tests |
 | F6 | Guest safe logs, registered observability | RED4 → GREEN5 new/57 runtime+recovery+cleanup+output tests |
-| UX1 | One-confirmation signup, honest failure | Pending |
+| UX1 | One-confirmation signup, honest failure | RED4 → GREEN5 new/38 guest+expiry+auth browser/2 actual HTTP journeys |
 
 Task1 complete: Windows targeted tests4 pass; full Windows discovery cannot
 import Linux fcntl, so the complete suite ran in the owned Linux API image with
@@ -456,4 +456,17 @@ All5 new tests plus AI/recovery/cleanup/inflight57 pass in67.61s. Audited other
 runtime and embedding emissions: controlled aggregate codes/types only, no raw
 exception messages or payloads. D01 historical operational-log retention stays
 unresolved; this forward fix makes no claim to erase old logs.
+
+Task8 complete: successful end calls existing lifecycle abort/broadcast/private
+unmount, then explicitly clears terminal guest state and selects signup. Ordinary
+end/expiry remain terminal; failed/unconfirmed end keeps dialog and retry.
+RED4 extra-click failures/1 cancellation control; after fix, first expanded run
+failed only2 keyboard assertions using login's label instead of signup's existing
+"Mật khẩu mới". Corrected selector, then38 browser tests pass in57.5s.
+Frontend typecheck/91 units pass; actual HTTP/PostgreSQL guest journey2 pass
+in11.4s (one new confirmed204→signup and existing five-bot/memory/voice flow).
+390/1280 screenshots inspected: confirm/signup/error fit, visible keyboard focus,
+no horizontal overflow; Escape returns trigger focus. Late session responses
+cannot restore private state;503/network ambiguity does not claim success.
+Screenshots remain owned temp. Physical keyboard/assistive/mic/hosted gaps remain.
 
