@@ -71,6 +71,45 @@ async def test_worker_crash_rolls_back_then_retries(clients, monkeypatch):
     assert await provider_rows(app, guest.user_id) == (0, 0)
 
 
+async def test_competing_cleanup_tick_is_not_a_global_completion_barrier(clients, monkeypatch):
+    from app.infrastructure.database.models import User
+    from app.modules.guests import jobs
+
+    app, _ = clients
+    guest = await add_guest(app, started_ago=LIFETIME + timedelta(seconds=5))
+    entered, release = asyncio.Event(), asyncio.Event()
+    original = jobs.purge_guest
+
+    async def held_purge(db, user_id, token):
+        if user_id == guest.user_id:
+            entered.set()
+            await release.wait()
+        return await original(db, user_id, token)
+
+    monkeypatch.setattr(jobs, "purge_guest", held_purge)
+    worker = asyncio.create_task(jobs.process_guest_cleanup(app))
+    try:
+        await asyncio.wait_for(entered.wait(), 5)
+        claimed = await job_of(app, guest.user_id)
+        assert claimed.state == "running" and claimed.lease_until > await db_now(app)
+        # This is the test endpoint's tick: it must not steal the healthy claim.
+        assert await jobs.process_guest_cleanup(app) == 0
+        async with app.state.database.sessions() as db:
+            remaining = await db.scalar(
+                select(func.count()).select_from(User).where(
+                    User.account_kind == "guest", User.guest_expires_at <= func.clock_timestamp()
+                )
+            )
+        assert remaining == 1, "one finished tick is not global purge completion"
+        assert (await guest.client.get("/api/v1/session")).status_code == 401
+    finally:
+        release.set()
+        await asyncio.wait_for(worker, 5)
+    assert worker.result() == 1
+    assert sum((await user_reference_counts(app, guest.user_id)).values()) == 0
+    assert await provider_rows(app, guest.user_id) == (0, 0)
+
+
 async def test_lost_lease_cannot_finish_cleanup(clients):
     from app.modules.guests import jobs
     from app.modules.guests.models import GuestCleanupJob

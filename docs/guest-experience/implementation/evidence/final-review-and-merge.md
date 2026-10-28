@@ -1,6 +1,6 @@
 # Guest experience ? final review and merge evidence
 
-Status: **final motion-fixture delta awaiting exact-SHA review/CI; release HOLD**.
+Status: **final cleanup-test delta awaiting exact-SHA review/CI; release HOLD**.
 This pre-merge report follows [prompt10](../10-codex-finish-pr-merge-prompt.md).
 Actual final head/review verdict, PR merge/main SHAs and post-merge run results
 will be recorded in [PR20](https://github.com/mhiu05/MoodPrint/pull/20) and the
@@ -12,8 +12,9 @@ Base/main: `984753389aa8bd4b3112b19a8beceb1e538fd659`. Finish start:
 `11538b233c9ae9e127df7d133a73e01e0e242ec2`; deadline test/evidence refinement
 `b49e1094939e4a44732fa5cf08c21f2deec10b24`; browser-history guard
 `6316f824ccc6d9df87de730de170e2c7e0f595c1`. Activity runtime fix: `1b2785191d9e431f4867ad8111e25ff8891e61d5`, independently
-APPROVED. The commit containing this report changes only the motion test fixture
-and evidence; runtime tree is identical to1b27851. Latest-head CI remains mandatory.
+APPROVED. Motion fixture/evidence at `091d4f86f0e754c79fb743a8ff27eb0f31ae9071` is
+independently APPROVED; whole owned266PASS7.8m. The commit containing this report
+changes cleanup tests and evidence only; production tree is identical to1b27851. Latest-head CI remains mandatory.
 
 | Scope | Commands actually run / observed results | Coverage / limit |
 | --- | --- | --- |
@@ -106,3 +107,27 @@ Docs67Markdown/446links/109operations/68settings/48tables,9pinned approvals
 and delta diff-check PASS. Runtime unchanged from independently approved
 1b27851 (whole owned266PASS/fullstack32PASS); new test-only head full CI and
 scoped review remain required.
+
+## Cleanup completion predicate
+
+091d4f8 push CI passed backend/migration/load/frontend266, then31fullstackPASS/
+1guest-feedback remainingExpired1 vs0. Unchanged local8 repeats reproduce7PASS/
+1same failure; no cleanup error logged and final cleanup jobs empty. Reviewer
+traced a healthy concurrent lifespan lease: one endpoint tick can return before
+the other worker's purge commits. New real PostgreSQL barrier proves that
+intermediate1/expired-session401 and final all-reference/provider0 after release.
+Cleanup/recovery25PASS36.76s; RuffPASS. Initial missing-psycopg setup refused by
+target guard is not a test pass and performed no reset.
+
+Browser check now polls exact remainingExpired0 within the unchanged default
+5s expect bound, retaining HTTP200 and immediate401. No lease, product deadline,
+cleanup target, load timing oracle, accepted count or timeout was changed. No
+running/retry state counts as success; persistent failure must fail. This is a
+completion-predicate correction over asynchronous cleanup, not a production fix.
+See the ledger for ruling and raw artifacts. New exact test/evidence SHA review,
+actual-HTTP fullstack and latest-head CI remain mandatory. Prior091PR social
+p95506.5ms vs500ms is retained accurately; no performance threshold relaxed.
+
+Corrected guest-feedback actual-HTTP8repeats PASS1.4m. Docs67/446/109/68/48,
+9pins and diff-check PASS. The new commit contains only two test files and
+three evidence files; production tree and owned266 tests are unchanged.

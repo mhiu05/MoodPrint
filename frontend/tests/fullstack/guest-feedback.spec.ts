@@ -32,8 +32,12 @@ test("guest rating survives unlinking and expiry while receipt and private data 
     await page.reload(); // new cookie identity must be read from the real session endpoint
     await expect(page.getByRole("heading", { name: "Lượt dùng thử đã kết thúc" })).toBeVisible({ timeout: 15000 });
     expect((await guest.request.get(api + "/session")).status()).toBe(401);
-    const purge = await guest.request.post("http://127.0.0.1:5174/__test/purge");
-    expect(purge.status()).toBe(200);
-    expect((await purge.json()).remainingExpired).toBe(0);
+    // A tick can skip a healthy lease already held by the lifespan worker.
+    // Await actual deletion within the existing expect timeout, never just a claim.
+    await expect.poll(async () => {
+      const purge = await guest.request.post("http://127.0.0.1:5174/__test/purge");
+      expect(purge.status()).toBe(200);
+      return (await purge.json()).remainingExpired;
+    }).toBe(0);
   } finally { await guest.close(); await admin.close(); }
 });

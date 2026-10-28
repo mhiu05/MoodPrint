@@ -644,3 +644,43 @@ Docs67Markdown/446links/109operations/68settings/48tables,9pinned approvals
 and delta diff-check PASS. Runtime unchanged from independently approved
 1b27851 (whole owned266PASS/fullstack32PASS); new test-only head full CI and
 scoped review remain required.
+
+### 2026-10-29 ? concurrent cleanup completion oracle
+
+091d4f8 independently APPROVED source/test/evidence; whole owned266PASS7.8m.
+Push40779272595 passed1047backend/1D04skip, migration/load,91units/contracts/
+build and266browser; fullstack31PASS/1failure at guest-feedback remainingExpired
+expected0/received1. PR40779281942 attempt1 failed unchanged social-session
+p95506.5ms/500ms (690requests,no HTTP/flow errors); paired push passed that gate;
+unmodified PR rerun was requested. No failed attempt is counted as success.
+
+Local unchanged guest-feedback8 repeats reproduce7PASS/1same failure. Afterward
+DB cleanup jobs are empty and logs contain no cleanup retry/alert. Independent
+read-only investigation establishes the completion race: test endpoint awaits
+one tick; lifespan may own a healthy30s lease whose separate purge transaction
+has not committed. The caller correctly skips that claim and can count1 through
+MVCC. One tick is not a global completion barrier. No runtime defect established;
+without CI trace exact historical causality remains inference.
+
+New PostgreSQL barrier holds real worker after claim commit/before purge, proves
+second tick does not steal the lease, count remains1 while held and expired
+session is401; releasing in finally commits real deletion and all guest/provider
+references become0. Cleanup/recovery suite25PASS36.76s; RuffPASS. Initial unit
+launch omitted required psycopg driver and guard rejected setup before DB reset;
+correct explicit postgresql+psycopg loopback*_test rerun above passed.
+
+Ruling: correct browser completion predicate, not cleanup policy. Poll actual
+remainingExpired===0 under existing framework-default expect timeout (5s),
+retaining every HTTP200 assertion and immediate expired-session401. No timeout
+increase, artificial sleep, lease/due-date rewrite, disabled worker, direct
+SQL delete, success on claimed/retry state or accepted nonzero remainder. This
+corrects an invalid synchronous assumption over an asynchronous worker; it does
+not relax the product expiry boundary or change any load timing oracle. A
+persistent failure still fails the bounded exact-zero check. Backend runtime,
+frontend source, workflow/schema/flags/budget/hold all unchanged. Scoped review
+and full new-head CI required; owned266 result remains applicable to unchanged
+owned tests/runtime. New actual-HTTP fullstack target/full suite results follow.
+
+Corrected guest-feedback actual-HTTP8repeats PASS1.4m. Docs67/446/109/68/48,
+9pins and diff-check PASS. The new commit contains only two test files and
+three evidence files; production tree and owned266 tests are unchanged.

@@ -46,3 +46,13 @@ fixture after final SSE, rather than a supported product regression. Author's
 new idle/reconciliation condition reproduces RED before correcting fixture
 publication order. Test/evidence-only delta requires scoped exact-SHA approval
 and latest-head CI; see [current finish record](final-review-and-merge.md).
+
+## Approved091d4f8 and cleanup test follow-up
+
+Reviewer APPROVED exact091d4f86f0e754c79fb743a8ff27eb0f31ae9071, no new material
+finding; docs67/446 and9pinsPASS, deterministic motion RED/GREEN inspected,
+production tree unchanged. Later read-only cleanup investigation identified a
+supported one-tick/global-completion harness race; no runtime defect established.
+Actual PostgreSQL barrier and bounded exact-zero browser correction are in the
+new test/evidence delta and require scoped exact-SHA approval/latest-head CI.
+All declined hosted/owner/manual/post-merge certifications and HOLD remain.
