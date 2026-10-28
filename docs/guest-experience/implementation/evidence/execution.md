@@ -387,7 +387,7 @@ the generic executing-plans skill prescribes only one review or an approval stop
 | F3 | Sample above billing quantum, ceil quota | RED9 → GREEN66 broad/28 boundary+settlement tests |
 | F4 | Guest grant/recovery queued past T | RED6 → GREEN6 new/44 inflight+auth+provisioning tests |
 | F5 | DB clock vs ahead process clock | RED2 → GREEN5 new/79 expiration+auth+provider+output tests |
-| F6 | Guest safe logs, registered observability | Pending |
+| F6 | Guest safe logs, registered observability | RED4 → GREEN5 new/57 runtime+recovery+cleanup+output tests |
 | UX1 | One-confirmation signup, honest failure | Pending |
 
 Task1 complete: Windows targeted tests4 pass; full Windows discovery cannot
@@ -447,4 +447,13 @@ lifecycle predicate; registered wall-clock/sliding behavior stays intact.
 Five new timezone-aware clock/deadline/revocation/end cases and full expiration,
 auth flows, provider and output suites79 pass in56.19s. No writes renew guest T;
 clock injection exists only in tests, not a runtime setting or endpoint.
+
+Task7 complete: actual runtime caplog success/failure/cancellation/expiry
+reproduced run UUIDs in rendered messages and structured arguments (RED4).
+Guest-aware source emissions omit activity identifiers while preserving event,
+status, duration, progress, tokens and request counters; registered run IDs remain.
+All5 new tests plus AI/recovery/cleanup/inflight57 pass in67.61s. Audited other
+runtime and embedding emissions: controlled aggregate codes/types only, no raw
+exception messages or payloads. D01 historical operational-log retention stays
+unresolved; this forward fix makes no claim to erase old logs.
 

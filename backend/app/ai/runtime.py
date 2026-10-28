@@ -514,6 +514,10 @@ class AiRuntime:
         from app.modules.guests.limits import maintain_guest_quota
         run.drive_started = True
         status = "failed"
+        # Guest activity identifiers must never leave active stores via operational
+        # logs (including structured args). Registered runs retain their diagnostic ID.
+        identity_field = "" if run.actor.account_kind == "guest" else " run_id=%s"
+        identity_args = () if run.actor.account_kind == "guest" else (run.id,)
         monitor = None
         expiry = None
         budget = self.settings.ai_timeout_seconds
@@ -654,7 +658,7 @@ class AiRuntime:
         except Exception as error:
             status = "failed"
             run.failure = public_failure(error)
-            logging.getLogger("moodprint").warning("ai_execution_error run_id=%s error_type=%s code=%s", run.id, type(error).__name__, error.code if isinstance(error, DomainError) else "AI_RUN_FAILED")
+            logging.getLogger("moodprint").warning("ai_execution_error" + identity_field + " error_type=%s code=%s", *identity_args, type(error).__name__, error.code if isinstance(error, DomainError) else "AI_RUN_FAILED")
         finally:
             # No snapshot survives a terminal run, saved-chat reload or worker restart.
             run.mood_evidence = None
@@ -671,4 +675,4 @@ class AiRuntime:
             copy = self.store.conversations.get(run.conversation_id)
             if copy is not None and copy.persistent and copy.active_run_id is None:
                 del self.store.conversations[run.conversation_id]
-            logging.getLogger("moodprint").info("ai_execution_end run_id=%s status=%s duration_ms=%s first_progress_ms=%s input_tokens=%s output_tokens=%s model_requests=%s active_local=%s", run.id, run.terminal_status, round((time.monotonic()-run.started)*1000), run.first_progress_ms, run.usage.input_tokens, run.usage.output_tokens, run.usage.requests_started, sum(not r.terminal for r in self.runs.values()))
+            logging.getLogger("moodprint").info("ai_execution_end" + identity_field + " status=%s duration_ms=%s first_progress_ms=%s input_tokens=%s output_tokens=%s model_requests=%s active_local=%s", *identity_args, run.terminal_status, round((time.monotonic()-run.started)*1000), run.first_progress_ms, run.usage.input_tokens, run.usage.output_tokens, run.usage.requests_started, sum(not r.terminal for r in self.runs.values()))
