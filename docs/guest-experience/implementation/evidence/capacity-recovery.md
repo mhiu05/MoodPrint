@@ -1,5 +1,30 @@
 # Synthetic one-worker capacity and recovery
 
+The first results below are historical at b8c7efb; the finish-run section records
+subsequent approved11538b2 runtime measurements.
+
+## Finish-run measurements at11538b2
+
+All3 commands from prompt10 ran sequentially after suites/servers stopped,
+explicit loopback26432 `moodprint_guest_load_test`, owned ports8017/8018:
+registered `load_chat_memory.py --workers 1 --users 50`; guest
+`load_guest_experience.py --workers 1 --users 50`; same guest command
+`--crash-kill`. All exit0/PASS. Full JSON/log/dump artifacts remain owned temp
+`%TEMP%/moodprint-guest-finish`, never committed. Synthetic providers/identities
+only; no production SLO, upstream signup burst or50 simultaneous paid-call claim.
+
+| Run | Observed result |
+| --- | --- |
+| Registered50 |50 AI completions;941 non-AI requests;p95 non-AI1958.53ms/AI10729.77ms;RSS192643072;12 connections/10 checked-out;150 embedding backlog;39.24s wall time. |
+| Guest50 normal |50 browse/journal/private reads/conversations,100 consent writes;10 AI202/40 clean429,3 voice200/47 clean429,10 SSE;actual maxAI10/STT3;RSS184958976;12 connections/12 checked-out;pool wait462.63ms;backlog0;cleanup10.375s;detached liability186315 synthetic nano-USD. Canary6 successes,p95/max3138.98ms. |
+| Guest50 crash/restore |Same admission statuses,owned kill/restart;provider replay0;physical pg_dump/pg_restore in fresh isolated quarantine;expired/anonymous references0;no network listener;canary6 successes,p95/max2152.27ms. Cleanup+restore16.86s;RSS185262080;12 connections/12 checked-out;pool wait1081.23ms;liability204915 retained. Sampled peaksAI6/STT2 (normal run establishes10/3);no cap assertion relaxed. |
+
+No unexpected5xx/owner mismatch/retry/orphan/incident accumulation. Resource
+pressure and latency are measured, not hidden; the crash pool wait exceeds1s.
+Owner-approved capacity/budget/cleanup targets remain D01/D02/D04 release holds.
+
+## Historical b8c7efb measurements
+
 Local synthetic proof on 2026-10-28; no external model/STT/embedding calls, billing or hosted mutation. Exactly **50 visitors / 1 worker** per run, isolated from test suites. The normal workload seeds anonymous guests so the source-IP signup bucket does not make all visitors one NAT; upstream signup burst capacity is not measured. Production lifetime is still 7200 seconds and global guest caps stay AI10 / STT3.
 
 | Run | Observed result |

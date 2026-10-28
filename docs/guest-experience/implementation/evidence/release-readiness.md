@@ -1,6 +1,11 @@
 # Guest experience release evidence
 
-Overall release: **PARTIAL / HOLD**. This is not authorization to enable, merge, migrate or deploy. Work remains on `feature/guest-experience` in its existing worktree. The [execution ledger](execution.md) records commands, failures, rulings and commits.
+Overall release: **PARTIAL / HOLD**. Source integration is separately authorized
+by prompt10, subject to verification/review/CI gates; no enablement, hosted
+migration or deployment. See [finish results](final-review-and-merge.md) and
+[ledger](execution.md) for current evidence and preserved historical failures.
+
+## Historical release assessment at b8c7efb
 
 | Gate | Evidence / remaining hold |
 | --- | --- |
@@ -48,3 +53,24 @@ fails validation. Local new CLI tests4 and complete Linux deployment tests18 pas
 as does pinned actionlint. No live release dispatch was used. Independent review
 and exact-head/post-merge CI observation remain pending in this finish run.
 The hosted schema, all D01–D04 decisions and manual gates remain unresolved.
+
+## Finish-run source acceptance at11538b2
+
+Complete independent review APPROVED11538b233c9ae9e127df7d133a73e01e0e242ec2.
+Linux PR CI40702269445 SUCCESS:1047 backend/1 D04 skip,91 units,264 browser,
+32 fullstack,18deploy tests,schema0018/no drift,docs/contracts/pins/actionlint,
+3production builds/proxy. All25 negative commands and50 registered/50 guest/
+50 crash+physical-quarantine-restore workloads pass. UX1 extra click is fixed;
+historical review quota failure is superseded by complete source approval. The
+final test/evidence PR head still requires its own scoped review/CI before merge.
+
+Local image IDs, approved11538b2 runtime, not published:
+
+- API `sha256:28d076b3e56a2554d018b094e1585f02cf151ea42760f602be85d64cf24fa58c`
+- Web `sha256:303e8962b64d319ecf66bc6ab9e31c83fadc2438c9bff3e805d1c5e35e327c60`
+- Combined `sha256:81b71634fc9c8f503ca130fceeb0d4544f23ce2404254ff381e49f5129b38adb`
+
+All6 flags false,budget unset,tracked publication hold retained. D01–D04,
+hosted/manual prerequisites and deferred spotlight remain open. Source acceptance
+does not grant release approval. Final observed remote IDs/checks are in PR20 and
+the task response, without a post-merge evidence-only commit.

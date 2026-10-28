@@ -1,5 +1,14 @@
 # Independent review and author fix pass
 
+Current finish status: [complete whole-branch review](independent-review-26ca93d.md)
+found3 additional P2; [scoped review](independent-review-862e036.md) found one
+timestamp interaction, all resolved. [Independent11538b2 approval](independent-review-11538b2.md)
+supersedes the historical incomplete verdict below. Final test/evidence delta
+still requires scoped approval/latest-head CI before merge. See
+[finish verification](final-review-and-merge.md). Release remains HOLD.
+
+## Historical review before b8c7efb
+
 Review range: `984753389aa8bd4b3112b19a8beceb1e538fd659` → `6b367ece7e4c9967cddbb1b034e3ecf66acf72df`. A fresh-context `gpt-6-astra` reviewer inspected the whole branch read-only under the requesting-code-review template. Its messages identified the eight findings below. The reviewer then hit its service usage limit before delivering its final report/verdict or a complete “declined to judge” list. **No clean independent verdict is claimed.** This record preserves received findings and the author's verified disposition; it is not a replacement reviewer report.
 
 | Finding, graded Important by effect | Author disposition and regression |

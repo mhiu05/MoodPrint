@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import time
 from contextlib import asynccontextmanager
 from datetime import date, timedelta
 from types import SimpleNamespace
@@ -459,20 +460,49 @@ async def test_queued_sse_final_is_dropped_at_expiry(clients, replay):
     assert len(model.calls) == 1
 
 
-async def test_ai_run_is_cancelled_at_the_deadline_without_waiting_for_the_monitor(clients):
+async def test_ai_run_is_cancelled_at_the_deadline_without_waiting_for_the_monitor(clients, monkeypatch):
     from tests.fakes import ScriptedModel, message_output
 
     app, _ = clients
+    settlement_entered, release_settlement = asyncio.Event(), asyncio.Event()
+    original_settle = app.state.ai.settle_guest
+
+    async def delayed_settle(*args):
+        settlement_entered.set()
+        await release_settlement.wait()
+        return await original_settle(*args)
+
+    monkeypatch.setattr(app.state.ai, 'settle_guest', delayed_settle)
     guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=2))
     model = ScriptedModel([[message_output(json.dumps({"text": "late", "cards": []}))]], hold=True)
+    cancelled_at: list[float] = []
+    original_stream = model.stream_response
+
+    async def observed_stream(*args, **kwargs):
+        try:
+            async for event in original_stream(*args, **kwargs):
+                yield event
+        except asyncio.CancelledError:
+            cancelled_at.append(time.monotonic())
+            raise
+
+    model.stream_response = observed_stream
     _, run = await start_guest_run(app, guest, model)
     await asyncio.wait_for(model.started.wait(), 5)
     live = next(iter(app.state.ai.runs.values()))
     assert live.deadline is not None and 0 < live.deadline.remaining() <= 2.5
-    await asyncio.sleep(max(0.0, live.deadline.remaining()) + 0.15)
-    # Cancelled by the deadline task itself, well inside the 0.5 s policy-monitor cadence.
+    try:
+        await asyncio.sleep(max(0.0, live.deadline.remaining()) + 0.15)
+        # Deadline cancellation precedes financial settlement, within the original
+        # 150ms oracle (and before the 0.5s policy-monitor cadence).
+        assert model.cancelled, "the held provider call is cancelled, not allowed to finish"
+        assert cancelled_at and cancelled_at[0] <= live.deadline.monotonic_deadline + 0.15
+        assert not any(event.type == "final" for event in live.events)
+        assert settlement_entered.is_set() and not live.terminal
+    finally:
+        release_settlement.set()
+        await asyncio.wait_for(asyncio.shield(live.task), 5)
     assert live.terminal and live.terminal_status in ("cancelled", "failed")
-    assert model.cancelled, "the held provider call is cancelled, not allowed to finish"
     assert not any(event.type == "final" for event in live.events)
 
 

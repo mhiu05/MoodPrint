@@ -517,3 +517,46 @@ in75.27s. [Scoped review record](independent-review-862e036.md) preserved.
 Ruling: open a concrete draft PR while remaining local/CI gates run, to obtain
 exact-head Linux CI in parallel; draft is not approval, and merge remains blocked
 until all required checks/re-review/50-user recovery evidence pass.
+
+Independent re-review at11538b2: APPROVED for source integration subject to
+execution/CI gates; no unresolved material finding. [Approval](independent-review-11538b2.md)
+preserves whole-branch scope and all manual/hosted/release holds. Draft
+PR20 created with exact head11538b2, full English feature/hold/gap description.
+
+Full backend862e036 completed1044 pass/1 fail/1 D04 skip in1126.19s: deadline
+test expected live.terminal atT+150ms, but terminal publication follows awaited
+financial settlement. Three unchanged deadline cases isolated pass in18.02s.
+Deterministic settlement gate reproduces original terminal assertion RED while
+provider is cancelled. Corrected test retains the SAME150ms deadline oracle and
+adds an actual provider-cancellation timestamp, verifies no final output during
+blocked settlement, then releases and bounds terminal completion separately.
+No product deadline, load timing, cap or assertion about external cancellation
+was loosened. Reviewer assessed this test-only correction as appropriate;
+heartbeat/expiry cancellation race does not require cancel_requested alone.
+All inflight20 + final-review5 tests25 pass in47.48s. Exact-head full CI/local
+verification remains required; this record does not relabel the failed run PASS.
+
+Final changed deadline case additionally re-run1 PASS8.25s after post-terminal
+no-final assertion; no runtime code changed since11538b2. Linux PR CI
+40702269445 SUCCESS at11538b2:1047 backend/1 D04 skip453.95s,91 units,264
+browser6.1m,32fullstack4.1m,18deploy tests,migration/load/actionlint/images/proxy
+and docs/pins/contracts all green. Full job21m48s, original25min bound unchanged.
+Sibling push40702226251 failed social-load sessionp95=539.5ms (limit500ms);
+same-head PR job passed unchanged. Latest final-head checks must independently
+pass, never hide/relax that threshold.
+
+Sequential isolated load11538b2: registered50/1worker PASS (50AI completions,
+non-AI p951958.53ms/AI10729.77ms); guest normal50/1worker PASS (10AI+40clean429,
+3STT+47clean429,peak10/3,cleanup10.375s); crash50/1worker PASS (owned kill/restart,
+physical quarantine restore,replay0,expired/anonymous0,canary success,cleanup+
+restore16.86s). Liability186315/204915 synthetic nano-USD retained. No caps,
+workload,production deadline or load oracle changed. [Capacity](capacity-recovery.md)
+records resource/latency limits; no hosted/paid claim.
+
+Final local images/proxy inspected from11538b2;18Linuxdeploy tests/91Node22
+units PASS. Rehearsed exact pendingSQL4a5abfbf hash in empty local review DB:
+DDL rolled back/remoteExecuted=false. Migration0018/no drift,9historical pins,
+original9audits byte-identical, .gitignore unchanged. Untracked user paths remain.
+Final test/evidence-only commit must be reviewed and pass exact-head CI; PR20
+stays draft until then. Actual merge/main and post-merge run/release observations
+will be reported in PR/final response without a post-merge evidence commit.

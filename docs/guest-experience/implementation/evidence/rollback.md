@@ -2,6 +2,14 @@
 
 Status: procedure prepared; no hosted operation authorized or executed.
 
+Finish-run11538b2: fresh50-guest crash/restart and physical quarantined dump/
+restore PASS,provider replay0,expired/anonymous references0,registered canary
+success,no listener. Current locally built compatible image IDs are in
+[release evidence](release-readiness.md); none published. Tracked publication
+hold must survive merge/rollback; only a separate owner-approved release PR may
+remove it after schema/hosted/D01–D04/manual gates. This validation grants no
+hosted restore or deployment permission.
+
 Use only an image that understands immutable guest lifetimes, the guest-aware Auth helper and **0018_app_feedback**. Keep `READY_REVISIONS` strict. The registered-only image from the original main is incompatible even when new entry is off. Never downgrade the database, remove guest columns, reset deadlines, refund uncertain work or stop cleanup.
 
 1. Disable entry, paid dispatch, collection/review and interactive guidance independently. Existing denial at T, purge, orphan reconciliation, feedback retention and conservative settlement must continue.
