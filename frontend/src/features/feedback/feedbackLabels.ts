@@ -6,6 +6,10 @@ export const categories: Record<NonNullable<FeedbackInput["categories"]>[number]
   privacy_trust: "Quyền riêng tư / sự tin cậy", other: "Khác",
 };
 export const ratingLabels = ["Rất chưa hài lòng", "Chưa hài lòng", "Bình thường", "Hài lòng", "Rất hài lòng"];
+export const contexts: Record<NonNullable<FeedbackInput["context"]>, string> = {
+  general: "Chung", assistants: "Trợ lý", mood: "Cảm xúc", memory: "Ghi nhớ",
+  privacy: "Quyền riêng tư", activities: "Hoạt động", trial_end: "Kết thúc lượt thử",
+};
 export const statuses: Record<FeedbackStatusInput["status"], string> = {
   new: "Mới", reviewed: "Đã xem", planned: "Đã lên kế hoạch", resolved: "Đã xử lý", spam: "Spam",
 };

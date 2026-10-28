@@ -120,7 +120,7 @@ test("no-session feedback explains entry without creating an identity", async ({
 });
 
 for (const width of [320, 390, 1440]) {
-  test(`feedback accessible and fits at ${width}px with 200% text`, async ({ page }) => {
+  test(`feedback accessible and fits at ${width}px with 200% text`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
     await setup(page);
     await page.goto("/#/feedback");
@@ -129,5 +129,6 @@ for (const width of [320, 390, 1440]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
     expect(result.violations).toEqual([]);
+    await page.screenshot({ path: testInfo.outputPath(`feedback-${width}.png`), fullPage: true });
   });
 }

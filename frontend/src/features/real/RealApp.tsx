@@ -94,6 +94,7 @@ import { AIDataProvider, AIDataControls, ConversationHistory, useAIData, downloa
 
 const MessageMarkdown = lazy(() => import("./MessageMarkdown"));
 const FeedbackPage = lazy(() => import("../feedback/FeedbackPage"));
+const FeedbackAdmin = lazy(() => import("./admin/Feedback"));
 
 type SessionContextValue = {
   api: ApiClient;
@@ -596,6 +597,7 @@ function Shell() {
           <GuestBanner />
           <SessionNotices />
           <Routes>
+              <Route path="/admin/feedback" element={<Suspense fallback={<p role="status">Đang mở góp ý…</p>}><FeedbackAdmin /></Suspense>} />
               <Route path="/feedback" element={<Suspense fallback={<p role="status">Đang mở góp ý…</p>}><FeedbackPage /></Suspense>} />
               {session.staff && (
                 <Route path="/admin/reports" element={<Moderation />} />
@@ -1844,6 +1846,7 @@ function Settings() {
         <h2 id="privacy-feedback">Góp ý cho MoodPrint</h2>
         <p>Góp ý tự nguyện được lưu riêng theo thời hạn hiển thị trước khi gửi, không kèm dữ liệu trò chuyện hay nhật ký.</p>
         <Link to="/feedback">Góp ý cho MoodPrint</Link>
+        {session.accountKind !== "guest" && session.staff === "admin" ? <p><Link to="/admin/feedback">Xem và xử lý góp ý</Link></p> : null}
       </section>
     </div>
   );
