@@ -293,6 +293,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Feedback List */
+        get: operations["feedback_list_api_v1_admin_feedback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/feedback/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Feedback Summary */
+        get: operations["feedback_summary_api_v1_admin_feedback_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/feedback/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Feedback Review */
+        patch: operations["feedback_review_api_v1_admin_feedback__id__patch"];
+        trace?: never;
+    };
     "/api/v1/consents/{purpose}": {
         parameters: {
             query?: never;
@@ -1618,6 +1669,13 @@ export interface components {
             /** Eventsurl */
             eventsUrl: string;
         };
+        /** AccountKindCounts */
+        AccountKindCounts: {
+            /** Guest */
+            guest: number;
+            /** Registered */
+            registered: number;
+        };
         /** ActionReceipt */
         ActionReceipt: {
             /**
@@ -2083,6 +2141,15 @@ export interface components {
              */
             createdAt: string;
         };
+        /** DateBucket */
+        DateBucket: {
+            /** Date */
+            date: string;
+            /** Count */
+            count: number;
+            /** Meanrating */
+            meanRating: number | null;
+        };
         /** DeletionInput */
         DeletionInput: {
             /** Expectedversion */
@@ -2231,6 +2298,55 @@ export interface components {
              */
             feedback: boolean;
         };
+        /** FeedbackAdminView */
+        FeedbackAdminView: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Rating */
+            rating: number;
+            /** Categories */
+            categories: ("ease_of_use" | "ai_quality" | "interface" | "performance" | "bug" | "missing_feature" | "privacy_trust" | "other")[];
+            /** Comment */
+            comment: string | null;
+            /** Appversion */
+            appVersion: string;
+            /**
+             * Context
+             * @enum {string}
+             */
+            context: "general" | "assistants" | "mood" | "memory" | "privacy" | "activities" | "trial_end";
+            /**
+             * Accountkind
+             * @enum {string}
+             */
+            accountKind: "guest" | "registered";
+            /** Disclosureversion */
+            disclosureVersion: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "new" | "reviewed" | "planned" | "resolved" | "spam";
+            /** Version */
+            version: number;
+            /** Reviewedat */
+            reviewedAt: string | null;
+        };
+        /** FeedbackPage */
+        FeedbackPage: {
+            /** Items */
+            items: components["schemas"]["FeedbackAdminView"][];
+            /** Nextcursor */
+            nextCursor: string | null;
+        };
         /** FeedbackReceipt */
         FeedbackReceipt: {
             /**
@@ -2250,6 +2366,16 @@ export interface components {
              */
             status: "received";
         };
+        /** FeedbackStatusInput */
+        FeedbackStatusInput: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "new" | "reviewed" | "planned" | "resolved" | "spam";
+            /** Expectedversion */
+            expectedVersion: number;
+        };
         /**
          * FeedbackSubmissionState
          * @description Own receipt existence only; no content and no review status.
@@ -2259,6 +2385,26 @@ export interface components {
             submitted: boolean;
             /** Lastsubmittedat */
             lastSubmittedAt: string | null;
+        };
+        /** FeedbackSummary */
+        FeedbackSummary: {
+            /** Count */
+            count: number;
+            /** Meanrating */
+            meanRating: number | null;
+            /** Ratingcounts */
+            ratingCounts: {
+                [key: string]: number;
+            };
+            /** Categorycounts */
+            categoryCounts: {
+                [key: string]: number;
+            };
+            accountKindCounts: components["schemas"]["AccountKindCounts"];
+            /** Bydate */
+            byDate: components["schemas"]["DateBucket"][];
+            /** Byversion */
+            byVersion: components["schemas"]["VersionBucket"][];
         };
         /** FocusOptions */
         FocusOptions: {
@@ -3141,6 +3287,15 @@ export interface components {
             text: string;
             /** Durationseconds */
             durationSeconds: number;
+        };
+        /** VersionBucket */
+        VersionBucket: {
+            /** Appversion */
+            appVersion: string;
+            /** Count */
+            count: number;
+            /** Meanrating */
+            meanRating: number | null;
         };
         /** VersionInput */
         VersionInput: {
@@ -4884,6 +5039,335 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FeedbackSubmissionState"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    feedback_list_api_v1_admin_feedback_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+                fromDate?: string | null;
+                toDate?: string | null;
+                appVersion?: string | null;
+                accountKind?: ("guest" | "registered") | null;
+                rating?: number | null;
+                status?: ("new" | "reviewed" | "planned" | "resolved" | "spam") | null;
+                category?: ("ease_of_use" | "ai_quality" | "interface" | "performance" | "bug" | "missing_feature" | "privacy_trust" | "other") | null;
+                includeSpam?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackPage"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    feedback_summary_api_v1_admin_feedback_summary_get: {
+        parameters: {
+            query?: {
+                fromDate?: string | null;
+                toDate?: string | null;
+                appVersion?: string | null;
+                accountKind?: ("guest" | "registered") | null;
+                rating?: number | null;
+                status?: ("new" | "reviewed" | "planned" | "resolved" | "spam") | null;
+                category?: ("ease_of_use" | "ai_quality" | "interface" | "performance" | "bug" | "missing_feature" | "privacy_trust" | "other") | null;
+                includeSpam?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackSummary"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    feedback_review_api_v1_admin_feedback__id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedbackStatusInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackAdminView"];
                 };
             };
             /** @description Unauthorized */

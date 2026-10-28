@@ -67,6 +67,9 @@ PERSONAL = {
     ("GET", "/data-deletions/{job_id}"),
 }
 REGISTERED_ONLY = {
+    ("GET", "/admin/feedback"),
+    ("GET", "/admin/feedback/summary"),
+    ("PATCH", "/admin/feedback/{id}"),
     ("GET", "/profiles/matching-draft"),
     ("PUT", "/profiles/matching-draft"),
     ("POST", "/profiles/matching-draft/preview"),

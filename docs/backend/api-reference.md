@@ -6,6 +6,9 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 
 | Method | Path | Operation ID |
 | --- | --- | --- |
+| GET | `/api/v1/admin/feedback` | `feedback_list_api_v1_admin_feedback_get` |
+| GET | `/api/v1/admin/feedback/summary` | `feedback_summary_api_v1_admin_feedback_summary_get` |
+| PATCH | `/api/v1/admin/feedback/{id}` | `feedback_review_api_v1_admin_feedback__id__patch` |
 | GET | `/api/v1/activities/catalog` | `catalog_api_v1_activities_catalog_get` |
 | GET | `/api/v1/activities/{session_id}` | `get_session_api_v1_activities__session_id__get` |
 | POST | `/api/v1/activities/{session_id}/accept` | `activity_accept_api_v1_activities__session_id__accept_post` |
@@ -113,4 +116,6 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 | PATCH | `/api/v1/users/me/identity` | `edit_identity_api_v1_users_me_identity_patch` |
 | POST | `/api/v1/voice/transcriptions` | `transcribe_api_v1_voice_transcriptions_post` |
 
-Tổng cộng **106 operations** trong snapshot. `POST /feedback` và `GET /feedback/submission-state` chỉ tồn tại khi `FEEDBACK_ENABLED` và `GUEST_ABUSE_HMAC_KEY` đều có; gửi thành công trả 201, cùng key và payload trả 200 cùng receipt, guest chỉ gửi một lần trong trial (409 `FEEDBACK_ALREADY_SUBMITTED`), user đã đăng ký một lần mỗi ngày Asia/Bangkok (429 `FEEDBACK_DAILY_LIMIT`). Production ẩn docs UI; snapshot vẫn được sinh offline cho contract checks.
+Tổng cộng **109 operations** trong snapshot. `POST /feedback` và `GET /feedback/submission-state` chỉ tồn tại khi `FEEDBACK_ENABLED` và `GUEST_ABUSE_HMAC_KEY` đều có; gửi thành công trả 201, cùng key và payload trả 200 cùng receipt, guest chỉ gửi một lần trong trial (409 `FEEDBACK_ALREADY_SUBMITTED`), user đã đăng ký một lần mỗi ngày Asia/Bangkok (429 `FEEDBACK_DAILY_LIMIT`). Production ẩn docs UI; snapshot vẫn được sinh offline cho contract checks.
+
+Admin feedback cần tài khoản đã đăng ký, role admin hiện hành, xác thực lại bằng mật khẩu trong 12 giờ và `FEEDBACK_ADMIN_ENABLED` riêng. List/summary dùng cùng bộ lọc, ngày Asia/Bangkok tối đa 180 ngày, mặc định loại spam; summary dùng một snapshot đọc nhất quán. PATCH cần CSRF, Idempotency-Key và expectedVersion; stale trả 409 `STALE_VERSION`. Audit chỉ lưu resource/version/trạng thái/staff, không sao chép comment hoặc liên kết tới lịch sử riêng. Retention chạy độc lập với các cờ.

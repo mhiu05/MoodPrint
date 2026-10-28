@@ -15,20 +15,36 @@ pytestmark = pytest.mark.postgres
 
 async def seed(db, uid, created_at, *, kind="registered", receipt_at=None, staff=None):
     row = AppFeedback(
-        rating=4, categories=[], account_kind=kind, app_version="test",
-        context="general", disclosure_version="feedback-v1", created_at=created_at,
+        rating=4,
+        categories=[],
+        account_kind=kind,
+        app_version="test",
+        context="general",
+        disclosure_version="feedback-v1",
+        created_at=created_at,
     )
     db.add(row)
     await db.flush()
-    db.add(FeedbackSubmissionReceipt(
-        user_id=uid, idempotency_key=str(uuid4()), payload_digest="a" * 64,
-        feedback_id=row.id, created_at=receipt_at or created_at,
-    ))
+    db.add(
+        FeedbackSubmissionReceipt(
+            user_id=uid,
+            idempotency_key=str(uuid4()),
+            payload_digest="a" * 64,
+            feedback_id=row.id,
+            created_at=receipt_at or created_at,
+        )
+    )
     if staff:
-        db.add(FeedbackReviewEvent(
-            feedback_id=row.id, staff_id=staff, action="status", from_status="new",
-            to_status="reviewed", resulting_version=2,
-        ))
+        db.add(
+            FeedbackReviewEvent(
+                feedback_id=row.id,
+                staff_id=staff,
+                action="status",
+                from_status="new",
+                to_status="reviewed",
+                resulting_version=2,
+            )
+        )
     return row.id
 
 
@@ -55,7 +71,9 @@ async def test_feedback_retention_exact_cutoff(clients, monkeypatch):
         assert not (await db.scalars(select(FeedbackSubmissionReceipt))).all()
 
 
-async def test_registered_receipts_expire_at_30_days_but_guest_receipts_do_not(clients, monkeypatch):
+async def test_registered_receipts_expire_at_30_days_but_guest_receipts_do_not(
+    clients, monkeypatch
+):
     from app.modules.feedback import retention
 
     app, actors = clients
@@ -68,13 +86,23 @@ async def test_registered_receipts_expire_at_30_days_but_guest_receipts_do_not(c
     monkeypatch.setattr(retention, "database_time", clock)
     async with app.state.database.sessions.begin() as db:
         old = await seed(db, actors[0][1], instant, receipt_at=instant - timedelta(days=30))
-        recent = await seed(db, actors[0][1], instant, receipt_at=instant - timedelta(days=30) + timedelta(microseconds=1))
-        guest_id = await seed(db, guest.user_id, instant, kind="guest", receipt_at=instant - timedelta(days=31))
+        recent = await seed(
+            db,
+            actors[0][1],
+            instant,
+            receipt_at=instant - timedelta(days=30) + timedelta(microseconds=1),
+        )
+        guest_id = await seed(
+            db, guest.user_id, instant, kind="guest", receipt_at=instant - timedelta(days=31)
+        )
     async with app.state.database.sessions.begin() as db:
         assert await retention.purge_feedback(db) == 0
     async with app.state.database.sessions() as db:
         assert set((await db.scalars(select(AppFeedback.id))).all()) == {old, recent, guest_id}
-        assert set((await db.scalars(select(FeedbackSubmissionReceipt.feedback_id))).all()) == {recent, guest_id}
+        assert set((await db.scalars(select(FeedbackSubmissionReceipt.feedback_id))).all()) == {
+            recent,
+            guest_id,
+        }
 
 
 async def test_retention_is_bounded_and_replay_safe_with_collection_flags_off(clients):
@@ -112,11 +140,17 @@ async def test_registered_account_deletion_unlinks_feedback_but_keeps_tombstone(
         fid = await seed(db, uid, await db_now(app))
     version = (await client.get("/api/v1/session")).json()["dataVersion"]
     response = await client.post(
-        "/api/v1/data-deletions", json={"scope": "account", "expectedVersion": version}, headers=key(),
+        "/api/v1/data-deletions",
+        json={"scope": "account", "expectedVersion": version},
+        headers=key(),
     )
     assert response.status_code == 202, response.text
     await process_deletions(app)
     async with app.state.database.sessions() as db:
         assert (await db.get(User, uid)).status == "deleted"
         assert await db.get(AppFeedback, fid) is not None
-        assert not (await db.scalars(select(FeedbackSubmissionReceipt).where(FeedbackSubmissionReceipt.user_id == uid))).all()
+        assert not (
+            await db.scalars(
+                select(FeedbackSubmissionReceipt).where(FeedbackSubmissionReceipt.user_id == uid)
+            )
+        ).all()

@@ -20,26 +20,32 @@ async def purge_feedback(db: AsyncSession, *, batch_size: int = 500) -> int:
     if not 1 <= batch_size <= 500:
         raise ValueError("batch_size must be between 1 and 500")
     instant = await database_time(db)
-    ids = (await db.scalars(
-        select(AppFeedback.id)
-        .where(AppFeedback.created_at <= instant - timedelta(days=180))
-        .order_by(AppFeedback.created_at, AppFeedback.id)
-        .limit(batch_size)
-        .with_for_update(skip_locked=True)
-    )).all()
+    ids = (
+        await db.scalars(
+            select(AppFeedback.id)
+            .where(AppFeedback.created_at <= instant - timedelta(days=180))
+            .order_by(AppFeedback.created_at, AppFeedback.id)
+            .limit(batch_size)
+            .with_for_update(skip_locked=True)
+        )
+    ).all()
     if ids:
         await db.execute(delete(AppFeedback).where(AppFeedback.id.in_(ids)))
-    receipts = (await db.scalars(
-        select(FeedbackSubmissionReceipt.id)
-        .join(User, User.id == FeedbackSubmissionReceipt.user_id)
-        .where(
-            User.account_kind == "registered",
-            FeedbackSubmissionReceipt.created_at <= instant - timedelta(days=30),
+    receipts = (
+        await db.scalars(
+            select(FeedbackSubmissionReceipt.id)
+            .join(User, User.id == FeedbackSubmissionReceipt.user_id)
+            .where(
+                User.account_kind == "registered",
+                FeedbackSubmissionReceipt.created_at <= instant - timedelta(days=30),
+            )
+            .order_by(FeedbackSubmissionReceipt.created_at, FeedbackSubmissionReceipt.id)
+            .limit(batch_size)
+            .with_for_update(of=FeedbackSubmissionReceipt, skip_locked=True)
         )
-        .order_by(FeedbackSubmissionReceipt.created_at, FeedbackSubmissionReceipt.id)
-        .limit(batch_size)
-        .with_for_update(of=FeedbackSubmissionReceipt, skip_locked=True)
-    )).all()
+    ).all()
     if receipts:
-        await db.execute(delete(FeedbackSubmissionReceipt).where(FeedbackSubmissionReceipt.id.in_(receipts)))
+        await db.execute(
+            delete(FeedbackSubmissionReceipt).where(FeedbackSubmissionReceipt.id.in_(receipts))
+        )
     return len(ids)
