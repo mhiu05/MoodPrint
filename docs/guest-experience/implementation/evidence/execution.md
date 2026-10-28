@@ -383,7 +383,7 @@ the generic executing-plans skill prescribes only one review or an approval stop
 | --- | --- | --- |
 | REL1 | Hold marker/CLI/workflow both events | RED missing helper → GREEN4 new/18 Linux tests; pinned actionlint exit0 |
 | F1 | VOICE/AI withdrawal during upload/dispatch | RED8 disclosures → GREEN10 new/37 targeted tests |
-| F2 | Document edit/delete/source/job lease fence | Pending |
+| F2 | Document edit/delete/source/job lease fence | RED5 disclosures → GREEN9 new/68 broad/43 memory-recovery tests |
 | F3 | Sample above billing quantum, ceil quota | Pending |
 | F4 | Guest grant/recovery queued past T | Pending |
 | F5 | DB clock vs ahead process clock | Pending |
@@ -408,4 +408,16 @@ accepted send. Pre-send denial rolls back the marker, releases budget and
 finishes the claim without reopening consumed quota. Targeted new/paid/voice/
 quota/budget suite37 pass in39.64s. A mistyped nonexistent `test_consents.py`
 command collected nothing (exit4); corrected suite above is the pass.
+
+Task3 complete: corrected test setup (actual `/memories` prefix and required
+retrieval data_version argument), then RED5 provider disclosures/2 controls.
+Current owner/job/resource/model/dimension/source/consent/lease checks follow
+marker waits; only freshly validated memory text is sent. All documents use the
+same internal adapter, including registered documents without guest budgeting;
+query tickets remain separate. Unrelated personal data_version changes preserve
+valid work. Locks end before provider I/O and publication fencing remains.
+New tests9 including registered control/deletion, broad embedding/budget/paid/
+review suite68 pass in64.04s; memory/API and AI/guest recovery43 pass in41.68s.
+Ruff passes and mypy114 files clean. First broad command named nonexistent memory
+and recovery files (exit4, no pass); actual discovered suite names used above.
 

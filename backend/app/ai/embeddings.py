@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import logging
 import re
+import time
 import unicodedata
 from dataclasses import dataclass
 from datetime import timedelta
@@ -265,34 +266,82 @@ async def _settle_guest_embed(database: "Database", user_id: UUID, ticket, *, kn
         log.warning("guest_embed_settlement_deferred")
 
 
-async def _guest_embedding_call(database, settings, provider, user_id, ticket, value, input_type, expected):
-    """Both embedding adapters need their own funded claim and final bounded dispatch."""
+async def _document_dispatch(db, settings, user_id, document_job: tuple[UUID, UUID]):
+    """Owner is locked first; job/resource checks linearize the document send.
+
+    Mutations committed before this decision must deny. The commit releases locks
+    before provider I/O; later invalidation cannot recall an accepted external send.
+    """
+    job_id, token = document_job
+    job = await db.get(EmbeddingJob, job_id, with_for_update=True, populate_existing=True)
+    before = time.monotonic()
+    at = await database_time(db)
+    if (job is None or job.user_id != user_id or job.status != "running"
+            or job.lease_token != token or job.lease_until is None or job.lease_until <= at
+            or job.model != settings.voyage_model or job.dimensions != settings.voyage_dimensions):
+        raise EmbeddingError("embedding_unconfigured")
+    memory = await _job_memory(db, job)
+    if memory is None:
+        raise EmbeddingError("embedding_unconfigured")
+    return memory.text, before + (job.lease_until - at).total_seconds()
+
+
+async def _guest_embedding_call(database, settings, provider, user_id, ticket, value, input_type, expected,
+                                *, document_job: tuple[UUID, UUID] | None = None):
+    """Fund guest queries/documents; fence every document, including registered work."""
     from app.modules.guests.accounting import mark_guest_dispatched
     from app.modules.guests.limits import maintain_guest_quota
-    from app.modules.guests.policy import guest_expired
+    from app.modules.guests.models import GuestOperationLink
+    from app.modules.guests.policy import guest_expired, guest_paid_available
     dispatched = known = False
     try:
-        async with maintain_guest_quota(database, user_id, "embed", ticket[0]):
+        if input_type == "document" and document_job is None:
+            raise EmbeddingError("embedding_unconfigured")
+        async with maintain_guest_quota(database, user_id, "embed", ticket[0] if ticket else None):
             async with database.require()() as db, db.begin():
                 current = await _authorization(db, user_id)
                 if current is None or not current.semantic or _snapshot(current) != expected:
                     raise EmbeddingError("embedding_unconfigured")
                 owner = await db.get(User, user_id)
+                if document_job is not None:
+                    # Canonical owner -> job -> budget/reservation -> resource ordering.
+                    await db.get(EmbeddingJob, document_job[0], with_for_update=True)
+                if owner.account_kind == "guest":
+                    if (ticket is None or not settings.guest_semantic_enabled
+                            or not guest_paid_available(settings, "embed")):
+                        raise EmbeddingError("embedding_unconfigured")
+                    claim, reservation = ticket
+                    link = await db.get(GuestOperationLink, (user_id, "embed", claim.operation_key_hash))
+                    if (link is None or link.lease_token != claim.lease_token or link.state != "claimed"
+                            or link.lease_until <= await database_time(db)
+                            or link.reservation_id != reservation.id):
+                        raise EmbeddingError("embedding_unconfigured")
+                    await mark_guest_dispatched(db, reservation.id)
+                # Checks follow marker/heartbeat/admission waits. The document payload
+                # comes from this current resource, never the earlier detached copy.
+                document_cutoff = None
+                if document_job is not None:
+                    value, document_cutoff = await _document_dispatch(db, settings, user_id, document_job)
                 bound = await guest_deadline(db, owner)
-            async with database.require()() as db, db.begin():
-                await mark_guest_dispatched(db, ticket[1].id)
-            dispatched = True
-            assert bound is not None
-            async with asyncio.timeout(min(settings.voyage_timeout_seconds, max(0, bound.remaining()))):
-                if bound.remaining() <= 0:
+            dispatched = ticket is not None
+            timeout = settings.voyage_timeout_seconds
+            if bound is not None:
+                timeout = min(timeout, max(0, bound.remaining()))
+            if document_cutoff is not None:
+                timeout = min(timeout, max(0, document_cutoff - time.monotonic()))
+            async with asyncio.timeout(timeout):
+                if bound is not None and bound.remaining() <= 0:
                     raise guest_expired()
+                if document_cutoff is not None and document_cutoff <= time.monotonic():
+                    raise EmbeddingError("embedding_unconfigured")
                 result = await provider.embed(value, input_type)
             known = True
-            if bound.remaining() <= 0:
+            if bound is not None and bound.remaining() <= 0:
                 raise guest_expired()
             return validate_vector(result, settings.voyage_dimensions)
     finally:
-        await asyncio.shield(_settle_guest_embed(database, user_id, ticket, known=known, dispatched=dispatched))
+        if ticket is not None:
+            await asyncio.shield(_settle_guest_embed(database, user_id, ticket, known=known, dispatched=dispatched))
 
 
 async def reconcile_embedding_jobs(database: "Database", settings: EmbeddingSettings) -> int:
@@ -418,11 +467,9 @@ async def process_embedding_jobs(
         error: str | None = None
         vector: list[float] = []
         try:
-            if ticket is not None:
-                expected = {k: getattr(job, k) for k in ("preference_version", "ai_consent_version", "mem_consent_version")}
-                vector = await _guest_embedding_call(database, settings, provider, user_id, ticket, text, "document", expected)
-            else:
-                vector = validate_vector(await provider.embed(text, "document"), settings.voyage_dimensions)
+            expected = {k: getattr(job, k) for k in ("preference_version", "ai_consent_version", "mem_consent_version")}
+            vector = await _guest_embedding_call(database, settings, provider, user_id, ticket, text,
+                "document", expected, document_job=(job_id, token))
         except EmbeddingError as exc:
             # Codes are controlled internally; never persist arbitrary exception content.
             error = (
