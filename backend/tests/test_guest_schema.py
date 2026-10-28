@@ -250,7 +250,7 @@ def test_upgrade_from_0015_preserves_registered_rows_and_matches_models():
                 (sid, uid, "a" * 64, "b" * 64, uuid4()),
             )
         alembic("upgrade", "head")
-        assert "0017_guest_security" in alembic("current").stdout
+        assert "0018_app_feedback" in alembic("current").stdout
         with psycopg.connect(raw, autocommit=True) as db:
             kind = db.execute(
                 "select account_kind, guest_started_at, guest_expires_at"
@@ -287,6 +287,34 @@ def test_upgrade_from_0015_preserves_registered_rows_and_matches_models():
                 " and not c.relrowsecurity"
             ).fetchone()[0]
             assert unprotected == 0
+            # Feedback storage (0018): present, RLS on, and no CRUD for PUBLIC or any API role.
+            feedback_tables = {
+                row[0]
+                for row in db.execute(
+                    "select c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace"
+                    " where n.nspname='moodprint' and c.relkind='r' and c.relrowsecurity"
+                    " and c.relname in ('app_feedback','feedback_submission_receipts',"
+                    "'feedback_review_events')"
+                )
+            }
+            assert feedback_tables == {
+                "app_feedback",
+                "feedback_submission_receipts",
+                "feedback_review_events",
+            }
+            api_grants = db.execute(
+                "select count(*) from information_schema.role_table_grants"
+                " where table_schema='moodprint' and table_name in ('app_feedback',"
+                "'feedback_submission_receipts','feedback_review_events')"
+                " and grantee in ('PUBLIC','anon','authenticated','service_role')"
+            ).fetchone()[0]
+            assert api_grants == 0
+            public_validators = db.execute(
+                "select count(*) from pg_proc p cross join lateral unnest(p.proacl) as acl"
+                " where p.proname in ('feedback_categories_valid','feedback_comment_valid')"
+                " and acl::text like '=%%'"
+            ).fetchone()[0]
+            assert public_validators == 0
         drift = alembic("check")
         assert "No new upgrade operations detected" in drift.stdout
     finally:

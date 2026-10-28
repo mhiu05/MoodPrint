@@ -23,8 +23,9 @@ Nguồn: [backend/alembic/versions](../../backend/alembic/versions/). Revision I
 | `0015_context_privacy` | Turn context policy boundary |
 | `0016_guest_foundation` | Guest trial: `users.account_kind`/deadline bất biến, session cap, bảng provisioning/cleanup/usage/abuse và budget không gắn identity (chưa có approved hosted SQL; xem GE-14.3) |
 | `0017_guest_security` | Helper `is_provider_session_active` guest-aware: đồng hồ database tươi (VOLATILE), `is_anonymous` provider khớp `account_kind`, deadline T (chưa có approved hosted SQL) |
+| `0018_app_feedback` | Feedback không gắn danh tính (`app_feedback`, receipt tạm, audit review), hai hàm validator private, thêm scope `feedback_attempt` cho bucket HMAC; RLS + chỉ `moodprint_runtime` (chưa có approved hosted SQL) |
 
-[READY_REVISIONS](../../backend/app/core/revisions.py) hiện chỉ gồm **`0017_guest_security`**. Schema cũ thiếu cột lifecycle guest không được báo ready, để image cũ coi mọi user là registered không thể chạy trên schema mới. Không thay revision bằng stamp khi DDL chưa chạy.
+[READY_REVISIONS](../../backend/app/core/revisions.py) hiện chỉ gồm **`0018_app_feedback`**. Schema cũ thiếu cột lifecycle guest hoặc bảng feedback mà retention/purge luôn chạm (kể cả khi mọi flag tắt) không được báo ready: image mới coi mọi user là registered/không hết hạn hoặc lỗi ở lần purge đầu. Không thay revision bằng stamp khi DDL chưa chạy.
 
 ## Local disposable verification
 

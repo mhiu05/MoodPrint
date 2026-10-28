@@ -17,6 +17,7 @@ from app.ai import models as chat_models  # noqa: F401
 from app.core.config import Settings
 from app.infrastructure.database.models import Base
 from app.modules.activities import models as activity_models  # noqa: F401
+from app.modules.feedback import models as feedback_models  # noqa: F401
 from app.modules.guests import models as guest_models  # noqa: F401
 from app.modules.moderation import models as moderation_models  # noqa: F401
 from app.modules.social import models  # noqa: F401 -- register all owned domain tables

@@ -47,6 +47,7 @@ ABUSE_SCOPES = (
     "creation_day",
     "failed_signup",
     "feedback",
+    "feedback_attempt",
     "ai_minute",
     "voice_minute",
 )

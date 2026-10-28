@@ -43,6 +43,7 @@ from app.modules.guests import models as guest_models  # noqa: F401
 from app.modules.moderation import models as safety_models  # noqa: F401
 from app.modules.social import models as social_models  # noqa: F401
 from app.modules.users import models as lifecycle_models  # noqa: F401
+from tests.feedback_schema import install_feedback_functions
 from tests.guest_schema import install_auth_fixture, install_guest_guards
 
 USERS = int(os.environ.get("MOODPRINT_LOAD_USERS", "50"))
@@ -103,6 +104,8 @@ async def seed():
             text("create extension if not exists vector with schema extensions")
         )
         await connection.run_sync(Base.metadata.drop_all)
+        # The feedback CHECK constraints call private functions that must exist first.
+        await install_feedback_functions(connection)
         await connection.run_sync(Base.metadata.create_all)
         await install_guest_guards(connection)
         await install_auth_fixture(connection)

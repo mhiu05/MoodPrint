@@ -32,6 +32,7 @@ from app.infrastructure.database.models import (
     User,
 )
 from app.modules.activities.models import ActivityParticipant, ActivityResponse, ActivitySession
+from app.modules.feedback import models as feedback_models  # noqa: F401 -- registers feedback tables
 from app.modules.guests.accounting import settle_open_for_user
 from app.modules.guests.models import (
     GuestCleanupJob,
@@ -100,6 +101,7 @@ INVENTORY: dict[str, str] = {
     "guest_cleanup_jobs": "purged",
     "guest_usage": "purged",
     "guest_operation_links": "purged",
+    "feedback_submission_receipts": "purged",
     "pairs": "social",
     "connections": "social",
     "connection_requests": "social",
@@ -116,6 +118,8 @@ INVENTORY: dict[str, str] = {
     "guest_budget_days": "detached",
     "guest_cost_reservations": "detached",
     "matching_stats_daily": "detached",
+    "app_feedback": "detached",
+    "feedback_review_events": "detached",
 }
 
 

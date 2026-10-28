@@ -22,7 +22,7 @@ def test_ready_revisions_cover_the_reviewed_migration_window():
     from app.core.revisions import READY_REVISIONS
 
     assert READY_REVISIONS == (
-        "0017_guest_security",
+        "0018_app_feedback",
     )
 
 
@@ -36,7 +36,8 @@ def test_ready_revisions_cover_the_reviewed_migration_window():
         ("0014_moderation", 503),
         ("0015_context_privacy", 503),
         ("0016_guest_foundation", 503),
-        ("0017_guest_security", 200),
+        ("0017_guest_security", 503),
+        ("0018_app_feedback", 200),
         ("0017_unreviewed", 503),
     ],
 )
@@ -188,3 +189,4 @@ async def test_spa_is_served_same_origin_without_shadowing_the_api(tmp_path):
         assert "Content-Security-Policy" not in api.headers
         escape = await c.get("/..%2F..%2Fpyproject.toml")
         assert "id=root" in escape.text
+

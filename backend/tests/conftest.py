@@ -63,10 +63,12 @@ async def database():
     from app.ai import models as chat_models  # noqa: F401
     from app.infrastructure.database.models import Base
     from app.modules.activities import models as activity_models  # noqa: F401
+    from app.modules.feedback import models as feedback_models  # noqa: F401
     from app.modules.guests import models as guest_models  # noqa: F401
     from app.modules.moderation import models as safety_models  # noqa: F401
     from app.modules.social import models  # noqa: F401 -- register every table before reset
     from app.modules.users import models as lifecycle_models  # noqa: F401
+    from tests.feedback_schema import install_feedback_functions
     from tests.guest_schema import install_auth_fixture, install_guest_guards
 
     engine = create_async_engine(url, connect_args={"prepare_threshold": None})
@@ -79,6 +81,8 @@ async def database():
         await conn.execute(text("create schema if not exists extensions"))
         await conn.execute(text("create extension if not exists vector with schema extensions"))
         await conn.run_sync(Base.metadata.drop_all)
+        # The feedback CHECK constraints call these private functions, so they must exist first.
+        await install_feedback_functions(conn)
         await conn.run_sync(Base.metadata.create_all)
         await install_guest_guards(conn)
         await install_auth_fixture(conn)

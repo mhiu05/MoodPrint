@@ -49,6 +49,9 @@ async def main():
         async with app.state.database.engine.begin() as db:
             await db.execute(text("create schema if not exists moodprint"))
             await db.run_sync(Base.metadata.drop_all)
+            from tests.feedback_schema import install_feedback_functions
+
+            await install_feedback_functions(db)
             await db.run_sync(Base.metadata.create_all)
             await db.execute(text("create schema if not exists auth"))
             await db.execute(

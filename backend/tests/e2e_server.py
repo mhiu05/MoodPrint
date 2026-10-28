@@ -47,6 +47,7 @@ from app.main import create_app
 from app.modules.guests import models as guest_models  # noqa: F401 -- register before reset
 from app.modules.moderation.models import StaffRole
 from tests.e2e_auth import LocalAuth
+from tests.feedback_schema import install_feedback_functions
 from tests.guest_schema import install_auth_fixture, install_guest_guards
 from tests.mood_e2e_model import MoodE2EModel
 
@@ -79,6 +80,8 @@ async def seed():
         await connection.execute(text("create schema if not exists extensions"))
         await connection.execute(text("create extension if not exists vector with schema extensions"))
         await connection.run_sync(Base.metadata.drop_all)
+        # The feedback CHECK constraints call private functions that must exist first.
+        await install_feedback_functions(connection)
         await connection.run_sync(Base.metadata.create_all)
         await install_guest_guards(connection)
         await install_auth_fixture(connection)
