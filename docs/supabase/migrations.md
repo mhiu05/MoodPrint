@@ -67,4 +67,6 @@ Không sửa newline/bytes SQL đã pin để format tài liệu. `.gitattribute
 
 ## Rollback và restore
 
+Guest head là **0018_app_feedback**. Range 0015→0018 có [pending review package](../guest-experience/implementation/evidence/release-readiness.md): sinh offline bằng `prepare_guest_migration_review.py`, rehearsal rollback trên DB local rỗng bằng `verify_guest_migration_review.py`. Không ghi đè initialization SQL/MANIFEST. Hosted apply từ revision thực tế (kể cả 0014→0015 nếu còn thiếu) cần artifact, target và chấp thuận riêng. Rollback giữ guest guards/cleanup.
+
 Ưu tiên expand-only và rollback image nếu schema tương thích, nhưng phải kiểm tra `READY_REVISIONS` thực tế của image cũ. Downgrade destructive bị từ chối; không drop dữ liệu để rollback app. Restore cần rehearsal, tombstones, consent/session revocations và gates trước mở traffic. Physical backup retention và provider erasure là việc riêng, không được chứng minh bằng `alembic check`.

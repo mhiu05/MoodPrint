@@ -374,3 +374,22 @@ async def test_guest_metrics_are_content_free(clients):
     }
     assert metrics["guest_cleanup_lag_seconds"] >= 25
     assert str(guest.user_id) not in json.dumps(metrics)
+
+
+async def test_guest_aware_rollback_cannot_resurrect(clients):
+    """A compatible flags-off image keeps the new schema, denial and cleanup; old heads fail ready."""
+    from app.core.revisions import READY_REVISIONS
+    from app.modules.guests.jobs import ensure_cleanup_jobs, process_guest_cleanup
+
+    app, actors = clients
+    for flag in ("guest_auth_enabled", "guest_paid_enabled", "guest_semantic_enabled",
+                 "feedback_enabled", "feedback_admin_enabled", "product_tour_enabled"):
+        setattr(app.state.settings, flag, False)
+    assert READY_REVISIONS == ("0018_app_feedback",)
+    guest = await add_guest(app, started_ago=LIFETIME + timedelta(seconds=1))
+    assert (await guest.client.get("/api/v1/session")).status_code == 401
+    await ensure_cleanup_jobs(app)
+    assert await process_guest_cleanup(app) == 1
+    assert sum((await user_reference_counts(app, guest.user_id)).values()) == 0
+    assert (await guest.client.get("/api/v1/session")).status_code == 401
+    assert (await actors[0][0].get("/api/v1/session")).status_code == 200

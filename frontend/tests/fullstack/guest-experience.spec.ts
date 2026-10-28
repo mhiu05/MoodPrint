@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 import { api } from "./helpers";
 import { createGuest, guestCall, publicEntry } from "./guest-support";
 
 test.beforeEach(async ({ request }) => { expect((await request.post("http://127.0.0.1:5174/__test/reset-admission")).ok()).toBe(true); });
 
-test("public disclosure creates independent anonymous guests with fixed deadlines and no social access", async ({ browser }) => {
+test("public disclosure creates independent anonymous guests with fixed deadlines and no social access", async ({ browser }, testInfo) => {
   const first = await browser.newContext();
   const second = await browser.newContext();
   try {
@@ -25,12 +26,16 @@ test("public disclosure creates independent anonymous guests with fixed deadline
     const day = one.serverTime.slice(0, 10);
     expect((await guestCall(first, "PUT", `/moods/${day}`, { value: 4, note: "GUEST-ONE-PRIVATE", timezone: "Asia/Bangkok", expectedVersion: 0 })).status()).toBe(200);
     expect(await (await second.request.get(api + "/moods")).text()).not.toContain("GUEST-ONE-PRIVATE");
+    await page.setViewportSize({ width: 320, height: 900 });
     await page.goto("/#/settings");
     await expect(page.getByText("Dữ liệu của lượt dùng thử chỉ dùng được đến khi hết giờ.")).toBeVisible();
     await expect(page.getByText(/ngày để bạn tiếp tục trên thiết bị khác/)).toHaveCount(0);
     // The UI must use the guest confirmation path, never password reauthentication.
     await page.getByRole("button", { name: "Tải bản sao dữ liệu", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "Tải dữ liệu lượt dùng thử?" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze()).violations).toEqual([]);
+    await page.screenshot({ path: testInfo.outputPath("guest-export-320.png"), fullPage: true });
     const download = page.waitForEvent("download");
     await page.getByRole("button", { name: "Xác nhận tải dữ liệu" }).click();
     await download;

@@ -95,7 +95,7 @@ test("forgot password sends a uniform notice", async ({ page }) => {
   expect(calls.find((call) => call.path === "/auth/password-recovery")!.body).toEqual({ email: "who@example.test" });
 });
 
-test("a recovery link removes its token from the URL and sets a new password", async ({ page }) => {
+test("callback: a recovery link removes its token from the URL and sets a new password", async ({ page }) => {
   const token = "recovery-token-canary-0123456789";
   const calls = await api(page, false, {
     "POST /auth/password-reset": () => ({ json: { status: "updated" } }),
@@ -114,7 +114,7 @@ test("a recovery link removes its token from the URL and sets a new password", a
   });
 });
 
-test("a recovery link token never reaches browser storage, history or the console", async ({ page }) => {
+test("callback: a recovery link token never reaches browser storage, history or the console", async ({ page }) => {
   const token = "recovery-token-canary-9876543210";
   const logged: string[] = [];
   page.on("console", (message) => logged.push(message.text()));
@@ -131,7 +131,7 @@ test("a recovery link token never reaches browser storage, history or the consol
   expect(page.url()).not.toContain(token);
 });
 
-test("an expired email link explains itself on the login screen", async ({ page }) => {
+test("callback: an expired email link explains itself on the login screen", async ({ page }) => {
   await api(page, false);
   await page.goto("/auth/callback#error=access_denied&error_code=otp_expired&error_description=x");
   await expect(page.getByRole("status")).toContainText("đã hết hạn");

@@ -115,7 +115,7 @@ test("native app dialog suspends guidance before taking focus", async ({ page })
   await open(page);
   await page.getByRole("button", { name: "Bắt đầu hướng dẫn", exact: true }).click();
   await expect(page.getByText("Bước 1/4", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Kết thúc và xóa lượt dùng thử", exact: true }).click();
+  await page.getByTestId("guest-status").getByRole("button", { name: "Kết thúc và xóa lượt dùng thử", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Kết thúc và xóa lượt dùng thử?", exact: true })).toBeVisible();
   await expect(page.locator(".onboarding-target")).toHaveCount(0);
 });

@@ -30,7 +30,7 @@ jobs:
           TEST_DATABASE_URL: postgresql+psycopg://postgres:synthetic-ci-only@127.0.0.1:5432/moodprint_test
         run: |
           uv sync --locked --python 3.12.13
-          uv run ruff check app tests evals alembic ../scripts/load_chat_memory.py ../scripts/apply_supabase_review.py ../scripts/provision_supabase_runtime.py ../scripts/check_reviewed_artifacts.py ../scripts/test_supabase_fullstack.py ../scripts/load_social_mood.py ../scripts/test_fullstack.py
+          uv run ruff check app tests evals alembic ../scripts/load_chat_memory.py ../scripts/apply_supabase_review.py ../scripts/provision_supabase_runtime.py ../scripts/check_reviewed_artifacts.py ../scripts/test_supabase_fullstack.py ../scripts/load_social_mood.py ../scripts/test_fullstack.py ../scripts/load_guest_experience.py ../scripts/prepare_guest_migration_review.py ../scripts/verify_guest_migration_review.py
           uv run mypy app
           uv run pytest -q
           uv run python ../scripts/export_openapi.py

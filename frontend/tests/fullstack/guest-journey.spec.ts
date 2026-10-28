@@ -5,7 +5,7 @@ import { createGuest, guestCall } from "./guest-support";
 test.beforeEach(async ({ request }) => { expect((await request.post("http://127.0.0.1:5174/__test/reset-admission")).ok()).toBe(true); });
 
 test("guest uses five assistants with explicit consent, mood, memory and voice preview only", async ({ browser }) => {
-  const context = await browser.newContext();
+  const context = await browser.newContext({ permissions: ["microphone"], viewport: { width: 390, height: 844 } });
   try {
     const owner = await createGuest(context);
     const bots = await (await context.request.get(api + "/bots")).json();
@@ -46,6 +46,19 @@ test("guest uses five assistants with explicit consent, mood, memory and voice p
     }});
     expect(voice.status(), await voice.text()).toBe(200);
     expect(await voice.json()).toEqual({ text: "Bản chữ tổng hợp để bạn duyệt", durationSeconds: 1 });
+    let sends = 0;
+    page.on("request", request => { if (request.method() === "POST" && /\/messages$/.test(request.url())) sends += 1; });
+    await page.goto("/#/assistants/may");
+    await page.getByRole("button", { name: "Ghi âm", exact: true }).click();
+    await expect(page.getByText(/Đang ghi âm/)).toBeVisible();
+    await page.waitForTimeout(1200); // collect actual synthetic PCM frames in the browser worklet
+    await page.getByRole("button", { name: "Dừng và chuyển thành văn bản" }).click();
+    await expect(page.getByLabel("Xem và sửa bản chép lời")).toHaveValue("Bản chữ tổng hợp để bạn duyệt");
+    await page.getByLabel("Xem và sửa bản chép lời").fill("Bản nháp giọng nói tổng hợp");
+    expect(sends).toBe(0);
+    await page.getByRole("button", { name: "Đưa vào ô tin nhắn" }).click();
+    await expect(page.getByRole("textbox", { name: "Tin nhắn cho Mây" })).toHaveValue("Bản nháp giọng nói tổng hợp");
+    expect(sends).toBe(0);
     expect((await context.request.get(api + "/session")).status()).toBe(200);
   } finally { await context.close(); }
 });
