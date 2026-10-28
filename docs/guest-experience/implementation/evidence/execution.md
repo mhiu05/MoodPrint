@@ -614,3 +614,33 @@ Activity actual-HTTP fullstack target:5 PASS1.6m, including the previously
 failing icebreaker Continue. Docs67Markdown/445links/109operations/68settings/
 48tables and9approval pins PASS; unstaged diff check clean. Complete final
 browser/fullstack and new-head Linux CI follow this focused commit.
+
+### 2026-10-29 ? motion fixture authoritative transcript
+
+Independent read-only review APPROVED exact1b2785191d9e431f4867ad8111e25ff8891e61d5,
+no new material finding, extending all whole-branch/previous approvals. Full
+1b27851 owned rerun266PASS7.7m; actual-HTTP fullstack32PASS5.1m. Initial owned
+265PASS/1environment failure has trace Chromium ERR_NO_BUFFER_SPACE loading
+tokens.css before chat bootstrap; unchanged isolated case3PASS7.9s. Initial
+push CI40775725564 failed unchanged sessionp95500.4ms/500ms with692requests,
+no unexpected statuses/flow exceptions; PR40775732731 passed migration/load
+then265browserPASS/1motion final assertion failure. No trace artifact uploaded.
+Reruns requested unchanged before definite fixture defect was identified.
+
+Read-only reviewer traced motion.spec.ts original empty conversation GET after
+SSE to RealApp authoritative replacement. Backend/runtime and existing aiRun
+fixture record bot message before completion. A new aria-busy idle condition
+before the original final assertion deterministically gives RED1. Fixture-only
+correction records accepted user and produced bot before receipts/completion.
+No production code, deadline, original animation wait/bound, workload, threshold,
+dependency, flag, budget, schema or release control changes. Exact historical
+CI causality remains inference without that trace; demonstrated fixture defect
+is certain. Latest test/evidence commit needs scoped review and fresh full CI;
+obsolete old-head reruns are not approval evidence for the new head.
+
+Final motion fixture GREEN: typecheck exit0; whole motion suite3rounds/15PASS
+in49.2s, including settled post-reconciliation final assertion each round.
+Docs67Markdown/446links/109operations/68settings/48tables,9pinned approvals
+and delta diff-check PASS. Runtime unchanged from independently approved
+1b27851 (whole owned266PASS/fullstack32PASS); new test-only head full CI and
+scoped review remain required.

@@ -32,3 +32,17 @@ Initial backend review regressions:9 failures; purge4 failures; browser2 failure
 Minor deferred from the reviewer: after confirming “end and create account”, the ended screen takes precedence over the signup hash, so the user must select Create account once more. Data is not transferred or exposed. This is a navigation inconvenience; it stays deferred under the one-fix-pass process.
 
 Author rulings on review scope: D01–D04, hosted provider/CAPTCHA/backup facts, physical assistive-device checks and optional spotlight acceptance remain release holds. Synthetic tests do not establish them. The independent reviewer did not supply a complete final scope list before its limit, so final review coverage remains PARTIAL. No second reviewer or fabricated verdict was substituted.
+
+## Completed scoped review at1b27851 and fixture follow-up
+
+Read-only reviewer APPROVED source integration at exact
+`1b2785191d9e431f4867ad8111e25ff8891e61d5`: no new material finding; terminal
+room-local dismissal lifecycle/new invitation behavior and nine-file delta
+inspected; docs67/445 and9pins PASS. No DB/browser/load executed by reviewer.
+Declined hosted/owner/manual/spotlight/post-merge certifications remain as before.
+
+Subsequent CI motion investigation found an inconsistent empty stored-transcript
+fixture after final SSE, rather than a supported product regression. Author's
+new idle/reconciliation condition reproduces RED before correcting fixture
+publication order. Test/evidence-only delta requires scoped exact-SHA approval
+and latest-head CI; see [current finish record](final-review-and-merge.md).
