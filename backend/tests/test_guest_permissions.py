@@ -25,6 +25,8 @@ PUBLIC = {
 }
 # Own data, owner-scoped, available to a live guest (and registered users) within their policy.
 PERSONAL = {
+    ("POST", "/feedback"),
+    ("GET", "/feedback/submission-state"),
     ("GET", "/session"),
     ("PUT", "/users/me/eligibility"),
     ("POST", "/auth/logout"),

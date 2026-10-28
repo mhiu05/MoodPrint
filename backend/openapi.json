@@ -1700,6 +1700,232 @@
         }
       }
     },
+    "/api/v1/feedback": {
+      "post": {
+        "summary": "Create Feedback",
+        "operationId": "create_feedback_api_v1_feedback_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/app__modules__feedback__schemas__FeedbackInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackReceipt"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/feedback/submission-state": {
+      "get": {
+        "summary": "Get Submission State",
+        "operationId": "get_submission_state_api_v1_feedback_submission_state_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackSubmissionState"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/consents/{purpose}": {
       "put": {
         "summary": "Update Consent",
@@ -9895,7 +10121,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/FeedbackInput"
+                "$ref": "#/components/schemas/app__modules__activities__schemas__FeedbackInput"
               }
             }
           }
@@ -14482,24 +14708,60 @@
         "type": "object",
         "title": "FeatureView"
       },
-      "FeedbackInput": {
+      "FeedbackReceipt": {
         "properties": {
-          "rating": {
+          "feedbackId": {
             "type": "string",
-            "enum": [
-              "liked",
-              "neutral",
-              "not_for_me"
-            ],
-            "title": "Rating"
+            "format": "uuid",
+            "title": "Feedbackid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Createdat"
+          },
+          "status": {
+            "type": "string",
+            "const": "received",
+            "title": "Status",
+            "default": "received"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "rating"
+          "feedbackId",
+          "createdAt"
         ],
-        "title": "FeedbackInput"
+        "title": "FeedbackReceipt"
+      },
+      "FeedbackSubmissionState": {
+        "properties": {
+          "submitted": {
+            "type": "boolean",
+            "title": "Submitted"
+          },
+          "lastSubmittedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastsubmittedat"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "submitted",
+          "lastSubmittedAt"
+        ],
+        "title": "FeedbackSubmissionState",
+        "description": "Own receipt existence only; no content and no review status."
       },
       "FocusOptions": {
         "properties": {
@@ -16697,6 +16959,91 @@
           "expectedVersion"
         ],
         "title": "VersionInput"
+      },
+      "app__modules__activities__schemas__FeedbackInput": {
+        "properties": {
+          "rating": {
+            "type": "string",
+            "enum": [
+              "liked",
+              "neutral",
+              "not_for_me"
+            ],
+            "title": "Rating"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rating"
+        ],
+        "title": "FeedbackInput"
+      },
+      "app__modules__feedback__schemas__FeedbackInput": {
+        "properties": {
+          "rating": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Rating"
+          },
+          "categories": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "ease_of_use",
+                "ai_quality",
+                "interface",
+                "performance",
+                "bug",
+                "missing_feature",
+                "privacy_trust",
+                "other"
+              ]
+            },
+            "type": "array",
+            "maxItems": 8,
+            "title": "Categories"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "context": {
+            "type": "string",
+            "enum": [
+              "general",
+              "assistants",
+              "mood",
+              "memory",
+              "privacy",
+              "activities",
+              "trial_end"
+            ],
+            "title": "Context",
+            "default": "general"
+          },
+          "disclosureVersion": {
+            "type": "string",
+            "const": "feedback-v1",
+            "title": "Disclosureversion"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rating",
+          "disclosureVersion"
+        ],
+        "title": "FeedbackInput",
+        "description": "A required 1-5 rating; categories, comment and context are optional and never identifying."
       },
       "AIEvent": {
         "additionalProperties": false,

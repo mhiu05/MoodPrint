@@ -64,6 +64,8 @@ class Settings(EmbeddingSettings, BaseSettings):
     feedback_enabled: bool = False
     feedback_admin_enabled: bool = False
     product_tour_enabled: bool = False
+    # Deployment revision stamped on feedback by the server; a client can never supply it.
+    release_version: str = Field(default="unknown", pattern=r"^[A-Za-z0-9._+-]{1,64}$")
     # Owner-approved daily guest spend (D02). Unset or zero means paid guest work is unavailable,
     # never unlimited; pricing must also be known or paid dispatch stays closed.
     guest_daily_budget_usd: Decimal | None = Field(default=None, ge=0)

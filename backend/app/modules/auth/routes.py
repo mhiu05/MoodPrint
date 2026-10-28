@@ -34,6 +34,7 @@ from app.core.security import (
 from app.infrastructure.database.models import AgeDeclaration, AuthSession, Consent, User, now
 from app.modules.auth.age import record_age
 from app.modules.auth.provider import SupabaseAuth
+from app.modules.feedback.policy import feedback_open
 
 router = APIRouter()
 
@@ -120,7 +121,7 @@ async def session_view(request: Request, actor: Actor, csrf: str | None = None) 
                 ai_quota_remaining=remaining,
                 matching=not guest,
                 voice=voice,
-                feedback=settings.feedback_enabled,
+                feedback=feedback_open(settings),
             ),
             account_kind=user.account_kind,  # type: ignore[arg-type]
             guest_started_at=user.guest_started_at,

@@ -72,6 +72,8 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 | POST | `/api/v1/exports` | `export_api_v1_exports_post` |
 | GET | `/api/v1/exports/{job_id}` | `export_status_api_v1_exports__job_id__get` |
 | GET | `/api/v1/exports/{job_id}/download` | `download_api_v1_exports__job_id__download_get` |
+| POST | `/api/v1/feedback` | `create_feedback_api_v1_feedback_post` |
+| GET | `/api/v1/feedback/submission-state` | `get_submission_state_api_v1_feedback_submission_state_get` |
 | GET | `/api/v1/health/live` | `live_api_v1_health_live_get` |
 | GET | `/api/v1/health/ready` | `ready_api_v1_health_ready_get` |
 | GET | `/api/v1/matching/candidates` | `candidates_api_v1_matching_candidates_get` |
@@ -111,4 +113,4 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 | PATCH | `/api/v1/users/me/identity` | `edit_identity_api_v1_users_me_identity_patch` |
 | POST | `/api/v1/voice/transcriptions` | `transcribe_api_v1_voice_transcriptions_post` |
 
-Tổng cộng **100 operations** trong snapshot. Production ẩn docs UI; snapshot vẫn được sinh offline cho contract checks.
+Tổng cộng **106 operations** trong snapshot. `POST /feedback` và `GET /feedback/submission-state` chỉ tồn tại khi `FEEDBACK_ENABLED` và `GUEST_ABUSE_HMAC_KEY` đều có; gửi thành công trả 201, cùng key và payload trả 200 cùng receipt, guest chỉ gửi một lần trong trial (409 `FEEDBACK_ALREADY_SUBMITTED`), user đã đăng ký một lần mỗi ngày Asia/Bangkok (429 `FEEDBACK_DAILY_LIMIT`). Production ẩn docs UI; snapshot vẫn được sinh offline cho contract checks.

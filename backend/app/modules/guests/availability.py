@@ -4,6 +4,7 @@ from typing import Literal
 
 from fastapi import Request
 
+from app.modules.feedback.policy import feedback_open
 from app.modules.guests.schemas import PublicExperience
 
 
@@ -31,7 +32,7 @@ def experience_view(request: Request) -> PublicExperience:
     return PublicExperience(
         guest_available=available,
         guest_unavailable_reason=reason,
-        feedback_available=settings.feedback_enabled and database_ready,
+        feedback_available=feedback_open(settings) and database_ready,
         product_tour_available=settings.product_tour_enabled,
         captcha_site_key=settings.guest_captcha_site_key if available else None,
     )

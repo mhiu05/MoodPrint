@@ -47,6 +47,7 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 | `FEEDBACK_ENABLED` | `bool` | `False` |
 | `FEEDBACK_ADMIN_ENABLED` | `bool` | `False` |
 | `PRODUCT_TOUR_ENABLED` | `bool` | `False` |
+| `RELEASE_VERSION` | `str` | `'unknown'` |
 | `GUEST_DAILY_BUDGET_USD` | `Decimal &#124; None` | `None` |
 | `GUEST_PRICING_JSON` | `dict[str, Any]` | `dict` |
 | `GUEST_ABUSE_HMAC_KEY` | `SecretStr` | `SecretStr('')` |

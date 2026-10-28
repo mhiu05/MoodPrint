@@ -291,6 +291,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from app.modules.activities.routes import router as activities
     from app.modules.auth.routes import router as auth
     from app.modules.consent.routes import router as consent
+    from app.modules.feedback.routes import router as feedback
     from app.modules.guests.routes import router as guests
     from app.modules.moderation.admin_routes import router as moderation_admin
     from app.modules.moderation.routes import router as moderation
@@ -305,6 +306,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     for router in (
         auth,
         guests,
+        feedback,
         consent,
         profiles,
         mood,
