@@ -35,7 +35,7 @@ test("birth-year onboarding persists16+ access while the server rejects social a
   });
   await session(context, 7);
   const page = await context.newPage();
-  await page.goto("/");
+  await page.goto("/#/");
   await expect(
     page.getByRole("heading", { name: "Xác nhận độ tuổi" }),
   ).toBeVisible();
@@ -106,7 +106,7 @@ test("birth-year onboarding persists16+ access while the server rejects social a
   const younger = await browser.newContext();
   await session(younger, 8);
   const underage = await younger.newPage();
-  await underage.goto("/");
+  await underage.goto("/#/");
   await underage
     .getByLabel("Năm sinh", { exact: true })
     .fill(String(year - 15));
@@ -145,7 +145,7 @@ test("the eighteenth-year account explicitly confirms18 in settings without auto
   });
   await session(context, 9);
   const page = await context.newPage();
-  await page.goto("/");
+  await page.goto("/#/");
   const initial = await (
     await context.request.get("http://127.0.0.1:5174/api/v1/session")
   ).json();

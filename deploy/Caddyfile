@@ -38,6 +38,12 @@
         Permissions-Policy "microphone=(self), camera=(), geolocation=()"
         -Server
     }
+    # Same policy the API applies when it serves the shell itself. GUEST_CAPTCHA_ORIGIN stays unset
+    # (no third-party origin at all) until the guest entry and its CAPTCHA are deliberately enabled.
+    @shell not path /api /api/*
+    header @shell Content-Security-Policy "default-src 'self'; script-src 'self' {$GUEST_CAPTCHA_ORIGIN:}; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' {$GUEST_CAPTCHA_ORIGIN:}; media-src 'self' blob:; frame-src {$GUEST_CAPTCHA_ORIGIN:'none'}; worker-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    @callback path /auth/callback
+    header @callback X-Robots-Tag "noindex, nofollow"
     @assets path /assets/*
     header @assets Cache-Control "public, max-age=31536000, immutable"
     @other not path /assets/*

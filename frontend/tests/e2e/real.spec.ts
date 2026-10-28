@@ -223,7 +223,7 @@ test("login failure retains credentials and never opens a sample session", async
   page,
 }) => {
   await api(page, false);
-  await page.goto("/");
+  await page.goto("/#/");
   await page.getByLabel("Email", { exact: true }).fill("an@example.test");
   await page.getByLabel("Mật khẩu", { exact: true }).fill("private-passphrase");
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
@@ -285,7 +285,7 @@ test("year onboarding requires confirmation and server success, retaining input 
       json: { ...session, birthYear: 2007, eligibilityVersion: 1 },
     });
   });
-  await page.goto("/");
+  await page.goto("/#/");
   await expect(
     page.getByRole("heading", { name: "Xác nhận độ tuổi" }),
   ).toBeVisible();
@@ -339,7 +339,7 @@ test("an unavailable session remains an explicit error until retry succeeds", as
           },
     ),
   );
-  await page.goto("/");
+  await page.goto("/#/");
   await expect(page.getByRole("alert")).toContainText("Dịch vụ chưa sẵn sàng");
   await expect(
     page.getByRole("heading", { name: /Bạn muốn chia sẻ điều gì/ }),

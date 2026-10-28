@@ -32,6 +32,29 @@ export function sessionWith(consents: Partial<Record<"AI" | "MEM" | "MATCH" | "V
   return { ...next, ...patch };
 }
 
+/** A synthetic guest trial that ends `expiresInMs` from now (start + 7200 s, as the server enforces). */
+export function guestSession(expiresInMs: number, patch: Record<string, unknown> = {}) {
+  const expires = Date.now() + expiresInMs;
+  return {
+    ...baseSession,
+    userId: "22222222-2222-4222-8222-222222222222",
+    alias: "Khách",
+    accountKind: "guest",
+    guestStartedAt: new Date(expires - 7_200_000).toISOString(),
+    guestExpiresAt: new Date(expires).toISOString(),
+    serverTime: new Date().toISOString(),
+    guestQuota: { aiTurnsRemaining: 25, voiceClipsRemaining: 6, voiceSecondsRemaining: 180 },
+    features: { ai: false, matching: false, voice: false, feedback: false },
+    consents: {
+      AI: { enabled: false, version: 1, policyVersion: "v1" },
+      MEM: { enabled: false, version: 1, policyVersion: "v1" },
+      MATCH: { enabled: false, version: 1, policyVersion: "v1" },
+      VOICE: { enabled: false, version: 1, policyVersion: "v1" },
+    },
+    ...patch,
+  };
+}
+
 export const bots = [
   { botId: "may", name: "Mây", role: "Lắng nghe & tâm sự", description: "Một khoảng nhỏ để được lắng nghe.", starters: ["Hôm nay mình hơi mệt"], avatarKey: "may" },
 ];

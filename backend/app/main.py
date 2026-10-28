@@ -35,6 +35,7 @@ def warn_unenforced_budget(config) -> None:
 def create_app(settings: Settings | None = None) -> FastAPI:
     config = settings or Settings()
     warn_unenforced_budget(config)
+    shell_policy = content_security_policy(bool(config.guest_captcha_site_key))
     database = Database(config)
 
     @asynccontextmanager
@@ -247,11 +248,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if not path.startswith("/api/"):
             response.headers.update(
                 {
-                    "Content-Security-Policy": CSP,
+                    "Content-Security-Policy": shell_policy,
                     "X-Frame-Options": "DENY",
                     "Permissions-Policy": "microphone=(self), camera=(), geolocation=()",
                 }
             )
+            if path == "/auth/callback":
+                # The email-link landing carries one-time fragments: never indexed, never cached.
+                response.headers["X-Robots-Tag"] = "noindex, nofollow"
         if config.app_env == "production":
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         return response
@@ -339,11 +343,26 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     return app
 
 
-CSP = (
-    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; "
-    "connect-src 'self'; media-src 'self' blob:; worker-src 'self'; font-src 'self'; "
-    "object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
-)
+CAPTCHA_ORIGIN = "https://challenges.cloudflare.com"
+
+
+def content_security_policy(captcha: bool = False) -> str:
+    """Strict same-origin policy; the CAPTCHA origin is added only while a site key is configured.
+
+    With the guest entry disabled (no key) nothing third-party can load. When enabled the challenge
+    needs its script, its frame and its verification request and nothing else.
+    """
+    extra = f" {CAPTCHA_ORIGIN}" if captcha else ""
+    frame = f"frame-src {CAPTCHA_ORIGIN}; " if captcha else ""
+    return (
+        f"default-src 'self'; script-src 'self'{extra}; style-src 'self'; "
+        f"img-src 'self' data: blob:; connect-src 'self'{extra}; media-src 'self' blob:; "
+        f"{frame}worker-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; "
+        "form-action 'self'; frame-ancestors 'none'"
+    )
+
+
+CSP = content_security_policy()
 
 
 def install_static(app: FastAPI, root: Path) -> None:

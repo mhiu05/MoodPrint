@@ -38,6 +38,21 @@ check() {
 }
 check / 200
 check /auth/callback 200
+header() {
+  curl -sSI "$base$1" | tr -d '\r' | awk -v name="$2" 'tolower($1) == tolower(name ":") { $1 = ""; sub(/^ /, ""); print }'
+}
+csp=$(header / Content-Security-Policy)
+[[ "$csp" == *"default-src 'self'"* && "$csp" == *"frame-ancestors 'none'"* ]] \
+  || { echo "/: missing strict Content-Security-Policy" >&2; exit 1; }
+[[ "$csp" != *"unsafe-inline"* && "$csp" != *"unsafe-eval"* && "$csp" != *"challenges.cloudflare.com"* ]] \
+  || { echo "/: CSP must stay same-origin while the CAPTCHA origin is unset" >&2; exit 1; }
+[[ "$(header /auth/callback X-Robots-Tag)" == "noindex, nofollow" ]] \
+  || { echo "/auth/callback: expected noindex" >&2; exit 1; }
+[[ "$(header /auth/callback Cache-Control)" == "no-store" ]] \
+  || { echo "/auth/callback: expected no-store" >&2; exit 1; }
+[[ -z "$(header /api/v1/health/live Content-Security-Policy)" ]] \
+  || { echo "/api: JSON responses carry no document CSP" >&2; exit 1; }
+echo "shell headers: ok"
 check /api/v1/health/live 200
 check /api/v1/health/ready 503
 check /api/v1/session 401

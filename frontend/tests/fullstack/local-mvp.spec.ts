@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 async function login(page: Page, number: 45 | 46) {
-  await page.goto("/");
+  await page.goto("/#/");
   await page
     .getByLabel("Email", { exact: true })
     .fill(`local-mvp-${number}@example.invalid`);
