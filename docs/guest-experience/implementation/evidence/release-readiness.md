@@ -74,3 +74,9 @@ All6 flags false,budget unset,tracked publication hold retained. D01–D04,
 hosted/manual prerequisites and deferred spotlight remain open. Source acceptance
 does not grant release approval. Final observed remote IDs/checks are in PR20 and
 the task response, without a post-merge evidence-only commit.
+
+2026-10-29 frontend follow-up: native history cancellation stops guidance before
+delayed router observation. New controlled RED→GREEN and57 repeated onboarding
+tests pass; b49 approval/CI successes remain historical. New head requires
+fresh review/browser/build/CI, while schema/backend/load safety evidence remains
+unchanged. Release hold,flags,budget and D01–D04 remain intact.

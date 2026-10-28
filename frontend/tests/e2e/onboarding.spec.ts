@@ -85,6 +85,59 @@ test("browser Back cancels instead of forcing navigation", async ({ page }) => {
   await expect(page.getByText("Hướng dẫn đã dừng khi bạn chuyển màn hình.", { exact: true })).toBeVisible();
 });
 
+test("browser Back stops guidance before a delayed router observes the history event", async ({ page }) => {
+  // Model a delayed router transition without delaying the browser's actual Back.
+  // The guide must release its target even while React still shows the old route.
+  await page.addInitScript(() => {
+    const original = window.addEventListener.bind(window);
+    const remove = window.removeEventListener.bind(window);
+    const listeners = new Map<EventListenerOrEventListenerObject, EventListener>();
+    const state = window as typeof window & {
+      registerGuide?: boolean; holdRouter?: boolean; historyCallbacks?: (() => void)[];
+    };
+    state.historyCallbacks = [];
+    window.addEventListener = ((type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
+      if (type !== "popstate" || state.registerGuide) return original(type, listener, options);
+      const wrapped: EventListener = event => {
+        const invoke = () => typeof listener === "function" ? listener.call(window, event) : listener.handleEvent(event);
+        if (state.holdRouter) state.historyCallbacks!.push(invoke);
+        else invoke();
+      };
+      listeners.set(listener, wrapped);
+      original(type, wrapped, options);
+    }) as typeof window.addEventListener;
+    window.removeEventListener = ((type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions) => {
+      remove(type, type === "popstate" ? listeners.get(listener) || listener : listener, options);
+    }) as typeof window.removeEventListener;
+  });
+  const mutations = await setup(page);
+  await page.goto("/#/settings");
+  await expect(page.getByRole("button", { name: "Xem hướng dẫn", exact: true })).toBeVisible();
+  await page.evaluate(() => { (window as typeof window & { registerGuide?: boolean }).registerGuide = true; });
+  await page.getByRole("button", { name: "Xem hướng dẫn", exact: true }).click();
+  await page.getByRole("button", { name: "Bắt đầu hướng dẫn", exact: true }).click();
+  await page.getByRole("button", { name: "Tiếp", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Tiếp", exact: true })).toBeEnabled();
+  await expect(page).toHaveURL(/#\/self$/);
+  await page.evaluate(() => { (window as typeof window & { holdRouter?: boolean }).holdRouter = true; });
+  try {
+    await page.goBack();
+    await expect(page).toHaveURL(/#\/assistants$/);
+    expect(await page.evaluate(() => (window as typeof window & { historyCallbacks?: (() => void)[] }).historyCallbacks!.length)).toBeGreaterThan(0);
+    await expect(page.getByText("Hướng dẫn đã dừng khi bạn chuyển màn hình.", { exact: true })).toBeVisible();
+    await expect(page.locator(".onboarding-target")).toHaveCount(0);
+  } finally {
+    await page.evaluate(() => {
+      const state = window as typeof window & { holdRouter?: boolean; historyCallbacks?: (() => void)[] };
+      state.holdRouter = false;
+      state.historyCallbacks?.splice(0).forEach(invoke => invoke());
+    });
+  }
+  await expect(page).toHaveURL(/#\/assistants$/);
+  await expect(page.locator(".onboarding-target")).toHaveCount(0);
+  expect(mutations).toEqual([]);
+});
+
 test("guest expiry destroys active guidance and never persists a guest key", async ({ page }) => {
   await page.clock.install({ time: new Date() });
   await setup(page, guestSession(60_000));

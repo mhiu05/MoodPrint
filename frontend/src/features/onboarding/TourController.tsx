@@ -177,6 +177,16 @@ export default function TourController({
       stop("Hướng dẫn đã dừng khi bạn chuyển màn hình.");
   }, [location.pathname, stop]);
   useEffect(() => {
+    // Back/Forward expresses navigation before React may commit a concurrent
+    // router update. Cancel pending readiness/focus on the history event itself.
+    const historyNavigation = () => {
+      if (runningRef.current)
+        stop("Hướng dẫn đã dừng khi bạn chuyển màn hình.");
+    };
+    window.addEventListener("popstate", historyNavigation);
+    return () => window.removeEventListener("popstate", historyNavigation);
+  }, [stop]);
+  useEffect(() => {
     const observer = new MutationObserver(() => {
       if (runningRef.current && document.querySelector("dialog[open]"))
         stop(BLOCKED);

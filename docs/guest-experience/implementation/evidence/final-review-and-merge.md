@@ -1,6 +1,6 @@
 # Guest experience — final review and merge evidence
 
-Status: **source verified at11538b2; final PR-head gates pending; release HOLD**.
+Status: **history-navigation fix verification pending; release HOLD**.
 This pre-merge snapshot follows
 [prompt10](../10-codex-finish-pr-merge-prompt.md). No hosted migration, deployment,
 paid call or public enablement is authorized by source integration.
@@ -35,6 +35,17 @@ remaining integrated/load/CI evidence are still required.
 The table above is a chronological pre-review snapshot. These results supersede
 its pending checks. Functional code is11538b233c9ae9e127df7d133a73e01e0e242ec2;
 the final test/evidence delta changes no runtime/schema/flags/budget/dependencies.
+
+Subsequent frontend delta (2026-10-29): native popstate cancellation closes a
+controlled delayed-router gap. b49 local1047/1skip and pushCI40706860084 passed;
+[independent b49 source approval](independent-review-b49e109.md) is complete.
+PR attempt2 then failed original browser Back case; exact historical cause
+unproven. Back-only12 and whole onboarding54 unchanged passes retained. New
+controlled router-event barrier RED1 → guard fix →57 onboarding/3rounds PASS,
+typecheck/91units PASS,final added zero-mutation assertion1PASS. New source SHA
+requires independent extension,full browser/build and exact-head CI. All prior
+backend/load/retention/hold boundaries remain unchanged; old runtime image IDs
+and counts are historical until the new frontend build verifies.
 
 | Gate | Actual evidence / result |
 | --- | --- |

@@ -560,3 +560,31 @@ original9audits byte-identical, .gitignore unchanged. Untracked user paths remai
 Final test/evidence-only commit must be reviewed and pass exact-head CI; PR20
 stays draft until then. Actual merge/main and post-merge run/release observations
 will be reported in PR/final response without a post-merge evidence commit.
+
+### 2026-10-29 — final-head verification and history-navigation boundary
+
+Full local b49backend1047 pass/1 D04 skip923.47s; exactCI Ruff/mypy114 clean.
+Push40706860084 SUCCESS (1047/1,91units,264browser,32fullstack,18deploy and
+allremaining gates). [Scoped b49 approval](independent-review-b49e109.md) complete.
+PR40706874039 attempt1 failed social-sessionp95516.3ms vs500ms; attempt2 passed
+that unchanged gate but failed original browser Back guide test (263pass1fail).
+No failure hidden. Back-only12 repetitions PASS and whole onboarding3x54 PASS
+did not reproduce the historical failure; its exact cause is unproven without
+the discarded runner trace. A controlled delayed-router history barrier then
+proved a related real boundary gap: actual browser URL Back precedes React's
+route observation, leaving guidance active/highlighted. New test RED1 observed.
+
+Small source fix: mounted TourController native popstate guard invokes existing
+stop/release if running, cancelling readiness/focus/highlight before router commit;
+listener cleanup paired, guide pushState navigation unaffected. Controlled real
+Back+delayed-router regression GREEN; whole onboarding3x19=57 PASS2.2m,
+typecheck/91units PASS, final zero-API-mutation assertion1 PASS5.1s. All timing,
+security,load/price/cap/flag controls unchanged. Reviewer read-only inspection
+finds approach sound but exact new-SHA approval/CI still required.
+
+Ruling: fix the demonstrated history-observation gap instead of treating another
+green retry as evidence the boundary is sound; controlled RED does not establish
+the historical CI failure's precise cause. The cost is another focused source
+review/CI cycle. b49 attempt3 is obsolete after the new head is pushed; its
+result cannot approve that new head. Backend/load evidence remains applicable
+to unchanged backend code; frontend browser/build gates refresh below/CI.
