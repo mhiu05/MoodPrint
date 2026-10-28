@@ -52,6 +52,33 @@ FORBIDDEN_IDENTITY_COLUMNS = {
 }
 
 
+async def test_guest_purge_leaves_feedback_without_any_identity_link(clients):
+    from sqlalchemy import select
+
+    from app.modules.feedback.models import AppFeedback
+    from tests.guest_helpers import add_guest
+    from tests.test_feedback import enable, submit
+    from tests.test_guest_cleanup import claim, purge, seed_guest_only, user_reference_counts
+
+    app, _ = clients
+    enable(app)
+    guest = await add_guest(app)
+    await seed_guest_only(app, guest)
+    response = await submit(guest.client)
+    assert response.status_code == 201, response.text
+    ended = await guest.client.post(
+        "/api/v1/auth/guest/end", json={}, headers={"Idempotency-Key": "end"},
+    )
+    assert ended.status_code == 204
+    assert await purge(app, guest.user_id, await claim(app, guest)) == "removed"
+    assert all(value == 0 for value in (await user_reference_counts(app, guest.user_id)).values())
+    async with app.state.database.sessions() as db:
+        assert len((await db.scalars(select(AppFeedback))).all()) == 1
+        assert await db.scalar(text("select count(*) from auth.users where id=:uid"), {"uid": guest.user_id}) == 0
+        assert await db.scalar(text("select count(*) from moodprint.guest_provisioning_attempts")) == 0
+    test_feedback_schema_has_no_submitter_identity()
+
+
 def metadata():
     from app.infrastructure.database.models import Base
     from app.modules.feedback import models  # noqa: F401

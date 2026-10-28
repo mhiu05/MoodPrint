@@ -32,7 +32,7 @@ from app.infrastructure.database.models import (
     User,
 )
 from app.modules.activities.models import ActivityParticipant, ActivityResponse, ActivitySession
-from app.modules.feedback import models as feedback_models  # noqa: F401 -- registers feedback tables
+from app.modules.feedback.models import FeedbackSubmissionReceipt
 from app.modules.guests.accounting import settle_open_for_user
 from app.modules.guests.models import (
     GuestCleanupJob,
@@ -258,6 +258,7 @@ async def _delete_owned(db: AsyncSession, uid: UUID) -> None:
         delete(AiMessageRecord).where(AiMessageRecord.conversation_id.in_(conversations))
     )
     for model in (
+        FeedbackSubmissionReceipt,
         AiTurn,
         AiUsage,
         AiRun,
