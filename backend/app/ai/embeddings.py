@@ -1,5 +1,7 @@
 """Derived approved-memory indexing. All authorization stays in PostgreSQL predicates."""
 
+import asyncio
+import hashlib
 import logging
 import re
 import unicodedata
@@ -17,8 +19,10 @@ from app.ai.embedding_config import EmbeddingSettings
 from app.ai.embedding_models import EmbeddingJob, MemoryEmbedding
 from app.ai.models import AiPreference
 from app.ai.voyage import EmbeddingError, EmbeddingProvider, VoyageProvider, validate_vector
+from app.core.errors import DomainError
 from app.core.security import Actor, lock_actor
 from app.infrastructure.database.models import Consent, Memory, PrivateItem, User, now
+from app.modules.guests.deadlines import guest_deadline
 from app.modules.guests.policy import database_time, lifetime_allows
 
 if TYPE_CHECKING:
@@ -204,7 +208,11 @@ async def _job_memory(db: AsyncSession, job: EmbeddingJob) -> Memory | None:
 
 async def _guest_embed_admission(db: AsyncSession, owner: User, job: EmbeddingJob, settings):
     """Quota claim + worst-case reservation for one guest embedding, or None (never raises)."""
-    from app.core.errors import DomainError
+    return await _guest_embedding_ticket(db, owner, settings, key=f"embed:{job.id}",
+        payload=f"{job.memory_id}:{job.memory_version}", document=True)
+
+
+async def _guest_embedding_ticket(db, owner, settings, *, key: str, payload: str, document: bool):
     from app.modules.guests.accounting import reserve_guest_operation
     from app.modules.guests.limits import reserve_guest_quota
     from app.modules.guests.policy import guest_paid_available
@@ -215,12 +223,11 @@ async def _guest_embed_admission(db: AsyncSession, owner: User, job: EmbeddingJo
     upper = embed_upper(settings.guest_pricing_json)
     if upper is None:
         return None
-    key = f"embed:{job.id}"
-    payload = f"{job.memory_id}:{job.memory_version}"
     try:
         async with db.begin_nested():
             quota = await reserve_guest_quota(
-                db, owner, kind="embed", operation_key=key, payload_digest=payload, settings=settings
+                db, owner, kind="embed", operation_key=key, payload_digest=payload, settings=settings,
+                semantic_document=document,
             )
             reservation = await reserve_guest_operation(
                 db,
@@ -241,20 +248,51 @@ async def _guest_embed_admission(db: AsyncSession, owner: User, job: EmbeddingJo
     return quota, reservation
 
 
-async def _settle_guest_embed(database: "Database", user_id: UUID, ticket, *, known: bool) -> None:
-    from app.modules.guests.accounting import settle_guest_operation
+async def _settle_guest_embed(database: "Database", user_id: UUID, ticket, *, known: bool, dispatched: bool = True) -> None:
+    from app.modules.guests.accounting import release_guest_operation, settle_guest_operation
     from app.modules.guests.limits import finish_guest_quota
 
     quota, reservation = ticket
     try:
         async with database.require()() as db, db.begin():
-            await settle_guest_operation(
-                db, reservation, reservation.upper_nano_usd if known else None
-            )
+            if dispatched:
+                await settle_guest_operation(db, reservation, reservation.upper_nano_usd if known else None)
+            else:
+                await release_guest_operation(db, reservation.id)
         async with database.require()() as db, db.begin():
             await finish_guest_quota(db, user_id, "embed", quota.operation_key_hash, quota.lease_token)
     except Exception:  # the stale-reservation sweep charges it uncertain
         log.warning("guest_embed_settlement_deferred")
+
+
+async def _guest_embedding_call(database, settings, provider, user_id, ticket, value, input_type, expected):
+    """Both embedding adapters need their own funded claim and final bounded dispatch."""
+    from app.modules.guests.accounting import mark_guest_dispatched
+    from app.modules.guests.limits import maintain_guest_quota
+    from app.modules.guests.policy import guest_expired
+    dispatched = known = False
+    try:
+        async with maintain_guest_quota(database, user_id, "embed", ticket[0]):
+            async with database.require()() as db, db.begin():
+                current = await _authorization(db, user_id)
+                if current is None or not current.semantic or _snapshot(current) != expected:
+                    raise EmbeddingError("embedding_unconfigured")
+                owner = await db.get(User, user_id)
+                bound = await guest_deadline(db, owner)
+            async with database.require()() as db, db.begin():
+                await mark_guest_dispatched(db, ticket[1].id)
+            dispatched = True
+            assert bound is not None
+            async with asyncio.timeout(min(settings.voyage_timeout_seconds, max(0, bound.remaining()))):
+                if bound.remaining() <= 0:
+                    raise guest_expired()
+                result = await provider.embed(value, input_type)
+            known = True
+            if bound.remaining() <= 0:
+                raise guest_expired()
+            return validate_vector(result, settings.voyage_dimensions)
+    finally:
+        await asyncio.shield(_settle_guest_embed(database, user_id, ticket, known=known, dispatched=dispatched))
 
 
 async def reconcile_embedding_jobs(database: "Database", settings: EmbeddingSettings) -> int:
@@ -377,17 +415,14 @@ async def process_embedding_jobs(
                     # Unavailable price/budget, exhausted quota or an earlier attempt: no send, no retry.
                     job.status, job.lease_token, job.lease_until = "cancelled", None, None
                     continue
-        if ticket is not None:
-            async with database.require()() as db, db.begin():
-                from app.modules.guests.accounting import mark_guest_dispatched
-
-                await mark_guest_dispatched(db, ticket[1].id)
         error: str | None = None
         vector: list[float] = []
         try:
-            vector = validate_vector(
-                await provider.embed(text, "document"), settings.voyage_dimensions
-            )
+            if ticket is not None:
+                expected = {k: getattr(job, k) for k in ("preference_version", "ai_consent_version", "mem_consent_version")}
+                vector = await _guest_embedding_call(database, settings, provider, user_id, ticket, text, "document", expected)
+            else:
+                vector = validate_vector(await provider.embed(text, "document"), settings.voyage_dimensions)
         except EmbeddingError as exc:
             # Codes are controlled internally; never persist arbitrary exception content.
             error = (
@@ -404,8 +439,6 @@ async def process_embedding_jobs(
             )
         except Exception:
             error = "embedding_provider_unavailable"
-        if ticket is not None:
-            await _settle_guest_embed(database, user_id, ticket, known=error is None)
         async with database.require()() as db, db.begin():
             await db.scalar(select(User.id).where(User.id == user_id).with_for_update())
             job = await db.get(EmbeddingJob, job_id, with_for_update=True)
@@ -528,11 +561,13 @@ async def retrieve_memories(
     data_version: int,
     *,
     provider: EmbeddingProvider | None = None,
+    operation_key: str | None = None,
 ) -> list[str]:
     if bot_id not in MEMORY_BOTS:
         return []
+    ticket = None
     async with database.require()() as db, db.begin():
-        await lock_actor(db, actor)
+        user = await lock_actor(db, actor)
         auth = await _authorization(db, actor.user_id)
         if not auth or auth.data_version != data_version:
             return []
@@ -546,11 +581,17 @@ async def retrieve_memories(
         )
         if not indexed:
             return await _fallback(db, actor.user_id, bot_id, query, settings)
+        if user.account_kind == "guest":
+            ticket = await _guest_embedding_ticket(db, user, settings, key=operation_key or f"embed-query:{uuid4()}",
+                payload=hashlib.sha256(f"{bot_id}:{data_version}:{query}".encode()).hexdigest(), document=False)
+            if ticket is None:
+                return await _fallback(db, actor.user_id, bot_id, query, settings)
     try:
-        vector = validate_vector(
-            await (provider or VoyageProvider(settings)).embed(query[:8000], "query"),
-            settings.voyage_dimensions,
-        )
+        if ticket is not None:
+            vector = await _guest_embedding_call(database, settings, provider or VoyageProvider(settings), actor.user_id, ticket,
+                query[:8000], "query", _snapshot(auth))
+        else:
+            vector = validate_vector(await (provider or VoyageProvider(settings)).embed(query[:8000], "query"), settings.voyage_dimensions)
     except Exception:
         vector = []
     async with database.require()() as db, db.begin():

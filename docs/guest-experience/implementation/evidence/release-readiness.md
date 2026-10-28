@@ -6,11 +6,11 @@ Overall release: **PARTIAL / HOLD**. This is not authorization to enable, merge,
 | --- | --- |
 | G0 baseline | PASS local: remote main rechecked `9847533`; isolated worktree, original nine audits byte-identical, `.gitignore` unchanged. Registered50 one-worker baseline measured. |
 | G1 schema/Auth | Offline 0015→0018 SQL and empty-local transactional rehearsal pass; SHA256 `4a5abfbfc6ab09d0ba7ab01dd65bcacea2598abcb07fa12a7da1ffcbbba47606`, 32061 bytes. Historical pins do not approve it. Hosted anonymous/CAPTCHA/session/cascade/burst proof awaits D04. |
-| G2 authorization | PASS local: full backend960 passed/1 hosted skip, supplemental release suite19 passed/1 same skip, all25 exact oracle commands pass. Fullstack31 pass; extra320px export/axe and390px browser PCM→editable preview pass. Client monotonic deadline never extends on held refresh; queued/replayed SSE final suppressed. |
+| G2 authorization | PASS local after review fixes: full backend978 passed/1 hosted D04 skip; all25 exact mandatory commands executed successfully. Owned browser259 pass and fullstack31 pass, including320px export/axe and390px PCM→editable preview. Deadline, query/document funding, concurrent settlement, live lease, end confirmation and child-evidence regressions included. |
 | G3 cleanup/privacy | Receipt unlinking/180-day retention, purge/recovery and rollback regressions implemented. Physical local dump/restore passes. D01 disclosure/cleanup target/provider/log/backup facts and D03 retention approval unresolved. |
 | G4 cost/capacity | Synthetic one-worker 50 registered / 50 guest / 50 guest crash workloads pass, bounded AI/STT and detached liability retained. D02 positive paid budget and actual target capacity remain unapproved. |
-| G5 UX/feedback | Rating/admin/inline guide checked in automated mobile/desktop/axe/keyboard fixtures. Spotlight explicitly deferred, dependency absent. Manual NVDA/VoiceOver, physical keyboard/mic/CAPTCHA and actual text zoom remain gaps. |
-| G6 release | Three Linux images build; UID10001/no.env/no test entrypoint/no source maps checks, Compose/Caddy/proxy CSP/callback/SSE,14 Linux poller units,91 Node22/Linux frontend units, contract/docs/pinned-artifact checks pass. Final full owned browser run and independent branch review pending. Complete GitHub Actions run/hosted release authorization not executed. |
+| G5 UX/feedback | Automated rating/admin/inline guide mobile/desktop/axe/keyboard checks pass. Spotlight deferred, dependency absent. Manual NVDA/VoiceOver, physical keyboard/mic/CAPTCHA and actual text zoom remain gaps. Deferred minor: end-and-register needs an extra Create account click on the ended screen. |
+| G6 release | Three final Linux images build and package inspection passes. Final Compose/proxy CSP/callback/SSE and91 Node22/Linux units pass; Linux poller14, contracts/docs/pins also pass. [Independent review](code-review.md) delivered8 findings, all fixed with RED→GREEN, but hit its usage limit before a final verdict; that review gate remains PARTIAL. Complete GitHub Actions/hosted release authorization not executed. |
 
 Six rollout flags remain false in defaults/examples: `GUEST_AUTH_ENABLED`, `GUEST_PAID_ENABLED`, `GUEST_SEMANTIC_ENABLED`, `FEEDBACK_ENABLED`, `FEEDBACK_ADMIN_ENABLED`, `PRODUCT_TOUR_ENABLED`. No D01–D04 decision is inferred. Synthetic suites use no paid or hosted traffic.
 
@@ -34,8 +34,8 @@ Never run the historical initialization generator against this head or alter app
 
 | Tag | Local image ID |
 | --- | --- |
-| `moodprint-api:guest-review` | `sha256:d4694f899d7e19137e6a96b3e14499538e0329a14c0b244ea38a8b289bba8d2f` |
-| `moodprint-web:guest-review` | `sha256:dbe4eadf1c4b88529dffc95e3e74ee5e444cc9fd6dd940d7ae40963a252ac80a` |
-| `moodprint:guest-review` | `sha256:c813fa10b46b752726c961a350844fae14aab6db91aeb59b622cbaf1e2021c15` |
+| `moodprint-api:guest-review-final` | `sha256:593b371a0c0c7140353c764f293a86769acd2b3f01a1f48fe2b618d89f9834ca` |
+| `moodprint-web:guest-review-final` | `sha256:1b3f64dc75fa0fce8c33e3674ec7b1f52ca87c50b8d200b535296f81aa991183` |
+| `moodprint:guest-review-final` | `sha256:ad9918a98016f837767995b0e3c5491f1dfd6f0503ccb5937e9b58b47c5b8ac0` |
 
 These are local review artifacts, not registry publications or signed release approvals. Production source content is the reviewed guest branch; later test-only/doc commits do not imply an image was rebuilt or deployed.

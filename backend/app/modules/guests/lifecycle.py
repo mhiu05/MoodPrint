@@ -126,7 +126,18 @@ INVENTORY: dict[str, str] = {
 async def _foreign_evidence(db: AsyncSession, uid: UUID) -> bool:
     """True when a social/safety row ties this guest to any user who is not itself a guest."""
     others = select(User.id).where(User.account_kind != "guest")
+    rooms = select(Connection.id).where(or_(Connection.low_user_id == uid, Connection.high_user_id == uid))
+    pairs = select(Pair.id).where(or_(Pair.low_user_id == uid, Pair.high_user_id == uid))
+    sessions = select(ActivitySession.id).where(or_(ActivitySession.inviter_id == uid,
+        ActivitySession.invitee_id == uid, ActivitySession.connection_id.in_(rooms)))
     checks = (
+        select(HumanMessage.id).where(HumanMessage.connection_id.in_(rooms), HumanMessage.sender_id.in_(others)),
+        select(ConnectionRead.user_id).where(ConnectionRead.connection_id.in_(rooms), ConnectionRead.user_id.in_(others)),
+        select(ActivityParticipant.user_id).where(ActivityParticipant.session_id.in_(sessions), ActivityParticipant.user_id.in_(others)),
+        select(ActivityResponse.user_id).where(ActivityResponse.session_id.in_(sessions), ActivityResponse.user_id.in_(others)),
+        select(ActivitySession.id).where(ActivitySession.id.in_(sessions), or_(ActivitySession.inviter_id.in_(others), ActivitySession.invitee_id.in_(others))),
+        select(RevealAccess.id).where(RevealAccess.connection_id.in_(rooms), or_(RevealAccess.owner_id.in_(others), RevealAccess.recipient_id.in_(others))),
+        select(ConnectionRequest.id).where(ConnectionRequest.pair_id.in_(pairs), or_(ConnectionRequest.sender_id.in_(others), ConnectionRequest.recipient_id.in_(others))),
         select(Pair.id).where(
             or_(
                 and_(Pair.low_user_id == uid, Pair.high_user_id.in_(others)),

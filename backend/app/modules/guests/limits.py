@@ -5,9 +5,12 @@ No raw address, user identifier or device fingerprint is stored. Keys are rotati
 header can neither evade nor change a counter. GE-07.1 extends this module with trial quotas.
 """
 
+import asyncio
 import hashlib
 import hmac
 import ipaddress
+import time
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
@@ -212,6 +215,7 @@ async def release_guest_creation(db: AsyncSession, request: Request) -> None:
 
 ADMISSION_LOCK = 724_031  # one shared advisory lock serializes every guest paid admission
 QUOTA_LEASE_SECONDS = 45
+QUOTA_HEARTBEAT_SECONDS = 5
 SEMANTIC_MEMORY_CAP = 20
 
 
@@ -234,6 +238,7 @@ async def reserve_guest_quota(
     payload_digest: str,
     settings,
     voice_milliseconds: int = 0,
+    semantic_document: bool = True,
 ) -> QuotaClaim:
     """Admit one AI turn / voice clip / embedding for this trial, atomically and durably.
 
@@ -305,7 +310,7 @@ async def reserve_guest_quota(
             raise exhausted
         usage.voice_clips += 1
         usage.voice_milliseconds += voice_milliseconds
-    else:
+    elif semantic_document:
         if usage.semantic_memories >= SEMANTIC_MEMORY_CAP:
             raise exhausted
         usage.semantic_memories += 1
@@ -341,6 +346,69 @@ async def finish_guest_quota(
         )
         .values(state="completed")
     )
+
+
+async def renew_guest_quota(database, user_id: UUID, kind: str, claim: QuotaClaim) -> float:
+    """Renew only an existing live fenced claim; a dead/missing owner or lease never revives."""
+    from app.modules.guests.accounting import _locked
+    from app.modules.guests.policy import assert_guest_active
+    before = time.monotonic()
+    async with database.require()() as db, db.begin():
+        user = await db.scalar(select(User).where(User.id == user_id).with_for_update())
+        if user is None or user.status != "active":
+            raise DomainError(409, "GUEST_OPERATION_FENCED", "Lượt xử lý đã kết thúc.")
+        await assert_guest_active(db, user)
+        key = (user_id, kind, claim.operation_key_hash)
+        link = await db.get(GuestOperationLink, key)
+        reservation = None
+        if link and link.reservation_id:
+            _day, reservation = await _locked(db, link.reservation_id)
+        link = await db.get(GuestOperationLink, key, with_for_update=True, populate_existing=True)
+        now = await database_time(db)
+        if (link is None or link.lease_token != claim.lease_token or link.state not in ("claimed", "dispatched")
+                or link.lease_until <= now or (reservation is not None and reservation.state not in ("reserved", "dispatched"))):
+            raise DomainError(409, "GUEST_OPERATION_FENCED", "Lượt xử lý đã kết thúc.")
+        link.lease_until = min(user.guest_expires_at, now + timedelta(seconds=QUOTA_LEASE_SECONDS))
+        if reservation is not None:
+            reservation.lease_until = link.lease_until
+        cutoff = before + max(0, (link.lease_until - now).total_seconds())
+    return cutoff
+
+
+@asynccontextmanager
+async def maintain_guest_quota(database, user_id: UUID, kind: str, claim: QuotaClaim | None):
+    """Five-second heartbeat while logically active; losing the fence cancels the owning task."""
+    if claim is None:
+        yield
+        return
+    cutoff = await renew_guest_quota(database, user_id, kind, claim)
+    caller = asyncio.current_task()
+    failed = False
+    async def heartbeat():
+        nonlocal failed, cutoff
+        try:
+            while True:
+                # A blocked DB/pool/owner lock must not let the current provider outlive
+                # its existing slot while another admission treats that slot as free.
+                async with asyncio.timeout(max(0, cutoff - time.monotonic())):
+                    await asyncio.sleep(QUOTA_HEARTBEAT_SECONDS)
+                    cutoff = await renew_guest_quota(database, user_id, kind, claim)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            failed = True
+            if caller is not None:
+                caller.cancel()
+    task = asyncio.create_task(heartbeat())
+    try:
+        yield
+    except asyncio.CancelledError:
+        if failed:
+            raise DomainError(409, "GUEST_OPERATION_FENCED", "Lượt xử lý đã kết thúc.") from None
+        raise
+    finally:
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
 
 
 async def guest_quota_view(db: AsyncSession, user: User, settings) -> GuestQuota:

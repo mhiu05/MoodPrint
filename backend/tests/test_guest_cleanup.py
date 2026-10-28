@@ -290,6 +290,41 @@ async def test_guest_only_social_graph_is_cleaned_as_disposable_corruption(clien
         assert await db.get(User, second.user_id) is not None, "the other guest's identity is untouched"
 
 
+@pytest.mark.parametrize("evidence_kind", ["message", "participant", "response", "read"])
+async def test_guest_graph_with_registered_child_authorship_requires_incident(clients, evidence_kind):
+    from app.modules.activities.models import ActivityParticipant, ActivityResponse, ActivitySession
+    from app.modules.social.models import Connection, ConnectionRead, HumanMessage, Pair
+    app, actors = clients
+    registered_id = actors[0][1]
+    first = await add_guest(app, started_ago=LIFETIME + timedelta(seconds=5))
+    second = await add_guest(app)
+    async with app.state.database.sessions.begin() as db:
+        low, high = sorted((first.user_id, second.user_id))
+        pair = Pair(low_user_id=low, high_user_id=high)
+        db.add(pair)
+        await db.flush()
+        room = Connection(pair_id=pair.id, low_user_id=low, high_user_id=high, snapshots={})
+        db.add(room)
+        await db.flush()
+        activity = ActivitySession(connection_id=room.id, pair_id=pair.id, inviter_id=first.user_id, invitee_id=second.user_id,
+                                   kind="icebreaker", definition_version="v1", state="active")
+        db.add(activity)
+        await db.flush()
+        if evidence_kind == "message":
+            row = HumanMessage(connection_id=room.id, sender_id=registered_id, client_message_id=uuid4(), seq=1, text="REGISTERED-CHILD-EVIDENCE")
+        elif evidence_kind == "read":
+            row = ConnectionRead(connection_id=room.id, user_id=registered_id)
+        elif evidence_kind == "participant":
+            row = ActivityParticipant(session_id=activity.id, user_id=registered_id, role="invitee")
+        else:
+            row = ActivityResponse(session_id=activity.id, user_id=registered_id, round=1, item_id="synthetic", text="REGISTERED-RESPONSE-EVIDENCE")
+        db.add(row)
+    assert await purge(app, first.user_id, await claim(app, first)) == "incident_required"
+    async with app.state.database.sessions() as db:
+        assert await db.scalar(select(func.count()).select_from(type(row))) == 1
+    assert (await first.client.get("/api/v1/session")).status_code == 401
+
+
 async def test_helper_failure_rolls_back_every_row_then_retries(clients):
     app, _ = clients
     guest = await add_guest(app, started_ago=LIFETIME + timedelta(seconds=5), consents=True)

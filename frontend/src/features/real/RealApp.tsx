@@ -248,11 +248,7 @@ function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback
   }
   // Only asks the server; the lifecycle hook then aborts, tells the other tabs and ends the UI.
   async function requestEnd() {
-    try {
-      await api.request<void>("/auth/guest/end", { method: "POST", body: {} });
-    } catch {
-      /* a lost response is safe: the next read finds the trial ended */
-    }
+    await api.request<void>("/auth/guest/end", { method: "POST", body: {} });
   }
   if (error)
     return (
@@ -338,12 +334,14 @@ function GuestHost({
 }) {
   const { remainingMs, expire } = useGuestLifecycle({ session, api, onExpired });
   const [confirm, setConfirm] = useState<"end" | "register" | null>(null);
+  const [ending, setEnding] = useState(false);
+  const [endError, setEndError] = useState<unknown>();
   return (
     <GuestContext.Provider
       value={{
         remainingMs,
-        end: () => setConfirm("end"),
-        register: () => setConfirm("register"),
+        end: () => { setEndError(undefined); setConfirm("end"); },
+        register: () => { setEndError(undefined); setConfirm("register"); },
       }}
     >
       {children}
@@ -351,25 +349,34 @@ function GuestHost({
         <Dialog
           title={confirm === "end" ? "Kết thúc và xóa lượt dùng thử?" : "Tạo tài khoản?"}
           destructive
-          onClose={() => setConfirm(null)}
+          onClose={() => !ending && setConfirm(null)}
         >
           <p>
             {confirm === "end"
               ? "Dữ liệu của lượt này sẽ bị xóa và không thể mở lại."
               : "Dữ liệu của lượt dùng thử sẽ không chuyển sang tài khoản mới. Lượt dùng thử hiện tại sẽ kết thúc."}
           </p>
+          <ErrorNotice error={endError} />
           <div className={cx.actions}>
-            <Button variant="secondary" data-cancel onClick={() => setConfirm(null)}>
+            <Button variant="secondary" data-cancel disabled={ending} onClick={() => setConfirm(null)}>
               Giữ lượt dùng thử
             </Button>
             <Button
               variant="danger"
+              disabled={ending}
               onClick={async () => {
+                if (ending) return;
                 const next = confirm;
-                setConfirm(null);
-                await onEnd();
-                expire("ended");
-                if (next === "register") window.location.hash = "#/login?mode=signup";
+                setEnding(true);
+                setEndError(undefined);
+                try {
+                  await onEnd();
+                  setConfirm(null);
+                  expire("ended");
+                  if (next === "register") window.location.hash = "#/login?mode=signup";
+                } catch (reason) {
+                  setEndError(reason);
+                } finally { setEnding(false); }
               }}
             >
               {confirm === "end" ? "Kết thúc và xóa" : "Kết thúc và tạo tài khoản"}
@@ -1737,6 +1744,7 @@ const consentWithdrawal: Record<ConsentPurpose, string> = {
 function Settings({ onGuide }: { onGuide: () => void }) {
   const { api, session, receive, logout } = useSession();
   const guest = session.accountKind === "guest";
+    const guestControls = useGuest();
   const published = useResource<{ state: string; profileVersion: number } | null>("/profiles/published/current", !guest);
   const [busy, setBusy] = useState<string>(),
     [error, setError] = useState<unknown>();
@@ -1839,6 +1847,7 @@ function Settings({ onGuide }: { onGuide: () => void }) {
           variant="secondary"
           disabled={!!busy}
           onClick={async () => {
+            if (guestControls) { guestControls.end(); return; }
             setBusy("logout");
             setError(undefined);
             try {
@@ -1850,7 +1859,7 @@ function Settings({ onGuide }: { onGuide: () => void }) {
             }
           }}
         >
-          {busy === "logout" ? "Đang đăng xuất…" : "Đăng xuất"}
+          {guest ? "Kết thúc lượt dùng thử" : busy === "logout" ? "Đang đăng xuất…" : "Đăng xuất"}
         </Button>
       </section>
       <DataControls />

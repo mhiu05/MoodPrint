@@ -511,6 +511,7 @@ class AiRuntime:
                 del self.pending_terminal[identity]
 
     async def drive(self, run: LiveRun) -> None:
+        from app.modules.guests.limits import maintain_guest_quota
         run.drive_started = True
         status = "failed"
         monitor = None
@@ -520,7 +521,7 @@ class AiRuntime:
             budget = min(budget, max(0.0, run.deadline.remaining()))
             expiry = asyncio.create_task(self._cancel_at_deadline(run))
         try:
-            async with asyncio.timeout(budget), self.slots:
+            async with maintain_guest_quota(self.database, run.actor.user_id, "ai", run.quota), asyncio.timeout(budget), self.slots:
                 await self.check(run)
                 c = self.store.get(
                     run.conversation_id, str(run.actor.user_id), str(run.actor.session_id)
@@ -559,6 +560,7 @@ class AiRuntime:
                         memories = await retrieve_memories(
                             self.database, self.settings, run.actor, c.bot_id,
                             projected[-1].text if projected else "", run.data_version,
+                            operation_key=f"embed-query:{run.id}",
                         )
                     except Exception:
                         memory_state.evidence = "tool_execution_failure"

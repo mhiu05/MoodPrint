@@ -126,33 +126,31 @@ async def reserve_guest_operation(
 
 async def mark_guest_dispatched(db: AsyncSession, reservation_id: UUID) -> None:
     """Persist 'about to dispatch' BEFORE the provider call; a crash after this charges the bound."""
+    _day, row = await _locked(db, reservation_id)
     now = await database_time(db)
-    updated = await db.scalar(
-        update(GuestCostReservation)
-        .where(GuestCostReservation.id == reservation_id, GuestCostReservation.state == "reserved")
-        .values(state="dispatched", dispatched_at=now)
-        .returning(GuestCostReservation.id)
+    if row is None or row.state != "reserved" or row.lease_until <= now:
+        raise DomainError(409, "GUEST_OPERATION_FENCED", "Lượt xử lý đã kết thúc. Hãy thử một yêu cầu mới.")
+    row.state, row.dispatched_at = "dispatched", now
+    await db.execute(
+        update(GuestOperationLink)
+        .where(GuestOperationLink.reservation_id == reservation_id)
+        .values(state="dispatched")
     )
-    if updated is not None:
-        await db.execute(
-            update(GuestOperationLink)
-            .where(GuestOperationLink.reservation_id == reservation_id)
-            .values(state="dispatched")
-        )
 
 
 async def _locked(db: AsyncSession, reservation_id: UUID):
     # Read the day without a lock, then lock budget and reservation in canonical order.
-    probe = await db.get(GuestCostReservation, reservation_id)
-    if probe is None:
+    day_id = await db.scalar(select(GuestCostReservation.day).where(GuestCostReservation.id == reservation_id))
+    if day_id is None:
         return None, None
     day = await db.scalar(
-        select(GuestBudgetDay).where(GuestBudgetDay.day == probe.day).with_for_update()
+        select(GuestBudgetDay).where(GuestBudgetDay.day == day_id).with_for_update().execution_options(populate_existing=True)
     )
     reservation = await db.scalar(
         select(GuestCostReservation)
         .where(GuestCostReservation.id == reservation_id)
         .with_for_update()
+        .execution_options(populate_existing=True)
     )
     return day, reservation
 

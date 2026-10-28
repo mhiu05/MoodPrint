@@ -17,7 +17,7 @@ from app.modules.guests.accounting import (
 )
 from app.modules.guests.accounting import unavailable as guest_paid_unavailable
 from app.modules.guests.deadlines import guard_guest_dispatch
-from app.modules.guests.limits import finish_guest_quota, reserve_guest_quota
+from app.modules.guests.limits import finish_guest_quota, maintain_guest_quota, reserve_guest_quota
 from app.modules.guests.policy import guest_expired, guest_paid_available
 from app.modules.guests.pricing import budget_nano, voice_upper
 from app.modules.voice.service import validate_audio
@@ -102,42 +102,43 @@ async def transcribe(request: Request, actor: Actor = Depends(require_actor)):
                     payload_digest=clip,
                     limit_nano_usd=budget_nano(settings.guest_daily_budget_usd) or 0,
                 )
-        # Fresh database decision, then a synchronous check immediately before dispatch.
-        await guard_guest_dispatch(request.app.state.database, actor)
-        if reservation is not None:
-            async with request.app.state.database.require()() as db, db.begin():
-                await mark_guest_dispatched(db, reservation.id)
-            dispatched = True
-        if expired():
-            raise guest_expired()
-        task = asyncio.create_task(provider.transcribe(bytes(audio)))
-        budget = 35.0 if bound is None else min(35.0, max(0.0, bound.remaining()))
-        async with asyncio.timeout(budget):
-            while not task.done():
-                await asyncio.wait({task}, timeout=0.5)
-                if expired():
-                    raise guest_expired()
-                if not task.done():
-                    async with transaction(request, actor) as (db, user):
-                        await assert_purpose(db, user, "VOICE")
-                        if user.data_version != version:
-                            raise DomainError(409, "CONTEXT_CHANGED", "Quyền đã thay đổi. Bản ghi âm đã dừng xử lý.")
-            text = await task
-        result_known = True
-        async with transaction(request, actor) as (db, user):
-            await assert_purpose(db, user, "VOICE")
-            if user.data_version != version:
+        async with maintain_guest_quota(request.app.state.database, actor.user_id, "voice", quota):
+            # Fresh database decision, then a synchronous check immediately before dispatch.
+            await guard_guest_dispatch(request.app.state.database, actor)
+            if reservation is not None:
+                async with request.app.state.database.require()() as db, db.begin():
+                    await mark_guest_dispatched(db, reservation.id)
+                dispatched = True
+            if expired():
+                raise guest_expired()
+            task = asyncio.create_task(provider.transcribe(bytes(audio)))
+            budget = 35.0 if bound is None else min(35.0, max(0.0, bound.remaining()))
+            async with asyncio.timeout(budget):
+                while not task.done():
+                    await asyncio.wait({task}, timeout=0.5)
+                    if expired():
+                        raise guest_expired()
+                    if not task.done():
+                        async with transaction(request, actor) as (db, user):
+                            await assert_purpose(db, user, "VOICE")
+                            if user.data_version != version:
+                                raise DomainError(409, "CONTEXT_CHANGED", "Quyền đã thay đổi. Bản ghi âm đã dừng xử lý.")
+                text = await task
+            result_known = True
+            async with transaction(request, actor) as (db, user):
+                await assert_purpose(db, user, "VOICE")
+                if user.data_version != version:
+                    raise DomainError(
+                        409, "CONTEXT_CHANGED", "Quyền đã thay đổi. Bản chữ không được sử dụng."
+                    )
+            if expired():
+                # The provider answered after T: discard the transcript, never return it.
+                raise guest_expired()
+            if not isinstance(text, str) or len(text) > 500:
                 raise DomainError(
-                    409, "CONTEXT_CHANGED", "Quyền đã thay đổi. Bản chữ không được sử dụng."
+                    422, "TRANSCRIPT_TOO_LONG", "Bản chữ quá dài. Hãy ghi một đoạn ngắn hơn."
                 )
-        if expired():
-            # The provider answered after T: discard the transcript, never return it.
-            raise guest_expired()
-        if not isinstance(text, str) or len(text) > 500:
-            raise DomainError(
-                422, "TRANSCRIPT_TOO_LONG", "Bản chữ quá dài. Hãy ghi một đoạn ngắn hơn."
-            )
-        return TranscriptionPreview(text=text, duration_seconds=duration)
+            return TranscriptionPreview(text=text, duration_seconds=duration)
     except DomainError:
         raise
     except (Exception, TimeoutError) as exc:
