@@ -142,7 +142,7 @@ async def reserve_guest_intent(db: AsyncSession, request: Request) -> None:
         raise limit_error(window[1] - now)
 
 
-async def reserve_guest_creation(db: AsyncSession, request: Request, attempt_id: UUID) -> None:
+async def reserve_guest_creation(db: AsyncSession, request: Request, attempt_id: UUID) -> datetime:
     """Count one trial against the network's hour and day caps.
 
     Called exactly once per attempt, in the transaction that moves it to ``signup_started``; the
@@ -162,6 +162,9 @@ async def reserve_guest_creation(db: AsyncSession, request: Request, attempt_id:
             limit=limit,
         ):
             raise limit_error(window[1] - now)
+    # Persist this exact sample in signup_started_at: a later sample can cross an
+    # hour/day boundary even before the provider request begins.
+    return now
 
 
 async def assert_failed_signups_allowed(db: AsyncSession, request: Request) -> None:
@@ -192,12 +195,11 @@ async def record_failed_signup(db: AsyncSession, request: Request) -> None:
     )
 
 
-async def release_guest_creation(db: AsyncSession, request: Request) -> None:
+async def release_guest_creation(db: AsyncSession, request: Request, reserved_at: datetime) -> None:
     """Refund the creation count only when the provider explicitly rejected (nothing was created)."""
-    now = await database_time(db)
     for scope, window in (
-        ("creation_hour", fixed_window(now, 3600)),
-        ("creation_day", bangkok_day(now)),
+        ("creation_hour", fixed_window(reserved_at, 3600)),
+        ("creation_day", bangkok_day(reserved_at)),
     ):
         await db.execute(
             update(GuestAbuseBucket)

@@ -137,6 +137,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                             continue
                         try:
                             await work(app)
+                            if work is ensure_cleanup_jobs:
+                                first = False
                         except Exception as error:
                             logging.getLogger("moodprint").error(
                                 "guest_worker_retry task=%s error_type=%s sqlstate=%s",
@@ -144,7 +146,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                                 type(error).__name__,
                                 getattr(getattr(error, "orig", None), "sqlstate", None),
                             )
-                    first = False
                     if time.monotonic() >= next_metrics:
                         try:
                             for name, value in (await guest_metrics(app)).items():

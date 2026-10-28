@@ -186,8 +186,7 @@ async def create_guest(request: Request, body: GuestInput, response: Response) -
             if not experience_view(request).guest_available:
                 raise entry_closed()
             await limits.assert_failed_signups_allowed(db, request)
-            await limits.reserve_guest_creation(db, request, attempt.id)
-            started = await database_time(db)
+            started = await limits.reserve_guest_creation(db, request, attempt.id)
             await db.execute(
                 update(GuestProvisioningAttempt)
                 .where(
@@ -406,7 +405,7 @@ async def _record_signup_failure(
     async with sessions() as db, db.begin():
         now = await database_time(db)
         rejected = error.outcome == "rejected"
-        await db.execute(
+        reserved_at = await db.scalar(
             update(GuestProvisioningAttempt)
             .where(
                 GuestProvisioningAttempt.id == attempt_id,
@@ -420,10 +419,11 @@ async def _record_signup_failure(
                 lease_until=None,
                 next_attempt_at=now + timedelta(seconds=30),
             )
+            .returning(GuestProvisioningAttempt.signup_started_at)
         )
-        if rejected:
+        if rejected and reserved_at is not None:
             await limits.record_failed_signup(db, request)
-            await limits.release_guest_creation(db, request)
+            await limits.release_guest_creation(db, request, reserved_at)
 
 
 async def _record_orphan(

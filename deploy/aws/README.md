@@ -42,4 +42,3 @@ Only a separate owner-approved release PR may remove the marker after hosted
 schema/validation, D01–D04 and manual prerequisites are resolved. Removing it
 restores the existing exact-main CI, actor, approval and attestation checks.
 Never relax readiness or apply pending hosted SQL to make source integration pass.
-

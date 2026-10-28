@@ -189,4 +189,3 @@ async def test_spa_is_served_same_origin_without_shadowing_the_api(tmp_path):
         assert "Content-Security-Policy" not in api.headers
         escape = await c.get("/..%2F..%2Fpyproject.toml")
         assert "id=root" in escape.text
-

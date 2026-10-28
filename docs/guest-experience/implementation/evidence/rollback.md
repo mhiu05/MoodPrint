@@ -21,4 +21,3 @@ Both automatic and manual publication honor it; no exact-main staging release
 is produced for the deployment poller. Do not remove the marker to validate a
 merge or relax schema0018 readiness. A separate owner-approved release change
 must resolve hosted/schema/decision/manual prerequisites before removal.
-

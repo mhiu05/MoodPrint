@@ -22,6 +22,7 @@ from app.modules.guests.models import (
     GuestBudgetDay,
     GuestCleanupJob,
     GuestCostReservation,
+    GuestOperationLink,
     GuestProvisioningAttempt,
 )
 from app.modules.guests.policy import database_time
@@ -273,6 +274,9 @@ async def retention_tick(app: FastAPI) -> dict[str, int]:
             .where(
                 GuestCostReservation.state.in_(("settled", "uncertain", "cancelled")),
                 GuestCostReservation.lease_until < now - timedelta(hours=24),
+                ~select(GuestOperationLink.reservation_id)
+                .where(GuestOperationLink.reservation_id == GuestCostReservation.id)
+                .exists(),
             )
             .returning(GuestCostReservation.id)
         )

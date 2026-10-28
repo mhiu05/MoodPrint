@@ -48,4 +48,3 @@ fails validation. Local new CLI tests4 and complete Linux deployment tests18 pas
 as does pinned actionlint. No live release dispatch was used. Independent review
 and exact-head/post-merge CI observation remain pending in this finish run.
 The hosted schema, all D01–D04 decisions and manual gates remain unresolved.
-

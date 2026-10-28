@@ -470,3 +470,37 @@ no horizontal overflow; Escape returns trigger focus. Late session responses
 cannot restore private state;503/network ambiguity does not claim success.
 Screenshots remain owned temp. Physical keyboard/assistive/mic/hosted gaps remain.
 
+### Task9 — complete branch review and integration checks
+
+Code26ca93d: full backend1042 pass/1 D04 skip (1141.01s), exact CI Ruff/mypy114
+clean, npm ci/audit0/contracts/no drift/typecheck/91units/build pass. Full owned
+264 pass in8.0m. Default command first timed out600s after256 under competing
+build/browser/server work; unchanged sequential rerun264 pass in7.5m. All25
+exact negative-oracle commands pass (21backend; browser counts1/3/11/18).
+Linux18deploy tests, Node22 91units,3images and Compose/Caddy/proxy/CSP/SSE pass.
+Image shell UID check initially hit PowerShell quoting; direct `id -u` and
+separate file assertions corrected the command, all pass without product changes.
+Fullstack31pass1fail trace504 Outdated Optimize Dep from concurrent Vite optimizer
+cache; isolated history rerun1pass. Complete sequential rerun still required.
+
+Fresh independent whole237-file review at26ca93d is complete: CHANGES REQUESTED,
+no P0/P1, three P2: R1 original-window signup refund, R2 linked-reservation
+retention FK, R3 failed startup repair retry. [Formal scope/verdict](independent-review-26ca93d.md).
+R1/R2 RED2 real PostgreSQL failures → first51 targeted pass. R3 test interrupted
+when Docker Desktop stopped; stopped only owned test PIDs. Inspected/restarted
+the original exited container (recreate attempt125 name conflict, no mutation).
+No interrupted command counted as pass. R3 re-run with original code RED1
+(repairs1 vs expected2); fixed first=false only on successful repair. Final3new
+plus auth/provisioning/budget/recovery52 pass in53.12s. No migration required:
+the exact admission DB sample persists in existing signup_started_at; CAS-returning
+prevents duplicate/stolen refund. Linked replay fences keep reservation/charge,
+other expired counters prune. Original evidence/README/test EOF blanks removed;
+prompt09 Markdown hard breaks intentionally preserved.
+
+Final: minor (deferred): forced operation-token tampering between later SDK model
+requests is checked by heartbeat rather than reread at each request. Reviewer
+found no normal takeover path; normal expiry cancels before lease reopening.
+Ruling: preserve this as nonblocking hardening, not expand the authorized fix
+pass into unproven fault-injection behavior; residual cost is detection within
+the heartbeat interval for out-of-band token tampering. Release remains held.
+Later-SHA re-review, complete rerun/load/CI/PR/merge/post-merge gates remain pending.
