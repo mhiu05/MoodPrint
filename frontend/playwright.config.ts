@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "tests/e2e",
-  testMatch: ["real.spec.ts", "social.spec.ts", "activities.spec.ts", "admin.spec.ts", "chat-history.spec.ts", "discovery.spec.ts", "states.spec.ts", "auth.spec.ts", "ux-redesign.spec.ts", "motion.spec.ts", "merge-readiness.spec.ts", "landing.spec.ts", "guest.spec.ts", "guest-expiry.spec.ts"],
+  testMatch: ["real.spec.ts", "social.spec.ts", "activities.spec.ts", "admin.spec.ts", "chat-history.spec.ts", "discovery.spec.ts", "states.spec.ts", "auth.spec.ts", "ux-redesign.spec.ts", "motion.spec.ts", "merge-readiness.spec.ts", "landing.spec.ts", "guest.spec.ts", "guest-expiry.spec.ts", "feedback.spec.ts"],
   globalTimeout: 600000,
   fullyParallel: false,
   workers: 1,

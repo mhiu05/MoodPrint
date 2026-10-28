@@ -93,6 +93,7 @@ import { deriveAIActivity, type AIActivityPhase } from "./aiActivityView";
 import { AIDataProvider, AIDataControls, ConversationHistory, useAIData, downloadConversation, type SavedConversation, type SavedConversationHeader } from "./AIData";
 
 const MessageMarkdown = lazy(() => import("./MessageMarkdown"));
+const FeedbackPage = lazy(() => import("../feedback/FeedbackPage"));
 
 type SessionContextValue = {
   api: ApiClient;
@@ -163,6 +164,7 @@ function authMode(): "login" | "signup" {
 }
 
 function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback }) {
+  const entryLocation = useLocation();
   const [session, setSession] = useState<SessionView | null>();
   const [error, setError] = useState<unknown>();
   const [revision, setRevision] = useState(0);
@@ -283,6 +285,16 @@ function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback
           window.location.hash = "#/login?mode=signup";
         }}
       />
+    );
+  if (session === null && entryLocation.pathname === "/feedback" && !callback)
+    return (
+      <main className="real-auth">
+        <Brand />
+        <h1 tabIndex={-1}>Góp ý cho MoodPrint</h1>
+        <p>Bạn cần một lượt dùng thử đang hoạt động hoặc đăng nhập để gửi góp ý.</p>
+        <a href="/">Tìm hiểu và dùng thử MoodPrint</a>
+        <Link to="/login">Đăng nhập / Đăng ký</Link>
+      </main>
     );
   if (session === null || callback?.kind === "recovery")
     return (
@@ -584,6 +596,7 @@ function Shell() {
           <GuestBanner />
           <SessionNotices />
           <Routes>
+              <Route path="/feedback" element={<Suspense fallback={<p role="status">Đang mở góp ý…</p>}><FeedbackPage /></Suspense>} />
               {session.staff && (
                 <Route path="/admin/reports" element={<Moderation />} />
               )}
@@ -1827,6 +1840,11 @@ function Settings() {
         </Button>
       </section>
       <DataControls />
+      <section className="real-section" aria-labelledby="privacy-feedback">
+        <h2 id="privacy-feedback">Góp ý cho MoodPrint</h2>
+        <p>Góp ý tự nguyện được lưu riêng theo thời hạn hiển thị trước khi gửi, không kèm dữ liệu trò chuyện hay nhật ký.</p>
+        <Link to="/feedback">Góp ý cho MoodPrint</Link>
+      </section>
     </div>
   );
 }
