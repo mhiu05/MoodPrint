@@ -48,6 +48,7 @@ from app.modules.guests import models as guest_models  # noqa: F401 -- register 
 from app.modules.moderation.models import StaffRole
 from tests.e2e_auth import LocalAuth
 from tests.feedback_schema import install_feedback_functions
+from tests.guest_helpers import LIFETIME, add_guest, enable_paid_fixture
 from tests.guest_schema import install_auth_fixture, install_guest_guards
 from tests.mood_e2e_model import MoodE2EModel
 
@@ -64,6 +65,12 @@ app = create_app(
         focus_test_plan_seconds=int(os.environ.get("E2E_FOCUS_SECONDS", "20")),
         moderation_admin_enabled=True,
         matching_scorer=os.environ.get("E2E_MATCHING_SCORER", "v1"),
+        guest_auth_enabled=True,
+        guest_captcha_site_key="synthetic-site-key",
+        guest_abuse_hmac_key="synthetic-local-hmac-key-not-a-secret-123456789",
+        feedback_enabled=True,
+        feedback_admin_enabled=True,
+        product_tour_enabled=True,
     )
 )
 app.state.ai.model_override = MoodE2EModel([])
@@ -72,6 +79,66 @@ app.state.ai.model_override = MoodE2EModel([])
 app.state.settings.supabase_url = "https://local-auth.invalid"
 app.state.settings.supabase_publishable_key = __import__("pydantic").SecretStr("synthetic-only")
 app.state.auth_transport = httpx.MockTransport(LocalAuth(app.state.database).handle)
+enable_paid_fixture(app)
+
+
+class SyntheticTranscriber:
+    async def transcribe(self, data):
+        return "Bản chữ tổng hợp để bạn duyệt"
+
+
+app.state.transcriber = SyntheticTranscriber()
+
+
+@app.post("/__test/reset-admission", include_in_schema=False)
+async def reset_admission():
+    # Scenario isolation only; production rate limits are unchanged and separately tested.
+    from sqlalchemy import delete
+
+    from app.modules.guests.models import GuestAbuseBucket
+    async with app.state.database.sessions.begin() as db:
+        await db.execute(delete(GuestAbuseBucket))
+    return {"reset": True}
+
+
+@app.post("/__test/near-expiry", include_in_schema=False)
+async def near_expiry():
+    guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=7))
+    cookies = [
+        {"name": "moodprint_session", "value": guest.client.cookies.get("moodprint_session"),
+         "url": "http://127.0.0.1:5174", "httpOnly": True, "sameSite": "Strict"},
+        {"name": "moodprint_csrf", "value": guest.client.headers["X-CSRF-Token"],
+         "url": "http://127.0.0.1:5174", "sameSite": "Strict"},
+    ]
+    await guest.client.aclose()
+    return {"cookies": cookies}
+
+
+@app.post("/__test/purge", include_in_schema=False)
+async def purge_expired_guests():
+    from sqlalchemy import func, select
+
+    from app.modules.guests.jobs import process_guest_cleanup
+    await process_guest_cleanup(app)
+    async with app.state.database.sessions() as db:
+        count = await db.scalar(select(func.count()).select_from(User).where(
+            User.account_kind == "guest", User.guest_expires_at <= func.clock_timestamp()))
+    return {"remainingExpired": count}
+
+
+@app.post("/__test/proposal", include_in_schema=False)
+async def seed_guest_proposal(body: dict):
+    from sqlalchemy import select
+    uid = UUID(body["userId"])
+    async with app.state.database.sessions.begin() as db:
+        user = await db.get(User, uid)
+        assert user and user.account_kind == "guest"
+        consents = {c.purpose: c.version for c in (await db.scalars(select(Consent).where(Consent.user_id == uid))).all()}
+        proposal = MemoryProposal(user_id=uid, bot_id="may", text="SYNTHETIC-GUEST-MEMORY", purpose="memory", data_version=user.data_version,
+                                  ai_consent_version=consents["AI"], mem_consent_version=consents["MEM"], expires_at=user.guest_expires_at)
+        db.add(proposal)
+        await db.flush()
+        return {"id": str(proposal.id), "version": proposal.version}
 
 
 async def seed():
@@ -90,7 +157,7 @@ async def seed():
         # 21-36 back the activity, matching-v2 and moderation journeys; 37 is staff;
         # 38-39 are the responsive/accessibility pair; 40-41 the v2-only-goal pair.
         # 42-43 cover product experience; 44 the five-assistant review; 47-48 mood evidence.
-        for number in range(1, 49):
+        for number in range(1, 51):
             uid = UUID(f"00000000-0000-4000-8000-{number:012d}")
             provider = UUID(f"00000000-0000-4000-9000-{number:012d}")
             db.add(
@@ -140,6 +207,8 @@ async def seed():
             )
             if number == 37:
                 db.add(StaffRole(user_id=uid, role="moderator", granted_by="e2e-seed"))
+            if number == 49:
+                db.add(StaffRole(user_id=uid, role="admin", granted_by="e2e-seed"))
     await app.state.database.engine.dispose()
 
 

@@ -1,3 +1,4 @@
+import { artifactPath } from "../artifacts";
 import { expect, test, type Page } from "@playwright/test";
 
 async function login(page: Page, number: 45 | 46) {
@@ -109,7 +110,7 @@ test("five assistants persist, recover after logout/login and deny a separately 
       a.getByRole("log").getByText("LOCAL-MVP continuation", { exact: true }),
     ).toBeVisible();
     await a.screenshot({
-      path: ".cache/local-mvp/history-desktop.png",
+      path: artifactPath("local-mvp/history-desktop.png", ".cache/local-mvp/history-desktop.png"),
       fullPage: true,
     });
     await a.setViewportSize({ width: 390, height: 844 });
@@ -117,7 +118,7 @@ test("five assistants persist, recover after logout/login and deny a separately 
       a.getByRole("textbox", { name: "Tin nhắn cho Mây", exact: true }),
     ).toBeInViewport();
     await a.screenshot({
-      path: ".cache/local-mvp/history-mobile.png",
+      path: artifactPath("local-mvp/history-mobile.png", ".cache/local-mvp/history-mobile.png"),
       fullPage: true,
     });
     expect(errors).toEqual([]);

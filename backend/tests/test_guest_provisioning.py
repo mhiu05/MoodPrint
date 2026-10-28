@@ -261,3 +261,11 @@ def test_canonical_client_key_is_keyed_normalized_and_scoped():
     with pytest.raises(DomainError) as unconfigured:
         canonical_client_key(request("192.0.2.10", ""), window, "creation_hour")
     assert unconfigured.value.code == "GUEST_DISABLED"
+
+
+# Stable mandatory-oracle aliases retain the complete grant/recovery assertions.
+from tests.test_guest_auth import (  # noqa: E402,F401
+    test_ambiguous_signup_never_retries_upstream,
+    test_lost_grant_response_recovers_same_user_and_deadline,
+    test_provider_success_database_failure,
+)

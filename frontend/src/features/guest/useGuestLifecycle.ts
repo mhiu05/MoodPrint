@@ -22,6 +22,8 @@ export function useGuestLifecycle({
   onExpired: (reason: "expired" | "ended") => void;
 }) {
   const observed = useRef(performance.now());
+  const lifecycle = useRef(session.userId);
+  const deadline = useRef<number | null>(null);
   const [remainingMs, setRemaining] = useState(() =>
     remainingGuestMs(session.guestExpiresAt ?? "", session.serverTime, observed.current, observed.current),
   );
@@ -47,27 +49,26 @@ export function useGuestLifecycle({
   );
 
   useEffect(() => {
-    done.current = false;
-    observed.current = performance.now();
+    if (lifecycle.current !== session.userId) {
+      lifecycle.current = session.userId;
+      deadline.current = null;
+      done.current = false;
+    }
+    if (done.current) return;
+    const now = performance.now();
+    const candidate = now + remainingGuestMs(session.guestExpiresAt ?? "", session.serverTime, now, now);
+    // Parent renders and delayed session replies can only shorten the original grant.
+    // In particular, a focus-triggered revision must not reset an old server-time anchor.
+    deadline.current = deadline.current === null ? candidate : Math.min(deadline.current, candidate);
     const tick = () => {
-      const left = remainingGuestMs(
-        session.guestExpiresAt ?? "",
-        session.serverTime,
-        observed.current,
-        performance.now(),
-      );
+      const left = Math.max(0, deadline.current! - performance.now());
       setRemaining(left);
       if (left <= 0) expire("expired");
     };
     tick();
     // Minute display only; the hard stop is a one-shot timer at the deadline itself.
     const interval = window.setInterval(tick, 15_000);
-    const left = remainingGuestMs(
-      session.guestExpiresAt ?? "",
-      session.serverTime,
-      observed.current,
-      observed.current,
-    );
+    const left = Math.max(0, deadline.current - performance.now());
     const stop = window.setTimeout(() => expire("expired"), Math.max(0, left));
     return () => {
       window.clearInterval(interval);

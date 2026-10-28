@@ -18,17 +18,26 @@ declare global {
 }
 
 const TURNSTILE = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+let challengePromise: Promise<void> | null = null;
 
 function loadChallenge(): Promise<void> {
   if (window.turnstile) return Promise.resolve();
-  return new Promise((resolve, reject) => {
+  if (challengePromise) return challengePromise;
+  challengePromise = new Promise<void>((resolve, reject) => {
     const script = document.createElement("script");
     script.src = TURNSTILE;
     script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("challenge unavailable"));
+    script.onload = () => {
+      if (window.turnstile) resolve();
+      else { script.remove(); reject(new Error("challenge unavailable")); }
+    };
+    script.onerror = () => { script.remove(); reject(new Error("challenge unavailable")); };
     document.head.appendChild(script);
+  }).catch((reason) => {
+    challengePromise = null;
+    throw reason;
   });
+  return challengePromise;
 }
 
 /** Explicit-only trial entry: disclosure, the existing age attestation and one CAPTCHA. */

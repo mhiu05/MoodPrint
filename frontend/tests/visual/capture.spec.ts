@@ -1,8 +1,9 @@
+import { artifactPath } from "../artifacts";
 import { expect, test, type Page } from "@playwright/test";
 import { app, baseSession, room, sessionWith } from "../e2e/ux-fixtures";
 
 // Synthetic data only. Screens are captured after their real data has settled.
-const out = process.env.CAPTURE_DIR || "../docs/ux-redesign/evidence/redesign";
+const out = artifactPath("visual", process.env.CAPTURE_DIR || "../docs/ux-redesign/evidence/redesign");
 const widths = (process.env.CAPTURE_WIDTHS || "320,390,768,1280,1440").split(",").map(Number);
 const label = process.env.CAPTURE_LABEL || "after";
 

@@ -186,6 +186,7 @@ test("a definitive rejection needs a fresh challenge token, a fresh key and a fr
   const calls = await entry(page, [failure(422, "CAPTCHA_FAILED", "Bước kiểm tra chưa hợp lệ."), "ok"]);
   await openEntry(page);
   await fillEligible(page);
+  await expect(page.locator('script[src^="https://challenges.cloudflare.com/turnstile/"]')).toHaveCount(1);
   await submit(page).click();
   await expect(page.getByText("Bước kiểm tra chưa hợp lệ.")).toBeVisible();
   await expect(page.locator("[data-solves='2']")).toBeAttached();

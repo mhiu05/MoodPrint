@@ -1,3 +1,4 @@
+import { artifactPath } from "./tests/artifacts";
 import { defineConfig } from "@playwright/test";
 import fullstack from "./playwright.fullstack.config";
 
@@ -7,5 +8,5 @@ export default defineConfig({
   timeout: 180000,
   globalTimeout: 240000,
   reporter: [["list"]],
-  outputDir: ".cache/local-mvp/provider",
+  outputDir: artifactPath("provider", ".cache/local-mvp/provider"),
 });

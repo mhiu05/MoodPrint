@@ -219,6 +219,7 @@ export function VoiceRecorder({ draft, onUse }: { draft: string; onUse: (text: s
     return null;
   return (
     <section className={`real-voice${state === "idle" && !error ? " real-voice-idle" : ""}`} aria-label="Nhập bằng giọng nói">
+      {session.accountKind === "guest" ? <p className={cx.footnote}>Lượt dùng thử còn {session.guestQuota?.voiceClipsRemaining ?? 0} bản ghi, tối đa 30 giây mỗi bản. Bản chép lời chỉ dùng được trong lượt này và chưa được gửi cho trợ lý.</p> : null}
       <ErrorNotice error={error} />
       {state === "idle" && (
         <button

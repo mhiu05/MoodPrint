@@ -1,3 +1,4 @@
+import { artifactPath } from "../artifacts";
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { readFile } from "node:fs/promises";
@@ -13,7 +14,7 @@ import {
 
 // Real FastAPI + PostgreSQL MVP journeys (synthetic users 10-20 from tests/e2e_server.py).
 
-const shots = "../docs/mvp-validation/screens";
+const shots = artifactPath("mvp-validation/screens", "../docs/mvp-validation/screens");
 
 function localDay(serverTime: string, offsetDays = 0) {
   const parts = new Intl.DateTimeFormat("en-CA", {

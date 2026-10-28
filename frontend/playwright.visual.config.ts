@@ -1,3 +1,4 @@
+import { artifactPath } from "./tests/artifacts";
 // Opt-in stable screenshot capture for design review (18). Not part of `npm run test:e2e`.
 // Output goes to the git-ignored docs/ux-redesign/evidence/redesign folder by default.
 export default {
@@ -6,7 +7,7 @@ export default {
   workers: 1,
   timeout: 120000,
   reporter: [["list"]],
-  outputDir: "evidence/visual-results",
+  outputDir: artifactPath("visual-results"),
   use: {
     baseURL: "http://127.0.0.1:5173",
     reducedMotion: "reduce",

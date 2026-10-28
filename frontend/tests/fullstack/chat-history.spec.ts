@@ -1,3 +1,4 @@
+import { artifactPath } from "../artifacts";
 import { expect, test, type BrowserContext } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
@@ -114,7 +115,7 @@ test("real saved history requires opt-in, resumes by URL, and stays manageable a
       .getByText("Một cuộc trò chuyện riêng thứ hai", { exact: true }),
   ).toHaveCount(0);
   await page.screenshot({
-    path: "evidence/ai-chat-memory/history-desktop.png",
+    path: artifactPath("ai-chat-memory/history-desktop.png", "evidence/ai-chat-memory/history-desktop.png"),
     fullPage: true,
   });
   await page.goto("/#/settings");
@@ -157,7 +158,7 @@ test("real saved history requires opt-in, resumes by URL, and stays manageable a
     .analyze();
   expect(accessibility.violations).toEqual([]);
   await page.screenshot({
-    path: "evidence/ai-chat-memory/history-mobile.png",
+    path: artifactPath("ai-chat-memory/history-mobile.png", "evidence/ai-chat-memory/history-mobile.png"),
     fullPage: true,
   });
   // Renaming is history management, so it works with AI and saving both off.

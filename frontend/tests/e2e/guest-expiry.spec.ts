@@ -66,6 +66,61 @@ test("rewinding the device clock cannot extend a trial", async ({ page }) => {
   await expect(endedHeading(page)).toBeVisible();
 });
 
+test("a pending focus refresh cannot extend the original monotonic deadline", async ({ page }) => {
+  await page.clock.install();
+  await trial(page, 10 * MINUTE);
+  await page.goto("/#/assistants");
+  await expect(page.getByTestId("guest-status")).toContainText("còn 10 phút");
+  await page.clock.fastForward(9 * MINUTE);
+  let release!: () => void;
+  let pending = 0;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/api/v1/session", async route => {
+    pending += 1;
+    await gate;
+    await route.fulfill({ status: 401, json: { error: { code: "GUEST_EXPIRED", message: "Lượt dùng thử đã kết thúc." } } }).catch(() => undefined);
+  });
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await page.clock.runFor(200);
+  await expect.poll(() => pending).toBeGreaterThan(0);
+  try {
+    await page.clock.fastForward(2 * MINUTE);
+    await expect(endedHeading(page)).toBeFocused();
+  } finally { release(); }
+});
+
+test("a late SSE final cannot repopulate the private tree after expiry", async ({ page }) => {
+  await page.clock.install();
+  const conversationId = "33333333-3333-4333-8333-333333333333";
+  const runId = "44444444-4444-4444-8444-444444444444";
+  await app(page, guestSession(10 * MINUTE, {
+    features: { ai: true, matching: false, voice: false, feedback: false },
+    consents: { AI: { enabled: true, version: 1, policyVersion: "v1" }, MEM: { enabled: false, version: 1, policyVersion: "v1" }, MATCH: { enabled: false, version: 1, policyVersion: "v1" }, VOICE: { enabled: false, version: 1, policyVersion: "v1" } },
+  }), {
+    "/ai/conversations": request => request.method() === "POST" ? { status: 201, json: { conversationId, botId: "may", version: 1, messages: [], activeRunId: null } } : undefined,
+    [`/ai/conversations/${conversationId}/messages`]: () => ({ status: 202, json: { runId, conversationId, version: 2, runVersion: 1, eventsUrl: `/api/v1/ai/runs/${runId}/events` } }),
+  });
+  let release!: () => void;
+  let queued = false, answered = false;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/api/v1/ai/runs/*/events", async route => {
+    queued = true;
+    await gate;
+    await route.fulfill({ contentType: "text/event-stream", body: 'data: {"version":"ai-events-v1","seq":"1","type":"final","data":{"text":"LATE-SSE-PRIVATE","cards":[]}}\n\n' }).catch(() => undefined);
+    answered = true;
+  });
+  await page.goto("/#/assistants/may");
+  await page.getByRole("textbox", { name: "Tin nhắn cho Mây" }).fill("PRIVATE-DRAFT");
+  await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
+  await expect.poll(() => queued).toBe(true);
+  await page.clock.fastForward(11 * MINUTE);
+  await expect(endedHeading(page)).toBeFocused();
+  release();
+  await expect.poll(() => answered).toBe(true);
+  await expect(page.getByText("LATE-SSE-PRIVATE")).toHaveCount(0);
+  await expect(page.getByText("PRIVATE-DRAFT")).toHaveCount(0);
+});
+
 test("moving the device clock forward only reads the server's verdict, it does not end a live trial", async ({ page }) => {
   await page.clock.install();
   const calls = await trial(page, 60 * MINUTE);
@@ -107,7 +162,7 @@ test("coming back to the tab re-reads the session and notices an expiry the serv
   await expect(endedHeading(page)).toBeVisible();
 });
 
-test("ending the trial in one tab ends it in the others, with no data in the signal", async ({ page }) => {
+test("multiple tabs: ending the trial in one tab ends it in the others, with no data in the signal", async ({ page }) => {
   await trial(page, 60 * MINUTE);
   const other = await page.context().newPage();
   await trial(other, 60 * MINUTE);

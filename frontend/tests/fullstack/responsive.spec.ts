@@ -1,3 +1,4 @@
+import { artifactPath } from "../artifacts";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { call, noHorizontalOverflow, openRoom, session } from "./helpers";
@@ -26,7 +27,7 @@ async function audit(page: Page, name: string, width: number, height: number) {
     `${name} at ${width}x${height}`,
   ).toEqual([]);
   await page.screenshot({
-    path: `../docs/productization/screens/${name}-${width}x${height}.png`,
+    path: artifactPath(`productization/screens/${name}-${width}x${height}.png`, `../docs/productization/screens/${name}-${width}x${height}.png`),
     fullPage: true,
   });
 }

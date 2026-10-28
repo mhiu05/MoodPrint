@@ -1,3 +1,4 @@
+import { artifactPath } from "./tests/artifacts";
 import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
@@ -7,8 +8,8 @@ export default defineConfig({
   timeout: 480000,
   globalTimeout: 510000,
   expect: { timeout: 20000 },
-  reporter: [["list"], ["json", { outputFile: process.env.MOODPRINT_HOSTED_REPORT || "evidence/supabase-results.json" }]],
-  outputDir: "evidence/supabase",
+  reporter: [["list"], ["json", { outputFile: artifactPath("supabase-results.json", process.env.MOODPRINT_HOSTED_REPORT || "evidence/supabase-results.json") }]],
+  outputDir: artifactPath("supabase"),
   use: {
     baseURL: "http://127.0.0.1:5176",
     trace: "off",

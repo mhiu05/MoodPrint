@@ -339,6 +339,49 @@ async def test_idle_sse_closes_at_deadline_and_the_late_result_is_discarded(clie
     assert len(model.calls) == 1, "no second model dispatch after the deadline"
 
 
+@pytest.mark.parametrize("replay", [False, True])
+async def test_queued_sse_final_is_dropped_at_expiry(clients, replay):
+    """An actual completed run's final frame waits INSIDE the last output guard across T."""
+    from starlette.middleware import Middleware
+
+    from app.modules.guests.output import GuestOutputMiddleware
+    from tests.fakes import ScriptedModel, message_output
+
+    app, _ = clients
+    queued, release = asyncio.Event(), asyncio.Event()
+
+    class HoldFinal:
+        def __init__(self, app):
+            self.app = app
+
+        async def __call__(self, scope, receive, send):
+            async def held(message):
+                if message["type"] == "http.response.body" and b"event: final" in message.get("body", b""):
+                    queued.set()
+                    await release.wait()
+                await send(message)
+            await self.app(scope, receive, held)
+
+    index = next(i for i, entry in enumerate(app.user_middleware) if entry.cls is GuestOutputMiddleware)
+    app.user_middleware.insert(index + 1, Middleware(HoldFinal))
+    guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=4))
+    model = ScriptedModel([[message_output(json.dumps({"text": "QUEUED-FINAL-PRIVATE", "cards": []}))]])
+    _, run = await start_guest_run(app, guest, model)
+    # Wait for real validated output so the test exercises replay/queue, not a late model.
+    live = next(iter(app.state.ai.runs.values()))
+    await asyncio.wait_for(live.task, 2)
+    assert any(event.type == "final" for event in live.events)
+    stream = asyncio.create_task(guest.client.get(run["eventsUrl"], headers={"Last-Event-ID": "1"} if replay else {}))
+    await asyncio.wait_for(queued.wait(), 2)
+    await asyncio.sleep(max(0, (guest.expires_at - await db_now(app)).total_seconds()) + 0.1)
+    release.set()
+    result = await asyncio.wait_for(stream, 3)
+    assert "QUEUED-FINAL-PRIVATE" not in result.text
+    assert "event: final" not in result.text
+    assert result.status_code in (200, 401)
+    assert len(model.calls) == 1
+
+
 async def test_ai_run_is_cancelled_at_the_deadline_without_waiting_for_the_monitor(clients):
     from tests.fakes import ScriptedModel, message_output
 
