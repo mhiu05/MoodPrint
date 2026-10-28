@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, type ApiClient } from "../../api/client";
 import type { SessionView } from "../../api/contracts";
 import { remainingGuestMs } from "./guestClock";
+import { clearTourBlockers } from "../onboarding/tourActivity";
 
 const CHANNEL = "moodprint-guest";
 
@@ -32,6 +33,7 @@ export function useGuestLifecycle({
       if (done.current) return;
       done.current = true;
       controller.abort();
+      clearTourBlockers();
       setEpoch((value) => value + 1);
       setRemaining(0);
       try {

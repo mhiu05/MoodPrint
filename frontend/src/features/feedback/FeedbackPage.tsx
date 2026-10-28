@@ -5,6 +5,7 @@ import { ApiError } from "../../api/client";
 import type { FeedbackInput, FeedbackReceipt, FeedbackSubmissionState } from "../../api/contracts";
 import { ErrorNotice, useResource, useSession } from "../real/RealApp";
 import { categories, ratingLabels } from "./feedbackLabels";
+import { useTourBlocker } from "../onboarding/tourActivity";
 import "./feedback.css";
 
 function sameBangkokDay(first: string, second: string): boolean {
@@ -26,6 +27,7 @@ export default function FeedbackPage() {
   const sending = useRef(false);
   const guest = session.accountKind === "guest";
   const count = Array.from(comment).length;
+  useTourBlocker("draft", !receipt && (rating !== null || selected.length > 0 || count > 0));
   useEffect(() => {
     const active = new AbortController();
     controller.current = active;

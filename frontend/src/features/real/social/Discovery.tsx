@@ -134,7 +134,7 @@ export function Discovery() {
     );
   return (
     <div className={cx.reading}>
-      <h1 tabIndex={-1}>Tìm bạn đồng điệu</h1>
+      <h1 tabIndex={-1} data-tour="matching-intro">Tìm bạn đồng điệu</h1>
       <p className={cx.lede}>
         Bắt đầu từ những điểm chung bạn chủ động chia sẻ.
       </p>

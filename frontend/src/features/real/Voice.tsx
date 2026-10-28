@@ -5,6 +5,7 @@ import { ApiError } from "../../api/client";
 import { ErrorNotice, useSession } from "./RealApp";
 import { encodeWav } from "./audio";
 import type { ConsentInput, SessionView } from "../../api/contracts";
+import { useTourBlocker } from "../onboarding/tourActivity";
 
 type Recording = {
   stream: MediaStream;
@@ -40,6 +41,7 @@ export function VoiceRecorder({ draft, onUse }: { draft: string; onUse: (text: s
   const recording = useRef<Recording | undefined>(undefined),
     upload = useRef<AbortController | undefined>(undefined),
     alive = useRef(true);
+  useTourBlocker("voice", state !== "idle");
   const cleanup = () => {
     const value = recording.current;
     if (value) {
