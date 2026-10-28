@@ -16,6 +16,70 @@ def audio(seconds=1, rate=16000):
     return output.getvalue()
 
 
+def sample_audio(frames, rate):
+    output = io.BytesIO()
+    with wave.open(output, "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(rate)
+        wav.writeframes(b"\x00\x00" * frames)
+    return output.getvalue()
+
+
+@pytest.mark.parametrize("rate", [8000, 16000, 44100, 48000])
+@pytest.mark.parametrize("extra", [-1, 0, 1])
+def test_wav_sample_quantum_boundaries(rate, extra):
+    from app.modules.guests.pricing import voice_upper
+    from app.modules.voice.service import validate_audio
+    from tests.test_guest_budget import PRICING
+
+    duration = validate_audio(sample_audio(rate * 15 + extra, rate))
+    assert duration == (rate * 15 + extra) / rate
+    assert voice_upper(PRICING, duration) == ("synthetic-v1", 210 if extra == 1 else 105)
+
+
+@pytest.mark.postgres
+@pytest.mark.parametrize("rate", [8000, 16000, 44100, 48000])
+@pytest.mark.parametrize("extra", [-1, 0, 1])
+async def test_guest_voice_quota_rounds_fractional_sample_up(clients, rate, extra):
+    from sqlalchemy import select
+
+    from app.modules.guests.models import GuestCostReservation, GuestUsage
+    from tests.guest_helpers import add_guest, enable_paid_fixture
+    from tests.test_guest_paid_dispatch import CountingTranscriber
+
+    app, _ = clients
+    enable_paid_fixture(app)
+    guest = await add_guest(app, consents=True)
+    provider = CountingTranscriber()
+    app.state.transcriber = provider
+    key = str(uuid4())
+    body = sample_audio(rate * 15 + extra, rate)
+    headers = {"Content-Type": "audio/wav", "Idempotency-Key": key}
+    response = await guest.client.post('/api/v1/voice/transcriptions', content=body, headers=headers)
+    assert response.status_code == 200, response.text
+    assert response.json()['durationSeconds'] == (rate * 15 + extra) / rate
+    async with app.state.database.sessions() as db:
+        usage = await db.scalar(select(GuestUsage).where(GuestUsage.user_id == guest.user_id))
+        assert usage.voice_milliseconds == (15001 if extra == 1 else 15000)
+        assert usage.voice_clips == 1
+        reservation = await db.scalar(select(GuestCostReservation))
+        assert reservation.state == 'settled'
+        assert reservation.upper_nano_usd == reservation.charged_nano_usd == (210 if extra == 1 else 105)
+    replay = await guest.client.post('/api/v1/voice/transcriptions', content=body, headers=headers)
+    assert replay.status_code == 409 and provider.calls == 1
+
+
+@pytest.mark.parametrize("rate", [8000, 16000, 44100, 48000])
+def test_wav_exact_thirty_second_limit(rate):
+    from app.core.errors import DomainError
+    from app.modules.voice.service import validate_audio
+
+    assert validate_audio(sample_audio(rate * 30, rate)) == 30.0
+    with pytest.raises(DomainError, match="INVALID_AUDIO"):
+        validate_audio(sample_audio(rate * 30 + 1, rate))
+
+
 def test_audio_duration_is_verified_from_pcm_data_not_client_metadata():
     from app.core.errors import DomainError
     from app.modules.voice.service import validate_audio

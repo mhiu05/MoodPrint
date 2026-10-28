@@ -13,6 +13,7 @@ Expected shape (integers are nano-USD, i.e. 1e-9 USD)::
 """
 
 from decimal import Decimal
+from math import ceil, isfinite
 from typing import Any
 
 AI_REQUESTS = 3  # the SDK turn limit: one admitted turn may issue up to three model requests
@@ -69,10 +70,12 @@ def ai_upper(pricing: dict[str, Any]) -> tuple[str, int] | None:
 def voice_upper(pricing: dict[str, Any], seconds: float) -> tuple[str, int] | None:
     """Reserve the validated duration rounded UP to the provider billing quantum (max 30 s)."""
     values = _section(pricing.get("voice"), "nano_per_second", "quantum_seconds")
-    if values is None or seconds <= 0:
+    if values is None or not isfinite(seconds) or seconds <= 0:
         return None
     quantum = values["quantum_seconds"]
-    billed = -(-int(seconds * 1000) // (quantum * 1000)) * quantum
+    # Valid PCM durations preserve a sample well above float precision (<=30s,
+    # <=48kHz). Round the original duration, never a truncated millisecond value.
+    billed = ceil(seconds / quantum) * quantum
     return pricing["voice"]["pricing_version"], billed * values["nano_per_second"]
 
 

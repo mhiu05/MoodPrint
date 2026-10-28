@@ -384,7 +384,7 @@ the generic executing-plans skill prescribes only one review or an approval stop
 | REL1 | Hold marker/CLI/workflow both events | RED missing helper → GREEN4 new/18 Linux tests; pinned actionlint exit0 |
 | F1 | VOICE/AI withdrawal during upload/dispatch | RED8 disclosures → GREEN10 new/37 targeted tests |
 | F2 | Document edit/delete/source/job lease fence | RED5 disclosures → GREEN9 new/68 broad/43 memory-recovery tests |
-| F3 | Sample above billing quantum, ceil quota | Pending |
+| F3 | Sample above billing quantum, ceil quota | RED9 → GREEN66 broad/28 boundary+settlement tests |
 | F4 | Guest grant/recovery queued past T | Pending |
 | F5 | DB clock vs ahead process clock | Pending |
 | F6 | Guest safe logs, registered observability | Pending |
@@ -420,4 +420,14 @@ New tests9 including registered control/deletion, broad embedding/budget/paid/
 review suite68 pass in64.04s; memory/API and AI/guest recovery43 pass in41.68s.
 Ruff passes and mypy114 files clean. First broad command named nonexistent memory
 and recovery files (exit4, no pass); actual discovered suite names used above.
+
+Task4 complete: RED9 failures showed floored quantum and15000ms quota. Ceil the
+original validated PCM duration for billing and milliseconds for quota; no
+fractional-millisecond truncation. At <=30s/<=48kHz each sample exceeds float
+precision by many orders; exact15/30 integer boundaries remain exact. Supported
+8/16/44.1/48kHz tests cover below/at/above15s and exact30/one-sample-over invalid.
+Actual route asserts upward quota, full reservation/settlement105 vs210 and
+replay single-call. Budget/voice/quota/paid/withdrawal66 pass in57.88s, additional
+final boundary+settlement28 pass in26.61s;6 clips/180000ms existing caps retained.
+Ruff passed. No price/budget policy or duration response contract changed.
 

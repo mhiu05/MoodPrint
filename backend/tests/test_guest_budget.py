@@ -72,6 +72,14 @@ def test_upper_bounds_are_conservative_and_exact():
     assert pricing.actual_ai_cost({}, 1, 0, 1) is None
 
 
+def test_voice_bound_keeps_fractional_sample_above_quantum():
+    from app.modules.guests.pricing import voice_upper
+
+    assert voice_upper(PRICING, 15.0) == ("synthetic-v1", 105)
+    assert voice_upper(PRICING, 120001 / 8000) == ("synthetic-v1", 210)
+    assert voice_upper(PRICING, 30.0) == ("synthetic-v1", 210)
+
+
 # ---- database: reservations ----------------------------------------------------------------------
 
 

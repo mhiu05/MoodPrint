@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+from math import ceil
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import Field
@@ -92,7 +93,7 @@ async def transcribe(request: Request, actor: Actor = Depends(require_actor)):
                     operation_key=key,
                     payload_digest=clip,
                     settings=settings,
-                    voice_milliseconds=int(duration * 1000),
+                    voice_milliseconds=ceil(duration * 1000),
                 )
                 reservation = await reserve_guest_operation(
                     db,
