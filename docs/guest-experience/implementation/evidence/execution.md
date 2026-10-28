@@ -352,3 +352,48 @@ GE-03.1, GE-03.2, GE-04.1, GE-04.2 and GE-04.3 share files (`core/security.py`, 
 - GE-14.2 local capacity/crash/physical quarantine restore: **complete**, commit `e6280ba` plus final post-fix50/50 reruns; baseline registered50 and all capacity/safety assertions retained.
 - GE-14.3 local SQL/config/images/evidence/rollback: **complete**, commit `6b367ec` plus final fix/evidence commit. Schema0018/no drift, reproducible pending SQL, existing approvals intact, final Linux artifacts retained. Hosted GE-01.2/D04 not run; no public enablement.
 - Independent whole-branch review: **PARTIAL** due reviewer usage limit before final verdict. All8 received Important findings reproduced/fixed/verified in the single author fix pass;1 minor explicitly deferred in [review record](code-review.md). Overall release **PARTIAL/HOLD** for D01–D04, remaining manual/hosted facts and the incomplete independent verdict. Local executable scope **PASS**. Branch/worktree kept; no push, merge, deployment, paid call, hosted mutation or `.gitignore` change.
+# Finish/PR/merge run — 2026-10-28
+
+Plan: `../10-codex-finish-pr-merge-prompt.md`. Starting feature SHA
+`b8c7efb990447d329599b3bf038430b12aa14084`; fetched remote main
+`984753389aa8bd4b3112b19a8beceb1e538fd659`. Expected origin verified.
+Original workspace has untracked guest docs; feature has unrelated untracked
+`docs/plans/` and `frontend/evidence/`, all preserved. Imported only prompt10 and
+the independent review, source/destination SHA-256 identical. GitHub connector
+is read-only; authenticated CLI has push permission and all three merge methods.
+No ruleset/branch protection exists; all plan gates still apply.
+
+Owned pgvector 0.8.2/PG17 container `moodprint-guest-impl-db` verified at loopback
+26432; existing disposable `_test` databases retained. This run's raw artifacts:
+`%TEMP%/moodprint-guest-finish`. Focused backend baseline: 59 passed in90.68s
+on the dev DB (budget/expiration/provisioning/inflight/paid/review suites).
+Frontend typecheck exit0 and existing guest browser13 passed in41.9s.
+
+Pre-flight: Tasks2/3 share financial dispatch/heartbeat boundaries; final
+authorization follows awaited markers, with no external I/O under locks.
+Tasks5/6 share database-derived time; preserve the immutable 7200-second grant.
+Task8 consumes confirmed204 and existing lifecycle invalidation. Task1 must
+precede source merge; Tasks9/10 consume exact reviewed SHA and green CI.
+Ruling: use this durable evidence ledger and owned OS-temp artifacts instead
+of creating a new ignored skill workspace — .gitignore must stay unchanged.
+Ruling: follow prompt10's explicit re-review and push/merge authorization where
+the generic executing-plans skill prescribes only one review or an approval stop.
+
+| ID | Required regression | State |
+| --- | --- | --- |
+| REL1 | Hold marker/CLI/workflow both events | RED missing helper → GREEN4 new/18 Linux tests; pinned actionlint exit0 |
+| F1 | VOICE/AI withdrawal during upload/marker | Pending |
+| F2 | Document edit/delete/source/job lease fence | Pending |
+| F3 | Sample above billing quantum, ceil quota | Pending |
+| F4 | Guest grant/recovery queued past T | Pending |
+| F5 | DB clock vs ahead process clock | Pending |
+| F6 | Guest safe logs, registered observability | Pending |
+| UX1 | One-confirmation signup, honest failure | Pending |
+
+Task1 complete: Windows targeted tests4 pass; full Windows discovery cannot
+import Linux fcntl, so the complete suite ran in the owned Linux API image with
+readonly deploy mount/network disabled:18 pass. Pinned CI actionlint accepts both
+workflows. Both release events check the selected commit's marker before
+provenance; eligibility defaults false; build/publication/release remain dependent
+on eligibility. No live dispatch or AWS operation. Independent wiring review pending.
+

@@ -1,0 +1,13 @@
+Guest-experience publication is HELD.
+
+The application requires schema 0018_app_feedback. Hosted application of the
+pending SQL is not approved. D01 deletion/provider/log/backup facts, D02 paid
+budget, D03 feedback retention and D04 hosted validation target remain unresolved.
+All six public/paid rollout flags stay false; the daily paid budget stays unset.
+
+Only a separate owner-approved release change may remove this marker, after
+hosted schema, validation, disclosure, operational and manual prerequisites are
+fulfilled. Review removal through the normal PR/check process and then follow
+the existing exact-main release provenance/approval procedure. Do not remove it
+as part of source integration, use a manual release to bypass it, or relax
+readiness. Expiration, cleanup and reconciliation must remain active.

@@ -14,3 +14,11 @@ Restore into quarantine without a public listener. Preserve T0/T and current dat
 The [local rehearsal](capacity-recovery.md) physically restores a synthetic dump taken before T after T has passed. Test helpers are absent from the production entrypoint. Production restore requires separate target-specific approval.
 
 The admission HMAC has no live rotation protocol. Keep it stable. For planned rotation, close entry and collection, wait at least the longest durable admission/orphan window (24 hours), resolve attempts and review counter behavior. Changing the key does not preserve old keyed counters.
+# Publication hold during source integration
+
+Keep `deploy/guest-experience.release-hold` tracked through merge and rollback.
+Both automatic and manual publication honor it; no exact-main staging release
+is produced for the deployment poller. Do not remove the marker to validate a
+merge or relax schema0018 readiness. A separate owner-approved release change
+must resolve hosted/schema/decision/manual prerequisites before removal.
+

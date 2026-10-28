@@ -39,3 +39,13 @@ Never run the historical initialization generator against this head or alter app
 | `moodprint:guest-review-final` | `sha256:ad9918a98016f837767995b0e3c5491f1dfd6f0503ccb5937e9b58b47c5b8ac0` |
 
 These are local review artifacts, not registry publications or signed release approvals. Production source content is the reviewed guest branch; later test-only/doc commits do not imply an image was rebuilt or deployed.
+# Finish-run publication guard
+
+Source integration is separate from release readiness. The tracked
+`deploy/guest-experience.release-hold` makes both release events ineligible before
+publication. Marker existence/inspection errors fail closed; runner-output failure
+fails validation. Local new CLI tests4 and complete Linux deployment tests18 pass,
+as does pinned actionlint. No live release dispatch was used. Independent review
+and exact-head/post-merge CI observation remain pending in this finish run.
+The hosted schema, all D01–D04 decisions and manual gates remain unresolved.
+
