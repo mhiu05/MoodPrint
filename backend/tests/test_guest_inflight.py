@@ -15,6 +15,83 @@ pytestmark = pytest.mark.postgres
 LIFETIME = timedelta(seconds=7200)
 
 
+@pytest.mark.parametrize("branch", ["existing", "recovery", "new"])
+@pytest.mark.parametrize("cross_deadline", [False, True])
+async def test_guest_auth_response_queued_past_deadline_is_withheld(clients, branch, cross_deadline):
+    import time
+    from uuid import uuid4
+
+    from starlette.middleware import Middleware
+
+    from app.modules.guests.output import GuestOutputMiddleware
+    from tests.guest_helpers import (
+        FakeGuestProvider,
+        enable_guest_entry,
+        open_intent,
+        post_guest,
+        public_client,
+    )
+
+    app, _ = clients
+    enable_guest_entry(app)
+    provider = FakeGuestProvider(app)
+    browser = public_client(app)
+    key = str(uuid4())
+    await open_intent(browser)
+    original_deadline = None
+    if branch != 'new':
+        initial = await post_guest(browser, key)
+        assert initial.status_code == 201, initial.text
+        original_deadline = initial.json()['guestExpiresAt']
+        if branch == 'recovery':
+            browser.cookies.delete('moodprint_session')
+            browser.cookies.delete('moodprint_csrf')
+    queued, resume = asyncio.Event(), asyncio.Event()
+    offset = 0.0
+    captured = {}
+
+    class HoldResponse:
+        def __init__(self, app):
+            self.app = app
+
+        async def __call__(self, scope, receive, send):
+            async def held(message):
+                if (scope.get('path') == '/api/v1/auth/guest'
+                        and message['type'] == 'http.response.start'):
+                    captured['bound'] = scope.get('state', {}).get('guest_output')
+                    queued.set()
+                    await resume.wait()  # Serialized response/cookies wait inside final guard.
+                await send(message)
+            await self.app(scope, receive, held)
+
+    index = next(i for i, entry in enumerate(app.user_middleware) if entry.cls is GuestOutputMiddleware)
+    app.user_middleware[index] = Middleware(GuestOutputMiddleware, clock=lambda: time.monotonic() + offset)
+    app.user_middleware.insert(index + 1, Middleware(HoldResponse))
+    app.middleware_stack = None
+    pending = asyncio.create_task(post_guest(browser, key))
+    try:
+        await asyncio.wait_for(queued.wait(), 5)
+        # Test-only elapsed monotonic time, with the real immutable DB grant untouched.
+        # New grants have7200s; existing/recovery retain the same original T.
+        if cross_deadline:
+            offset = 7201.0
+    finally:
+        resume.set()
+    response = await asyncio.wait_for(pending, 5)
+    if cross_deadline:
+        assert response.status_code == 401, response.text
+        assert response.json()['error']['code'] == 'GUEST_EXPIRED'
+        assert 'userId' not in response.text and 'guestExpiresAt' not in response.text
+        assert all('max-age=0' in value.lower() for value in response.headers.get_list('set-cookie'))
+    else:
+        assert response.status_code == (201 if branch == 'new' else 200), response.text
+        assert response.json()['accountKind'] == 'guest'
+        if original_deadline:
+            assert response.json()['guestExpiresAt'] == original_deadline
+    assert captured['bound'] is not None
+    assert len(provider.signups) == 1
+
+
 async def mood_rows(app):
     from app.infrastructure.database.models import Idempotency, Mood
 

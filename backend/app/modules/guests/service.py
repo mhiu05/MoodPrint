@@ -24,6 +24,7 @@ from app.modules.auth.age import age_band, record_age
 from app.modules.auth.provider import AnonymousSignupError, ProviderSession, SupabaseAuth
 from app.modules.guests import limits
 from app.modules.guests.availability import experience_view
+from app.modules.guests.deadlines import guest_deadline
 from app.modules.guests.intents import (
     COOKIE,
     claim_guest_attempt,
@@ -36,7 +37,12 @@ from app.modules.guests.models import (
     GuestProvisioningAttempt,
     GuestUsage,
 )
-from app.modules.guests.policy import GUEST_LIFETIME_SECONDS, assert_guest_active, database_time
+from app.modules.guests.policy import (
+    GUEST_LIFETIME_SECONDS,
+    assert_guest_active,
+    database_time,
+    guest_expired,
+)
 from app.modules.guests.schemas import GuestEligibility, GuestInput
 
 SESSION_COOKIE, CSRF_COOKIE = "moodprint_session", "moodprint_csrf"
@@ -118,9 +124,19 @@ async def current_cookie_identity(request: Request) -> Actor | None:
         return Actor(user.id, session.id, user.auth_version, user.account_kind)
 
 
-async def create_guest(request: Request, body: GuestInput, response: Response) -> SessionView:
+async def _guest_session_output(request: Request, actor: Actor, csrf: str | None = None) -> SessionView:
+    """Public grant/recovery has no require_actor dependency to install its output bound."""
     from app.modules.auth.routes import session_view
 
+    async with request.app.state.database.require()() as db:
+        user = await db.get(User, actor.user_id)
+        if user is None:
+            raise guest_expired()
+        request.state.guest_output = await guest_deadline(db, user)
+    return await session_view(request, actor, csrf)
+
+
+async def create_guest(request: Request, body: GuestInput, response: Response) -> SessionView:
     require_public_write(request)
     key = idempotency_key(request)
     sessions = request.app.state.database.require()
@@ -135,7 +151,7 @@ async def create_guest(request: Request, body: GuestInput, response: Response) -
                 "Bạn đang đăng nhập bằng tài khoản. Hãy đăng xuất trước khi dùng thử.",
             )
         response.status_code = 200
-        return await session_view(request, current)
+        return await _guest_session_output(request, current)
 
     token = request.cookies.get(COOKIE)
     if not token:
@@ -225,7 +241,7 @@ async def create_guest(request: Request, body: GuestInput, response: Response) -
 
     set_session_cookies(request, response, opaque, csrf, await remaining_seconds(request, expires_at))
     response.status_code = 201
-    return await session_view(request, actor, csrf)
+    return await _guest_session_output(request, actor, csrf)
 
 
 async def grant_guest(
@@ -322,8 +338,6 @@ async def recover_guest_credentials(
     request: Request, attempt_id: UUID, response: Response
 ) -> SessionView:
     """Rotate opaque credentials for a committed grant: same user, same T, no new signup."""
-    from app.modules.auth.routes import session_view
-
     sessions = request.app.state.database.require()
     opaque, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
     async with sessions() as db, db.begin():
@@ -376,9 +390,9 @@ async def recover_guest_credentials(
     set_session_cookies(request, response, opaque, csrf, await remaining_seconds(request, expires_at))
     response.status_code = 200
     try:
-        return await session_view(request, actor, csrf)
+        return await _guest_session_output(request, actor, csrf)
     except DomainError as error:
-        if error.status == 401:
+        if error.status == 401 and error.code != "GUEST_EXPIRED":
             # A concurrent recovery already superseded this credential: ask the caller to retry.
             raise pending() from None
         raise

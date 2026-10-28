@@ -385,7 +385,7 @@ the generic executing-plans skill prescribes only one review or an approval stop
 | F1 | VOICE/AI withdrawal during upload/dispatch | RED8 disclosures → GREEN10 new/37 targeted tests |
 | F2 | Document edit/delete/source/job lease fence | RED5 disclosures → GREEN9 new/68 broad/43 memory-recovery tests |
 | F3 | Sample above billing quantum, ceil quota | RED9 → GREEN66 broad/28 boundary+settlement tests |
-| F4 | Guest grant/recovery queued past T | Pending |
+| F4 | Guest grant/recovery queued past T | RED6 → GREEN6 new/44 inflight+auth+provisioning tests |
 | F5 | DB clock vs ahead process clock | Pending |
 | F6 | Guest safe logs, registered observability | Pending |
 | UX1 | One-confirmation signup, honest failure | Pending |
@@ -430,4 +430,13 @@ Actual route asserts upward quota, full reservation/settlement105 vs210 and
 replay single-call. Budget/voice/quota/paid/withdrawal66 pass in57.88s, additional
 final boundary+settlement28 pass in26.61s;6 clips/180000ms existing caps retained.
 Ruff passed. No price/budget policy or duration response contract changed.
+
+Task5 complete: real ASGI stack queues serialized grant/current-cookie/recovery
+responses inside the outer guard; test-only elapsed monotonic offset crosses
+the unchanged immutable T. RED3 leaked private responses and3 controls lacked
+the bound. GREEN all6 cases; full inflight/provisioning/auth44 pass in54.88s.
+One helper installs a DB-sampled GuestDeadline on every live guest session
+output. Recovery no longer translates GUEST_EXPIRED into pending. Registered
+cookie rejection, one grant/lost-response recovery and end204 remain passing.
+Only deletion cookies and content-free expiry reach the client after T.
 
