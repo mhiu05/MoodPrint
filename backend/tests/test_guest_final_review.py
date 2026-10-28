@@ -126,6 +126,72 @@ async def test_retention_skips_incident_link_but_expires_other_records(clients, 
     assert await jobs.retention_tick(app) == {'buckets': 0, 'reservations': 0, 'days': 0}
 
 
+@pytest.mark.parametrize('outcome', ['reject', 'failed_grant'])
+async def test_slow_creation_admission_keeps_fresh_provider_start_clock(clients, monkeypatch, outcome):
+    from sqlalchemy import text, update
+
+    from app.modules.guests import jobs, limits, service
+    from app.modules.guests.models import GuestAbuseBucket, GuestProvisioningAttempt
+
+    app, _ = clients
+    enable_guest_entry(app)
+    at = datetime(2026, 10, 28, 16, 59, 59, tzinfo=UTC)
+    reserved_at = at
+    original_bucket = limits.reserve_bucket
+
+    async def clock(db):
+        return at
+
+    async def delayed_bucket(*args, **kwargs):
+        nonlocal at
+        result = await original_bucket(*args, **kwargs)
+        if kwargs['scope'] == 'creation_hour':
+            at += timedelta(seconds=61)  # Deterministic DB-wait elapsed time, no sleeping.
+        return result
+
+    monkeypatch.setattr(limits, 'database_time', clock)
+    monkeypatch.setattr(service, 'database_time', clock)
+    monkeypatch.setattr(limits, 'reserve_bucket', delayed_bucket)
+    class Provider(FakeGuestProvider):
+        async def handle(self, request):
+            response = await super().handle(request)
+            if request.url.path.endswith('/signup') and self.created:
+                async with app.state.database.sessions.begin() as db:
+                    await db.execute(text('update auth.users set created_at=:at where id=:uid'),
+                        {'at': at, 'uid': self.created[-1]})
+            return response
+
+    async def failed_grant(*args, **kwargs):
+        raise RuntimeError('synthetic failed local grant')
+
+    provider = Provider(app, mode='captcha' if outcome == 'reject' else 'ok')
+    if outcome == 'failed_grant':
+        monkeypatch.setattr(service, 'grant_guest', failed_grant)
+    async with public_client(app) as browser:
+        await open_intent(browser)
+        response = await post_guest(browser, str(uuid4()))
+        assert response.status_code >= 400
+    assert len(provider.signups) == 1
+    async with app.state.database.sessions() as db:
+        attempt = await db.scalar(select(GuestProvisioningAttempt))
+        assert attempt.signup_started_at == at > reserved_at + timedelta(seconds=60)
+        buckets = (await db.scalars(select(GuestAbuseBucket).where(
+            GuestAbuseBucket.scope.in_(['creation_hour', 'creation_day'])))).all()
+        assert len(buckets) == 2
+        assert all(bucket.count == (0 if outcome == 'reject' else 1) for bucket in buckets)
+        attempt_id = attempt.id
+    if outcome == 'failed_grant':
+        # The actual private orphan helper can still find/delete this identity.
+        async with app.state.database.sessions.begin() as db:
+            await db.execute(update(GuestProvisioningAttempt).where(GuestProvisioningAttempt.id == attempt_id)
+                .values(next_attempt_at=await db_now(app) - timedelta(seconds=1)))
+        assert await jobs.reconcile_guest_provisioning(app) == 1
+        async with app.state.database.sessions() as db:
+            assert (await db.get(GuestProvisioningAttempt, attempt_id)).state == 'resolved'
+            assert await db.scalar(text('select count(*) from auth.users where id=:uid'),
+                {'uid': provider.created[0]}) == 0
+
+
 async def test_startup_cleanup_repair_retries_after_transient_failure(clients, monkeypatch):
     from sqlalchemy import delete
 

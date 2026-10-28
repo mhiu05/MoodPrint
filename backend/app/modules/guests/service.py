@@ -167,6 +167,7 @@ async def create_guest(request: Request, body: GuestInput, response: Response) -
     provider_client = SupabaseAuth(request)
     digest_ = payload_digest(body)
     fence = uuid4()
+    creation_reserved_at: datetime | None = None
 
     # Mapped recovery reads the mapping without a lock, locks the owner, then the attempt.
     async with sessions() as db:
@@ -186,7 +187,8 @@ async def create_guest(request: Request, body: GuestInput, response: Response) -
             if not experience_view(request).guest_available:
                 raise entry_closed()
             await limits.assert_failed_signups_allowed(db, request)
-            started = await limits.reserve_guest_creation(db, request, attempt.id)
+            creation_reserved_at = await limits.reserve_guest_creation(db, request, attempt.id)
+            started = await database_time(db)
             await db.execute(
                 update(GuestProvisioningAttempt)
                 .where(
@@ -215,7 +217,8 @@ async def create_guest(request: Request, body: GuestInput, response: Response) -
             body.captcha_token, correlation_id=await _correlation(sessions, attempt_id)
         )
     except AnonymousSignupError as error:
-        await _record_signup_failure(request, attempt_id, fence, error)
+        await _record_signup_failure(request, attempt_id, fence, error,
+            creation_reserved_at=creation_reserved_at)
         if error.outcome == "ambiguous":
             raise pending() from None
         raise
@@ -398,14 +401,15 @@ async def recover_guest_credentials(
 
 
 async def _record_signup_failure(
-    request: Request, attempt_id: UUID, fence: UUID, error: AnonymousSignupError
+    request: Request, attempt_id: UUID, fence: UUID, error: AnonymousSignupError,
+    *, creation_reserved_at: datetime | None = None,
 ) -> None:
     """Persist the classified outcome. Only an explicit rejection refunds the creation count."""
     sessions = request.app.state.database.require()
     async with sessions() as db, db.begin():
         now = await database_time(db)
         rejected = error.outcome == "rejected"
-        reserved_at = await db.scalar(
+        changed = await db.scalar(
             update(GuestProvisioningAttempt)
             .where(
                 GuestProvisioningAttempt.id == attempt_id,
@@ -419,11 +423,15 @@ async def _record_signup_failure(
                 lease_until=None,
                 next_attempt_at=now + timedelta(seconds=30),
             )
-            .returning(GuestProvisioningAttempt.signup_started_at)
+            .returning(GuestProvisioningAttempt.id)
         )
-        if rejected and reserved_at is not None:
+        if rejected and changed is not None:
             await limits.record_failed_signup(db, request)
-            await limits.release_guest_creation(db, request, reserved_at)
+            # Only the in-process definite rejection has the original bucket sample.
+            # Missing information (including crash/ambiguous recovery) retains counts;
+            # provider-start time has a separate orphan-correlation responsibility.
+            if creation_reserved_at is not None:
+                await limits.release_guest_creation(db, request, creation_reserved_at)
 
 
 async def _record_orphan(

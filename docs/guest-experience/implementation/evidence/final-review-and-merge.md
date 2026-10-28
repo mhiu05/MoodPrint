@@ -10,6 +10,12 @@ start `b8c7efb990447d329599b3bf038430b12aa14084`. Fixes through
 [independent review](independent-review-26ca93d.md) requests three additional P2
 fixes; their regression and later-SHA re-review are in progress. Merge is gated.
 
+Follow-up at862e036 resolved R1–R3 but [scoped review](independent-review-862e036.md)
+identified provider-start/admission-clock coupling. The correction keeps bucket
+time request-local for refunds and restores fresh post-admission provider time;
+54 targeted tests pass including actual orphan deletion. Later-SHA verdict and
+remaining integrated/load/CI evidence are still required.
+
 | Scope | Actual command / observed result at26ca93d | Limit |
 | --- | --- | --- |
 | Backend | `uv sync --locked`; full CI Ruff list; mypy114 clean; `uv run --locked pytest -q -rs`:1042 pass/1 skip,1141.01s | Only D04 hosted-target skip; must refresh after review fixes |

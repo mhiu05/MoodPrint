@@ -504,3 +504,16 @@ Ruling: preserve this as nonblocking hardening, not expand the authorized fix
 pass into unproven fault-injection behavior; residual cost is detection within
 the heartbeat interval for out-of-band token tampering. Release remains held.
 Later-SHA re-review, complete rerun/load/CI/PR/merge/post-merge gates remain pending.
+
+Scoped review862e036 found an R1 timestamp coupling: original bucket time also
+became provider-start/orphan-window origin. Deterministic61s admission delay
+RED2 (rejection and successful provider/failed local grant). Corrected by keeping
+original bucket sample only in request RAM for definite-rejection refunds, while
+sampling provider start separately after admission waits. Missing original sample
+retains counts; CAS still gates failed-signup count/refund. No schema/SQL approval
+change. Real private orphan helper finds/deletes the delayed successful provider
+identity; all5 final-review tests plus auth/provisioning/budget/recovery54 pass
+in75.27s. [Scoped review record](independent-review-862e036.md) preserved.
+Ruling: open a concrete draft PR while remaining local/CI gates run, to obtain
+exact-head Linux CI in parallel; draft is not approval, and merge remains blocked
+until all required checks/re-review/50-user recovery evidence pass.

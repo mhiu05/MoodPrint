@@ -162,8 +162,8 @@ async def reserve_guest_creation(db: AsyncSession, request: Request, attempt_id:
             limit=limit,
         ):
             raise limit_error(window[1] - now)
-    # Persist this exact sample in signup_started_at: a later sample can cross an
-    # hour/day boundary even before the provider request begins.
+    # Keep this exact sample for the in-process definite-rejection refund. The
+    # provider-start/orphan clock must be sampled separately after admission waits.
     return now
 
 
