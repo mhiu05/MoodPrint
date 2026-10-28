@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import DomainError
 from app.infrastructure.database.models import AuthSession, Consent, Idempotency, User, now
+from app.modules.guests import policy as guest_policy
 from app.modules.guests.deadlines import final_guest_authorization, guest_deadline
 from app.modules.guests.policy import assert_guest_active
 
@@ -34,14 +35,15 @@ async def verify_session(db: AsyncSession, session: AuthSession, user: User) -> 
     # The immutable trial deadline is judged first, on the database clock, so a retained guest
     # row at T reports GUEST_EXPIRED (and clears cookies) rather than a generic expiry.
     await assert_guest_active(db, user)
+    at = await guest_policy.database_time(db) if user.account_kind == "guest" else now()
     if (
         session.revoked
-        or session.expires_at <= now()
+        or session.expires_at <= at
         or session.auth_version != user.auth_version
         or user.status != "active"
     ):
         raise DomainError(401, "SESSION_EXPIRED", "Phiên đã kết thúc. Vui lòng đăng nhập lại.")
-    if user.suspended_until and user.suspended_until > now():
+    if user.suspended_until and user.suspended_until > at:
         raise DomainError(
             403, "ACCOUNT_SUSPENDED", "Tài khoản đang bị tạm khóa theo quy tắc cộng đồng."
         )

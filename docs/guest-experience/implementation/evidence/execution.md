@@ -386,7 +386,7 @@ the generic executing-plans skill prescribes only one review or an approval stop
 | F2 | Document edit/delete/source/job lease fence | RED5 disclosures → GREEN9 new/68 broad/43 memory-recovery tests |
 | F3 | Sample above billing quantum, ceil quota | RED9 → GREEN66 broad/28 boundary+settlement tests |
 | F4 | Guest grant/recovery queued past T | RED6 → GREEN6 new/44 inflight+auth+provisioning tests |
-| F5 | DB clock vs ahead process clock | Pending |
+| F5 | DB clock vs ahead process clock | RED2 → GREEN5 new/79 expiration+auth+provider+output tests |
 | F6 | Guest safe logs, registered observability | Pending |
 | UX1 | One-confirmation signup, honest failure | Pending |
 
@@ -439,4 +439,12 @@ One helper installs a DB-sampled GuestDeadline on every live guest session
 output. Recovery no longer translates GUEST_EXPIRED into pending. Registered
 cookie rejection, one grant/lost-response recovery and end204 remain passing.
 Only deletion cookies and content-free expiry reach the client after T.
+
+Task6 complete: RED rejected a DB-valid trial with process clock T+1h and
+accepted a legitimately DB-expired app session with process clock behind.
+Guest session/suspension comparisons now use fresh database time after the
+lifecycle predicate; registered wall-clock/sliding behavior stays intact.
+Five new timezone-aware clock/deadline/revocation/end cases and full expiration,
+auth flows, provider and output suites79 pass in56.19s. No writes renew guest T;
+clock injection exists only in tests, not a runtime setting or endpoint.
 

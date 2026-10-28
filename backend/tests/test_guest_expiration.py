@@ -1,7 +1,7 @@
 """Absolute 7200s authorization: pure predicate, real SQL helper, no refresh, cookie clearing."""
 
 import asyncio
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -32,6 +32,59 @@ def test_deadline_boundary():
     assert lifetime_allows(guest, deadline + timedelta(milliseconds=1)) is False
     # Registered accounts keep their own sliding policy; this predicate never ends them.
     assert lifetime_allows(fake_user("registered"), deadline + timedelta(days=400)) is True
+
+
+@pytest.mark.postgres
+async def test_guest_session_ignores_ahead_application_wall_clock(clients, monkeypatch):
+    from app.core import security
+    from app.infrastructure.database.models import AuthSession, User
+    from app.modules.guests import policy
+
+    app, _ = clients
+    guest = await add_guest(app)
+    at = guest.expires_at - timedelta(milliseconds=1)
+
+    async def clock(db):
+        return at.astimezone(timezone(timedelta(hours=7)))
+
+    monkeypatch.setattr(policy, 'database_time', clock)
+    monkeypatch.setattr(security, 'now', lambda: guest.expires_at + timedelta(hours=1))
+    async with app.state.database.sessions() as db:
+        session, user = await db.get(AuthSession, guest.session_id), await db.get(User, guest.user_id)
+        before = (user.guest_started_at, user.guest_expires_at, session.expires_at)
+        await security.verify_session(db, session, user)
+        assert before == (user.guest_started_at, user.guest_expires_at, session.expires_at)
+        assert not db.is_modified(session) and not db.is_modified(user)
+
+
+@pytest.mark.postgres
+@pytest.mark.parametrize('reason', ['deadline', 'session_expiry', 'revoked', 'ended'])
+async def test_guest_session_denied_at_database_deadline(clients, monkeypatch, reason):
+    from app.core import security
+    from app.core.errors import DomainError
+    from app.infrastructure.database.models import AuthSession, User
+    from app.modules.guests import policy
+
+    app, _ = clients
+    guest = await add_guest(app)
+    at = guest.expires_at if reason == 'deadline' else guest.expires_at - timedelta(milliseconds=1)
+
+    async def clock(db):
+        return at
+
+    monkeypatch.setattr(policy, 'database_time', clock)
+    monkeypatch.setattr(security, 'now', lambda: guest.started_at)
+    async with app.state.database.sessions() as db:
+        session, user = await db.get(AuthSession, guest.session_id), await db.get(User, guest.user_id)
+        if reason == 'session_expiry':
+            session.expires_at = at
+        elif reason == 'revoked':
+            session.revoked = True
+        elif reason == 'ended':
+            user.status = 'deleting'
+        with pytest.raises(DomainError) as denied:
+            await security.verify_session(db, session, user)
+        assert denied.value.code == ('GUEST_EXPIRED' if reason == 'deadline' else 'SESSION_EXPIRED')
 
 
 def test_registered_and_guest_gates():
