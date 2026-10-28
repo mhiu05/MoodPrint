@@ -382,7 +382,7 @@ the generic executing-plans skill prescribes only one review or an approval stop
 | ID | Required regression | State |
 | --- | --- | --- |
 | REL1 | Hold marker/CLI/workflow both events | RED missing helper → GREEN4 new/18 Linux tests; pinned actionlint exit0 |
-| F1 | VOICE/AI withdrawal during upload/marker | Pending |
+| F1 | VOICE/AI withdrawal during upload/dispatch | RED8 disclosures → GREEN10 new/37 targeted tests |
 | F2 | Document edit/delete/source/job lease fence | Pending |
 | F3 | Sample above billing quantum, ceil quota | Pending |
 | F4 | Guest grant/recovery queued past T | Pending |
@@ -396,4 +396,16 @@ readonly deploy mount/network disabled:18 pass. Pinned CI actionlint accepts bot
 workflows. Both release events check the selected commit's marker before
 provenance; eligibility defaults false; build/publication/release remain dependent
 on eligibility. No live dispatch or AWS operation. Independent wiring review pending.
+
+Task2 complete: `test_guest_voice_revocation.py` uses real consent mutations
+and route-stream/dispatch barriers, guest/registered × AI/VOICE. Initial upload
+barrier was before body-limit buffering/auth and passed vacuously; moved it to
+the actual route stream after authorization, then observed8 failures (provider
+called once) and2 controls pass. Final owner-locked transaction checks claim,
+marker, consent and original version; withdrawal uses the same owner lock.
+The decision commits before external I/O; later withdrawal cannot recall an
+accepted send. Pre-send denial rolls back the marker, releases budget and
+finishes the claim without reopening consumed quota. Targeted new/paid/voice/
+quota/budget suite37 pass in39.64s. A mistyped nonexistent `test_consents.py`
+command collected nothing (exit4); corrected suite above is the pass.
 

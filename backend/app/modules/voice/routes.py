@@ -18,7 +18,8 @@ from app.modules.guests.accounting import (
 from app.modules.guests.accounting import unavailable as guest_paid_unavailable
 from app.modules.guests.deadlines import guard_guest_dispatch
 from app.modules.guests.limits import finish_guest_quota, maintain_guest_quota, reserve_guest_quota
-from app.modules.guests.policy import guest_expired, guest_paid_available
+from app.modules.guests.models import GuestOperationLink
+from app.modules.guests.policy import database_time, guest_expired, guest_paid_available
 from app.modules.guests.pricing import budget_nano, voice_upper
 from app.modules.voice.service import validate_audio
 
@@ -105,10 +106,24 @@ async def transcribe(request: Request, actor: Actor = Depends(require_actor)):
         async with maintain_guest_quota(request.app.state.database, actor.user_id, "voice", quota):
             # Fresh database decision, then a synchronous check immediately before dispatch.
             await guard_guest_dispatch(request.app.state.database, actor)
-            if reservation is not None:
-                async with request.app.state.database.require()() as db, db.begin():
+            async with transaction(request, actor) as (db, user):
+                # Consent mutation takes the same owner lock. This transaction's final
+                # decision linearizes the send: a withdrawal committed before it denies;
+                # a later withdrawal cannot recall externally accepted work. No provider
+                # I/O occurs under the lock. Marker waits cannot stale the consent check.
+                if quota is not None:
+                    link = await db.get(GuestOperationLink, (user.id, "voice", quota.operation_key_hash))
+                    at = await database_time(db)
+                    if (link is None or link.lease_token != quota.lease_token
+                            or link.state != "claimed" or link.lease_until <= at
+                            or reservation is None or link.reservation_id != reservation.id):
+                        raise DomainError(409, "GUEST_OPERATION_FENCED", "Lượt xử lý đã kết thúc.")
+                if reservation is not None:
                     await mark_guest_dispatched(db, reservation.id)
-                dispatched = True
+                await assert_purpose(db, user, "VOICE")
+                if user.data_version != version:
+                    raise DomainError(409, "CONTEXT_CHANGED", "Quyền đã thay đổi. Bản ghi âm đã dừng xử lý.")
+            dispatched = reservation is not None
             if expired():
                 raise guest_expired()
             task = asyncio.create_task(provider.transcribe(bytes(audio)))
