@@ -92,6 +92,15 @@
         "path": "docs/productization/migrations/0014-review.sql",
         "blob": "97d6c6bb863c278480f04008917b388efe6fe50e"
       }
+    },
+    {
+      "path": "0018-review.sql",
+      "sha256": "4a5abfbfc6ab09d0ba7ab01dd65bcacea2598abcb07fa12a7da1ffcbbba47606",
+      "bytes": 32061,
+      "generatedFrom": {
+        "commit": "a0c69f16b98c1341c8b1c99dd1ba8e4cdbeeecf4",
+        "command": "alembic upgrade 0015_context_privacy:0018_app_feedback --sql"
+      }
     }
   ]
 }
