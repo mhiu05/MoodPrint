@@ -1,0 +1,87 @@
+.home {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: 1rem;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}
+
+.home-main {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-8);
+  width: min(100%, 25rem);
+  margin: auto;
+  padding-block: var(--space-8);
+}
+
+.home-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-primary);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.home-entry {
+  display: grid;
+  gap: var(--space-6);
+  width: 100%;
+  text-align: center;
+}
+
+.home-entry h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  line-height: 1.2;
+}
+
+.home-actions,
+.home-account-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.home-actions > .home-trial,
+.home-actions > .home-continue,
+.home-actions > .home-account-actions {
+  grid-column: 1 / -1;
+}
+
+.home-actions > .home-trial {
+  transition-property: border-color;
+}
+
+.home-actions > a,
+.home-account-actions > a {
+  min-height: var(--target-min);
+}
+
+.home-status {
+  min-height: 1.4em;
+  margin: 0;
+}
+
+.home a:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+@media (max-width: 360px) {
+  .home-account-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home * {
+    scroll-behavior: auto !important;
+    transition-duration: var(--duration-reduced) !important;
+  }
+}

@@ -82,10 +82,10 @@ test("resolved reports show a Vietnamese outcome instead of the raw enum", async
   await expect(page.getByText(/warned|mystery/)).toHaveCount(0);
 });
 
-test("the first AI send explains the consent it records, next to Send", async ({ page }) => {
+test("the AI composer has no consent hurdle for legacy disabled flags", async ({ page }) => {
   await app(page, sessionWith({ AI: false }));
   await page.goto("/#/assistants/may");
-  await expect(page.getByText("Khi chọn Gửi, bạn đồng ý để dịch vụ AI xử lý tin nhắn này. Bạn có thể rút quyền trong Quyền riêng tư.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Khi chọn Gửi, bạn đồng ý để dịch vụ AI xử lý tin nhắn này. Bạn có thể rút quyền trong Quyền riêng tư.", { exact: true })).toHaveCount(0);
 });
 
 test("an unavailable AI service is not sent to Settings for a fix that does not exist there", async ({ page }) => {
@@ -645,45 +645,17 @@ test("a reply arriving while someone reads older messages does not move them, an
 });
 
 // ---- Privacy and memory comprehension (V-PRIVACY-COPY / V-MEMORY / V-DATA-DELETE) ----
-test.describe("privacy and memory comprehension", () => {
+test.describe("personal account and memory comprehension", () => {
   const prefs = { historyEnabled: false, semanticMemoryEnabled: false, version: 1, policyVersion: "ai-data-v1", retentionDays: 30, historyAvailable: true, semanticMemoryAvailable: true };
 
-  test("privacy is five named sections, each with its own withdrawal and real way back", async ({ page }) => {
+  test("personal settings replace privacy switches with account actions", async ({ page }) => {
     await app(page, sessionWith({ AI: true, MEM: false, MATCH: true, VOICE: false }), { "/ai/preferences": () => ({ json: prefs }) });
     await page.goto("/#/settings");
-    await expect(page.getByRole("heading", { level: 2 })).toContainText([
-      "Tin nhắn AI", "Lịch sử trò chuyện", "Thông tin AI ghi nhớ", "Hồ sơ và kết nối", "Xóa dữ liệu",
-    ]);
-    const ai = page.getByRole("region", { name: "Tin nhắn AI" });
-    await expect(ai.getByRole("button", { name: "Rút quyền trò chuyện AI" })).toBeVisible();
-    const memory = page.getByRole("region", { name: "Thông tin AI ghi nhớ" });
-    // MEM is off: no enable toggle is invented, the real path is approving a proposal.
-    await expect(memory).toContainText("duyệt một đề xuất mới");
-    await expect(memory.getByRole("button", { name: /Bật/ })).toHaveCount(0);
-    await expect(page.getByRole("region", { name: "Hồ sơ và kết nối" }).getByRole("button", { name: "Rút quyền tìm bạn" })).toBeVisible();
-  });
-
-  test("with AI withdrawn the section explains that sending a message is how to resume", async ({ page }) => {
-    await app(page, sessionWith({ AI: false, MEM: false }), { "/ai/preferences": () => ({ json: prefs }) });
-    await page.goto("/#/settings");
-    const ai = page.getByRole("region", { name: "Tin nhắn AI" });
-    await expect(ai).toContainText("chọn Gửi");
-    await expect(ai.getByRole("link", { name: "Mở trợ lý" })).toHaveAttribute("href", "#/assistants");
-    await expect(ai.getByRole("button")).toHaveCount(0);
-  });
-
-  test("external memory lookup uses a plain label and discloses Voyage and its data scope on request", async ({ page }) => {
-    await app(page, sessionWith({ AI: true, MEM: true }), { "/ai/preferences": () => ({ json: prefs }) });
-    await page.goto("/#/settings");
-    const toggle = page.getByRole("checkbox", { name: "Giúp trợ lý tìm lại ghi nhớ liên quan" });
-    await expect(toggle).toBeVisible();
-    await expect(toggle).not.toBeChecked();
-    await page.getByText("Xem cách dữ liệu được xử lý", { exact: true }).click();
-    const disclosure = page.locator("details", { hasText: "Xem cách dữ liệu được xử lý" });
-    await expect(disclosure).toContainText("Voyage");
-    await expect(disclosure).toContainText("ghi nhớ bạn đã duyệt");
-    await expect(disclosure).toContainText("không được gửi tới Voyage");
-    await expect(page.getByText(/ngữ nghĩa|dẫn xuất/)).toHaveCount(0);
+    await expect(page).toHaveURL(/#\/profile$/);
+    await expect(page.getByRole("heading", { name: "Cá nhân", exact: true })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Tài khoản & hỗ trợ" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Rút quyền/ })).toHaveCount(0);
+    await expect(page.getByRole("checkbox", { name: "Lưu lịch sử trò chuyện" })).toHaveCount(0);
   });
 
   test("memory separates proposals waiting for review from approved items", async ({ page }) => {
@@ -715,12 +687,9 @@ test.describe("privacy and memory comprehension", () => {
     await expect(page.getByText("Thích đi bộ", { exact: true })).toBeVisible();
   });
 
-  test("data deletion dialogs focus the keep action first", async ({ page }) => {
+  test("account deletion dialog focuses the keep action first", async ({ page }) => {
     await app(page, sessionWith({}), { "/ai/preferences": () => ({ json: prefs }) });
     await page.goto("/#/settings");
-    await page.getByRole("button", { name: "Xóa dữ liệu đã chọn", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Giữ dữ liệu", exact: true })).toBeFocused();
-    await page.keyboard.press("Escape");
     await page.getByRole("button", { name: "Xóa tài khoản", exact: true }).click();
     await expect(page.getByRole("button", { name: "Giữ tài khoản", exact: true })).toBeFocused();
   });
@@ -927,9 +896,9 @@ test.describe("accessibility sweep", () => {
       });
       const results: Record<string, string[]> = {};
       for (const [name, url, ready] of [
-        ["assistants", "/#/assistants", "Bạn muốn chia sẻ"],
+        ["assistants", "/#/assistants", "Chọn một trợ lý"],
         ["chat", `/#/assistants/may?conversation=${CONV}`, "Một điều nhỏ"],
-        ["settings", "/#/settings", "Tin nhắn AI"],
+        ["profile", "/#/profile", "Cá nhân"],
         ["memory", "/#/memory", "Đề xuất chờ duyệt"],
         ["messages", "/#/messages", "Tin nhắn"],
         ["mood", "/#/self/daily", "Tâm trạng"],
@@ -966,7 +935,7 @@ test.describe("accessibility sweep", () => {
     await expect(page.getByRole("textbox", { name: "Tin nhắn cho Mây" })).toBeEditable();
   });
 
-  test("ordinary buttons on the redesigned chat, info and privacy screens are at least 44px tall", async ({ page }) => {
+  test("ordinary buttons on the redesigned chat, info and personal screens are at least 44px tall", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await savedChat(page);
     const small = async () => page.evaluate(() =>
@@ -978,11 +947,11 @@ test.describe("accessibility sweep", () => {
     await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
     expect(await small()).toEqual([]);
     await page.goto("/#/settings");
-    await expect(page.getByRole("heading", { name: "Tin nhắn AI" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Cá nhân", exact: true })).toBeVisible();
     expect(await small()).toEqual([]);
   });
 
-  test("200% text keeps the chat and privacy screens readable without sideways scrolling", async ({ page }) => {
+  test("200% text keeps the chat and personal screens readable without sideways scrolling", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await savedChat(page);
     await page.addStyleTag({ content: "html { font-size: 200% !important; } body { font-size: 2rem !important; }" });
@@ -993,7 +962,7 @@ test.describe("accessibility sweep", () => {
     await page.keyboard.press("Escape");
     await page.goto("/#/settings");
     await page.addStyleTag({ content: "html { font-size: 200% !important; } body { font-size: 2rem !important; }" });
-    await expect(page.getByRole("heading", { name: "Tin nhắn AI" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Cá nhân", exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
   });
 });
@@ -1077,8 +1046,8 @@ test.describe("final review regressions", () => {
     await page.waitForTimeout(300);
     await page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("link", { name: "Cá nhân" }).click();
     held();
-    await page.getByRole("button", { name: "Quyền riêng tư" }).or(page.getByRole("link", { name: "Quyền riêng tư" })).first().click();
-    await expect(page.getByRole("region", { name: "Tin nhắn AI" }).getByRole("button", { name: "Rút quyền trò chuyện AI" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Cá nhân", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Đăng xuất", exact: true })).toBeVisible();
   });
 
   for (const action of ["Đổi tên", "Mở lịch sử trò chuyện"]) {

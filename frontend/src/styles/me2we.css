@@ -180,16 +180,6 @@ button {
 .roster-brand span[class*="brandDot"] {
   margin-left: -5px;
 }
-.roster-heading h1 {
-  font-size: 1.625rem;
-  line-height: 1.25;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  margin-bottom: 16px;
-}
-.roster-heading h1 span {
-  color: #5b7564;
-}
 .bot-search {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
@@ -223,7 +213,7 @@ button {
   gap: 8px;
   margin-bottom: 8px;
 }
-.roster-section-label h2 {
+.roster-section-label h1 {
   font-size: var(--text-label);
   margin: 0;
 }
@@ -293,14 +283,6 @@ button {
   font-size: var(--text-meta);
   color: var(--color-muted);
   margin: 2px 0;
-}
-/* Descriptions wrap: they are how people tell the assistants apart. */
-.bot-row-text p {
-  margin: 0;
-  color: var(--color-muted);
-  font-size: var(--text-support);
-  line-height: 1.5;
-  overflow-wrap: anywhere;
 }
 .roster-arrow {
   display: none;
