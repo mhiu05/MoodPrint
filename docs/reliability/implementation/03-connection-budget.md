@@ -10,7 +10,7 @@ Một process API dùng `pool_size` 5 và `max_overflow` 2, tức tối đa 7 k�
 
 Code mặc định và file mẫu `backend/.env.example`, `deploy/runtime.env.example` đã chuyển sang 5 + 2. Process khởi động sẽ log `database_pool_exceeds_headroom` nếu 5 + 2 không còn đủ chỗ khi tính hai process.
 
-Runtime thật trên EC2 nằm trong SSM, không nằm trong Git. Deploy bản này mà không sửa `DATABASE_POOL_OVERFLOW` thì process vẫn dùng giá trị cũ nếu biến đó được set.
+Runtime trên EC2 `i-0664d6ea5930452db`, đọc ngày 2026-10-30, vẫn là `DATABASE_POOL_SIZE=5` và `DATABASE_POOL_OVERFLOW=5`. SHA đang chạy là `57b3f7fbf91967f329a80fd344421f24ff6c5e52`. Chi tiết ở [11-aws-runtime.md](11-aws-runtime.md). File mẫu trong Git đã là 5+2 nhưng chưa được ghi vào runtime đang chạy.
 
 Không tăng số worker Uvicorn.
 
