@@ -101,6 +101,15 @@
         "commit": "a0c69f16b98c1341c8b1c99dd1ba8e4cdbeeecf4",
         "command": "alembic upgrade 0015_context_privacy:0018_app_feedback --sql"
       }
+    },
+    {
+      "path": "0019-review.sql",
+      "sha256": "6062c0c8d86a12aaab56e0db0d39ce23f2fffa6543092ce417ac15e4623f2535",
+      "bytes": 5596,
+      "generatedFrom": {
+        "commit": "15d212a2d3061905cf6accf2838ecf1589ee9243",
+        "command": "alembic upgrade 0018_app_feedback:0019_journal --sql"
+      }
     }
   ]
 }

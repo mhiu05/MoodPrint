@@ -11,10 +11,11 @@ Verdict: **READY_FOR_REVIEW**. Not ready for production release.
 
 ## Not ready for release
 
-1. Hosted migration `0019_journal` is **BLOCKED**. The deployed application accepts only `0018_app_feedback`. See [17](17-hosted-migration-verification.md).
-2. Authenticated export routes remain. See [19](19-export-removal-audit.md).
-3. The new Nhịp payload assertion and the updated fullstack export journeys were not re-run against PostgreSQL here.
-4. No production image was built or deployed. Do not merge this branch only to migrate the database.
+1. Hosted migration `0019_journal` is still **not applied**. The deployed application accepts only `0018_app_feedback`. Compatibility pull request [#24](https://github.com/mhiu05/MoodPrint/pull/24) must be merged and confirmed live before any hosted DDL. See [17](17-hosted-migration-verification.md).
+2. The reviewed `0019` artifact is pinned and a restored copy rehearsed the upgrade with existing rows preserved. Provider daily backups are still empty and PITR is off; the recovery artifact is the logical dump, not a WAL-G restore.
+3. Authenticated export routes remain. See [19](19-export-removal-audit.md).
+4. The new Nhịp payload assertion and the updated fullstack export journeys were not re-run against PostgreSQL here.
+5. No production image of this branch was built or deployed. Do not merge this branch while the database is still `0018_app_feedback`.
 
 ## Release order when authorized
 
@@ -30,4 +31,4 @@ Verdict: **READY_FOR_REVIEW**. Not ready for production release.
 - Production readiness fails if 0019 is applied before the new application is the one being served.
 - Production journal routes fail if this application is served before 0019 exists.
 - People who relied on the settings download no longer have a button. The API still performs an owner-scoped copy until a later decision removes it.
-- WAL-G is enabled, but the backup list returned no restorable item and PITR is off. That is not a rehearsed restore.
+- WAL-G is enabled, but the backup list is still empty and PITR is off. Recovery of the application schema was rehearsed from the logical dump. That does not restore Storage objects or Supabase-managed schemas.
