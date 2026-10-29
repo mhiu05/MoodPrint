@@ -32,7 +32,7 @@ Spec: `docs/diary/requirements.md`. Baseline `9ca7fc8`.
 | D05 | PASS | `/self`, `/self/calendar`, `/self/memories`, `/self/entry/:id`, `/self/companion`; legacy `/self/daily`. Generated API aliases; editor/draft/media/recording and recovery. |
 | D06 | PASS | Existing Nhịp-only bounded saved-entry tool, validated source IDs/revisions, safe internal links, current-run-only derived context; historical mood notes remain excluded. |
 | D07 | PASS | Fourteen durable PNGs, six widths, axe checks and fresh Impeccable visual review `ship`; tokens and shell preserved. |
-| D08 | PARTIAL | Logical implementation commits created; regression findings repaired and post-fix groups pass. Draft PR finishing remains in progress at this checkpoint. |
+| D08 | PASS for review handoff | Logical commits pushed and [Draft PR23](https://github.com/mhiu05/MoodPrint/pull/23) opened against main. Regression findings repaired and post-fix groups pass; CI is the final complete-suite gate. No merge or deploy. |
 
 ## Verification results
 
@@ -73,3 +73,7 @@ The user explicitly requested creation of the connected project's bucket during 
 Live OpenAI reflection quality and hosted BFF/Auth/application-schema integration remain unverified; they require an authorized staging release. The hosted bucket check is not a claim that0019has been deployed. Existing policy choices for memory/history/embedding/VOICE remain intact. Retention is90account-local days; export contains content/metadata, not binary copies. Signed read/upload expiry and delayed remote deletion are documented in07and the Storage runbook.
 
 An external `.gitignore` modification appeared after initial audit. It was not written or staged by this work and remains in the user's working tree. No skill/agent configuration was overwritten; no main merge, production deployment, force-push or destructive user-data operation occurred.
+
+## Final handoff
+
+Verdict: **READY_FOR_REVIEW**. Branch `feat/diary-experience-v2`, base `9ca7fc8`; [Draft PR23](https://github.com/mhiu05/MoodPrint/pull/23). The [final report](15-final-report.md) records features, files, test limits, production prerequisites and rollback. Complete post-fix CI and hosted staging gates remain explicit review/release work, not fabricated PASS results.
