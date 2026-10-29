@@ -29,6 +29,8 @@ from app.infrastructure.database.models import (
 )
 from app.modules.guests.deadlines import guest_deadline
 from app.modules.guests.service import cleared_response, end_guest
+from app.modules.journal.models import JournalEntry
+from app.modules.journal.service import active_dates, entries_dto
 from app.modules.users.export import consent_section, social_section
 from app.modules.users.models import DataJob
 from app.modules.users.schemas import DataJobView, DeletionInput, ExportInput
@@ -158,6 +160,25 @@ async def export(body: ExportInput, request: Request, actor: Actor = Depends(req
                 )
             result[target] = [
                 schema.model_validate(item).model_dump(mode="json", by_alias=True) for item in rows
+            ]
+        if "journal" in body.scopes:
+            start, end = active_dates(user)
+            rows = (
+                await db.scalars(
+                    select(JournalEntry)
+                    .where(
+                        JournalEntry.user_id == user.id,
+                        JournalEntry.local_date >= start,
+                        JournalEntry.local_date <= end,
+                    )
+                    .order_by(JournalEntry.local_date, JournalEntry.created_at, JournalEntry.id)
+                    .limit(1001)
+                )
+            ).all()
+            if len(rows) > 1000:
+                raise DomainError(503, "EXPORT_TOO_LARGE", "Phạm vi xuất quá lớn.")
+            result["journal"] = [
+                dto.model_dump(mode="json", by_alias=True) for dto in await entries_dto(db, list(rows))
             ]
         if "consents" in body.scopes:
             result["consents"] = await consent_section(db, user)

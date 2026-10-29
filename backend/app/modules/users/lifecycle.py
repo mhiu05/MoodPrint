@@ -19,6 +19,7 @@ from app.infrastructure.database.models import (
     now,
 )
 from app.modules.feedback.models import FeedbackSubmissionReceipt
+from app.modules.journal.service import purge_owned_journal
 from app.modules.moderation.models import IdentityField, RevealAccess
 from app.modules.social.models import (
     Connection,
@@ -88,7 +89,7 @@ async def process_deletions(app):
             return
         scopes = {job.scope}
         if job.scope in ("all_private", "account"):
-            scopes = {"memories", "moods", "private_items", "identity", "matching"}
+            scopes = {"memories", "moods", "journal", "private_items", "identity", "matching"}
             from app.ai.models import AiConversation, AiPreference, AiTurn
 
             await db.execute(delete(AiConversation).where(AiConversation.user_id == uid))
@@ -115,6 +116,8 @@ async def process_deletions(app):
             await db.execute(delete(PrivateItem).where(PrivateItem.user_id == uid))
         if "moods" in scopes:
             await db.execute(delete(Mood).where(Mood.user_id == uid))
+        if "journal" in scopes:
+            await purge_owned_journal(db, uid)
         if "identity" in scopes:
             await db.execute(
                 update(RevealAccess)

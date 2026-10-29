@@ -12,6 +12,7 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 | `DATABASE_POOL_MODE` | `Literal['direct', 'session', 'transaction']` | `'session'` |
 | `SUPABASE_URL` | `str` | `''` |
 | `SUPABASE_PUBLISHABLE_KEY` | `SecretStr` | `SecretStr('')` |
+| `JOURNAL_STORAGE_KEY` | `SecretStr` | `SecretStr('')` |
 | `FRONTEND_ORIGIN` | `str` | `'http://127.0.0.1:5173'` |
 | `COOKIE_SECURE` | `bool` | `False` |
 | `OPENAI_API_KEY` | `SecretStr` | `SecretStr('')` |
@@ -78,6 +79,7 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 ## Nhóm vận hành
 
 - **Database:** runtime URL dùng role tối thiểu; migration URL dùng owner riêng. `DATABASE_POOL_MODE` ghi nhận lựa chọn topology; connection implementation vẫn cần đối chiếu endpoint/pooling thực tế. Prepared statements bị tắt ở connection layer.
+- **Journal media:** `JOURNAL_STORAGE_KEY` là credential phía server cho bucket riêng tư `journal-media`; không dùng biến `VITE_`, không đưa vào session hoặc log. Thiếu key vẫn lưu nhật ký chữ/bản nháp được; media trả lỗi có thể thử lại. Xem [Storage nhật ký](../supabase/journal-storage.md).
 - **AI:** `AI_ENABLED`, model/key, concurrency/rate/timeout; daily USD budget cần accounting. `AI_LOCAL_TEST_USER_IDS` chỉ được phép ở development, không phải production bypass.
 - **History:** `CHAT_HISTORY_ENABLED` và retention là capability global; preference mặc định của user vẫn tắt.
 - **Embedding:** Voyage credentials + semantic capability + user opt-in/MEM. `PROVIDER_FORCE_IPV4` chỉ dùng xử lý network khi cần, không thay authorization.

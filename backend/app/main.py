@@ -35,7 +35,8 @@ def warn_unenforced_budget(config) -> None:
 def create_app(settings: Settings | None = None) -> FastAPI:
     config = settings or Settings()
     warn_unenforced_budget(config)
-    shell_policy = content_security_policy(bool(config.guest_captcha_site_key))
+    shell_policy = content_security_policy(bool(config.guest_captcha_site_key),
+        storage_origin=config.supabase_url if config.journal_storage_key.get_secret_value() else "")
     database = Database(config)
 
     @asynccontextmanager
@@ -159,14 +160,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
         sweeper = asyncio.create_task(sweep_context())
         indexer = asyncio.create_task(embedding_worker())
+        async def journal_worker():
+            from app.modules.journal.storage import process_storage_cleanup
+            while True:
+                try:
+                    await process_storage_cleanup(app)
+                except Exception as error:
+                    logging.getLogger("moodprint").error("journal_cleanup_failed error_type=%s", type(error).__name__)
+                await asyncio.sleep(60)
+
         guests = asyncio.create_task(guest_worker())
+        journal_cleanup = asyncio.create_task(journal_worker())
         try:
             yield
         finally:
             sweeper.cancel()
             indexer.cancel()
             guests.cancel()
-            await asyncio.gather(sweeper, indexer, guests, return_exceptions=True)
+            journal_cleanup.cancel()
+            await asyncio.gather(sweeper, indexer, guests, journal_cleanup, return_exceptions=True)
             await app.state.ai.close()
             if database.engine:
                 await database.engine.dispose()
@@ -186,6 +198,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings, app.state.database = config, database
     app.state.ai = AiRuntime(config, database)
     app.state.exports = {}
+    from app.modules.journal.storage import SupabaseJournalStorage
+    storage = SupabaseJournalStorage(config)
+    app.state.journal_storage = storage if storage.available else None
     app.state.http_requests = 0
     from app.modules.voice.service import OpenAITranscriber
 
@@ -295,6 +310,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from app.modules.feedback.admin_routes import router as feedback_admin
     from app.modules.feedback.routes import router as feedback
     from app.modules.guests.routes import router as guests
+    from app.modules.journal.media_routes import router as journal_media
+    from app.modules.journal.routes import router as journal
     from app.modules.moderation.admin_routes import router as moderation_admin
     from app.modules.moderation.routes import router as moderation
     from app.modules.mood.routes import router as mood
@@ -313,6 +330,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         consent,
         profiles,
         mood,
+        journal,
+        journal_media,
         ai,
         memory,
         social,
@@ -351,7 +370,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 CAPTCHA_ORIGIN = "https://challenges.cloudflare.com"
 
 
-def content_security_policy(captcha: bool = False) -> str:
+def content_security_policy(captcha: bool = False, *, storage_origin: str = "") -> str:
     """Strict same-origin policy; the CAPTCHA origin is added only while a site key is configured.
 
     With the guest entry disabled (no key) nothing third-party can load. When enabled the challenge
@@ -359,9 +378,11 @@ def content_security_policy(captcha: bool = False) -> str:
     """
     extra = f" {CAPTCHA_ORIGIN}" if captcha else ""
     frame = f"frame-src {CAPTCHA_ORIGIN}; " if captcha else ""
+    from app.modules.journal.storage import storage_origins
+    storage = "".join(f" {origin}" for origin in storage_origins(storage_origin))
     return (
         f"default-src 'self'; script-src 'self'{extra}; style-src 'self'; "
-        f"img-src 'self' data: blob:; connect-src 'self'{extra}; media-src 'self' blob:; "
+        f"img-src 'self' data: blob:{storage}; connect-src 'self'{extra}{storage}; media-src 'self' blob:{storage}; "
         f"{frame}worker-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; "
         "form-action 'self'; frame-ancestors 'none'"
     )
