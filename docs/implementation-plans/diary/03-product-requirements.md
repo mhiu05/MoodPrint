@@ -1,5 +1,7 @@
 # Product requirements
 
+Current implementation: **PASS for the scoped local product flows**. Evidence, hosted Storage verification and remaining live-provider/release gates are in [14](14-implementation-progress.md); the NOT_STARTED label below describes the planning checkpoint.
+
 Status: NOT_STARTED at planning. Product decisions come from the supplied requirements; implementation choices are recorded here.
 
 | ID | Priority | Requirement / acceptance |

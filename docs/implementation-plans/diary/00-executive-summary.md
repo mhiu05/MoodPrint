@@ -1,5 +1,7 @@
 # Diary Experience V2 implementation plan
 
+Implementation checkpoint: D01?D07 are implemented and locally verified; D08 finishing is recorded in the [current ledger](14-implementation-progress.md). The original planning baseline below is preserved.
+
 Date: 2026-10-29. Base: `9ca7fc8`, branch: `feat/diary-experience-v2`.
 
 **Goal:** a private Vietnamese journal with multiple moments per day, text and media, a calendar, timeline, and evidence-backed help from the existing Nhịp.

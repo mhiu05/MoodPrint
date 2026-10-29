@@ -1,5 +1,7 @@
 # Release and rollback
 
+Current release checkpoint: feature commits exist; Draft PR finishing is recorded in [14](14-implementation-progress.md). No merge/deploy/application production migration occurred. Hosted bucket provisioning was separately authorized and documented in the [Storage runbook](../../supabase/journal-storage.md).
+
 Status: NOT_STARTED. This task ends at a Draft PR; merging, deploying and production mutations are explicitly unauthorized.
 
 ## Reviewable change sequence

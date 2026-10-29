@@ -1,5 +1,7 @@
 # Frontend architecture
 
+Current implementation: **PASS**. Actual consolidated component paths are mapped in [09](09-design-system-and-gsap.md); [14](14-implementation-progress.md) records browser/fullstack results. The architecture below is the committed planning baseline.
+
 Status: NOT_STARTED. Extend React Router within `features/real/RealApp.tsx`; retain `useSession`, `ErrorNotice`, `Button`, `Dialog`, tour draft blocker and shell navigation.
 
 | Target | Responsibility |

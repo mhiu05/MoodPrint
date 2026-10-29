@@ -1,5 +1,7 @@
 # Database and migrations
 
+Current implementation: **PASS for local migration/ACL/schema verification**. `0019_journal.py` exists and preserves Mood data. Hosted application migration remains NOT_STARTED by design; see [14](14-implementation-progress.md).
+
 Status: NOT_STARTED. Add Alembic `0019_journal` after `0018_app_feedback`; leave all historical rows and prior reviewed artifacts intact.
 
 ## Schema

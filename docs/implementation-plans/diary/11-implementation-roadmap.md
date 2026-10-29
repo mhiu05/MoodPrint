@@ -1,5 +1,7 @@
 # Diary V2 implementation roadmap
 
+Execution checkpoint: D01?D07 **PASS**, D08 finishing **PARTIAL**. The task table below preserves its initial planning statuses; [14](14-implementation-progress.md) is the authoritative execution ledger.
+
 > For agentic workers: execute test-first; use `executing-plans` for inline work and bounded parallel domain work under `dispatching-parallel-agents`. Track actual results in14. The user explicitly authorized continuous execution in the current checkout.
 
 **Goal:** implement the six experiences without weakening existing privacy or losing historical mood data.

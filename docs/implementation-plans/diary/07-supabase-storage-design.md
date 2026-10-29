@@ -1,5 +1,7 @@
 # Supabase Storage design
 
+Current implementation: **PASS for private bucket and Storage adapter verification**. The user explicitly authorized bucket provisioning in a follow-up; the bucket exists and PNG/WAV/WebM/TUS smoke passed. [Actual policy/configuration](../../supabase/journal-storage.md) and [14](14-implementation-progress.md) supersede planning-only provisioning statements below.
+
 Status: NOT_STARTED; hosted integration remains unverified until configured in an authorized non-production environment.
 
 Private bucket `journal-media`; paths derived by backend: `users/{app_user_uuid}/{entry_uuid}/{image|audio|video}/{media_uuid}.{safe_extension}`. Ignore original filename for object identity. MIME allowlist excludes executable content/SVG. Initial per-file maxima: image10/audio20/video50 MiB; bucket global maximum at least50 MiB. Ten active attachments/entry; browser uploads one at a time to bound bandwidth and retry scope.

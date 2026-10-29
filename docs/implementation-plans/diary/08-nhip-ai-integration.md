@@ -1,5 +1,7 @@
 # Nhịp journal integration
 
+Current implementation: **PASS for owner/evidence/privacy/SDK synthetic verification**. Live-model reflection quality remains unverified. Implemented files and exact test results are in [14](14-implementation-progress.md).
+
 Status: NOT_STARTED. Extend `backend/app/ai/runtime.py::tools`, `provider.py`, `context.py` and private source-evidence types. Do not create a replacement assistant.
 
 ## Authorization and bounded retrieval

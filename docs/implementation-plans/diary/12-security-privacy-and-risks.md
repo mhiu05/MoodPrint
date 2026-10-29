@@ -1,5 +1,7 @@
 # Security, privacy and risks
 
+Current implementation: **PASS for scoped owner/privacy fences and synthetic adversarial checks**; hosted backup/deployment/live-model gates remain unverified. See [14](14-implementation-progress.md) for the concrete results and authorized bucket exception.
+
 Status: NOT_STARTED (implementation), PASS (risk audit). Existing mood notes explicitly promise not to be sent to AI. Journal V2 therefore uses a new table and clear notice, never a migration that silently shares old notes.
 
 | Risk | Required control / evidence |

@@ -1,5 +1,7 @@
 # Backend and API design
 
+Current implementation: **PASS**. All nine journal/media operations are registered in `backend/app/modules/journal/{routes,media_routes}.py` and generated contracts; [14](14-implementation-progress.md) records authorization/receipt tests.
+
 Status: NOT_STARTED. New module: `backend/app/modules/journal/` with models, schemas, service, routes and Storage adapter/routes. Register router under existing `/api/v1` in `app/main.py`.
 
 ## Contract

@@ -1,5 +1,7 @@
 # Testing and visual QA
 
+Current verification: **PARTIAL until final backend follow-up and PR finishing are recorded**. The [ledger](14-implementation-progress.md) distinguishes passing browser/Storage/component checks from whole-suite failures and post-fix reruns. Do not read the planning NOT_STARTED labels below as final evidence.
+
 Status: NOT_STARTED. Every PASS below requires a recorded command and result in14. Synthetic data only. Local PostgreSQL database names must end `_test`; never use backend/.env database as test target.
 
 | Layer | Required behavior / command |
