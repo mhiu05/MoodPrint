@@ -97,6 +97,11 @@ const MessageMarkdown = lazy(() => import("./MessageMarkdown"));
 const FeedbackPage = lazy(() => import("../feedback/FeedbackPage"));
 const FeedbackAdmin = lazy(() => import("./admin/Feedback"));
 const TourController = lazy(() => import("../onboarding/TourController"));
+const JournalPage = lazy(() => import("./journal/JournalPage").then(module => ({ default: module.JournalPage })));
+const JournalCompanion = lazy(() => import("./journal/JournalPage").then(module => ({ default: module.JournalCompanion })));
+const JournalCalendar = lazy(() => import("./journal/JournalCalendar").then(module => ({ default: module.JournalCalendar })));
+const JournalTimeline = lazy(() => import("./journal/JournalTimeline").then(module => ({ default: module.JournalTimeline })));
+const JournalEntryDetail = lazy(() => import("./journal/JournalEntryDetail").then(module => ({ default: module.JournalEntryDetail })));
 
 type SessionContextValue = {
   api: ApiClient;
@@ -627,7 +632,12 @@ function Shell() {
               <Route path="/assistants" element={<Assistants />} />
               <Route path="/assistants/:botId" element={<Assistants />} />
               <Route path="/settings" element={<Settings onGuide={() => setGuideOpen(true)} />} />
-              <Route path="/self" element={<Moods />} />
+              <Route path="/self" element={<Suspense fallback={<p role="status">Đang mở nhật ký…</p>}><JournalPage /></Suspense>} />
+              <Route path="/self/calendar" element={<Suspense fallback={<p role="status">Đang mở lịch nhật ký…</p>}><JournalCalendar /></Suspense>} />
+              <Route path="/self/memories" element={<Suspense fallback={<p role="status">Đang mở khoảnh khắc…</p>}><JournalTimeline /></Suspense>} />
+              <Route path="/self/entry/:id" element={<Suspense fallback={<p role="status">Đang mở khoảnh khắc…</p>}><JournalEntryDetail /></Suspense>} />
+              <Route path="/self/companion" element={<Suspense fallback={<p role="status">Đang mở Nhịp…</p>}><JournalCompanion /></Suspense>} />
+              <Route path="/self/daily" element={<Moods />} />
               <Route path="/profile" element={<PrivateProfile />} />
               <Route path="/memory" element={<ApprovedMemories />} />
               <Route path="/connect" element={session.accountKind === "guest" ? <GuestLocked /> : <Discovery />} />
@@ -1077,7 +1087,14 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         id = headers.find(value => value.botId === bot.botId && (!value.persistent || preferences?.historyEnabled))?.conversationId || null;
       }
       if (controller.signal.aborted) return;
-      if (!id) { setReady(true); return; }
+      if (!id) {
+        const suggested = searchParams.get("journalPrompt");
+        if (bot.botId === "nhip" && suggested && !selectedId && searchParams.has("new")) {
+          editDraft(suggested.slice(0, 500));
+          setDraftNotice("Gợi ý đã được điền. Bạn có thể sửa rồi chọn gửi cho Nhịp.");
+        }
+        setReady(true); return;
+      }
       const value = await api.request<SavedConversation>(`/ai/conversations/${encodeURIComponent(id)}`, { signal: controller.signal });
       if (controller.signal.aborted) return;
       if (value.botId !== bot.botId) throw new ApiError(409, "CONVERSATION_BOT_MISMATCH", "Cuộc trò chuyện thuộc trợ lý khác. Chọn lại trong lịch sử.");

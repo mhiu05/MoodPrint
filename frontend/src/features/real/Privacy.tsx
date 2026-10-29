@@ -10,7 +10,8 @@ type Job = components["schemas"]["DataJobView"];
 type Scope = components["schemas"]["DeletionInput"]["scope"];
 const choices = {
   memories: "Thông tin AI ghi nhớ",
-  moods: "Nhật ký tâm trạng",
+  moods: "Tâm trạng theo ngày trước đây",
+  journal: "Nhật ký và tệp đính kèm",
   private_items: "Mục trong hồ sơ riêng",
   all_private: "Toàn bộ dữ liệu riêng và hồ sơ tìm bạn",
 } as const;
@@ -86,6 +87,7 @@ export function DataControls() {
             "private_items",
             "memories",
             "moods",
+            "journal",
             "consents",
             ...(!guest ? ["social"] : []),
           ],

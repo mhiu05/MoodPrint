@@ -185,7 +185,7 @@ test("draft start refuses navigation and keeps the real mood draft", async ({ pa
   const mutations = await setup(page);
   await open(page);
   await page.getByRole("link", { name: "Cảm xúc", exact: true }).click();
-  const note = page.locator("#mood-note");
+  const note = page.locator("#journal-text");
   await note.fill("private-draft-stays-here");
   await page.getByRole("button", { name: "Bắt đầu hướng dẫn", exact: true }).click();
   await expect(page.getByText("Hãy hoàn tất hoặc đóng thao tác hiện tại rồi mở hướng dẫn.", { exact: true })).toBeVisible();
@@ -242,13 +242,13 @@ test("pending microphone permission refuses guidance without requesting transcri
   expect(mutations).toEqual([]);
 });
 
-test("loading a saved mood never invents an unsaved draft blocker", async ({ page }) => {
+test("loading saved journal metadata never invents an unsaved draft blocker", async ({ page }) => {
   await setup(page);
   await page.route("**/api/v1/moods", (route) => route.fulfill({ json: [{ localDate: "2026-10-23", value: 5, note: "saved-private-canary", timezone: "Asia/Bangkok", version: 1 }] }));
   await open(page);
   await page.getByRole("button", { name: "Bắt đầu hướng dẫn", exact: true }).click();
   await page.getByRole("button", { name: "Tiếp", exact: true }).click();
-  await expect(page.locator("#mood-note")).toHaveValue("saved-private-canary");
+  await expect(page.locator("#journal-text")).toHaveValue("");
   await expect(page.getByText("Bước 2/4", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Tiếp", exact: true })).toBeEnabled();
   await expect(page.getByText("Hãy hoàn tất hoặc đóng thao tác hiện tại rồi mở hướng dẫn.", { exact: true })).toHaveCount(0);

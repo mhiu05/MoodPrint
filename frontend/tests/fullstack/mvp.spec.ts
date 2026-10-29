@@ -90,7 +90,7 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
   const page = await context.newPage();
   const now = (await call(context, 10, "GET", "/session")).body.serverTime;
   const today = localDay(now);
-  await page.goto("/#/self");
+  await page.goto("/#/self/daily");
   await expect(
     page.getByText("Chưa có ghi chép. Bạn có thể bắt đầu từ hôm nay."),
   ).toBeVisible();
@@ -454,7 +454,7 @@ test("Journey F: mood, matching and chat stay usable at 390px and 430px with the
   await session(b, 19);
   const one = await a.newPage(),
     two = await b.newPage();
-  await one.goto("/#/self");
+  await one.goto("/#/self/daily");
   await one.getByLabel("Ghi chú", { exact: true }).fill("Ghi trên điện thoại");
   await one.getByRole("button", { name: "Lưu tâm trạng", exact: true }).click();
   await expect(

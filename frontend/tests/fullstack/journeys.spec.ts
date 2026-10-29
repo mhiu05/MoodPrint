@@ -224,7 +224,7 @@ test("real FastAPI/PostgreSQL preserves private records and mood, streams throug
   await expect(
     two.getByText("Mình thích những buổi sáng yên tĩnh", { exact: true }),
   ).toHaveCount(0);
-  await one.goto("/#/self");
+  await one.goto("/#/self/daily");
   await one
     .getByRole("textbox", { name: "Ghi chú", exact: true })
     .fill("Một ngày bình yên");

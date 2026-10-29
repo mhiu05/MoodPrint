@@ -891,7 +891,7 @@ test.describe("personal journeys", () => {
       saved = { localDate: "2026-10-23", value: body.value, note: body.note, version: 1 };
       return route.fulfill({ json: saved });
     });
-    await page.goto("/#/self");
+    await page.goto("/#/self/daily");
     await page.getByLabel("Tâm trạng", { exact: true }).selectOption("4");
     await page.getByRole("button", { name: "Lưu tâm trạng", exact: true }).click();
     await expect(page.getByText("Đã lưu cảm xúc ngày 23/10/2026.", { exact: true })).toBeVisible();
@@ -931,7 +931,7 @@ test.describe("accessibility sweep", () => {
         ["settings", "/#/settings", "Tin nhắn AI"],
         ["memory", "/#/memory", "Đề xuất chờ duyệt"],
         ["messages", "/#/messages", "Tin nhắn"],
-        ["mood", "/#/self", "Tâm trạng"],
+        ["mood", "/#/self/daily", "Tâm trạng"],
         ["human", `/#/chat/${room.id}`, "Bắt đầu cuộc trò chuyện"],
       ] as const) {
         await page.goto(url);
