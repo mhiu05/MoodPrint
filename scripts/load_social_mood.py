@@ -608,7 +608,11 @@ def start_server(args):
         stderr=subprocess.DEVNULL,
     )
     base = f"http://127.0.0.1:{args.port}"
-    for _ in range(120):
+    # Poll tightly. Repeating maintenance waits three seconds after the process
+    # starts accepting, and session is the first timed call. A half-second poll
+    # often starts that call as the tasks wake and checkout the pool again.
+    deadline = time.monotonic() + 60
+    while time.monotonic() < deadline:
         try:
             if httpx.get(f"{base}/api/v1/health/live", timeout=2).status_code == 200:
                 return server, base
@@ -616,7 +620,7 @@ def start_server(args):
             pass
         if server.poll() is not None:
             break
-        time.sleep(0.5)
+        time.sleep(0.05)
     server.kill()
     raise SystemExit("load server did not start")
 

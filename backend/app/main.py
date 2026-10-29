@@ -56,62 +56,65 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     )
                 await recover_turns(db)
 
-        async def sweep_context():
+        sweep_clock = {"retention": 0.0, "sample": 0.0}
+        guest_clock = {"metrics": 0.0, "retention": 0.0, "first": True}
+
+        async def sweep_pass() -> None:
             from app.modules.social.notifications import STREAM_SLOTS
 
-            next_retention = next_sample = 0.0
-            while True:
-                app.state.ai.sweep()
-                if time.monotonic() >= next_sample:
-                    metrics = logging.getLogger("moodprint")
-                    metrics.info("metric=sse_streams_open value=%d", STREAM_SLOTS.open())
-                    metrics.info("metric=http_requests value=%d", app.state.http_requests)
-                    app.state.http_requests = 0
-                    next_sample = time.monotonic() + 60
-                app.state.exports = {
-                    key: value
-                    for key, value in app.state.exports.items()
-                    if value["expires"] > time.monotonic()
-                }
-                if database.sessions:
-                    from app.jobs.retention import purge_expired
-                    from app.modules.users.lifecycle import process_deletions
+            app.state.ai.sweep()
+            if time.monotonic() >= sweep_clock["sample"]:
+                metrics = logging.getLogger("moodprint")
+                metrics.info("metric=sse_streams_open value=%d", STREAM_SLOTS.open())
+                metrics.info("metric=http_requests value=%d", app.state.http_requests)
+                app.state.http_requests = 0
+                sweep_clock["sample"] = time.monotonic() + 60
+            app.state.exports = {
+                key: value
+                for key, value in app.state.exports.items()
+                if value["expires"] > time.monotonic()
+            }
+            if database.sessions:
+                from app.jobs.retention import purge_expired
+                from app.modules.users.lifecycle import process_deletions
 
-                    try:
-                        from app.modules.activities.jobs import advance_due
+                try:
+                    from app.modules.activities.jobs import advance_due
 
-                        await process_deletions(app)
-                        await advance_due(app)
-                        if time.monotonic() >= next_retention:
-                            await purge_expired(app)
-                            if config.ai_accounting_enabled:
-                                from app.ai.accounting import recover_expired
+                    await process_deletions(app)
+                    await advance_due(app)
+                    if time.monotonic() >= sweep_clock["retention"]:
+                        await purge_expired(app)
+                        if config.ai_accounting_enabled:
+                            from app.ai.accounting import recover_expired
 
-                                async with database.sessions.begin() as db:
-                                    await recover_expired(db)
-                            next_retention = time.monotonic() + 60
-                    except Exception as error:
-                        # SQLSTATE is a content-free class code; never log the message.
-                        logging.getLogger("moodprint").error(
-                            "deletion_worker_retry error_type=%s sqlstate=%s",
-                            type(error).__name__,
-                            getattr(getattr(error, "orig", None), "sqlstate", None),
-                        )
-                await asyncio.sleep(1)
+                            async with database.sessions.begin() as db:
+                                await recover_expired(db)
+                        sweep_clock["retention"] = time.monotonic() + 60
+                except Exception as error:
+                    # SQLSTATE is a content-free class code; never log the message.
+                    logging.getLogger("moodprint").error(
+                        "deletion_worker_retry error_type=%s sqlstate=%s",
+                        type(error).__name__,
+                        getattr(getattr(error, "orig", None), "sqlstate", None),
+                    )
 
-        async def embedding_worker():
+        async def embedding_pass() -> None:
+            if not database.sessions:
+                return
             from app.ai.embeddings import process_embedding_jobs
 
-            while True:
-                if database.sessions:
-                    try:
-                        await process_embedding_jobs(database, config)
-                    except Exception as error:
-                        logging.getLogger("moodprint").error("embedding_worker_retry error_type=%s", type(error).__name__)
-                await asyncio.sleep(1)
+            try:
+                await process_embedding_jobs(database, config)
+            except Exception as error:
+                logging.getLogger("moodprint").error(
+                    "embedding_worker_retry error_type=%s", type(error).__name__
+                )
 
-        async def guest_worker():
+        async def guest_pass() -> None:
             """Guest expiry cleanup and orphan reconciliation: always on, isolated per work class."""
+            if not database.sessions:
+                return
             from app.modules.guests.jobs import (
                 ensure_cleanup_jobs,
                 guest_metrics,
@@ -121,54 +124,82 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 settle_stale_liability,
             )
 
-            next_metrics = next_retention = 0.0
-            first = True
+            for work in (
+                ensure_cleanup_jobs if guest_clock["first"] else None,
+                process_guest_cleanup,
+                reconcile_guest_provisioning,
+                settle_stale_liability,
+                retention_tick if time.monotonic() >= guest_clock["retention"] else None,
+            ):
+                if work is retention_tick:
+                    guest_clock["retention"] = time.monotonic() + 60
+                if work is None:
+                    continue
+                try:
+                    await work(app)
+                    if work is ensure_cleanup_jobs:
+                        guest_clock["first"] = False
+                except Exception as error:
+                    logging.getLogger("moodprint").error(
+                        "guest_worker_retry task=%s error_type=%s sqlstate=%s",
+                        work.__name__,
+                        type(error).__name__,
+                        getattr(getattr(error, "orig", None), "sqlstate", None),
+                    )
+            if time.monotonic() >= guest_clock["metrics"]:
+                try:
+                    for name, value in (await guest_metrics(app)).items():
+                        logging.getLogger("moodprint").info("metric=%s value=%s", name, value)
+                except Exception as error:
+                    logging.getLogger("moodprint").error(
+                        "guest_metrics_failed error_type=%s", type(error).__name__
+                    )
+                guest_clock["metrics"] = time.monotonic() + 30
+
+        async def journal_pass() -> None:
+            from app.modules.journal.storage import process_storage_cleanup
+
+            try:
+                await process_storage_cleanup(app)
+            except Exception as error:
+                logging.getLogger("moodprint").error(
+                    "journal_cleanup_failed error_type=%s", type(error).__name__
+                )
+
+        # Finish one pass before accepting traffic. Otherwise its pool checkouts
+        # share the event loop with the first requests.
+        await sweep_pass()
+        await embedding_pass()
+        await guest_pass()
+        await journal_pass()
+
+        async def sweep_context():
+            # The opening pass already ran. Wait before repeating it so the first
+            # requests are not checked out against that work.
+            await asyncio.sleep(3)
             while True:
-                if database.sessions:
-                    for work in (
-                        ensure_cleanup_jobs if first else None,
-                        process_guest_cleanup,
-                        reconcile_guest_provisioning,
-                        settle_stale_liability,
-                        retention_tick if time.monotonic() >= next_retention else None,
-                    ):
-                        if work is retention_tick:
-                            next_retention = time.monotonic() + 60
-                        if work is None:
-                            continue
-                        try:
-                            await work(app)
-                            if work is ensure_cleanup_jobs:
-                                first = False
-                        except Exception as error:
-                            logging.getLogger("moodprint").error(
-                                "guest_worker_retry task=%s error_type=%s sqlstate=%s",
-                                work.__name__,
-                                type(error).__name__,
-                                getattr(getattr(error, "orig", None), "sqlstate", None),
-                            )
-                    if time.monotonic() >= next_metrics:
-                        try:
-                            for name, value in (await guest_metrics(app)).items():
-                                logging.getLogger("moodprint").info("metric=%s value=%s", name, value)
-                        except Exception as error:
-                            logging.getLogger("moodprint").error(
-                                "guest_metrics_failed error_type=%s", type(error).__name__
-                            )
-                        next_metrics = time.monotonic() + 30
+                await sweep_pass()
                 await asyncio.sleep(1)
+
+        async def embedding_worker():
+            await asyncio.sleep(3)
+            while True:
+                await embedding_pass()
+                await asyncio.sleep(1)
+
+        async def guest_worker():
+            await asyncio.sleep(3)
+            while True:
+                await guest_pass()
+                await asyncio.sleep(1)
+
+        async def journal_worker():
+            while True:
+                await asyncio.sleep(60)
+                await journal_pass()
 
         sweeper = asyncio.create_task(sweep_context())
         indexer = asyncio.create_task(embedding_worker())
-        async def journal_worker():
-            from app.modules.journal.storage import process_storage_cleanup
-            while True:
-                try:
-                    await process_storage_cleanup(app)
-                except Exception as error:
-                    logging.getLogger("moodprint").error("journal_cleanup_failed error_type=%s", type(error).__name__)
-                await asyncio.sleep(60)
-
         guests = asyncio.create_task(guest_worker())
         journal_cleanup = asyncio.create_task(journal_worker())
         try:
