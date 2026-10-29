@@ -214,7 +214,12 @@ def test_reviewed_upgrade_sql_executes_verbatim_with_supabase_roles(tmp_path):
     target = require_local_test_database(url)
     runner = script("apply_supabase_review")
     plans = [runner.UPGRADES[key] for key in sorted(runner.UPGRADES)]
-    exports = [runner.alembic_export(f"{p.from_revision}:{p.to_revision}") for p in plans]
+    exports = []
+    for index, plan in enumerate(plans):
+        if index and plans[index - 1].to_revision != plan.from_revision:
+            # Revisions without their own hosted plan still have to chain into the next one.
+            exports.append(runner.alembic_export(f"{plans[index - 1].to_revision}:{plan.from_revision}"))
+        exports.append(runner.alembic_export(f"{plan.from_revision}:{plan.to_revision}"))
     assert all("%%" not in sql for sql in exports)
     name = f"{target.database.removesuffix('_test')}_offline_test"
     admin = target.set(drivername="postgresql", database="postgres").render_as_string(
