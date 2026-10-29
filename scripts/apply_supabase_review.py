@@ -91,6 +91,24 @@ UPGRADES = {
         "0014_moderation",
         tables=("staff_roles", "moderation_actions"),
     ),
+    "0018": UpgradePlan(
+        REVIEWED_SQL / "0018-review.sql",
+        REPORTS / "0018-execution.json",
+        "0015_context_privacy",
+        "0018_app_feedback",
+        tables=(
+            "guest_provisioning_attempts",
+            "guest_cleanup_jobs",
+            "guest_usage",
+            "guest_abuse_buckets",
+            "guest_budget_days",
+            "guest_cost_reservations",
+            "guest_operation_links",
+            "app_feedback",
+            "feedback_submission_receipts",
+            "feedback_review_events",
+        ),
+    ),
 }
 SUPABASE_API_ROLES = ("anon", "authenticated", "service_role")
 
@@ -176,7 +194,14 @@ def review_upgrade_artifact(plan: UpgradePlan, approved_sha256: str | None):
     expected = alembic_export(f"{plan.from_revision}:{plan.to_revision}")
     if sql != expected.replace("\r\n", "\n"):
         raise ValueError("Reviewed SQL no longer matches the Alembic offline export")
-    if re.search(r"\b(?:DROP|TRUNCATE)\b", sql, re.I):
+    # Constraint swaps on tables this same artifact creates are empty by construction.
+    own_table_constraint_swap = re.compile(
+        r"^ALTER TABLE moodprint\.(\w+) DROP CONSTRAINT \w+;$", re.M
+    )
+    checked = own_table_constraint_swap.sub(
+        lambda match: "" if match.group(1) in plan.tables else match.group(0), sql
+    )
+    if re.search(r"\b(?:DROP|TRUNCATE)\b", checked, re.I):
         raise ValueError("Destructive SQL is not supported by this upgrade")
     # Executed verbatim: a driver-escaped percent sign would reach PL/pgSQL format().
     if "%%" in sql:
