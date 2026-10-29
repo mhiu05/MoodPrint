@@ -40,7 +40,6 @@ export type ConversationInfoProps = {
   newDisabledReason?: string;
   onHistory: () => void;
   onRename: () => void;
-  onExport: () => void;
   onDelete: () => void;
   onNew: () => void;
 };
@@ -224,7 +223,6 @@ function InfoContent(props: ConversationInfoProps) {
           {props.manageError}
           <div className="conversation-info-actions">
             <Button variant="secondary" disabled={props.manageBusy} onClick={props.onRename}>Đổi tên</Button>
-            <Button variant="secondary" disabled={props.manageBusy} onClick={props.onExport}>Tải xuống cuộc trò chuyện</Button>
             <Button variant="secondary" disabled={props.manageBusy} onClick={props.onDelete}>Xóa cuộc trò chuyện</Button>
           </div>
         </section>

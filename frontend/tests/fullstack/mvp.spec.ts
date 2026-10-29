@@ -1,7 +1,6 @@
 import { artifactPath } from "../artifacts";
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { readFile } from "node:fs/promises";
 import {
   call,
   connectByApi,
@@ -40,10 +39,10 @@ async function axe(page: Page) {
   ).toEqual([]);
 }
 
-test("Journey E: export contains only the owner's own data and downloads once", async ({
+test("Journey E: settings does not offer a download and moods stay on the owner session", async ({
   browser,
 }) => {
-  const context = await browser.newContext({ acceptDownloads: true });
+  const context = await browser.newContext();
   await session(context, 13);
   const page = await context.newPage();
   const now = (await call(context, 13, "GET", "/session")).body.serverTime;
@@ -54,30 +53,16 @@ test("Journey E: export contains only the owner's own data and downloads once", 
     expectedVersion: 0,
   });
   await page.goto("/#/settings");
-  const download = page.waitForEvent("download");
-  await page
-    .getByRole("button", { name: "Tải bản sao dữ liệu", exact: true })
-    .click();
-  const file = await (await download).path();
-  const data = JSON.parse(await readFile(file!, "utf-8"));
-  expect(data.moods.map((m: { note: string }) => m.note)).toEqual([
+  await expect(
+    page.getByRole("button", { name: "Tải bản sao dữ liệu", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "Xóa dữ liệu", exact: true }),
+  ).toBeVisible();
+  const moods = await call(context, 13, "GET", "/moods");
+  expect(moods.body.map((item: { note: string }) => item.note)).toEqual([
     "EXPORT_OWN_NOTE",
   ]);
-  expect(Object.keys(data).sort()).toEqual(
-    [
-      "account",
-      "consents",
-      "journal",
-      "memories",
-      "moods",
-      "privateItems",
-      "social",
-    ].sort(),
-  );
-  expect(data.social.sentMessages).toEqual([]);
-  await expect(
-    page.getByText("Đã tạo tệp dữ liệu để tải về.", { exact: true }),
-  ).toBeVisible();
   await context.close();
 });
 

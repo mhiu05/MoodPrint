@@ -91,7 +91,7 @@ import { AIActivityStatus } from "./AIActivityStatus";
 import { ConversationInfo, useInfoPanelMounted } from "./ConversationInfo";
 import { insertAtSelection } from "./draftInsert";
 import { deriveAIActivity, type AIActivityPhase } from "./aiActivityView";
-import { AIDataProvider, AIDataControls, ConversationHistory, useAIData, downloadConversation, type SavedConversation, type SavedConversationHeader } from "./AIData";
+import { AIDataProvider, AIDataControls, ConversationHistory, useAIData, type SavedConversation, type SavedConversationHeader } from "./AIData";
 
 const MessageMarkdown = lazy(() => import("./MessageMarkdown"));
 const FeedbackPage = lazy(() => import("../feedback/FeedbackPage"));
@@ -1343,16 +1343,6 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     } catch (reason) { setDeleteError(reason); }
     finally { setManageBusy(false); }
   }
-  async function exportConversation() {
-    const thread = current.current;
-    if (!thread || manageBusy) return;
-    setManageBusy(true); setManageError(undefined);
-    try {
-      const exported = await api.request<unknown>(`/ai/conversations/${thread.conversationId}/export`);
-      downloadConversation(exported, thread.conversationId);
-    } catch (reason) { setManageError(reason); }
-    finally { setManageBusy(false); }
-  }
   // Child dialogs replace a compact (modal) info sheet; on desktop the modeless
   // panel stays and the dialog returns focus to the panel action.
   function openRename() {
@@ -1640,7 +1630,6 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         newDisabledReason={newDisabledReason}
         onHistory={openHistory}
         onRename={openRename}
-        onExport={() => void exportConversation()}
         onDelete={openDelete}
         onNew={requestNew}
       />

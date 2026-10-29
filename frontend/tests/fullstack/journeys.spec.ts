@@ -467,11 +467,9 @@ test("approved memory uses the edited approval, survives reload, and local priva
     }),
   ).toBeVisible();
   await page.goto("/#/settings");
-  const download = page.waitForEvent("download");
-  await page
-    .getByRole("button", { name: "Tải bản sao dữ liệu", exact: true })
-    .click();
-  expect((await download).suggestedFilename()).toBe("moodprint-data.json");
+  await expect(
+    page.getByRole("button", { name: "Tải bản sao dữ liệu", exact: true }),
+  ).toHaveCount(0);
   await page
     .getByLabel("Dữ liệu bạn muốn xóa", { exact: true })
     .selectOption("memories");

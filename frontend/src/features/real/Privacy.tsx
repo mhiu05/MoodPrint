@@ -19,14 +19,13 @@ const choices = {
 export function DataControls() {
   const { api, receive } = useSession();
   const guest = useGuest();
-  const [exportConfirm, setExportConfirm] = useState(false);
   const [scope, setScope] = useState<Exclude<Scope, "account">>("memories"),
     [confirm, setConfirm] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>(),
     [job, setJob] = useState<Job>(),
     [notice, setNotice] = useState(""),
-    [reauthFor, setReauthFor] = useState<"export" | "account" | null>(null),
+    [reauthFor, setReauthFor] = useState<"account" | null>(null),
     [accountDialog, setAccountDialog] = useState(false),
     [understood, setUnderstood] = useState(false),
     [accountDeleted, setAccountDeleted] = useState(false);
@@ -74,44 +73,6 @@ export function DataControls() {
       setBusy(false);
     }
   }
-  async function exportData() {
-    setBusy(true);
-    setError(undefined);
-    setNotice("");
-    try {
-      const result = await api.request<Job>("/exports", {
-        method: "POST",
-        body: {
-          scopes: [
-            "account",
-            "private_items",
-            "memories",
-            "moods",
-            "journal",
-            "consents",
-            ...(!guest ? ["social"] : []),
-          ],
-          ...(guest ? { guestConfirmation: "guest-data-v1" } : {}),
-        },
-      });
-      const data = await api.request<unknown>(`/exports/${result.id}/download`);
-      const url = URL.createObjectURL(
-        new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }),
-      );
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "moodprint-data.json";
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      setNotice("Đã tạo tệp dữ liệu để tải về.");
-      setExportConfirm(false);
-    } catch (reason) {
-      if (needsReauth(reason)) setReauthFor("export");
-      else setError(reason);
-    } finally {
-      setBusy(false);
-    }
-  }
   async function removeAccount() {
     setBusy(true);
     setError(undefined);
@@ -148,15 +109,13 @@ export function DataControls() {
     );
   return (
     <section className="real-section" aria-labelledby="privacy-data">
-      <h2 id="privacy-data">Xuất hoặc xóa dữ liệu</h2>
+      <h2 id="privacy-data">Xóa dữ liệu</h2>
       <p>
-        {guest ? "Bản xuất chỉ gồm dữ liệu riêng của lượt dùng thử này. Tệp chỉ tải được một lần trong tối đa 15 phút và không quá thời điểm hết giờ. Dữ liệu không chuyển sang tài khoản mới." : <>
-        Bản xuất gồm thông tin tuổi, hồ sơ riêng, tâm trạng, ghi nhớ, lịch sử
-        bật/tắt quyền, hồ sơ kết nối, lời mời, tin nhắn bạn đã gửi, báo cáo và
-        lượt chặn bạn đã tạo. Cuộc trò chuyện AI đã lưu được tải xuống riêng
-        trong thông tin của từng cuộc trò chuyện. Cuộc trò chuyện AI tạm thời,
-        tin nhắn và thông tin riêng của người khác không nằm trong bản sao. Tệp
-        chỉ tải được một lần trong 15 phút.
+        {guest ? "Dữ liệu của lượt dùng thử chỉ dùng được đến khi hết giờ. Dữ liệu không chuyển sang tài khoản mới. Ứng dụng không tạo tệp để tải về." : <>
+        Bạn xem nhật ký, tâm trạng, ghi nhớ và cuộc trò chuyện ngay trong
+        MoodPrint. Ứng dụng không tạo tệp để tải về. Bạn vẫn có thể xóa từng
+        phần dữ liệu hoặc xóa tài khoản. Bản sao lưu của nhà cung cấp hạ tầng
+        có thể còn dữ liệu đến khi bản sao lưu đó hết hạn.
         </>}
       </p>
       <ErrorNotice error={error} />
@@ -166,20 +125,11 @@ export function DataControls() {
           api={api}
           onCancel={() => setReauthFor(null)}
           onConfirmed={() => {
-            const next = reauthFor;
             setReauthFor(null);
-            if (next === "export") void exportData();
-            else setAccountDialog(true);
+            setAccountDialog(true);
           }}
         />
       )}
-      <Button
-        variant="secondary"
-        disabled={busy}
-        onClick={() => guest ? setExportConfirm(true) : void exportData()}
-      >
-        Tải bản sao dữ liệu
-      </Button>
       <div className="real-section">
         <label htmlFor="deletion-scope">Dữ liệu bạn muốn xóa</label>
         <select
@@ -234,15 +184,6 @@ export function DataControls() {
           {guest ? "Kết thúc và xóa lượt dùng thử" : "Xóa tài khoản"}
         </Button>
       </div>
-      {exportConfirm && (
-        <Dialog title="Tải dữ liệu lượt dùng thử?" onClose={() => !busy && setExportConfirm(false)}>
-          <p>Bản sao chứa dữ liệu riêng của bạn. Hãy lưu tệp ở nơi bạn kiểm soát. Thao tác này không kéo dài lượt dùng thử.</p>
-          <div className={cx.actions}>
-            <Button variant="secondary" data-cancel disabled={busy} onClick={() => setExportConfirm(false)}>Để sau</Button>
-            <Button disabled={busy} onClick={() => void exportData()}>Xác nhận tải dữ liệu</Button>
-          </div>
-        </Dialog>
-      )}
       {accountDialog && (
         <Dialog
           title="Xóa vĩnh viễn tài khoản?"

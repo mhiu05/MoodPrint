@@ -692,16 +692,13 @@ test("timeline attachment previews open lazily and mood/media filters work", asy
   await expect(
     page.getByText("Một buổi chiều bình yên", { exact: true }),
   ).toBeVisible();
-  expect(access).toBe(0);
-  await page
-    .getByRole("button", { name: "Xem tệp đính kèm", exact: true })
-    .click();
   await expect(
     page.getByRole("img", {
       name: "Ảnh trong khoảnh khắc của bạn",
       exact: true,
     }),
   ).toBeVisible();
+  expect(access).toBe(1);
   await page.getByRole("combobox", { name: /^Tâm trạng/ }).selectOption("2");
   await expect(
     page.getByText("Một buổi chiều bình yên", { exact: true }),
@@ -799,9 +796,12 @@ test("six journal experiences have accessible rendered evidence", async ({
       .analyze();
     expect(scan.violations).toEqual([]);
     if (route === "/self/memories")
-      await page
-        .getByRole("button", { name: "Xem tệp đính kèm", exact: true })
-        .click();
+      await expect(
+        page.getByRole("img", {
+          name: "Ảnh trong khoảnh khắc của bạn",
+          exact: true,
+        }),
+      ).toBeVisible();
     await page.evaluate(() => {
       (document.activeElement as HTMLElement)?.blur();
       window.scrollTo(0, 0);

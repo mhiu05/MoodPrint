@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Pencil, Trash2 } from "lucide-react";
 import { Button, Dialog } from "../../../components/UI";
 import type { JournalEntry } from "../../../api/journal";
@@ -19,7 +19,8 @@ export function JournalEntryDetail() {
     );
   const entry = useResource<JournalEntry>(`/journal/entries/${id}`, validId);
   const today = useJournalToday();
-  const [editing, setEditing] = useState(false),
+  const [params] = useSearchParams();
+  const [editing, setEditing] = useState(params.get("edit") === "1"),
     [deleting, setDeleting] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>();
@@ -44,7 +45,7 @@ export function JournalEntryDetail() {
   const data = entry.data?.id === id && !entry.loading ? entry.data : undefined;
   return (
     <div className="journal-page journal-detail-page">
-      <JournalNav back />
+      <JournalNav />
       {entry.loading ? <p role="status">Đang mở khoảnh khắc…</p> : null}
       <ErrorNotice error={entry.error} retry={entry.refresh} />
       {!validId || (!entry.loading && !data) ? (

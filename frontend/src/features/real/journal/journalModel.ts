@@ -35,6 +35,42 @@ export function formatJournalDate(day: string): string {
   const [year, month, date] = day.split("-");
   return `${date}/${month}/${year}`;
 }
+export function previousJournalDate(day: string): string {
+  const date = new Date(`${day}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+export function journalDayLabel(day: string, today: string): string {
+  if (day === today) return "Hôm nay";
+  if (day === previousJournalDate(today)) return "Hôm qua";
+  return formatJournalDate(day);
+}
+export function groupEntriesByDay<T extends { localDate: string }>(
+  items: T[],
+  today: string,
+) {
+  const groups: {
+    day: string;
+    label: string;
+    monthKey: string;
+    monthLabel: string;
+    items: T[];
+  }[] = [];
+  for (const item of items) {
+    const [year, month] = item.localDate.split("-");
+    const last = groups.at(-1);
+    if (!last || last.day !== item.localDate)
+      groups.push({
+        day: item.localDate,
+        label: journalDayLabel(item.localDate, today),
+        monthKey: `${year}-${month}`,
+        monthLabel: `Tháng ${Number(month)} năm ${year}`,
+        items: [item],
+      });
+    else last.items.push(item);
+  }
+  return groups;
+}
 export function toggleChoice(choices: string[], choice: string): string[] {
   return choices.includes(choice)
     ? choices.filter((value) => value !== choice)
@@ -71,10 +107,10 @@ export const factorChoices = [
   "Khác",
 ];
 export const writingPrompts = [
-  "Hôm nay có điều gì khiến bạn mỉm cười?",
-  "Có điều gì khiến bạn cảm thấy áp lực?",
-  "Bạn đã học được điều gì hôm nay?",
-  "Điều gì khiến bạn biết ơn?",
+  "Hôm nay điều gì khiến bạn mỉm cười?",
+  "Có điều gì khiến bạn suy nghĩ nhiều nhất?",
+  "Bạn muốn cảm ơn bản thân vì điều gì?",
+  "Điều gì khiến hôm nay đáng nhớ?",
 ];
 
 export function monthBounds(month: string) {

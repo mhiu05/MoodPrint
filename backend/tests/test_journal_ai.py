@@ -317,6 +317,18 @@ async def test_journal_search_is_owner_saved_date_and_size_bounded(clients):
         result = await search_for_ai(db, user)
         raw = json.dumps(result, ensure_ascii=False)
         assert len(result["entries"]) == 5
+        allowed = {
+            "id",
+            "version",
+            "localDate",
+            "mood",
+            "emotions",
+            "factors",
+            "snippet",
+            "snippetTruncated",
+        }
+        assert all(set(row) == allowed for row in result["entries"])
+        assert "media" not in raw and "objectPath" not in raw
         assert all(
             len(row["snippet"]) <= 1000 and row["snippetTruncated"] for row in result["entries"]
         )

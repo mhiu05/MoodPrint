@@ -4,11 +4,15 @@ import {
   BookOpen,
   ArrowLeft,
   PenLine,
+  Sparkles,
+  Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import type { JournalEntry, JournalMedia } from "../../../api/journal";
-import { useResource } from "../RealApp";
+import { Button, Dialog } from "../../../components/UI";
+import { ErrorNotice, useResource, useSession } from "../RealApp";
+import { JournalFeedMedia } from "./JournalGallery";
 import { formatJournalDate, journalMoodLabels } from "./journalModel";
 
 export function MoodFace({
@@ -48,20 +52,24 @@ export function MoodFace({
   );
 }
 
-export function JournalNav({ back = false }: { back?: boolean }) {
+export function JournalNav() {
   return (
     <nav className="journal-section-nav" aria-label="Nhật ký">
       <NavLink to="/self" end>
         <PenLine size={17} />
-        {back ? "Viết khoảnh khắc" : "Viết nhật ký"}
-      </NavLink>
-      <NavLink to="/self/calendar">
-        <CalendarDays size={17} />
-        Lịch nhật ký
+        Hôm nay
       </NavLink>
       <NavLink to="/self/memories">
         <BookOpen size={17} />
         Khoảnh khắc của bạn
+      </NavLink>
+      <NavLink to="/self/companion">
+        <Sparkles size={17} />
+        Nhìn lại
+      </NavLink>
+      <NavLink to="/self/calendar">
+        <CalendarDays size={17} />
+        Lịch nhật ký
       </NavLink>
     </nav>
   );
@@ -140,16 +148,54 @@ export function JournalMediaPreview({
   );
 }
 
-export function JournalEntryCard({ entry }: { entry: JournalEntry }) {
-  const [showMedia, setShowMedia] = useState(false);
+export function JournalEntryCard({
+  entry,
+  variant = "compact",
+  onChange,
+}: {
+  entry: JournalEntry;
+  variant?: "compact" | "feed";
+  onChange?: () => void;
+}) {
+  const { api } = useSession();
+  const [expanded, setExpanded] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>();
   const time = new Intl.DateTimeFormat("vi-VN", {
     hour: "2-digit",
     minute: "2-digit",
     timeZone: entry.timezone,
   }).format(new Date(entry.createdAt));
+  const long = entry.text.length > 220;
+  const openLabel = `Mở khoảnh khắc ngày ${formatJournalDate(entry.localDate)} lúc ${time}`;
+  function rememberScroll() {
+    sessionStorage.setItem("journal-feed-scroll", String(window.scrollY));
+  }
+  async function remove() {
+    if (busy) return;
+    setBusy(true);
+    setError(undefined);
+    try {
+      await api.request(`/journal/entries/${entry.id}`, {
+        method: "DELETE",
+        body: { expectedVersion: entry.version },
+      });
+      setDeleting(false);
+      onChange?.();
+    } catch (reason) {
+      setError(reason);
+      setDeleting(false);
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
-    <article className="journal-entry-card">
-      <MoodFace value={entry.mood} size={36} />
+    <article
+      className={`journal-entry-card${variant === "feed" ? " is-feed" : ""}`}
+      id={`journal-entry-${entry.id}`}
+    >
+      <MoodFace value={entry.mood} size={variant === "feed" ? 44 : 36} />
       <div className="journal-entry-excerpt">
         <div className="journal-entry-meta">
           <strong>
@@ -160,57 +206,92 @@ export function JournalEntryCard({ entry }: { entry: JournalEntry }) {
             <span className="journal-draft-badge">Bản nháp</span>
           ) : null}
         </div>
-        <p>{entry.text || "Khoảnh khắc không có lời viết."}</p>
-        {entry.media.length ? (
-          <small>
-            {entry.media.filter((item) => item.type === "image").length
-              ? "Có hình ảnh · "
-              : ""}
-            {entry.media.some((item) => item.type === "audio")
-              ? "Có ghi âm · "
-              : ""}
-            {entry.media.some((item) => item.type === "video")
-              ? "Có video"
-              : ""}
-          </small>
+        <p className={expanded || !long ? "is-open" : undefined}>
+          {entry.text || "Khoảnh khắc không có lời viết."}
+        </p>
+        {long ? (
+          <button
+            type="button"
+            className="journal-expand"
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {expanded ? "Thu gọn" : "Xem thêm"}
+          </button>
         ) : null}
-        {entry.media.some((item) => item.status === "ready") ? (
-          <div className="journal-card-media">
-            <button
-              type="button"
-              aria-expanded={showMedia}
-              onClick={() => setShowMedia((value) => !value)}
-            >
-              {showMedia ? "Ẩn tệp đính kèm" : "Xem tệp đính kèm"}
-            </button>
-            {showMedia ? (
-              <div>
-                {entry.media
-                  .filter((item) => item.status === "ready")
-                  .slice(0, 3)
-                  .map((media) => (
-                    <JournalMediaPreview
-                      entryId={entry.id}
-                      media={media}
-                      key={media.id}
-                    />
-                  ))}
-                {entry.media.length > 3 ? (
-                  <p>Mở khoảnh khắc để xem toàn bộ {entry.media.length} tệp.</p>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
+        {variant === "feed" &&
+        (entry.emotions.length || entry.factors.length) ? (
+          <ul className="journal-card-tags">
+            {[...entry.emotions, ...entry.factors].map((tag, index) => (
+              <li key={`${tag}-${index}`}>{tag}</li>
+            ))}
+          </ul>
         ) : null}
-        <Link
-          className="journal-entry-open"
-          to={`/self/entry/${entry.id}`}
-          aria-label={`Mở khoảnh khắc ngày ${formatJournalDate(entry.localDate)} lúc ${time}`}
-        >
-          Xem khoảnh khắc
-          <ChevronRight size={17} />
-        </Link>
+        {variant === "feed" && entry.media.length ? (
+          <JournalFeedMedia entryId={entry.id} media={entry.media} />
+        ) : null}
+        <div className="journal-card-actions">
+          <Link
+            className="journal-entry-open"
+            to={`/self/entry/${entry.id}`}
+            aria-label={openLabel}
+            onClick={rememberScroll}
+          >
+            Xem khoảnh khắc
+            <ChevronRight size={17} />
+          </Link>
+          {variant === "feed" ? (
+            <>
+              <Link
+                to={`/self/entry/${entry.id}?edit=1`}
+                aria-label={`Chỉnh sửa khoảnh khắc lúc ${time}`}
+                onClick={rememberScroll}
+              >
+                Chỉnh sửa
+              </Link>
+              <button
+                type="button"
+                aria-label={`Xóa khoảnh khắc lúc ${time}`}
+                onClick={() => setDeleting(true)}
+              >
+                <Trash2 size={16} />
+                Xóa
+              </button>
+            </>
+          ) : null}
+        </div>
+        <ErrorNotice error={error} />
       </div>
+      {deleting ? (
+        <Dialog
+          title="Xóa khoảnh khắc này?"
+          destructive
+          onClose={() => {
+            if (!busy) setDeleting(false);
+          }}
+        >
+          <p>
+            Nội dung và các tệp đính kèm sẽ bị xóa. Bạn không thể khôi phục
+            khoảnh khắc này sau khi xóa.
+          </p>
+          <div className="actions">
+            <Button
+              variant="secondary"
+              data-cancel
+              disabled={busy}
+              onClick={() => setDeleting(false)}
+            >
+              Giữ lại
+            </Button>
+            <Button
+              variant="danger"
+              disabled={busy}
+              onClick={() => void remove()}
+            >
+              {busy ? "Đang xóa…" : "Xóa vĩnh viễn"}
+            </Button>
+          </div>
+        </Dialog>
+      ) : null}
     </article>
   );
 }

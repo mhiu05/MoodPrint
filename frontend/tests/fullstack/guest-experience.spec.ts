@@ -31,14 +31,11 @@ test("public disclosure creates independent anonymous guests with fixed deadline
     await expect(page.getByText("Dữ liệu của lượt dùng thử chỉ dùng được đến khi hết giờ.")).toBeVisible();
     await expect(page.getByText(/ngày để bạn tiếp tục trên thiết bị khác/)).toHaveCount(0);
     // The UI must use the guest confirmation path, never password reauthentication.
-    await page.getByRole("button", { name: "Tải bản sao dữ liệu", exact: true }).click();
-    await expect(page.getByRole("dialog", { name: "Tải dữ liệu lượt dùng thử?" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Tải bản sao dữ liệu", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Kết thúc và xóa lượt dùng thử", exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze()).violations).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath("guest-export-320.png"), fullPage: true });
-    const download = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Xác nhận tải dữ liệu" }).click();
-    await download;
     await expect(page.getByLabel("Mật khẩu", { exact: true })).toHaveCount(0);
     expect((await guestCall(first, "POST", "/auth/guest/end", {})).status()).toBe(204);
     expect((await first.request.get(api + "/session")).status()).toBe(401);

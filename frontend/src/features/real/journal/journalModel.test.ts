@@ -3,6 +3,8 @@ import {
   calendarDays,
   entryQuery,
   formatJournalDate,
+  groupEntriesByDay,
+  journalDayLabel,
   toggleChoice,
   journalDateWindow,
   isActiveJournalDate,
@@ -62,5 +64,24 @@ describe("journal dates and browsing", () => {
       from: "2026-07-26",
       to: "2026-07-31",
     });
+  });
+  it("groups a personal timeline by account-local day without inventing missing days", () => {
+    expect(journalDayLabel("2026-10-23", "2026-10-23")).toBe("Hôm nay");
+    expect(journalDayLabel("2026-10-22", "2026-10-23")).toBe("Hôm qua");
+    const groups = groupEntriesByDay(
+      [
+        { localDate: "2026-10-23", id: "b" },
+        { localDate: "2026-10-23", id: "a" },
+        { localDate: "2026-09-30", id: "c" },
+      ],
+      "2026-10-23",
+    );
+    expect(groups.map((group) => group.label)).toEqual([
+      "Hôm nay",
+      "30/09/2026",
+    ]);
+    expect(groups[0].items.map((item) => item.id)).toEqual(["b", "a"]);
+    expect(groups[0].monthLabel).toBe("Tháng 10 năm 2026");
+    expect(groups[1].monthKey).toBe("2026-09");
   });
 });

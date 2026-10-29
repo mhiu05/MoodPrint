@@ -177,8 +177,9 @@ export function JournalPage() {
             )}
           </section>
           <p className="journal-privacy-note">
-            Nội dung chỉ hiển thị với tài khoản của bạn. Nhịp có thể đọc nhật ký
-            khi bạn trò chuyện với Nhịp theo chính sách quyền riêng tư.
+            Nội dung chỉ hiển thị với tài khoản của bạn. Nhịp có thể đọc lời
+            viết đã lưu khi bạn trò chuyện với Nhịp, và không đọc ảnh, ghi âm
+            hay video. Nhật ký được giữ 90 ngày theo ngày của tài khoản.
           </p>
         </aside>
       </div>
@@ -189,7 +190,7 @@ export function JournalPage() {
 export function JournalCompanion() {
   return (
     <div className="journal-page journal-companion-page">
-      <JournalNav back />
+      <JournalNav />
       <header className="journal-intro">
         <div>
           <h1 tabIndex={-1}>Nhịp đồng hành</h1>
@@ -237,6 +238,9 @@ export function JournalCompanion() {
           ))}
         </div>
       </section>
+      <p className="journal-help">
+        <Link to="/self/daily">Xem điểm tâm trạng đã ghi</Link>
+      </p>
       <Link className="journal-companion-cta" to="/assistants/nhip?new=1">
         Nhắn cho Nhịp
         <ArrowRight size={20} />

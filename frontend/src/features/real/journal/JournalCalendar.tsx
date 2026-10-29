@@ -81,7 +81,7 @@ export function JournalCalendar() {
   }
   return (
     <div className="journal-page journal-calendar-page">
-      <JournalNav back />
+      <JournalNav />
       <h1 tabIndex={-1}>Lịch nhật ký</h1>
       <p className="journal-page-lede">
         Mỗi ngày một cảm xúc, mỗi khoảnh khắc một câu chuyện.

@@ -49,6 +49,7 @@ export function JournalEditor({
   const [server, setServer] = useState(initial);
   const serverRef = useRef(initial);
   const receiptRef = useRef<HTMLParagraphElement>(null);
+  const moodRef = useRef<HTMLFieldSetElement>(null);
   const { animate } = useMotionPolicy();
   const attachments = useRef<JournalAttachmentsHandle>(null);
   const fingerprint = JSON.stringify({ date, mood, text, emotions, factors });
@@ -80,6 +81,19 @@ export function JournalEditor({
     }
     receive(entry);
   }
+  useGSAP(
+    () => {
+      if (!animate) return;
+      const selected = moodRef.current?.querySelector(".is-selected");
+      if (selected)
+        gsap.fromTo(
+          selected,
+          { scale: 0.97 },
+          { scale: 1, duration: 0.18, ease: "power2.out", clearProps: "transform" },
+        );
+    },
+    { scope: moodRef, dependencies: [mood, animate], revertOnUpdate: true },
+  );
   useGSAP(
     () => {
       if (receipt && animate)
@@ -224,7 +238,7 @@ export function JournalEditor({
           </span>
         )}
       </div>
-      <fieldset className="journal-checkin" disabled={busy}>
+      <fieldset className="journal-checkin" disabled={busy} ref={moodRef}>
         <legend>Hôm nay bạn thế nào?</legend>
         <p>Không có cảm xúc nào là sai cả.</p>
         <div className="journal-mood-options">
@@ -328,9 +342,11 @@ export function JournalEditor({
         disabled={saving}
       />
       <p className="journal-help">
-        Chỉ bạn xem nhật ký. Khi bạn trò chuyện với Nhịp, Nhịp có thể đọc các
-        khoảnh khắc đã lưu để đồng hành cùng bạn. Tệp đính kèm không tự động
-        được gửi cho AI.
+        Chỉ bạn xem nhật ký. Khi bạn trò chuyện với Nhịp, Nhịp có thể đọc lời
+        viết và cảm xúc đã lưu, không đọc ảnh, ghi âm hay video. Khoảnh khắc
+        được giữ 90 ngày theo ngày của tài khoản. Hết hạn, chúng không còn trong
+        dòng thời gian, lịch, tìm kiếm và phần Nhịp đọc được. Bản sao lưu của
+        nhà cung cấp có thể còn đến khi bản sao lưu đó hết hạn.
       </p>
       <ErrorNotice error={error} />
       {conflict ? (

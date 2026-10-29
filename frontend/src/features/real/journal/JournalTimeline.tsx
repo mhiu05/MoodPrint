@@ -1,16 +1,24 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 import { Button } from "../../../components/UI";
+import { useMotionPolicy } from "../../../components/motion/useMotionPolicy";
 import type { JournalCollection } from "../../../api/journal";
 import { ErrorNotice, useResource } from "../RealApp";
 import { JournalEntryCard, JournalNav } from "./JournalShared";
+import { useJournalToday } from "./JournalPage";
 import {
   entryQuery,
+  groupEntriesByDay,
   journalMoodLabels,
   type JournalFilters,
 } from "./journalModel";
 
 export function JournalTimeline() {
+  const today = useJournalToday();
+  const feed = useRef<HTMLDivElement>(null);
+  const { animate } = useMotionPolicy();
   const [filters, setFilters] = useState<JournalFilters>({
     offset: 0,
     limit: 12,
@@ -27,9 +35,32 @@ export function JournalTimeline() {
     filter({ q });
   }
   const data = entries.data;
+  const groups = data ? groupEntriesByDay(data.items, today) : [];
+  useEffect(() => {
+    if (!data) return;
+    const saved = sessionStorage.getItem("journal-feed-scroll");
+    if (!saved) return;
+    sessionStorage.removeItem("journal-feed-scroll");
+    const y = Number(saved);
+    if (Number.isFinite(y))
+      requestAnimationFrame(() => window.scrollTo(0, y));
+  }, [data]);
+  useGSAP(
+    () => {
+      if (!animate || !data?.items.length) return;
+      gsap.from(".journal-entry-card", {
+        y: 8,
+        duration: 0.28,
+        stagger: 0.03,
+        ease: "power2.out",
+        clearProps: "transform",
+      });
+    },
+    { scope: feed, dependencies: [data?.offset, data?.items.length, animate], revertOnUpdate: true },
+  );
   return (
     <div className="journal-page journal-timeline-page">
-      <JournalNav back />
+      <JournalNav />
       <h1 tabIndex={-1}>Khoảnh khắc của bạn</h1>
       <p className="journal-page-lede">
         Những ngày đã qua, vẫn ở đây để bạn nhìn lại.
@@ -115,9 +146,27 @@ export function JournalTimeline() {
             {data.total} khoảnh khắc{filters.q ? ` cho “${filters.q}”` : ""}
           </p>
           {data.items.length ? (
-            <div className="journal-timeline">
-              {data.items.map((entry) => (
-                <JournalEntryCard entry={entry} key={entry.id} />
+            <div className="journal-timeline" ref={feed}>
+              {groups.map((group, index) => (
+                <section key={group.day} className="journal-day-group">
+                  {index === 0 || groups[index - 1].monthKey !== group.monthKey ? (
+                    <h2 className="journal-month-label">{group.monthLabel}</h2>
+                  ) : null}
+                  <h3 className="journal-day-label">
+                    {group.label}
+                    {group.items.length > 1
+                      ? ` · ${group.items.length} khoảnh khắc`
+                      : ""}
+                  </h3>
+                  {group.items.map((entry) => (
+                    <JournalEntryCard
+                      entry={entry}
+                      key={entry.id}
+                      variant="feed"
+                      onChange={entries.refresh}
+                    />
+                  ))}
+                </section>
               ))}
             </div>
           ) : (
@@ -169,6 +218,12 @@ export function JournalTimeline() {
               <ChevronRight size={19} />
             </Button>
           </nav>
+          <p className="journal-retention">
+            Khoảnh khắc được giữ 90 ngày theo ngày của tài khoản. Hết hạn,
+            chúng không còn trong dòng thời gian, lịch, tìm kiếm và phần Nhịp
+            đọc được. Bản sao lưu của nhà cung cấp có thể còn đến khi bản sao
+            lưu đó hết hạn.
+          </p>
         </>
       ) : null}
     </div>
