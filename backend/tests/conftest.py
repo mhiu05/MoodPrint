@@ -10,10 +10,6 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
-SESSION_HELPER = (
-    Path(__file__).resolve().parents[1] / "app/infrastructure/database/provider_session.sql"
-).read_text(encoding="utf-8")
-
 
 def _identity_helper() -> str:
     import importlib.util
@@ -67,9 +63,13 @@ async def database():
     from app.ai import models as chat_models  # noqa: F401
     from app.infrastructure.database.models import Base
     from app.modules.activities import models as activity_models  # noqa: F401
+    from app.modules.feedback import models as feedback_models  # noqa: F401
+    from app.modules.guests import models as guest_models  # noqa: F401
     from app.modules.moderation import models as safety_models  # noqa: F401
     from app.modules.social import models  # noqa: F401 -- register every table before reset
     from app.modules.users import models as lifecycle_models  # noqa: F401
+    from tests.feedback_schema import install_feedback_functions
+    from tests.guest_schema import install_auth_fixture, install_guest_guards
 
     engine = create_async_engine(url, connect_args={"prepare_threshold": None})
     async with engine.begin() as conn:
@@ -81,19 +81,11 @@ async def database():
         await conn.execute(text("create schema if not exists extensions"))
         await conn.execute(text("create extension if not exists vector with schema extensions"))
         await conn.run_sync(Base.metadata.drop_all)
+        # The feedback CHECK constraints call these private functions, so they must exist first.
+        await install_feedback_functions(conn)
         await conn.run_sync(Base.metadata.create_all)
-        await conn.execute(text("create schema if not exists auth"))
-        await conn.execute(
-            text(
-                "create table if not exists auth.sessions (id uuid primary key, user_id uuid not null)"
-            )
-        )
-        await conn.execute(text("truncate auth.sessions"))
-        await conn.execute(text("create table if not exists auth.users (id uuid primary key)"))
-        await conn.execute(text("truncate auth.users"))
-        await conn.execute(
-            text(SESSION_HELPER.replace("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION", 1))
-        )
+        await install_guest_guards(conn)
+        await install_auth_fixture(conn)
         await conn.execute(text(IDENTITY_HELPER))
     yield engine
     await engine.dispose()

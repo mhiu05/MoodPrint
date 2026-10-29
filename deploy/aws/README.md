@@ -24,3 +24,21 @@ sudo journalctl -u moodprint-release-poll.service --since today --no-pager
 Deployments are selected by the current `main` SHA. If a newer commit reaches `main` while an older release is being checked, the older release is skipped. `deploy.sh` switches both images together, waits for container health and the HTTPS readiness endpoint, and restores the last active image pair if health verification fails. The poller retains the current and previous image pair and removes older MoodPrint GHCR images after a successful deployment.
 
 The SSM document in `ssm-document.json` is an operator recovery path. It accepts complete image references by digest and a full commit SHA; it does not grant GitHub Actions permission to invoke SSM.
+# Guest-experience publication hold
+
+The tracked `deploy/guest-experience.release-hold` blocks both automatic
+`workflow_run` and manual `workflow_dispatch` publication. After checkout of the
+selected SHA, `release_hold.py` inspects that fixed path with `lstat`: any entry
+(including a dangling link), or an inspection error, holds publication. A failed
+runner-output write fails validation. A successful held decision skips provenance;
+the job defaults eligibility to false, so build, publish and release jobs cannot
+run. Application verification CI remains enabled.
+
+The poller deploys a verified `staging-<exact-main-sha>` release. A held merge
+produces no such release, so the poller cannot deploy that commit. This is a
+publication boundary; it does not alter AWS or erase an existing release.
+
+Only a separate owner-approved release PR may remove the marker after hosted
+schema/validation, D01–D04 and manual prerequisites are resolved. Removing it
+restores the existing exact-main CI, actor, approval and attestation checks.
+Never relax readiness or apply pending hosted SQL to make source integration pass.

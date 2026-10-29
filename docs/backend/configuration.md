@@ -41,6 +41,26 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 | `MODERATION_ADMIN_ENABLED` | `bool` | `False` |
 | `AI_DAILY_TURNS_PER_USER` | `int` | `60` |
 | `AI_DAILY_BUDGET_USD` | `float` | `0` |
+| `GUEST_AUTH_ENABLED` | `bool` | `False` |
+| `GUEST_PAID_ENABLED` | `bool` | `False` |
+| `GUEST_SEMANTIC_ENABLED` | `bool` | `False` |
+| `FEEDBACK_ENABLED` | `bool` | `False` |
+| `FEEDBACK_ADMIN_ENABLED` | `bool` | `False` |
+| `PRODUCT_TOUR_ENABLED` | `bool` | `False` |
+| `RELEASE_VERSION` | `str` | `'unknown'` |
+| `GUEST_DAILY_BUDGET_USD` | `Decimal &#124; None` | `None` |
+| `GUEST_PRICING_JSON` | `dict[str, Any]` | `dict` |
+| `GUEST_ABUSE_HMAC_KEY` | `SecretStr` | `SecretStr('')` |
+| `GUEST_CAPTCHA_SITE_KEY` | `str` | `''` |
+| `GUEST_AI_TURNS` | `int` | `25` |
+| `GUEST_AI_PER_MINUTE` | `int` | `6` |
+| `GUEST_AI_CONCURRENCY` | `int` | `1` |
+| `GUEST_AI_GLOBAL_CONCURRENCY` | `int` | `10` |
+| `GUEST_VOICE_CLIPS` | `int` | `6` |
+| `GUEST_VOICE_SECONDS` | `int` | `180` |
+| `GUEST_VOICE_PER_MINUTE` | `int` | `2` |
+| `GUEST_VOICE_CONCURRENCY` | `int` | `1` |
+| `GUEST_VOICE_GLOBAL_CONCURRENCY` | `int` | `3` |
 | `SEMANTIC_MEMORY_ENABLED` | `bool` | `False` |
 | `VOYAGE_API_KEY` | `SecretStr` | `SecretStr('')` |
 | `VOYAGE_MODEL` | `str` | `'voyage-4-lite'` |
@@ -72,5 +92,7 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 4. Test cả flag on/off và thiếu dependency; không thay unavailable bằng fake response.
 
 Frontend không nhận secrets từ bảng này. `MOODPRINT_API_PROXY` là biến Vite dev-server, không phải Settings field. `TEST_DATABASE_URL` là cấu hình harness riêng và không fallback sang DATABASE_URL.
+
+Guest/feedback/tour rollout theo [release gates](../guest-experience/implementation/evidence/release-readiness.md). Sáu cờ mặc định tắt; paid budget chưa được phê duyệt. Tắt entry/paid/feedback không tắt deadline, cleanup, reconciliation, retention hay settlement. Giữ HMAC key ổn định; xem [rollback/rotation](../guest-experience/implementation/evidence/rollback.md). CAPTCHA synthetic chỉ có trong cấu hình Vite fullstack riêng, không có trong production build.
 
 Giá trị cấu hình và hiệu lực có thể khác nhau: saved-chat retention bị clamp tối đa 30 ngày trong persistence/routes; `SESSION_MAX_DAYS` đặt cookie max-age, còn server kiểm tra sliding idle expiry. Xem [lifecycle](data-lifecycle.md), [Auth](../supabase/auth.md).

@@ -26,7 +26,12 @@ export function errorMessage(error: unknown): string {
 export class ApiClient {
   private csrf = "";
   private intents = new Map<string, string>();
-  onUnauthorized?: () => void;
+  // Every in-flight request of the current lifecycle; reset() aborts them so a late response
+  // can never restore private UI after the session or trial ended.
+  private controllers = new Set<AbortController>();
+  /** Bumped by reset(); callbacks capture it and drop results from an older lifecycle. */
+  epoch = 0;
+  onUnauthorized?: (error?: ApiError) => void;
 
   setCsrf(token: string) {
     this.csrf = token;
@@ -34,6 +39,9 @@ export class ApiClient {
   reset() {
     this.csrf = "";
     this.intents.clear();
+    this.epoch += 1;
+    for (const controller of this.controllers) controller.abort();
+    this.controllers.clear();
   }
 
   async request<T>(
@@ -43,6 +51,10 @@ export class ApiClient {
       body?: unknown;
       signal?: AbortSignal;
       publicWrite?: boolean;
+      /** Stable key for a public write; kept across ambiguous retries instead of a fresh one. */
+      idempotencyKey?: string;
+      /** Marks the guest-intent/creation requests the backend requires a custom header for. */
+      guestIntent?: boolean;
     } = {},
   ): Promise<T> {
     const method = options.method || "GET";
@@ -52,6 +64,8 @@ export class ApiClient {
     const intent = `${method} ${path} ${encoded || ""}`;
     const headers: Record<string, string> = { Accept: "application/json" };
     if (encoded !== undefined) headers["Content-Type"] = "application/json";
+    if (options.guestIntent) headers["X-Guest-Intent"] = "1";
+    if (options.idempotencyKey) headers["Idempotency-Key"] = options.idempotencyKey;
     if (writing && !options.publicWrite) {
       if (!this.csrf)
         throw new ApiError(
@@ -74,6 +88,7 @@ export class ApiClient {
       headers["Idempotency-Key"] = key;
     }
     const controller = new AbortController();
+    this.controllers.add(controller);
     const abort = () => controller.abort();
     if (options.signal?.aborted) controller.abort();
     options.signal?.addEventListener("abort", abort, { once: true });
@@ -94,15 +109,7 @@ export class ApiClient {
         // A 4xx means the server rolled the write back, so the key can never be
         // replayed usefully; only 5xx/network outcomes are ambiguous and keep it.
         if (response.status < 500) this.intents.delete(intent);
-        // Step-up re-authentication and public auth endpoints are not session loss.
-        if (
-          response.status === 401 &&
-          path !== "/session" &&
-          !path.startsWith("/auth/") &&
-          detail.code !== "REAUTH_REQUIRED"
-        )
-          this.onUnauthorized?.();
-        throw new ApiError(
+        const failure = new ApiError(
           response.status,
           typeof detail.code === "string" ? detail.code : "API_ERROR",
           // Without a server explanation the cause is unknown: never blame the input.
@@ -111,6 +118,17 @@ export class ApiClient {
             : "Chưa hoàn tất yêu cầu. Bạn hãy thử lại.",
           response.headers.get("Retry-After"),
         );
+        // Step-up re-authentication and public auth endpoints are not session loss; an expired
+        // guest trial (GUEST_EXPIRED) is session loss even on /session.
+        if (
+          response.status === 401 &&
+          ((path !== "/session" &&
+            !path.startsWith("/auth/") &&
+            detail.code !== "REAUTH_REQUIRED") ||
+            detail.code === "GUEST_EXPIRED")
+        )
+          this.onUnauthorized?.(failure);
+        throw failure;
       }
       const result =
         response.status === 204 ? undefined : await response.json();
@@ -118,6 +136,7 @@ export class ApiClient {
       return result as T;
     } finally {
       clearTimeout(timeout);
+      this.controllers.delete(controller);
       options.signal?.removeEventListener("abort", abort);
     }
   }

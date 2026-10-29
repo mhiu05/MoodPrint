@@ -108,6 +108,7 @@ async def eligible_peers(
         )
         .where(
             User.id != me,
+            User.account_kind == "registered",
             User.status == "active",
             User.age_band == "adult",
             ~User.deletion_pending,

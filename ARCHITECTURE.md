@@ -141,11 +141,13 @@ Identity field và reveal grant là dữ liệu riêng: người dùng chủ đ�
 
 Schema private `moodprint` ngoài Supabase Data API. Authorization hiện tại dựa backend ownership/purpose/pair gates và runtime role tối thiểu; không tuyên bố đã có bộ RLS end-user cho schema này. Role migration tách runtime. ORM đặt `hide_parameters=True`, psycopg `prepare_threshold=None`.
 
-Head hiện tại `0015_context_privacy`; readiness chỉ chấp nhận giá trị trong `READY_REVISIONS` và yêu cầu provider-session helper. Không tự migration khi startup. Local Alembic runner từ chối remote host; hosted DDL đi qua SQL review/approval riêng. [Runbook migration](docs/supabase/migrations.md) giải thích database disposable và hosted workflow.
+Head hiện tại `0018_app_feedback`; readiness chỉ chấp nhận giá trị trong `READY_REVISIONS` và yêu cầu provider-session helper. Không tự migration khi startup. Local Alembic runner từ chối remote host; hosted DDL đi qua SQL review/approval riêng. [Runbook migration](docs/supabase/migrations.md) giải thích database disposable và hosted workflow.
+
+Góp ý tự nguyện lưu riêng trong `app_feedback`, không có FK/định danh người gửi. Receipt ngắn hạn dùng cho ownership/idempotency và bị xóa khi purge; góp ý còn lại tối đa180 ngày theo policy đang chờ D03. Admin review có cờ riêng, role hiện hành và reauthentication; không nối với lịch sử riêng. Hướng dẫn tùy chọn dùng inline controller theo route; guest giữ trạng thái trong RAM, spotlight chưa được chấp nhận. Xem [release gates](docs/guest-experience/implementation/evidence/release-readiness.md).
 
 Topology được hỗ trợ là **một backend worker/một replica**: active runs, stream slots, limits và temporary context có state trong process. PostgreSQL locks không biến các state RAM đó thành shared state. Muốn scale cần shared ephemeral state, fencing, revocation và kiểm thử mới.
 
-Lifespan khởi chạy sweeper và embedding worker. Cleanup có giới hạn batch; retention database đang hoạt động không chứng minh xóa khỏi backup/provider. Health live chỉ chứng minh process sống; ready kiểm tra database/revision/helper, không gọi live model. Log chỉ nên chứa request ID, error class và metric tổng hợp.
+Lifespan khởi chạy sweeper, embedding worker và guest cleanup/reconciliation worker độc lập với cờ entry. Cleanup có giới hạn batch; retention database đang hoạt động không chứng minh xóa khỏi backup/provider. Health live chỉ chứng minh process sống; ready kiểm tra database/revision/helper, không gọi live model. Log chỉ nên chứa request ID, error class và metric tổng hợp.
 
 ## 9. Kiểm chứng và giới hạn
 

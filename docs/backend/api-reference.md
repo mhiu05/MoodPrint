@@ -6,6 +6,9 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 
 | Method | Path | Operation ID |
 | --- | --- | --- |
+| GET | `/api/v1/admin/feedback` | `feedback_list_api_v1_admin_feedback_get` |
+| GET | `/api/v1/admin/feedback/summary` | `feedback_summary_api_v1_admin_feedback_summary_get` |
+| PATCH | `/api/v1/admin/feedback/{id}` | `feedback_review_api_v1_admin_feedback__id__patch` |
 | GET | `/api/v1/activities/catalog` | `catalog_api_v1_activities_catalog_get` |
 | GET | `/api/v1/activities/{session_id}` | `get_session_api_v1_activities__session_id__get` |
 | POST | `/api/v1/activities/{session_id}/accept` | `activity_accept_api_v1_activities__session_id__accept_post` |
@@ -36,6 +39,9 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 | POST | `/api/v1/ai/runs/{run_id}/cancel` | `cancel_api_v1_ai_runs__run_id__cancel_post` |
 | GET | `/api/v1/ai/runs/{run_id}/events` | `events_api_v1_ai_runs__run_id__events_get` |
 | POST | `/api/v1/auth/confirmation` | `resend_confirmation_api_v1_auth_confirmation_post` |
+| POST | `/api/v1/auth/guest` | `guest_create_api_v1_auth_guest_post` |
+| POST | `/api/v1/auth/guest-intents` | `guest_intents_api_v1_auth_guest_intents_post` |
+| POST | `/api/v1/auth/guest/end` | `guest_end_api_v1_auth_guest_end_post` |
 | POST | `/api/v1/auth/login` | `login_api_v1_auth_login_post` |
 | POST | `/api/v1/auth/logout` | `logout_api_v1_auth_logout_post` |
 | POST | `/api/v1/auth/password-recovery` | `request_password_recovery_api_v1_auth_password_recovery_post` |
@@ -69,6 +75,8 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 | POST | `/api/v1/exports` | `export_api_v1_exports_post` |
 | GET | `/api/v1/exports/{job_id}` | `export_status_api_v1_exports__job_id__get` |
 | GET | `/api/v1/exports/{job_id}/download` | `download_api_v1_exports__job_id__download_get` |
+| POST | `/api/v1/feedback` | `create_feedback_api_v1_feedback_post` |
+| GET | `/api/v1/feedback/submission-state` | `get_submission_state_api_v1_feedback_submission_state_get` |
 | GET | `/api/v1/health/live` | `live_api_v1_health_live_get` |
 | GET | `/api/v1/health/ready` | `ready_api_v1_health_ready_get` |
 | GET | `/api/v1/matching/candidates` | `candidates_api_v1_matching_candidates_get` |
@@ -93,6 +101,7 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 | GET | `/api/v1/proposals` | `proposals_api_v1_proposals_get` |
 | POST | `/api/v1/proposals/{proposal_id}/confirm` | `confirm_api_v1_proposals__proposal_id__confirm_post` |
 | POST | `/api/v1/proposals/{proposal_id}/reject` | `reject_proposal_api_v1_proposals__proposal_id__reject_post` |
+| GET | `/api/v1/public/experience` | `public_experience_api_v1_public_experience_get` |
 | POST | `/api/v1/reports` | `report_api_v1_reports_post` |
 | GET | `/api/v1/reports/{report_id}` | `report_status_api_v1_reports__report_id__get` |
 | DELETE | `/api/v1/reveal-grants/{reveal_id}` | `revoke_api_v1_reveal_grants__reveal_id__delete` |
@@ -107,4 +116,6 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 | PATCH | `/api/v1/users/me/identity` | `edit_identity_api_v1_users_me_identity_patch` |
 | POST | `/api/v1/voice/transcriptions` | `transcribe_api_v1_voice_transcriptions_post` |
 
-Tổng cộng **100 operations** trong snapshot. Production ẩn docs UI; snapshot vẫn được sinh offline cho contract checks.
+Tổng cộng **109 operations** trong snapshot. `POST /feedback` và `GET /feedback/submission-state` chỉ tồn tại khi `FEEDBACK_ENABLED` và `GUEST_ABUSE_HMAC_KEY` đều có; gửi thành công trả 201, cùng key và payload trả 200 cùng receipt, guest chỉ gửi một lần trong trial (409 `FEEDBACK_ALREADY_SUBMITTED`), user đã đăng ký một lần mỗi ngày Asia/Bangkok (429 `FEEDBACK_DAILY_LIMIT`). Production ẩn docs UI; snapshot vẫn được sinh offline cho contract checks.
+
+Admin feedback cần tài khoản đã đăng ký, role admin hiện hành, xác thực lại bằng mật khẩu trong 12 giờ và `FEEDBACK_ADMIN_ENABLED` riêng. List/summary dùng cùng bộ lọc, ngày Asia/Bangkok tối đa 180 ngày, mặc định loại spam; summary dùng một snapshot đọc nhất quán. PATCH cần CSRF, Idempotency-Key và expectedVersion; stale trả 409 `STALE_VERSION`. Audit chỉ lưu resource/version/trạng thái/staff, không sao chép comment hoặc liên kết tới lịch sử riêng. Retention chạy độc lập với các cờ.

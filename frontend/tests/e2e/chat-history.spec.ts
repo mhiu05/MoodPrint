@@ -1,3 +1,4 @@
+import { artifactPath } from "../artifacts";
 import { test, expect, type Page } from "@playwright/test";
 
 const id = "22222222-2222-4222-8222-222222222222";
@@ -201,7 +202,7 @@ test("saved history remains readable, pageable, exportable and deletable when AI
     page.getByRole("log").getByText("Tin đã lưu", { exact: true }),
   ).toBeVisible();
   await page.screenshot({
-    path: "evidence/ai-chat-memory/mock-history-desktop.png",
+    path: artifactPath("ai-chat-memory/mock-history-desktop.png", "evidence/ai-chat-memory/mock-history-desktop.png"),
     fullPage: true,
   });
   await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
@@ -244,7 +245,7 @@ test("history opt-out makes saved threads read-only and mobile history stays rea
     page.getByRole("dialog").getByRole("link", { name: /Một buổi sáng/ }),
   ).toBeVisible();
   await page.screenshot({
-    path: "evidence/ai-chat-memory/mock-history-mobile-dialog.png",
+    path: artifactPath("ai-chat-memory/mock-history-mobile-dialog.png", "evidence/ai-chat-memory/mock-history-mobile-dialog.png"),
     fullPage: true,
   });
   await page.keyboard.press("Escape");
@@ -256,7 +257,7 @@ test("history opt-out makes saved threads read-only and mobile history stays rea
     ),
   ).toBe(true);
   await page.screenshot({
-    path: "evidence/ai-chat-memory/mock-history-mobile.png",
+    path: artifactPath("ai-chat-memory/mock-history-mobile.png", "evidence/ai-chat-memory/mock-history-mobile.png"),
     fullPage: true,
   });
 });

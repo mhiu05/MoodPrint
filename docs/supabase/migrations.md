@@ -21,8 +21,11 @@ Nguồn: [backend/alembic/versions](../../backend/alembic/versions/). Revision I
 | `0013_shared_activities` | Activity sessions/participants/responses |
 | `0014_moderation` | Staff role/action và enforcement support |
 | `0015_context_privacy` | Turn context policy boundary |
+| `0016_guest_foundation` | Guest trial: `users.account_kind`/deadline bất biến, session cap, bảng provisioning/cleanup/usage/abuse và budget không gắn identity (chưa có approved hosted SQL; xem GE-14.3) |
+| `0017_guest_security` | Helper `is_provider_session_active` guest-aware: đồng hồ database tươi (VOLATILE), `is_anonymous` provider khớp `account_kind`, deadline T (chưa có approved hosted SQL) |
+| `0018_app_feedback` | Feedback không gắn danh tính (`app_feedback`, receipt tạm, audit review), hai hàm validator private, thêm scope `feedback_attempt` cho bucket HMAC; RLS + chỉ `moodprint_runtime` (chưa có approved hosted SQL) |
 
-[READY_REVISIONS](../../backend/app/core/revisions.py) hiện chỉ gồm **`0015_context_privacy`**. Schema cũ thiếu privacy policy column không được báo ready. Không thay revision bằng stamp khi DDL chưa chạy.
+[READY_REVISIONS](../../backend/app/core/revisions.py) hiện chỉ gồm **`0018_app_feedback`**. Schema cũ thiếu cột lifecycle guest hoặc bảng feedback mà retention/purge luôn chạm (kể cả khi mọi flag tắt) không được báo ready: image mới coi mọi user là registered/không hết hạn hoặc lỗi ở lần purge đầu. Không thay revision bằng stamp khi DDL chưa chạy.
 
 ## Local disposable verification
 
@@ -63,5 +66,7 @@ uv run --project backend --locked python scripts/check_reviewed_artifacts.py
 Không sửa newline/bytes SQL đã pin để format tài liệu. `.gitattributes` bảo toàn SQL hash trên Windows. Report generated nằm trong `deploy/supabase/reports/`, tránh đưa secret/execution data vào commit.
 
 ## Rollback và restore
+
+Guest head là **0018_app_feedback**. Range 0015→0018 có [pending review package](../guest-experience/implementation/evidence/release-readiness.md): sinh offline bằng `prepare_guest_migration_review.py`, rehearsal rollback trên DB local rỗng bằng `verify_guest_migration_review.py`. Không ghi đè initialization SQL/MANIFEST. Hosted apply từ revision thực tế (kể cả 0014→0015 nếu còn thiếu) cần artifact, target và chấp thuận riêng. Rollback giữ guest guards/cleanup.
 
 Ưu tiên expand-only và rollback image nếu schema tương thích, nhưng phải kiểm tra `READY_REVISIONS` thực tế của image cũ. Downgrade destructive bị từ chối; không drop dữ liệu để rollback app. Restore cần rehearsal, tombstones, consent/session revocations và gates trước mở traffic. Physical backup retention và provider erasure là việc riêng, không được chứng minh bằng `alembic check`.

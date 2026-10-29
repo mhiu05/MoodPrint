@@ -17,6 +17,8 @@ from app.ai import models as chat_models  # noqa: F401
 from app.core.config import Settings
 from app.infrastructure.database.models import Base
 from app.modules.activities import models as activity_models  # noqa: F401
+from app.modules.feedback import models as feedback_models  # noqa: F401
+from app.modules.guests import models as guest_models  # noqa: F401
 from app.modules.moderation import models as moderation_models  # noqa: F401
 from app.modules.social import models  # noqa: F401 -- register all owned domain tables
 from app.modules.users import models as lifecycle_models  # noqa: F401
@@ -67,11 +69,17 @@ async def online():
     )
     async with engine.connect() as connection:
         await connection.execute(text("create schema if not exists moodprint"))
+        # Local bootstrap installs the private helper reviewed for Supabase, but only when it is
+        # absent and before migrations: revision 0017 replaces it with the guest-aware version, and a
+        # later no-op upgrade must never overwrite that newer definition. PL/pgSQL defers the Auth
+        # relation lookup until invocation; no Auth DDL here.
+        exists = await connection.scalar(
+            text("select to_regprocedure('moodprint.is_provider_session_active(uuid,uuid)') is not null")
+        )
+        if not exists:
+            await connection.execute(text(session_helper))
         await connection.commit()
         await connection.run_sync(configure)
-        # Local bootstrap installs the same private helper reviewed for Supabase.
-        # PL/pgSQL defers the Auth relation lookup until invocation; no Auth DDL here.
-        await connection.execute(text(session_helper.replace("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION", 1)))
         await connection.commit()
     await engine.dispose()
 

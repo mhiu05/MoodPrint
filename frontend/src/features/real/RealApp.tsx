@@ -51,7 +51,14 @@ import { botById, type BotId } from "../../companions/registry";
 import { ApiClient, ApiError, errorMessage } from "../../api/client";
 import { consumeAIEvents, validCards } from "../../api/stream";
 import { AdultEligibility, EligibilityGate } from "./Eligibility";
-import { AuthScreen, readAuthCallback } from "./Auth";
+import { AuthScreen } from "./Auth";
+import type { AuthCallback } from "../auth/callback";
+import { validateSession } from "../../api/session";
+import { ErrorNotice } from "../../components/ErrorNotice";
+import { GuestExpired } from "../guest/GuestExpired";
+import { GuestStatus } from "../guest/GuestStatus";
+import { useGuestLifecycle } from "../guest/useGuestLifecycle";
+import { clearTourBlockers, useTourActivity, useTourBlocker } from "../onboarding/tourActivity";
 import type {
   AIRunAccepted,
   ActionReceipt,
@@ -87,6 +94,9 @@ import { deriveAIActivity, type AIActivityPhase } from "./aiActivityView";
 import { AIDataProvider, AIDataControls, ConversationHistory, useAIData, downloadConversation, type SavedConversation, type SavedConversationHeader } from "./AIData";
 
 const MessageMarkdown = lazy(() => import("./MessageMarkdown"));
+const FeedbackPage = lazy(() => import("../feedback/FeedbackPage"));
+const FeedbackAdmin = lazy(() => import("./admin/Feedback"));
+const TourController = lazy(() => import("../onboarding/TourController"));
 
 type SessionContextValue = {
   api: ApiClient;
@@ -101,53 +111,7 @@ export function useSession() {
   return context;
 }
 
-function validateSession(value: SessionView): SessionView {
-  if (
-    !value ||
-    typeof value.userId !== "string" ||
-    typeof value.alias !== "string" ||
-    typeof value.eligible !== "boolean" ||
-    typeof value.csrfToken !== "string" ||
-    !value.csrfToken ||
-    typeof value.timezone !== "string" ||
-    !value.features ||
-    !value.consents ||
-    !["AI", "MEM", "MATCH", "VOICE"].every((purpose) => {
-      const consent = value.consents[purpose as ConsentPurpose];
-      return (
-        consent &&
-        typeof consent.enabled === "boolean" &&
-        Number.isInteger(consent.version)
-      );
-    })
-  )
-    throw new ApiError(
-      502,
-      "INVALID_SESSION",
-      "Chưa thể xác minh phiên. Vui lòng thử lại.",
-    );
-  return value;
-}
-
-export function ErrorNotice({
-  error,
-  retry,
-}: {
-  error: unknown;
-  retry?: () => void;
-}) {
-  if (!error) return null;
-  return (
-    <div className={cx.error} role="alert">
-      <p>{errorMessage(error)}</p>
-      {retry ? (
-        <Button variant="secondary" onClick={retry}>
-          Thử lại
-        </Button>
-      ) : null}
-    </div>
-  );
-}
+export { ErrorNotice };
 
 export function useResource<T>(path: string, enabled = true) {
   const { api } = useSession();
@@ -188,13 +152,31 @@ export function useResource<T>(path: string, enabled = true) {
   return { data, setData, error, loading, refresh };
 }
 
-function SessionRoot() {
-  const [api] = useState(() => new ApiClient());
-  // Captured once before rendering so email-link tokens leave the URL immediately.
-  const [callback] = useState(readAuthCallback);
+type GuestContextValue = {
+  remainingMs: number;
+  end: () => void;
+  register: () => void;
+} | null;
+const GuestContext = createContext<GuestContextValue>(null);
+export function useGuest() {
+  return useContext(GuestContext);
+}
+
+function authMode(): "login" | "signup" {
+  return /[?&]mode=signup\b/.test(window.location.hash) ? "signup" : "login";
+}
+
+function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback }) {
+  const entryLocation = useLocation();
   const [session, setSession] = useState<SessionView | null>();
   const [error, setError] = useState<unknown>();
   const [revision, setRevision] = useState(0);
+  // Set when a guest trial ends so private state is replaced by a content-free screen.
+  const [ended, setEnded] = useState<"expired" | "ended" | null>(null);
+  const knewGuest = useRef(false);
+  useEffect(() => {
+    knewGuest.current = session?.accountKind === "guest";
+  }, [session]);
   const receive = useCallback(
     (value: SessionView) => {
       const valid = validateSession(value);
@@ -206,19 +188,26 @@ function SessionRoot() {
   );
   useEffect(() => {
     const controller = new AbortController();
-    api.onUnauthorized = () => {
+    // api.reset() (session loss, expiry, logout) aborts every in-flight read and bumps the epoch: an
+    // answer or failure from an older lifecycle must never repaint the screen that replaced it.
+    const epoch = api.epoch;
+    const current = () => !controller.signal.aborted && api.epoch === epoch;
+    api.onUnauthorized = (failure) => {
       api.reset();
+      setError(undefined);
+      if (failure?.code === "GUEST_EXPIRED" || knewGuest.current) setEnded("expired");
       setSession(null);
     };
     api
       .request<SessionView>("/session", { signal: controller.signal })
       .then((value) => {
-        if (!controller.signal.aborted) receive(value);
+        if (current()) receive(value);
       })
       .catch((reason) => {
-        if (controller.signal.aborted) return;
+        if (!current()) return;
         if (reason instanceof ApiError && reason.status === 401) {
           api.reset();
+          if (reason.code === "GUEST_EXPIRED") setEnded("expired");
           setSession(null);
         } else setError(reason);
       });
@@ -244,9 +233,22 @@ function SessionRoot() {
     };
   }, [session?.userId]);
   async function logout() {
+    const wasGuest = session?.accountKind === "guest";
     await api.request<void>("/auth/logout", { method: "POST" });
     api.reset();
+    if (wasGuest) setEnded("ended");
     setSession(null);
+  }
+  function expireGuest(reason: "expired" | "ended") {
+    // Abort every in-flight request and drop the private tree before anything can repopulate it.
+    api.reset();
+    setError(undefined);
+    setEnded(reason);
+    setSession(null);
+  }
+  // Only asks the server; the lifecycle hook then aborts, tells the other tabs and ends the UI.
+  async function requestEnd() {
+    await api.request<void>("/auth/guest/end", { method: "POST", body: {} });
   }
   if (error)
     return (
@@ -269,12 +271,156 @@ function SessionRoot() {
         <p role="status">Đang kiểm tra đăng nhập…</p>
       </main>
     );
+  if (ended && session === null)
+    return (
+      <GuestExpired
+        reason={ended}
+        onNewTrial={() => {
+          setEnded(null);
+          window.location.assign("/");
+        }}
+        onRegister={() => {
+          setEnded(null);
+          window.location.hash = "#/login?mode=signup";
+        }}
+      />
+    );
+  if (session === null && entryLocation.pathname === "/feedback" && !callback)
+    return (
+      <main className="real-auth">
+        <Brand />
+        <h1 tabIndex={-1}>Góp ý cho MoodPrint</h1>
+        <p>Bạn cần một lượt dùng thử đang hoạt động hoặc đăng nhập để gửi góp ý.</p>
+        <a href="/">Tìm hiểu và dùng thử MoodPrint</a>
+        <Link to="/login">Đăng nhập / Đăng ký</Link>
+      </main>
+    );
   if (session === null || callback?.kind === "recovery")
-    return <AuthScreen api={api} receive={receive} callback={callback} />;
+    return (
+      <AuthScreen api={api} receive={receive} callback={callback} initialMode={authMode()} />
+    );
+  const content = session.eligible ? (
+    <AIDataProvider key={session.userId}>
+      <Shell />
+    </AIDataProvider>
+  ) : (
+    <EligibilityGate />
+  );
   return (
     <SessionContext.Provider value={{ api, session, receive, logout }}>
-      {session.eligible ? <AIDataProvider key={session.userId}><Shell /></AIDataProvider> : <EligibilityGate />}
+      {session.accountKind === "guest" ? (
+        <GuestHost session={session} api={api} onExpired={expireGuest} onEnd={requestEnd}
+          onRegisterAfterEnd={() => {
+            // expire() already aborted requests, broadcast the end and discarded
+            // the private tree. Choose signup explicitly over the terminal screen.
+            knewGuest.current = false;
+            setEnded(null);
+            window.location.hash = "#/login?mode=signup";
+          }}>
+          {content}
+        </GuestHost>
+      ) : (
+        content
+      )}
     </SessionContext.Provider>
+  );
+}
+
+function GuestHost({
+  session,
+  api,
+  onExpired,
+  onEnd,
+  onRegisterAfterEnd,
+  children,
+}: {
+  session: SessionView;
+  api: ApiClient;
+  onExpired: (reason: "expired" | "ended") => void;
+  onEnd: () => void | Promise<void>;
+  onRegisterAfterEnd: () => void;
+  children: ReactNode;
+}) {
+  const { remainingMs, expire } = useGuestLifecycle({ session, api, onExpired });
+  const [confirm, setConfirm] = useState<"end" | "register" | null>(null);
+  const [ending, setEnding] = useState(false);
+  const [endError, setEndError] = useState<unknown>();
+  return (
+    <GuestContext.Provider
+      value={{
+        remainingMs,
+        end: () => { setEndError(undefined); setConfirm("end"); },
+        register: () => { setEndError(undefined); setConfirm("register"); },
+      }}
+    >
+      {children}
+      {confirm ? (
+        <Dialog
+          title={confirm === "end" ? "Kết thúc và xóa lượt dùng thử?" : "Tạo tài khoản?"}
+          destructive
+          onClose={() => !ending && setConfirm(null)}
+        >
+          <p>
+            {confirm === "end"
+              ? "Dữ liệu của lượt này sẽ bị xóa và không thể mở lại."
+              : "Dữ liệu của lượt dùng thử sẽ không chuyển sang tài khoản mới. Lượt dùng thử hiện tại sẽ kết thúc."}
+          </p>
+          <ErrorNotice error={endError} />
+          <div className={cx.actions}>
+            <Button variant="secondary" data-cancel disabled={ending} onClick={() => setConfirm(null)}>
+              Giữ lượt dùng thử
+            </Button>
+            <Button
+              variant="danger"
+              disabled={ending}
+              onClick={async () => {
+                if (ending) return;
+                const next = confirm;
+                setEnding(true);
+                setEndError(undefined);
+                try {
+                  await onEnd();
+                  setConfirm(null);
+                  expire("ended");
+                  if (next === "register") onRegisterAfterEnd();
+                } catch (reason) {
+                  setEndError(reason);
+                } finally { setEnding(false); }
+              }}
+            >
+              {confirm === "end" ? "Kết thúc và xóa" : "Kết thúc và tạo tài khoản"}
+            </Button>
+          </div>
+        </Dialog>
+      ) : null}
+    </GuestContext.Provider>
+  );
+}
+
+function GuestBanner() {
+  const guest = useGuest();
+  if (!guest) return null;
+  return <GuestStatus remainingMs={guest.remainingMs} onEnd={guest.end} />;
+}
+
+/** Registered-only explanation. It makes no API call, so a guest never polls or probes social data. */
+function GuestLocked() {
+  const guest = useGuest();
+  return (
+    <>
+      <h1 tabIndex={-1}>Tìm bạn và nhắn tin</h1>
+      <StatePanel title="Tạo tài khoản để tìm bạn và nhắn tin.">
+        Tính năng này dành cho người từ 18 tuổi, khi bạn chủ động bật chia sẻ.
+      </StatePanel>
+      <div className={cx.actions}>
+        <Link className={`${cx.button} ${cx.primary}`} to="/assistants">
+          Về trợ lý
+        </Link>
+        <Button variant="secondary" onClick={() => guest?.register()}>
+          Tạo tài khoản
+        </Button>
+      </div>
+    </>
   );
 }
 
@@ -314,8 +460,19 @@ function SessionNotices() {
 /** Shown only when few AI turns remain today (Asia/Bangkok day). */
 function QuotaHint() {
   const { session } = useSession();
-  const remaining = session.features.aiQuotaRemaining;
+  const guest = session.accountKind === "guest";
+  const remaining = guest
+    ? (session.guestQuota?.aiTurnsRemaining ?? null)
+    : session.features.aiQuotaRemaining;
   if (remaining == null || remaining > 10) return null;
+  if (guest)
+    return (
+      <p className={cx.footnote} role="status">
+        {remaining === 0
+          ? "Bạn đã dùng hết lượt trò chuyện của lượt dùng thử."
+          : `Lượt dùng thử còn ${remaining} lượt trò chuyện với trợ lý.`}
+      </p>
+    );
   return (
     <p className={cx.footnote} role="status">
       {remaining === 0
@@ -376,6 +533,9 @@ function Navigation() {
 
 function Shell() {
   const { session } = useSession();
+  const [guideOpen, setGuideOpen] = useState(false);
+  const activity = useTourActivity();
+  useEffect(() => () => clearTourBlockers(), []);
   const location = useLocation();
   const assistants = location.pathname.startsWith("/assistants");
   // Conversations use the whole small screen; each has its own back button.
@@ -455,22 +615,26 @@ function Shell() {
             </header>
           ) : null}
           <OfflineBanner />
+          <GuestBanner />
           <SessionNotices />
+          {guideOpen ? <Suspense fallback={<p role="status">Đang mở hướng dẫn…</p>}><TourController session={session} activity={activity} onClose={() => setGuideOpen(false)} /></Suspense> : null}
           <Routes>
+              <Route path="/admin/feedback" element={<Suspense fallback={<p role="status">Đang mở góp ý…</p>}><FeedbackAdmin /></Suspense>} />
+              <Route path="/feedback" element={<Suspense fallback={<p role="status">Đang mở góp ý…</p>}><FeedbackPage /></Suspense>} />
               {session.staff && (
                 <Route path="/admin/reports" element={<Moderation />} />
               )}
               <Route path="/assistants" element={<Assistants />} />
               <Route path="/assistants/:botId" element={<Assistants />} />
-              <Route path="/settings" element={<Settings />} />
+              <Route path="/settings" element={<Settings onGuide={() => setGuideOpen(true)} />} />
               <Route path="/self" element={<Moods />} />
               <Route path="/profile" element={<PrivateProfile />} />
               <Route path="/memory" element={<ApprovedMemories />} />
-              <Route path="/connect" element={<Discovery />} />
-              <Route path="/messages" element={<HumanMessages />} />
+              <Route path="/connect" element={session.accountKind === "guest" ? <GuestLocked /> : <Discovery />} />
+              <Route path="/messages" element={session.accountKind === "guest" ? <GuestLocked /> : <HumanMessages />} />
               <Route
                 path="/chat/:connectionId"
-                element={<HumanChat key={location.pathname} />}
+                element={session.accountKind === "guest" ? <GuestLocked /> : <HumanChat key={location.pathname} />}
               />
               <Route path="*" element={<Navigate replace to="/assistants" />} />
           </Routes>
@@ -563,7 +727,7 @@ function Assistants() {
         </div>
         {resource.loading ? <p role="status">Đang tải trợ lý…</p> : null}
         <ErrorNotice error={resource.error} retry={resource.refresh} />
-        <div className="bot-list">
+        <div className="bot-list" data-tour="assistants-list">
           {filtered.map((value) => (
             <Link
               key={value.botId}
@@ -681,6 +845,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     [error, setError] = useState<unknown>();
   const [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false);
+  useTourBlocker("ai", busy);
+  useTourBlocker("draft", draft.length > 0);
   const [ready, setReady] = useState(false);
   const [run, setRun] = useState<{ id: string; version: number; key: string }>();
   // Stop is a request until the run's own terminal event confirms the outcome.
@@ -1300,6 +1466,11 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   else if (!preferences) historyStatus = "Chưa kiểm tra được lựa chọn lưu lịch sử.";
   else if (!preferences.historyAvailable) historyStatus = "Lưu lịch sử chưa sẵn sàng.";
   else if (preferences.historyEnabled) historyStatus = `Đang lưu cuộc trò chuyện mới tối đa ${preferences.retentionDays} ngày.`;
+  if (session.accountKind === "guest") {
+    // The trial never keeps a long-term history: everything ends with the trial.
+    retentionLabel = "Cuộc trò chuyện chỉ tồn tại trong lượt dùng thử. Khi hết giờ hoặc khi bạn kết thúc, dữ liệu bị xóa và không thể mở lại.";
+    historyStatus = "Lịch sử dài hạn không có trong lượt dùng thử.";
+  }
 
   let readOnlyMessage = "Đang kiểm tra cài đặt trò chuyện AI…";
   if (!session.features.ai) readOnlyMessage = aiServiceMessage(session.features);
@@ -1579,9 +1750,11 @@ const consentWithdrawal: Record<ConsentPurpose, string> = {
     "Khi tắt: đóng mọi cuộc trò chuyện với người thật, hủy lời mời đang chờ, và hồ sơ tìm bạn bị ẩn. Quyền này không tự bật lại: bạn cần xem lại hồ sơ và chọn Hiển thị hồ sơ. Những người đang trò chuyện hoặc có lời mời chờ với bạn sẽ không được gợi ý lại cho nhau trong 30 ngày. Mọi hoạt động chung đang diễn ra cũng dừng lại.",
   VOICE: "Khi rút quyền, bạn không thể ghi âm. Bản ghi âm không được lưu lại.",
 };
-function Settings() {
+function Settings({ onGuide }: { onGuide: () => void }) {
   const { api, session, receive, logout } = useSession();
-  const published = useResource<{ state: string; profileVersion: number } | null>("/profiles/published/current");
+  const guest = session.accountKind === "guest";
+    const guestControls = useGuest();
+  const published = useResource<{ state: string; profileVersion: number } | null>("/profiles/published/current", !guest);
   const [busy, setBusy] = useState<string>(),
     [error, setError] = useState<unknown>();
   async function change(purpose: ConsentPurpose) {
@@ -1628,7 +1801,8 @@ function Settings() {
   );
   return (
     <div className={cx.reading}>
-      <h1 tabIndex={-1}>Quyền riêng tư</h1>
+      <h1 tabIndex={-1} data-tour="privacy-controls">Quyền riêng tư</h1>
+      <Button variant="secondary" onClick={onGuide}>Xem hướng dẫn</Button>
       <p className={cx.lede}>Mỗi lựa chọn bên dưới độc lập với nhau. Bạn quyết định nội dung nào được xử lý, lưu lại hoặc chia sẻ.</p>
       <ErrorNotice error={error} />
       <section className="real-section" aria-labelledby="privacy-ai">
@@ -1662,6 +1836,7 @@ function Settings() {
       </section>
       <section className="real-section" aria-labelledby="privacy-match">
         <h2 id="privacy-match">Hồ sơ và kết nối</h2>
+        {guest ? <p>Tìm bạn và nhắn tin dành cho người từ 18 tuổi có tài khoản. Lượt dùng thử chỉ có các tính năng cá nhân.</p> : <>
         {published.loading ? <p role="status">Đang kiểm tra hồ sơ tìm bạn…</p> : published.error ? null :
           <p role="status">{published.data?.state === "live" ? "Hồ sơ tìm bạn đang hiển thị" : "Hồ sơ tìm bạn chưa hiển thị trong gợi ý"}</p>}
         <ErrorNotice error={published.error} retry={published.refresh} />
@@ -1672,6 +1847,7 @@ function Settings() {
           <p>Quyền tìm bạn đang tắt. Để kết nối trở lại, xem lại hồ sơ tìm bạn rồi chọn Hiển thị hồ sơ.</p>
         )}
         <AdultEligibility />
+        </>}
       </section>
       <section className="real-section" aria-labelledby="privacy-session">
         <h2 id="privacy-session">Phiên đăng nhập</h2>
@@ -1680,6 +1856,7 @@ function Settings() {
           variant="secondary"
           disabled={!!busy}
           onClick={async () => {
+            if (guestControls) { guestControls.end(); return; }
             setBusy("logout");
             setError(undefined);
             try {
@@ -1691,10 +1868,16 @@ function Settings() {
             }
           }}
         >
-          {busy === "logout" ? "Đang đăng xuất…" : "Đăng xuất"}
+          {guest ? "Kết thúc lượt dùng thử" : busy === "logout" ? "Đang đăng xuất…" : "Đăng xuất"}
         </Button>
       </section>
       <DataControls />
+      <section className="real-section" aria-labelledby="privacy-feedback">
+        <h2 id="privacy-feedback">Góp ý cho MoodPrint</h2>
+        <p>Góp ý tự nguyện được lưu riêng theo thời hạn hiển thị trước khi gửi, không kèm dữ liệu trò chuyện hay nhật ký.</p>
+        <Link to="/feedback">Góp ý cho MoodPrint</Link>
+        {session.accountKind !== "guest" && session.staff === "admin" ? <p><Link to="/admin/feedback">Xem và xử lý góp ý</Link></p> : null}
+      </section>
     </div>
   );
 }
@@ -1915,10 +2098,10 @@ function PrivateProfile() {
   );
 }
 
-export default function RealApp() {
+export default function RealApp({ api, callback }: { api: ApiClient; callback: AuthCallback }) {
   return (
     <HashRouter>
-      <SessionRoot />
+      <SessionRoot api={api} callback={callback} />
     </HashRouter>
   );
 }

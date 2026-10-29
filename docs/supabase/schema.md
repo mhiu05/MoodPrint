@@ -19,8 +19,11 @@ ORM kế thừa `Base` trong [database/models.py](../../backend/app/infrastructu
 | Shared activity | `activity_sessions`, `activity_participants`, `activity_responses` | State/version, membership và answers |
 | Identity/safety | `identity_fields`, `reveal_access`, `reports`, `staff_roles`, `moderation_actions` | Private identity grants, evidence và decisions |
 | Data lifecycle | `data_jobs` | Export/deletion job status |
+| Guest trial | `guest_provisioning_attempts`, `guest_cleanup_jobs`, `guest_usage`, `guest_abuse_buckets`, `guest_operation_links` | Intent và correlation ngẫu nhiên khi tạo trial, lease dọn dẹp, bộ đếm trọn đời trial, security counter HMAC và ánh xạ thao tác trả phí tạm; owner-scoped ngoại trừ bucket mạng |
+| Guest cost | `guest_budget_days`, `guest_cost_reservations` | Liability theo ngày không gắn user/run/provider/IP; không bị cascade khi purge guest |
+| Feedback | `app_feedback`, `feedback_submission_receipts`, `feedback_review_events` | Đánh giá 1–5 tự nguyện không gắn danh tính; receipt tạm chỉ phục vụ idempotency/giới hạn theo chủ sở hữu; audit review không chứa nội dung |
 
-Nguồn mở rộng: [AI models](../../backend/app/ai/models.py), [proposal](../../backend/app/ai/memory_models.py), [embedding](../../backend/app/ai/embedding_models.py), [social models](../../backend/app/modules/social/models.py), [activity models](../../backend/app/modules/activities/models.py), [moderation models](../../backend/app/modules/moderation/models.py), [data jobs](../../backend/app/modules/users/models.py).
+Nguồn mở rộng: [guest models](../../backend/app/modules/guests/models.py), [AI models](../../backend/app/ai/models.py), [proposal](../../backend/app/ai/memory_models.py), [embedding](../../backend/app/ai/embedding_models.py), [social models](../../backend/app/modules/social/models.py), [activity models](../../backend/app/modules/activities/models.py), [moderation models](../../backend/app/modules/moderation/models.py), [data jobs](../../backend/app/modules/users/models.py).
 
 ## Quan hệ chính
 
@@ -50,6 +53,10 @@ erDiagram
 - Profile/consent versions được snapshot trong candidate refs, recheck trước thao tác. Ref 15 phút không miễn recheck trong thời gian còn hạn.
 - Message `client_message_id`, room sequence và unique constraints bảo vệ dedup/order. Seq trả ra JSON dạng string.
 - Vector model/dimensions và version của memory phải khớp authorization/index state; index tồn tại không đồng nghĩa được phép dùng.
+- `users.account_kind` là `registered` (mặc định cho mọi dòng cũ) hoặc `guest`. Guest có `guest_started_at` và `guest_expires_at = guest_started_at + 7200 giây`; check constraint và trigger `users_lifecycle_immutable` chặn đổi/gỡ/nâng cấp kind hoặc deadline, trigger `auth_sessions_lifetime_cap` chặn session guest vượt deadline. Không có refresh, retry hay restart nào gia hạn được.
+- `guest_budget_days`/`guest_cost_reservations` không có FK tới `users`: xóa mọi guest không mở lại ngân sách đã dùng.
+- `app_feedback` không có `user_id`/session/IP/conversation/thiết bị/URL và không có FK nào: một dòng được giữ lại không thể join về một người. Liên kết duy nhất là `feedback_submission_receipts` (owner + idempotency key + payload digest), cascade **từ** feedback và **từ** user, không bao giờ ngược lại, nên purge guest xóa receipt mà feedback độc lập vẫn còn. `feedback_review_events.staff_id` là `ON DELETE RESTRICT` (chỉ staff đã đăng ký).
+- Quy tắc giá trị feedback nằm trong database: `moodprint.feedback_categories_valid(text[])` (tập con của 8 mã, không NULL/trùng, tối đa 8) và `moodprint.feedback_comment_valid(text)` (≤1000 code point, không control C0 trừ tab/LF/CR, không DEL/C1) là hàm private immutable, `SET search_path=''`, chỉ `moodprint_runtime` được EXECUTE; mỗi nhánh bọc `coalesce(..., false)` để NULL không vượt qua CHECK. SQL trực tiếp và API cùng chịu một chính sách.
 - `auth.sessions`/`auth.users` thuộc provider. Test harness tạo synthetic tables chỉ trong DB local disposable.
 
 ## Runtime role

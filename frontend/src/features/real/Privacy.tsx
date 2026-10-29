@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button, cx, Dialog } from "../../components/UI";
 import type { components } from "../../api/generated/schema";
-import { ErrorNotice, useSession } from "./RealApp";
+import { ErrorNotice, useGuest, useSession } from "./RealApp";
 import type { SessionView } from "../../api/contracts";
 import { ApiError } from "../../api/client";
 import { ReauthForm } from "./Auth";
@@ -17,6 +17,8 @@ const choices = {
 
 export function DataControls() {
   const { api, receive } = useSession();
+  const guest = useGuest();
+  const [exportConfirm, setExportConfirm] = useState(false);
   const [scope, setScope] = useState<Exclude<Scope, "account">>("memories"),
     [confirm, setConfirm] = useState(false),
     [busy, setBusy] = useState(false),
@@ -60,7 +62,8 @@ export function DataControls() {
       receive(snapshot);
       const accepted = await api.request<Job>("/data-deletions", {
         method: "POST",
-        body: { scope, expectedVersion: snapshot.dataVersion || 1 },
+        body: { scope, expectedVersion: snapshot.dataVersion || 1,
+          ...(guest ? { guestConfirmation: "guest-data-v1" } : {}) },
       });
       setJob(accepted);
       setConfirm(false);
@@ -84,8 +87,9 @@ export function DataControls() {
             "memories",
             "moods",
             "consents",
-            "social",
+            ...(!guest ? ["social"] : []),
           ],
+          ...(guest ? { guestConfirmation: "guest-data-v1" } : {}),
         },
       });
       const data = await api.request<unknown>(`/exports/${result.id}/download`);
@@ -98,6 +102,7 @@ export function DataControls() {
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       setNotice("Đã tạo tệp dữ liệu để tải về.");
+      setExportConfirm(false);
     } catch (reason) {
       if (needsReauth(reason)) setReauthFor("export");
       else setError(reason);
@@ -143,12 +148,14 @@ export function DataControls() {
     <section className="real-section" aria-labelledby="privacy-data">
       <h2 id="privacy-data">Xuất hoặc xóa dữ liệu</h2>
       <p>
+        {guest ? "Bản xuất chỉ gồm dữ liệu riêng của lượt dùng thử này. Tệp chỉ tải được một lần trong tối đa 15 phút và không quá thời điểm hết giờ. Dữ liệu không chuyển sang tài khoản mới." : <>
         Bản xuất gồm thông tin tuổi, hồ sơ riêng, tâm trạng, ghi nhớ, lịch sử
         bật/tắt quyền, hồ sơ kết nối, lời mời, tin nhắn bạn đã gửi, báo cáo và
         lượt chặn bạn đã tạo. Cuộc trò chuyện AI đã lưu được tải xuống riêng
         trong thông tin của từng cuộc trò chuyện. Cuộc trò chuyện AI tạm thời,
         tin nhắn và thông tin riêng của người khác không nằm trong bản sao. Tệp
         chỉ tải được một lần trong 15 phút.
+        </>}
       </p>
       <ErrorNotice error={error} />
       {notice && <p role="status">{notice}</p>}
@@ -167,7 +174,7 @@ export function DataControls() {
       <Button
         variant="secondary"
         disabled={busy}
-        onClick={() => void exportData()}
+        onClick={() => guest ? setExportConfirm(true) : void exportData()}
       >
         Tải bản sao dữ liệu
       </Button>
@@ -182,7 +189,7 @@ export function DataControls() {
         >
           {Object.entries(choices).map(([value, label]) => (
             <option key={value} value={value}>
-              {label}
+              {guest && value === "all_private" ? "Toàn bộ dữ liệu riêng của lượt dùng thử" : label}
             </option>
           ))}
         </select>
@@ -206,22 +213,34 @@ export function DataControls() {
         )}
       </div>
       <div className="real-section">
-        <h3>Xóa tài khoản</h3>
+        <h3>{guest ? "Kết thúc lượt dùng thử" : "Xóa tài khoản"}</h3>
         <p>
+          {guest ? "Kết thúc ngay và yêu cầu xóa dữ liệu của lượt này. Bạn không thể mở lại dữ liệu sau khi kết thúc." : <>
           Xóa vĩnh viễn tài khoản đăng nhập và toàn bộ dữ liệu của bạn trong
           ứng dụng. Thao tác này không thể hoàn tác.
+          </>}
         </p>
         <Button
           variant="danger"
           disabled={busy || Boolean(reauthFor)}
           onClick={() => {
+            if (guest) { guest.end(); return; }
             setUnderstood(false);
             setAccountDialog(true);
           }}
         >
-          Xóa tài khoản
+          {guest ? "Kết thúc và xóa lượt dùng thử" : "Xóa tài khoản"}
         </Button>
       </div>
+      {exportConfirm && (
+        <Dialog title="Tải dữ liệu lượt dùng thử?" onClose={() => !busy && setExportConfirm(false)}>
+          <p>Bản sao chứa dữ liệu riêng của bạn. Hãy lưu tệp ở nơi bạn kiểm soát. Thao tác này không kéo dài lượt dùng thử.</p>
+          <div className={cx.actions}>
+            <Button variant="secondary" data-cancel disabled={busy} onClick={() => setExportConfirm(false)}>Để sau</Button>
+            <Button disabled={busy} onClick={() => void exportData()}>Xác nhận tải dữ liệu</Button>
+          </div>
+        </Dialog>
+      )}
       {accountDialog && (
         <Dialog
           title="Xóa vĩnh viễn tài khoản?"
@@ -271,9 +290,11 @@ export function DataControls() {
         >
           <p>{choices[scope]}</p>
           <p>
+            {guest ? "Nội dung đã xóa không thể khôi phục. Lượt dùng thử vẫn kết thúc vào giờ ban đầu." : <>
             Nội dung đã xóa sẽ không được khôi phục khi bật lại quyền. Nếu xóa
             toàn bộ dữ liệu riêng, hồ sơ đang chia sẻ và kết nối liên quan cũng
             sẽ mất hiệu lực.
+            </>}
           </p>
           <div className={cx.actions}>
             <Button

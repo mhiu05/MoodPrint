@@ -18,6 +18,7 @@ from app.infrastructure.database.models import (
     User,
     now,
 )
+from app.modules.feedback.models import FeedbackSubmissionReceipt
 from app.modules.moderation.models import IdentityField, RevealAccess
 from app.modules.social.models import (
     Connection,
@@ -156,6 +157,8 @@ async def process_deletions(app):
                 .values(status="invalidated", version=ConnectionRequest.version + 1)
             )
         if job.scope == "account":
+            # The retained voluntary rating has no owner; remove only its temporary owner link.
+            await db.execute(delete(FeedbackSubmissionReceipt).where(FeedbackSubmissionReceipt.user_id == uid))
             if await db.scalar(select(func.to_regclass("moodprint.ai_usage"))):
                 await db.execute(delete(AiUsage).where(AiUsage.user_id == uid))
             await db.execute(delete(AgeDeclaration).where(AgeDeclaration.user_id == uid))

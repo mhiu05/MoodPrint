@@ -1,10 +1,11 @@
+import { artifactPath } from "../artifacts";
 import { test, expect, type BrowserContext, type Page } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import AxeBuilder from "@axe-core/playwright";
 
 const base = "http://127.0.0.1:5177";
-const artifacts = "../docs/plans/validation-artifacts/live-ai/";
+const artifacts = artifactPath("live-ai", "../docs/plans/validation-artifacts/live-ai/") + "/";
 
 async function request(context: BrowserContext, method: string, path: string, data?: unknown, status = 200) {
   const csrf = (await context.cookies(base)).find(c => c.name === "moodprint_csrf")?.value;

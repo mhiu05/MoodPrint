@@ -3,7 +3,7 @@ from datetime import timedelta
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Request, Response
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 
 from app.contracts import (
@@ -12,6 +12,7 @@ from app.contracts import (
     EligibilityInput,
     EmailInput,
     FeatureView,
+    GuestQuota,
     LoginInput,
     NoticeView,
     PasswordResetInput,
@@ -26,44 +27,78 @@ from app.core.security import (
     idempotency_key,
     previous_receipt,
     require_actor,
+    require_registered_actor,
     save_receipt,
     transaction,
 )
 from app.infrastructure.database.models import AgeDeclaration, AuthSession, Consent, User, now
 from app.modules.auth.age import record_age
 from app.modules.auth.provider import SupabaseAuth
+from app.modules.feedback.policy import feedback_open
 
 router = APIRouter()
 
 
 async def session_view(request: Request, actor: Actor, csrf: str | None = None) -> SessionView:
+    settings = request.app.state.settings
     async with transaction(request, actor, eligible=False) as (db, user):
         consents = (await db.scalars(select(Consent).where(Consent.user_id == user.id))).all()
         declaration = await db.get(AgeDeclaration, user.id)
-        from app.modules.moderation.models import ModerationAction, StaffRole
-
-        staff = await db.get(StaffRole, user.id)
+        guest = user.account_kind == "guest"
+        staff = None
         notices = []
-        if user.social_restricted_until and user.social_restricted_until > now():
-            notices.append(NoticeView(kind="restricted", until=user.social_restricted_until))
-        warned = await db.scalar(
-            select(ModerationAction.created_at)
-            .where(
-                ModerationAction.subject_id == user.id,
-                ModerationAction.action == "warn",
-                ModerationAction.created_at > now() - timedelta(days=30),
+        if not guest:
+            # Guests never read staff, moderation or social rows, even if a forged row exists.
+            from app.modules.moderation.models import ModerationAction, StaffRole
+
+            staff = await db.get(StaffRole, user.id)
+            if user.social_restricted_until and user.social_restricted_until > now():
+                notices.append(NoticeView(kind="restricted", until=user.social_restricted_until))
+            warned = await db.scalar(
+                select(ModerationAction.created_at)
+                .where(
+                    ModerationAction.subject_id == user.id,
+                    ModerationAction.action == "warn",
+                    ModerationAction.created_at > now() - timedelta(days=30),
+                )
+                .limit(1)
             )
-            .limit(1)
-        )
-        if warned:
-            notices.append(NoticeView(kind="warning"))
+            if warned:
+                notices.append(NoticeView(kind="warning"))
         ai_available = request.app.state.ai.available_for(actor.user_id)
+        ai_status = request.app.state.ai.status_for(actor.user_id)
+        voice = request.app.state.transcriber is not None and (
+            not settings.ai_local_test_user_ids or ai_available
+        )
         remaining = None
-        if ai_available:
+        guest_quota = None
+        server_time = now()
+        if guest:
+            from app.modules.guests.models import GuestUsage
+            from app.modules.guests.policy import guest_paid_available
+
+            # The database clock, not this process, anchors every guest deadline and display.
+            server_time = await db.scalar(select(func.clock_timestamp()))
+            usage = await db.get(GuestUsage, user.id)
+            ai_turns, clips, millis = (
+                (usage.ai_turns, usage.voice_clips, usage.voice_milliseconds) if usage else (0, 0, 0)
+            )
+            guest_quota = GuestQuota(
+                ai_turns_remaining=max(0, settings.guest_ai_turns - ai_turns),
+                voice_clips_remaining=max(0, settings.guest_voice_clips - clips),
+                voice_seconds_remaining=max(0, settings.guest_voice_seconds * 1000 - millis) / 1000,
+            )
+            voice = voice and guest_paid_available(settings, "voice")
+            if not guest_paid_available(settings, "ai"):
+                # Paid guest work fails closed until the owner-approved budget and prices exist.
+                ai_status = "disabled" if not settings.guest_paid_enabled else "configuration_missing"
+                ai_available = False
+            remaining = guest_quota.ai_turns_remaining if ai_available else None
+        elif ai_available:
             from app.ai.persistence import daily_turns
 
             used = await daily_turns(db, user.id, now())
-            remaining = max(0, request.app.state.settings.ai_daily_turns_per_user - used)
+            remaining = max(0, settings.ai_daily_turns_per_user - used)
         return SessionView(
             staff=staff.role if staff else None,  # type: ignore[arg-type]
             notices=notices,
@@ -75,21 +110,23 @@ async def session_view(request: Request, actor: Actor, csrf: str | None = None) 
             csrf_token=csrf
             or request.cookies.get("moodprint_csrf")
             or request.headers.get("X-CSRF-Token", ""),
-            server_time=now(),
+            server_time=server_time,
             timezone=user.timezone,
             data_version=user.data_version,
             birth_year=declaration.birth_year if declaration else None,
             eligibility_version=declaration.version if declaration else 0,
             features=FeatureView(
                 ai=ai_available,
-                ai_status=request.app.state.ai.status_for(actor.user_id),
+                ai_status=ai_status,
                 ai_quota_remaining=remaining,
-                matching=True,
-                voice=request.app.state.transcriber is not None and (
-                    not request.app.state.settings.ai_local_test_user_ids
-                    or request.app.state.ai.available_for(actor.user_id)
-                ),
+                matching=not guest,
+                voice=voice,
+                feedback=feedback_open(settings),
             ),
+            account_kind=user.account_kind,  # type: ignore[arg-type]
+            guest_started_at=user.guest_started_at,
+            guest_expires_at=user.guest_expires_at,
+            guest_quota=guest_quota,
         )
 
 
@@ -150,6 +187,8 @@ async def login(body: LoginInput, request: Request, response: Response):
     provider = await SupabaseAuth(request).password_session(email, body.password)
     if provider.expires_at <= now():
         raise DomainError(503, "AUTH_UNAVAILABLE", "Chưa kết nối được dịch vụ đăng nhập.", True)
+    if provider.is_anonymous:
+        raise DomainError(403, "REGISTERED_REQUIRED", "Tính năng này cần tài khoản đã đăng ký.")
     uid, provider_id = provider.user_id, provider.session_id
     # Every request re-checks the live Supabase session row, so the app session can outlive
     # the 1-hour access token without storing provider tokens. Activity slides the expiry.
@@ -162,7 +201,8 @@ async def login(body: LoginInput, request: Request, response: Response):
             .on_conflict_do_nothing(index_elements=[User.auth_subject])
         )
         user = await db.scalar(select(User).where(User.auth_subject == uid).with_for_update())
-        if user is None or user.status != "active":
+        if user is None or user.status != "active" or user.account_kind != "registered":
+            # A guest identity can never be reached through the permanent login path.
             raise DomainError(403, "ACCOUNT_UNAVAILABLE", "Tài khoản không khả dụng.")
         if user.suspended_until and user.suspended_until > now():
             raise DomainError(
@@ -253,7 +293,9 @@ async def reset_password(body: PasswordResetInput, request: Request):
 
 
 @router.post("/auth/reauthenticate", response_model=AuthNotice)
-async def reauthenticate(body: LoginInput, request: Request, actor: Actor = Depends(require_actor)):
+async def reauthenticate(
+    body: LoginInput, request: Request, actor: Actor = Depends(require_registered_actor)
+):
     LOGIN_LIMIT.check("reauth:" + str(actor.user_id))
     provider = SupabaseAuth(request)
     checked = await provider.password_session(body.email.strip().lower(), body.password)
@@ -268,6 +310,12 @@ async def reauthenticate(body: LoginInput, request: Request, actor: Actor = Depe
 
 @router.post("/auth/logout", status_code=204)
 async def logout(request: Request, actor: Actor = Depends(require_actor)):
+    if actor.account_kind == "guest":
+        # A guest has no password: logging out ends the whole trial and queues its purge now.
+        from app.modules.guests.service import cleared_response, end_guest
+
+        await end_guest(request, actor)
+        return cleared_response()
     async with transaction(request, actor, eligible=False) as (db, user):
         session = await db.get(AuthSession, actor.session_id)
         session.revoked = True

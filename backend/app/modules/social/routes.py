@@ -14,7 +14,7 @@ from app.core.security import (
     assert_purpose,
     idempotency_key,
     previous_receipt,
-    require_actor,
+    require_registered_actor,
     save_receipt,
     transaction,
 )
@@ -59,7 +59,7 @@ router = APIRouter()
 
 
 @router.get("/profiles/matching-draft", response_model=DraftView)
-async def get_draft(request: Request, actor: Actor = Depends(require_actor)):
+async def get_draft(request: Request, actor: Actor = Depends(require_registered_actor)):
     async with transaction(request, actor) as (db, user):
         draft = await db.get(MatchingDraft, user.id)
         return DraftView(
@@ -70,7 +70,7 @@ async def get_draft(request: Request, actor: Actor = Depends(require_actor)):
 
 
 @router.put("/profiles/matching-draft", response_model=DraftView)
-async def save_draft(body: DraftInput, request: Request, actor: Actor = Depends(require_actor)):
+async def save_draft(body: DraftInput, request: Request, actor: Actor = Depends(require_registered_actor)):
     key, payload = idempotency_key(request), body.model_dump(mode="json")
     async with transaction(request, actor) as (db, user):
         old = await previous_receipt(db, user, "draft:save", key, payload)
@@ -96,7 +96,7 @@ async def save_draft(body: DraftInput, request: Request, actor: Actor = Depends(
 
 
 @router.get("/profiles/published/current", response_model=PublishedView | None)
-async def published_current(request: Request, actor: Actor = Depends(require_actor)):
+async def published_current(request: Request, actor: Actor = Depends(require_registered_actor)):
     async with transaction(request, actor) as (db, user):
         profile = await db.scalar(
             select(PublishedProfile).where(
@@ -123,7 +123,7 @@ async def published_current(request: Request, actor: Actor = Depends(require_act
 
 
 @router.post("/profiles/matching-draft/preview", response_model=PreviewView)
-async def preview_draft(request: Request, actor: Actor = Depends(require_actor)):
+async def preview_draft(request: Request, actor: Actor = Depends(require_registered_actor)):
     async with transaction(request, actor) as (db, user):
         draft = await db.get(MatchingDraft, user.id)
         if not draft:
@@ -139,7 +139,7 @@ async def preview_draft(request: Request, actor: Actor = Depends(require_actor))
 
 
 @router.post("/profiles/published", response_model=PublishedView, status_code=201)
-async def publish(body: PublishInput, request: Request, actor: Actor = Depends(require_actor)):
+async def publish(body: PublishInput, request: Request, actor: Actor = Depends(require_registered_actor)):
     key, payload = idempotency_key(request), body.model_dump(mode="json")
     async with transaction(request, actor) as (db, user):
         old = await previous_receipt(db, user, "profile:publish", key, payload)
@@ -208,7 +208,7 @@ async def publish(body: PublishInput, request: Request, actor: Actor = Depends(r
 
 
 @router.delete("/profiles/published/current", response_model=ActionReceipt)
-async def withdraw(body: VersionInput, request: Request, actor: Actor = Depends(require_actor)):
+async def withdraw(body: VersionInput, request: Request, actor: Actor = Depends(require_registered_actor)):
     key, payload = idempotency_key(request), body.model_dump(mode="json")
     async with transaction(request, actor) as (db, user):
         old = await previous_receipt(db, user, "profile:withdraw", key, payload)
@@ -235,7 +235,7 @@ async def withdraw(body: VersionInput, request: Request, actor: Actor = Depends(
 
 
 @router.get("/matching/candidates", response_model=CandidateListDTO)
-async def candidates(request: Request, actor: Actor = Depends(require_actor)):
+async def candidates(request: Request, actor: Actor = Depends(require_registered_actor)):
     from app.core.security import verify_actor
     from app.modules.social.retrieval import eligible_peers, ranked_candidates
 
@@ -316,7 +316,7 @@ async def candidates(request: Request, actor: Actor = Depends(require_actor)):
 
 
 @router.post("/matching/skips", response_model=ActionReceipt)
-async def skip(body: CandidateInput, request: Request, actor: Actor = Depends(require_actor)):
+async def skip(body: CandidateInput, request: Request, actor: Actor = Depends(require_registered_actor)):
     ref = await svc.resolve_reference(request, actor, body.candidate_ref)
     key, payload = idempotency_key(request), body.model_dump(mode="json")
     async with svc.pair_transaction(request, actor, ref.peer_id) as (db, user, peer):
@@ -339,7 +339,7 @@ async def skip(body: CandidateInput, request: Request, actor: Actor = Depends(re
 
 @router.post("/connection-requests", response_model=RequestView, status_code=201)
 async def send_request(
-    body: CandidateInput, request: Request, actor: Actor = Depends(require_actor)
+    body: CandidateInput, request: Request, actor: Actor = Depends(require_registered_actor)
 ):
     ref = await svc.resolve_reference(request, actor, body.candidate_ref)
     key, payload = idempotency_key(request), body.model_dump(mode="json")
@@ -377,7 +377,7 @@ async def send_request(
 
 
 @router.get("/connection-requests", response_model=list[RequestView])
-async def list_requests(request: Request, actor: Actor = Depends(require_actor)):
+async def list_requests(request: Request, actor: Actor = Depends(require_registered_actor)):
     async with transaction(request, actor) as (db, user):
         await assert_purpose(db, user, "MATCH")
         rows = (
@@ -469,27 +469,27 @@ async def decide(request_id, decision, body, request, actor):
 
 @router.post("/connection-requests/{request_id}/accept", response_model=RequestView)
 async def accept(
-    request_id: UUID, body: VersionInput, request: Request, actor: Actor = Depends(require_actor)
+    request_id: UUID, body: VersionInput, request: Request, actor: Actor = Depends(require_registered_actor)
 ):
     return await decide(request_id, "accept", body, request, actor)
 
 
 @router.post("/connection-requests/{request_id}/decline", response_model=RequestView)
 async def decline(
-    request_id: UUID, body: VersionInput, request: Request, actor: Actor = Depends(require_actor)
+    request_id: UUID, body: VersionInput, request: Request, actor: Actor = Depends(require_registered_actor)
 ):
     return await decide(request_id, "decline", body, request, actor)
 
 
 @router.post("/connection-requests/{request_id}/cancel", response_model=RequestView)
 async def cancel(
-    request_id: UUID, body: VersionInput, request: Request, actor: Actor = Depends(require_actor)
+    request_id: UUID, body: VersionInput, request: Request, actor: Actor = Depends(require_registered_actor)
 ):
     return await decide(request_id, "cancel", body, request, actor)
 
 
 @router.get("/connections", response_model=list[ConnectionView])
-async def list_connections(request: Request, actor: Actor = Depends(require_actor)):
+async def list_connections(request: Request, actor: Actor = Depends(require_registered_actor)):
     async with transaction(request, actor) as (db, user):
         await assert_purpose(db, user, "MATCH")
         rooms = await visible_rooms(db, user)
@@ -512,7 +512,7 @@ async def list_connections(request: Request, actor: Actor = Depends(require_acto
 
 @router.post("/connections/{connection_id}/read", response_model=ReadView)
 async def mark_read(
-    connection_id: UUID, body: ReadInput, request: Request, actor: Actor = Depends(require_actor)
+    connection_id: UUID, body: ReadInput, request: Request, actor: Actor = Depends(require_registered_actor)
 ):
     """Monotonic private read marker; naturally idempotent, so no receipt is stored."""
     peer_id = await svc.room_peer(request, actor, connection_id)
@@ -540,7 +540,7 @@ async def mark_read(
 
 @router.get("/connections/{connection_id}", response_model=ConnectionView)
 async def get_connection(
-    connection_id: UUID, request: Request, actor: Actor = Depends(require_actor)
+    connection_id: UUID, request: Request, actor: Actor = Depends(require_registered_actor)
 ):
     peer_id = await svc.room_peer(request, actor, connection_id)
     # Polled read: same live-policy checks without row locks that would contend with writers.
@@ -551,7 +551,7 @@ async def get_connection(
 
 @router.post("/connections/{connection_id}/messages", response_model=MessageView, status_code=201)
 async def send_message(
-    connection_id: UUID, body: MessageInput, request: Request, actor: Actor = Depends(require_actor)
+    connection_id: UUID, body: MessageInput, request: Request, actor: Actor = Depends(require_registered_actor)
 ):
     peer_id = await svc.room_peer(request, actor, connection_id)
     key, payload = idempotency_key(request), body.model_dump(mode="json")
@@ -598,7 +598,7 @@ async def get_messages(
     connection_id: UUID,
     request: Request,
     after_seq: str = Query("0", alias="afterSeq", pattern=r"^\d{1,19}$"),
-    actor: Actor = Depends(require_actor),
+    actor: Actor = Depends(require_registered_actor),
 ):
     peer_id = await svc.room_peer(request, actor, connection_id)
     # A message and room.next_seq commit together, so an unlocked read never sees a gap.
@@ -624,7 +624,7 @@ async def get_messages(
 
 @router.post("/connections/{connection_id}/end", response_model=ActionReceipt)
 async def end(
-    connection_id: UUID, body: VersionInput, request: Request, actor: Actor = Depends(require_actor)
+    connection_id: UUID, body: VersionInput, request: Request, actor: Actor = Depends(require_registered_actor)
 ):
     peer_id = await svc.room_peer(request, actor, connection_id)
     key, payload = idempotency_key(request), body.model_dump(mode="json")
@@ -655,7 +655,7 @@ async def end(
 
 
 @router.post("/blocks", response_model=ActionReceipt, status_code=201)
-async def block(body: BlockInput, request: Request, actor: Actor = Depends(require_actor)):
+async def block(body: BlockInput, request: Request, actor: Actor = Depends(require_registered_actor)):
     ref = await svc.resolve_reference(request, actor, body.peer_ref)
     key, payload = idempotency_key(request), body.model_dump(mode="json")
     return await block_peer(ref.peer_id, key, payload, request, actor)
@@ -691,7 +691,7 @@ async def block_peer(peer_id, key, payload, request, actor):
 
 @router.post("/connections/{connection_id}/block", response_model=ActionReceipt, status_code=201)
 async def block_connection(
-    connection_id: UUID, body: EmptyInput, request: Request, actor: Actor = Depends(require_actor)
+    connection_id: UUID, body: EmptyInput, request: Request, actor: Actor = Depends(require_registered_actor)
 ):
     peer_id = await svc.room_peer(request, actor, connection_id)
     return await block_peer(

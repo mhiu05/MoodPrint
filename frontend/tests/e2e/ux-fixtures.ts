@@ -12,7 +12,11 @@ export const baseSession = {
   csrfToken: "csrf-ux",
   timezone: "Asia/Bangkok",
   serverTime: "2026-10-23T08:00:00Z",
-  features: { ai: true, matching: true, voice: false },
+  accountKind: "registered",
+  guestStartedAt: null,
+  guestExpiresAt: null,
+  guestQuota: null,
+  features: { ai: true, matching: true, voice: false, feedback: false },
   consents: {
     AI: { enabled: true, version: 1, policyVersion: "v1" },
     MEM: { enabled: true, version: 1, policyVersion: "v1" },
@@ -26,6 +30,29 @@ export function sessionWith(consents: Partial<Record<"AI" | "MEM" | "MATCH" | "V
   for (const [purpose, enabled] of Object.entries(consents))
     next.consents[purpose as keyof typeof next.consents].enabled = enabled;
   return { ...next, ...patch };
+}
+
+/** A synthetic guest trial that ends `expiresInMs` from now (start + 7200 s, as the server enforces). */
+export function guestSession(expiresInMs: number, patch: Record<string, unknown> = {}) {
+  const expires = Date.now() + expiresInMs;
+  return {
+    ...baseSession,
+    userId: "22222222-2222-4222-8222-222222222222",
+    alias: "Khách",
+    accountKind: "guest",
+    guestStartedAt: new Date(expires - 7_200_000).toISOString(),
+    guestExpiresAt: new Date(expires).toISOString(),
+    serverTime: new Date().toISOString(),
+    guestQuota: { aiTurnsRemaining: 25, voiceClipsRemaining: 6, voiceSecondsRemaining: 180 },
+    features: { ai: false, matching: false, voice: false, feedback: false },
+    consents: {
+      AI: { enabled: false, version: 1, policyVersion: "v1" },
+      MEM: { enabled: false, version: 1, policyVersion: "v1" },
+      MATCH: { enabled: false, version: 1, policyVersion: "v1" },
+      VOICE: { enabled: false, version: 1, policyVersion: "v1" },
+    },
+    ...patch,
+  };
 }
 
 export const bots = [

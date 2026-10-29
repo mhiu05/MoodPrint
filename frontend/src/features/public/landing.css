@@ -1,0 +1,140 @@
+/* Public landing: existing tokens only (no new fonts, colors or frameworks). */
+.landing {
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}
+.landing-header,
+.landing main,
+.landing-footer {
+  width: min(100% - 2 * var(--space-4), var(--content-max));
+  margin-inline: auto;
+}
+.landing-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-6);
+  padding-block: var(--space-4);
+}
+.landing-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--target-min);
+  color: var(--color-primary);
+  font-weight: 700;
+  text-decoration: none;
+}
+.landing-header nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin-inline-end: auto;
+}
+.landing-header nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+  color: var(--color-ink);
+}
+.landing main {
+  display: grid;
+  gap: var(--space-12);
+  padding-block: var(--space-8) var(--space-16);
+}
+.landing-hero {
+  display: grid;
+  gap: var(--space-4);
+  max-width: var(--reading-max);
+}
+.landing-hero h1 {
+  margin: 0;
+  font-size: clamp(2rem, 6vw, 3.25rem);
+  line-height: 1.1;
+}
+.landing-hero p {
+  margin: 0;
+  font-size: 1.125rem;
+  color: var(--color-muted);
+}
+.landing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+/* Readiness/offline changes must switch readable color pairs atomically.
+   Interpolating both disabled foreground and primary background loses contrast. */
+.landing .landing-trial {
+  transition-property: border-color;
+}
+.landing h2 {
+  margin: 0 0 var(--space-3);
+  font-size: clamp(1.4rem, 3.4vw, 1.9rem);
+}
+.landing-examples,
+.landing-assistants {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.landing-examples {
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+}
+.landing-examples li,
+.landing-assistants li {
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+.landing-assistants {
+  grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+}
+.landing-assistants li {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+.landing-assistants div {
+  min-width: 0;
+}
+.landing-assistants h3,
+.landing-assistants p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.landing details {
+  border-bottom: 1px solid var(--color-divider);
+  padding-block: var(--space-3);
+}
+.landing summary {
+  min-height: var(--target-min);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 600;
+}
+.landing a:focus-visible,
+.landing summary:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.landing-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-block: var(--space-8);
+  border-top: 1px solid var(--color-divider);
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing * {
+    scroll-behavior: auto !important;
+    transition-duration: var(--duration-reduced) !important;
+  }
+}

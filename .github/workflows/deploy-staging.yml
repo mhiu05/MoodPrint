@@ -30,17 +30,21 @@ jobs:
       contents: read
       actions: read
     outputs:
-      eligible: ${{steps.provenance.outputs.eligible}}
+      eligible: ${{steps.provenance.outputs.eligible || 'false'}}
       release_sha: ${{steps.provenance.outputs.release_sha}}
       ci_run_id: ${{steps.provenance.outputs.ci_run_id}}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha}}
+          ref: ${{github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.release_sha}}
           fetch-depth: 0
           persist-credentials: false
+      - id: release_hold
+        name: Check repository publication hold
+        run: python3 deploy/aws/release_hold.py --root "$GITHUB_WORKSPACE"
       - id: provenance
         name: Validate exact main commit and successful push CI
+        if: ${{steps.release_hold.outputs.held == 'false'}}
         env:
           RELEASE_SHA: ${{github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.release_sha}}
           APPROVAL: ${{inputs.approval}}

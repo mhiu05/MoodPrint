@@ -89,6 +89,9 @@ async def create_proposal(
     )
     if count and count >= 100:
         raise DomainError(429, "PROPOSAL_LIMIT", "Hãy xử lý các đề xuất đang chờ trước.")
+    expires = now() + timedelta(minutes=15)
+    if user.account_kind == "guest" and user.guest_expires_at is not None:
+        expires = min(expires, user.guest_expires_at)
     proposal = MemoryProposal(
         user_id=user.id,
         bot_id=bot_id,
@@ -99,7 +102,7 @@ async def create_proposal(
         mem_consent_version=consents.get("MEM", 0),
         source_id=source_id,
         source_version=source_version,
-        expires_at=now() + timedelta(minutes=15),
+        expires_at=expires,
     )
     db.add(proposal)
     await db.flush()

@@ -1,0 +1,40 @@
+/* Guest trial UI: existing tokens only. */
+.guest-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+.guest-end-link {
+  min-height: var(--target-min);
+  background: none;
+  border: 0;
+  color: var(--color-danger);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.guest-entry {
+  display: grid;
+  gap: var(--space-3);
+}
+.guest-check {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  min-height: var(--target-min);
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.guest-ended {
+  display: grid;
+  gap: var(--space-4);
+  max-width: var(--reading-max);
+  margin-inline: auto;
+  padding: var(--space-8) var(--space-4);
+}

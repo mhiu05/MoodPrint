@@ -1,3 +1,4 @@
+import { artifactPath } from "./tests/artifacts";
 import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
@@ -8,15 +9,18 @@ export default defineConfig({
   globalTimeout: 900000,
   reporter: [
     ["list"],
-    ["json", { outputFile: "evidence/fullstack-results.json" }],
+    ["json", { outputFile: artifactPath("fullstack-results.json") }],
   ],
-  outputDir: "evidence/fullstack",
+  outputDir: artifactPath("fullstack"),
   use: {
     baseURL: "http://127.0.0.1:5174",
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
-    launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
-      ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
-      : {},
+    // Synthetic capture only: never use a real microphone in the disposable harness.
+    permissions: ["microphone"],
+    launchOptions: {
+      args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"],
+      ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {}),
+    },
   },
 });

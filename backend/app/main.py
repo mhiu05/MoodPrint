@@ -22,6 +22,7 @@ from app.core.errors import DomainError, install_errors
 from app.core.revisions import READY_REVISIONS
 from app.infrastructure.database.connection import Database
 from app.infrastructure.database.models import AiRun
+from app.modules.guests.output import GuestOutputMiddleware
 
 
 def warn_unenforced_budget(config) -> None:
@@ -34,6 +35,7 @@ def warn_unenforced_budget(config) -> None:
 def create_app(settings: Settings | None = None) -> FastAPI:
     config = settings or Settings()
     warn_unenforced_budget(config)
+    shell_policy = content_security_policy(bool(config.guest_captcha_site_key))
     database = Database(config)
 
     @asynccontextmanager
@@ -107,14 +109,64 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         logging.getLogger("moodprint").error("embedding_worker_retry error_type=%s", type(error).__name__)
                 await asyncio.sleep(1)
 
+        async def guest_worker():
+            """Guest expiry cleanup and orphan reconciliation: always on, isolated per work class."""
+            from app.modules.guests.jobs import (
+                ensure_cleanup_jobs,
+                guest_metrics,
+                process_guest_cleanup,
+                reconcile_guest_provisioning,
+                retention_tick,
+                settle_stale_liability,
+            )
+
+            next_metrics = next_retention = 0.0
+            first = True
+            while True:
+                if database.sessions:
+                    for work in (
+                        ensure_cleanup_jobs if first else None,
+                        process_guest_cleanup,
+                        reconcile_guest_provisioning,
+                        settle_stale_liability,
+                        retention_tick if time.monotonic() >= next_retention else None,
+                    ):
+                        if work is retention_tick:
+                            next_retention = time.monotonic() + 60
+                        if work is None:
+                            continue
+                        try:
+                            await work(app)
+                            if work is ensure_cleanup_jobs:
+                                first = False
+                        except Exception as error:
+                            logging.getLogger("moodprint").error(
+                                "guest_worker_retry task=%s error_type=%s sqlstate=%s",
+                                work.__name__,
+                                type(error).__name__,
+                                getattr(getattr(error, "orig", None), "sqlstate", None),
+                            )
+                    if time.monotonic() >= next_metrics:
+                        try:
+                            for name, value in (await guest_metrics(app)).items():
+                                logging.getLogger("moodprint").info("metric=%s value=%s", name, value)
+                        except Exception as error:
+                            logging.getLogger("moodprint").error(
+                                "guest_metrics_failed error_type=%s", type(error).__name__
+                            )
+                        next_metrics = time.monotonic() + 30
+                await asyncio.sleep(1)
+
         sweeper = asyncio.create_task(sweep_context())
         indexer = asyncio.create_task(embedding_worker())
+        guests = asyncio.create_task(guest_worker())
         try:
             yield
         finally:
             sweeper.cancel()
             indexer.cancel()
-            await asyncio.gather(sweeper, indexer, return_exceptions=True)
+            guests.cancel()
+            await asyncio.gather(sweeper, indexer, guests, return_exceptions=True)
             await app.state.ai.close()
             if database.engine:
                 await database.engine.dispose()
@@ -197,11 +249,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if not path.startswith("/api/"):
             response.headers.update(
                 {
-                    "Content-Security-Policy": CSP,
+                    "Content-Security-Policy": shell_policy,
                     "X-Frame-Options": "DENY",
                     "Permissions-Policy": "microphone=(self), camera=(), geolocation=()",
                 }
             )
+            if path == "/auth/callback":
+                # The email-link landing carries one-time fragments: never indexed, never cached.
+                response.headers["X-Robots-Tag"] = "noindex, nofollow"
         if config.app_env == "production":
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         return response
@@ -237,6 +292,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from app.modules.activities.routes import router as activities
     from app.modules.auth.routes import router as auth
     from app.modules.consent.routes import router as consent
+    from app.modules.feedback.admin_routes import router as feedback_admin
+    from app.modules.feedback.routes import router as feedback
+    from app.modules.guests.routes import router as guests
     from app.modules.moderation.admin_routes import router as moderation_admin
     from app.modules.moderation.routes import router as moderation
     from app.modules.mood.routes import router as mood
@@ -249,6 +307,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     for router in (
         auth,
+        guests,
+        feedback,
+        feedback_admin,
         consent,
         profiles,
         mood,
@@ -282,14 +343,31 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     if config.static_dir:
         install_static(app, Path(config.static_dir))
     app.add_middleware(BodyLimitMiddleware)
+    # Outermost: wraps the send every other middleware ultimately calls.
+    app.add_middleware(GuestOutputMiddleware)
     return app
 
 
-CSP = (
-    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; "
-    "connect-src 'self'; media-src 'self' blob:; worker-src 'self'; font-src 'self'; "
-    "object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
-)
+CAPTCHA_ORIGIN = "https://challenges.cloudflare.com"
+
+
+def content_security_policy(captcha: bool = False) -> str:
+    """Strict same-origin policy; the CAPTCHA origin is added only while a site key is configured.
+
+    With the guest entry disabled (no key) nothing third-party can load. When enabled the challenge
+    needs its script, its frame and its verification request and nothing else.
+    """
+    extra = f" {CAPTCHA_ORIGIN}" if captcha else ""
+    frame = f"frame-src {CAPTCHA_ORIGIN}; " if captcha else ""
+    return (
+        f"default-src 'self'; script-src 'self'{extra}; style-src 'self'; "
+        f"img-src 'self' data: blob:; connect-src 'self'{extra}; media-src 'self' blob:; "
+        f"{frame}worker-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; "
+        "form-action 'self'; frame-ancestors 'none'"
+    )
+
+
+CSP = content_security_policy()
 
 
 def install_static(app: FastAPI, root: Path) -> None:

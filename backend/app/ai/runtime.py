@@ -2,10 +2,11 @@ import asyncio
 import json
 import logging
 import time
+from collections.abc import Awaitable, Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from agents import FunctionTool, RunContextWrapper, function_tool
@@ -26,6 +27,8 @@ from app.core.errors import DomainError
 from app.core.security import Actor, assert_purpose, lock_actor
 from app.core.streams import StreamSlots
 from app.infrastructure.database.models import AiRun, AiUsage, Consent, now
+from app.modules.guests.deadlines import GuestDeadline, final_guest_authorization
+from app.modules.guests.policy import guest_expired
 
 
 @dataclass
@@ -54,6 +57,13 @@ class LiveRun:
     first_progress_ms: int | None = None
     sources: dict[str, SourceState] = field(default_factory=dict)
     mood_evidence: EvidenceEnvelope | None = None
+    # Conservative guest bound; None for registered users (their policy is unchanged).
+    deadline: GuestDeadline | None = None
+    # Guest paid work: the quota claim, the detached reservation and the pre-dispatch guard.
+    quota: Any = None
+    reservation: Any = None
+    dispatched: bool = False
+    before_dispatch: Callable[[], Awaitable[None]] | None = None
 
 
 @dataclass
@@ -261,6 +271,8 @@ class AiRuntime:
         run.wake.set()
 
     async def check(self, run: LiveRun) -> None:
+        if run.deadline is not None and run.deadline.remaining() <= 0:
+            raise guest_expired()
         if run.terminal or time.monotonic() - run.started > self.settings.ai_timeout_seconds:
             raise DomainError(410, "RUN_ENDED", "Lượt trò chuyện đã kết thúc.")
         self.store.get(run.conversation_id, str(run.actor.user_id), str(run.actor.session_id))
@@ -426,12 +438,94 @@ class AiRuntime:
             return [propose_memory] if memory_enabled else []
         return []
 
+    def guest_dispatch_guard(self, run: LiveRun) -> Callable[[], Awaitable[None]]:
+        """Last awaited authorization before each provider request of a guest run."""
+        from app.modules.guests.accounting import mark_guest_dispatched
+
+        async def guard() -> None:
+            if run.reservation is not None and not run.dispatched:
+                # Persisted BEFORE the send: a crash after this point charges the upper bound.
+                async with self.database.require()() as db, db.begin():
+                    await mark_guest_dispatched(db, run.reservation.id)
+                run.dispatched = True
+            await self.check(run)  # fresh database lifetime + live policy
+            if run.deadline is not None and run.deadline.remaining() <= 0:
+                raise guest_expired()
+
+        return guard
+
+    async def settle_guest(self, run: LiveRun, status: str) -> None:
+        """Settle the detached reservation once, then finish the quota claim (never an upsert)."""
+        if run.reservation is None:
+            return
+        from app.modules.guests import accounting, limits, pricing
+
+        actual: int | None = None
+        if (
+            status == "completed"
+            and run.dispatched
+            and run.usage.responses_received > 0
+            and (run.usage.input_tokens or run.usage.output_tokens)
+        ):
+            actual = pricing.actual_ai_cost(
+                self.settings.guest_pricing_json,
+                run.usage.input_tokens,
+                run.usage.cached_input_tokens,
+                run.usage.output_tokens,
+            )
+        try:
+            async with self.database.require()() as db, db.begin():
+                if not run.dispatched:
+                    await accounting.release_guest_operation(db, run.reservation.id)
+                else:
+                    await accounting.settle_guest_operation(db, run.reservation, actual)
+            if run.quota is not None:
+                async with self.database.require()() as db, db.begin():
+                    await limits.finish_guest_quota(
+                        db, run.actor.user_id, "ai", run.quota.operation_key_hash, run.quota.lease_token
+                    )
+        except Exception as error:
+            # The stale-reservation sweep charges it uncertain; never lose liability silently.
+            logging.getLogger("moodprint").error(
+                "guest_settlement_deferred error_type=%s", type(error).__name__
+            )
+
+    async def _cancel_at_deadline(self, run: LiveRun) -> None:
+        """Stop a guest run exactly at its bound, independent of the 0.5 s policy monitor."""
+        assert run.deadline is not None
+        await asyncio.sleep(max(0.0, run.deadline.remaining()))
+        self.request_cancel(run)
+
+    def expire_guest(self, user_id: UUID) -> None:
+        """Cancel and drop every in-memory copy for an ended or expired guest."""
+        uid = str(user_id)
+        self.invalidate(uid)
+        for identity, run in list(self.runs.items()):
+            if str(run.actor.user_id) == uid:
+                run.events.clear()
+                run.mood_evidence = None
+                run.sources.clear()
+                del self.runs[identity]
+        for identity, pending in list(self.pending_terminal.items()):
+            if str(pending.actor.user_id) == uid:
+                del self.pending_terminal[identity]
+
     async def drive(self, run: LiveRun) -> None:
+        from app.modules.guests.limits import maintain_guest_quota
         run.drive_started = True
         status = "failed"
+        # Guest activity identifiers must never leave active stores via operational
+        # logs (including structured args). Registered runs retain their diagnostic ID.
+        identity_field = "" if run.actor.account_kind == "guest" else " run_id=%s"
+        identity_args = () if run.actor.account_kind == "guest" else (run.id,)
         monitor = None
+        expiry = None
+        budget = self.settings.ai_timeout_seconds
+        if run.deadline is not None:
+            budget = min(budget, max(0.0, run.deadline.remaining()))
+            expiry = asyncio.create_task(self._cancel_at_deadline(run))
         try:
-            async with asyncio.timeout(self.settings.ai_timeout_seconds), self.slots:
+            async with maintain_guest_quota(self.database, run.actor.user_id, "ai", run.quota), asyncio.timeout(budget), self.slots:
                 await self.check(run)
                 c = self.store.get(
                     run.conversation_id, str(run.actor.user_id), str(run.actor.session_id)
@@ -470,6 +564,7 @@ class AiRuntime:
                         memories = await retrieve_memories(
                             self.database, self.settings, run.actor, c.bot_id,
                             projected[-1].text if projected else "", run.data_version,
+                            operation_key=f"embed-query:{run.id}",
                         )
                     except Exception:
                         memory_state.evidence = "tool_execution_failure"
@@ -521,6 +616,8 @@ class AiRuntime:
                     if user.data_version != run.data_version:
                         raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
                     await current_turn(db, run, self.worker_id)
+                    if run.deadline is not None:
+                        await final_guest_authorization(db, user)
                     if run.persistent:
                         durable = await owned_conversation(db, c.id, user.id, lock=True)
                         if durable is None:
@@ -545,6 +642,9 @@ class AiRuntime:
                         durable.version += 1
                         durable.updated_at = now()
                         db.add(AiMessageRecord(conversation_id=c.id, sequence=durable.version, actor="bot", text=output.text, cards=[card.model_dump(mode="json", by_alias=True) for card in output.cards], run_id=run.id))
+                if run.deadline is not None and run.deadline.remaining() <= 0:
+                    # Decided before T but published after it: drop, never append late output.
+                    raise guest_expired()
                 # Do not publish tokens/JSON before output and live policy have both passed.
                 c.messages.append(
                     AIMessage(id=uuid4(), actor="bot", text=output.text, cards=output.cards, created_at=now(), run_id=run.id, status="completed")
@@ -558,17 +658,21 @@ class AiRuntime:
         except Exception as error:
             status = "failed"
             run.failure = public_failure(error)
-            logging.getLogger("moodprint").warning("ai_execution_error run_id=%s error_type=%s code=%s", run.id, type(error).__name__, error.code if isinstance(error, DomainError) else "AI_RUN_FAILED")
+            logging.getLogger("moodprint").warning("ai_execution_error" + identity_field + " error_type=%s code=%s", *identity_args, type(error).__name__, error.code if isinstance(error, DomainError) else "AI_RUN_FAILED")
         finally:
             # No snapshot survives a terminal run, saved-chat reload or worker restart.
             run.mood_evidence = None
             if monitor:
                 monitor.cancel()
                 await asyncio.gather(monitor, return_exceptions=True)
+            if expiry:
+                expiry.cancel()
+                await asyncio.gather(expiry, return_exceptions=True)
             run.reserved_output_bytes = 0
+            await asyncio.shield(self.settle_guest(run, status))
             await asyncio.shield(self.finalize(run, status))
             # Saved threads reload from PostgreSQL; keep no idle RAM copy per thread.
             copy = self.store.conversations.get(run.conversation_id)
             if copy is not None and copy.persistent and copy.active_run_id is None:
                 del self.store.conversations[run.conversation_id]
-            logging.getLogger("moodprint").info("ai_execution_end run_id=%s status=%s duration_ms=%s first_progress_ms=%s input_tokens=%s output_tokens=%s model_requests=%s active_local=%s", run.id, run.terminal_status, round((time.monotonic()-run.started)*1000), run.first_progress_ms, run.usage.input_tokens, run.usage.output_tokens, run.usage.requests_started, sum(not r.terminal for r in self.runs.values()))
+            logging.getLogger("moodprint").info("ai_execution_end" + identity_field + " status=%s duration_ms=%s first_progress_ms=%s input_tokens=%s output_tokens=%s model_requests=%s active_local=%s", *identity_args, run.terminal_status, round((time.monotonic()-run.started)*1000), run.first_progress_ms, run.usage.input_tokens, run.usage.output_tokens, run.usage.requests_started, sum(not r.terminal for r in self.runs.values()))

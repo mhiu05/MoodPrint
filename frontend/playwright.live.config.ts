@@ -1,3 +1,4 @@
+import { artifactPath } from "./tests/artifacts";
 import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
@@ -6,8 +7,8 @@ export default defineConfig({
   timeout: 240000,
   globalTimeout: 500000,
   expect: { timeout: 45000 },
-  reporter: [["list"], ["json", { outputFile: "evidence/live-ai-results.json" }]],
-  outputDir: "evidence/live-ai",
+  reporter: [["list"], ["json", { outputFile: artifactPath("live-ai-results.json") }]],
+  outputDir: artifactPath("live-ai"),
   use: {
     baseURL: "http://127.0.0.1:5177",
     trace: "off", screenshot: "off", video: "off",

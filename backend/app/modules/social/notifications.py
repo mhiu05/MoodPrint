@@ -11,7 +11,7 @@ from sqlalchemy import select
 from starlette.background import BackgroundTask
 
 from app.core.errors import DomainError
-from app.core.security import Actor, require_actor
+from app.core.security import Actor, require_registered_actor
 from app.core.streams import StreamSlots
 from app.modules.social import service as svc
 from app.modules.social.models import Connection
@@ -115,7 +115,7 @@ async def events(
     connection_id: UUID,
     request: Request,
     after_seq: str = Query("0", alias="afterSeq", pattern=r"^\d{1,19}$"),
-    actor: Actor = Depends(require_actor),
+    actor: Actor = Depends(require_registered_actor),
 ):
     release = STREAM_SLOTS.reserve(actor.user_id)
     try:

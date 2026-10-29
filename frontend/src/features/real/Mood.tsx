@@ -10,6 +10,7 @@ import type {
   VersionInput,
 } from "../../api/contracts";
 import { ErrorNotice, useResource, useSession } from "./RealApp";
+import { useTourBlocker } from "../onboarding/tourActivity";
 
 export const moodLabels = [
   "Rất khó khăn",
@@ -80,11 +81,13 @@ export function Moods() {
     [receipt, setReceipt] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<MoodDTO>();
   const [summaryRevision, setSummaryRevision] = useState(0);
+  const [edited, setEdited] = useState(false);
   const moods = useMemo(
     () => newestFirst(resource.data || []),
     [resource.data],
   );
   const existing = moods.find((mood) => mood.localDate === date);
+  useTourBlocker("draft", edited || busy);
 
   // Selecting a day that already has an entry loads it, so saving edits that
   // entry instead of silently overwriting it with whatever the form held.
@@ -93,6 +96,7 @@ export function Moods() {
     setDate(day);
     setValue(entry?.value ?? 3);
     setNote(entry?.note ?? "");
+    setEdited(false);
   }
   const synced = useRef(false);
   useEffect(() => {
@@ -136,6 +140,7 @@ export function Moods() {
         ),
       ]);
       setNote(saved.note);
+      setEdited(false);
       setSummaryRevision((n) => n + 1);
       setReceipt(`${existing ? "Đã cập nhật" : "Đã lưu"} cảm xúc ngày ${displayDate(saved.localDate)}.`);
     } catch (reason) {
@@ -191,7 +196,7 @@ export function Moods() {
 
   return (
     <div className={cx.reading}>
-      <h1 tabIndex={-1}>Nhật ký cảm xúc</h1>
+      <h1 tabIndex={-1} data-tour="mood-entry">Nhật ký cảm xúc</h1>
       <p className={cx.lede}>
         Ghi lại tâm trạng theo cách bạn cảm nhận. Chỉ bạn xem ghi chép và ghi chú này.
       </p>
@@ -223,7 +228,7 @@ export function Moods() {
           <select
             id="mood-value"
             value={value}
-            onChange={(event) => setValue(Number(event.target.value))}
+            onChange={(event) => { setValue(Number(event.target.value)); setEdited(true); }}
           >
             {moodLabels.map((label, index) => (
               <option key={label} value={index + 1}>
@@ -238,7 +243,7 @@ export function Moods() {
             maxLength={120}
             rows={3}
             aria-describedby="mood-note-count"
-            onChange={(event) => setNote(event.target.value)}
+            onChange={(event) => { setNote(event.target.value); setEdited(true); }}
           />
           <p id="mood-note-count" className={cx.footnote}>
             Không bắt buộc · {note.length}/120 ký tự · Chỉ bạn xem; ghi chú

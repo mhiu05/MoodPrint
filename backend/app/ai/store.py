@@ -31,6 +31,9 @@ class Conversation:
     # withdrawal or private-data deletion handled elsewhere invalidated this copy.
     ai_consent_version: int = 0
     created_wall: datetime = field(default_factory=lambda: datetime.now(UTC))
+    # Guest trials: a monotonic hard stop at the trial deadline (never extended by touch).
+    hard_deadline: float | None = None
+    hard_expires_at: datetime | None = None
 
 
 class ConversationStore:
@@ -38,7 +41,15 @@ class ConversationStore:
         self.clock, self.ttl_seconds = clock, ttl_seconds
         self.conversations: dict[UUID, Conversation] = {}
 
-    def create(self, user_id: str, session_id: str, bot_id: str) -> Conversation:
+    def create(
+        self,
+        user_id: str,
+        session_id: str,
+        bot_id: str,
+        *,
+        hard_deadline: float | None = None,
+        hard_expires_at: datetime | None = None,
+    ) -> Conversation:
         self.sweep()
         if (
             len(self.conversations) >= 1000
@@ -47,7 +58,9 @@ class ConversationStore:
             raise DomainError(
                 429, "CONVERSATION_LIMIT", "Hãy kết thúc một cuộc trò chuyện trước khi mở thêm."
             )
-        c = Conversation(user_id, session_id, bot_id)
+        c = Conversation(
+            user_id, session_id, bot_id, hard_deadline=hard_deadline, hard_expires_at=hard_expires_at
+        )
         self.touch(c)
         self.conversations[c.id] = c
         return c
@@ -55,6 +68,8 @@ class ConversationStore:
     def touch(self, c: Conversation) -> None:
         c.touched = self.clock()
         c.expires_at = datetime.now(UTC) + timedelta(seconds=self.ttl_seconds)
+        if c.hard_expires_at is not None:
+            c.expires_at = min(c.expires_at, c.hard_expires_at)
 
     def get(self, identity: UUID, user_id: str, session_id: str) -> Conversation:
         c = self.conversations.get(identity)
@@ -62,7 +77,9 @@ class ConversationStore:
             raise DomainError(410, "CONVERSATION_EXPIRED", "Phiên trò chuyện đã kết thúc.")
         if c.user_id != user_id or c.session_id != session_id:
             raise DomainError(404, "NOT_FOUND", "Không tìm thấy cuộc trò chuyện.")
-        if self.clock() - c.touched >= self.ttl_seconds:
+        if self.clock() - c.touched >= self.ttl_seconds or (
+            c.hard_deadline is not None and self.clock() >= c.hard_deadline
+        ):
             del self.conversations[identity]
             raise DomainError(410, "CONVERSATION_EXPIRED", "Phiên trò chuyện đã kết thúc.")
         self.touch(c)
@@ -70,7 +87,9 @@ class ConversationStore:
 
     def sweep(self) -> None:
         for identity, c in list(self.conversations.items()):
-            if self.clock() - c.touched >= self.ttl_seconds:
+            if self.clock() - c.touched >= self.ttl_seconds or (
+                c.hard_deadline is not None and self.clock() >= c.hard_deadline
+            ):
                 del self.conversations[identity]
 
     def clear(self) -> None:

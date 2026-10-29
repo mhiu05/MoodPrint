@@ -33,8 +33,17 @@ export function useActivity(
   const [cooldown, setCooldown] = useState<Partial<Record<Kind, number>>>({});
   const loading = useRef(false);
   const lastRefresh = useRef(0);
+  // Closing a completed summary is a room-local UI choice. Late polling/SSE
+  // refreshes must not reopen it or replace a newer activity with that old one.
+  const dismissed = useRef(new Set<string>());
+
+  useEffect(() => {
+    dismissed.current.clear();
+    return () => dismissed.current.clear();
+  }, [connectionId]);
 
   const receive = useCallback((value: Session | null) => {
+    if (value && dismissed.current.has(value.id)) return;
     setSession(value);
     if (value) setClock(createClock(value.serverTime));
   }, []);
@@ -186,7 +195,10 @@ export function useActivity(
     act,
     invite,
     feedback,
-    dismiss: () => setSession(null),
+    dismiss: () => {
+      if (session && !isOpen(session)) dismissed.current.add(session.id);
+      setSession(null);
+    },
   };
 }
 

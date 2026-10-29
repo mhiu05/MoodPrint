@@ -20,7 +20,9 @@ async def purge_expired(app):
     async with app.state.database.require()() as db, db.begin():
         from app.ai.memory import expire_proposals, purge_proposals
         from app.ai.persistence import purge_chat, recover_turns
+        from app.modules.feedback.retention import purge_feedback
 
+        await purge_feedback(db)
         await recover_turns(db)
         await purge_chat(db)
         await expire_proposals(db)

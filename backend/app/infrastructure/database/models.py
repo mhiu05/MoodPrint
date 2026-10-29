@@ -14,6 +14,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
@@ -55,8 +56,28 @@ class User(Base):
     # users cannot sign in or use any session until the time passes or staff lift it.
     social_restricted_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     suspended_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Server-owned lifecycle (guest trial). Existing rows are registered; kind and the 7200s
+    # deadline are immutable (database trigger), so no later request can renew or promote them.
+    account_kind: Mapped[str] = mapped_column(
+        String(10), default="registered", server_default="registered"
+    )
+    guest_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    guest_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (
         CheckConstraint("age_band in ('unknown','under16','teen','adult')", name="age_band"),
+        CheckConstraint("account_kind in ('registered','guest')", name="account_kind"),
+        CheckConstraint(
+            "(account_kind = 'registered' AND guest_started_at IS NULL AND guest_expires_at IS NULL)"
+            " OR (account_kind = 'guest' AND guest_started_at IS NOT NULL"
+            " AND guest_expires_at IS NOT NULL"
+            " AND guest_expires_at = guest_started_at + interval '7200 seconds')",
+            name="guest_lifetime",
+        ),
+        Index(
+            "ix_users_guest_expires_at",
+            "guest_expires_at",
+            postgresql_where=text("account_kind = 'guest'"),
+        ),
     )
 
 
@@ -72,6 +93,10 @@ class AuthSession(Base):
     auth_version: Mapped[int] = mapped_column(default=1)
     reauthenticated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=now, server_default="1970-01-01 00:00:00+00"
+    )
+    # Database clock at insert; a guest session is additionally capped at users.guest_expires_at.
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=text("clock_timestamp()")
     )
 
 

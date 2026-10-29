@@ -89,6 +89,9 @@ async def last_messages(db, room_ids: list[UUID]) -> dict[UUID, HumanMessage]:
 @router.get("/social/summary", response_model=SocialSummaryView)
 async def social_summary(request: Request, actor: Actor = Depends(require_actor)):
     # Polled for navigation badges: no row locks, and zeros (not 403) without MATCH.
+    if actor.account_kind != "registered":
+        # Deliberate harmless projection: a guest has no social state and nothing is queried.
+        return SocialSummaryView()
     async with transaction(request, actor, lock=False) as (db, user):
         consent = await db.get(Consent, (user.id, "MATCH"))
         if user.age_band != "adult" or not consent or not consent.enabled:

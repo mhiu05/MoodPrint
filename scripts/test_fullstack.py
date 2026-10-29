@@ -46,6 +46,7 @@ def run(
                 [
                     "node",
                     "node_modules/vite/bin/vite.js",
+                    *(["--config", "vite.fullstack.config.ts"] if server_module == "tests.e2e_server" else []),
                     "--host",
                     "127.0.0.1",
                     "--port",

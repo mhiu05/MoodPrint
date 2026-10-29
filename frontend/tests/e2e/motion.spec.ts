@@ -131,14 +131,21 @@ test("rapidly opening and closing a dialog leaves no open dialog, inert page or 
 test("the AI status wrapper moves only when an accepted run begins, never while sending or as the reply lands", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   const CONV = "22222222-2222-4222-8222-222222222222", RUN = "33333333-3333-4333-8333-333333333333";
-  const thread = { conversationId: CONV, botId: "may", version: 1, persistent: false, messages: [], hasMoreMessages: false, activeRunId: null, activeRunVersion: null };
+  const thread = { conversationId: CONV, botId: "may", version: 1, persistent: false, messages: [] as unknown[], hasMoreMessages: false, activeRunId: null, activeRunVersion: null };
   let accept: () => void = () => {}, finish: () => void = () => {};
   const accepted = new Promise<void>((resolve) => { accept = resolve; });
   const finished = new Promise<void>((resolve) => { finish = resolve; });
   await app(page, baseSession, { "/ai/conversations": (request) => (request.method() === "GET" ? { json: [] } : { status: 201, json: thread }), [`/ai/conversations/${CONV}`]: () => ({ json: thread }) });
-  await page.route(`**/api/v1/ai/conversations/${CONV}/messages`, async (route) => { await accepted; await route.fulfill({ status: 202, json: { runId: RUN, conversationId: CONV, version: 2, runVersion: 1, eventsUrl: `/api/v1/ai/runs/${RUN}/events` } }); });
+  await page.route(`**/api/v1/ai/conversations/${CONV}/messages`, async (route) => {
+    await accepted;
+    const sent = route.request().postDataJSON();
+    thread.messages.push({ id: sent.clientMessageId, actor: "self", text: sent.text });
+    await route.fulfill({ status: 202, json: { runId: RUN, conversationId: CONV, version: 2, runVersion: 1, eventsUrl: `/api/v1/ai/runs/${RUN}/events` } });
+  });
   await page.route(`**/api/v1/ai/runs/${RUN}/events`, async (route) => {
     await finished;
+    // The real backend records the reply before publishing completion.
+    thread.messages.push({ id: `${RUN}-bot`, actor: "bot", text: "Xong.", cards: [] });
     await route.fulfill({ contentType: "text/event-stream", body: [{ type: "final", data: { text: "Xong.", cards: [] } }, { type: "completed", data: {} }].map((event, index) => `data: ${JSON.stringify({ version: "ai-events-v1", seq: String(index + 1), ...event })}\n\n`).join("") });
   });
   await page.goto("/#/assistants/may?new=1");
@@ -163,6 +170,8 @@ test("the AI status wrapper moves only when an accepted run begins, never while 
   await expect(page.locator(".ai-status [role=status]")).toHaveText("Đang chuẩn bị câu trả lời…");
   await page.waitForTimeout(300);
   finish();
+  // The final reply must survive the authoritative transcript reconciliation.
+  await expect(page.locator(".ai-status")).not.toHaveAttribute("aria-busy", "true");
   await expect(page.locator(".from-bot .chat-bubble")).toContainText("Xong.");
   await page.waitForTimeout(300);
   const samples: Record<string, string[]> = await page.evaluate(() => (window as any).statusSamples);

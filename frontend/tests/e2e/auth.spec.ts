@@ -50,7 +50,7 @@ test("sign-up checks the password confirmation and never claims the account exis
   const calls = await api(page, false, {
     "POST /auth/signup": () => ({ status: 202, json: { status: "sent" } }),
   });
-  await page.goto("/");
+  await page.goto("/#/");
   await page.getByRole("button", { name: "Tạo tài khoản mới" }).click();
   await expect(page.getByRole("heading", { name: "Tạo tài khoản" })).toBeVisible();
   await page.getByLabel("Email", { exact: true }).fill("new@example.test");
@@ -72,7 +72,7 @@ test("an unconfirmed email offers to resend the confirmation instead of a passwo
     "POST /auth/login": () => failure(403, "EMAIL_NOT_CONFIRMED", "Email chưa được xác nhận."),
     "POST /auth/confirmation": () => ({ status: 202, json: { status: "sent" } }),
   });
-  await page.goto("/");
+  await page.goto("/#/");
   await page.getByLabel("Email", { exact: true }).fill("new@example.test");
   await page.getByLabel("Mật khẩu", { exact: true }).fill("a long passphrase");
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
@@ -86,7 +86,7 @@ test("forgot password sends a uniform notice", async ({ page }) => {
   const calls = await api(page, false, {
     "POST /auth/password-recovery": () => ({ status: 202, json: { status: "sent" } }),
   });
-  await page.goto("/");
+  await page.goto("/#/");
   await page.getByRole("button", { name: "Quên mật khẩu?" }).click();
   await expect(page.getByLabel("Mật khẩu", { exact: true })).toHaveCount(0);
   await page.getByLabel("Email", { exact: true }).fill("who@example.test");
@@ -95,7 +95,7 @@ test("forgot password sends a uniform notice", async ({ page }) => {
   expect(calls.find((call) => call.path === "/auth/password-recovery")!.body).toEqual({ email: "who@example.test" });
 });
 
-test("a recovery link removes its token from the URL and sets a new password", async ({ page }) => {
+test("callback: a recovery link removes its token from the URL and sets a new password", async ({ page }) => {
   const token = "recovery-token-canary-0123456789";
   const calls = await api(page, false, {
     "POST /auth/password-reset": () => ({ json: { status: "updated" } }),
@@ -114,7 +114,24 @@ test("a recovery link removes its token from the URL and sets a new password", a
   });
 });
 
-test("an expired email link explains itself on the login screen", async ({ page }) => {
+test("callback: a recovery link token never reaches browser storage, history or the console", async ({ page }) => {
+  const token = "recovery-token-canary-9876543210";
+  const logged: string[] = [];
+  page.on("console", (message) => logged.push(message.text()));
+  await api(page, false);
+  await page.goto(`/auth/callback#access_token=${token}&refresh_token=r2&type=recovery`);
+  await expect(page.getByRole("heading", { name: "Đặt mật khẩu mới" })).toBeVisible();
+  const stored = await page.evaluate(() =>
+    JSON.stringify({ local: { ...localStorage }, session: { ...sessionStorage }, href: location.href, length: history.length }),
+  );
+  expect(stored).not.toContain(token);
+  expect(stored).not.toContain("refresh_token");
+  expect(logged.join("\n")).not.toContain(token);
+  await page.goBack().catch(() => undefined);
+  expect(page.url()).not.toContain(token);
+});
+
+test("callback: an expired email link explains itself on the login screen", async ({ page }) => {
   await api(page, false);
   await page.goto("/auth/callback#error=access_denied&error_code=otp_expired&error_description=x");
   await expect(page.getByRole("status")).toContainText("đã hết hạn");

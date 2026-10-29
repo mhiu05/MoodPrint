@@ -162,11 +162,13 @@ export function AIDataControls({ part }: { part: "history" | "memory" }) {
             Lưu lịch sử trò chuyện
           </label>
           <p>
+            {session.accountKind === "guest" ? "Dữ liệu của lượt dùng thử chỉ dùng được đến khi hết giờ. Lịch sử dài hạn và tiếp tục trên thiết bị khác không có trong lượt dùng thử." : <>
             Lưu các cuộc trò chuyện mới trên máy chủ trong{" "}
             {preferences.retentionDays} ngày để bạn tiếp tục trên thiết bị khác.
             Tắt lựa chọn này sẽ dừng lưu mới; lịch sử cũ vẫn xem, tải xuống và
             xóa được cho đến khi hết hạn. Cuộc trò chuyện tạm thời trước đó
             không được chuyển sang lịch sử.
+            </>}
           </p>
           {!preferences.historyAvailable ? (
             <p>Lưu lịch sử hiện chưa sẵn sàng.</p>

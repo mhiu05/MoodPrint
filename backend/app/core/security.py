@@ -7,12 +7,15 @@ from datetime import timedelta
 from typing import Any
 from uuid import UUID
 
-from fastapi import Request
+from fastapi import Depends, Request
 from sqlalchemy import select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import DomainError
 from app.infrastructure.database.models import AuthSession, Consent, Idempotency, User, now
+from app.modules.guests import policy as guest_policy
+from app.modules.guests.deadlines import final_guest_authorization, guest_deadline
+from app.modules.guests.policy import assert_guest_active
 
 
 def digest(value: str) -> str:
@@ -24,17 +27,23 @@ class Actor:
     user_id: UUID
     session_id: UUID
     auth_version: int
+    # Server-owned kind loaded with the session; never taken from a request or provider metadata.
+    account_kind: str = "registered"
 
 
 async def verify_session(db: AsyncSession, session: AuthSession, user: User) -> None:
+    # The immutable trial deadline is judged first, on the database clock, so a retained guest
+    # row at T reports GUEST_EXPIRED (and clears cookies) rather than a generic expiry.
+    await assert_guest_active(db, user)
+    at = await guest_policy.database_time(db) if user.account_kind == "guest" else now()
     if (
         session.revoked
-        or session.expires_at <= now()
+        or session.expires_at <= at
         or session.auth_version != user.auth_version
         or user.status != "active"
     ):
         raise DomainError(401, "SESSION_EXPIRED", "Phiên đã kết thúc. Vui lòng đăng nhập lại.")
-    if user.suspended_until and user.suspended_until > now():
+    if user.suspended_until and user.suspended_until > at:
         raise DomainError(
             403, "ACCOUNT_SUSPENDED", "Tài khoản đang bị tạm khóa theo quy tắc cộng đồng."
         )
@@ -63,9 +72,15 @@ async def require_actor(request: Request) -> Actor:
             raise DomainError(401, "SESSION_EXPIRED", "Phiên đã kết thúc. Vui lòng đăng nhập lại.")
         session, user = identity
         await verify_session(db, session, user)
+        if user.account_kind == "guest":
+            # Conservative bound for the outermost output guard (never a lifetime grant).
+            request.state.guest_output = await guest_deadline(db, user)
         idle = timedelta(hours=request.app.state.settings.session_idle_hours)
-        if session.expires_at < now() + idle - timedelta(minutes=15):
-            # Sliding idle expiry, written at most every 15 minutes per session.
+        if user.account_kind == "registered" and session.expires_at < now() + idle - timedelta(
+            minutes=15
+        ):
+            # Sliding idle expiry, written at most every 15 minutes per session. A guest session
+            # is capped at the immutable trial deadline and is never renewed.
             await db.execute(
                 update(AuthSession)
                 .where(AuthSession.id == session.id, AuthSession.revoked.is_(False))
@@ -85,7 +100,22 @@ async def require_actor(request: Request) -> Actor:
                 "/"
             ):
                 raise DomainError(403, "ORIGIN_DENIED", "Nguồn yêu cầu không hợp lệ.")
-        return Actor(user.id, session.id, user.auth_version)
+        return Actor(user.id, session.id, user.auth_version, user.account_kind)
+
+
+async def require_registered_actor(actor: Actor = Depends(require_actor)) -> Actor:
+    """Social, shared-activity, safety and staff surfaces are for permanent accounts only.
+
+    ``require_actor`` runs first, so an expired guest is answered 401 GUEST_EXPIRED before this
+    403. Frontend hiding is never the control; this is the default-deny gate.
+    """
+    if actor.account_kind != "registered":
+        raise DomainError(
+            403,
+            "REGISTERED_REQUIRED",
+            "Tạo tài khoản để dùng tính năng này. Lượt dùng thử không có tìm bạn và nhắn tin.",
+        )
+    return actor
 
 
 async def lock_actor(
@@ -133,7 +163,16 @@ async def verify_actor(
 async def transaction(request: Request, actor: Actor, *, eligible: bool = True, lock: bool = True):
     async with request.app.state.database.require()() as db, db.begin():
         user = await lock_actor(db, actor, eligible=eligible, lock=lock)
+        deadline = await guest_deadline(db, user)
+        if deadline is not None:
+            # Lock waits and statements may never outlive the remaining trial.
+            bound = str(max(1, int(deadline.remaining_seconds * 1000)))
+            await db.execute(text("select set_config('statement_timeout', :ms, true)"), {"ms": bound})
+            await db.execute(text("select set_config('lock_timeout', :ms, true)"), {"ms": bound})
         yield db, user
+        if deadline is not None:
+            # Reached only on a normal exit: a body that crossed T rolls back mutation and receipt.
+            await final_guest_authorization(db, user)
 
 
 async def assert_purpose(db: AsyncSession, user: User, purpose: str) -> dict[str, Consent]:

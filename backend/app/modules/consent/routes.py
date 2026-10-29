@@ -13,6 +13,7 @@ from app.core.security import (
 )
 from app.infrastructure.database.models import Consent, ConsentEvent, now
 from app.modules.auth.routes import session_view
+from app.modules.guests.policy import require_registered_user
 from app.modules.social.service import invalidate_user_social
 
 router = APIRouter()
@@ -24,6 +25,10 @@ async def update_consent(
 ):
     key = idempotency_key(request)
     async with transaction(request, actor) as (db, user):
+        if purpose == "MATCH" and body.enabled:
+            # Fabricated adult/consent rows can never make a guest a social participant;
+            # withdrawing MATCH stays possible and creates nothing.
+            require_registered_user(user)
         if purpose == "MATCH" and body.enabled and user.age_band != "adult":
             raise DomainError(
                 403,

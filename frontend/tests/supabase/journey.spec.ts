@@ -1,10 +1,11 @@
+import { artifactPath } from "../artifacts";
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import AxeBuilder from "@axe-core/playwright";
 
 const base = "http://127.0.0.1:5176", apiBase = base + "/api/v1";
-const artifacts = "../docs/plans/validation-artifacts/";
+const artifacts = artifactPath("supabase", "../docs/plans/validation-artifacts/") + "/";
 const proof: Record<string, unknown> = { projectId: "roznanxbiyqybjpvtilq", auth: "real Supabase", database: "real Supabase, dedicated runtime", ai: "SDK fake model", liveModelCalls: 0, signupAndEmailDelivery: "NOT_TESTED: users created/confirmed by owner in Dashboard" };
 function record(name: string) {
   proof[name] = "PASS";

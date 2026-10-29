@@ -1,3 +1,4 @@
+import { artifactPath } from "../artifacts";
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { randomUUID } from "node:crypto";
@@ -35,7 +36,7 @@ test("birth-year onboarding persists16+ access while the server rejects social a
   });
   await session(context, 7);
   const page = await context.newPage();
-  await page.goto("/");
+  await page.goto("/#/");
   await expect(
     page.getByRole("heading", { name: "Xác nhận độ tuổi" }),
   ).toBeVisible();
@@ -55,7 +56,7 @@ test("birth-year onboarding persists16+ access while the server rejects social a
   expect(axe.passes.length).toBeGreaterThan(0);
   expect(axe.violations).toEqual([]);
   await page.screenshot({
-    path: "../docs/plans/validation-artifacts/visual/onboarding-390.png",
+    path: artifactPath("plans/validation-artifacts/visual/onboarding-390.png", "../docs/plans/validation-artifacts/visual/onboarding-390.png"),
     fullPage: true,
   });
   await page
@@ -106,7 +107,7 @@ test("birth-year onboarding persists16+ access while the server rejects social a
   const younger = await browser.newContext();
   await session(younger, 8);
   const underage = await younger.newPage();
-  await underage.goto("/");
+  await underage.goto("/#/");
   await underage
     .getByLabel("Năm sinh", { exact: true })
     .fill(String(year - 15));
@@ -145,7 +146,7 @@ test("the eighteenth-year account explicitly confirms18 in settings without auto
   });
   await session(context, 9);
   const page = await context.newPage();
-  await page.goto("/");
+  await page.goto("/#/");
   const initial = await (
     await context.request.get("http://127.0.0.1:5174/api/v1/session")
   ).json();
@@ -163,7 +164,7 @@ test("the eighteenth-year account explicitly confirms18 in settings without auto
     })
     .check();
   await page.screenshot({
-    path: "../docs/plans/validation-artifacts/visual/onboarding-1440.png",
+    path: artifactPath("plans/validation-artifacts/visual/onboarding-1440.png", "../docs/plans/validation-artifacts/visual/onboarding-1440.png"),
     fullPage: true,
   });
   await page
@@ -542,7 +543,7 @@ test("real authenticated screens reflow and pass automated accessibility checks 
       });
       expect(result.violations).toEqual([]);
       await page.screenshot({
-        path: `../docs/plans/validation-artifacts/visual/real-${route.slice(1)}-${width}.png`,
+        path: artifactPath(`plans/validation-artifacts/visual/real-${route.slice(1)}-${width}.png`, `../docs/plans/validation-artifacts/visual/real-${route.slice(1)}-${width}.png`),
         fullPage: true,
       });
     }

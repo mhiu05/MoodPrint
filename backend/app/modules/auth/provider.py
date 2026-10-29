@@ -2,8 +2,10 @@
 
 import base64
 import json
-from dataclasses import dataclass
+import math
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from typing import Literal
 from uuid import UUID
 
 import httpx
@@ -16,8 +18,25 @@ from app.core.errors import DomainError
 class ProviderSession:
     user_id: UUID
     session_id: UUID
-    access_token: str
+    access_token: str = field(repr=False)
     expires_at: datetime
+    # Verified against both the signed claims and the provider's own user record.
+    is_anonymous: bool
+
+
+class AnonymousSignupError(DomainError):
+    """The single anonymous signup was rejected (nothing created) or is ambiguous (maybe created)."""
+
+    def __init__(
+        self,
+        outcome: Literal["rejected", "ambiguous"],
+        status: int,
+        code: str,
+        message: str,
+        retryable: bool = False,
+    ):
+        super().__init__(status, code, message, retryable)
+        self.outcome = outcome
 
 
 def _unavailable() -> DomainError:
@@ -30,12 +49,73 @@ def _rate_limited() -> DomainError:
     )
 
 
+def _registered_required() -> DomainError:
+    return DomainError(403, "REGISTERED_REQUIRED", "Tính năng này cần tài khoản đã đăng ký.")
+
+
+def _signup_ambiguous() -> AnonymousSignupError:
+    return AnonymousSignupError(
+        "ambiguous", 503, "AUTH_UNAVAILABLE", "Chưa kết nối được dịch vụ đăng nhập.", True
+    )
+
+
+def _signup_rejected(response: httpx.Response) -> AnonymousSignupError:
+    code = _error_code(response)
+    if response.status_code == 429:
+        return AnonymousSignupError(
+            "rejected",
+            429,
+            "AUTH_RATE_LIMITED",
+            "Bạn đã thử quá nhiều lần. Vui lòng đợi vài phút.",
+            True,
+        )
+    if code == "captcha_failed":
+        return AnonymousSignupError(
+            "rejected",
+            422,
+            "CAPTCHA_FAILED",
+            "Chưa xác minh được bước kiểm tra an toàn. Vui lòng thử lại.",
+            True,
+        )
+    if code in ("anonymous_provider_disabled", "signup_disabled"):
+        return AnonymousSignupError(
+            "rejected", 503, "GUEST_DISABLED", "Dùng thử tạm thời chưa mở. Vui lòng quay lại sau."
+        )
+    return AnonymousSignupError(
+        "rejected", 503, "AUTH_UNAVAILABLE", "Chưa kết nối được dịch vụ đăng nhập."
+    )
+
+
 def _error_code(response: httpx.Response) -> str:
     try:
         body = response.json()
     except ValueError:
         return ""
+    if not isinstance(body, dict):
+        return ""
     return str(body.get("error_code") or body.get("code") or body.get("error") or "")
+
+
+def _audience_ok(audience: object) -> bool:
+    return audience == "authenticated" or (
+        isinstance(audience, list) and "authenticated" in audience
+    )
+
+
+def _strict_bool(value: object) -> bool:
+    # A missing, string or numeric flag must fail closed rather than read as "permanent".
+    if not isinstance(value, bool):
+        raise ValueError("Provider anonymous flag must be an explicit boolean")
+    return value
+
+
+def _future_expiry(value: object) -> datetime:
+    if isinstance(value, bool) or not isinstance(value, int | float) or not math.isfinite(value):
+        raise ValueError("Provider expiry must be a finite number")
+    expiry = datetime.fromtimestamp(value, UTC)
+    if expiry <= datetime.now(UTC):
+        raise ValueError("Provider token already expired")
+    return expiry
 
 
 class SupabaseAuth:
@@ -52,12 +132,16 @@ class SupabaseAuth:
     def client(self) -> httpx.AsyncClient:
         return httpx.AsyncClient(timeout=10, follow_redirects=False, transport=self.transport)
 
+    async def _send(self, method: str, path: str, **kwargs) -> httpx.Response:
+        """One raw provider exchange; transport failures propagate for callers that classify them."""
+        async with self.client() as provider:
+            return await provider.request(
+                method, self.base + path, headers={**self.headers, **kwargs.pop("headers", {})}, **kwargs
+            )
+
     async def _call(self, method: str, path: str, **kwargs) -> httpx.Response:
         try:
-            async with self.client() as provider:
-                response = await provider.request(
-                    method, self.base + path, headers={**self.headers, **kwargs.pop("headers", {})}, **kwargs
-                )
+            response = await self._send(method, path, **kwargs)
         except httpx.HTTPError:
             raise _unavailable() from None
         if response.status_code == 429:
@@ -82,23 +166,69 @@ class SupabaseAuth:
             token = auth.json()["access_token"]
         except (ValueError, KeyError, TypeError):
             raise _unavailable() from None
-        return await self.verify_token(token)
+        session = await self.verify_token(token)
+        if session.is_anonymous:
+            # A password exchange can only ever yield a permanent identity.
+            raise _registered_required()
+        return session
 
     async def verify_token(self, token: str) -> ProviderSession:
         verified = await self._call("GET", "/user", headers={"Authorization": f"Bearer {token}"})
         if verified.status_code != 200:
             raise DomainError(401, "LOGIN_FAILED", "Không xác minh được phiên đăng nhập.")
         try:
-            uid = UUID(verified.json()["id"])
+            profile = verified.json()
+            uid = UUID(profile["id"])
             # Claims are read only after the provider itself accepted this token above.
             encoded = token.split(".")[1]
             claims = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
             if UUID(claims["sub"]) != uid or claims["iss"] != self.issuer:
                 raise ValueError("Provider token mismatch")
-            expiry = datetime.fromtimestamp(claims["exp"], UTC)
-            return ProviderSession(uid, UUID(claims["session_id"]), token, expiry)
-        except (ValueError, KeyError, TypeError, IndexError):
+            if not _audience_ok(claims.get("aud")):
+                raise ValueError("Provider token audience mismatch")
+            expiry = _future_expiry(claims["exp"])
+            anonymous = _strict_bool(claims.get("is_anonymous"))
+            if anonymous != _strict_bool(profile.get("is_anonymous")):
+                raise ValueError("Provider anonymous classification disagrees")
+            return ProviderSession(uid, UUID(claims["session_id"]), token, expiry, anonymous)
+        except (ValueError, KeyError, TypeError, IndexError, AttributeError, OverflowError, OSError):
             raise _unavailable() from None
+
+    async def anonymous_session(self, captcha_token: str, *, correlation_id: str) -> ProviderSession:
+        """Create exactly one anonymous identity and return it only once fully verified.
+
+        Never retried here. After the request is on the wire every unverifiable outcome is
+        ``ambiguous`` (the provider may have created an identity); only an explicit 4xx is a
+        ``rejected`` outcome that proves nothing was created.
+        """
+        try:
+            response = await self._send(
+                "POST",
+                "/signup",
+                json={
+                    "data": {"moodprint_guest_attempt": correlation_id},
+                    "gotrue_meta_security": {"captcha_token": captcha_token},
+                },
+            )
+        except httpx.HTTPError:
+            raise _signup_ambiguous() from None
+        if 400 <= response.status_code < 500:
+            raise _signup_rejected(response)
+        if response.status_code not in (200, 201):
+            raise _signup_ambiguous()
+        try:
+            token = response.json()["access_token"]
+            if not isinstance(token, str) or not token:
+                raise ValueError("Missing provider access token")
+        except (ValueError, KeyError, TypeError):
+            raise _signup_ambiguous() from None
+        try:
+            provider = await self.verify_token(token)
+        except DomainError:
+            raise _signup_ambiguous() from None
+        if not provider.is_anonymous:
+            raise _signup_ambiguous()
+        return provider
 
     async def sign_out(self, token: str) -> None:
         # Best effort: ends only the provider session created for a step-up check.
@@ -150,6 +280,9 @@ class SupabaseAuth:
 
     async def update_password(self, token: str, password: str) -> UUID:
         session = await self.verify_token(token)
+        if session.is_anonymous:
+            # A bearer token must never become an implicit guest-to-permanent conversion route.
+            raise _registered_required()
         response = await self._call(
             "PUT",
             "/user",
@@ -164,4 +297,3 @@ class SupabaseAuth:
         if code == "same_password":
             raise DomainError(422, "SAME_PASSWORD", "Mật khẩu mới phải khác mật khẩu cũ.")
         raise DomainError(401, "RECOVERY_EXPIRED", "Liên kết đặt lại mật khẩu đã hết hạn.")
-

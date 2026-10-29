@@ -1,4 +1,6 @@
 import asyncio
+import hashlib
+from math import ceil
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import Field
@@ -8,6 +10,18 @@ from app.core.errors import DomainError
 from app.core.limits import AttemptLimiter
 from app.core.security import Actor, assert_purpose, idempotency_key, require_actor, transaction
 from app.core.streams import StreamSlots
+from app.modules.guests.accounting import (
+    mark_guest_dispatched,
+    release_guest_operation,
+    reserve_guest_operation,
+    settle_guest_operation,
+)
+from app.modules.guests.accounting import unavailable as guest_paid_unavailable
+from app.modules.guests.deadlines import guard_guest_dispatch
+from app.modules.guests.limits import finish_guest_quota, maintain_guest_quota, reserve_guest_quota
+from app.modules.guests.models import GuestOperationLink
+from app.modules.guests.policy import database_time, guest_expired, guest_paid_available
+from app.modules.guests.pricing import budget_nano, voice_upper
 from app.modules.voice.service import validate_audio
 
 router = APIRouter()
@@ -24,10 +38,15 @@ class TranscriptionPreview(DTO):
 
 @router.post("/voice/transcriptions", response_model=TranscriptionPreview)
 async def transcribe(request: Request, actor: Actor = Depends(require_actor)):
-    idempotency_key(request)
+    key = idempotency_key(request)
+    guest = actor.account_kind == "guest"
+    settings = request.app.state.settings
     async with transaction(request, actor) as (db, user):
         await assert_purpose(db, user, "VOICE")
         version = user.data_version
+    if guest and not guest_paid_available(settings, "voice"):
+        # Fail closed: no approved budget/price means no paid guest transcription at all.
+        raise guest_paid_unavailable()
     provider = request.app.state.transcriber
     if provider is None or (
         request.app.state.settings.ai_local_test_user_ids
@@ -42,36 +61,107 @@ async def transcribe(request: Request, actor: Actor = Depends(require_actor)):
     release = VOICE_SLOTS.reserve(actor.user_id)
     audio = bytearray()
     task: asyncio.Task[str] | None = None
+    # Guest bound (None for registered users): every stage below may only shorten work.
+    bound = getattr(request.state, "guest_output", None)
+    budget = 35.0
+    reservation = quota = None
+    dispatched = False
+    result_known = False
+
+    def expired() -> bool:
+        return bound is not None and bound.remaining() <= 0
+
     try:
         async for chunk in request.stream():
+            if expired():
+                raise guest_expired()
             if len(audio) + len(chunk) > 3_000_000:
                 raise DomainError(413, "AUDIO_TOO_LARGE", "Bản ghi âm quá lớn.")
             audio.extend(chunk)
         duration = validate_audio(bytes(audio))
-        task = asyncio.create_task(provider.transcribe(bytes(audio)))
-        async with asyncio.timeout(35):
-            while not task.done():
-                await asyncio.wait({task}, timeout=0.5)
-                if not task.done():
-                    async with transaction(request, actor) as (db, user):
-                        await assert_purpose(db, user, "VOICE")
-                        if user.data_version != version:
-                            raise DomainError(409, "CONTEXT_CHANGED", "Quyền đã thay đổi. Bản ghi âm đã dừng xử lý.")
-            text = await task
-        async with transaction(request, actor) as (db, user):
-            await assert_purpose(db, user, "VOICE")
-            if user.data_version != version:
-                raise DomainError(
-                    409, "CONTEXT_CHANGED", "Quyền đã thay đổi. Bản chữ không được sử dụng."
+        if guest:
+            # One transaction: lifetime quota claim + worst-case reservation, before any send.
+            upper = voice_upper(settings.guest_pricing_json, duration)
+            if upper is None:
+                raise guest_paid_unavailable()
+            clip = hashlib.sha256(bytes(audio)).hexdigest()
+            async with transaction(request, actor) as (db, user):
+                quota = await reserve_guest_quota(
+                    db,
+                    user,
+                    kind="voice",
+                    operation_key=key,
+                    payload_digest=clip,
+                    settings=settings,
+                    voice_milliseconds=ceil(duration * 1000),
                 )
-        if not isinstance(text, str) or len(text) > 500:
-            raise DomainError(
-                422, "TRANSCRIPT_TOO_LONG", "Bản chữ quá dài. Hãy ghi một đoạn ngắn hơn."
-            )
-        return TranscriptionPreview(text=text, duration_seconds=duration)
+                reservation = await reserve_guest_operation(
+                    db,
+                    user,
+                    "voice",
+                    upper[1],
+                    operation_key=key,
+                    payload_digest=clip,
+                    limit_nano_usd=budget_nano(settings.guest_daily_budget_usd) or 0,
+                )
+        async with maintain_guest_quota(request.app.state.database, actor.user_id, "voice", quota):
+            # Fresh database decision, then a synchronous check immediately before dispatch.
+            await guard_guest_dispatch(request.app.state.database, actor)
+            async with transaction(request, actor) as (db, user):
+                # Consent mutation takes the same owner lock. This transaction's final
+                # decision linearizes the send: a withdrawal committed before it denies;
+                # a later withdrawal cannot recall externally accepted work. No provider
+                # I/O occurs under the lock. Marker waits cannot stale the consent check.
+                if quota is not None:
+                    link = await db.get(GuestOperationLink, (user.id, "voice", quota.operation_key_hash))
+                    at = await database_time(db)
+                    if (link is None or link.lease_token != quota.lease_token
+                            or link.state != "claimed" or link.lease_until <= at
+                            or reservation is None or link.reservation_id != reservation.id):
+                        raise DomainError(409, "GUEST_OPERATION_FENCED", "Lượt xử lý đã kết thúc.")
+                if reservation is not None:
+                    await mark_guest_dispatched(db, reservation.id)
+                await assert_purpose(db, user, "VOICE")
+                if user.data_version != version:
+                    raise DomainError(409, "CONTEXT_CHANGED", "Quyền đã thay đổi. Bản ghi âm đã dừng xử lý.")
+            dispatched = reservation is not None
+            if expired():
+                raise guest_expired()
+            task = asyncio.create_task(provider.transcribe(bytes(audio)))
+            budget = 35.0 if bound is None else min(35.0, max(0.0, bound.remaining()))
+            async with asyncio.timeout(budget):
+                while not task.done():
+                    await asyncio.wait({task}, timeout=0.5)
+                    if expired():
+                        raise guest_expired()
+                    if not task.done():
+                        async with transaction(request, actor) as (db, user):
+                            await assert_purpose(db, user, "VOICE")
+                            if user.data_version != version:
+                                raise DomainError(409, "CONTEXT_CHANGED", "Quyền đã thay đổi. Bản ghi âm đã dừng xử lý.")
+                text = await task
+            result_known = True
+            async with transaction(request, actor) as (db, user):
+                await assert_purpose(db, user, "VOICE")
+                if user.data_version != version:
+                    raise DomainError(
+                        409, "CONTEXT_CHANGED", "Quyền đã thay đổi. Bản chữ không được sử dụng."
+                    )
+            if expired():
+                # The provider answered after T: discard the transcript, never return it.
+                raise guest_expired()
+            if not isinstance(text, str) or len(text) > 500:
+                raise DomainError(
+                    422, "TRANSCRIPT_TOO_LONG", "Bản chữ quá dài. Hãy ghi một đoạn ngắn hơn."
+                )
+            return TranscriptionPreview(text=text, duration_seconds=duration)
     except DomainError:
         raise
     except (Exception, TimeoutError) as exc:
+        if expired() or (isinstance(exc, TimeoutError) and bound is not None and budget < 35.0):
+            # The clamped budget ran out because the trial ended (a timer may fire a clock tick
+            # early): report that, not a provider fault.
+            raise guest_expired() from None
         raise DomainError(
             503,
             "TRANSCRIPTION_FAILED",
@@ -82,5 +172,22 @@ async def transcribe(request: Request, actor: Actor = Depends(require_actor)):
         if task and not task.done():
             task.cancel()
             await asyncio.gather(task, return_exceptions=True)
+        if reservation is not None:
+            try:
+                async with request.app.state.database.require()() as db, db.begin():
+                    if not dispatched:
+                        await release_guest_operation(db, reservation.id)
+                    else:
+                        # The billed duration was reserved exactly; an unknown outcome is uncertain.
+                        await settle_guest_operation(
+                            db, reservation, reservation.upper_nano_usd if result_known else None
+                        )
+                if quota is not None:
+                    async with request.app.state.database.require()() as db, db.begin():
+                        await finish_guest_quota(
+                            db, actor.user_id, "voice", quota.operation_key_hash, quota.lease_token
+                        )
+            except Exception:  # the stale-reservation sweep charges it uncertain
+                pass
         release()
         audio.clear()

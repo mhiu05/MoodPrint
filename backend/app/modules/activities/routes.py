@@ -14,7 +14,7 @@ from app.core.security import (
     Actor,
     idempotency_key,
     previous_receipt,
-    require_actor,
+    require_registered_actor,
     save_receipt,
 )
 from app.infrastructure.database.models import now
@@ -40,7 +40,7 @@ FOCUS = ("pause", "resume", "leave", "join")
 
 
 @router.get("/activities/catalog", response_model=list[ActivityDefinitionDTO])
-async def catalog(request: Request, actor: Actor = Depends(require_actor)):
+async def catalog(request: Request, actor: Actor = Depends(require_registered_actor)):
     settings = request.app.state.settings
     if not settings.activities_enabled:
         return []
@@ -68,7 +68,7 @@ async def catalog(request: Request, actor: Actor = Depends(require_actor)):
     status_code=201,
 )
 async def invite(
-    connection_id: UUID, body: InviteInput, request: Request, actor: Actor = Depends(require_actor)
+    connection_id: UUID, body: InviteInput, request: Request, actor: Actor = Depends(require_registered_actor)
 ):
     act.require_enabled(request, body.kind)
     key, payload = idempotency_key(request), body.model_dump(mode="json")
@@ -146,7 +146,7 @@ async def invite(
     "/connections/{connection_id}/activities/current",
     response_model=ActivitySessionView | None,
 )
-async def current(connection_id: UUID, request: Request, actor: Actor = Depends(require_actor)):
+async def current(connection_id: UUID, request: Request, actor: Actor = Depends(require_registered_actor)):
     peer_id = await svc.room_peer(request, actor, connection_id)
     async with svc.pair_transaction(request, actor, peer_id, lock=False) as (db, user, peer):
         room = await svc.live_room(db, user, peer, connection_id, lock=False)
@@ -163,7 +163,7 @@ async def history(
     connection_id: UUID,
     request: Request,
     limit: int = Query(10, ge=1, le=20),
-    actor: Actor = Depends(require_actor),
+    actor: Actor = Depends(require_registered_actor),
 ):
     peer_id = await svc.room_peer(request, actor, connection_id)
     async with svc.pair_transaction(request, actor, peer_id, lock=False) as (db, user, peer):
@@ -184,7 +184,7 @@ async def history(
 
 
 @router.get("/activities/{session_id}", response_model=ActivitySessionView)
-async def get_session(session_id: UUID, request: Request, actor: Actor = Depends(require_actor)):
+async def get_session(session_id: UUID, request: Request, actor: Actor = Depends(require_registered_actor)):
     async with act.activity_transaction(request, actor, session_id, lock=False) as (
         db,
         user,
@@ -238,7 +238,7 @@ def lifecycle_route(op: str):
         session_id: UUID,
         body: VersionInput,
         request: Request,
-        actor: Actor = Depends(require_actor),
+        actor: Actor = Depends(require_registered_actor),
     ) -> ActivitySessionView:
         return await run(
             request,
@@ -267,7 +267,7 @@ for _op in FOCUS:
 
 @router.post("/activities/{session_id}/responses", response_model=ActivitySessionView)
 async def respond(
-    session_id: UUID, body: ResponseInput, request: Request, actor: Actor = Depends(require_actor)
+    session_id: UUID, body: ResponseInput, request: Request, actor: Actor = Depends(require_registered_actor)
 ):
     payload = body.model_dump(mode="json")
     answer = {"choice": body.choice, "text": body.text, "skipped": body.skipped}
@@ -285,7 +285,7 @@ async def respond(
 
 @router.post("/activities/{session_id}/ready", response_model=ActivitySessionView)
 async def ready(
-    session_id: UUID, body: ReadyInput, request: Request, actor: Actor = Depends(require_actor)
+    session_id: UUID, body: ReadyInput, request: Request, actor: Actor = Depends(require_registered_actor)
 ):
     return await run(
         request,
@@ -301,7 +301,7 @@ async def ready(
 
 @router.post("/activities/{session_id}/feedback", response_model=ActionReceipt)
 async def feedback(
-    session_id: UUID, body: FeedbackInput, request: Request, actor: Actor = Depends(require_actor)
+    session_id: UUID, body: FeedbackInput, request: Request, actor: Actor = Depends(require_registered_actor)
 ):
     view = await run(
         request,

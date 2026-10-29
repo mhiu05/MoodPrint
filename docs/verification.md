@@ -1,5 +1,7 @@
 # Kết quả kiểm chứng ngày 28/10/2026
 
+Kết quả bên dưới là baseline của đợt tài liệu trước. Phần triển khai guest/feedback/tour có [execution ledger riêng](guest-experience/implementation/evidence/execution.md) và [release gates PARTIAL](guest-experience/implementation/evidence/release-readiness.md); không dùng baseline này để suy ra guest đã được phép mở public.
+
 Trang này ghi bằng chứng đã thực thi của đợt cập nhật tài liệu. **Trạng thái kiểm tra local: PASS.** Không dùng mô tả CI để thay kết quả chạy thực tế.
 
 ## Phạm vi

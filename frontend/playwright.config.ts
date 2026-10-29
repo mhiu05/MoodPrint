@@ -1,7 +1,8 @@
+import { artifactPath } from "./tests/artifacts";
 import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "tests/e2e",
-  testMatch: ["real.spec.ts", "social.spec.ts", "activities.spec.ts", "admin.spec.ts", "chat-history.spec.ts", "discovery.spec.ts", "states.spec.ts", "auth.spec.ts", "ux-redesign.spec.ts", "motion.spec.ts", "merge-readiness.spec.ts"],
+  testMatch: ["real.spec.ts", "social.spec.ts", "activities.spec.ts", "admin.spec.ts", "chat-history.spec.ts", "discovery.spec.ts", "states.spec.ts", "auth.spec.ts", "ux-redesign.spec.ts", "motion.spec.ts", "merge-readiness.spec.ts", "landing.spec.ts", "guest.spec.ts", "guest-expiry.spec.ts", "feedback.spec.ts", "feedback-admin.spec.ts", "onboarding.spec.ts", ...(process.env.MOODPRINT_TOUR_COMPATIBILITY === "1" ? ["onboarding-compatibility.spec.ts"] : [])],
   globalTimeout: 600000,
   fullyParallel: false,
   workers: 1,
@@ -9,10 +10,10 @@ export default defineConfig({
   expect: { timeout: 7000 },
   reporter: [
     ["list"],
-    ["json", { outputFile: "evidence/e2e-results.json" }],
-    ["html", { outputFolder: "evidence/playwright-report", open: "never" }],
+    ["json", { outputFile: artifactPath("e2e-results.json") }],
+    ["html", { outputFolder: artifactPath("playwright-report"), open: "never" }],
   ],
-  outputDir: "evidence/test-results",
+  outputDir: artifactPath("test-results"),
   use: {
     baseURL: "http://127.0.0.1:5173",
     viewport: { width: 1280, height: 900 },

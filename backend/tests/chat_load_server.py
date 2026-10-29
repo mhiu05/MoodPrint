@@ -48,7 +48,10 @@ from app.core.config import Settings
 from app.core.security import digest
 from app.infrastructure.database.models import AuthSession, Base, Consent, Memory, User, now
 from app.main import create_app
+from app.modules.guests import models as guest_models  # noqa: F401 -- register before reset
 from tests.fakes import completed_response, message_output
+from tests.feedback_schema import install_feedback_functions
+from tests.guest_schema import install_auth_fixture, install_guest_guards
 
 COUNTERS = {
     "sdk_calls": 0,
@@ -228,9 +231,6 @@ async def stats():
 
 async def seed(count: int):
     # Only the parent driver invokes this, once, before either server worker starts.
-    helper = (
-        Path(__file__).parents[1] / "app/infrastructure/database/provider_session.sql"
-    ).read_text(encoding="utf-8")
     async with app.state.database.engine.begin() as connection:
         await connection.execute(text("create schema if not exists moodprint"))
         await connection.execute(text("create schema if not exists extensions"))
@@ -238,17 +238,11 @@ async def seed(count: int):
             text("create extension if not exists vector with schema extensions")
         )
         await connection.run_sync(Base.metadata.drop_all)
+        # The feedback CHECK constraints call private functions that must exist first.
+        await install_feedback_functions(connection)
         await connection.run_sync(Base.metadata.create_all)
-        await connection.execute(text("create schema if not exists auth"))
-        await connection.execute(
-            text(
-                "create table if not exists auth.sessions(id uuid primary key,user_id uuid not null)"
-            )
-        )
-        await connection.execute(text("truncate auth.sessions"))
-        await connection.execute(
-            text(helper.replace("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION", 1))
-        )
+        await install_guest_guards(connection)
+        await install_auth_fixture(connection)
     async with app.state.database.sessions.begin() as db:
         for number in range(count):
             uid, sid = identity("user", number), identity("provider", number)

@@ -289,6 +289,9 @@ test("on a phone the dock is a sheet above the composer that collapses and keeps
   await expect(dock.getByRole("heading", { name: item.prompt })).toBeVisible();
   const composer = page.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" });
   await composer.fill("chờ chút nhé");
+  // Visibility can precede the 220ms entrance ending. Compare settled geometry,
+  // after GSAP clearProps removes its transform, with the original bounds below.
+  await expect.poll(() => dock.evaluate(element => getComputedStyle(element).transform)).toBe("none");
   const [sheet, input] = [await dock.boundingBox(), await composer.boundingBox()];
   const facts = await layout(page);
   expect(sheet!.y + sheet!.height, facts).toBeLessThanOrEqual(input!.y + 1);
@@ -344,6 +347,42 @@ test("finished activities appear in the log where they ended", async ({ page }) 
     "Vui ghê",
     "Đố vui đồng đội: Bạn đồng hành 3fa9c1 chưa muốn chơi lúc này",
   ]);
+});
+
+test("a pending refresh cannot reopen a dismissed summary and a new invitation still appears", async ({ page }) => {
+  const completed = base({ state: "completed", version: 7, endedAt: new Date().toISOString(),
+    self: { accepted: true, readyRound: 3, feedbackGiven: true },
+    progress: { round: 3, totalRounds: 3, phase: "completed" } });
+  const state: ChatState = { current: completed, history: [completed], posts: [] };
+  await chat(page, state);
+  await page.goto("/#/chat/room-1");
+  const dock = page.getByRole("region", { name: "Hoạt động chung: Câu hỏi làm quen" });
+  await expect(dock.getByRole("heading", { name: "Đã hoàn thành", exact: true })).toBeVisible();
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  let pending = 0;
+  await page.route("**/api/v1/connections/room-1/activities/current", async route => {
+    const snapshot = structuredClone(state.current);
+    pending += 1;
+    await gate;
+    await route.fulfill({ json: snapshot });
+  });
+  await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  await expect.poll(() => pending).toBeGreaterThan(0);
+  try {
+    await dock.getByRole("button", { name: "Tiếp tục trò chuyện", exact: true }).click();
+    await expect(page.getByRole("log").getByRole("group", { name: "Hoạt động đã qua: Câu hỏi làm quen" })).toBeVisible();
+    const response = page.waitForResponse(r => r.url().endsWith('/activities/current'));
+    release();
+    await response;
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await expect(dock).toHaveCount(0);
+    await expect(page.getByRole("log").getByRole("group", { name: "Hoạt động đã qua: Câu hỏi làm quen" })).toBeVisible();
+    state.current = base({ id: "new-session" });
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await expect(page.getByRole("group", { name: "Lời mời Câu hỏi làm quen" })).toBeVisible();
+    expect(state.posts).toEqual([]);
+  } finally { release(); }
 });
 
 test("a failed catalog read keeps the entry and offers a retry inside the dialog", async ({ page }) => {

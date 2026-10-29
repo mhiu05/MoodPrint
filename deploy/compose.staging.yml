@@ -29,6 +29,8 @@ services:
     image: ${WEB_IMAGE:?Set an immutable web image digest}
     environment:
       APP_DOMAIN: ${APP_DOMAIN:?Set a staging domain}
+      # Empty keeps the CSP strictly same-origin; set to the CAPTCHA origin only with the guest entry.
+      GUEST_CAPTCHA_ORIGIN: ${GUEST_CAPTCHA_ORIGIN:-}
     restart: unless-stopped
     read_only: true
     cap_drop: [ALL]
