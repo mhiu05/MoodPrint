@@ -13,33 +13,27 @@
 | `superuser_reserved_connections` | 3 |
 | Schema ứng dụng | `moodprint` |
 
-Role `moodprint_backend` tại thời điểm đọc: `rolconnlimit = 10`.
+Role `moodprint_backend` được đọc lại sau PR #25: `rolconnlimit = 20`. Không chạy lại `ALTER ROLE` vì hạn mức đã là 20.
 
-Số kết nối của role đó: 9 `idle` và 1 `idle in transaction`, `application_name = Supavisor`. Tổng 10/10. Không phân biệt được EC2 và máy local vì Supavisor thay tên ứng dụng của client.
+Số kết nối của role lúc đọc lại: 9 `idle` và 1 `idle in transaction`, `application_name = Supavisor`. Tổng 10/20.
 
 Supavisor qua Management API: host `aws-0-ap-northeast-1.pooler.supabase.com`, cổng mặc định 6543, `pool_mode = transaction`, `default_pool_size` và `max_client_conn` đều `null` (không có override tùy chỉnh). User trong chuỗi kết nối mẫu là `postgres.roznanxbiyqybjpvtilq`, không phải `moodprint_backend`.
 
 ## Đã áp dụng
 
-Không có thay đổi SQL nào được ghi vào database.
+Hạn mức role đã là 20 khi đọc lại catalog. Phiên này không chạy `ALTER ROLE` lần nữa.
 
-`ALTER ROLE moodprint_backend CONNECTION LIMIT 20` trả HTTP 400. Phiên SQL của Management API là `supabase_read_only_user`.
+Lần đọc trước trong PR ghi nhận 10. Việc nâng lên 20 đã có hiệu lực trên project `roznanxbiyqybjpvtilq` trước lần xác minh này. Không có câu SQL ghi thêm.
 
-## Chưa áp dụng, cần chạy trong SQL Editor bằng role có quyền
+## Không cần chạy lại ALTER
+
+Catalog đã trả `rolconnlimit = 20`. Câu lệnh sau chỉ dùng nếu một lần đọc sau này thấy giá trị khác 20:
 
 ```sql
 ALTER ROLE moodprint_backend CONNECTION LIMIT 20;
 ```
 
-Xác minh:
-
-```sql
-SELECT rolname, rolconnlimit
-FROM pg_roles
-WHERE rolname = 'moodprint_backend';
-```
-
-Rollback, chỉ khi còn ít kết nối hơn hạn mức cũ:
+Rollback, chỉ khi số kết nối đang dùng nhỏ hơn 10:
 
 ```sql
 ALTER ROLE moodprint_backend CONNECTION LIMIT 10;

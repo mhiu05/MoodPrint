@@ -1,6 +1,6 @@
 # Rủi ro còn lại
 
-- Role production vẫn là 10 cho đến khi SQL Editor chạy `ALTER ROLE`. Lúc đọc catalog, role đã dùng 10/10, trong đó 1 kết nối `idle in transaction`.
+- Role production đã được xác minh lại ở hạn mức 20. Lúc đọc vẫn có 10 kết nối Supavisor, gồm 1 kết nối `idle in transaction`. Chưa biết chúng thuộc EC2, máy local, hay cả hai.
 - Chưa biết 10 kết nối Supavisor thuộc EC2, máy local, hay cả hai. Máy dev không nên dùng `DATABASE_URL` của role production.
 - Runtime EC2 chưa đổi pool. Default trong Git chỉ có tác dụng khi biến môi trường không ghi đè.
 - Chưa đo `GET /session` với 50 người dùng trên staging. Số `SELECT 1` local không thay cho độ trễ liên vùng.
