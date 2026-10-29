@@ -42,6 +42,7 @@ from app.core.errors import DomainError
 from app.core.security import Actor, assert_purpose, lock_actor
 from app.core.streams import StreamSlots
 from app.infrastructure.database.models import AiRun, AiUsage, Consent, now
+from app.modules.consent.policy import consent_enabled
 from app.modules.guests.deadlines import GuestDeadline, final_guest_authorization
 from app.modules.guests.policy import guest_expired
 
@@ -610,7 +611,7 @@ class AiRuntime:
                         raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
                     mem: Consent | None = consents.get("MEM")
                     memory_state = SourceState()
-                    if mem and mem.enabled and mem.policy_version == "v1":
+                    if mem and consent_enabled("MEM", mem.enabled) and mem.policy_version == "v1":
                         memory_state.authorization = "authorized"
                     elif mem and mem.version > 1:
                         memory_state.authorization = "revoked"

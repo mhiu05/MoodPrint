@@ -23,6 +23,7 @@ from app.ai.voyage import EmbeddingError, EmbeddingProvider, VoyageProvider, val
 from app.core.errors import DomainError
 from app.core.security import Actor, lock_actor
 from app.infrastructure.database.models import Consent, Memory, PrivateItem, User, now
+from app.modules.consent.policy import consent_enabled
 from app.modules.guests.deadlines import guest_deadline
 from app.modules.guests.policy import database_time, lifetime_allows
 
@@ -67,7 +68,7 @@ async def _authorization(db: AsyncSession, user_id: UUID) -> Authorization | Non
         ).all()
     }
     if any(
-        p not in consents or not consents[p].enabled or consents[p].policy_version != "v1"
+        p not in consents or not consent_enabled(p, consents[p].enabled) or consents[p].policy_version != "v1"
         for p in ("AI", "MEM")
     ):
         return None
@@ -380,8 +381,6 @@ async def reconcile_embedding_jobs(database: "Database", settings: EmbeddingSett
                         ),
                         AiPreference.semantic_memory_enabled.is_(True),
                         AiPreference.policy_version == "ai-data-v1",
-                        ai.enabled.is_(True),
-                        mem.enabled.is_(True),
                         ai.policy_version == "v1",
                         mem.policy_version == "v1",
                         Memory.status == "active",

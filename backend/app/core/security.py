@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import DomainError
 from app.infrastructure.database.models import AuthSession, Consent, Idempotency, User, now
+from app.modules.consent.policy import consent_enabled
 from app.modules.guests import policy as guest_policy
 from app.modules.guests.deadlines import final_guest_authorization, guest_deadline
 from app.modules.guests.policy import assert_guest_active
@@ -162,7 +163,7 @@ async def verify_actor(
         raise DomainError(
             409,
             "DELETION_IN_PROGRESS",
-            "Dữ liệu đang được xóa. Bạn có thể kiểm tra trạng thái trong quyền riêng tư.",
+            "Dữ liệu đang được xóa. Bạn có thể kiểm tra trạng thái trong Cá nhân.",
         )
     return user
 
@@ -189,7 +190,7 @@ async def assert_purpose(db: AsyncSession, user: User, purpose: str) -> dict[str
         for c in (await db.scalars(select(Consent).where(Consent.user_id == user.id))).all()
     }
     needed = [purpose] + (["AI"] if purpose in ("MEM", "VOICE") else [])
-    if any(not values.get(p) or not values[p].enabled for p in needed):
+    if any(not values.get(p) or not consent_enabled(p, values[p].enabled) for p in needed):
         raise DomainError(403, "CONSENT_REQUIRED", "Bạn chưa bật quyền cần thiết.")
     if purpose == "MATCH" and user.age_band != "adult":
         raise DomainError(

@@ -22,6 +22,7 @@ from app.core.security import Actor, digest, idempotency_key, transaction, verif
 from app.infrastructure.database.models import AuthSession, Consent, User
 from app.modules.auth.age import age_band, record_age
 from app.modules.auth.provider import AnonymousSignupError, ProviderSession, SupabaseAuth
+from app.modules.consent.policy import consent_enabled
 from app.modules.guests import limits
 from app.modules.guests.availability import experience_view
 from app.modules.guests.deadlines import guest_deadline
@@ -256,7 +257,7 @@ async def grant_guest(
     opaque: str,
     csrf: str,
 ) -> tuple[Actor, datetime]:
-    """One short transaction: the user, age, disabled consents, session, usage and cleanup job.
+    """One short transaction: the user, age, personal defaults, session, usage and cleanup job.
 
     T0 is the database ``clock_timestamp()`` evaluated by the user INSERT itself; T = T0 + 7200s.
     """
@@ -315,7 +316,7 @@ async def grant_guest(
     user = await db.get(User, user_id)
     await record_age(db, user, eligibility)
     for purpose in ("AI", "MEM", "MATCH", "VOICE"):
-        db.add(Consent(user_id=user_id, purpose=purpose, enabled=False, version=1))
+        db.add(Consent(user_id=user_id, purpose=purpose, enabled=consent_enabled(purpose, False), version=1))
     session = AuthSession(
         user_id=user_id,
         token_hash=digest(opaque),

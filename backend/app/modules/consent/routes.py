@@ -11,8 +11,9 @@ from app.core.security import (
     save_receipt,
     transaction,
 )
-from app.infrastructure.database.models import Consent, ConsentEvent, now
+from app.infrastructure.database.models import Consent, ConsentEvent
 from app.modules.auth.routes import session_view
+from app.modules.consent.policy import PERSONAL_PURPOSES
 from app.modules.guests.policy import require_registered_user
 from app.modules.social.service import invalidate_user_social
 
@@ -24,6 +25,9 @@ async def update_consent(
     purpose: Purpose, body: ConsentInput, request: Request, actor: Actor = Depends(require_actor)
 ):
     key = idempotency_key(request)
+    if purpose in PERSONAL_PURPOSES:
+        # Compatibility for older clients: these switches no longer disable features.
+        return await session_view(request, actor)
     async with transaction(request, actor) as (db, user):
         if purpose == "MATCH" and body.enabled:
             # Fabricated adult/consent rows can never make a guest a social participant;
@@ -49,22 +53,6 @@ async def update_consent(
             user.data_version += 1
             if purpose == "MATCH":
                 await invalidate_user_social(db, user.id)
-            if purpose in ("AI", "MEM"):
-                from app.ai.embeddings import discard_user_index
-                from app.ai.models import AiPreference
-
-                # Old vectors are bound to the previous consent versions either way.
-                await discard_user_index(db, user.id)
-                if not body.enabled:
-                    preference = await db.get(AiPreference, user.id)
-                    if preference and preference.semantic_memory_enabled:
-                        # A later contextual AI/MEM grant must not resume Voyage.
-                        preference.semantic_memory_enabled = False
-                        preference.version += 1
-                        preference.updated_at = now()
-                    from app.ai.memory import withdraw_proposals
-
-                    await withdraw_proposals(db, user.id, purpose)
             db.add(
                 ConsentEvent(
                     user_id=user.id,

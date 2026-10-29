@@ -20,7 +20,7 @@ async function syntheticSession(context: BrowserContext) {
   ]);
 }
 
-test("real saved history requires opt-in, resumes by URL, and stays manageable after AI/history withdrawal", async ({
+test("real saved history is automatic, resumes by URL and stays manageable", async ({
   browser,
 }) => {
   const context = await browser.newContext({
@@ -33,22 +33,6 @@ test("real saved history requires opt-in, resumes by URL, and stays manageable a
   const page = await context.newPage();
   const consoleErrors: string[] = [];
   page.on("pageerror", (error) => consoleErrors.push(error.message));
-  await page.goto("/#/settings");
-  const history = page.getByRole("checkbox", {
-    name: "Lưu lịch sử trò chuyện",
-    exact: true,
-  });
-  const semantic = page.getByRole("checkbox", {
-    name: "Giúp trợ lý tìm lại ghi nhớ liên quan",
-    exact: true,
-  });
-  await expect(history).not.toBeChecked();
-  await expect(semantic).not.toBeChecked();
-  await history.click();
-  await expect(
-    page.getByText("Đã lưu lựa chọn của bạn.", { exact: true }),
-  ).toBeVisible();
-  await expect(history).toBeChecked();
   await page.goto("/#/assistants/may");
   await page
     .getByRole("textbox", { name: "Tin nhắn cho Mây", exact: true })
@@ -118,15 +102,6 @@ test("real saved history requires opt-in, resumes by URL, and stays manageable a
     path: artifactPath("ai-chat-memory/history-desktop.png", "evidence/ai-chat-memory/history-desktop.png"),
     fullPage: true,
   });
-  await page.goto("/#/settings");
-  await history.click();
-  await expect(
-    page.getByText("Đã lưu lựa chọn của bạn.", { exact: true }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Rút quyền trò chuyện AI", exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "Rút quyền trò chuyện AI", exact: true }),
-  ).toHaveCount(0);
   await page.goto(selectedUrl);
   await expect(
     page
@@ -135,7 +110,7 @@ test("real saved history requires opt-in, resumes by URL, and stays manageable a
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Gửi tin cho AI", exact: true }),
-  ).toHaveCount(0);
+  ).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
   await page
@@ -161,7 +136,7 @@ test("real saved history requires opt-in, resumes by URL, and stays manageable a
     path: artifactPath("ai-chat-memory/history-mobile.png", "evidence/ai-chat-memory/history-mobile.png"),
     fullPage: true,
   });
-  // Renaming is history management, so it works with AI and saving both off.
+  // Renaming stays available alongside the saved conversation.
   await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
   await page.getByRole("button", { name: "Đổi tên", exact: true }).click();
   await page

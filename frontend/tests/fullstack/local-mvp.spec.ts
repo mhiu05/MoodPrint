@@ -33,16 +33,6 @@ test("five assistants persist, recover after logout/login and deny a separately 
     await a.goto("/#/assistants/may");
     await expect(a.getByRole("textbox", { name: "Tin nhắn cho Mây", exact: true })).toBeVisible();
     await expect(a.getByText(/AI đang tắt hoặc chưa khả dụng/)).toHaveCount(0);
-    await a.goto("/#/settings");
-    await expect(
-      a.getByRole("checkbox", { name: "Lưu lịch sử trò chuyện", exact: true }),
-    ).not.toBeChecked();
-    await a
-      .getByRole("checkbox", { name: "Lưu lịch sử trò chuyện", exact: true })
-      .click();
-    await expect(
-      a.getByText("Đã lưu lựa chọn của bạn.", { exact: true }),
-    ).toBeVisible();
     const urls: string[] = [];
     for (const [bot, name] of [
       ["may", "Mây"],

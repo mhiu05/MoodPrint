@@ -150,37 +150,16 @@ test("missing provider is distinct from missing consent", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Bật quyền trò chuyện AI", exact: true })).toHaveCount(0);
 });
 
-test("history is a separate explicit opt-in and semantic processing explains Voyage", async ({
-  page,
-}) => {
+test("legacy history opt-out does not require a settings switch", async ({ page }) => {
   const writes = await fixture(page);
-  await page.goto("/#/settings");
-  const history = page.getByRole("checkbox", {
-    name: "Lưu lịch sử trò chuyện",
-  });
-  const semantic = page.getByRole("checkbox", {
-    name: "Giúp trợ lý tìm lại ghi nhớ liên quan",
-  });
-  await expect(history).not.toBeChecked();
-  await expect(semantic).not.toBeChecked();
-  await expect(page.getByText(/30 ngày/).first()).toBeVisible();
-  // The provider and data scope are disclosed on request beside the choice.
-  await page.getByText("Xem cách dữ liệu được xử lý", { exact: true }).click();
-  await expect(
-    page.getByText(/Voyage nhận nội dung ghi nhớ.*câu hỏi hiện tại/).first(),
-  ).toBeVisible();
+  await page.goto(`/#/assistants/may?conversation=${id}`);
+  await expect(page.getByRole("button", { name: "Gửi tin cho AI", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Cài đặt lưu lịch sử", exact: true })).toHaveCount(0);
   expect(writes).toEqual([]);
-  await history.click();
-  await expect(history).toBeChecked();
-  expect(writes[0]).toEqual({
-    historyEnabled: true,
-    semanticMemoryEnabled: false,
-    expectedVersion: 1,
-    policyVersion: "ai-data-v1",
-  });
 });
 
-test("saved history remains readable, pageable, exportable and deletable when AI is off", async ({
+test("saved history stays usable with a legacy disabled AI flag", async ({
   page,
 }) => {
   await fixture(page, false);
@@ -190,7 +169,7 @@ test("saved history remains readable, pageable, exportable and deletable when AI
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Gửi tin cho AI" }),
-  ).toHaveCount(0);
+  ).toBeVisible();
   await page
     .getByRole("button", { name: "Tải tin nhắn cũ hơn", exact: true })
     .click();
@@ -221,7 +200,7 @@ test("saved history remains readable, pageable, exportable and deletable when AI
   ).toHaveCount(0);
 });
 
-test("history opt-out makes saved threads read-only and mobile history stays reachable", async ({
+test("legacy history opt-out keeps saved threads writable and mobile history reachable", async ({
   page,
 }) => {
   const writes = await fixture(page);
@@ -232,7 +211,7 @@ test("history opt-out makes saved threads read-only and mobile history stays rea
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Gửi tin cho AI" }),
-  ).toHaveCount(0);
+  ).toBeVisible();
   await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
   await page
     .getByRole("button", { name: "Mở lịch sử trò chuyện", exact: true })
@@ -289,7 +268,7 @@ test("expired proposals explain expiry and cannot be approved", async ({
   ).toHaveCount(0);
 });
 
-test("returning to the page rechecks history withdrawal without enabling data processing", async ({
+test("returning to the page keeps history writable despite a legacy opt-out", async ({
   page,
 }) => {
   const writes = await fixture(page);
@@ -305,14 +284,14 @@ test("returning to the page rechecks history withdrawal without enabling data pr
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect(
     page.getByRole("button", { name: "Gửi tin cho AI", exact: true }),
-  ).toHaveCount(0);
+  ).toBeVisible();
   await expect(
     page.getByRole("log").getByText("Tin đã lưu", { exact: true }),
   ).toBeVisible();
   expect(writes).toEqual([]);
 });
 
-test("retrying a history read preserves the draft and a new chat explicitly stays ephemeral", async ({
+test("retrying a history read preserves the draft and a new chat is saved", async ({
   page,
 }) => {
   await fixture(page);
@@ -360,7 +339,7 @@ test("retrying a history read preserves the draft and a new chat explicitly stay
     .getByRole("button", { name: "Gửi tin cho AI", exact: true })
     .click();
   await expect.poll(() => created.length).toBe(1);
-  expect(created[0]).toEqual({ botId: "may", persistent: false });
+  expect(created[0]).toEqual({ botId: "may", persistent: true });
 });
 
 test("a saved thread can be renamed and history is grouped by assistant", async ({
