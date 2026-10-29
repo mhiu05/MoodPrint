@@ -77,3 +77,5 @@ An external `.gitignore` modification appeared after initial audit. It was not w
 ## Final handoff
 
 Verdict: **READY_FOR_REVIEW**. Branch `feat/diary-experience-v2`, base `9ca7fc8`; [Draft PR23](https://github.com/mhiu05/MoodPrint/pull/23). The [final report](15-final-report.md) records features, files, test limits, production prerequisites and rollback. Complete post-fix CI and hosted staging gates remain explicit review/release work, not fabricated PASS results.
+
+Finalization after this checkpoint is recorded separately in [16](16-finalization-audit.md) through [22](22-final-release-readiness.md). Those notes do not replace the results above.
