@@ -3,7 +3,6 @@
 import asyncio
 import io
 import wave
-from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
@@ -18,36 +17,19 @@ LIFETIME = timedelta(seconds=7200)
 CONFIRM = "guest-data-v1"
 
 
-async def test_voice_expiry_wins_over_simultaneous_quota_fence(clients, monkeypatch):
+async def test_quota_heartbeat_reports_trial_expiry_instead_of_generic_fence(clients):
     from app.core.errors import DomainError
-    from app.modules.voice import routes
+    from app.modules.guests.limits import maintain_guest_quota
+    from tests.test_guest_quotas import claim
 
     app, _ = clients
-    transcriber = SlowTranscriber()
-    app.state.transcriber = transcriber
-    enable_paid_fixture(app)
-    guest = await add_guest(app, started_ago=LIFETIME-timedelta(seconds=3), consents=True)
-    original = routes.maintain_guest_quota
-
-    @asynccontextmanager
-    async def simultaneous_fence(*args):
-        try:
-            async with original(*args):
-                yield
-        except DomainError:
-            # Both the slot heartbeat and the voice deadline expire at T. The heartbeat
-            # can report its local fence before the outer request chooses its public result.
-            raise DomainError(409, "GUEST_OPERATION_FENCED", "Lượt xử lý đã kết thúc.") from None
-
-    monkeypatch.setattr(routes, "maintain_guest_quota", simultaneous_fence)
-    pending = asyncio.create_task(guest.client.post("/api/v1/voice/transcriptions",
-        content=wav_bytes(), headers={"Content-Type":"audio/wav", "Idempotency-Key":str(uuid4())}))
-    await asyncio.wait_for(transcriber.started.wait(), 5)
-    await asyncio.sleep(max(0, (guest.expires_at-await db_now(app)).total_seconds())+0.1)
-    transcriber.release.set()
-    response = await asyncio.wait_for(pending, 8)
-    assert response.status_code == 401
-    assert response.json()["error"]["code"] == "GUEST_EXPIRED"
+    guest = await add_guest(app, started_ago=LIFETIME-timedelta(seconds=2))
+    ticket = await claim(app, guest)
+    async def held():
+        async with maintain_guest_quota(app.state.database, guest.user_id, "ai", ticket):
+            await asyncio.Event().wait()
+    with pytest.raises(DomainError, match="GUEST_EXPIRED"):
+        await asyncio.wait_for(held(), 5)
 
 
 def headers():

@@ -26,7 +26,7 @@ from app.core.errors import DomainError
 from app.core.security import digest
 from app.infrastructure.database.models import User
 from app.modules.guests.models import GuestAbuseBucket, GuestOperationLink, GuestUsage
-from app.modules.guests.policy import database_time
+from app.modules.guests.policy import database_time, guest_expired
 
 BANGKOK = ZoneInfo("Asia/Bangkok")
 
@@ -350,7 +350,7 @@ async def finish_guest_quota(
     )
 
 
-async def renew_guest_quota(database, user_id: UUID, kind: str, claim: QuotaClaim) -> float:
+async def renew_guest_quota(database, user_id: UUID, kind: str, claim: QuotaClaim) -> tuple[float, bool]:
     """Renew only an existing live fenced claim; a dead/missing owner or lease never revives."""
     from app.modules.guests.accounting import _locked
     from app.modules.guests.policy import assert_guest_active
@@ -374,7 +374,8 @@ async def renew_guest_quota(database, user_id: UUID, kind: str, claim: QuotaClai
         if reservation is not None:
             reservation.lease_until = link.lease_until
         cutoff = before + max(0, (link.lease_until - now).total_seconds())
-    return cutoff
+        trial_ends = link.lease_until == user.guest_expires_at
+    return cutoff, trial_ends
 
 
 @asynccontextmanager
@@ -383,30 +384,36 @@ async def maintain_guest_quota(database, user_id: UUID, kind: str, claim: QuotaC
     if claim is None:
         yield
         return
-    cutoff = await renew_guest_quota(database, user_id, kind, claim)
+    cutoff, trial_ends = await renew_guest_quota(database, user_id, kind, claim)
     caller = asyncio.current_task()
-    failed = False
+    failure: DomainError | None = None
     async def heartbeat():
-        nonlocal failed, cutoff
+        nonlocal failure, cutoff, trial_ends
         try:
             while True:
                 # A blocked DB/pool/owner lock must not let the current provider outlive
                 # its existing slot while another admission treats that slot as free.
                 async with asyncio.timeout(max(0, cutoff - time.monotonic())):
                     await asyncio.sleep(QUOTA_HEARTBEAT_SECONDS)
-                    cutoff = await renew_guest_quota(database, user_id, kind, claim)
+                    cutoff, trial_ends = await renew_guest_quota(database, user_id, kind, claim)
         except asyncio.CancelledError:
             raise
-        except Exception:
-            failed = True
+        except Exception as error:
+            # The local cutoff can conservatively precede DB T by the round trip.
+            # Keep the reason captured when that lease was granted, rather than race
+            # another timer to decide whether the trial or only the slot ended.
+            failure = error if isinstance(error, DomainError) else (
+                guest_expired() if isinstance(error, TimeoutError) and trial_ends else
+                DomainError(409, "GUEST_OPERATION_FENCED", "Lượt xử lý đã kết thúc.")
+            )
             if caller is not None:
                 caller.cancel()
     task = asyncio.create_task(heartbeat())
     try:
         yield
     except asyncio.CancelledError:
-        if failed:
-            raise DomainError(409, "GUEST_OPERATION_FENCED", "Lượt xử lý đã kết thúc.") from None
+        if failure is not None:
+            raise failure from None
         raise
     finally:
         task.cancel()
