@@ -98,6 +98,29 @@ async def test_revoke_cancels_sdk_without_late_final_or_tool_and_records_termina
     assert not any(e.type == "final" for e in run.events)
     await runtime.close()
     assert runtime.runs == {} and run.events == []
+
+
+async def test_repeated_cancellation_cannot_skip_terminal_finalization(clients, monkeypatch):
+    runtime, run, conversation, model = await seed_unstarted_run(clients)
+    await asyncio.wait_for(model.started.wait(), 3)
+    entered, release = asyncio.Event(), asyncio.Event()
+    original = runtime.settle_guest
+
+    async def held_settlement(*args):
+        entered.set()
+        await release.wait()
+        return await original(*args)
+
+    monkeypatch.setattr(runtime, "settle_guest", held_settlement)
+    runtime.request_cancel(run)
+    await asyncio.wait_for(entered.wait(), 3)
+    run.task.cancel()  # policy/expiry/heartbeat can arrive while terminal IO is in flight
+    release.set()
+    await asyncio.wait_for(asyncio.gather(run.task, return_exceptions=True), 3)
+    assert run.terminal and conversation.active_run_id is None
+    assert not any(event.type == "final" for event in run.events)
+    async with clients[0].state.database.sessions() as db:
+        assert (await db.get(AiRun, run.id)).status == "cancelled"
     async with clients[0].state.database.sessions() as db:
         assert (await db.get(AiRun, run.id)).status == "cancelled"
 
