@@ -404,8 +404,15 @@ function GuestHost({
 
 function GuestBanner() {
   const guest = useGuest();
+  const { pathname } = useLocation();
   if (!guest) return null;
-  return <GuestStatus remainingMs={guest.remainingMs} onEnd={guest.end} />;
+  // Settings already has this action. A second button with the same name is ambiguous.
+  return (
+    <GuestStatus
+      remainingMs={guest.remainingMs}
+      onEnd={pathname === "/settings" ? undefined : guest.end}
+    />
+  );
 }
 
 /** Registered-only explanation. It makes no API call, so a guest never polls or probes social data. */

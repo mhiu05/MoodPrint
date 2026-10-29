@@ -28,11 +28,12 @@ test("public disclosure creates independent anonymous guests with fixed deadline
     expect(await (await second.request.get(api + "/moods")).text()).not.toContain("GUEST-ONE-PRIVATE");
     await page.setViewportSize({ width: 320, height: 900 });
     await page.goto("/#/settings");
-    await expect(page.getByText("Dữ liệu của lượt dùng thử chỉ dùng được đến khi hết giờ.")).toBeVisible();
+    const data = page.getByRole("region", { name: "Xóa dữ liệu" });
+    await expect(data.getByText("Dữ liệu của lượt dùng thử chỉ dùng được đến khi hết giờ.")).toBeVisible();
     await expect(page.getByText(/ngày để bạn tiếp tục trên thiết bị khác/)).toHaveCount(0);
     // The UI must use the guest confirmation path, never password reauthentication.
     await expect(page.getByRole("button", { name: "Tải bản sao dữ liệu", exact: true })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Kết thúc và xóa lượt dùng thử", exact: true })).toBeVisible();
+    await expect(data.getByRole("button", { name: "Kết thúc và xóa lượt dùng thử", exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze()).violations).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath("guest-export-320.png"), fullPage: true });
