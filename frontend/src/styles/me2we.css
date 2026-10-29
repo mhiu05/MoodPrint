@@ -506,6 +506,42 @@ button {
 .message-action:hover {
   background: var(--color-selected-bg);
 }
+.message-date-separator {
+  margin: 24px 0 16px;
+  color: var(--color-muted);
+  font-size: var(--text-meta);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+/* Reserve the metadata space so revealing a time never moves the transcript. */
+.ai-message-row .message-actions {
+  min-height: var(--target-min);
+  visibility: hidden;
+}
+.ai-message-row .message-actions time {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ai-message-row.from-self .message-actions {
+  justify-content: flex-end;
+}
+.ai-message-row .message-action {
+  width: var(--target-min);
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+}
+.message-details-open .message-actions,
+.ai-message-row .message-content:focus-visible .message-actions,
+.ai-message-row .message-content:has(:focus-visible) .message-actions {
+  visibility: visible;
+}
+/* Touch browsers can retain :hover after a tap, so hover only reveals on mice. */
+@media (hover: hover) and (pointer: fine) {
+  .ai-message-row .message-content:hover .message-actions {
+    visibility: visible;
+  }
+}
 .jump-latest {
   position: absolute;
   left: 50%;

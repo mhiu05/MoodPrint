@@ -10,7 +10,7 @@ describe("deriveAIActivity", () => {
 
   it("runs the working orb only for an accepted run with current identity", () => {
     expect(deriveAIActivity({ phase: "accepted", requestKey: "intent-1", runId: "run-1" })).toEqual({
-      label: "Đang chuẩn bị câu trả lời…", busy: true, orbState: "working",
+      label: "Đang trả lời…", busy: true, orbState: "working",
     });
   });
 

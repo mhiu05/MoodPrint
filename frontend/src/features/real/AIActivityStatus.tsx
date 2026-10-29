@@ -1,8 +1,7 @@
 import { Component, lazy, Suspense, useRef, type ReactNode } from "react";
-import { RefreshCw, Send, Sparkles, Square } from "lucide-react";
+import { Pause, RefreshCw, Send, Sparkles, Square } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { Button } from "../../components/UI";
 import { useMotionPolicy } from "../../components/motion/useMotionPolicy";
 import type { AIActivityPhase, AIActivityView } from "./aiActivityView";
 
@@ -27,9 +26,9 @@ function StaticIcon({ phase }: { phase: AIActivityPhase }) {
 }
 
 /**
- * One status row above the composer. The text region is always mounted so a
- * phase change is announced once; the visual and Dừng exist only while a run is
- * actually active. It never starts requests or waits for animation.
+ * One inline status at the end of the transcript. Its live region stays mounted;
+ * the stop action is only a fallback when the composer is unavailable.
+ * It never starts requests or waits for animation.
  */
 export function AIActivityStatus({
   view,
@@ -55,18 +54,18 @@ export function AIActivityStatus({
   const entering = phase === "accepted";
   useGSAP(
     () => {
-      if (!shown || !entering) return;
+      if (!shown || !entering || !animate) return;
       const media = gsap.matchMedia();
       media.add("(prefers-reduced-motion: no-preference)", () => {
-        gsap.from(wrapper.current, { y: 4, duration: 0.16, ease: "power2.out", clearProps: "transform" });
+        gsap.from(wrapper.current, { y: 4, opacity: 0.6, duration: 0.16, ease: "power2.out", clearProps: "transform,opacity" });
       });
       return () => media.revert();
     },
-    { scope: wrapper, dependencies: [phase, shown], revertOnUpdate: true },
+    { scope: wrapper, dependencies: [phase, shown, identity, animate], revertOnUpdate: true },
   );
   const icon = <StaticIcon phase={phase} />;
   return (
-    <div className={`ai-status ${shown ? "is-shown" : ""}`} ref={wrapper} aria-busy={view.busy || undefined}>
+    <div className={`ai-status ${shown ? "is-shown" : ""}`} ref={wrapper}>
       {shown ? (
         <span className="ai-status-visual" aria-hidden="true">
           {loop ? (
@@ -84,9 +83,11 @@ export function AIActivityStatus({
         {view.label ?? ""}
       </p>
       {onStop ? (
-        <Button variant="secondary" className="ai-status-stop" disabled={stopDisabled} onClick={onStop}>
-          Dừng
-        </Button>
+        <button type="button" className="ai-status-stop icon-button" disabled={stopDisabled} onClick={onStop}
+          aria-label={phase === "cancelling" ? "Đang yêu cầu dừng" : "Dừng phản hồi"}
+          title={phase === "cancelling" ? "Đang yêu cầu dừng" : "Dừng phản hồi"}>
+          <Pause size={18} fill="currentColor" strokeWidth={1.5} aria-hidden="true" />
+        </button>
       ) : null}
     </div>
   );

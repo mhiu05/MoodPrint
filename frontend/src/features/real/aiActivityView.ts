@@ -31,7 +31,7 @@ export function deriveAIActivity({ phase, requestKey, runId }: AIActivityInput):
     case "accepted":
       // Without both identities the run cannot be tied to this view: no loop.
       return requestKey && runId
-        ? { label: "Đang chuẩn bị câu trả lời…", busy: true, orbState: "working" }
+        ? { label: "Đang trả lời…", busy: true, orbState: "working" }
         : { label: CHECKING, busy: true, orbState: null };
     case "cancelling":
       return { label: "Đang yêu cầu dừng…", busy: true, orbState: null };

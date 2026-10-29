@@ -1,5 +1,6 @@
 import {
   createContext,
+  Fragment,
   lazy,
   Suspense,
   useCallback,
@@ -25,14 +26,15 @@ import {
 } from "react-router-dom";
 import {
   ArrowLeft,
+  ArrowUp,
   ArrowUpRight,
   Copy,
   Info,
   LockKeyhole,
   MessageCircle,
   NotebookPen,
+  Pause,
   Search,
-  Send,
   Sparkles,
   UserRound,
   Users,
@@ -69,6 +71,7 @@ import type {
   VersionInput,
 } from "../../api/contracts";
 import "./real.css";
+import "./agent-chat.css";
 import { Discovery } from "./social/Discovery";
 import { OfflineBanner } from "./OfflineBanner";
 import { AssistantGuide } from "./AssistantGuide";
@@ -86,6 +89,7 @@ import { focusRouteHeading, useRouteFocus } from "./useRouteFocus";
 import { AIActivityStatus } from "./AIActivityStatus";
 import { ConversationInfo, useInfoPanelMounted } from "./ConversationInfo";
 import { insertAtSelection } from "./draftInsert";
+import { createMessageDateFormatter } from "./messageDates";
 import { deriveAIActivity, type AIActivityPhase } from "./aiActivityView";
 import { AIDataProvider, ConversationHistory, useAIData, type SavedConversation, type SavedConversationHeader } from "./AIData";
 
@@ -798,7 +802,7 @@ function Assistants() {
 
 function Conversation({ bot }: { bot: BotPublicDTO }) {
   return (
-    <div className="bot-conversation">
+    <div className="bot-conversation ai-conversation">
       <ConversationBody bot={bot} />
     </div>
   );
@@ -844,6 +848,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     lifetime = useRef<AbortController | null>(null);
   const intent = useRef<{ text: string; scopeKey: string; clientMessageId: string } | null>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
+  const composerAction = useRef<HTMLButtonElement>(null);
+  const restoreActionFocus = useRef(false);
   const [draftNotice, setDraftNotice] = useState("");
   const [infoOpen, setInfoOpen] = useState(false);
   const infoTrigger = useRef<HTMLButtonElement>(null);
@@ -857,6 +863,43 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const [awaitingNew, setAwaitingNew] = useState(false);
   const [previousConversation, setPreviousConversation] = useState<string>();
   const [copyStatus, setCopyStatus] = useState<{ id: string; ok: boolean }>();
+  const [revealedMessage, setRevealedMessage] = useState<string>();
+  const [messageClock, setMessageClock] = useState(() => Date.now());
+  useEffect(() => {
+    // Refresh calendar labels when a conversation stays open overnight.
+    const timer = window.setInterval(() => setMessageClock(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  useEffect(() => {
+    setRevealedMessage(undefined);
+  }, [conversation?.conversationId]);
+  useEffect(() => {
+    if (!revealedMessage) return;
+    const dismiss = (event: PointerEvent) => {
+      if (!(event.target instanceof Element) || !event.target.closest(".ai-message-row .message-content")) {
+        setRevealedMessage(undefined);
+      }
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setRevealedMessage(undefined);
+    };
+    document.addEventListener("pointerdown", dismiss);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", dismiss);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [revealedMessage]);
+  const datedMessages = useMemo(() => {
+    const format = createMessageDateFormatter(session.timezone, new Date(messageClock));
+    let previousDay: string | undefined;
+    return conversation?.messages.map(message => {
+      const date = format(message.createdAt);
+      const showDate = date && date.dayKey !== previousDay;
+      if (date) previousDay = date.dayKey;
+      return { message, date, showDate };
+    });
+  }, [conversation?.messages, session.timezone, messageClock]);
   const [unseen, setUnseen] = useState(false);
   const [manageError, setManageError] = useState<unknown>();
   const [deleteError, setDeleteError] = useState<unknown>();
@@ -940,6 +983,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
                 actor: "bot",
                 text: final.text,
                 cards: final.cards,
+                createdAt: new Date().toISOString(),
               },
             ],
           });
@@ -1090,7 +1134,28 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   useEffect(() => {
     if (atBottom && log.current)
       log.current.scrollTop = log.current.scrollHeight;
-  }, [conversation?.messages.length, busy, atBottom]);
+  }, [conversation?.messages.length, busy, atBottom, run?.id, stopRequested, syncing]);
+  useEffect(() => {
+    const element = log.current;
+    if (!atBottom || !element) return;
+    // Textarea growth and the on-screen keyboard can shrink the log without a
+    // new message. Keep the current status in view only for readers at the end.
+    const observer = new ResizeObserver(() => {
+      element.scrollTop = element.scrollHeight;
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [atBottom]);
+  useEffect(() => {
+    // A disabled submitting button loses focus in some browsers. Restore it
+    // only if the person has not moved to another control while waiting.
+    if (run && restoreActionFocus.current) {
+      if (document.activeElement === document.body || document.activeElement === composerAction.current) {
+        composerAction.current?.focus();
+      }
+      restoreActionFocus.current = false;
+    }
+  }, [run]);
   const lastMessageId = conversation?.messages.at(-1)?.id;
   useEffect(() => {
     if (lastMessageId && !atBottom) setUnseen(true);
@@ -1167,7 +1232,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         activeRunVersion: accepted.runVersion,
         messages: [
           ...thread.messages,
-          { id: intent.current!.clientMessageId, actor: "self", text },
+          { id: intent.current!.clientMessageId, actor: "self", text, createdAt: new Date().toISOString() },
         ],
       });
       const requestKey = intent.current!.clientMessageId;
@@ -1407,6 +1472,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     : stopped && lastSelf?.status !== "cancelled" ? "cancelled"
     : "idle";
   const activity = deriveAIActivity({ phase, requestKey: run?.key ?? intent.current?.clientMessageId, runId: run?.id });
+  const canStop = Boolean(run && !syncing);
+  const stopDisabled = stopRequested || awaitingNew;
+  const actionLabel = canStop ? (stopRequested ? "Đang yêu cầu dừng" : "Dừng phản hồi") : "Gửi tin cho AI";
   const historyOnForNew = Boolean(preferences?.historyEnabled && preferences.historyAvailable);
   const modeLabel = conversation ? (conversation.persistent ? "Đã lưu" : "Tạm thời") : historyOnForNew ? "Sẽ được lưu" : "Tạm thời";
   const TEMPORARY = "Không lưu vào lịch sử. Phiên tạm có thể kết thúc khi phiên đăng nhập hoặc máy chủ thay đổi.";
@@ -1450,7 +1518,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         >
           <ArrowLeft size={21} />
         </Link>
-        <PublicAvatar bot={bot} size={43} />
+        <PublicAvatar bot={bot} size={36} />
         <div>
           <h1 tabIndex={-1} data-route-heading>
             {bot.name} <span className="ai-tag">AI</span>
@@ -1480,6 +1548,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         className="conversation-log"
         ref={log}
         role="log"
+        aria-live="off"
         tabIndex={0}
         aria-label={`Cuộc trò chuyện với ${bot.name}`}
         onScroll={() => {
@@ -1490,63 +1559,96 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           );
         }}
       >
-        <div className="chat-introduction">
-          <PublicAvatar bot={bot} size={80} />
+        {!conversation?.messages.length && !loading ? <div className="chat-introduction">
+          <PublicAvatar bot={bot} size={64} />
           <h2>Một chút thời gian với {bot.name}</h2>
           <p>{bot.description}</p>
           {!conversation?.messages.length && <AssistantGuide botId={bot.botId} />}
           <small>
             <LockKeyhole size={13} /> Không chia sẻ với bạn kết nối
           </small>
-        </div>
+        </div> : null}
         {notice ? <p role="status"><span>{notice}</span>{previousConversation ? <> <Link to={`/assistants/${bot.botId}?conversation=${encodeURIComponent(previousConversation)}`}>Xem cuộc trò chuyện trước</Link></> : null}</p> : null}
         {preferencesError ? <><p>Chưa xác minh được lựa chọn lưu dữ liệu. Tải lại trước khi gửi tin nhắn.</p><ErrorNotice error={preferencesError} retry={reloadPreferences} /></> : null}
         {loading ? <p role="status">Đang mở cuộc trò chuyện…</p> : null}
         {conversation?.hasMoreMessages ? <Button variant="secondary" disabled={olderBusy || loading} onClick={() => void olderMessages()}>{olderBusy ? "Đang tải tin nhắn…" : "Tải tin nhắn cũ hơn"}</Button> : null}
-        {conversation?.messages.map((message) => (
-          <div
-            key={message.id}
-            className={`message-row ${message.actor === "self" ? "from-self" : "from-bot"}`}
-          >
-            <div className="message-content">
-              <div className="chat-bubble">
-                {message.actor === "bot" ? (
-                  <Suspense fallback={<p>{message.text}</p>}>
-                    <MessageMarkdown text={message.text} />
-                  </Suspense>
-                ) : <p>{message.text}</p>}
-              </div>
-              {message.actor === "bot" ? (
-                <div className="message-actions">
-                  <button
-                    type="button"
-                    className="message-action"
-                    aria-label="Sao chép câu trả lời"
-                    onClick={(event) => void copyReply(message.id, event.currentTarget.closest(".message-content")?.querySelector(".chat-bubble"))}
-                  >
-                    <Copy size={15} aria-hidden="true" /> Sao chép
-                  </button>
-                  {copyStatus?.id === message.id ? <span role="status">{copyStatus.ok ? "Đã sao chép câu trả lời." : "Chưa sao chép được. Bạn có thể chọn và sao chép nội dung."}</span> : null}
+        <div className="conversation-messages" aria-live="polite" aria-relevant="additions text">
+        {datedMessages?.map(({ message, date, showDate }) => (
+          <Fragment key={message.id}>
+            {showDate && date ? <div className="message-date-separator"><time dateTime={message.createdAt!}>{date.dayLabel}</time></div> : null}
+            <div
+              className={`message-row ai-message-row ${message.actor === "self" ? "from-self" : "from-bot"} ${revealedMessage === message.id ? "message-details-open" : ""}`}
+            >
+              <div
+                className="message-content"
+                role="group"
+                aria-label={message.actor === "self" ? "Tin nhắn của bạn" : `Tin nhắn từ ${bot.name}`}
+                tabIndex={date || message.actor === "bot" ? 0 : undefined}
+                onFocus={(event) => {
+                  if (event.target.matches(":focus-visible")) setRevealedMessage(message.id);
+                }}
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget)) {
+                    setRevealedMessage(value => value === message.id ? undefined : value);
+                  }
+                }}
+                onPointerUp={(event) => {
+                  if (event.pointerType === "mouse" || !(event.target instanceof Element) ||
+                    event.target.closest("a, button") || !window.getSelection()?.isCollapsed) return;
+                  setRevealedMessage(value => value === message.id ? undefined : message.id);
+                }}
+              >
+                <div className="chat-bubble">
+                  {message.actor === "bot" ? (
+                    <Suspense fallback={<p>{message.text}</p>}>
+                      <MessageMarkdown text={message.text} />
+                    </Suspense>
+                  ) : <p>{message.text}</p>}
                 </div>
-              ) : null}
-              {message.actor === "self" && message.status && ["failed", "interrupted", "cancelled"].includes(message.status) ? <small className="message-turn-status" role="status">{message.status === "interrupted" ? "Phản hồi bị gián đoạn; lượt này không tự chạy lại." : message.status === "cancelled" ? "Đã dừng phản hồi." : "Phản hồi chưa hoàn tất."}</small> : null}
-              {validCards(message.cards) &&
-                message.cards.map((card, index) => (
-                  <div className="inline-card" key={`${message.id}-${index}`}>
-                    {card.kind === "mood_form" ? (
-                      <Link to="/self">Ghi lại cảm xúc</Link>
-                    ) : card.kind === "navigate_bot" ? (
-                      <Link to={`/assistants/${card.botId}`}>
-                        Trò chuyện với {botById(card.botId)?.name}
-                      </Link>
-                    ) : (
-                      <Link to="/connect">Tìm bạn đồng điệu</Link>
-                    )}
+                {validCards(message.cards) &&
+                  message.cards.map((card, index) => (
+                    <div className="inline-card" key={`${message.id}-${index}`}>
+                      {card.kind === "mood_form" ? (
+                        <Link to="/self">Ghi lại cảm xúc <ArrowUpRight size={15} aria-hidden="true" /></Link>
+                      ) : card.kind === "navigate_bot" ? (
+                        <Link to={`/assistants/${card.botId}`}>
+                          Trò chuyện với {botById(card.botId)?.name} <ArrowUpRight size={15} aria-hidden="true" />
+                        </Link>
+                      ) : (
+                        <Link to="/connect">Tìm bạn đồng điệu <ArrowUpRight size={15} aria-hidden="true" /></Link>
+                      )}
+                    </div>
+                  ))}
+                {date || message.actor === "bot" ? (
+                  <div className="message-actions">
+                    {date ? <time dateTime={message.createdAt!}>{date.time}</time> : null}
+                    {message.actor === "bot" ? <>
+                    <button
+                      type="button"
+                      className="message-action"
+                      aria-label="Sao chép câu trả lời"
+                      title="Sao chép câu trả lời"
+                      onClick={(event) => void copyReply(message.id, event.currentTarget.closest(".message-content")?.querySelector(".chat-bubble"))}
+                    >
+                      <Copy size={15} aria-hidden="true" />
+                    </button>
+                    {copyStatus?.id === message.id ? <span role="status">{copyStatus.ok ? "Đã sao chép câu trả lời." : "Chưa sao chép được. Bạn có thể chọn và sao chép nội dung."}</span> : null}
+                    </> : null}
                   </div>
-                ))}
+                ) : null}
+                {message.actor === "self" && message.status && ["failed", "interrupted", "cancelled"].includes(message.status) ? <small className="message-turn-status" role="status">{message.status === "interrupted" ? "Phản hồi bị gián đoạn; lượt này không tự chạy lại." : message.status === "cancelled" ? "Đã dừng phản hồi." : "Phản hồi chưa hoàn tất."}</small> : null}
+              </div>
             </div>
-          </div>
+          </Fragment>
         ))}
+        </div>
+        <AIActivityStatus
+          view={activity}
+          phase={phase}
+          identity={`${conversation?.conversationId ?? "new"}/${run?.key ?? intent.current?.clientMessageId ?? "idle"}`}
+          onStop={!canSend && canStop ? () => void cancel() : undefined}
+          stopDisabled={stopDisabled}
+        />
         {pendingProposals > 0 && !busy ? (
           <p className="chat-proposal-notice" role="status">
             Có {pendingProposals} đề xuất đang chờ bạn duyệt. Chưa có gì được lưu cho đến khi bạn duyệt.{" "}
@@ -1582,13 +1684,6 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         onNew={requestNew}
       />
       </div>
-      <AIActivityStatus
-        view={activity}
-        phase={phase}
-        identity={`${conversation?.conversationId ?? "new"}/${run?.key ?? intent.current?.clientMessageId ?? "idle"}`}
-        onStop={run && !syncing ? () => void cancel() : undefined}
-        stopDisabled={stopRequested || awaitingNew}
-      />
       {session.features.aiStatus === "test_provider" ? <p className={cx.footnote} role="note">Môi trường kiểm thử · phản hồi từ model giả, không phải OpenAI.</p> : null}
       {!canSend ? <div className="chat-readonly" role="status"><p>{readOnlyMessage}</p>{allowed && preferences && !historyWritable ? <div className={cx.actions}><Button variant="secondary" onClick={requestNew}>Mở cuộc trò chuyện mới</Button></div> : null}</div> : <div className="chat-bottom">
         {bot.botId === "nhip" ? (
@@ -1645,6 +1740,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           className="bot-composer"
           onSubmit={(event) => {
             event.preventDefault();
+            restoreActionFocus.current = document.activeElement === composerAction.current;
             void send();
           }}
         >
@@ -1676,12 +1772,15 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             }}
           />
           <button
-            type="submit"
+            ref={composerAction}
+            type={canStop ? "button" : "submit"}
             className="send-button"
-            disabled={!draft.trim() || busy || loading || !ready || moodInvalid || preferencesLoading}
-            aria-label="Gửi tin cho AI"
+            disabled={canStop ? stopDisabled : !draft.trim() || busy || loading || !ready || moodInvalid || preferencesLoading}
+            aria-label={actionLabel}
+            title={actionLabel}
+            onClick={canStop ? () => void cancel() : undefined}
           >
-            <Send size={19} />
+            {canStop ? <Pause size={18} fill="currentColor" strokeWidth={1.5} aria-hidden="true" /> : <ArrowUp size={20} strokeWidth={2} aria-hidden="true" />}
           </button>
         </form>
       </div>}
