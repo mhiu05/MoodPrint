@@ -25,6 +25,7 @@ from app.core.security import (
     Actor,
     digest,
     idempotency_key,
+    load_actor,
     previous_receipt,
     require_actor,
     require_registered_actor,
@@ -39,100 +40,110 @@ from app.modules.feedback.policy import feedback_open
 router = APIRouter()
 
 
-async def session_view(request: Request, actor: Actor, csrf: str | None = None) -> SessionView:
+async def _session_view(request: Request, db, user, user_id, csrf: str | None = None) -> SessionView:
     settings = request.app.state.settings
+    consents = (await db.scalars(select(Consent).where(Consent.user_id == user.id))).all()
+    declaration = await db.get(AgeDeclaration, user.id)
+    guest = user.account_kind == "guest"
+    staff = None
+    notices = []
+    if not guest:
+        # Guests never read staff, moderation or social rows, even if a forged row exists.
+        from app.modules.moderation.models import ModerationAction, StaffRole
+
+        staff = await db.get(StaffRole, user.id)
+        if user.social_restricted_until and user.social_restricted_until > now():
+            notices.append(NoticeView(kind="restricted", until=user.social_restricted_until))
+        warned = await db.scalar(
+            select(ModerationAction.created_at)
+            .where(
+                ModerationAction.subject_id == user.id,
+                ModerationAction.action == "warn",
+                ModerationAction.created_at > now() - timedelta(days=30),
+            )
+            .limit(1)
+        )
+        if warned:
+            notices.append(NoticeView(kind="warning"))
+    ai_available = request.app.state.ai.available_for(user_id)
+    ai_status = request.app.state.ai.status_for(user_id)
+    voice = request.app.state.transcriber is not None and (
+        not settings.ai_local_test_user_ids or ai_available
+    )
+    remaining = None
+    guest_quota = None
+    server_time = now()
+    if guest:
+        from app.modules.guests.models import GuestUsage
+        from app.modules.guests.policy import guest_paid_available
+
+        # The database clock, not this process, anchors every guest deadline and display.
+        server_time = await db.scalar(select(func.clock_timestamp()))
+        usage = await db.get(GuestUsage, user.id)
+        ai_turns, clips, millis = (
+            (usage.ai_turns, usage.voice_clips, usage.voice_milliseconds) if usage else (0, 0, 0)
+        )
+        guest_quota = GuestQuota(
+            ai_turns_remaining=max(0, settings.guest_ai_turns - ai_turns),
+            voice_clips_remaining=max(0, settings.guest_voice_clips - clips),
+            voice_seconds_remaining=max(0, settings.guest_voice_seconds * 1000 - millis) / 1000,
+        )
+        voice = voice and guest_paid_available(settings, "voice")
+        if not guest_paid_available(settings, "ai"):
+            # Paid guest work fails closed until the owner-approved budget and prices exist.
+            ai_status = "disabled" if not settings.guest_paid_enabled else "configuration_missing"
+            ai_available = False
+        remaining = guest_quota.ai_turns_remaining if ai_available else None
+    elif ai_available:
+        from app.ai.persistence import daily_turns
+
+        used = await daily_turns(db, user.id, now())
+        remaining = max(0, settings.ai_daily_turns_per_user - used)
+    return SessionView(
+        staff=staff.role if staff else None,  # type: ignore[arg-type]
+        notices=notices,
+        user_id=user.id,
+        alias=user.alias,
+        age_band=user.age_band,
+        eligible=user.age_band in ("teen", "adult"),
+        consents={c.purpose: ConsentView.model_validate(c) for c in consents},
+        csrf_token=csrf
+        or request.cookies.get("moodprint_csrf")
+        or request.headers.get("X-CSRF-Token", ""),
+        server_time=server_time,
+        timezone=user.timezone,
+        data_version=user.data_version,
+        birth_year=declaration.birth_year if declaration else None,
+        eligibility_version=declaration.version if declaration else 0,
+        features=FeatureView(
+            ai=ai_available,
+            ai_status=ai_status,
+            ai_quota_remaining=remaining,
+            matching=not guest,
+            voice=voice,
+            feedback=feedback_open(settings),
+        ),
+        account_kind=user.account_kind,  # type: ignore[arg-type]
+        guest_started_at=user.guest_started_at,
+        guest_expires_at=user.guest_expires_at,
+        guest_quota=guest_quota,
+    )
+
+
+async def session_view(request: Request, actor: Actor, csrf: str | None = None) -> SessionView:
     async with transaction(request, actor, eligible=False) as (db, user):
-        consents = (await db.scalars(select(Consent).where(Consent.user_id == user.id))).all()
-        declaration = await db.get(AgeDeclaration, user.id)
-        guest = user.account_kind == "guest"
-        staff = None
-        notices = []
-        if not guest:
-            # Guests never read staff, moderation or social rows, even if a forged row exists.
-            from app.modules.moderation.models import ModerationAction, StaffRole
-
-            staff = await db.get(StaffRole, user.id)
-            if user.social_restricted_until and user.social_restricted_until > now():
-                notices.append(NoticeView(kind="restricted", until=user.social_restricted_until))
-            warned = await db.scalar(
-                select(ModerationAction.created_at)
-                .where(
-                    ModerationAction.subject_id == user.id,
-                    ModerationAction.action == "warn",
-                    ModerationAction.created_at > now() - timedelta(days=30),
-                )
-                .limit(1)
-            )
-            if warned:
-                notices.append(NoticeView(kind="warning"))
-        ai_available = request.app.state.ai.available_for(actor.user_id)
-        ai_status = request.app.state.ai.status_for(actor.user_id)
-        voice = request.app.state.transcriber is not None and (
-            not settings.ai_local_test_user_ids or ai_available
-        )
-        remaining = None
-        guest_quota = None
-        server_time = now()
-        if guest:
-            from app.modules.guests.models import GuestUsage
-            from app.modules.guests.policy import guest_paid_available
-
-            # The database clock, not this process, anchors every guest deadline and display.
-            server_time = await db.scalar(select(func.clock_timestamp()))
-            usage = await db.get(GuestUsage, user.id)
-            ai_turns, clips, millis = (
-                (usage.ai_turns, usage.voice_clips, usage.voice_milliseconds) if usage else (0, 0, 0)
-            )
-            guest_quota = GuestQuota(
-                ai_turns_remaining=max(0, settings.guest_ai_turns - ai_turns),
-                voice_clips_remaining=max(0, settings.guest_voice_clips - clips),
-                voice_seconds_remaining=max(0, settings.guest_voice_seconds * 1000 - millis) / 1000,
-            )
-            voice = voice and guest_paid_available(settings, "voice")
-            if not guest_paid_available(settings, "ai"):
-                # Paid guest work fails closed until the owner-approved budget and prices exist.
-                ai_status = "disabled" if not settings.guest_paid_enabled else "configuration_missing"
-                ai_available = False
-            remaining = guest_quota.ai_turns_remaining if ai_available else None
-        elif ai_available:
-            from app.ai.persistence import daily_turns
-
-            used = await daily_turns(db, user.id, now())
-            remaining = max(0, settings.ai_daily_turns_per_user - used)
-        return SessionView(
-            staff=staff.role if staff else None,  # type: ignore[arg-type]
-            notices=notices,
-            user_id=user.id,
-            alias=user.alias,
-            age_band=user.age_band,
-            eligible=user.age_band in ("teen", "adult"),
-            consents={c.purpose: ConsentView.model_validate(c) for c in consents},
-            csrf_token=csrf
-            or request.cookies.get("moodprint_csrf")
-            or request.headers.get("X-CSRF-Token", ""),
-            server_time=server_time,
-            timezone=user.timezone,
-            data_version=user.data_version,
-            birth_year=declaration.birth_year if declaration else None,
-            eligibility_version=declaration.version if declaration else 0,
-            features=FeatureView(
-                ai=ai_available,
-                ai_status=ai_status,
-                ai_quota_remaining=remaining,
-                matching=not guest,
-                voice=voice,
-                feedback=feedback_open(settings),
-            ),
-            account_kind=user.account_kind,  # type: ignore[arg-type]
-            guest_started_at=user.guest_started_at,
-            guest_expires_at=user.guest_expires_at,
-            guest_quota=guest_quota,
-        )
+        return await _session_view(request, db, user, actor.user_id, csrf)
 
 
 @router.get("/session", response_model=SessionView)
-async def get_session(request: Request, actor: Actor = Depends(require_actor)):
-    return await session_view(request, actor)
+async def get_session(request: Request):
+    # One checkout covers authentication and the view. Two checkouts queue on the
+    # production pool when every client reads its session together.
+    if not request.cookies.get("moodprint_session"):
+        raise DomainError(401, "AUTH_REQUIRED", "Vui lòng đăng nhập.")
+    async with request.app.state.database.require()() as db:
+        actor, user = await load_actor(request, db)
+        return await _session_view(request, db, user, actor.user_id)
 
 
 @router.put("/users/me/eligibility", response_model=SessionView)

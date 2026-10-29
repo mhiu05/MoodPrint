@@ -138,32 +138,15 @@ test("callback: an expired email link explains itself on the login screen", asyn
   await expect(page.getByRole("heading", { name: "Chào bạn trở lại" })).toBeVisible();
 });
 
-test("export asks for step-up re-authentication instead of signing the user out", async ({ page }) => {
-  let reauthenticated = false;
-  const calls = await api(page, true, {
-    "POST /exports": () =>
-      reauthenticated
-        ? { status: 201, json: { id: "33333333-3333-4333-8333-333333333333", kind: "export", scope: "account", status: "completed", version: 1 } }
-        : failure(401, "REAUTH_REQUIRED", "Hãy đăng nhập lại trước khi xuất dữ liệu."),
-    "POST /auth/reauthenticate": () => {
-      reauthenticated = true;
-      return { json: { status: "confirmed" } };
-    },
-    "GET /exports/33333333-3333-4333-8333-333333333333/download": () => ({ json: { account: {} } }),
-  });
+test("settings does not offer a data download and keeps account deletion", async ({ page }) => {
+  const calls = await api(page, true, {});
   await page.goto("/#/settings");
-  await page.getByRole("button", { name: "Tải bản sao dữ liệu" }).click();
-  await expect(page.getByRole("heading", { name: "Xác nhận tài khoản" })).toBeVisible();
-  // Still signed in: the login screen must not appear.
+  await expect(page.getByRole("heading", { name: "Xóa dữ liệu" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Tải bản sao dữ liệu" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Tải xuống cuộc trò chuyện" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Xóa tài khoản" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Chào bạn trở lại" })).toHaveCount(0);
-  await page.locator("#reauth-email").fill("an@example.test");
-  await page.locator("#reauth-password").fill("my password");
-  const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Xác nhận", exact: true }).click();
-  expect((await download).suggestedFilename()).toBe("moodprint-data.json");
-  expect(calls.filter((call) => call.path === "/exports").length).toBe(2);
-  const reauth = calls.find((call) => call.path === "/auth/reauthenticate")!;
-  expect(reauth.body).toEqual({ email: "an@example.test", password: "my password" });
+  expect(calls.filter((call) => call.path.startsWith("/exports"))).toEqual([]);
 });
 
 test("account deletion requires explicit acknowledgement and confirms sign-out", async ({ page }) => {

@@ -109,6 +109,13 @@ UPGRADES = {
             "feedback_review_events",
         ),
     ),
+    "0019": UpgradePlan(
+        REVIEWED_SQL / "0019-review.sql",
+        REPORTS / "0019-execution.json",
+        "0018_app_feedback",
+        "0019_journal",
+        tables=("journal_entries", "journal_media", "journal_storage_deletions"),
+    ),
 }
 SUPABASE_API_ROLES = ("anon", "authenticated", "service_role")
 

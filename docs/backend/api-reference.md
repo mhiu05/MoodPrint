@@ -119,3 +119,17 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 Tổng cộng **109 operations** trong snapshot. `POST /feedback` và `GET /feedback/submission-state` chỉ tồn tại khi `FEEDBACK_ENABLED` và `GUEST_ABUSE_HMAC_KEY` đều có; gửi thành công trả 201, cùng key và payload trả 200 cùng receipt, guest chỉ gửi một lần trong trial (409 `FEEDBACK_ALREADY_SUBMITTED`), user đã đăng ký một lần mỗi ngày Asia/Bangkok (429 `FEEDBACK_DAILY_LIMIT`). Production ẩn docs UI; snapshot vẫn được sinh offline cho contract checks.
 
 Admin feedback cần tài khoản đã đăng ký, role admin hiện hành, xác thực lại bằng mật khẩu trong 12 giờ và `FEEDBACK_ADMIN_ENABLED` riêng. List/summary dùng cùng bộ lọc, ngày Asia/Bangkok tối đa 180 ngày, mặc định loại spam; summary dùng một snapshot đọc nhất quán. PATCH cần CSRF, Idempotency-Key và expectedVersion; stale trả 409 `STALE_VERSION`. Audit chỉ lưu resource/version/trạng thái/staff, không sao chép comment hoặc liên kết tới lịch sử riêng. Retention chạy độc lập với các cờ.
+
+## Nh?t k? V2
+
+| Method | Path | Operation ID |
+| --- | --- | --- |
+| GET | `/api/v1/journal/entries` | `list_entries_api_v1_journal_entries_get` |
+| POST | `/api/v1/journal/entries` | `create_entry_api_v1_journal_entries_post` |
+| GET | `/api/v1/journal/entries/{entry_id}` | `get_entry_api_v1_journal_entries__entry_id__get` |
+| PUT | `/api/v1/journal/entries/{entry_id}` | `update_entry_api_v1_journal_entries__entry_id__put` |
+| DELETE | `/api/v1/journal/entries/{entry_id}` | `delete_entry_api_v1_journal_entries__entry_id__delete` |
+| POST | `/api/v1/journal/entries/{entry_id}/media` | `reserve_media_api_v1_journal_entries__entry_id__media_post` |
+| POST | `/api/v1/journal/entries/{entry_id}/media/{media_id}/complete` | `complete_media_api_v1_journal_entries__entry_id__media__media_id__complete_post` |
+| GET | `/api/v1/journal/entries/{entry_id}/media/{media_id}/access` | `access_media_api_v1_journal_entries__entry_id__media__media_id__access_get` |
+| DELETE | `/api/v1/journal/entries/{entry_id}/media/{media_id}` | `delete_media_api_v1_journal_entries__entry_id__media__media_id__delete` |

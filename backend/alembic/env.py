@@ -19,6 +19,7 @@ from app.infrastructure.database.models import Base
 from app.modules.activities import models as activity_models  # noqa: F401
 from app.modules.feedback import models as feedback_models  # noqa: F401
 from app.modules.guests import models as guest_models  # noqa: F401
+from app.modules.journal import models as journal_models  # noqa: F401
 from app.modules.moderation import models as moderation_models  # noqa: F401
 from app.modules.social import models  # noqa: F401 -- register all owned domain tables
 from app.modules.users import models as lifecycle_models  # noqa: F401

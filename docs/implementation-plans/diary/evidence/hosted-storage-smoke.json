@@ -1,0 +1,40 @@
+{
+  "project": "roznanxbiyqybjpvtilq",
+  "bucket": "journal-media",
+  "syntheticOnly": true,
+  "objectsRemoved": 4,
+  "checks": [
+    {
+      "type": "image/png",
+      "bytes": 68,
+      "method": "signed-PUT",
+      "metadataVerified": true,
+      "signedRead": true,
+      "publicReadDenied": true
+    },
+    {
+      "type": "audio/wav",
+      "bytes": 16044,
+      "method": "signed-PUT",
+      "metadataVerified": true,
+      "signedRead": true,
+      "publicReadDenied": true
+    },
+    {
+      "type": "video/webm",
+      "bytes": 907,
+      "method": "signed-PUT",
+      "metadataVerified": true,
+      "signedRead": true,
+      "publicReadDenied": true
+    },
+    {
+      "type": "image/png",
+      "bytes": 7340100,
+      "method": "signed-TUS",
+      "metadataVerified": true,
+      "signedRead": true,
+      "publicReadDenied": true
+    }
+  ]
+}

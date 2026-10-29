@@ -141,11 +141,31 @@ async def test_voice_withdrawal_cancels_inflight_provider_call(clients):
             return "must not reach the user"
 
     app.state.transcriber = SlowTranscriber()
+    from app.modules.voice import routes
+
+    routes.VOICE_LIMIT.attempts.clear()
+    routes.VOICE_DAILY_LIMIT.attempts.clear()
     upload = asyncio.create_task(a.post(
         "/api/v1/voice/transcriptions", content=audio(),
         headers={"Content-Type": "audio/wav", "Idempotency-Key": str(uuid4())},
     ))
-    await asyncio.wait_for(started.wait(), timeout=3)
+    # Provider entry waits on consent transactions. The cancellation window below
+    # stays short; this budget only covers a busy disposable database.
+    started_task = asyncio.create_task(started.wait())
+    done, _pending = await asyncio.wait(
+        {upload, started_task}, timeout=15, return_when=asyncio.FIRST_COMPLETED
+    )
+    if not started.is_set():
+        if upload in done:
+            failure = upload.exception()
+            if failure is not None:
+                raise AssertionError("voice request failed before the provider") from failure
+            response = upload.result()
+            raise AssertionError(
+                f"provider was not called: {response.status_code} {response.text}"
+            )
+        raise AssertionError("provider did not start within 15s")
+    started_task.cancel()
     withdrawn = await a.put(
         "/api/v1/consents/VOICE",
         json={"enabled": False, "expectedVersion": 2, "policyVersion": "v1"},

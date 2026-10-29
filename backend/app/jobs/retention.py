@@ -75,6 +75,20 @@ async def purge_expired(app):
         ).all()
         if mood_ids:
             await db.execute(delete(Mood).where(Mood.id.in_(mood_ids)))
+        from app.modules.journal.models import JournalEntry
+        from app.modules.journal.service import delete_entries
+
+        entries = (
+            await db.scalars(
+                select(JournalEntry)
+                .join(User, User.id == JournalEntry.user_id)
+                .where(JournalEntry.local_date < cast(func.timezone(User.timezone, now()), Date) - 89)
+                .order_by(JournalEntry.id)
+                .limit(1000)
+                .with_for_update(of=JournalEntry, skip_locked=True)
+            )
+        ).all()
+        await delete_entries(db, entries)
         message_ids = (
             await db.scalars(
                 select(HumanMessage.id)

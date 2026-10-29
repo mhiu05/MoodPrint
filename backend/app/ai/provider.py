@@ -29,6 +29,13 @@ from openai import AsyncOpenAI
 
 from app.ai.conversation import conversation_intent, requested_presentation
 from app.ai.evidence import MoodAnalysisPlan, render_mood_analysis, source_instructions
+from app.ai.journal import (
+    NhipOutput,
+    has_journal_link,
+    journal_instructions,
+    journal_read_refused,
+    render_journal_output,
+)
 from app.ai.prompts import LEGACY_BOTS, conversation_instructions, instructions
 from app.ai.schemas import AiOutput
 from app.ai.usage import UsageEvent, UsageObserver
@@ -191,14 +198,18 @@ class SdkProvider:
         intent = conversation_intent(bot_id, history, scoped=has_scope) if runtime_context else 'analysis'
         analytical = intent == 'analysis'
         scoped_mood = has_scope and analytical
-        selected_tools: list[Tool] = [tool for tool in tools if analytical or tool.name != 'read_mood_summary']
+        journal_mode = bot_id == "nhip" and runtime_context and not has_scope
+        journal_allowed = journal_mode and not journal_read_refused(history)
+        if journal_mode:
+            context.journal_read_allowed = journal_allowed
+        selected_tools: list[Tool] = [tool for tool in tools if (analytical or tool.name != 'read_mood_summary') and (journal_allowed or tool.name != 'search_journal_entries')]
         runtime_guidance = conversation_instructions(bot_id, intent) if runtime_context else ''
         agent = Agent[Any](
             name=f"MoodPrint:{bot_id}",
-            instructions=instructions(bot_id, self.prompt_variant) + source_instructions(context, bot_id, mood_analysis=analytical) + runtime_guidance,
+            instructions=instructions(bot_id, self.prompt_variant) + source_instructions(context, bot_id, mood_analysis=analytical) + (journal_instructions(context) if journal_mode else "") + runtime_guidance,
             model=model,
             tools=selected_tools,
-            output_type=MoodAnalysisPlan if scoped_mood else AiOutput,
+            output_type=MoodAnalysisPlan if scoped_mood else NhipOutput if journal_mode else AiOutput,
             output_guardrails=[] if scoped_mood else [_no_unreceipted_claim],
             model_settings=ModelSettings(
                 store=False,
@@ -230,7 +241,12 @@ class SdkProvider:
                     if omit_mean:
                         plan.include_mean = False
                 return render_mood_analysis(plan, context)
-            return AiOutput.model_validate(result.final_output)
+            if journal_mode:
+                return render_journal_output(NhipOutput.model_validate(result.final_output), context)
+            output = AiOutput.model_validate(result.final_output)
+            if has_journal_link(output.text):
+                raise DomainError(409, "JOURNAL_EVIDENCE_REQUIRED", "Chưa đọc được nguồn nhật ký cho lượt này.")
+            return output
         except BaseException as error:
             await _cancel_and_drain(result)
             if isinstance(error, UserError) and isinstance(error.__cause__, DomainError):

@@ -10,13 +10,28 @@ from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from agents import FunctionTool, RunContextWrapper, function_tool
+from agents.strict_schema import ensure_strict_json_schema
 from sqlalchemy import select, update
 
 from app.ai.accounting import UsageSnapshot, persist_snapshot, reserve_accounting
 from app.ai.availability import AiStatus, public_failure
-from app.ai.context import MOOD_TURN_POLICY, SourceState, build_history, model_messages
+from app.ai.context import (
+    JOURNAL_TURN_POLICY,
+    MOOD_TURN_POLICY,
+    ContextStamp,
+    SourceState,
+    build_history,
+    model_messages,
+)
 from app.ai.conversation import CONVERSATION_POLICY
 from app.ai.evidence import EVIDENCE_POLICY, EvidenceEnvelope
+from app.ai.journal import (
+    JOURNAL_EVIDENCE_POLICY,
+    JournalEvidence,
+    JournalSource,
+    assert_journal_revisions,
+    journal_read_refused,
+)
 from app.ai.models import AiMessageRecord
 from app.ai.persistence import current_turn, owned_conversation
 from app.ai.prompts import SELECTED_VARIANTS, prompt_version
@@ -57,6 +72,8 @@ class LiveRun:
     first_progress_ms: int | None = None
     sources: dict[str, SourceState] = field(default_factory=dict)
     mood_evidence: EvidenceEnvelope | None = None
+    journal_evidence: JournalEvidence | None = None
+    journal_read_allowed: bool = True
     # Conservative guest bound; None for registered users (their policy is unchanged).
     deadline: GuestDeadline | None = None
     # Guest paid work: the quota claim, the detached reservation and the pre-dispatch guard.
@@ -301,7 +318,8 @@ class AiRuntime:
     async def reserve_usage(self, db, run_id: UUID, user_id: UUID, bot_id: str):
         if self.settings.ai_accounting_enabled:
             await reserve_accounting(db, run_id, user_id, self.worker_id, self.settings.openai_model,
-                                     prompt_version(SELECTED_VARIANTS[bot_id]) + "+" + EVIDENCE_POLICY + "+" + CONVERSATION_POLICY)
+                                     # Compact journal policy revision fits existing varchar(60).
+                                     prompt_version(SELECTED_VARIANTS[bot_id]) + "+" + EVIDENCE_POLICY + "+" + CONVERSATION_POLICY + ("+j1" if bot_id == "nhip" else ""))
 
     async def record_usage(self, run: LiveRun, event: UsageEvent):
         run.usage.observe(event)
@@ -417,6 +435,44 @@ class AiRuntime:
             result["evidence"] = run.mood_evidence.model_view()
             return json.dumps(result, ensure_ascii=False)
 
+        async def search_journal_entries(ctx: RunContextWrapper[LiveRun], arguments: str) -> str:
+            from app.modules.journal.ai import JournalSearchInput, search_for_ai
+
+            args = JournalSearchInput.model_validate_json(arguments)
+            state = run.sources.setdefault("journal", SourceState())
+            try:
+                await check_tool()
+                if bot_id != "nhip" or run.mood_scope is not None or not run.journal_read_allowed:
+                    raise DomainError(403, "JOURNAL_READ_DENIED", "Lượt này không đọc nhật ký.")
+                async with self.database.require()() as db, db.begin():
+                    user = await lock_actor(db, run.actor)
+                    await assert_purpose(db, user, "AI")
+                    if user.data_version != run.data_version:
+                        raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
+                    result = await search_for_ai(db, user, **args.model_dump())
+                    # Persist provenance before any retrieved prose can reach the model.
+                    turn = await current_turn(db, run, self.worker_id)
+                    if turn is not None:
+                        turn.context_policy = JOURNAL_TURN_POLICY
+                conversation = self.store.get(run.conversation_id, str(run.actor.user_id), str(run.actor.session_id))
+                conversation.context_stamps[run.id] = ContextStamp(run.data_version, JOURNAL_TURN_POLICY)
+                await self.check(run)
+            except Exception:
+                state.evidence = "tool_execution_failure"
+                raise
+            sources = {source.entry_id: source for source in run.journal_evidence.sources} if run.journal_evidence else {}
+            for entry in result["entries"]:
+                sources[UUID(entry["id"])] = JournalSource(UUID(entry["id"]), datetime.fromisoformat(entry["localDate"]).date(), entry["version"])
+            run.journal_evidence = JournalEvidence(
+                owner_id=run.actor.user_id, run_id=run.id, data_version=run.data_version,
+                expires_at=datetime.now(UTC) + timedelta(seconds=max(0, self.settings.ai_timeout_seconds - (time.monotonic() - run.started))),
+                sources=tuple(sources.values()),
+            )
+            state.authorization, state.evidence = "authorized", "retrieved"
+            state.record_count = len(sources)
+            result["evidence"] = {"policy": JOURNAL_EVIDENCE_POLICY, "reuse": "current_run_only"}
+            return json.dumps(result, ensure_ascii=False)
+
         if bot_id == "guong":
             return ([propose_memory] if memory_enabled else []) + [propose_private_item]
         if bot_id == "nhip" and run.mood_scope is not None:
@@ -434,7 +490,19 @@ class AiRuntime:
                     on_invoke_tool=read_mood_summary,
                 ),
             ]
-        if bot_id in ("may", "nhip"):
+        if bot_id == "nhip":
+            from app.modules.journal.ai import JournalSearchInput
+
+            return [
+                *([propose_memory] if memory_enabled else []),
+                FunctionTool(
+                    name="search_journal_entries",
+                    description="Search a bounded sample of your saved journal entries. Only current owner text/metadata, never drafts, attachments or legacy mood notes.",
+                    params_json_schema=ensure_strict_json_schema(JournalSearchInput.model_json_schema(by_alias=False)),
+                    on_invoke_tool=search_journal_entries,
+                ),
+            ]
+        if bot_id == "may":
             return [propose_memory] if memory_enabled else []
         return []
 
@@ -504,6 +572,7 @@ class AiRuntime:
             if str(run.actor.user_id) == uid:
                 run.events.clear()
                 run.mood_evidence = None
+                run.journal_evidence = None
                 run.sources.clear()
                 del self.runs[identity]
         for identity, pending in list(self.pending_terminal.items()):
@@ -555,6 +624,8 @@ class AiRuntime:
                     ) else "missing_verified_evidence",
                     evidence="missing_verified_evidence" if c.bot_id == "nhip" and run.mood_scope else "tool_unavailable",
                 )
+                if c.bot_id == "nhip" and run.mood_scope is None:
+                    run.sources["journal"] = SourceState(authorization="authorized")
                 projected = model_messages(
                     c.messages, c.context_stamps, current_run=run.id, data_version=run.data_version
                 )
@@ -572,6 +643,7 @@ class AiRuntime:
                     memory_state.evidence, memory_state.record_count = "retrieved", len(memories)
                 await self.check(run)
                 history = build_history(projected, memories)
+                run.journal_read_allowed = not journal_read_refused(history)
 
                 async def monitor_policy():
                     while True:
@@ -606,6 +678,8 @@ class AiRuntime:
                 output = AiOutput.model_validate(output)
                 if run.mood_evidence is not None:
                     run.mood_evidence.assert_current(run)
+                if run.journal_evidence is not None:
+                    run.journal_evidence.assert_current(run)
                 await self.check(run)
                 # Include the replay copy and message copy, not only plain text.
                 output_bytes = len(output.model_dump_json().encode()) + len(output.text.encode()) + 1024
@@ -616,6 +690,7 @@ class AiRuntime:
                     if user.data_version != run.data_version:
                         raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
                     await current_turn(db, run, self.worker_id)
+                    await assert_journal_revisions(db, user, run)
                     if run.deadline is not None:
                         await final_guest_authorization(db, user)
                     if run.persistent:
@@ -662,15 +737,29 @@ class AiRuntime:
         finally:
             # No snapshot survives a terminal run, saved-chat reload or worker restart.
             run.mood_evidence = None
+            run.journal_evidence = None
+            # Stop every cancellation source before awaiting any drain. A second expiry/
+            # policy cancellation must not strand settlement or terminal persistence.
             if monitor:
                 monitor.cancel()
-                await asyncio.gather(monitor, return_exceptions=True)
             if expiry:
                 expiry.cancel()
-                await asyncio.gather(expiry, return_exceptions=True)
-            run.reserved_output_bytes = 0
-            await asyncio.shield(self.settle_guest(run, status))
-            await asyncio.shield(self.finalize(run, status))
+
+            async def finish_terminal():
+                await asyncio.gather(*(task for task in (monitor, expiry) if task), return_exceptions=True)
+                run.reserved_output_bytes = 0
+                await self.settle_guest(run, status)
+                await self.finalize(run, status)
+
+            cleanup = asyncio.create_task(finish_terminal())
+            while not cleanup.done():
+                try:
+                    await asyncio.shield(cleanup)
+                except asyncio.CancelledError:
+                    # Cancellation has already stopped the provider. Finish private cleanup
+                    # before allowing shutdown/revocation to consider this task drained.
+                    continue
+            await cleanup
             # Saved threads reload from PostgreSQL; keep no idle RAM copy per thread.
             copy = self.store.conversations.get(run.conversation_id)
             if copy is not None and copy.persistent and copy.active_run_id is None:

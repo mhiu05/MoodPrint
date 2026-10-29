@@ -224,7 +224,7 @@ test("real FastAPI/PostgreSQL preserves private records and mood, streams throug
   await expect(
     two.getByText("Mình thích những buổi sáng yên tĩnh", { exact: true }),
   ).toHaveCount(0);
-  await one.goto("/#/self");
+  await one.goto("/#/self/daily");
   await one
     .getByRole("textbox", { name: "Ghi chú", exact: true })
     .fill("Một ngày bình yên");
@@ -467,11 +467,9 @@ test("approved memory uses the edited approval, survives reload, and local priva
     }),
   ).toBeVisible();
   await page.goto("/#/settings");
-  const download = page.waitForEvent("download");
-  await page
-    .getByRole("button", { name: "Tải bản sao dữ liệu", exact: true })
-    .click();
-  expect((await download).suggestedFilename()).toBe("moodprint-data.json");
+  await expect(
+    page.getByRole("button", { name: "Tải bản sao dữ liệu", exact: true }),
+  ).toHaveCount(0);
   await page
     .getByLabel("Dữ liệu bạn muốn xóa", { exact: true })
     .selectOption("memories");

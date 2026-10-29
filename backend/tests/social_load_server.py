@@ -109,6 +109,10 @@ async def seed():
         await connection.run_sync(Base.metadata.create_all)
         await install_guest_guards(connection)
         await install_auth_fixture(connection)
+    # Login stores a full idle window. A shorter expiry falls outside the
+    # 15-minute no-write band, so every session read slides and writes.
+    # The load gate classifies that call as a read.
+    idle = timedelta(hours=app.state.settings.session_idle_hours)
     async with app.state.database.sessions.begin() as db:
         for number in range(USERS):
             uid, provider = identity("user", number), identity("provider", number)
@@ -122,7 +126,7 @@ async def seed():
                     token_hash=hashlib.sha256(f"load-session-{number}".encode()).hexdigest(),
                     csrf_hash=hashlib.sha256(f"load-csrf-{number}".encode()).hexdigest(),
                     provider_session_id=provider,
-                    expires_at=datetime.now(UTC) + timedelta(hours=2),
+                    expires_at=datetime.now(UTC) + idle,
                 )
             )
             await db.execute(

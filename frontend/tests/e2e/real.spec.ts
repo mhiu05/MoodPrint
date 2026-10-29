@@ -771,7 +771,7 @@ test("a saved mood reloads from the API while a failed edit keeps its note", asy
   await page.route("**/api/v1/moods", (route) =>
     route.fulfill({ json: [saved] }),
   );
-  await page.goto("/#/self");
+  await page.goto("/#/self/daily");
   await expect(
     page.locator("article").getByText("Một ngày nhẹ nhàng", { exact: true }),
   ).toBeVisible();

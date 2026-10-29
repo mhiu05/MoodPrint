@@ -206,13 +206,9 @@ test("saved history remains readable, pageable, exportable and deletable when AI
     fullPage: true,
   });
   await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
-  const download = page.waitForEvent("download");
-  await page
-    .getByRole("button", { name: "Tải xuống cuộc trò chuyện", exact: true })
-    .click();
-  expect((await download).suggestedFilename()).toBe(
-    `moodprint-conversation-${id}.json`,
-  );
+  await expect(
+    page.getByRole("button", { name: "Tải xuống cuộc trò chuyện", exact: true }),
+  ).toHaveCount(0);
   await page
     .getByRole("button", { name: "Xóa cuộc trò chuyện", exact: true })
     .click();
