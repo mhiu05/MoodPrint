@@ -116,7 +116,7 @@ export function LandingPage({ api }: { api: ApiClient }) {
                 Tiếp tục sử dụng
               </a>
             ) : (
-              <Button disabled={!ready || offline} onClick={() => setEntryOpen(true)}>
+              <Button className="landing-trial" disabled={!ready || offline} onClick={() => setEntryOpen(true)}>
                 Dùng thử 2 giờ
               </Button>
             )}
@@ -200,7 +200,7 @@ export function LandingPage({ api }: { api: ApiClient }) {
         <p>
           Có điều gì chưa thuận tiện? <a href="/#/feedback">Góp ý cho MoodPrint</a>.
         </p>
-        <Button disabled={!ready || offline || Boolean(known)} onClick={() => setEntryOpen(true)}>
+        <Button className="landing-trial" disabled={!ready || offline || Boolean(known)} onClick={() => setEntryOpen(true)}>
           Dùng thử 2 giờ
         </Button>
       </footer>

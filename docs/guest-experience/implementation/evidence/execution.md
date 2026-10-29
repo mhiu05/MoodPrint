@@ -684,3 +684,47 @@ owned tests/runtime. New actual-HTTP fullstack target/full suite results follow.
 Corrected guest-feedback actual-HTTP8repeats PASS1.4m. Docs67/446/109/68/48,
 9pins and diff-check PASS. The new commit contains only two test files and
 three evidence files; production tree and owned266 tests are unchanged.
+
+### 2026-10-29 ? readiness CTA contrast throughout state changes
+
+397f2e9 independently APPROVED exact source/test/evidence, no new finding;
+whole local actual-HTTP fullstack32PASS4.9m. PR40782573068 SUCCESS:1048backend/
+1D04skip396.07s,91units,266browser5.8m,32fullstack3.8m,18deploy plus remaining
+CI gates. Push40782567951 passed backend/migration/load, then265browserPASS/
+1axe color-contrast at390px landing. No trace artifact uploaded in that workflow.
+Unchanged isolated landing390px12PASS28.8s does not dismiss the failure.
+
+Read-only reviewer found disabled-to-enabled trial CTAs interpolate foreground
+AND background over100ms in shared button styling. New actual CSS-transition
+barrier waits for readiness, pauses browser Animation objects and samples
+25/50/75percent. RED1 produces axe color-contrast on BOTH .landing-actions button
+and footer button: foreground#bbc2bf/background#729386,ratio1.85 vs4.5 required
+at25percent. This proves a real transient readability defect; exact historical
+CI target remains unconfirmed without its trace. An initial new-test run had a
+shell-corrupted Vietnamese locator and was corrected before this genuine RED.
+
+Small production fix: named landing-trial class on the two existing CTAs;
+landing-only CSS transitions border-color while foreground/background switch
+atomically. Existing palette/markup/actions/readiness/offline gating unchanged;
+other buttons untouched. No waiting out or disabling axe. Diagnostics now print
+complete axe violations on failure. Whole landing3rounds36PASS1.0m, including
+paused-transition axe,320/390/768/1440px and200percent text,keyboard,reducedmotion;
+typecheck/91unitsPASS. Synthetic screenshots390/1440 inspected: legible CTA,
+unchanged layout/no clipping. Impeccable scoped context permits existing-code
+fix; mechanical detector[]; no product/design-context file created.
+
+Because missing CI traces repeatedly prevented decisive diagnosis, verify.yml
+now uploads only existing synthetic browser test-results/fullstack directories
+and two result JSONs on failure,3day retention,missingfilesignore. Uses same
+pinned upload-artifact v7.0.2 SHA as release workflow, no new permissions or
+credentials, no env/workspace/log harvesting. Release workflow/hold untouched;
+normal verification/tests/thresholds and25minute job bound unchanged. Pinned
+actionlint for both workflowsPASS; delta whitespace clean. New exact-SHA review,
+whole owned267 and full Linux CI required after this UI/workflow change. Prior
+backend/load/migration evidence still applies to unchanged backend source.
+
+Readiness fix final local build PASS4.13s; docs67/449/109operations/68settings/
+48tables and9pins PASS. Exact candidate commit includes two narrow UI files,
+landing regression/diagnostics, failure-only CI retention and evidence only.
+Backend/load/schema/release workflow unchanged; full owned267 and exact-head
+CI/review are still pending at this pre-merge snapshot.

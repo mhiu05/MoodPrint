@@ -36,3 +36,8 @@ settled-geometry regression now require final scoped review/latest-head CI.
 Backend/load/schema results remain applicable to unchanged backend source;
 release HOLD, all six flags off, unset paid budget and D01?D04 remain unchanged.
 See [current finish evidence](final-review-and-merge.md).
+
+Readiness CTA follow-up keeps readable color pairs atomic while readiness/offline
+state changes. No backend/load/schema/release/flag/budget behavior changes.
+397f2e9 full PR CI passed; new UI/failure-evidence delta requires scoped review
+and full latest-head CI. See [finish record](final-review-and-merge.md).

@@ -56,3 +56,13 @@ supported one-tick/global-completion harness race; no runtime defect established
 Actual PostgreSQL barrier and bounded exact-zero browser correction are in the
 new test/evidence delta and require scoped exact-SHA approval/latest-head CI.
 All declined hosted/owner/manual/post-merge certifications and HOLD remain.
+
+## Approved397f2e9 and readiness contrast follow-up
+
+Exact397f2e9 review APPROVED, no new material finding; barrier/zero-completion
+predicate justified without configured timeout or production timing changes.
+Its PR CI passed completely. A paired push axe failure led to deterministic
+readiness-transition RED on both trial CTAs, ratio1.85:1. New narrow landing
+color-transition fix plus failure-only synthetic CI evidence retention needs
+new exact-SHA scoped approval/full browser/CI. All prior approvals and external
+certification limits remain in force; release remains HOLD.

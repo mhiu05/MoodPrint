@@ -1,6 +1,6 @@
 # Guest experience ? final review and merge evidence
 
-Status: **final cleanup-test delta awaiting exact-SHA review/CI; release HOLD**.
+Status: **final readiness-contrast delta awaiting exact-SHA review/CI; release HOLD**.
 This pre-merge report follows [prompt10](../10-codex-finish-pr-merge-prompt.md).
 Actual final head/review verdict, PR merge/main SHAs and post-merge run results
 will be recorded in [PR20](https://github.com/mhiu05/MoodPrint/pull/20) and the
@@ -131,3 +131,29 @@ p95506.5ms vs500ms is retained accurately; no performance threshold relaxed.
 Corrected guest-feedback actual-HTTP8repeats PASS1.4m. Docs67/446/109/68/48,
 9pins and diff-check PASS. The new commit contains only two test files and
 three evidence files; production tree and owned266 tests are unchanged.
+
+## Readiness contrast correction and CI evidence retention
+
+397f2e9 exact scoped review APPROVED; local whole fullstack32PASS4.9m and PR CI
+[40782573068](https://github.com/mhiu05/MoodPrint/actions/runs/40782573068) SUCCESS:
+1048backend/1D04skip396.07s,91units,266browser5.8m,32fullstack3.8m,18deploy and
+all package/workflow/load gates. Sibling push failed landing390px axe contrast;
+unmodified12repeats passed, but a deterministic actual-animation barrier RED
+proves both readiness CTA color pairs blend to1.85:1 (required4.5:1). New
+landing-only class switches foreground/background atomically while retaining
+border transition; no palette/content/readiness/offline/other-button change.
+Full landing36PASS/3rounds1.0m, typecheck/91unitsPASS, detector[], synthetic390/
+1440screenshots visually checked. Whole owned267/new-head Linux CI and scoped
+review remain required. Prior report sections/counts describe their named SHAs.
+
+Failure-only CI artifact upload narrowly retains synthetic test-results/fullstack
+and result JSONs for3days, same existing pinned action, no new permissions/env
+or credentials. It changes no release gate and weakens no test. Complete axe
+node/color details print on future failures. Raw captures/traces stay in owned
+temp locally. No hosted/provider/AWS mutation. Hold/flags/budget/D01-D04 intact.
+
+Readiness fix final local build PASS4.13s; docs67/449/109operations/68settings/
+48tables and9pins PASS. Exact candidate commit includes two narrow UI files,
+landing regression/diagnostics, failure-only CI retention and evidence only.
+Backend/load/schema/release workflow unchanged; full owned267 and exact-head
+CI/review are still pending at this pre-merge snapshot.

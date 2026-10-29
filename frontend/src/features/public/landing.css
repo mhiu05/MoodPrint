@@ -64,6 +64,11 @@
   flex-wrap: wrap;
   gap: var(--space-3);
 }
+/* Readiness/offline changes must switch readable color pairs atomically.
+   Interpolating both disabled foreground and primary background loses contrast. */
+.landing .landing-trial {
+  transition-property: border-color;
+}
 .landing h2 {
   margin: 0 0 var(--space-3);
   font-size: clamp(1.4rem, 3.4vw, 1.9rem);

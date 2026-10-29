@@ -90,6 +90,45 @@ test("keyboard users reach the skip link, the menu and every FAQ answer", async 
   await expect(page.getByText("Tìm bạn và nhắn tin cần tài khoản").first()).toBeAttached();
 });
 
+test("readiness keeps trial text readable throughout the disabled-to-enabled color change", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 390, height: 900 });
+  await serve(page, READY);
+  let release!: () => void;
+  const ready = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/api/v1/public/experience", async route => {
+    await ready;
+    await route.fulfill({ json: READY });
+  });
+  try {
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: "Dùng thử 2 giờ" }).first()).toBeDisabled();
+    await page.evaluate(() => {
+      const buttons = [...document.querySelectorAll<HTMLButtonElement>(".landing button")];
+      buttons.forEach(button => { void getComputedStyle(button).backgroundColor; });
+      const observer = new MutationObserver(() => {
+        if (buttons.some(button => button.disabled)) return;
+        const transitions = buttons.flatMap(button => button.getAnimations());
+        transitions.forEach(animation => animation.pause());
+        (window as any).__readinessTransitions = transitions;
+        observer.disconnect();
+      });
+      buttons.forEach(button => observer.observe(button, { attributes: true, attributeFilter: ["disabled"] }));
+    });
+    release();
+    await expect.poll(() => page.evaluate(() => Array.isArray((window as any).__readinessTransitions))).toBe(true);
+    for (const progress of [0.25, 0.5, 0.75]) {
+      await page.evaluate(progress => {
+        for (const animation of (window as any).__readinessTransitions as Animation[]) {
+          animation.currentTime = Number(animation.effect!.getTiming().duration) * progress;
+        }
+      }, progress);
+      const axe = await new AxeBuilder({ page }).include(".landing").withTags(["wcag2a", "wcag2aa"]).analyze();
+      expect(axe.violations.map(v => v.id), JSON.stringify({ progress, violations: axe.violations }, null, 2)).toEqual([]);
+    }
+  } finally { release(); }
+});
+
 for (const width of [320, 390, 768, 1440]) {
   test(`landing has no horizontal overflow and no axe violations at ${width}px and 200% text`, async ({ page }) => {
     await serve(page, READY);
@@ -99,7 +138,7 @@ for (const width of [320, 390, 768, 1440]) {
     const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(await overflow()).toBeLessThanOrEqual(0);
     const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-    expect(axe.violations.map((violation) => violation.id)).toEqual([]);
+    expect(axe.violations.map((violation) => violation.id), JSON.stringify(axe.violations, null, 2)).toEqual([]);
     await page.addStyleTag({ content: "html{font-size:200%}" });
     expect(await overflow()).toBeLessThanOrEqual(0);
   });

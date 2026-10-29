@@ -91,3 +91,15 @@ jobs:
         run: |
           docker build -t moodprint:ci .
           docker run --rm --entrypoint sh moodprint:ci -c 'test ! -e /srv/moodprint/.env && test -f /srv/moodprint/static/index.html && test "$(id -u)" = 10001'
+      - name: Retain synthetic browser failure evidence
+        if: ${{failure()}}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: synthetic-browser-failure-${{github.run_id}}-${{github.run_attempt}}
+          path: |
+            frontend/evidence/test-results/**
+            frontend/evidence/fullstack/**
+            frontend/evidence/e2e-results.json
+            frontend/evidence/fullstack-results.json
+          if-no-files-found: ignore
+          retention-days: 3
