@@ -67,6 +67,7 @@ test("Journey E: export contains only the owner's own data and downloads once", 
     [
       "account",
       "consents",
+      "journal",
       "memories",
       "moods",
       "privateItems",
