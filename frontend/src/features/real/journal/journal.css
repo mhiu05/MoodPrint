@@ -843,6 +843,67 @@
   gap: 12px;
   margin: 20px 0 28px;
 }
+.journal-moment-menu {
+  position: relative;
+}
+.journal-entry-card:has(.journal-moment-menu-panel),
+.journal-detail-actions:has(.journal-moment-menu-panel) {
+  position: relative;
+  z-index: 3;
+}
+.journal-moment-menu-trigger,
+.journal-moment-menu-panel [role="menuitem"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+.journal-moment-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-divider);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  padding: 0 14px;
+  cursor: pointer;
+}
+.journal-moment-menu-panel {
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  top: calc(100% + 6px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--color-surface);
+  box-shadow: 0 12px 32px rgba(40, 28, 16, 0.16);
+}
+.journal-moment-menu-panel [role="menuitem"] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--color-ink);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.journal-moment-menu-panel [role="menuitem"]:hover,
+.journal-moment-menu-panel [role="menuitem"]:focus-visible {
+  background: var(--color-surface-soft);
+}
+.journal-moment-menu-panel [role="menuitem"].is-destructive {
+  color: var(--color-danger);
+}
 .journal-detail-content {
   padding: 26px;
   border-radius: var(--radius-md);
@@ -1286,6 +1347,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: 4px 18px;
 }
 .journal-card-actions a {
@@ -1293,6 +1355,21 @@
   align-items: center;
   gap: 6px;
   text-decoration: none;
+}
+.journal-card-actions .journal-moment-menu-trigger {
+  padding: 0 14px;
+  border: 1px solid var(--color-divider);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+.journal-card-actions .journal-moment-menu-panel [role="menuitem"] {
+  justify-content: flex-start;
+  padding: 0 12px;
+  color: var(--color-ink);
+}
+.journal-card-actions .journal-moment-menu-panel [role="menuitem"].is-destructive {
+  color: var(--color-danger);
 }
 .journal-card-tags {
   display: flex;

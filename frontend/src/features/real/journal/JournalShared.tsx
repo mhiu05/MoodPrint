@@ -6,8 +6,10 @@ import {
   PenLine,
   Sparkles,
   Trash2,
+  MoreHorizontal,
+  Pencil,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import type { JournalEntry, JournalMedia } from "../../../api/journal";
 import { Button, Dialog } from "../../../components/UI";
@@ -148,6 +150,130 @@ export function JournalMediaPreview({
   );
 }
 
+export function JournalMomentMenu({
+  menuLabel,
+  onEdit,
+  editTo,
+  onDelete,
+  onNavigate,
+}: {
+  menuLabel: string;
+  onEdit?: () => void;
+  editTo?: string;
+  onDelete: () => void;
+  onNavigate?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    panelRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+        return;
+      }
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+      const panel = panelRef.current;
+      if (!panel) return;
+      const items = [...panel.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+      if (!items.length) return;
+      const current = items.indexOf(document.activeElement as HTMLElement);
+      const next =
+        event.key === "ArrowDown"
+          ? items[(current + 1) % items.length]
+          : items[(current - 1 + items.length) % items.length];
+      next?.focus();
+      event.preventDefault();
+    }
+    function onPointer(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointer);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointer);
+    };
+  }, [open]);
+
+  function close() {
+    setOpen(false);
+  }
+
+  return (
+    <div className="journal-moment-menu" ref={rootRef}>
+      <button
+        ref={triggerRef}
+        type="button"
+        className="journal-moment-menu-trigger"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={menuId}
+        aria-label={menuLabel}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <MoreHorizontal size={18} aria-hidden="true" />
+        Thao tác
+      </button>
+      {open ? (
+        <div
+          ref={panelRef}
+          id={menuId}
+          role="menu"
+          aria-label={menuLabel}
+          className="journal-moment-menu-panel"
+        >
+          {editTo ? (
+            <Link
+              role="menuitem"
+              to={editTo}
+              aria-label="Chỉnh sửa khoảnh khắc"
+              onClick={() => {
+                onNavigate?.();
+                close();
+              }}
+            >
+              <Pencil size={16} aria-hidden="true" />
+              Chỉnh sửa
+            </Link>
+          ) : (
+            <button
+              type="button"
+              role="menuitem"
+              aria-label="Chỉnh sửa khoảnh khắc"
+              onClick={() => {
+                close();
+                onEdit?.();
+              }}
+            >
+              <Pencil size={16} aria-hidden="true" />
+              Chỉnh sửa
+            </button>
+          )}
+          <button
+            type="button"
+            role="menuitem"
+            className="is-destructive"
+            onClick={() => {
+              close();
+              onDelete();
+            }}
+          >
+            <Trash2 size={16} aria-hidden="true" />
+            Xóa khoảnh khắc
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function JournalEntryCard({
   entry,
   variant = "compact",
@@ -240,23 +366,12 @@ export function JournalEntryCard({
             <ChevronRight size={17} />
           </Link>
           {variant === "feed" ? (
-            <>
-              <Link
-                to={`/self/entry/${entry.id}?edit=1`}
-                aria-label={`Chỉnh sửa khoảnh khắc lúc ${time}`}
-                onClick={rememberScroll}
-              >
-                Chỉnh sửa
-              </Link>
-              <button
-                type="button"
-                aria-label={`Xóa khoảnh khắc lúc ${time}`}
-                onClick={() => setDeleting(true)}
-              >
-                <Trash2 size={16} />
-                Xóa
-              </button>
-            </>
+            <JournalMomentMenu
+              menuLabel={`Thao tác với khoảnh khắc lúc ${time}`}
+              editTo={`/self/entry/${entry.id}?edit=1`}
+              onNavigate={rememberScroll}
+              onDelete={() => setDeleting(true)}
+            />
           ) : null}
         </div>
         <ErrorNotice error={error} />

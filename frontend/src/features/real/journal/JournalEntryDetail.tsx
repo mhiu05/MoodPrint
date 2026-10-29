@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Pencil, Trash2 } from "lucide-react";
 import { Button, Dialog } from "../../../components/UI";
 import type { JournalEntry } from "../../../api/journal";
 import { ErrorNotice, useResource, useSession } from "../RealApp";
 import { JournalEditor } from "./JournalEditor";
-import { JournalMediaPreview, JournalNav, MoodFace } from "./JournalShared";
+import {
+  JournalMediaPreview,
+  JournalMomentMenu,
+  JournalNav,
+  MoodFace,
+} from "./JournalShared";
 import { formatJournalDate, journalMoodLabels } from "./journalModel";
 import { useJournalToday } from "./JournalPage";
 
@@ -83,14 +87,11 @@ export function JournalEntryDetail() {
           ) : (
             <>
               <div className="journal-detail-actions">
-                <Button variant="secondary" onClick={() => setEditing(true)}>
-                  <Pencil size={17} />
-                  Chỉnh sửa khoảnh khắc
-                </Button>
-                <Button variant="text" onClick={() => setDeleting(true)}>
-                  <Trash2 size={17} />
-                  Xóa khoảnh khắc
-                </Button>
+                <JournalMomentMenu
+                  menuLabel="Thao tác với khoảnh khắc"
+                  onEdit={() => setEditing(true)}
+                  onDelete={() => setDeleting(true)}
+                />
               </div>
               <article className="journal-detail-content">
                 <div className="journal-detail-tags">

@@ -83,7 +83,10 @@ test("a concurrent text edit during attachment upload cannot advance the editor 
   });
   await page.goto(`/#/self/entry/${entry().id}`);
   await page
-    .getByRole("button", { name: "Chỉnh sửa khoảnh khắc", exact: true })
+    .getByRole("button", { name: "Thao tác với khoảnh khắc", exact: true })
+    .click();
+  await page
+    .getByRole("menuitem", { name: "Chỉnh sửa khoảnh khắc", exact: true })
     .click();
   await page
     .getByLabel("Khoảnh khắc của bạn", { exact: true })
@@ -274,7 +277,10 @@ test("failed and stale saves preserve text; dirty navigation waits for a decisio
   await journal(page, [entry()]);
   await page.goto(`/#/self/entry/${entry().id}`);
   await page
-    .getByRole("button", { name: "Chỉnh sửa khoảnh khắc", exact: true })
+    .getByRole("button", { name: "Thao tác với khoảnh khắc", exact: true })
+    .click();
+  await page
+    .getByRole("menuitem", { name: "Chỉnh sửa khoảnh khắc", exact: true })
     .click();
   await page
     .getByLabel("Khoảnh khắc của bạn", { exact: true })
@@ -351,9 +357,15 @@ test("calendar and timeline use real dates, search and paging and open details",
     .getByRole("link", { name: /Mở khoảnh khắc.*23\/10\/2026/ })
     .first()
     .click();
+  await page
+    .getByRole("button", { name: "Thao tác với khoảnh khắc", exact: true })
+    .click();
   await expect(
-    page.getByRole("button", { name: "Chỉnh sửa khoảnh khắc" }),
+    page.getByRole("menuitem", { name: "Chỉnh sửa khoảnh khắc", exact: true }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Xóa khoảnh khắc", exact: true }),
+  ).toHaveCount(0);
 });
 
 test("attachment upload retry keeps one server draft and one reservation", async ({

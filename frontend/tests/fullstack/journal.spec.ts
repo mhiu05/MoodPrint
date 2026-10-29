@@ -73,7 +73,10 @@ test("real journal HTTP/DB preserves two moments and old mood through reload, ed
   ).toBeVisible();
   await page.getByRole("link", { name: /Mở khoảnh khắc ngày/ }).click();
   await page
-    .getByRole("button", { name: "Chỉnh sửa khoảnh khắc", exact: true })
+    .getByRole("button", { name: "Thao tác với khoảnh khắc", exact: true })
+    .click();
+  await page
+    .getByRole("menuitem", { name: "Chỉnh sửa khoảnh khắc", exact: true })
     .click();
   await page
     .getByLabel("Khoảnh khắc của bạn", { exact: true })
@@ -89,7 +92,10 @@ test("real journal HTTP/DB preserves two moments and old mood through reload, ed
     page.getByText("Đã sửa REAL_JOURNAL", { exact: true }),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "Xóa khoảnh khắc", exact: true })
+    .getByRole("button", { name: "Thao tác với khoảnh khắc", exact: true })
+    .click();
+  await page
+    .getByRole("menuitem", { name: "Xóa khoảnh khắc", exact: true })
     .click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page
