@@ -15,7 +15,8 @@ test("public disclosure creates independent anonymous guests with fixed deadline
     expect(one.accountKind).toBe("guest");
     expect(two.userId).not.toBe(one.userId);
     expect(Date.parse(one.guestExpiresAt) - Date.parse(one.guestStartedAt)).toBe(7200000);
-    expect(Object.values(one.consents).every((c: any) => !c.enabled)).toBe(true);
+    expect(["AI", "MEM", "VOICE"].every(purpose => one.consents[purpose].enabled)).toBe(true);
+    expect(one.consents.MATCH.enabled).toBe(false);
     for (const context of [first, second]) {
       for (const path of ["/matching/candidates", "/connections", "/connection-requests"]) {
         const denied = await guestCall(context, "GET", path);
@@ -28,8 +29,8 @@ test("public disclosure creates independent anonymous guests with fixed deadline
     expect(await (await second.request.get(api + "/moods")).text()).not.toContain("GUEST-ONE-PRIVATE");
     await page.setViewportSize({ width: 320, height: 900 });
     await page.goto("/#/settings");
-    const data = page.getByRole("region", { name: "Xóa dữ liệu" });
-    await expect(data.getByText("Dữ liệu của lượt dùng thử chỉ dùng được đến khi hết giờ.")).toBeVisible();
+    const data = page.getByRole("region", { name: "Tài khoản & hỗ trợ" });
+    await expect(page.getByRole("heading", { name: "Cá nhân", exact: true })).toBeVisible();
     await expect(page.getByText(/ngày để bạn tiếp tục trên thiết bị khác/)).toHaveCount(0);
     // The UI must use the guest confirmation path, never password reauthentication.
     await expect(page.getByRole("button", { name: "Tải bản sao dữ liệu", exact: true })).toHaveCount(0);

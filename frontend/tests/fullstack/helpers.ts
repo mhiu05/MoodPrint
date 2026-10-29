@@ -62,11 +62,16 @@ export async function call(
 }
 
 export async function disable(page: Page, name: string) {
-  await page.goto("/#/settings");
-  await page.getByRole("button", { name: `Rút quyền ${name}`, exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: `Rút quyền ${name}`, exact: true }),
-  ).toHaveCount(0);
+  // Social revocation is exercised through the retained API; personal switches are retired.
+  if (name !== "tìm bạn") throw new Error("Personal feature switches have been retired");
+  const snapshot = await page.request.get(api + "/session");
+  expect(snapshot.ok()).toBe(true);
+  const session = await snapshot.json();
+  const response = await page.request.put(api + "/consents/MATCH", {
+    headers: { "X-CSRF-Token": session.csrfToken, "Idempotency-Key": randomUUID() },
+    data: { enabled: false, expectedVersion: session.consents.MATCH.version, policyVersion: "v1" },
+  });
+  expect(response.ok()).toBe(true);
 }
 
 /** Drives the five-step profile editor with the shared synthetic profile. */

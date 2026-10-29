@@ -138,10 +138,10 @@ test("callback: an expired email link explains itself on the login screen", asyn
   await expect(page.getByRole("heading", { name: "Chào bạn trở lại" })).toBeVisible();
 });
 
-test("settings does not offer a data download and keeps account deletion", async ({ page }) => {
+test("personal tab does not offer a data download and keeps account deletion", async ({ page }) => {
   const calls = await api(page, true, {});
   await page.goto("/#/settings");
-  await expect(page.getByRole("heading", { name: "Xóa dữ liệu" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Cá nhân", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Tải bản sao dữ liệu" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Tải xuống cuộc trò chuyện" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Xóa tài khoản" })).toBeVisible();

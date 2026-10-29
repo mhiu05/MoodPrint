@@ -63,7 +63,7 @@ test("MoodPrint identity and short pages stay at the top across all six sizes", 
       await audit(page, "messages", width, height);
       await page.goto("/#/profile");
       await expect(
-        page.getByRole("heading", { name: /^Hồ sơ riêng của/ }),
+        page.getByRole("heading", { name: "Cá nhân", exact: true }),
       ).toBeVisible();
       await audit(page, "profile", width, height);
     }
