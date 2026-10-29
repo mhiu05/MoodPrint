@@ -4,7 +4,6 @@ import {
   BookOpen,
   ArrowLeft,
   PenLine,
-  Sparkles,
   Trash2,
   MoreHorizontal,
   Pencil,
@@ -64,10 +63,6 @@ export function JournalNav() {
       <NavLink to="/self/memories">
         <BookOpen size={17} />
         Khoảnh khắc của bạn
-      </NavLink>
-      <NavLink to="/self/companion">
-        <Sparkles size={17} />
-        Nhìn lại
       </NavLink>
       <NavLink to="/self/calendar">
         <CalendarDays size={17} />

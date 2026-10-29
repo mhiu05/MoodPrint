@@ -14,7 +14,7 @@ test("account-local midnight keeps unsaved text and local media", async ({
   });
   await page.goto("/#/self");
   await page
-    .getByLabel("Khoảnh khắc của bạn", { exact: true })
+    .getByRole("textbox", { name: "Ghi lại khoảnh khắc", exact: true })
     .fill("Đang viết qua nửa đêm");
   await page
     .getByLabel("Thêm hình ảnh", { exact: true })
@@ -29,7 +29,7 @@ test("account-local midnight keeps unsaved text and local media", async ({
     "2026-10-24",
   );
   await expect(
-    page.getByLabel("Khoảnh khắc của bạn", { exact: true }),
+    page.getByRole("textbox", { name: "Ghi lại khoảnh khắc", exact: true }),
   ).toHaveValue("Đang viết qua nửa đêm");
   await expect(page.getByText("chua-luu.png", { exact: true })).toBeVisible();
 });
@@ -89,7 +89,7 @@ test("a concurrent text edit during attachment upload cannot advance the editor 
     .getByRole("menuitem", { name: "Chỉnh sửa khoảnh khắc", exact: true })
     .click();
   await page
-    .getByLabel("Khoảnh khắc của bạn", { exact: true })
+    .getByRole("textbox", { name: "Ghi lại khoảnh khắc", exact: true })
     .fill("Phần đang viết của mình");
   await page
     .getByLabel("Thêm hình ảnh", { exact: true })
@@ -108,7 +108,7 @@ test("a concurrent text edit during attachment upload cannot advance the editor 
     page.getByRole("button", { name: "Lưu khoảnh khắc", exact: true }),
   ).toBeDisabled();
   await expect(
-    page.getByLabel("Khoảnh khắc của bạn", { exact: true }),
+    page.getByRole("textbox", { name: "Ghi lại khoảnh khắc", exact: true }),
   ).toHaveValue("Phần đang viết của mình");
 });
 
@@ -230,7 +230,7 @@ test("journal saves a complete moment and restores a server draft without local 
   await page.getByRole("checkbox", { name: "Biết ơn", exact: true }).check();
   await page.getByRole("checkbox", { name: "Gia đình", exact: true }).check();
   await page
-    .getByLabel("Khoảnh khắc của bạn", { exact: true })
+    .getByRole("textbox", { name: "Ghi lại khoảnh khắc", exact: true })
     .fill("Cùng gia đình đi dạo.");
   await page.getByRole("button", { name: "Lưu bản nháp", exact: true }).click();
   await expect(
@@ -250,7 +250,7 @@ test("journal saves a complete moment and restores a server draft without local 
   await page.getByText("1 bản nháp đã lưu").click();
   await page.getByRole("link", { name: /Mở bản nháp/ }).click();
   await expect(
-    page.getByLabel("Khoảnh khắc của bạn", { exact: true }),
+    page.getByRole("textbox", { name: "Ghi lại khoảnh khắc", exact: true }),
   ).toHaveValue("Cùng gia đình đi dạo.");
   await page
     .getByRole("button", { name: "Lưu khoảnh khắc", exact: true })
@@ -283,7 +283,7 @@ test("failed and stale saves preserve text; dirty navigation waits for a decisio
     .getByRole("menuitem", { name: "Chỉnh sửa khoảnh khắc", exact: true })
     .click();
   await page
-    .getByLabel("Khoảnh khắc của bạn", { exact: true })
+    .getByRole("textbox", { name: "Ghi lại khoảnh khắc", exact: true })
     .fill("Bản nháp cần giữ");
   await page.route(`**/api/v1/journal/entries/${entry().id}`, (route) =>
     route.request().method() === "PUT"
@@ -303,7 +303,7 @@ test("failed and stale saves preserve text; dirty navigation waits for a decisio
     .click();
   await expect(page.getByRole("alert")).toContainText("thay đổi");
   await expect(
-    page.getByLabel("Khoảnh khắc của bạn", { exact: true }),
+    page.getByRole("textbox", { name: "Ghi lại khoảnh khắc", exact: true }),
   ).toHaveValue("Bản nháp cần giữ");
   await page
     .getByRole("link", { name: "Lịch nhật ký", exact: true })
@@ -316,7 +316,7 @@ test("failed and stale saves preserve text; dirty navigation waits for a decisio
     .getByRole("button", { name: "Tiếp tục viết", exact: true })
     .click();
   await expect(
-    page.getByLabel("Khoảnh khắc của bạn", { exact: true }),
+    page.getByRole("textbox", { name: "Ghi lại khoảnh khắc", exact: true }),
   ).toHaveValue("Bản nháp cần giữ");
 });
 
@@ -506,12 +506,12 @@ test("microphone denial preserves writing; local video can be previewed and remo
   const requests = await journal(page);
   await page.goto("/#/self");
   await page
-    .getByLabel("Khoảnh khắc của bạn", { exact: true })
+    .getByRole("textbox", { name: "Ghi lại khoảnh khắc", exact: true })
     .fill("Vẫn giữ lời viết của mình.");
   await page.getByRole("button", { name: "Ghi âm", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText("quyền dùng micro");
   await expect(
-    page.getByLabel("Khoảnh khắc của bạn", { exact: true }),
+    page.getByRole("textbox", { name: "Ghi lại khoảnh khắc", exact: true }),
   ).toHaveValue("Vẫn giữ lời viết của mình.");
   await page.getByLabel("Thêm video", { exact: true }).setInputFiles({
     name: "moment.webm",
@@ -727,35 +727,7 @@ test("timeline attachment previews open lazily and mood/media filters work", asy
   ).toHaveCount(0);
 });
 
-test("companion suggestions prefill the existing Nhịp composer without sending", async ({
-  page,
-}) => {
-  const writes = await journal(page);
-  await page.route("**/api/v1/bots", (route) =>
-    route.fulfill({
-      json: [
-        {
-          botId: "nhip",
-          name: "Nhịp",
-          role: "Nhìn lại cảm xúc",
-          description: "Cùng bạn nhìn lại nhật ký.",
-          starters: [],
-          avatarKey: "nhip",
-        },
-      ],
-    }),
-  );
-  await page.goto("/#/self/companion");
-  await page
-    .getByRole("link", { name: "Điều gì khiến mình vui nhất?", exact: true })
-    .click();
-  await expect(page.locator("textarea")).toHaveValue(
-    "Điều gì khiến mình vui nhất?",
-  );
-  expect(writes.filter((request) => request.method !== "GET")).toHaveLength(0);
-});
-
-test("six journal experiences have accessible rendered evidence", async ({
+test("journal experiences have accessible rendered evidence", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -790,7 +762,6 @@ test("six journal experiences have accessible rendered evidence", async ({
     ["01-checkin-mobile", "/self", "Nhật ký cảm xúc"],
     ["04-calendar-mobile", "/self/calendar", "Lịch nhật ký"],
     ["05-timeline-mobile", "/self/memories", "Khoảnh khắc của bạn"],
-    ["06-companion-mobile", "/self/companion", "Nhịp đồng hành"],
   ]) {
     await page.goto(`/#${route}`);
     await expect(
@@ -823,10 +794,6 @@ test("six journal experiences have accessible rendered evidence", async ({
       fullPage: true,
     });
   }
-  await page.goto("/#/self");
-  await page
-    .locator(".journal-discovery")
-    .screenshot({ path: path.join(output, "03-discovery-mobile.png") });
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.evaluate(() => {
     (document.activeElement as HTMLElement)?.blur();
@@ -838,7 +805,7 @@ test("six journal experiences have accessible rendered evidence", async ({
   });
   await page.setViewportSize({ width: 390, height: 1000 });
   await page
-    .getByLabel("Khoảnh khắc của bạn", { exact: true })
+    .getByRole("textbox", { name: "Ghi lại khoảnh khắc", exact: true })
     .fill(
       "Mình đã dành một khoảng nghỉ nhỏ. Một lời viết, một hình ảnh và âm thanh để nhớ lại.",
     );
@@ -922,9 +889,6 @@ for (const width of [360, 390, 430, 768, 1024, 1440]) {
       ),
     ).toBeLessThanOrEqual(1);
     if (width < 768) {
-      const editor = await page.locator(".journal-editor").boundingBox();
-      const explore = await page.locator(".journal-discovery").boundingBox();
-      expect(explore!.y).toBeGreaterThan(editor!.y + editor!.height);
       const nav = page.getByRole("navigation", { name: "Điều hướng chính" });
       expect((await nav.boundingBox())!.y).toBeGreaterThan(800);
     }
