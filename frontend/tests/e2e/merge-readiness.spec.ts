@@ -305,7 +305,7 @@ test.describe("human chat starters and receipts (MR01/MR02)", () => {
     await starter(0).click();
     await expect(box).toHaveValue(text);
     await expect(box).toBeFocused();
-    await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toBeVisible();
+    await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toHaveCount(0);
     expect(writes).toEqual([]);
   });
 
@@ -645,7 +645,7 @@ test.describe("conversation-scoped notices (MR08)", () => {
     await mount(page);
     await openChat(page, A);
     await page.getByRole("button", { name: "Hôm nay mình hơi mệt", exact: true }).click();
-    await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toBeVisible();
+    await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toHaveCount(0);
     await selectChat(page, B);
     await expect(page.locator("[data-route-heading]")).toBeVisible();
     await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toHaveCount(0);
@@ -656,7 +656,7 @@ test.describe("conversation-scoped notices (MR08)", () => {
     await mount(page);
     await openChat(page, A);
     await page.getByRole("button", { name: "Hôm nay mình hơi mệt", exact: true }).click();
-    await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toBeVisible();
+    await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toHaveCount(0);
     await requestNew(page);
     await expect(page).toHaveURL(/new=/);
     await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toHaveCount(0);

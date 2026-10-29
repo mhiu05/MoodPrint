@@ -923,7 +923,7 @@ test("AI starter prepares an editable draft without any consent or message write
   await page.getByRole("button", { name: "Hôm nay mình hơi mệt", exact: true }).click();
   await expect(draft).toHaveValue("Hôm nay mình hơi mệt");
   await expect(draft).toBeFocused();
-  await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toHaveCount(0);
   await draft.press("End");
   await draft.pressSequentially(" quá");
   await expect(draft).toHaveValue("Hôm nay mình hơi mệt quá");

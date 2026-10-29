@@ -1202,7 +1202,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       return;
     }
     editDraft(result.next);
-    setDraftNotice("Đã thêm gợi ý vào ô nhắn.");
+    setDraftNotice("");
     requestAnimationFrame(() => {
       field?.focus();
       field?.setSelectionRange(result.caret, result.caret);
