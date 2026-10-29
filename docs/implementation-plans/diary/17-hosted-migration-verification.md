@@ -1,6 +1,6 @@
 # Hosted migration verification
 
-Status: **BLOCKED**. Migration `0019_journal` was not applied.
+Status: **APPLIED**. Migration `0019_journal` is on the hosted project. The sections below keep the earlier block and the gates that cleared it.
 
 ## Identity
 
@@ -46,14 +46,20 @@ Do not drop tables that were not created. When a later authorized release is dep
 
 ## Continuation — artifact, backup, and local rehearsal
 
-Hosted DDL is still not applied. The serving image still accepts only `0018_app_feedback`.
+The notes below record the state before the hosted apply. The apply itself is in the next section.
 
 | Gate | Result |
 | --- | --- |
-| Compatibility release | Pull request [#24](https://github.com/mhiu05/MoodPrint/pull/24) accepts `0018_app_feedback` and `0019_journal` on the pre-journal application. It is not merged and not deployed. |
+| Compatibility release | Pull request [#24](https://github.com/mhiu05/MoodPrint/pull/24) merged as `faeffff`. It accepts `0018_app_feedback` and `0019_journal` and was confirmed live before DDL. |
 | Reviewed SQL | `deploy/supabase/reviewed-sql/0019-review.sql`, SHA256 `6062c0c8d86a12aaab56e0db0d39ce23f2fffa6543092ce417ac15e4623f2535`. Offline export matches. No `DROP` or `TRUNCATE`. |
 | Provider backups | Still `pitr_enabled = false`, `walg_enabled = true`, `backups` empty. That is not a provider restore point. |
 | Logical backup | Custom-format dump of the hosted database, restored with `--schema=moodprint` into disposable local Postgres 17. Revision `0018_app_feedback`, 49 tables, 552 rows, and every per-table count matched the hosted database, including 6 `moods` and 6 `users`. Supabase-managed schemas were not restored locally. |
 | Upgrade rehearsal | `apply_supabase_review.py --upgrade 0019 --rehearse-url` on a copy of that restore: all checks PASS, including preserved rows, RLS, runtime DML, denied API roles, and unchanged auth structure. The untouched restore copy remains `0018_app_feedback`. |
 
-The dump file is `E:\MoodPrint-backups\moodprint-0018-pre-journal.dump`. It is outside the repository and contains the hosted rows, so it must not be committed. Apply the hosted upgrade only after the compatibility image is the one serving `https://moodprint.duckdns.org`.
+The dump files under `E:\MoodPrint-backups\` are outside the repository and contain the hosted rows, so they must not be committed.
+
+## Hosted apply
+
+Applied only after `https://moodprint.duckdns.org` served the compatibility release: `Last-Modified` moved from `Thu, 29 Oct 2026 03:36:31 GMT` to `Thu, 29 Oct 2026 14:11:00 GMT`, and readiness stayed 200. A second dump, taken immediately before DDL, restored with the same 49-table and 552-row match.
+
+`scripts/apply_supabase_review.py --upgrade 0019 --apply` committed on `roznanxbiyqybjpvtilq`. Every check passed. A later read-only check saw `0019_journal`, the three journal tables with RLS enabled, and unchanged counts of 6 moods and 6 users. Live readiness stayed 200. Report: [0019-execution.json](../../../deploy/supabase/reports/0019-execution.json). Roll back by serving the compatibility image. Do not drop the new tables.

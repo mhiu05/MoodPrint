@@ -141,7 +141,7 @@ Identity field và reveal grant là dữ liệu riêng: người dùng chủ đ�
 
 Schema private `moodprint` ngoài Supabase Data API. Authorization hiện tại dựa backend ownership/purpose/pair gates và runtime role tối thiểu; không tuyên bố đã có bộ RLS end-user cho schema này. Role migration tách runtime. ORM đặt `hide_parameters=True`, psycopg `prepare_threshold=None`.
 
-Head hiện tại `0018_app_feedback`; readiness chỉ chấp nhận giá trị trong `READY_REVISIONS` và yêu cầu provider-session helper. Không tự migration khi startup. Local Alembic runner từ chối remote host; hosted DDL đi qua SQL review/approval riêng. [Runbook migration](docs/supabase/migrations.md) giải thích database disposable và hosted workflow.
+Ứng dụng journal chỉ chấp nhận `0019_journal` trong `READY_REVISIONS`, và yêu cầu provider-session helper. Image tương thích ngay trước đó chấp nhận cả `0018_app_feedback` lẫn `0019_journal` và không đọc bảng journal; đó là rollback target sau upgrade cộng thêm. Không tự migration khi startup. Local Alembic runner từ chối remote host; hosted DDL đi qua SQL review/approval riêng. [Runbook migration](docs/supabase/migrations.md) giải thích database disposable và hosted workflow.
 
 Góp ý tự nguyện lưu riêng trong `app_feedback`, không có FK/định danh người gửi. Receipt ngắn hạn dùng cho ownership/idempotency và bị xóa khi purge; góp ý còn lại tối đa180 ngày theo policy đang chờ D03. Admin review có cờ riêng, role hiện hành và reauthentication; không nối với lịch sử riêng. Hướng dẫn tùy chọn dùng inline controller theo route; guest giữ trạng thái trong RAM, spotlight chưa được chấp nhận. Xem [release gates](docs/guest-experience/implementation/evidence/release-readiness.md).
 

@@ -11,11 +11,11 @@ Verdict: **READY_FOR_REVIEW**. Not ready for production release.
 
 ## Not ready for release
 
-1. Hosted migration `0019_journal` is still **not applied**. The deployed application accepts only `0018_app_feedback`. Compatibility pull request [#24](https://github.com/mhiu05/MoodPrint/pull/24) must be merged and confirmed live before any hosted DDL. See [17](17-hosted-migration-verification.md).
-2. The reviewed `0019` artifact is pinned and a restored copy rehearsed the upgrade with existing rows preserved. Provider daily backups are still empty and PITR is off; the recovery artifact is the logical dump, not a WAL-G restore.
+1. Hosted migration `0019_journal` is **applied** and the compatibility image stayed ready. See [17](17-hosted-migration-verification.md). This diary application still must not be merged until its own CI is green on the merge that keeps readiness at `0019_journal` only.
+2. Provider daily backups are still empty and PITR is off. Recovery of the application schema was rehearsed from the logical dump taken immediately before the upgrade. That does not restore Storage objects or Supabase-managed schemas.
 3. Authenticated export routes remain. See [19](19-export-removal-audit.md).
 4. The new Nhịp payload assertion and the updated fullstack export journeys were not re-run against PostgreSQL here.
-5. No production image of this branch was built or deployed. Do not merge this branch while the database is still `0018_app_feedback`.
+5. No production image of this branch has been deployed yet. The database is now `0019_journal`, so this branch may merge after CI passes on the resolution that accepts only that revision.
 
 ## Release order when authorized
 
