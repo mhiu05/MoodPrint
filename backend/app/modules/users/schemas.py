@@ -8,7 +8,7 @@ from app.contracts import DTO, VersionInput
 
 
 class DeletionInput(VersionInput):
-    scope: Literal["memories", "moods", "private_items", "all_private", "account"]
+    scope: Literal["memories", "moods", "journal", "private_items", "all_private", "account"]
     # A guest has no password: an explicit confirmation replaces step-up. Registered accounts
     # ignore it and keep their recent-reauthentication rule.
     guest_confirmation: Literal["guest-data-v1"] | None = None
@@ -23,8 +23,8 @@ class DataJobView(DTO):
 
 
 class ExportInput(DTO):
-    # Joined scopes must fit data_jobs.scope (String(64)); six names use 51 characters.
+    # All seven distinct names fit data_jobs.scope (String(64)): 60 characters.
     scopes: list[
-        Literal["account", "private_items", "memories", "moods", "consents", "social"]
-    ] = Field(min_length=1, max_length=6)
+        Literal["account", "private_items", "memories", "moods", "journal", "consents", "social"]
+    ] = Field(min_length=1, max_length=7)
     guest_confirmation: Literal["guest-data-v1"] | None = None

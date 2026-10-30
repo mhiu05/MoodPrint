@@ -44,4 +44,4 @@ Mặc định database pool 8 + overflow 4, pool timeout 10 giây; đây là c�
 
 ## Rollback
 
-App rollback dùng image trước trên expanded schema tương thích và phải đáp ứng readiness thực tế. Head hiện tại chỉ chấp nhận `0018_app_feedback`; không áp dụng nguyên tắc “mọi head trước đều ready” nếu `READY_REVISIONS` không liệt kê. Alembic destructive downgrade bị từ chối trong migrations. Hosted schema change và restore cần review riêng; xem [migrations](../supabase/migrations.md).
+App rollback dùng image trước trên expanded schema tương thích và phải đáp ứng readiness thực tế. Ứng dụng journal chỉ chấp nhận `0019_journal`. Image tương thích ngay trước đó chấp nhận `0018_app_feedback` và `0019_journal`, nên nó vẫn ready sau upgrade cộng thêm và là rollback target. Không downgrade schema để rollback. Alembic destructive downgrade bị từ chối trong migrations. Hosted schema change và restore cần review riêng; xem [migrations](../supabase/migrations.md).

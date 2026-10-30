@@ -86,6 +86,7 @@ export async function app(page: Page, session: unknown, routes: Routes = {}) {
       [`/connections/${room.id}/activities/current`]: null,
       [`/connections/${room.id}/reveal-requests`]: [],
       "/profiles/published/current": null,
+      "/journal/entries": { items: [], total: 0, offset: 0, limit: 12 },
     };
     if (request.method() === "GET" && path in fixed) return route.fulfill({ json: fixed[path] });
     return route.fulfill({ status: 404, json: { error: { code: "NOT_FOUND", message: "Missing fixture" } } });

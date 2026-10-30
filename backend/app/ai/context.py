@@ -12,6 +12,7 @@ MAX_HISTORY_MESSAGES = 24
 MAX_CONTEXT_BYTES = 24_000
 TEXT_POLICY = "text-v1"
 MOOD_TURN_POLICY = "mood-turn-v1"
+JOURNAL_TURN_POLICY = "journal-turn-v1"
 
 
 @dataclass(frozen=True)
@@ -54,7 +55,7 @@ def model_messages(
     Every dependent user/bot message before a boundary is excluded. Legacy or
     unrecognized policy stamps fail closed: their inputs may already contain
     revoked derivatives even when their data_version happens to match today.
-    Mood access expires after its HTTP turn, including when scope is reselected.
+    Mood and journal evidence expires after its current run, including reselected scopes.
     """
     result = []
     for message in reversed(messages):
@@ -62,8 +63,8 @@ def model_messages(
         if (
             stamp is None
             or stamp.data_version != data_version
-            or stamp.policy not in (TEXT_POLICY, MOOD_TURN_POLICY)
-            or (stamp.policy == MOOD_TURN_POLICY and message.run_id != current_run)
+            or stamp.policy not in (TEXT_POLICY, MOOD_TURN_POLICY, JOURNAL_TURN_POLICY)
+            or (stamp.policy in (MOOD_TURN_POLICY, JOURNAL_TURN_POLICY) and message.run_id != current_run)
         ):
             break
         result.append(message)

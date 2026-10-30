@@ -108,6 +108,7 @@ async def test_memory_reapproval_does_not_resume_withdrawn_voyage_processing(cli
 @pytest.mark.parametrize("bot_id", ["may", "guong", "nhip", "rure", "caunoi"])
 async def test_every_assistant_rebuilds_context_from_postgres_after_runtime_restart(clients, bot_id):
     from app.ai.evidence import source_instructions
+    from app.ai.journal import journal_instructions
     from app.ai.prompts import conversation_instructions, instructions
     from app.ai.runtime import AiRuntime
     from tests.test_memory import enable as enable_memory
@@ -139,9 +140,11 @@ async def test_every_assistant_rebuilds_context_from_postgres_after_runtime_rest
     assert second.status_code == 202
     restored_run = app.state.ai.runs[__import__("uuid").UUID(second.json()["runId"])]
     await restored_run.task
+    assert restored_run.terminal_status == "completed"
     expected_intent = {'may':'conversation','guong':'reflection','nhip':'conversation','rure':'activity','caunoi':'connection'}[bot_id]
     assert model.calls[0]["instructions"] == (
         instructions(bot_id) + source_instructions(restored_run, bot_id, mood_analysis=False)
+        + (journal_instructions(restored_run) if bot_id == "nhip" else "")
         + conversation_instructions(bot_id, expected_intent)
     )
     history = json.dumps(model.calls[0]["input"])
@@ -154,7 +157,8 @@ async def test_every_assistant_rebuilds_context_from_postgres_after_runtime_rest
         assert "Approved synthetic watercolor memory" not in history
     tools = {tool.name for tool in model.calls[0]["tools"]}
     assert tools == ({"propose_memory", "propose_private_item"} if bot_id == "guong" else
-                     {"propose_memory"} if bot_id in ("may", "nhip") else set())
+                     {"propose_memory", "search_journal_entries"} if bot_id == "nhip" else
+                     {"propose_memory"} if bot_id == "may" else set())
     assert (await actors[1][0].get(url)).status_code == 404
 
 

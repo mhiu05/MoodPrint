@@ -56,51 +56,59 @@ async def verify_session(db: AsyncSession, session: AuthSession, user: User) -> 
         raise DomainError(401, "SESSION_EXPIRED", "Phiên đã kết thúc. Vui lòng đăng nhập lại.")
 
 
-async def require_actor(request: Request) -> Actor:
+async def load_actor(request: Request, db: AsyncSession) -> tuple[Actor, User]:
+    """Authenticate on a connection the caller keeps.
+
+    Session reads build the view on this same checkout. A second checkout queues
+    behind the pool when many sessions are read at once.
+    """
     token = request.cookies.get("moodprint_session")
     if not token:
         raise DomainError(401, "AUTH_REQUIRED", "Vui lòng đăng nhập.")
+    identity = (
+        await db.execute(
+            select(AuthSession, User)
+            .join(User, User.id == AuthSession.user_id)
+            .where(AuthSession.token_hash == digest(token))
+        )
+    ).one_or_none()
+    if identity is None:
+        raise DomainError(401, "SESSION_EXPIRED", "Phiên đã kết thúc. Vui lòng đăng nhập lại.")
+    session, user = identity
+    await verify_session(db, session, user)
+    if user.account_kind == "guest":
+        # Conservative bound for the outermost output guard (never a lifetime grant).
+        request.state.guest_output = await guest_deadline(db, user)
+    idle = timedelta(hours=request.app.state.settings.session_idle_hours)
+    if user.account_kind == "registered" and session.expires_at < now() + idle - timedelta(
+        minutes=15
+    ):
+        # Sliding idle expiry, written at most every 15 minutes per session. A guest session
+        # is capped at the immutable trial deadline and is never renewed.
+        await db.execute(
+            update(AuthSession)
+            .where(AuthSession.id == session.id, AuthSession.revoked.is_(False))
+            .values(expires_at=now() + idle)
+        )
+        # Matching hides users inactive for 30 days; same 15-minute write cadence.
+        await db.execute(update(User).where(User.id == user.id).values(last_seen_at=now()))
+        await db.commit()
+    if request.method not in ("GET", "HEAD", "OPTIONS"):
+        csrf = request.headers.get("X-CSRF-Token", "")
+        if not csrf or not hmac.compare_digest(digest(csrf), session.csrf_hash):
+            raise DomainError(403, "CSRF_DENIED", "Phiên xác nhận đã thay đổi. Vui lòng tải lại.")
+        origin = request.headers.get("Origin")
+        if origin and origin.rstrip("/") != request.app.state.settings.frontend_origin.rstrip("/"):
+            raise DomainError(403, "ORIGIN_DENIED", "Nguồn yêu cầu không hợp lệ.")
+    return Actor(user.id, session.id, user.auth_version, user.account_kind), user
+
+
+async def require_actor(request: Request) -> Actor:
+    if not request.cookies.get("moodprint_session"):
+        raise DomainError(401, "AUTH_REQUIRED", "Vui lòng đăng nhập.")
     async with request.app.state.database.require()() as db:
-        identity = (
-            await db.execute(
-                select(AuthSession, User)
-                .join(User, User.id == AuthSession.user_id)
-                .where(AuthSession.token_hash == digest(token))
-            )
-        ).one_or_none()
-        if identity is None:
-            raise DomainError(401, "SESSION_EXPIRED", "Phiên đã kết thúc. Vui lòng đăng nhập lại.")
-        session, user = identity
-        await verify_session(db, session, user)
-        if user.account_kind == "guest":
-            # Conservative bound for the outermost output guard (never a lifetime grant).
-            request.state.guest_output = await guest_deadline(db, user)
-        idle = timedelta(hours=request.app.state.settings.session_idle_hours)
-        if user.account_kind == "registered" and session.expires_at < now() + idle - timedelta(
-            minutes=15
-        ):
-            # Sliding idle expiry, written at most every 15 minutes per session. A guest session
-            # is capped at the immutable trial deadline and is never renewed.
-            await db.execute(
-                update(AuthSession)
-                .where(AuthSession.id == session.id, AuthSession.revoked.is_(False))
-                .values(expires_at=now() + idle)
-            )
-            # Matching hides users inactive for 30 days; same 15-minute write cadence.
-            await db.execute(update(User).where(User.id == user.id).values(last_seen_at=now()))
-            await db.commit()
-        if request.method not in ("GET", "HEAD", "OPTIONS"):
-            csrf = request.headers.get("X-CSRF-Token", "")
-            if not csrf or not hmac.compare_digest(digest(csrf), session.csrf_hash):
-                raise DomainError(
-                    403, "CSRF_DENIED", "Phiên xác nhận đã thay đổi. Vui lòng tải lại."
-                )
-            origin = request.headers.get("Origin")
-            if origin and origin.rstrip("/") != request.app.state.settings.frontend_origin.rstrip(
-                "/"
-            ):
-                raise DomainError(403, "ORIGIN_DENIED", "Nguồn yêu cầu không hợp lệ.")
-        return Actor(user.id, session.id, user.auth_version, user.account_kind)
+        actor, _user = await load_actor(request, db)
+        return actor
 
 
 async def require_registered_actor(actor: Actor = Depends(require_actor)) -> Actor:

@@ -22,7 +22,7 @@ def test_ready_revisions_cover_the_reviewed_migration_window():
     from app.core.revisions import READY_REVISIONS
 
     assert READY_REVISIONS == (
-        "0018_app_feedback",
+        "0019_journal",
     )
 
 
@@ -37,7 +37,8 @@ def test_ready_revisions_cover_the_reviewed_migration_window():
         ("0015_context_privacy", 503),
         ("0016_guest_foundation", 503),
         ("0017_guest_security", 503),
-        ("0018_app_feedback", 200),
+        ("0018_app_feedback", 503),
+        ("0019_journal", 200),
         ("0017_unreviewed", 503),
     ],
 )

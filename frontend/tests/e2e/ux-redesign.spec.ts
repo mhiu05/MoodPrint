@@ -482,8 +482,9 @@ test.describe("conversation info surface", () => {
     await savedChat(page, { session: sessionWith({ AI: false }, { features: { ai: false, aiStatus: "disabled", matching: true, voice: false } }) });
     await infoButton(page).click();
     const panel = page.getByRole("region", { name: "Thông tin cuộc trò chuyện" });
-    for (const name of ["Đổi tên", "Tải xuống cuộc trò chuyện", "Xóa cuộc trò chuyện"])
+    for (const name of ["Đổi tên", "Xóa cuộc trò chuyện"])
       await expect(panel.getByRole("button", { name, exact: true })).toBeVisible();
+    await expect(panel.getByRole("button", { name: "Tải xuống cuộc trò chuyện", exact: true })).toHaveCount(0);
     await expect(panel).toContainText("Đã lưu");
     await page.unrouteAll({ behavior: "ignoreErrors" });
     await savedChat(page, { thread: { persistent: false, title: null } });
@@ -651,7 +652,7 @@ test.describe("privacy and memory comprehension", () => {
     await app(page, sessionWith({ AI: true, MEM: false, MATCH: true, VOICE: false }), { "/ai/preferences": () => ({ json: prefs }) });
     await page.goto("/#/settings");
     await expect(page.getByRole("heading", { level: 2 })).toContainText([
-      "Tin nhắn AI", "Lịch sử trò chuyện", "Thông tin AI ghi nhớ", "Hồ sơ và kết nối", "Xuất hoặc xóa dữ liệu",
+      "Tin nhắn AI", "Lịch sử trò chuyện", "Thông tin AI ghi nhớ", "Hồ sơ và kết nối", "Xóa dữ liệu",
     ]);
     const ai = page.getByRole("region", { name: "Tin nhắn AI" });
     await expect(ai.getByRole("button", { name: "Rút quyền trò chuyện AI" })).toBeVisible();
@@ -891,7 +892,7 @@ test.describe("personal journeys", () => {
       saved = { localDate: "2026-10-23", value: body.value, note: body.note, version: 1 };
       return route.fulfill({ json: saved });
     });
-    await page.goto("/#/self");
+    await page.goto("/#/self/daily");
     await page.getByLabel("Tâm trạng", { exact: true }).selectOption("4");
     await page.getByRole("button", { name: "Lưu tâm trạng", exact: true }).click();
     await expect(page.getByText("Đã lưu cảm xúc ngày 23/10/2026.", { exact: true })).toBeVisible();
@@ -931,7 +932,7 @@ test.describe("accessibility sweep", () => {
         ["settings", "/#/settings", "Tin nhắn AI"],
         ["memory", "/#/memory", "Đề xuất chờ duyệt"],
         ["messages", "/#/messages", "Tin nhắn"],
-        ["mood", "/#/self", "Tâm trạng"],
+        ["mood", "/#/self/daily", "Tâm trạng"],
         ["human", `/#/chat/${room.id}`, "Bắt đầu cuộc trò chuyện"],
       ] as const) {
         await page.goto(url);

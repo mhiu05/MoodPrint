@@ -17,6 +17,8 @@ class Settings(EmbeddingSettings, BaseSettings):
     database_pool_mode: Literal["direct", "session", "transaction"] = "session"
     supabase_url: str = ""
     supabase_publishable_key: SecretStr = SecretStr("")
+    # Server-only private journal Storage credential. Never exported through session DTOs.
+    journal_storage_key: SecretStr = SecretStr("")
     frontend_origin: str = "http://127.0.0.1:5173"
     cookie_secure: bool = False
     openai_api_key: SecretStr = SecretStr("")

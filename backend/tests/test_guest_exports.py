@@ -17,6 +17,21 @@ LIFETIME = timedelta(seconds=7200)
 CONFIRM = "guest-data-v1"
 
 
+async def test_quota_heartbeat_reports_trial_expiry_instead_of_generic_fence(clients):
+    from app.core.errors import DomainError
+    from app.modules.guests.limits import maintain_guest_quota
+    from tests.test_guest_quotas import claim
+
+    app, _ = clients
+    guest = await add_guest(app, started_ago=LIFETIME-timedelta(seconds=2))
+    ticket = await claim(app, guest)
+    async def held():
+        async with maintain_guest_quota(app.state.database, guest.user_id, "ai", ticket):
+            await asyncio.Event().wait()
+    with pytest.raises(DomainError, match="GUEST_EXPIRED"):
+        await asyncio.wait_for(held(), 5)
+
+
 def headers():
     return {"Idempotency-Key": str(uuid4())}
 

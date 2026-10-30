@@ -9,6 +9,7 @@ ORM kế thừa `Base` trong [database/models.py](../../backend/app/infrastructu
 | Account | `users`, `auth_sessions`, `age_declarations` | Auth subject, age/status, session hash, version |
 | Consent | `consents`, `consent_events` | Purpose state/version và lịch sử thay đổi |
 | Personal | `private_items`, `moods`, `memories` | Private profile, mood theo ngày, memory được duyệt |
+| Journal | `journal_entries`, `journal_media`, `journal_storage_deletions` | Nhiều khoảnh khắc/ngày, metadata media riêng tư; hàng đợi xóa object tồn tại sau khi xóa tài khoản |
 | Write coordination | `idempotency_keys`, `outbox` | Receipts; outbox giữ compatibility, không delivery active |
 | AI metadata | `ai_runs`, `ai_usage`, `ai_turns` | Run status/accounting, content-free coordination/policy stamps |
 | AI history | `ai_preferences`, `ai_conversations`, `ai_messages` | Preference và transcript opted-in |
@@ -48,6 +49,7 @@ erDiagram
 ## Invariants quan trọng
 
 - App `users.id` và Supabase `auth_subject` có vai trò khác nhau; không giả định luôn bằng nhau. Synthetic fixture có thể dùng cùng UUID nhưng production login không bắt buộc như vậy.
+- `journal_entries` không có unique owner/ngày; giữ nguyên bảng `moods` và ghi chú cũ. Media bytes ở Supabase Storage riêng tư, không trong PostgreSQL. `journal_storage_deletions` không có FK về user để retry xóa khi tài khoản đã được dọn; xem [Storage](journal-storage.md).
 - `ai_turns` chứa policy/version/digest/lease metadata, không raw temporary transcript. Persistent text nằm trong `ai_messages` theo opt-in.
 - `published_profiles.payload` là snapshot public được validation; không join private items/moods/memory vào retrieval.
 - Profile/consent versions được snapshot trong candidate refs, recheck trước thao tác. Ref 15 phút không miễn recheck trong thời gian còn hạn.

@@ -184,13 +184,9 @@ test("real saved history requires opt-in, resumes by URL, and stays manageable a
   ).toBeVisible();
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
-  const downloaded = page.waitForEvent("download");
-  await page
-    .getByRole("button", { name: "Tải xuống cuộc trò chuyện", exact: true })
-    .click();
-  expect((await downloaded).suggestedFilename()).toBe(
-    `moodprint-conversation-${conversationId}.json`,
-  );
+  await expect(
+    page.getByRole("button", { name: "Tải xuống cuộc trò chuyện", exact: true }),
+  ).toHaveCount(0);
   await page
     .getByRole("button", { name: "Xóa cuộc trò chuyện", exact: true })
     .click();

@@ -1,7 +1,6 @@
 import { artifactPath } from "../artifacts";
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { readFile } from "node:fs/promises";
 import {
   call,
   connectByApi,
@@ -40,10 +39,10 @@ async function axe(page: Page) {
   ).toEqual([]);
 }
 
-test("Journey E: export contains only the owner's own data and downloads once", async ({
+test("Journey E: settings does not offer a download and moods stay on the owner session", async ({
   browser,
 }) => {
-  const context = await browser.newContext({ acceptDownloads: true });
+  const context = await browser.newContext();
   await session(context, 13);
   const page = await context.newPage();
   const now = (await call(context, 13, "GET", "/session")).body.serverTime;
@@ -54,29 +53,16 @@ test("Journey E: export contains only the owner's own data and downloads once", 
     expectedVersion: 0,
   });
   await page.goto("/#/settings");
-  const download = page.waitForEvent("download");
-  await page
-    .getByRole("button", { name: "Tải bản sao dữ liệu", exact: true })
-    .click();
-  const file = await (await download).path();
-  const data = JSON.parse(await readFile(file!, "utf-8"));
-  expect(data.moods.map((m: { note: string }) => m.note)).toEqual([
+  await expect(
+    page.getByRole("button", { name: "Tải bản sao dữ liệu", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "Xóa dữ liệu", exact: true }),
+  ).toBeVisible();
+  const moods = await call(context, 13, "GET", "/moods");
+  expect(moods.body.map((item: { note: string }) => item.note)).toEqual([
     "EXPORT_OWN_NOTE",
   ]);
-  expect(Object.keys(data).sort()).toEqual(
-    [
-      "account",
-      "consents",
-      "memories",
-      "moods",
-      "privateItems",
-      "social",
-    ].sort(),
-  );
-  expect(data.social.sentMessages).toEqual([]);
-  await expect(
-    page.getByText("Đã tạo tệp dữ liệu để tải về.", { exact: true }),
-  ).toBeVisible();
   await context.close();
 });
 
@@ -90,7 +76,7 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
   const page = await context.newPage();
   const now = (await call(context, 10, "GET", "/session")).body.serverTime;
   const today = localDay(now);
-  await page.goto("/#/self");
+  await page.goto("/#/self/daily");
   await expect(
     page.getByText("Chưa có ghi chép. Bạn có thể bắt đầu từ hôm nay."),
   ).toBeVisible();
@@ -454,7 +440,7 @@ test("Journey F: mood, matching and chat stay usable at 390px and 430px with the
   await session(b, 19);
   const one = await a.newPage(),
     two = await b.newPage();
-  await one.goto("/#/self");
+  await one.goto("/#/self/daily");
   await one.getByLabel("Ghi chú", { exact: true }).fill("Ghi trên điện thoại");
   await one.getByRole("button", { name: "Lưu tâm trạng", exact: true }).click();
   await expect(

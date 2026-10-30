@@ -29,6 +29,7 @@ async def seed_owned(app, uid: UUID, *, peer: UUID, guest: bool) -> dict[str, li
         PrivateItem,
         now,
     )
+    from app.modules.journal.models import JournalEntry, JournalMedia
     from app.modules.moderation.models import IdentityField
     from app.modules.social.models import CandidateReference, MatchingDraft, PublishedProfile
     from app.modules.users.models import DataJob
@@ -39,6 +40,11 @@ async def seed_owned(app, uid: UUID, *, peer: UUID, guest: bool) -> dict[str, li
         db.add(ConsentEvent(user_id=uid, purpose="AI", enabled=True, version=2, policy_version="v1"))
         db.add(PrivateItem(user_id=uid, text="mục riêng"))
         db.add(Mood(user_id=uid, local_date=date.today(), value=3, timezone="Asia/Bangkok"))
+        journal = JournalEntry(user_id=uid, local_date=date.today(), timezone="Asia/Bangkok", mood=4, text="journal canary")
+        db.add(journal)
+        await db.flush()
+        db.add(JournalMedia(user_id=uid, entry_id=journal.id, type="image", object_path=f"guest-purge/{uid}",
+                            mime_type="image/png", size_bytes=10, status="ready"))
         memory = Memory(user_id=uid, bot_id="may", text="bộ nhớ", proposal_id=uuid4())
         db.add(memory)
         db.add(
@@ -208,6 +214,12 @@ async def test_purge_removes_every_guest_owned_store(clients):
         )
         assert leftovers == 0, "no attempt row may keep provider ids"
     assert await provider_rows(app, guest.user_id) == (0, 0), "provider identity and children are gone"
+    from app.modules.journal.models import JournalStorageDeletion
+
+    async with app.state.database.sessions() as db:
+        assert await db.scalar(select(JournalStorageDeletion.object_path).where(
+            JournalStorageDeletion.object_path == f"guest-purge/{guest.user_id}"
+        )) == f"guest-purge/{guest.user_id}"
     # The registered counterpart's stores and its provider identity are untouched.
     assert await user_reference_counts(app, registered_id) == registered_before
     assert await provider_rows(app, registered_id) == registered_provider

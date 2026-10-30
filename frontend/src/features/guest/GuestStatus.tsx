@@ -12,7 +12,7 @@ export function GuestStatus({
   onEnd,
 }: {
   remainingMs: number;
-  onEnd: () => void;
+  onEnd?: () => void;
 }) {
   const [warned, setWarned] = useState(false);
   const warning = remainingMs > 0 && remainingMs <= WARNING_MS;
@@ -22,9 +22,11 @@ export function GuestStatus({
   return (
     <div className="guest-status" data-testid="guest-status">
       <p className={cx.footnote}>Đang dùng thử · còn {remainingLabel(remainingMs)}</p>
-      <button type="button" className="guest-end-link" onClick={onEnd}>
-        Kết thúc và xóa lượt dùng thử
-      </button>
+      {onEnd ? (
+        <button type="button" className="guest-end-link" onClick={onEnd}>
+          Kết thúc và xóa lượt dùng thử
+        </button>
+      ) : null}
       <p className="visually-hidden" role="status" aria-live="polite">
         {warned ? "Lượt dùng thử sắp kết thúc trong vài phút." : ""}
       </p>

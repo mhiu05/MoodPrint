@@ -355,13 +355,3 @@ export function ConversationHistory({ onSelect }: { onSelect?: () => void }) {
   );
 }
 
-export function downloadConversation(value: unknown, id: string) {
-  const url = URL.createObjectURL(
-    new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }),
-  );
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `moodprint-conversation-${id}.json`;
-  link.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-}

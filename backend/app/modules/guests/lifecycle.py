@@ -41,6 +41,7 @@ from app.modules.guests.models import (
     GuestUsage,
 )
 from app.modules.guests.policy import database_time
+from app.modules.journal.service import purge_owned_journal
 from app.modules.moderation.models import (
     IdentityField,
     ModerationAction,
@@ -79,6 +80,9 @@ INVENTORY: dict[str, str] = {
     "consent_events": "purged",
     "private_items": "purged",
     "moods": "purged",
+    "journal_entries": "purged",
+    "journal_media": "purged",
+    "journal_storage_deletions": "detached",
     "memories": "purged",
     "memory_proposals": "purged",
     "memory_embeddings": "purged",
@@ -262,6 +266,7 @@ async def _delete_guest_only_social(db: AsyncSession, uid: UUID) -> None:
 
 
 async def _delete_owned(db: AsyncSession, uid: UUID) -> None:
+    await purge_owned_journal(db, uid)
     conversations = (
         await db.scalars(select(AiConversation.id).where(AiConversation.user_id == uid))
     ).all()

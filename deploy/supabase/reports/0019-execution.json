@@ -1,0 +1,29 @@
+{
+  "target": "hosted:roznanxbiyqybjpvtilq",
+  "sqlSha256": "6062c0c8d86a12aaab56e0db0d39ce23f2fffa6543092ce417ac15e4623f2535",
+  "fromRevision": "0018_app_feedback",
+  "toRevision": "0019_journal",
+  "ddlSubmitted": true,
+  "transactionOutcome": "committed",
+  "executionMechanism": "Alembic offline export executed verbatim in one transaction; no stamp/online upgrade/MCP migration",
+  "checks": {
+    "revision": "PASS",
+    "runtimeNoSchemaCreate": "PASS",
+    "existingRowsPreserved": "PASS",
+    "newTablesWithRls": "PASS",
+    "backendAccessPolicies": "PASS",
+    "runtimeDmlOnNewTables": "PASS",
+    "supabaseApiRolesDeniedTables": "PASS",
+    "authStructureUnchanged": "PASS"
+  },
+  "details": {
+    "existingTables": 49,
+    "existingRows": 552,
+    "supabaseApiRolesPresent": [
+      "authenticated",
+      "anon",
+      "service_role"
+    ]
+  },
+  "status": "PASS"
+}
