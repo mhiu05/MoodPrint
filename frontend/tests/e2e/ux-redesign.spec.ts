@@ -14,20 +14,19 @@ const pendingProposal = {
 };
 
 test.describe("truthful consent recovery (F03)", () => {
-  test("with AI processing off a pending proposal points to an explicit Send, not to Settings", async ({ page }) => {
+  test("a legacy disabled AI flag does not block approving a pending proposal", async ({ page }) => {
     await app(page, sessionWith({ AI: false, MEM: false }), { "/proposals": () => ({ json: [pendingProposal] }) });
     await page.goto("/#/memory");
     const proposal = page.getByRole("article").filter({ hasText: "Thích đi bộ buổi tối" });
-    await expect(proposal).toContainText("Quyền xử lý AI đang tắt nên chưa thể duyệt đề xuất này.");
-    await expect(proposal.getByRole("link", { name: "Mở trợ lý" })).toHaveAttribute("href", "#/assistants");
-    await expect(proposal.getByRole("link", { name: /quyền riêng tư/i })).toHaveCount(0);
+    await expect(proposal.getByRole("button", { name: "Duyệt và lưu" })).toBeEnabled();
     await expect(proposal.getByRole("button", { name: "Không lưu" })).toBeEnabled();
+    await expect(proposal.getByRole("link", { name: /quyền riêng tư/i })).toHaveCount(0);
   });
 
-  test("with approved memory off the page explains that approving a proposal is the way back", async ({ page }) => {
+  test("with no approved memories the page explains that a proposal is how memory is saved", async ({ page }) => {
     await app(page, sessionWith({ AI: true, MEM: false }));
     await page.goto("/#/memory");
-    await expect(page.getByText("Trợ lý chỉ dùng lại ghi nhớ sau khi bạn duyệt một đề xuất mới.", { exact: false })).toBeVisible();
+    await expect(page.getByText("Bạn chưa lưu ghi nhớ nào. Khi trò chuyện, bạn có thể nhờ trợ lý đề xuất điều cần nhớ rồi duyệt tại đây.", { exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Xem quyền ghi nhớ" })).toHaveCount(0);
   });
 
@@ -113,21 +112,21 @@ test.describe("readable foundations (V-TOKENS / V-REFLOW)", () => {
       await expect(row).toBeVisible();
       const metrics = await page.evaluate(() => {
         const body = parseFloat(getComputedStyle(document.body).fontSize);
-        const description = document.querySelector<HTMLElement>(".bot-row-text p")!;
+        const name = document.querySelector<HTMLElement>(".bot-row-text strong")!;
         const role = document.querySelector<HTMLElement>(".bot-row-text small")!;
-        const style = getComputedStyle(description);
+        const style = getComputedStyle(role);
         return {
           body,
-          description: parseFloat(style.fontSize),
-          role: parseFloat(getComputedStyle(role).fontSize),
+          name: parseFloat(getComputedStyle(name).fontSize),
+          role: parseFloat(style.fontSize),
           ellipsis: style.textOverflow === "ellipsis" && style.whiteSpace === "nowrap",
           overflow: document.documentElement.scrollWidth - innerWidth,
         };
       });
       expect(metrics.body, `body at ${width}`).toBe(16);
-      expect(metrics.description, `description at ${width}`).toBeGreaterThanOrEqual(14);
+      expect(metrics.name, `name at ${width}`).toBeGreaterThanOrEqual(16);
       expect(metrics.role, `role at ${width}`).toBeGreaterThanOrEqual(13);
-      expect(metrics.ellipsis, `description truncated at ${width}`).toBe(false);
+      expect(metrics.ellipsis, `role truncated at ${width}`).toBe(false);
       expect(metrics.overflow, `horizontal overflow at ${width}`).toBeLessThanOrEqual(1);
     }
   });

@@ -3,7 +3,9 @@
   place-items: center;
   min-height: 100vh;
   min-height: 100svh;
+  max-width: 100%;
   padding: 1rem;
+  overflow-x: clip;
   background: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-body);

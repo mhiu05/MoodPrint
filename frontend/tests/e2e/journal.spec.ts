@@ -804,6 +804,8 @@ test("journal experiences have accessible rendered evidence", async ({
     fullPage: true,
   });
   await page.setViewportSize({ width: 390, height: 1000 });
+  await page.goto("/#/self");
+  await expect(page.getByRole("heading", { name: "Nhật ký cảm xúc", exact: true })).toBeVisible();
   await page
     .getByRole("textbox", { name: "Ghi lại khoảnh khắc", exact: true })
     .fill(
