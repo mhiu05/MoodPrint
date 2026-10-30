@@ -7,6 +7,7 @@ import type { SessionView } from "../../../api/contracts";
 import { CandidateCard } from "./CandidateCard";
 import { ProfileEditor } from "./ProfileEditor";
 import { RequestCard } from "./RequestCard";
+import { OwnIdentity } from "../Safety";
 
 type Schema = components["schemas"];
 type Draft = Schema["DraftView"];
@@ -14,22 +15,28 @@ type Published = Schema["PublishedView"];
 type Taxonomy = Schema["TaxonomyDTO"];
 type RequestView = Schema["RequestView"];
 
-const TABS = ["suggestions", "requests", "profile"] as const;
+const TABS = ["suggestions", "requests", "profile", "identity"] as const;
+const IDENTITY_TAB = ["identity"] as const;
 type Tab = (typeof TABS)[number];
 const isTab = (value: string | null): value is Tab => TABS.includes(value as Tab);
 
-/** Tabs per 08 section 2: Gợi ý · Lời mời (count) · Hồ sơ tìm bạn, kept in `?tab=`. */
+/** Matching and identity tabs, kept in `?tab=`. */
 export function Discovery() {
   const { api, session, receive } = useSession();
   const restricted = session.notices?.some((notice) => notice.kind === "restricted");
-  const draft = useResource<Draft>("/profiles/matching-draft");
-  const taxonomy = useResource<Taxonomy>("/taxonomy");
+  const matchingAvailable =
+    session.features.matching && session.ageBand === "adult" && !restricted;
+  const [params, setParams] = useSearchParams();
+  const draft = useResource<Draft>("/profiles/matching-draft", matchingAvailable);
+  const taxonomy = useResource<Taxonomy>("/taxonomy", matchingAvailable);
   const published = useResource<Published | null>(
     "/profiles/published/current",
+    matchingAvailable,
   );
   const canMatch =
-    session.features.matching && session.ageBand === "adult" &&
-    session.consents.MATCH.enabled && published.data?.state === "live" && !restricted;
+    matchingAvailable &&
+    session.consents.MATCH.enabled &&
+    published.data?.state === "live";
   const suggestions = useResource<Schema["CandidateListDTO"]>(
     "/matching/candidates",
     canMatch,
@@ -42,7 +49,6 @@ export function Discovery() {
     }, 5000);
     return () => clearInterval(timer);
   }, [requests.refresh, canMatch]);
-  const [params, setParams] = useSearchParams();
   const [editing, setEditing] = useState(false),
     [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(),
@@ -53,7 +59,18 @@ export function Discovery() {
   const live = published.data?.state === "live";
   const named = params.get("tab");
   // Without a named tab, a live profile opens on suggestions; otherwise on the editor.
-  const tab: Tab = isTab(named) ? named : live ? "suggestions" : "profile";
+  const tab: Tab = !matchingAvailable
+    ? "identity"
+    : isTab(named)
+      ? named
+      : live
+        ? "suggestions"
+        : "profile";
+  const visibleTabs: readonly Tab[] = matchingAvailable ? TABS : IDENTITY_TAB;
+  useEffect(() => {
+    if (!matchingAvailable && params.get("tab") !== "identity")
+      setParams({ tab: "identity" }, { replace: true });
+  }, [matchingAvailable, params, setParams]);
   const pending =
     requests.data?.filter(
       (item) => item.direction === "incoming" && item.status === "pending",
@@ -62,20 +79,23 @@ export function Discovery() {
     suggestions: "Gợi ý",
     requests: pending ? `Lời mời (${pending})` : "Lời mời",
     profile: "Hồ sơ tìm bạn",
+    identity: "Thông tin riêng",
   };
   function select(next: Tab, focus = false) {
+    if (!visibleTabs.includes(next)) return;
     // Replace, so Back leaves Discovery instead of stepping through tabs.
     setParams({ tab: next }, { replace: true });
     if (focus) tabRefs.current[next]?.focus();
   }
   // Move from the tab that has focus, not from state that may not have re-rendered yet.
   function onTabKey(event: KeyboardEvent<HTMLButtonElement>, from: Tab) {
-    const index = TABS.indexOf(from);
+    const index = visibleTabs.indexOf(from);
     const target = {
-      ArrowRight: TABS[(index + 1) % TABS.length],
-      ArrowLeft: TABS[(index + TABS.length - 1) % TABS.length],
-      Home: TABS[0],
-      End: TABS[TABS.length - 1],
+      ArrowRight: visibleTabs[(index + 1) % visibleTabs.length],
+      ArrowLeft:
+        visibleTabs[(index + visibleTabs.length - 1) % visibleTabs.length],
+      Home: visibleTabs[0],
+      End: visibleTabs[visibleTabs.length - 1],
     }[event.key];
     if (!target) return;
     event.preventDefault();
@@ -113,33 +133,36 @@ export function Discovery() {
         ...taxonomy.data.availability,
       }[key]) ||
     key;
-  if (restricted)
-    return (
-      <StatePanel title="Tìm bạn đang tạm bị hạn chế">
-        Bạn có thể quay lại sau thời gian hạn chế được thông báo ở trên.
-        Trong lúc này, không gian riêng của bạn vẫn ở đây.
-      </StatePanel>
-    );
-  if (!session.features.matching)
-    return (
-      <StatePanel title="Tìm bạn chưa khả dụng">
-        Dịch vụ tìm bạn chưa sẵn sàng. Bạn có thể tiếp tục ghi lại cảm xúc.
-      </StatePanel>
-    );
-  if (session.ageBand !== "adult")
-    return (
-      <StatePanel title="Bạn cần đủ 18 tuổi để kết nối">
-        Tìm bạn và nhắn tin người thật dành cho người đã đủ 18 tuổi.
-      </StatePanel>
-    );
   return (
     <div className={cx.reading}>
       <h1 tabIndex={-1} data-tour="matching-intro">Tìm bạn đồng điệu</h1>
       <p className={cx.lede}>
         Bắt đầu từ những điểm chung bạn chủ động chia sẻ.
       </p>
+      {!matchingAvailable ? (
+        <StatePanel
+          title={
+            restricted
+              ? "Tìm bạn đang tạm bị hạn chế"
+              : !session.features.matching
+                ? "Tìm bạn chưa khả dụng"
+                : "Bạn cần đủ 18 tuổi để kết nối"
+          }
+        >
+          {restricted
+            ? "Bạn có thể quay lại sau thời gian hạn chế được thông báo ở trên."
+            : !session.features.matching
+              ? "Dịch vụ tìm bạn chưa sẵn sàng."
+              : "Tìm bạn và nhắn tin người thật dành cho người đã đủ 18 tuổi."}
+        </StatePanel>
+      ) : null}
       <ErrorNotice
-        error={error || draft.error || taxonomy.error || published.error}
+        error={
+          error ||
+          (matchingAvailable
+            ? draft.error || taxonomy.error || published.error
+            : undefined)
+        }
         retry={() => {
           draft.refresh();
           taxonomy.refresh();
@@ -148,7 +171,7 @@ export function Discovery() {
       />
       {notice && <p role="status">{notice}</p>}
       <div className="discovery-tabs" role="tablist" aria-label="Tìm bạn">
-        {TABS.map((key) => (
+        {visibleTabs.map((key) => (
           <button
             key={key}
             ref={(node) => {
@@ -173,6 +196,7 @@ export function Discovery() {
         id={`discovery-panel-${tab}`}
         aria-labelledby={`discovery-tab-${tab}`}
       >
+        {tab === "identity" && <OwnIdentity />}
         {tab === "profile" && (
           <>
             <p>Hồ sơ chỉ hiện với người khác sau khi bạn xem trước và chọn Hiển thị hồ sơ. Trò chuyện AI, nhật ký cảm xúc và ghi nhớ không dùng để gợi ý bạn bè.</p>
