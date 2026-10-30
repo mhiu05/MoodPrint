@@ -24,6 +24,6 @@ These remain unchanged and are not reported as passing:
 
 Synthetic fixture data; no real model/provider or production writes. Covered send/accepted/cancel lifecycle, cancellation failure and races, draft preservation, history, metadata copy/hover/touch/focus, voice insertion, reduced motion, failed orb import, hidden tabs, read-only stop fallback, human-chat style isolation and reading old messages while the composer resizes.
 
-Inspected 360px, 390px, 666px and 1440px. [Phone working state](../../ux-redesign/evidence/natural-agent-chat-2026-10-30/captures/agent-chat/working-390.png), [desktop working state](../../ux-redesign/evidence/natural-agent-chat-2026-10-30/captures/agent-chat/working-1440.png). Test evidence is stored under the existing ignored `docs/ux-redesign/evidence/natural-agent-chat-2026-10-30/` directory; `.gitignore` was not edited.
+Inspected 360px, 390px, 666px and 1440px. Phone and desktop working states are `working-390.png` and `working-1440.png` under the ignored `docs/ux-redesign/evidence/natural-agent-chat-2026-10-30/captures/agent-chat/` directory. `.gitignore` was not edited.
 
 Browser/DOM checks do not establish actual speech output for every screen-reader/browser combination. The Grok interactive demo was blocked by Cloudflare; this is the approved interpreted design rather than a pixel reproduction.
