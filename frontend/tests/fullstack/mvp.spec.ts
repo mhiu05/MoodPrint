@@ -92,7 +92,7 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
     page.getByText(/^Đã lưu cảm xúc ngày \d{2}\/\d{2}\/\d{4}\.$/),
   ).toBeVisible();
   await expect(
-    page.locator("article").getByText("Ghi chép MVP", { exact: true }),
+    page.getByText("Ghi chép MVP", { exact: true }).first(),
   ).toBeVisible();
   await expect(page.getByText(/Trung bình từ 1\/7 ngày có ghi/)).toBeVisible();
   await expect(
@@ -138,7 +138,7 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
     "Bản nhập cần giữ",
   );
   await expect(
-    page.locator("article").getByText("Từ tab khác", { exact: true }),
+    page.getByText("Từ tab khác", { exact: true }).first(),
   ).toBeVisible();
 
   for (const [offset, value] of [

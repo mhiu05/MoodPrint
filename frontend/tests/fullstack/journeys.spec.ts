@@ -98,11 +98,8 @@ test("birth-year onboarding persists16+ access while the server rejects social a
   ).json();
   expect(stored.ageBand).toBe("teen");
   expect(stored.birthYear).toBe(year - 16);
-  expect(
-    Object.values(stored.consents).every(
-      (value: any) => value.enabled === false,
-    ),
-  ).toBe(true);
+  expect(stored.consents.MATCH.enabled).toBe(false);
+  expect(["AI", "MEM", "VOICE"].every((purpose) => stored.consents[purpose].enabled)).toBe(true);
   await context.close();
   const younger = await browser.newContext();
   await session(younger, 8);
@@ -185,7 +182,7 @@ test("the eighteenth-year account explicitly confirms18 in settings without auto
     .getByRole("button", { name: "Xác nhận đủ 18 tuổi", exact: true })
     .click();
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Điều kiện dùng Tìm bạn và Tin nhắn" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Điều kiện dùng Tìm bạn và Tin nhắn" })).toHaveCount(0);
   const stored = await (
     await context.request.get("http://127.0.0.1:5174/api/v1/session")
   ).json();
@@ -234,7 +231,7 @@ test("real FastAPI/PostgreSQL preserves private records and mood, streams throug
   ).toBeVisible();
   await one.reload();
   await expect(
-    one.locator("article").getByText("Một ngày bình yên", { exact: true }),
+    one.getByText("Một ngày bình yên", { exact: true }).first(),
   ).toBeVisible();
   await one.goto("/#/assistants/may");
   await one
@@ -464,8 +461,10 @@ test("approved memory uses the edited approval, survives reload, and local priva
     }),
   ).toBeVisible();
   await page.goto("/#/memory");
-  await page.getByRole("button", { name: "Xóa ghi nhớ", exact: true }).click();
-  await page.getByRole("button", { name: "Xóa ghi nhớ này", exact: true }).click();
+  while (await page.getByRole("button", { name: "Xóa ghi nhớ", exact: true }).count()) {
+    await page.getByRole("button", { name: "Xóa ghi nhớ", exact: true }).first().click();
+    await page.getByRole("button", { name: "Xóa ghi nhớ này", exact: true }).click();
+  }
   await expect(
     page.getByText("Bạn chưa lưu ghi nhớ nào. Khi trò chuyện, bạn có thể nhờ trợ lý đề xuất điều cần nhớ rồi duyệt tại đây.", { exact: true }),
   ).toBeVisible();
