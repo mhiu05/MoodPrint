@@ -51,6 +51,17 @@ async def restart(app):
     app.state.ai = AiRuntime(app.state.settings, app.state.database)
 
 
+async def consent(client, purpose, enabled):
+    session = (await client.get("/api/v1/session")).json()
+    version = session["consents"][purpose]["version"]
+    result = await client.put(
+        f"/api/v1/consents/{purpose}",
+        json={"enabled": enabled, "expectedVersion": version, "policyVersion": "v1"},
+        headers=key(),
+    )
+    assert result.status_code == 200, result.text
+
+
 @pytest.mark.parametrize(
     "change", ["edit", "delete", "history_regrant"]
 )
