@@ -6,7 +6,6 @@ import { app, baseSession, room, sessionWith, type Routes } from "./ux-fixtures"
 const pendingProposal = {
   id: "p-1",
   botId: "may",
-  purpose: "memory",
   text: "Thích đi bộ buổi tối",
   status: "pending",
   version: 1,
@@ -184,16 +183,16 @@ test.describe("navigation and route focus (V-NAV / V-ROUTE-FOCUS)", () => {
     "/moods/summary": () => ({ json: { from: "2026-10-17", to: "2026-10-23", count: 0, mean: null, min: null, max: null, insightAvailable: false, buckets: [] } }),
   };
 
-  test("five primary destinations, with Cảm xúc opening the mood journal directly", async ({ page }) => {
+  test("five primary destinations, with Nhật ký opening the mood journal directly", async ({ page }) => {
     await app(page, baseSession, moodRoutes);
     for (const width of [320, 768, 1280]) {
       await page.setViewportSize({ width, height: 844 });
       await page.goto("/#/messages");
       const nav = page.getByRole("navigation", { name: "Điều hướng chính" });
-      await expect(nav.getByRole("link")).toHaveText(["Trợ lý", "Cảm xúc", "Tìm bạn", "Tin nhắn", "Cá nhân"]);
-      await nav.getByRole("link", { name: "Cảm xúc" }).click();
+      await expect(nav.getByRole("link")).toHaveText(["Trợ lý", "Nhật ký", "Tìm bạn", "Tin nhắn", "Cá nhân"]);
+      await nav.getByRole("link", { name: "Nhật ký" }).click();
       await expect(page).toHaveURL(/#\/self$/);
-      await expect(nav.getByRole("link", { name: "Cảm xúc" })).toHaveAttribute("aria-current", "page");
+      await expect(nav.getByRole("link", { name: "Nhật ký" })).toHaveAttribute("aria-current", "page");
       expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
     }
   });
@@ -912,8 +911,8 @@ test.describe("personal account and memory comprehension", () => {
   test("memory separates proposals waiting for review from approved items", async ({ page }) => {
     await app(page, sessionWith({ AI: true, MEM: true }), {
       "/proposals": () => ({ json: [
-        { id: "p-1", botId: "may", purpose: "memory", text: "Thích trà buổi tối", status: "pending", version: 1, expiresAt: "2099-01-01T00:00:00Z" },
-        { id: "p-2", botId: "may", purpose: "memory", text: "", status: "rejected", version: 2, expiresAt: "2020-01-01T00:00:00Z" },
+        { id: "p-1", botId: "may", text: "Thích trà buổi tối", status: "pending", version: 1, expiresAt: "2099-01-01T00:00:00Z" },
+        { id: "p-2", botId: "may", text: "", status: "rejected", version: 2, expiresAt: "2020-01-01T00:00:00Z" },
       ] }),
       "/memories": () => ({ json: [{ id: "m-1", botId: "may", text: "Thích đi bộ", version: 1 }] }),
     });
@@ -1090,14 +1089,6 @@ test.describe("personal journeys", () => {
     await expect(page.getByRole("heading", { name: "Chào bạn trở lại" })).toBeVisible();
     await expect(page.getByText(/MoodPrint là nơi/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Đăng nhập", exact: true })).toBeInViewport();
-  });
-
-  test("the private profile field shows its remaining characters", async ({ page }) => {
-    await app(page, baseSession, { "/profiles/private-items": () => ({ json: [] }), "/users/me/identity": () => ({ json: [] }) });
-    await page.goto("/#/profile");
-    const field = page.getByLabel("Điều bạn muốn ghi lại");
-    await field.fill("Mình thích đi bộ");
-    await expect(field).toHaveAccessibleDescription(/16\/120 ký tự/);
   });
 
   test("saving a mood confirms the exact day next to the form", async ({ page }) => {

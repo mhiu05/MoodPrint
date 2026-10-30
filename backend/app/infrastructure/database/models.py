@@ -135,17 +135,6 @@ class ConsentEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 
-class PrivateItem(Base):
-    __tablename__ = "private_items"
-    id: Mapped[UUID] = mapped_column(PGUUID, primary_key=True, default=uuid4)
-    user_id: Mapped[UUID] = mapped_column(ForeignKey(User.id), index=True)
-    text: Mapped[str] = mapped_column(Text)
-    origin: Mapped[str] = mapped_column(String(12), default="declared")
-    status: Mapped[str] = mapped_column(String(12), default="confirmed")
-    version: Mapped[int] = mapped_column(default=1)
-    __table_args__ = (CheckConstraint("char_length(text)<=120", name="text_length"),)
-
-
 class Mood(Base):
     __tablename__ = "moods"
     id: Mapped[UUID] = mapped_column(PGUUID, primary_key=True, default=uuid4)
@@ -170,10 +159,6 @@ class Memory(Base):
     version: Mapped[int] = mapped_column(default=1)
     status: Mapped[str] = mapped_column(String(16), default="active")
     proposal_id: Mapped[UUID] = mapped_column(PGUUID, unique=True)
-    source_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey(PrivateItem.id), nullable=True, index=True
-    )
-    source_version: Mapped[int | None]
     __table_args__ = (Index("ix_memories_scope", "user_id", "bot_id", "status"),)
 
 

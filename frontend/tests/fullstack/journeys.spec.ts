@@ -192,7 +192,7 @@ test("the eighteenth-year account explicitly confirms18 in settings without auto
   await context.close();
 });
 
-test("real FastAPI/PostgreSQL preserves private records and mood, streams through the SDK, and connects two users", async ({
+test("real FastAPI/PostgreSQL preserves mood, streams through the SDK, and connects two users", async ({
   browser,
 }) => {
   const a = await browser.newContext(),
@@ -201,26 +201,6 @@ test("real FastAPI/PostgreSQL preserves private records and mood, streams throug
   await session(b, 2);
   const one = await a.newPage(),
     two = await b.newPage();
-  await one.goto("/#/profile");
-  await one
-    .getByRole("textbox", { name: "Điều bạn muốn ghi lại" })
-    .fill("Mình thích những buổi sáng yên tĩnh");
-  await one
-    .getByRole("button", { name: "Lưu vào hồ sơ riêng", exact: true })
-    .click();
-  await expect(
-    one.getByText("Đã lưu vào hồ sơ riêng.", { exact: true }),
-  ).toBeVisible();
-  await one.reload();
-  await expect(
-    one
-      .locator("article")
-      .getByText("Mình thích những buổi sáng yên tĩnh", { exact: true }),
-  ).toBeVisible();
-  await two.goto("/#/profile");
-  await expect(
-    two.getByText("Mình thích những buổi sáng yên tĩnh", { exact: true }),
-  ).toHaveCount(0);
   await one.goto("/#/self/daily");
   await one
     .getByRole("textbox", { name: "Ghi chú", exact: true })

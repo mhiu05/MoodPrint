@@ -26,7 +26,6 @@ async def seed_owned(app, uid: UUID, *, peer: UUID, guest: bool) -> dict[str, li
         Memory,
         Mood,
         Outbox,
-        PrivateItem,
         now,
     )
     from app.modules.journal.models import JournalEntry, JournalMedia
@@ -38,7 +37,6 @@ async def seed_owned(app, uid: UUID, *, peer: UUID, guest: bool) -> dict[str, li
     async with app.state.database.sessions.begin() as db:
         db.add(AgeDeclaration(user_id=uid, birth_year=2000, policy_version="self-declared-age-v1"))
         db.add(ConsentEvent(user_id=uid, purpose="AI", enabled=True, version=2, policy_version="v1"))
-        db.add(PrivateItem(user_id=uid, text="mục riêng"))
         db.add(Mood(user_id=uid, local_date=date.today(), value=3, timezone="Asia/Bangkok"))
         journal = JournalEntry(user_id=uid, local_date=date.today(), timezone="Asia/Bangkok", mood=4, text="journal canary")
         db.add(journal)
@@ -49,7 +47,7 @@ async def seed_owned(app, uid: UUID, *, peer: UUID, guest: bool) -> dict[str, li
         db.add(memory)
         db.add(
             MemoryProposal(
-                user_id=uid, bot_id="may", text="đề xuất", purpose="memory", data_version=1,
+                user_id=uid, bot_id="may", text="đề xuất", data_version=1,
                 ai_consent_version=1, mem_consent_version=1, expires_at=soon,
             )
         )
@@ -341,14 +339,16 @@ async def test_helper_failure_rolls_back_every_row_then_retries(clients):
     app, _ = clients
     guest = await add_guest(app, started_ago=LIFETIME + timedelta(seconds=5), consents=True)
     async with app.state.database.sessions.begin() as db:
-        await db.execute(text("insert into moodprint.private_items(id,user_id,text,origin,status,version) values (gen_random_uuid(), :u, 'giữ', 'declared','confirmed',1)"), {"u": guest.user_id})
+        from app.infrastructure.database.models import Mood
+
+        db.add(Mood(user_id=guest.user_id, local_date=date.today(), value=3, timezone="Asia/Bangkok"))
         # A permanent provider identity makes the guarded helper refuse: the purge must abort whole.
         await db.execute(text("update auth.users set is_anonymous=false where id=:u"), {"u": guest.user_id})
     token = await claim(app, guest)
     with pytest.raises(DBAPIError):
         await purge(app, guest.user_id, token)
     counts = await user_reference_counts(app, guest.user_id)
-    assert counts["private_items.user_id"] == 1 and counts["auth_sessions.user_id"] == 1
+    assert counts["moods.user_id"] == 1 and counts["auth_sessions.user_id"] == 1
     assert (await provider_rows(app, guest.user_id))[0] == 1
     async with app.state.database.sessions.begin() as db:
         await db.execute(text("update auth.users set is_anonymous=true where id=:u"), {"u": guest.user_id})
@@ -357,7 +357,7 @@ async def test_helper_failure_rolls_back_every_row_then_retries(clients):
 
 async def test_late_writer_cannot_resurrect(clients):
     from app.ai.embeddings import _authorization
-    from app.infrastructure.database.models import AiUsage, PrivateItem
+    from app.infrastructure.database.models import AiUsage, Mood
     from app.modules.guests.models import GuestUsage
 
     app, _ = clients
@@ -365,7 +365,7 @@ async def test_late_writer_cannot_resurrect(clients):
     saved = {"run": [uuid4()]}
     assert await purge(app, guest.user_id, await claim(app, guest)) == "removed"
     for model_row in (
-        PrivateItem(user_id=guest.user_id, text="muộn"),
+        Mood(user_id=guest.user_id, local_date=date.today(), value=4, timezone="Asia/Bangkok"),
         GuestUsage(user_id=guest.user_id),
     ):
         with pytest.raises(DBAPIError):

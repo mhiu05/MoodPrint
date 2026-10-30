@@ -344,7 +344,7 @@ async def test_whole_private_erasure_keeps_durable_media_cleanup(clients, scope)
         ]
 
 
-async def test_export_all_seven_scopes_fits_existing_job_scope(clients):
+async def test_export_all_six_scopes_fits_existing_job_scope(clients):
     _, actors = clients
     client, _ = actors[0]
     response = await client.post(
@@ -352,7 +352,6 @@ async def test_export_all_seven_scopes_fits_existing_job_scope(clients):
         json={
             "scopes": [
                 "account",
-                "private_items",
                 "memories",
                 "moods",
                 "journal",
@@ -364,5 +363,5 @@ async def test_export_all_seven_scopes_fits_existing_job_scope(clients):
     )
     assert response.status_code == 201, response.text
     assert (
-        response.json()["scope"] == "account,private_items,memories,moods,journal,consents,social"
+        response.json()["scope"] == "account,memories,moods,journal,consents,social"
     )

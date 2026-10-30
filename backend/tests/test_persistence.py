@@ -7,54 +7,6 @@ from sqlalchemy import select, text
 pytestmark = pytest.mark.postgres
 
 
-async def test_private_item_receipt_persistence_and_cross_user_ownership(clients, write_headers):
-    app, actors = clients
-    a, _ = actors[0]
-    b, _ = actors[1]
-    created = await a.post(
-        "/api/v1/profiles/private-items",
-        json={"text": "Mình thích đọc sách"},
-        headers=write_headers,
-    )
-    assert created.status_code == 201, created.text
-    item = created.json()
-    replay = await a.post(
-        "/api/v1/profiles/private-items",
-        json={"text": "Mình thích đọc sách"},
-        headers=write_headers,
-    )
-    assert replay.json()["id"] == item["id"]
-    assert len((await a.get("/api/v1/profiles/private-items")).json()) == 1
-    conflict = await a.post(
-        "/api/v1/profiles/private-items", json={"text": "Different"}, headers=write_headers
-    )
-    assert conflict.status_code == 409
-    forbidden = await b.patch(
-        f"/api/v1/profiles/private-items/{item['id']}",
-        json={"text": "attack", "expectedVersion": 1},
-        headers={"Idempotency-Key": str(uuid4())},
-    )
-    assert forbidden.status_code == 404
-    assert (await b.get("/api/v1/profiles/private-items")).json() == []
-
-
-async def test_csrf_missing_and_forged_actor_denied(clients, write_headers):
-    _, actors = clients
-    a, _ = actors[0]
-    csrf = a.headers.pop("X-CSRF-Token")
-    denied = await a.post(
-        "/api/v1/profiles/private-items", json={"text": "hello"}, headers=write_headers
-    )
-    assert denied.status_code == 403
-    a.headers["X-CSRF-Token"] = csrf
-    response = await a.post(
-        "/api/v1/profiles/private-items",
-        json={"text": "hello", "userId": str(actors[1][1])},
-        headers=write_headers,
-    )
-    assert response.status_code == 422
-
-
 async def test_consent_cas_ledger_and_independent_effective_permissions(clients):
     app, actors = clients
     a, uid = actors[0]
@@ -137,7 +89,7 @@ async def test_revoked_provider_session_and_logout_immediately_deny(clients):
     a, uid = actors[0]
     async with app.state.database.sessions.begin() as db:
         await db.execute(text("delete from auth.sessions where user_id=:id"), {"id": uid})
-    assert (await a.get("/api/v1/profiles/private-items")).status_code == 401
+    assert (await a.get("/api/v1/memories")).status_code == 401
     b, _ = actors[1]
     assert (await b.post("/api/v1/auth/logout")).status_code == 204
     assert (await b.get("/api/v1/session")).status_code == 401

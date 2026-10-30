@@ -133,17 +133,7 @@ def _can_match(state: Mapping[str, Any]) -> bool:
         and _valid_profile(published)
     ):
         return False
-    return all(
-        any(
-            item["id"] == source["id"]
-            and item["version"] == source["version"]
-            and item["status"] in ("confirmed", "edited")
-            and source["id"] == "PI01"
-            and "reading" in published["interests"]
-            for item in state["privateItems"]
-        )
-        for source in published["sources"]
-    )
+    return True
 
 
 def recommendations(state: Mapping[str, Any]) -> list[dict[str, Any]]:

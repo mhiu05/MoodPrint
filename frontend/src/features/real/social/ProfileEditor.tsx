@@ -32,7 +32,7 @@ const EMPTY: Profile = {
 /**
  * Five-step matching profile editor. Only these public choices are ever shared; the
  * last step shows exactly the card other members will see (server preview) before
- * publishing. Private notes, moods and AI conversations are never inputs.
+ * publishing. Moods, AI memories and conversations are never inputs.
  */
 export function ProfileEditor({
   taxonomy,

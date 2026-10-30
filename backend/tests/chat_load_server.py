@@ -274,7 +274,6 @@ async def seed(count: int):
                     user_id=uid,
                     bot_id="may",
                     text=f"MEMORY_ACTOR:{number:03d} BOT:may preview preference",
-                    purpose="memory",
                     data_version=1,
                     ai_consent_version=1,
                     mem_consent_version=1,

@@ -8,9 +8,9 @@ Consent ban đầu tắt. MEM và VOICE phụ thuộc AI; MATCH yêu cầu adult
 
 ## Export và deletion
 
-[users/routes.py](../../backend/app/modules/users/routes.py) nhận export scopes: `account`, `private_items`, `memories`, `moods`, `consents`, `social`. AI conversation có endpoint export riêng. Export cần ownership/reauthentication theo route, output được quản lý với expiry; không ghi artifact cá nhân vào repository.
+[users/routes.py](../../backend/app/modules/users/routes.py) nhận export scopes: `account`, `memories`, `moods`, `consents`, `social`. AI conversation có endpoint export riêng. Export cần ownership/reauthentication theo route, output được quản lý với expiry; không ghi artifact cá nhân vào repository.
 
-Deletion scopes: `memories`, `moods`, `private_items`, `all_private`, `account`. Request tạo `DataJob`; response accepted chưa phải toàn bộ dữ liệu đã xóa. Client đọc job status. Account deletion có provider/DB steps trong [lifecycle.py](../../backend/app/modules/users/lifecycle.py), dùng gate ngăn truy cập trong khi chờ.
+Deletion scopes: `memories`, `moods`, `all_private`, `account`. Private profile notes were retired in migration `0020_private_profile_retirement`; approved AI memories remain separate records. Request tạo `DataJob`; response accepted chưa phải toàn bộ dữ liệu đã xóa. Client đọc job status. Account deletion có provider/DB steps trong [lifecycle.py](../../backend/app/modules/users/lifecycle.py), dùng gate ngăn truy cập trong khi chờ.
 
 Không đồng nhất xóa trong active database với xóa backup, provider logs hoặc copy ngoài hệ thống. Restore cần áp dụng tombstone/revocation trước khi mở traffic; không restore temporary raw context.
 

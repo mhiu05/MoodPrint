@@ -41,7 +41,6 @@ def state(**changes):
         "age": "adult",
         "consent": {"MATCH": True, "AI": False, "MEM": False},
         "published": profile(version=2, valid=True),
-        "privateItems": [],
         "clock": 1000,
         "candidates": [candidate()],
         "blocked": [],
@@ -263,17 +262,6 @@ def test_expired_cooldown_and_terminal_markers_allow_discovery():
 
 def test_absent_cooldown_does_not_exclude_before_unix_epoch():
     assert len(recommendations(state(clock=-1000))) == 1
-
-
-def test_linked_source_must_be_current_and_confirmed():
-    snapshot = state(
-        published=profile(version=2, valid=True, sources=[{"id": "PI01", "version": 1}])
-    )
-    assert recommendations(snapshot) == []
-    snapshot["privateItems"] = [{"id": "PI01", "version": 1, "status": "confirmed"}]
-    assert len(recommendations(snapshot)) == 1
-    snapshot["privateItems"][0]["version"] = 2
-    assert recommendations(snapshot) == []
 
 
 def clock(value="2026-10-22T12:00:00+00:00"):

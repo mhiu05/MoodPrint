@@ -22,7 +22,7 @@ from app.ai.models import AiPreference
 from app.ai.voyage import EmbeddingError, EmbeddingProvider, VoyageProvider, validate_vector
 from app.core.errors import DomainError
 from app.core.security import Actor, lock_actor
-from app.infrastructure.database.models import Consent, Memory, PrivateItem, User, now
+from app.infrastructure.database.models import Consent, Memory, User, now
 from app.modules.consent.policy import consent_enabled
 from app.modules.guests.deadlines import guest_deadline
 from app.modules.guests.policy import database_time, lifetime_allows
@@ -82,26 +82,11 @@ async def _authorization(db: AsyncSession, user_id: UUID) -> Authorization | Non
     )
 
 
-def _current_source():
-    return or_(
-        Memory.source_id.is_(None),
-        exists(
-            select(PrivateItem.id).where(
-                PrivateItem.id == Memory.source_id,
-                PrivateItem.user_id == Memory.user_id,
-                PrivateItem.status == "confirmed",
-                PrivateItem.version == Memory.source_version,
-            )
-        ),
-    )
-
-
 def _memory_scope(user_id: UUID, bot_id: str):
     return (
         Memory.user_id == user_id,
         Memory.bot_id == bot_id,
         Memory.status == "active",
-        _current_source(),
     )
 
 
@@ -385,7 +370,6 @@ async def reconcile_embedding_jobs(database: "Database", settings: EmbeddingSett
                         mem.policy_version == "v1",
                         Memory.status == "active",
                         Memory.bot_id.in_(MEMORY_BOTS),
-                        _current_source(),
                         missing,
                     )
                     .order_by(Memory.id)

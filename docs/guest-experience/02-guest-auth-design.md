@@ -48,7 +48,7 @@ Use the existing Alembic chain, not Supabase CLI-generated migrations. **Names b
 | `guest_provisioning_attempts` | Intent hash + idempotency digest, mandatory unique256-bit provider correlation, optional returned subject, lifecycle state/lease, created/expiry. No raw tokens or sensitive payload dump. Unknown outcomes never reissue signup; reconcile/alert for≤24h. Remove resolved correlation after recovery/cleanup window; unresolved target stays restricted retry-required rather than silently abandoned |
 | `guest_usage` | User FK, trial AI admissions, voice calls/seconds and concurrency accounting. Atomic reserve/settle under DB lock; cleared with guest |
 | Shared abuse/cost counters | Separate bounded, expiring security counters keyed by rotating HMAC of canonical IP, plus identifier-free daily model spend/reservations. No transcript, user UUID, browser fingerprint, raw IP or token in durable cost aggregate. Proposed IP-key retention ≤24h; disclose this security exception |
-| Existing content | Saved conversations/proposals/exports must use `min(existing expiry,T)`; memory/journal/private items remain user-owned and are inaccessible at T even though they have no individual TTL column |
+| Existing content | Saved conversations/proposals/exports must use `min(existing expiry,T)`; memories and journal entries remain user-owned and are inaccessible at T even though they have no individual TTL column |
 | Runtime SQL helper | Extend `is_provider_session_active(app_session_id,app_user_id)` with guest deadline/current provider anonymous consistency; use fresh database time. Preserve app-session mapping, empty search_path and revoked/version/status predicates |
 | Cleanup helpers | Reuse guarded identity deletion mechanism after guest is nonactive, but verify anonymous provider subject before deleting a guest identity; return/check success. Add narrow attempt-correlated orphan lookup/delete helpers as above. Purge guest rows, unlike registered tombstone workflow |
 
@@ -121,7 +121,7 @@ Purge under canonical owner locks, inspecting the FK graph from metadata and mig
 
 1. Revoke all guest app sessions, increment auth/data versions, cancel local runs/voice/index tasks; clear runtime events/proposals/context/mood evidence and owner exports. Stop further job creation. At cutoff this is best-effort acceleration; predicate already denies access.
 2. Remove owner AI messages/conversations/preferences and **temporary `ai_turns` with no conversation**, `ai_usage`, `ai_runs`; ensure no late accounting writer recreates owner rows. Settle detached aggregate liability first if needed, retaining no identity.
-3. Remove proposals, approved memories (vectors/jobs cascade), private items, moods, own identity fields, age declaration, consents/events, idempotency, legacy outbox and data/export jobs.
+3. Remove proposals, approved memories (vectors/jobs cascade), moods, own identity fields, age declaration, consents/events, idempotency, legacy outbox and data/export jobs.
 4. Verify forbidden social/staff rows were never created. If corrupted fixtures/legacy data exist, clean dependent references in FK order; preserve registered counterpart data and moderation evidence according to an explicit incident policy. Unexpected staff roles or peer evidence is an alert, not permission to delete the peer's rows. Do not use blind `DELETE user CASCADE` until the reviewed graph proves safety.
 5. In the same hosted Postgres transaction, mark guest nonactive and invoke the reviewed, guest-guarded provider identity deletion helper; check that the intended anonymous identity and provider sessions/refresh rows disappear. Existing mechanism is `0010_account_deletion.py:14–51`; hosted constraints and privileges must be proven on a synthetic non-production identity.
 6. Hard-delete guest app sessions, cleanup/user-scoped jobs and the user row after dependent rows are gone. Completed guest cleanup must leave no user UUID linkage in retained feedback/cost aggregates. Commit atomically where provider Auth shares this database. If using an external provider admin deletion API instead, record separate retryable provider status and do not report full deletion until confirmed.
@@ -146,7 +146,7 @@ Storage boundaries and what can actually disappear:
 | Capability | Guest policy |
 |---|---|
 | Five AI assistants | Allowed after 16+ eligibility and explicit AI consent, within trial quota. Cầu Nối offers general draft/advice only, no real candidates |
-| Journals, own private profile/settings | Allowed and owner-scoped until T. No future-day journal claims or shared profiles |
+| Journals, own identity/settings, AI memories | Allowed and owner-scoped until T. No future-day journal claims or shared profiles |
 | Approved memory/proposals | Allowed temporarily with existing approval/AI/MEM rules. Semantic indexing remains separately opted in and availability-gated |
 | Temporary/saved history | Existing user choice preserved; if opted in, saved expiry capped to T. Never silently enable saving or promise days/cross-device guest recovery |
 | Voice | Existing 30-second WAV preview/edit flow, explicit permission, trial/global spend caps; no new realtime voice or speech-output promise |
@@ -169,7 +169,7 @@ Proposed starting values (configurable, **not measured price guarantees**):
 | Global capacity | Initially 10 simultaneous guest runs within existing global cap 50; preserve registered capacity. Fifty guests can browse; queued users see retry, no silent unbounded job queue |
 | Voice | 6 clips/trial, max 30 seconds each, max total 180 seconds; 2/minute; 1 active/guest and initially 3 global guest STT calls |
 | Embeddings | Explicit semantic opt-in only; max 20 approved indexed memories/trial, bounded unique-version jobs, no automatic retry storm; default off pending provider retention gate |
-| Data growth | Max 10 live conversations/guest, max 25 accepted AI turns total, 50 private items, 50 approved memories, 100 pending proposals (existing cap). Keep current text/body limits |
+| Data growth | Max 10 live conversations/guest, max 25 accepted AI turns total, 50 approved memories, 100 pending proposals (existing cap). Keep current text/body limits |
 | Streams | Max 2 AI SSE connections/guest; no guest social SSE. Clamp max stream duration to T |
 | Feedback | One submission/trial, 3 attempts/minute; shared IP abuse gate, independent of comment content |
 | Spend | Nonzero owner-approved daily guest USD budget, usage accounting required, atomic worst-case reservation before AI/STT/embed dispatch, settle actual/uncertain spend. Treat unknown price as unavailable for paid guest operation |

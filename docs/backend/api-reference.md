@@ -91,10 +91,6 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 | GET | `/api/v1/profiles/matching-draft` | `get_draft_api_v1_profiles_matching_draft_get` |
 | PUT | `/api/v1/profiles/matching-draft` | `save_draft_api_v1_profiles_matching_draft_put` |
 | POST | `/api/v1/profiles/matching-draft/preview` | `preview_draft_api_v1_profiles_matching_draft_preview_post` |
-| GET | `/api/v1/profiles/private-items` | `list_items_api_v1_profiles_private_items_get` |
-| POST | `/api/v1/profiles/private-items` | `create_item_api_v1_profiles_private_items_post` |
-| PATCH | `/api/v1/profiles/private-items/{item_id}` | `edit_item_api_v1_profiles_private_items__item_id__patch` |
-| DELETE | `/api/v1/profiles/private-items/{item_id}` | `delete_item_api_v1_profiles_private_items__item_id__delete` |
 | POST | `/api/v1/profiles/published` | `publish_api_v1_profiles_published_post` |
 | GET | `/api/v1/profiles/published/current` | `published_current_api_v1_profiles_published_current_get` |
 | DELETE | `/api/v1/profiles/published/current` | `withdraw_api_v1_profiles_published_current_delete` |

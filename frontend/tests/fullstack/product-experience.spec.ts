@@ -88,7 +88,7 @@ test("all five assistants explain their purpose and link to the related real fea
       await page.setViewportSize({ width, height });
       for (const [id, action, destination] of [
         ["may", "Ghi lại cảm xúc hôm nay", "/self"],
-        ["guong", "Xem hồ sơ riêng", "/profile"],
+        ["guong", "Xem ghi nhớ AI", "/memory"],
         ["nhip", "Mở nhật ký cảm xúc", "/self"],
         ["rure", "Xem tin nhắn và hoạt động chung", "/messages"],
         ["caunoi", "Xem hồ sơ tìm bạn", "/connect?tab=profile"],

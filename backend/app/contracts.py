@@ -135,22 +135,6 @@ class ConsentInput(VersionInput):
     policy_version: Literal["v1"]
 
 
-class PrivateItemInput(DTO):
-    text: ShortText
-
-
-class PrivateItemEdit(PrivateItemInput, VersionInput):
-    pass
-
-
-class PrivateItemDTO(DTO):
-    id: UUID
-    text: str
-    version: int
-    origin: Literal["declared", "ai"]
-    status: Literal["confirmed", "edited", "deleted"]
-
-
 class MoodInput(VersionInput):
     value: int = Field(ge=1, le=5, strict=True)
     note: Annotated[str, StringConstraints(strip_whitespace=True, max_length=120)] = ""

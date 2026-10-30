@@ -71,7 +71,7 @@ test("real five companions, scoped mood tool, memory proposal and explicit appro
     const prompts = [
       ["may", "Mây", "Mình vừa thắng một ván cờ, chỉ muốn khoe thôi!"],
       ["rure", "Rủ Rê", "Cho mình một trò chơi một người trong 3 phút, chỉ cần giấy và bút."],
-      ["caunoi", "Cầu Nối", "Bật tìm bạn có tự đăng hồ sơ riêng không? Mình chưa muốn gửi lời mời."],
+      ["caunoi", "Cầu Nối", "Bật tìm bạn có tự đăng thông tin riêng lên hồ sơ kết nối không? Mình chưa muốn gửi lời mời."],
     ];
     for (const [bot, name, prompt] of prompts) {
       await page.goto(base + `/#/assistants/${bot}`);
@@ -95,7 +95,7 @@ test("real five companions, scoped mood tool, memory proposal and explicit appro
     await page.goto(base + "/#/assistants/guong");
     const memoryReply = await send(page, "Gương", "Mình tự xác nhận sở thích: thích vẽ tranh bằng màu nước. Hãy dùng công cụ tạo đề xuất ghi nhớ để mình duyệt, đừng tự lưu.");
     const proposals = await request(a, "GET", "/proposals");
-    const proposal = proposals.find((p: any) => p.botId === "guong" && p.purpose === "memory");
+    const proposal = proposals.find((p: any) => p.botId === "guong");
     expect(proposal).toBeDefined();
     expect(await request(a, "GET", "/memories")).toHaveLength(memoriesBefore.length);
     await request(b, "POST", `/proposals/${proposal.id}/confirm`, { expectedVersion: proposal.version }, 404);
@@ -260,11 +260,8 @@ test("synthetic media stream, real STT preview, edit, explicit send and proposal
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.screenshot({ path: artifacts + "live-desktop.png", fullPage: true });
     replies.push({ bot: "may", reply: await send(page, "Mây", "Mình xác nhận thích trò chuyện chậm. Hãy tạo đề xuất ghi nhớ bằng công cụ để mình duyệt riêng.") });
-    await page.goto(base + "/#/assistants/guong");
-    replies.push({ bot: "guong", reply: await send(page, "Gương", "Mình tự xác nhận thích khám phá qua hội họa. Hãy dùng propose_private_item tạo một mô tả hồ sơ riêng để mình xem và duyệt. Chưa lưu.") });
     const proposals = await request(context, "GET", "/proposals");
-    expect(proposals.some((p: any) => p.botId === "may" && p.purpose === "memory")).toBe(true);
-    expect(proposals.some((p: any) => p.botId === "guong" && p.purpose === "private_item")).toBe(true);
+    expect(proposals.some((p: any) => p.botId === "may")).toBe(true);
     for (const proposal of proposals.filter((p: any) => ["may", "guong"].includes(p.botId)))
       await request(context, "POST", `/proposals/${proposal.id}/reject`, { expectedVersion: proposal.version });
     writeFileSync(artifacts + "voice-browser-results.json", JSON.stringify({ status: "PASS", synthetic: true, physicalMicUsed: false, nativeGetUserMedia: "BLOCKED: NotSupportedError in Chromium runner", captureSource: "Web Audio MediaStream from synthetic Vietnamese WAV", sttModel: "gpt-transcribe", sttRequests: 1, previewEditExplicitSend: true, replies }, null, 2));

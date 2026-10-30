@@ -29,7 +29,7 @@ Source diagnostics tách `authorization` với `evidence`: được cấp quyề
 
 ## Proposal và memory lifecycle
 
-1. Tool tạo proposal với purpose `memory` hoặc `private_item`; proposal chưa là dữ liệu đã duyệt.
+1. Tool tạo proposal cho ghi nhớ AI; proposal chưa là dữ liệu đã duyệt.
 2. UI đọc `/proposals`, hiển thị nội dung, có thể sửa trước confirm hoặc reject.
 3. `/proposals/{id}/confirm` kiểm tra owner, session/authorization, expiry, expected version và data version; lưu target cùng receipt trong transaction.
 4. `/memories/{id}` cho phép sửa/xóa theo version. Thay đổi invalidate context/index có liên quan.

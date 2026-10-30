@@ -134,7 +134,7 @@ async def seed_guest_proposal(body: dict):
         user = await db.get(User, uid)
         assert user and user.account_kind == "guest"
         consents = {c.purpose: c.version for c in (await db.scalars(select(Consent).where(Consent.user_id == uid))).all()}
-        proposal = MemoryProposal(user_id=uid, bot_id="may", text="SYNTHETIC-GUEST-MEMORY", purpose="memory", data_version=user.data_version,
+        proposal = MemoryProposal(user_id=uid, bot_id="may", text="SYNTHETIC-GUEST-MEMORY", data_version=user.data_version,
                                   ai_consent_version=consents["AI"], mem_consent_version=consents["MEM"], expires_at=user.guest_expires_at)
         db.add(proposal)
         await db.flush()
@@ -200,7 +200,7 @@ async def seed():
                         proposal_id=__import__("uuid").uuid4(),
                     )
                 )
-                db.add(MemoryProposal(user_id=uid, bot_id="guong", text="Đề xuất tổng hợp để bạn chỉnh sửa", purpose="memory", data_version=1, ai_consent_version=1, mem_consent_version=1, expires_at=datetime.now(UTC) + timedelta(minutes=15)))
+                db.add(MemoryProposal(user_id=uid, bot_id="guong", text="Đề xuất tổng hợp để bạn chỉnh sửa", data_version=1, ai_consent_version=1, mem_consent_version=1, expires_at=datetime.now(UTC) + timedelta(minutes=15)))
             await db.execute(
                 text("insert into auth.sessions(id,user_id) values (:id,:uid)"),
                 {"id": provider, "uid": uid},

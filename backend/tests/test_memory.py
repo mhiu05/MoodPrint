@@ -10,7 +10,7 @@ from app.ai.memory import create_proposal
 from app.ai.memory_models import MemoryProposal
 from app.core.errors import DomainError
 from app.core.security import Actor, digest
-from app.infrastructure.database.models import AuthSession, Memory, PrivateItem, User, now
+from app.infrastructure.database.models import AuthSession, Memory, User, now
 
 pytestmark = pytest.mark.postgres
 
@@ -37,7 +37,6 @@ async def seed_proposal(app, uid, **values):
             Actor(uid, session.id, user.auth_version),
             values.pop("bot_id", "may"),
             values.pop("text", "Mình thích đọc sách"),
-            values.pop("purpose", "memory"),
             user.data_version,
             **values,
         )
@@ -71,7 +70,7 @@ async def test_another_valid_login_of_same_owner_can_confirm_pending_proposal(cl
     app, actors = clients
     client, uid = actors[0]
     await enable(client, "AI")
-    proposal = await seed_proposal(app, uid, purpose="private_item")
+    proposal = await seed_proposal(app, uid)
     token, csrf, sid = str(uuid4()), str(uuid4()), uuid4()
     async with app.state.database.sessions.begin() as db:
         db.add(
@@ -105,8 +104,8 @@ async def test_old_terminal_proposals_are_purged_without_removing_pending_previe
     app, actors = clients
     client, uid = actors[0]
     await enable(client, "AI")
-    old = await seed_proposal(app, uid, purpose="private_item")
-    current = await seed_proposal(app, uid, purpose="private_item")
+    old = await seed_proposal(app, uid)
+    current = await seed_proposal(app, uid)
     response = await client.post(
         f"/api/v1/proposals/{old.id}/reject", json={"expectedVersion": 1}, headers=key()
     )
@@ -162,27 +161,6 @@ async def test_expired_proposal_persists_expired_state_and_erases_preview(client
         stored = await db.get(MemoryProposal, proposal.id)
         assert stored.status == "expired" and stored.text == ""
     assert (await client.get("/api/v1/memories")).json() == []
-
-
-async def test_source_version_is_rechecked_even_when_data_version_is_unchanged(clients):
-    app, actors = clients
-    client, uid = actors[0]
-    await enable(client, "AI")
-    await enable(client, "MEM")
-    async with app.state.database.sessions.begin() as db:
-        source = PrivateItem(user_id=uid, text="An approved source")
-        db.add(source)
-        await db.flush()
-        identity = source.id
-    proposal = await seed_proposal(app, uid, source_id=identity, source_version=1)
-    async with app.state.database.sessions.begin() as db:
-        source = await db.get(PrivateItem, identity)
-        source.version = 2
-    response = await client.post(
-        f"/api/v1/proposals/{proposal.id}/confirm", json={"expectedVersion": 1}, headers=key()
-    )
-    assert response.status_code == 409
-    assert response.json()["error"]["code"] == "SOURCE_CHANGED"
 
 
 async def test_caunoi_cannot_propose_memory_and_consent_is_rechecked(clients):
@@ -307,11 +285,11 @@ async def test_memory_remains_manageable_with_ai_off_but_deleted_text_is_not_ret
     assert (await a.get("/api/v1/memories")).json() == []
 
 
-async def test_reject_proposal_discards_it_without_saving_a_private_item_or_memory(clients):
+async def test_reject_proposal_discards_it_without_saving_a_memory(clients):
     app, actors = clients
     a, uid = actors[0]
     await enable(a, "AI")
-    proposal = await seed_proposal(app, uid, purpose="private_item")
+    proposal = await seed_proposal(app, uid)
     result = await a.post(
         f"/api/v1/proposals/{proposal.id}/reject", json={"expectedVersion": 1}, headers=key()
     )
@@ -323,7 +301,6 @@ async def test_reject_proposal_discards_it_without_saving_a_private_item_or_memo
         f"/api/v1/proposals/{proposal.id}/reject", json={"expectedVersion": 1}, headers=key()
     )
     assert replay.json() == result.json()
-    assert (await a.get("/api/v1/profiles/private-items")).json() == []
     assert (await a.get("/api/v1/memories")).json() == []
 
 

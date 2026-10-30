@@ -17,6 +17,6 @@ def test_new_synthetic_multiturn_suite_is_separate_from_reserved_dataset():
     assert all(case["id"].startswith("P0-") for case in cases)
 
 
-def test_historical_selected_prompts_are_frozen_byte_for_byte():
+def test_selected_prompt_baseline_matches_runtime_byte_for_byte():
     baseline = json.loads((FIXTURES / "evidence_p0_baseline.json").read_text(encoding="utf-8"))
     assert baseline == {bot: instructions(bot) for bot in SELECTED_VARIANTS}

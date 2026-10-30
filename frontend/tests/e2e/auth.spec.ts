@@ -37,7 +37,7 @@ async function api(page: Page, authenticated: boolean, handlers: Record<string, 
       return route.fulfill(
         authenticated ? { json: session } : failure(401, "AUTH_REQUIRED", "Vui lòng đăng nhập."),
       );
-    if (["/bots", "/ai/conversations", "/moods", "/profiles/private-items", "/users/me/identity"].includes(path))
+    if (["/bots", "/ai/conversations", "/moods", "/users/me/identity"].includes(path))
       return route.fulfill({ json: [] });
     if (path === "/ai/preferences")
       return route.fulfill({ json: { historyEnabled: false, semanticMemoryEnabled: false, version: 1, policyVersion: "ai-data-v1", retentionDays: 30, historyAvailable: true, semanticMemoryAvailable: false } });

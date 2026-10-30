@@ -538,12 +538,6 @@
 .eligibility-section h3 {
   font-size: 1.0625rem;
 }
-.personal-alias {
-  margin: 4px 0 20px;
-  color: var(--color-primary);
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
 .account-section {
   margin-top: 32px;
 }

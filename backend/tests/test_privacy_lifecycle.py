@@ -15,14 +15,14 @@ from zoneinfo import ZoneInfo
 import pytest
 from sqlalchemy import func, select, text
 
-from app.infrastructure.database.models import ConsentEvent, Mood, PrivateItem, User
+from app.infrastructure.database.models import ConsentEvent, Mood, User
 from app.modules.social.models import Connection, HumanMessage
 from tests.conftest import add_actor
 from tests.social_helpers import key, open_room
 
 pytestmark = pytest.mark.postgres
 
-ALL_SCOPES = ["account", "private_items", "memories", "moods", "consents", "social"]
+ALL_SCOPES = ["account", "memories", "moods", "consents", "social"]
 
 
 async def export(client, scopes=ALL_SCOPES):
@@ -152,7 +152,6 @@ async def test_mood_deletion_scope_removes_only_moods(clients):
     body = {"value": 3, "note": "xóa tôi", "timezone": "Asia/Bangkok", "expectedVersion": 0}
     for client in (a, b):
         assert (await client.put(f"/api/v1/moods/{today}", json=body, headers=key())).status_code == 200
-    await a.post("/api/v1/profiles/private-items", json={"text": "Giữ lại"}, headers=key())
     version = (await a.get("/api/v1/session")).json()["dataVersion"]
     job = await a.post(
         "/api/v1/data-deletions", json={"scope": "moods", "expectedVersion": version}, headers=key()
@@ -166,7 +165,6 @@ async def test_mood_deletion_scope_removes_only_moods(clients):
     assert len((await b.get("/api/v1/moods")).json()) == 1
     async with app.state.database.sessions() as db:
         assert await db.scalar(select(func.count()).where(Mood.user_id == uid)) == 0
-        assert await db.scalar(select(func.count()).where(PrivateItem.user_id == uid)) == 1
 
 
 async def test_account_deletion_closes_rooms_masks_text_and_ends_the_old_session(clients):

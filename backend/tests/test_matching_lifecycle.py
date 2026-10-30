@@ -73,30 +73,6 @@ async def republish(client):
     return response.json()
 
 
-async def test_private_item_edits_keep_the_profile_live_and_rooms_open(clients):
-    _, actors, _, room = await open_room(clients)
-    a = actors[0][0]
-    item = (
-        await a.post("/api/v1/profiles/private-items", json={"text": "Riêng tư"}, headers=key())
-    ).json()
-    edited = await a.patch(
-        f"/api/v1/profiles/private-items/{item['id']}",
-        json={"text": "Đã sửa", "expectedVersion": 1},
-        headers=key(),
-    )
-    assert edited.status_code == 200, edited.text
-    deleted = await a.request(
-        "DELETE",
-        f"/api/v1/profiles/private-items/{item['id']}",
-        json={"expectedVersion": 2},
-        headers=key(),
-    )
-    assert deleted.status_code == 200, deleted.text
-    assert (await a.get(f"/api/v1/connections/{room}")).status_code == 200
-    assert (await actors[1][0].get(f"/api/v1/connections/{room}/messages")).status_code == 200
-    assert (await a.get("/api/v1/profiles/published/current")).json()["state"] == "live"
-
-
 async def test_consent_restore_requires_explicit_republish_and_stale_profile_can_be_withdrawn(
     clients,
 ):

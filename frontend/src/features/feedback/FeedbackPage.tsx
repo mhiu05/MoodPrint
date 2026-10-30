@@ -71,7 +71,7 @@ export default function FeedbackPage() {
       <p role="status">Cảm ơn bạn. MoodPrint đã nhận góp ý.</p>
       <p>Bạn có thể giữ mã này để xác định góp ý nếu cần yêu cầu xử lý thông tin đã gửi:</p>
       <p className="feedback-receipt">{receipt.feedbackId}</p>
-      <Link to="/profile">Về Cá nhân</Link>
+      <Link to="/profile">Về Tài khoản</Link>
     </section>
   );
   const alreadySubmitted = submission.data?.submitted && (guest || (

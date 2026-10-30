@@ -38,7 +38,6 @@ for (const width of widths) {
       "/ai/preferences": () => ({ json: { historyEnabled: true, semanticMemoryEnabled: false, version: 1, policyVersion: "ai-data-v1", retentionDays: 30, historyAvailable: true, semanticMemoryAvailable: true } }),
       "/moods": () => ({ json: [] }),
       "/moods/summary": () => ({ json: { from: "2026-10-17", to: "2026-10-23", count: 0, mean: null, min: null, max: null, insightAvailable: false, buckets: [] } }),
-      "/profiles/private-items": () => ({ json: [] }),
       "/users/me/identity": () => ({ json: [] }),
       "/connections": () => ({ json: [room] }),
     });

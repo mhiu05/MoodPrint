@@ -10,7 +10,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type FormEvent,
   type ReactNode,
 } from "react";
 import {
@@ -61,11 +60,7 @@ import { useGuestLifecycle } from "../guest/useGuestLifecycle";
 import { clearTourBlockers, useTourActivity, useTourBlocker } from "../onboarding/tourActivity";
 import type {
   AIRunAccepted,
-  ActionReceipt,
   BotPublicDTO,
-  PrivateItemDTO,
-  PrivateItemInput,
-  PrivateItemEdit,
   SessionView,
   StartRunInput,
   VersionInput,
@@ -89,7 +84,6 @@ import { Moderation } from "./admin/Moderation";
 import { ApprovedMemories } from "./Memory";
 import { Moods } from "./Mood";
 import { VoiceRecorder } from "./Voice";
-import { OwnIdentity } from "./Safety";
 import { AccountActions, AccountDeletionComplete } from "./AccountActions";
 import { focusRouteHeading, useRouteFocus } from "./useRouteFocus";
 import { AIActivityStatus } from "./AIActivityStatus";
@@ -667,7 +661,7 @@ function Navigation() {
     <nav className={cx.navigation} aria-label="Điều hướng chính">
       {[
         { to: "/assistants", label: "Trợ lý", Icon: Sparkles, count: 0, what: "" },
-        { to: "/self", label: "Cảm xúc", Icon: NotebookPen, count: 0, what: "" },
+        { to: "/self", label: "Nhật ký", Icon: NotebookPen, count: 0, what: "" },
         {
           // Pending invitations open their tab directly (08 section 2).
           to: summary.pendingIncomingRequests ? "/connect?tab=requests" : "/connect",
@@ -683,7 +677,7 @@ function Navigation() {
           count: unread,
           what: "cuộc trò chuyện chưa đọc",
         },
-        { to: "/profile", label: "Cá nhân", Icon: UserRound, count: 0, what: "" },
+        { to: "/profile", label: "Tài khoản", Icon: UserRound, count: 0, what: "" },
       ].map(({ to, label, Icon, count, what }) => (
         <NavLink
           key={label}
@@ -814,7 +808,7 @@ function Shell() {
               <Route path="/self/memories" element={<Suspense fallback={<p role="status">Đang mở khoảnh khắc…</p>}><JournalTimeline /></Suspense>} />
               <Route path="/self/entry/:id" element={<Suspense fallback={<p role="status">Đang mở khoảnh khắc…</p>}><JournalEntryDetail /></Suspense>} />
               <Route path="/self/daily" element={<Moods />} />
-              <Route path="/profile" element={<PrivateProfile onGuide={() => setGuideOpen(true)} />} />
+              <Route path="/profile" element={<AccountPage onGuide={() => setGuideOpen(true)} />} />
               <Route path="/memory" element={<ApprovedMemories />} />
               <Route path="/connect" element={session.accountKind === "guest" ? <GuestLocked /> : <Discovery />} />
               <Route path="/messages" element={session.accountKind === "guest" ? <GuestLocked /> : <HumanMessages />} />
@@ -1977,227 +1971,17 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   );
 }
 
-function PrivateProfile({ onGuide }: { onGuide: () => void }) {
-  const { api, session } = useSession();
+function AccountPage({ onGuide }: { onGuide: () => void }) {
   const [accountDeleted, setAccountDeleted] = useState(false);
-  const resource = useResource<PrivateItemDTO[]>("/profiles/private-items");
-  const [text, setText] = useState(""),
-    [editing, setEditing] = useState<PrivateItemDTO>();
-  const [deleting, setDeleting] = useState<PrivateItemDTO>();
-  const [busy, setBusy] = useState(false),
-    [error, setError] = useState<unknown>(),
-    [receipt, setReceipt] = useState("");
-  async function save(event: FormEvent) {
-    event.preventDefault();
-    if (busy || !text.trim() || !resource.data) return;
-    setBusy(true);
-    setError(undefined);
-    setReceipt("");
-    try {
-      const saved = await api.request<PrivateItemDTO>(
-        editing
-          ? `/profiles/private-items/${editing.id}`
-          : "/profiles/private-items",
-        {
-          method: editing ? "PATCH" : "POST",
-          body: editing
-            ? ({
-                text: text.trim(),
-                expectedVersion: editing.version,
-              } satisfies PrivateItemEdit)
-            : ({ text: text.trim() } satisfies PrivateItemInput),
-        },
-      );
-      resource.setData((previous) => [
-        saved,
-        ...(previous || []).filter((item) => item.id !== saved.id),
-      ]);
-      setText("");
-      setEditing(undefined);
-      setReceipt("Đã lưu vào hồ sơ riêng.");
-    } catch (reason) {
-      setError(reason);
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function remove() {
-    if (!deleting || busy) return;
-    setBusy(true);
-    setError(undefined);
-    try {
-      const confirmed = await api.request<ActionReceipt>(
-        `/profiles/private-items/${deleting.id}`,
-        {
-          method: "DELETE",
-          body: { expectedVersion: deleting.version } satisfies VersionInput,
-        },
-      );
-      if (
-        confirmed.status !== "succeeded" ||
-        confirmed.resourceId !== deleting.id
-      )
-        throw new ApiError(
-          502,
-          "INVALID_RECEIPT",
-          "Chưa xác nhận được thao tác xóa. Vui lòng tải lại hồ sơ riêng để kiểm tra.",
-        );
-      resource.setData((previous) =>
-        previous?.filter((item) => item.id !== deleting.id),
-      );
-      if (editing?.id === deleting.id) {
-        setEditing(undefined);
-        setText("");
-      }
-      setDeleting(undefined);
-      setReceipt("Đã xóa mục khỏi hồ sơ riêng.");
-    } catch (reason) {
-      setError(reason);
-      setDeleting(undefined);
-    } finally {
-      setBusy(false);
-    }
-  }
   if (accountDeleted) return <AccountDeletionComplete />;
   return (
     <div className={cx.reading}>
-      <h1 tabIndex={-1} data-tour="personal-account">Cá nhân</h1>
-      <p className="personal-alias">{session.alias}</p>
-      <div className={cx.actions}>
-        <Link className={`${cx.button} ${cx.secondary}`} to="/self">
-          Nhật ký cảm xúc
-        </Link>
-        <Link className={`${cx.button} ${cx.secondary}`} to="/memory">
-          Thông tin AI ghi nhớ
-        </Link>
-      </div>
-      <AccountActions onGuide={onGuide} onDeleted={() => setAccountDeleted(true)} />
+      <h1 tabIndex={-1} data-tour="personal-account">Tài khoản</h1>
       <AdultEligibility />
-      <section className="real-section" aria-labelledby="private-notes-heading">
-      <h2 id="private-notes-heading">Hồ sơ riêng</h2>
-      <p>
-        Những điều bạn tự ghi lại về mình. Các mục này không tự chia sẻ cho
-        người khác hay trở thành ghi nhớ AI.
-      </p>
-      <ErrorNotice error={resource.error} retry={resource.refresh} />
-      <ErrorNotice error={error} />
-      <form onSubmit={save}>
-        <label htmlFor="private-text">Điều bạn muốn ghi lại</label>
-        <textarea
-          id="private-text"
-          rows={3}
-          maxLength={120}
-          value={text}
-          aria-describedby="private-text-count"
-          onChange={(event) => setText(event.target.value)}
-          required
-        />
-        <p id="private-text-count" className={cx.footnote}>
-          {text.length}/120 ký tự · Chỉ bạn xem.
-        </p>
-        <div className={cx.actions}>
-          <Button
-            type="submit"
-            disabled={
-              busy || resource.loading || !resource.data || !text.trim()
-            }
-          >
-            {busy
-              ? "Đang lưu…"
-              : editing
-                ? "Lưu thay đổi"
-                : "Lưu vào hồ sơ riêng"}
-          </Button>
-          {editing ? (
-            <Button
-              variant="text"
-              onClick={() => {
-                setEditing(undefined);
-                setText("");
-              }}
-            >
-              Hủy sửa
-            </Button>
-          ) : null}
-        </div>
-      </form>
-      {receipt ? <p role="status">{receipt}</p> : null}
-      {resource.loading ? <p role="status">Đang tải hồ sơ riêng…</p> : null}
-      <section className="real-section">
-        <h2>Những điều tôi ghi về mình</h2>
-        {resource.data?.length === 0 ? (
-          <p>Chưa có ghi chép. Thêm một điều bạn muốn lưu về mình ở ô phía trên.</p>
-        ) : null}
-        {resource.data?.map((item) => (
-          <article className="real-item" key={item.id}>
-            <p>{item.text}</p>
-            <small>
-              {item.origin === "ai"
-                ? "AI đề xuất · Bạn đã duyệt"
-                : "Bạn tự ghi"}{" "}
-              · {item.status === "edited" ? "Đã chỉnh sửa" : "Đã lưu"}
-            </small>
-            <div className={cx.actions}>
-              <Button
-                variant="text"
-                disabled={busy}
-                aria-label={`Sửa mục ${item.text}`}
-                onClick={() => {
-                  setEditing(item);
-                  setText(item.text);
-                  setReceipt("");
-                  document.getElementById("private-text")?.focus();
-                }}
-              >
-                Sửa
-              </Button>
-              <Button
-                variant="text"
-                disabled={busy}
-                aria-label={`Xóa mục ${item.text}`}
-                onClick={() => setDeleting(item)}
-              >
-                Xóa
-              </Button>
-            </div>
-          </article>
-        ))}
-      </section>
-      {deleting ? (
-        <Dialog
-          title="Xóa mục khỏi hồ sơ riêng?"
-          destructive
-          onClose={() => {
-            if (!busy) setDeleting(undefined);
-          }}
-        >
-          <p>{deleting.text}</p>
-          <p>Mục này sẽ được xóa khỏi hồ sơ riêng.</p>
-          <div className={cx.actions}>
-            <Button
-              variant="secondary"
-              data-cancel
-              disabled={busy}
-              onClick={() => setDeleting(undefined)}
-            >
-              Giữ lại
-            </Button>
-            <Button
-              variant="danger"
-              disabled={busy}
-              onClick={() => void remove()}
-            >
-              Xóa mục này
-            </Button>
-          </div>
-        </Dialog>
-      ) : null}
-      </section>
-      <OwnIdentity />
+      <AccountActions onGuide={onGuide} onDeleted={() => setAccountDeleted(true)} />
     </div>
   );
 }
-
 export default function RealApp({ api, callback }: { api: ApiClient; callback: AuthCallback }) {
   return (
     <HashRouter>

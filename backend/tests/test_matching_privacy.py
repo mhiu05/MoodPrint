@@ -7,7 +7,6 @@ APP = Path(__file__).resolve().parents[1] / "app"
 SOURCES = [*sorted((APP / "modules/matching").glob("*.py")), APP / "modules/social/retrieval.py"]
 PRIVATE_NAMES = {
     "Mood",
-    "PrivateItem",
     "Memory",
     "MemoryProposal",
     "MemoryEmbedding",

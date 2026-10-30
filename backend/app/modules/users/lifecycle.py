@@ -14,7 +14,6 @@ from app.infrastructure.database.models import (
     Idempotency,
     Memory,
     Mood,
-    PrivateItem,
     User,
     now,
 )
@@ -89,31 +88,18 @@ async def process_deletions(app):
             return
         scopes = {job.scope}
         if job.scope in ("all_private", "account"):
-            scopes = {"memories", "moods", "journal", "private_items", "identity", "matching"}
+            scopes = {"memories", "moods", "journal", "identity", "matching"}
             from app.ai.models import AiConversation, AiPreference, AiTurn
 
             await db.execute(delete(AiConversation).where(AiConversation.user_id == uid))
             await db.execute(delete(AiPreference).where(AiPreference.user_id == uid))
             # Temporary-chat turn digests have no conversation row to cascade from.
             await db.execute(delete(AiTurn).where(AiTurn.user_id == uid))
-        if "memories" in scopes or "private_items" in scopes:
+        if "memories" in scopes:
             from app.ai.memory_models import MemoryProposal
 
-            # Deleting private items removes only what was derived from them.
-            derived = () if "memories" in scopes else (
-                or_(MemoryProposal.source_id.isnot(None), MemoryProposal.purpose == "private_item"),
-            )
-            await db.execute(
-                delete(MemoryProposal).where(MemoryProposal.user_id == uid, *derived)
-            )
-            await db.execute(
-                delete(Memory).where(
-                    Memory.user_id == uid,
-                    *(() if "memories" in scopes else (Memory.source_id.isnot(None),)),
-                )
-            )
-        if "private_items" in scopes:
-            await db.execute(delete(PrivateItem).where(PrivateItem.user_id == uid))
+            await db.execute(delete(MemoryProposal).where(MemoryProposal.user_id == uid))
+            await db.execute(delete(Memory).where(Memory.user_id == uid))
         if "moods" in scopes:
             await db.execute(delete(Mood).where(Mood.user_id == uid))
         if "journal" in scopes:

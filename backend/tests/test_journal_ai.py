@@ -51,7 +51,7 @@ def test_journal_tool_is_default_for_nhip_only_and_does_not_expand_mood_scope():
     }
     for bot, expected in [
         ("may", {"propose_memory"}),
-        ("guong", {"propose_memory", "propose_private_item"}),
+        ("guong", {"propose_memory"}),
         ("rure", set()),
         ("caunoi", set()),
     ]:

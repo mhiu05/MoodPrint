@@ -36,7 +36,7 @@ ORDINARY = {
     ],
     "caunoi": [
         "Giúp mình chọn sở thích cho hồ sơ kết nối, chưa đăng công khai.",
-        "Nếu mình bật tìm bạn thì hồ sơ riêng có tự bị đăng không?",
+        "Nếu mình bật tìm bạn thì thông tin riêng có tự đăng lên hồ sơ kết nối không?",
         "Mình muốn xem lại hồ sơ trước khi tự nhấn đăng.",
         "Không có ai phù hợp thì mình nên làm gì? Đừng tạo người minh họa.",
         "Mình chưa muốn gửi lời mời, chỉ muốn biết các bước kết nối.",

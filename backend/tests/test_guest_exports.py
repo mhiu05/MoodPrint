@@ -36,22 +36,14 @@ def headers():
     return {"Idempotency-Key": str(uuid4())}
 
 
-async def add_item(guest, text="Điều riêng tư PRIVATE-CANARY"):
-    created = await guest.client.post(
-        "/api/v1/profiles/private-items", json={"text": text}, headers=headers()
-    )
-    assert created.status_code == 201, created.text
-
-
 async def test_guest_export_cannot_download_at_t(clients):
     import time
 
     app, _ = clients
     guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=4))
-    await add_item(guest)
     created = await guest.client.post(
         "/api/v1/exports",
-        json={"scopes": ["private_items"], "guestConfirmation": CONFIRM},
+        json={"scopes": ["consents"], "guestConfirmation": CONFIRM},
         headers=headers(),
     )
     assert created.status_code == 201, created.text
@@ -62,32 +54,30 @@ async def test_guest_export_cannot_download_at_t(clients):
     await asyncio.sleep(max(0.0, (guest.expires_at - await db_now(app)).total_seconds()) + 0.3)
     late = await guest.client.get(f"/api/v1/exports/{job}/download")
     assert late.status_code == 401 and late.json()["error"]["code"] == "GUEST_EXPIRED"
-    assert b"PRIVATE-CANARY" not in late.content
 
 
 async def test_guest_export_needs_confirmation_and_never_includes_social(clients):
     app, _ = clients
     guest = await add_guest(app)
-    await add_item(guest)
     missing = await guest.client.post(
-        "/api/v1/exports", json={"scopes": ["private_items"]}, headers=headers()
+        "/api/v1/exports", json={"scopes": ["consents"]}, headers=headers()
     )
     assert missing.status_code == 422
     assert missing.json()["error"]["code"] == "GUEST_CONFIRMATION_REQUIRED"
     social = await guest.client.post(
         "/api/v1/exports",
-        json={"scopes": ["private_items", "social"], "guestConfirmation": CONFIRM},
+        json={"scopes": ["consents", "social"], "guestConfirmation": CONFIRM},
         headers=headers(),
     )
     assert social.status_code == 403 and social.json()["error"]["code"] == "REGISTERED_REQUIRED"
     ok = await guest.client.post(
         "/api/v1/exports",
-        json={"scopes": ["private_items", "consents"], "guestConfirmation": CONFIRM},
+        json={"scopes": ["consents", "memories"], "guestConfirmation": CONFIRM},
         headers=headers(),
     )
     assert ok.status_code == 201, "no password step-up for a guest"
     download = await guest.client.get(f"/api/v1/exports/{ok.json()['id']}/download")
-    assert download.status_code == 200 and "PRIVATE-CANARY" in download.text
+    assert download.status_code == 200
     assert (
         await guest.client.get(f"/api/v1/exports/{ok.json()['id']}/download")
     ).status_code == 410, "a second download is gone"
@@ -109,7 +99,7 @@ async def test_export_reauth_registered_only(clients):
         )
     denied = await registered.post(
         "/api/v1/exports",
-        json={"scopes": ["private_items"], "guestConfirmation": CONFIRM},
+        json={"scopes": ["consents"], "guestConfirmation": CONFIRM},
         headers=headers(),
     )
     # A guest confirmation is ignored for a registered account: step-up is still required.

@@ -276,22 +276,12 @@ async def test_legacy_unknown_provenance_is_visible_but_not_model_context(client
     assert ECHO in (await client.get(url)).text
 
 
-@pytest.mark.parametrize("change", ["edit", "source_edit", "source_delete"])
-async def test_t18_remote_worker_invalidates_ephemeral_derivatives(clients, change):
-    from app.infrastructure.database.models import PrivateItem
-
+async def test_t18_remote_worker_invalidates_ephemeral_derivatives(clients):
     app, actors = clients
     client, uid = actors[0]
     await enable(client, history=False)
     await enable_memory(client, "MEM")
-    async with app.state.database.sessions.begin() as db:
-        source = PrivateItem(user_id=uid, text="Synthetic source", status="confirmed")
-        db.add(source)
-        await db.flush()
-        source_id, source_version = source.id, source.version
-    proposal = await seed_proposal(
-        app, uid, text=SOURCE, source_id=source_id, source_version=source_version
-    )
+    proposal = await seed_proposal(app, uid, text=SOURCE)
     approved = await client.post(
         f"/api/v1/proposals/{proposal.id}/confirm", json={"expectedVersion": 1}, headers=key()
     )
@@ -303,36 +293,19 @@ async def test_t18_remote_worker_invalidates_ephemeral_derivatives(clients, chan
     await turn(app, client, url, "Recall", make_test_model(ECHO))
     original = app.state.ai
     app.state.ai = AiRuntime(app.state.settings, app.state.database)
-    if change == "edit":
-        result = await client.patch(
-            f"/api/v1/memories/{memory_id}",
-            json={"text": CORRECTED, "expectedVersion": 1},
-            headers=key(),
-        )
-        assert result.status_code == 200, result.text
-    elif change == "source_edit":
-        result = await client.patch(
-            f"/api/v1/profiles/private-items/{source_id}",
-            json={"text": "Corrected source", "expectedVersion": 1},
-            headers=key(),
-        )
-        assert result.status_code == 200, result.text
-    else:
-        result = await client.request(
-            "DELETE",
-            f"/api/v1/profiles/private-items/{source_id}",
-            json={"expectedVersion": 1},
-            headers=key(),
-        )
-        assert result.status_code == 200, result.text
+    result = await client.patch(
+        f"/api/v1/memories/{memory_id}",
+        json={"text": CORRECTED, "expectedVersion": 1},
+        headers=key(),
+    )
+    assert result.status_code == 200, result.text
     await app.state.ai.close()
     app.state.ai = original
     model = make_test_model("Safe after remote mutation")
     await turn(app, client, url, "Continue", model)
     captured = json.dumps(model.calls[0]["input"])
     assert ECHO not in captured and SOURCE not in captured
-    if change == "edit":
-        assert CORRECTED in captured
+    assert CORRECTED in captured
     assert ECHO in (await client.get(url)).text
 
 

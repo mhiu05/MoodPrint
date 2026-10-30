@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import select
 
 from app.ai.schemas import MemoryDTO
-from app.contracts import MoodDTO, PrivateItemDTO
+from app.contracts import MoodDTO
 from app.core.errors import DomainError
 from app.core.security import (
     Actor,
@@ -24,7 +24,6 @@ from app.infrastructure.database.models import (
     AuthSession,
     Memory,
     Mood,
-    PrivateItem,
     now,
 )
 from app.modules.guests.deadlines import guest_deadline
@@ -135,15 +134,12 @@ async def export(body: ExportInput, request: Request, actor: Actor = Depends(req
                 "declaredAt": declaration.declared_at.isoformat() if declaration else None,
             }
         for scope, model, schema, target in (
-            ("private_items", PrivateItem, PrivateItemDTO, "privateItems"),
             ("memories", Memory, MemoryDTO, "memories"),
             ("moods", Mood, MoodDTO, "moods"),
         ):
             if scope not in body.scopes:
                 continue
             statement = select(model).where(model.user_id == user.id)
-            if model is PrivateItem:
-                statement = statement.where(PrivateItem.status != "deleted")
             if model is Memory:
                 statement = statement.where(Memory.status == "active")
             if model is Mood:

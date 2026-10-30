@@ -32,12 +32,11 @@ async def unknown(clients):
     return app, actors
 
 
-async def test_sixteen_year_attestation_unlocks_private_features_without_consents_or_social(
+async def test_sixteen_year_attestation_unlocks_personal_features_without_consents_or_social(
     clients,
 ):
     _, actors = await unknown(clients)
     a, _ = actors[0]
-    assert (await a.get("/api/v1/profiles/private-items")).status_code == 403
     headers = key()
     response = await a.put(PATH, json=declaration(), headers=headers)
     assert response.status_code == 200, response.text
@@ -46,7 +45,6 @@ async def test_sixteen_year_attestation_unlocks_private_features_without_consent
     assert result["birthYear"] == YEAR - 16
     assert all(result["consents"][purpose]["enabled"] for purpose in ("AI", "MEM", "VOICE"))
     assert result["consents"]["MATCH"]["enabled"] is False
-    assert (await a.get("/api/v1/profiles/private-items")).status_code == 200
     assert (await a.get("/api/v1/matching/candidates")).status_code == 403
     assert (
         await a.put(
