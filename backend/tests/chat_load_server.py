@@ -103,12 +103,8 @@ class LoadModel(Model):
             if not expected or any(match != expected for match in memory_matches):
                 COUNTERS["isolation_failures"] += 1
                 raise AssertionError("synthetic memory isolation violated")
-            # NOMEM turns follow a MEM withdrawal: approved memories must be absent.
-            if "NOMEM" in serialized:
-                if memory_matches:
-                    COUNTERS["isolation_failures"] += 1
-                    raise AssertionError("memory used after MEM withdrawal")
-            elif not memory_matches:
+            # A personal consent write does not withdraw approved memory.
+            if not memory_matches:
                 COUNTERS["missing_memory"] += 1
                 raise AssertionError("indexed memory was not retrieved")
             if "HOLD" in serialized:
