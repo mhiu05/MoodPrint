@@ -114,7 +114,7 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
   await expect(
     page.getByText(/^Đã cập nhật cảm xúc ngày \d{2}\/\d{2}\/\d{4}\.$/),
   ).toBeVisible();
-  await expect(page.locator("article h3").first()).toContainText("2/5");
+  await expect(page.getByText(/2\/5 · /).first()).toBeVisible();
   const stored = (await call(context, 10, "GET", "/moods")).body;
   expect(
     stored.map((m: { version: number; note: string }) => [m.version, m.note]),
