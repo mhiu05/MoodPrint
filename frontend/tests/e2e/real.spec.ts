@@ -315,7 +315,7 @@ test("year onboarding requires confirmation and server success, retaining input 
   ).toBeVisible();
   release();
   await expect(
-    page.getByRole("heading", { name: /Bạn muốn chia sẻ điều gì/ }),
+    page.getByRole("heading", { name: "Chọn một trợ lý" }),
   ).toBeVisible();
 });
 
@@ -347,40 +347,23 @@ test("an unavailable session remains an explicit error until retry succeeds", as
   available = true;
   await page.getByRole("button", { name: "Thử lại", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: /Bạn muốn chia sẻ điều gì/ }),
+    page.getByRole("heading", { name: "Chọn một trợ lý" }),
   ).toBeVisible();
 });
 
-test("consent changes wait for the server receipt and include session protection", async ({
-  page,
-}) => {
+test("personal logout waits for a protected server response", async ({ page }) => {
   await api(page);
-  await page.route("**/api/v1/consents/AI", async (route) => {
-    const request = route.request();
-    expect(request.headers()["x-csrf-token"]).toBe("csrf-session-test");
-    expect(request.headers()["idempotency-key"]).toBeTruthy();
-    expect(request.postDataJSON()).toEqual({
-      enabled: false,
-      expectedVersion: 1,
-      policyVersion: "v1",
-    });
-    await route.fulfill({
-      json: {
-        ...session,
-        consents: {
-          ...session.consents,
-          AI: { enabled: false, version: 2, policyVersion: "v1" },
-        },
-      },
-    });
+  let signedOut = false;
+  await page.route("**/api/v1/auth/logout", async route => {
+    expect(route.request().headers()["x-csrf-token"]).toBe("csrf-session-test");
+    expect(route.request().headers()["idempotency-key"]).toBeTruthy();
+    signedOut = true;
+    await route.fulfill({ status: 204 });
   });
-  await page.goto("/#/settings");
-  await page
-    .getByRole("button", { name: "Rút quyền trò chuyện AI", exact: true })
-    .click();
-  await expect(
-    page.getByRole("button", { name: "Rút quyền trò chuyện AI", exact: true }),
-  ).toHaveCount(0);
+  await page.goto("/#/profile");
+  await page.getByRole("button", { name: "Đăng xuất", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Chào bạn trở lại" })).toBeVisible();
+  expect(signedOut).toBe(true);
 });
 
 test("failed AI requests preserve the draft without creating a fake reply", async ({
@@ -451,13 +434,13 @@ test("returning to the app rechecks consent and keeps chat accessible", async ({
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect(
     page.getByText("Khi chọn Gửi, bạn đồng ý để dịch vụ AI xử lý tin nhắn này. Bạn có thể rút quyền trong Quyền riêng tư.", { exact: true }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     page.getByRole("textbox", { name: "Tin nhắn cho Mây" }),
   ).toBeVisible();
 });
 
-test("chat grants processing only when the user sends a message", async ({ page }) => {
+test("chat sends directly with legacy disabled processing flags", async ({ page }) => {
   await api(page);
   const calls: string[] = [];
   let granted = false;
@@ -484,20 +467,72 @@ test("chat grants processing only when the user sends a message", async ({ page 
   expect(calls).toEqual([]);
   await page.getByRole("textbox", { name: "Tin nhắn cho Mây" }).fill("Xin chào");
   await page.getByRole("button", { name: "Gửi tin cho AI" }).click();
-  await expect.poll(() => calls).toEqual(["consent", "conversation"]);
+  await expect.poll(() => calls).toEqual(["conversation"]);
 });
 
-test("privacy controls remain readable on mobile and desktop", async ({ page }) => {
+test("personal account actions replace privacy controls on mobile and desktop", async ({ page }, testInfo) => {
   await api(page);
   await page.route("**/api/v1/profiles/published/current", route => route.fulfill({ json: null }));
   for (const width of [390, 768, 1280]) {
     await page.setViewportSize({ width, height: 844 });
     await page.goto("/#/settings");
-    await expect(page.getByRole("heading", { name: "Tin nhắn AI" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Hồ sơ và kết nối" })).toBeVisible();
-    await expect(page.getByRole("checkbox", { name: "Lưu lịch sử trò chuyện" })).toBeVisible();
+    await expect(page).toHaveURL(/#\/profile$/);
+    await expect(page.getByRole("heading", { name: "Cá nhân", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Góp ý cho MoodPrint", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Đăng xuất", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Xóa tài khoản", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Quyền riêng tư", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("checkbox", { name: "Lưu lịch sử trò chuyện" })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`profile-${width}.png`), fullPage: true });
   }
+});
+
+test("personal account deletion requires confirmation and can be cancelled", async ({ page }) => {
+  await api(page);
+  const deletions: unknown[] = [];
+  await page.route("**/api/v1/data-deletions", route => {
+    deletions.push(route.request().postDataJSON());
+    return route.fulfill({ status: 202, json: { id: "job", status: "queued" } });
+  });
+  await page.goto("/#/profile");
+  await page.getByRole("button", { name: "Xóa tài khoản", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Xóa vĩnh viễn tài khoản?" });
+  await expect(dialog.getByRole("button", { name: "Xóa vĩnh viễn tài khoản", exact: true })).toBeDisabled();
+  await dialog.getByRole("button", { name: "Giữ tài khoản", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  expect(deletions).toEqual([]);
+  await page.getByRole("button", { name: "Xóa tài khoản", exact: true }).click();
+  await dialog.getByRole("checkbox", { name: "Tôi hiểu tài khoản không thể khôi phục." }).check();
+  await dialog.getByRole("button", { name: "Xóa vĩnh viễn tài khoản", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Tài khoản đang được xóa" })).toBeVisible();
+  expect(deletions).toEqual([{ scope: "account", expectedVersion: 1 }]);
+  await expect(page.getByRole("textbox", { name: "Điều bạn muốn ghi lại" })).toHaveCount(0);
+});
+
+test("personal account deletion reauthenticates and asks for confirmation again", async ({ page }) => {
+  await api(page);
+  let deletions = 0;
+  await page.route("**/api/v1/data-deletions", route => {
+    deletions += 1;
+    return route.fulfill(deletions === 1
+      ? { status: 403, json: { error: { code: "REAUTH_REQUIRED", message: "Xác nhận tài khoản để tiếp tục." } } }
+      : { status: 202, json: { id: "job", status: "queued" } });
+  });
+  await page.route("**/api/v1/auth/reauthenticate", route => route.fulfill({ json: { status: "confirmed" } }));
+  await page.goto("/#/profile");
+  await page.getByRole("button", { name: "Xóa tài khoản", exact: true }).click();
+  await page.getByRole("checkbox", { name: "Tôi hiểu tài khoản không thể khôi phục." }).check();
+  await page.getByRole("button", { name: "Xóa vĩnh viễn tài khoản", exact: true }).click();
+  const form = page.getByRole("form", { name: "Xác nhận tài khoản", exact: true });
+  await form.getByLabel("Email", { exact: true }).fill("synthetic@example.test");
+  await form.getByLabel("Mật khẩu", { exact: true }).fill("synthetic-test-password");
+  await form.getByRole("button", { name: "Xác nhận", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Xóa vĩnh viễn tài khoản?" })).toBeVisible();
+  expect(deletions).toBe(1);
+  await page.getByRole("button", { name: "Xóa vĩnh viễn tài khoản", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Tài khoản đang được xóa" })).toBeVisible();
+  expect(deletions).toBe(2);
 });
 
 test("voice waits for a click and handles microphone denial", async ({ page }) => {
@@ -889,7 +924,7 @@ test("AI starter prepares an editable draft without any consent or message write
   await page.getByRole("button", { name: "Hôm nay mình hơi mệt", exact: true }).click();
   await expect(draft).toHaveValue("Hôm nay mình hơi mệt");
   await expect(draft).toBeFocused();
-  await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toHaveCount(0);
   await draft.press("End");
   await draft.pressSequentially(" quá");
   await expect(draft).toHaveValue("Hôm nay mình hơi mệt quá");

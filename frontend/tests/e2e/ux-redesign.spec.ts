@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { artifactPath } from "../artifacts";
 import AxeBuilder from "@axe-core/playwright";
 import { app, baseSession, room, sessionWith, type Routes } from "./ux-fixtures";
 
@@ -82,10 +83,10 @@ test("resolved reports show a Vietnamese outcome instead of the raw enum", async
   await expect(page.getByText(/warned|mystery/)).toHaveCount(0);
 });
 
-test("the first AI send explains the consent it records, next to Send", async ({ page }) => {
+test("the AI composer has no consent hurdle for legacy disabled flags", async ({ page }) => {
   await app(page, sessionWith({ AI: false }));
   await page.goto("/#/assistants/may");
-  await expect(page.getByText("Khi chọn Gửi, bạn đồng ý để dịch vụ AI xử lý tin nhắn này. Bạn có thể rút quyền trong Quyền riêng tư.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Khi chọn Gửi, bạn đồng ý để dịch vụ AI xử lý tin nhắn này. Bạn có thể rút quyền trong Quyền riêng tư.", { exact: true })).toHaveCount(0);
 });
 
 test("an unavailable AI service is not sent to Settings for a fix that does not exist there", async ({ page }) => {
@@ -280,6 +281,71 @@ async function sendHello(page: Page) {
 const status = (page: Page) => page.locator(".ai-status [role=status]");
 
 test.describe("AI activity status", () => {
+  test("the composer switches its single action to stop even with an empty draft, preserving the next draft", async ({ page }) => {
+    const run = await aiRun(page, { terminal: "cancelled" });
+    await sendHello(page);
+    const field = page.getByRole("textbox", { name: "Tin nhắn cho Mây" });
+    const action = page.locator(".bot-composer .send-button");
+    await expect(action).toBeDisabled();
+    run.accept.open();
+    await expect(field).toHaveValue("");
+    await expect(action).toHaveAccessibleName("Dừng phản hồi");
+    await expect(action).toBeEnabled();
+    await expect(action).toBeFocused();
+    await expect(page.getByRole("button", { name: "Dừng phản hồi", exact: true })).toHaveCount(1);
+    await field.fill("Mình muốn nói thêm một chút");
+    await action.click();
+    await expect(action).toBeDisabled();
+    await expect(status(page)).toHaveText("Đang yêu cầu dừng…");
+    expect(run.calls.messages).toBe(1);
+    expect(run.calls.cancels).toBe(1);
+    run.cancelGate.open();
+    run.finish.open();
+    await expect(action).toHaveAccessibleName("Gửi tin cho AI");
+    await expect(action).toBeEnabled();
+    await expect(field).toHaveValue("Mình muốn nói thêm một chút");
+  });
+
+  test("a failed composer stop request restores the stop action without sending the next draft", async ({ page }) => {
+    const run = await aiRun(page);
+    await page.route(`**/api/v1/ai/runs/${RUN}/cancel`, (route) => route.fulfill({
+      status: 503, json: { error: { code: "UNAVAILABLE", message: "Thử lại sau." } },
+    }));
+    await sendHello(page);
+    run.accept.open();
+    const action = page.locator(".bot-composer .send-button");
+    await expect(action).toHaveAccessibleName("Dừng phản hồi");
+    await page.getByRole("textbox", { name: "Tin nhắn cho Mây" }).fill("Tin tiếp theo");
+    await action.click();
+    await expect(page.getByRole("alert")).toBeVisible();
+    await expect(action).toHaveAccessibleName("Dừng phản hồi");
+    await expect(action).toBeEnabled();
+    expect(run.calls.messages).toBe(1);
+    run.finish.open();
+    await expect(action).toHaveAccessibleName("Gửi tin cho AI");
+    await expect(page.getByRole("textbox", { name: "Tin nhắn cho Mây" })).toHaveValue("Tin tiếp theo");
+  });
+
+  test("a read-only transition retains one stop action beside the inline status", async ({ page }) => {
+    const run = await aiRun(page, { terminal: "cancelled" });
+    await sendHello(page);
+    run.accept.open();
+    await expect(page.locator(".bot-composer .send-button")).toHaveAccessibleName("Dừng phản hồi");
+    await page.route("**/api/v1/ai/preferences", (route) => route.fulfill({
+      status: 503, json: { error: { code: "UNAVAILABLE", message: "Thử lại sau." } },
+    }));
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await expect(page.locator(".bot-composer")).toHaveCount(0);
+    const stop = page.getByRole("button", { name: "Dừng phản hồi", exact: true });
+    await expect(stop).toHaveCount(1);
+    await stop.click();
+    await expect(status(page)).toHaveText("Đang yêu cầu dừng…");
+    expect(run.calls.cancels).toBe(1);
+    run.cancelGate.open();
+    run.finish.open();
+    await expect(status(page)).toHaveText("Đã dừng phản hồi.");
+  });
+
   test("sending, accepted and final states are truthful and the orb runs only after acceptance", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     const run = await aiRun(page);
@@ -287,13 +353,13 @@ test.describe("AI activity status", () => {
     await expect(status(page)).toHaveText("Đang gửi tin nhắn…");
     await expect(page.locator(".ai-status canvas")).toHaveCount(0);
     run.accept.open();
-    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+    await expect(status(page)).toHaveText("Đang trả lời…");
     await expect(page.locator("canvas")).toHaveCount(1);
     await expect(page.locator(".ai-status canvas")).toHaveAttribute("aria-hidden", "true");
-    await expect(page.getByRole("button", { name: "Dừng", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Dừng phản hồi", exact: true })).toBeVisible();
     run.finish.open();
     // Settled means the stored transcript has replaced the streamed copy; the reply must survive that.
-    await expect(page.getByRole("button", { name: "Dừng", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Dừng phản hồi", exact: true })).toHaveCount(0);
     expect(run.calls.transcript).toBe(1);
     await expect(page.locator(".from-bot .chat-bubble")).toContainText("Mình nghe bạn đây.");
     await expect(page.locator("canvas")).toHaveCount(0);
@@ -305,7 +371,7 @@ test.describe("AI activity status", () => {
     const run = await aiRun(page);
     await sendHello(page);
     run.accept.open();
-    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+    await expect(status(page)).toHaveText("Đang trả lời…");
     await page.waitForTimeout(300);
     await expect(page.locator("canvas")).toHaveCount(0);
     await expect(page.locator(".ai-status-visual svg")).toHaveCount(1);
@@ -323,7 +389,7 @@ test.describe("AI activity status", () => {
     const run = await aiRun(page);
     await sendHello(page);
     run.accept.open();
-    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+    await expect(status(page)).toHaveText("Đang trả lời…");
     await expect(page.locator(".ai-status-visual svg")).toHaveCount(1);
     await expect(page.locator("canvas")).toHaveCount(0);
     run.finish.open();
@@ -356,7 +422,7 @@ test.describe("AI activity status", () => {
     const run = await aiRun(page, { terminal: "cancelled" });
     await sendHello(page);
     run.accept.open();
-    const stop = page.getByRole("button", { name: "Dừng", exact: true });
+    const stop = page.locator(".bot-composer .send-button");
     await stop.click();
     await expect(status(page)).toHaveText("Đang yêu cầu dừng…");
     await expect(stop).toBeDisabled();
@@ -375,7 +441,7 @@ test.describe("AI activity status", () => {
     const run = await aiRun(page, { terminal: "completed" });
     await sendHello(page);
     run.accept.open();
-    await page.getByRole("button", { name: "Dừng", exact: true }).click();
+    await page.getByRole("button", { name: "Dừng phản hồi", exact: true }).click();
     await expect.poll(() => run.calls.cancels).toBe(1);
     run.finish.open();
     await expect(page.locator(".from-bot .chat-bubble")).toContainText("Mình nghe bạn đây.");
@@ -427,9 +493,99 @@ async function savedChat(page: Page, options: { session?: unknown; thread?: Reco
     [`/ai/conversations/${CONV}`]: () => ({ json: thread }),
   });
   await page.goto(`/#/assistants/may?conversation=${CONV}`);
-  await expect(page.locator(".from-bot .chat-bubble")).toContainText("Một điều nhỏ");
+  await expect(page.locator(".from-bot .chat-bubble").first()).toContainText("Một điều nhỏ");
 }
 const infoButton = (page: Page) => page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true });
+
+test.describe("compact agent chat", () => {
+  test("human chat keeps the application palette after visiting the redesigned AI chat", async ({ page }) => {
+    await app(page, baseSession);
+    await page.goto("/#/assistants/may?new=1");
+    await expect(page.locator(".bot-composer")).toBeVisible();
+    await page.goto(`/#/chat/${room.id}`);
+    await expect(page.locator(".real-human-chat")).toBeVisible();
+    const palette = await page.locator(".real-human-chat").evaluate((element) => {
+      const root = getComputedStyle(document.documentElement);
+      const human = getComputedStyle(element);
+      return ["--color-bg", "--color-ink", "--control-min"].map(token => ({ root: root.getPropertyValue(token).trim(), human: human.getPropertyValue(token).trim() }));
+    });
+    for (const token of palette) expect(token.human).toBe(token.root);
+  });
+
+  for (const width of [360, 390, 666, 1440]) {
+    test(`the inline activity and multiline composer remain usable at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
+      const finish = gate();
+      const thread = savedThread({ messages: [
+        { id: "visual-self", actor: "self", text: "Dạo này mình thấy hơi quá tải. Có cách nào để bắt đầu chậm lại không?", createdAt: "2026-10-30T01:00:00Z" },
+        { id: "visual-bot", actor: "bot", text: "Mình nghe bạn. **Một điều nhỏ** cũng có thể là khởi đầu.\n\nBạn thử dành một phút để thở chậm, rồi chọn một việc có thể để sang ngày mai. Không cần giải quyết mọi thứ cùng một lúc.", cards: [{ kind: "navigate_bot", botId: "nhip" }], createdAt: "2026-10-30T01:01:00Z" },
+      ] });
+      await app(page, { ...baseSession, features: { ...baseSession.features, voice: true } }, {
+        "/ai/preferences": () => ({ json: historyOn }),
+        "/ai/conversations": () => ({ json: [thread] }),
+        [`/ai/conversations/${CONV}`]: () => ({ json: thread }),
+      });
+      await page.route(`**/api/v1/ai/conversations/${CONV}/messages`, async (route) => {
+        const sent = route.request().postDataJSON();
+        thread.messages.push({ id: sent.clientMessageId, actor: "self", text: sent.text });
+        await route.fulfill({ status: 202, json: { runId: RUN, conversationId: CONV, version: 3, runVersion: 1, eventsUrl: `/api/v1/ai/runs/${RUN}/events` } });
+      });
+      await page.route(`**/api/v1/ai/runs/${RUN}/events`, async (route) => {
+        await finish.promise;
+        await route.fulfill({ contentType: "text/event-stream", body: sse([{ type: "cancelled" }]) });
+      });
+      await page.route(`**/api/v1/ai/runs/${RUN}/cancel`, (route) => route.fulfill({ json: { runId: RUN, version: 2, status: "ended" } }));
+      await page.goto("/#/assistants/may?new=1");
+      const field = page.getByRole("textbox", { name: "Tin nhắn cho Mây" });
+      await expect(field).toBeEditable();
+      await expect(page.locator(".quick-replies button").first()).toBeEnabled();
+      if (width === 390 || width === 1440) {
+        await page.screenshot({ path: artifactPath(`agent-chat/empty-${width}.png`), fullPage: true });
+      }
+      await page.goto(`/#/assistants/may?conversation=${CONV}`);
+      await expect(page.locator(".from-bot .chat-bubble")).toContainText("Không cần giải quyết mọi thứ");
+      await expect(page.locator(".from-bot .ai-markdown strong")).toHaveText("Một điều nhỏ");
+      await expect(page.locator(".chat-introduction")).toHaveCount(0);
+      if (width === 390 || width === 1440) {
+        await page.screenshot({ path: artifactPath(`agent-chat/conversation-${width}.png`), fullPage: true });
+      }
+      await field.fill("Mình muốn thử.\nBạn có thể cùng mình bắt đầu không?");
+      await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
+      const action = page.locator(".bot-composer .send-button");
+      await expect(action).toHaveAccessibleName("Dừng phản hồi");
+      await expect(page.locator(".conversation-log .ai-status [role=status]")).toHaveText("Đang trả lời…");
+      await field.fill("Mình sẽ viết thêm ở đây.\nMột chút thời gian cho bản thân.\nKhông cần phải vội.");
+      await expect(status(page)).toBeInViewport({ ratio: 1 });
+      const metrics = await page.evaluate(() => {
+        const button = document.querySelector(".bot-composer .send-button")!.getBoundingClientRect();
+        const textarea = document.querySelector(".bot-composer textarea")!.getBoundingClientRect();
+        const activity = document.querySelector(".ai-status [role=status]")!.getBoundingClientRect();
+        const log = document.querySelector(".conversation-log")!.getBoundingClientRect();
+        return { overflow: document.documentElement.scrollWidth > innerWidth, left: textarea.left, right: button.right, bottom: button.bottom, width: button.width, height: button.height, viewportHeight: innerHeight, activityBottom: activity.bottom, logBottom: log.bottom };
+      });
+      expect(metrics.overflow).toBe(false);
+      expect(metrics.left).toBeGreaterThanOrEqual(0);
+      expect(metrics.right).toBeLessThanOrEqual(width);
+      expect(metrics.bottom).toBeLessThanOrEqual(metrics.viewportHeight);
+      expect(metrics.width).toBeGreaterThanOrEqual(44);
+      expect(metrics.height).toBeGreaterThanOrEqual(44);
+      expect(metrics.activityBottom, "growing the composer keeps the current activity in view").toBeLessThanOrEqual(metrics.logBottom);
+      // Settle the sole 160ms entrance before recording visual evidence.
+      await page.waitForTimeout(200);
+      await page.screenshot({ path: artifactPath(`agent-chat/working-${width}.png`), fullPage: true });
+      if (width === 390) {
+        const results = await new AxeBuilder({ page }).include(".bot-conversation").withTags(["wcag2a", "wcag2aa"]).analyze();
+        expect(results.violations).toEqual([]);
+      }
+      await action.click();
+      await expect(action).toHaveAccessibleName("Đang yêu cầu dừng");
+      await expect(action).toBeDisabled();
+      finish.open();
+      await expect(action).toHaveAccessibleName("Gửi tin cho AI");
+      await expect(field).toHaveValue("Mình sẽ viết thêm ở đây.\nMột chút thời gian cho bản thân.\nKhông cần phải vội.");
+    });
+  }
+});
 
 test.describe("conversation info surface", () => {
   test("desktop opens a modeless 320px overlay without moving the transcript", async ({ page }) => {
@@ -522,6 +678,7 @@ test.describe("copying a reply", () => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     await savedChat(page);
     await expect(page.locator(".from-bot .ai-markdown strong")).toHaveText("Một điều nhỏ");
+    await page.locator(".from-bot .chat-bubble").hover();
     await page.getByRole("button", { name: "Sao chép câu trả lời" }).click();
     await expect(page.getByText("Đã sao chép câu trả lời.", { exact: true })).toBeVisible();
     const copied = await page.evaluate(() => navigator.clipboard.readText());
@@ -533,9 +690,102 @@ test.describe("copying a reply", () => {
       Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: () => Promise.reject(new Error("denied")) } });
     });
     await savedChat(page);
+    await page.locator(".from-bot .chat-bubble").hover();
     await page.getByRole("button", { name: "Sao chép câu trả lời" }).click();
     await expect(page.getByText("Chưa sao chép được. Bạn có thể chọn và sao chép nội dung.", { exact: true })).toBeVisible();
     await expect(page.getByText("Đã sao chép câu trả lời.", { exact: true })).toHaveCount(0);
+  });
+});
+
+test.describe("AI message dates and details", () => {
+  const messages = [
+    { id: "m1", actor: "self", text: "Hôm nay mình hơi mệt.", createdAt: "2026-10-30T01:00:00Z" },
+    { id: "m2", actor: "bot", text: "Mình nghe bạn. **Một điều nhỏ** nào làm bạn mệt nhất?", cards: [], createdAt: "2026-10-30T01:01:00Z" },
+  ];
+
+  test.beforeEach(async ({ page }) => {
+    await page.clock.setFixedTime(new Date("2026-10-30T02:00:00Z"));
+  });
+
+  test("hover reveals only the current message's time and icon without shifting messages", async ({ page }) => {
+    await savedChat(page, { thread: { messages } });
+    const self = page.locator(".from-self .message-content");
+    const reply = page.locator(".from-bot .message-content");
+    const copy = reply.getByRole("button", { name: "Sao chép câu trả lời", includeHidden: true });
+    await expect(copy).toBeHidden();
+    await expect(self.locator("time")).toBeHidden();
+    await expect(reply.locator("time")).toBeHidden();
+    const before = await reply.boundingBox();
+    await reply.locator(".chat-bubble").hover();
+    await expect(copy).toBeVisible();
+    await expect(copy).toHaveText("");
+    await expect(reply.locator("time")).toHaveText("08:01");
+    await expect(reply.locator("time")).toBeVisible();
+    await expect(self.locator("time")).toBeHidden();
+    expect(await reply.boundingBox()).toEqual(before);
+    await page.screenshot({ path: artifactPath("chat-message-details/desktop-hover.png"), fullPage: true });
+    await self.locator(".chat-bubble").hover();
+    await expect(self.locator("time")).toBeVisible();
+    await expect(self.locator("time")).toHaveText("08:00");
+    await expect(copy).toBeHidden();
+    await page.getByRole("textbox", { name: "Tin nhắn cho Mây", exact: true }).hover();
+    await expect(self.locator("time")).toBeHidden();
+  });
+
+  test("keyboard users can reveal details and reach the copy action", async ({ page }) => {
+    await savedChat(page, { thread: { messages } });
+    await page.getByRole("log").focus();
+    await page.keyboard.press("Tab");
+    await expect(page.locator(".from-self time")).toBeVisible();
+    await page.keyboard.press("Tab");
+    await expect(page.locator(".from-bot time")).toBeVisible();
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("button", { name: "Sao chép câu trả lời" })).toBeFocused();
+  });
+
+  test("day separators use account-local calendar days, include years, and tolerate legacy dates", async ({ page }) => {
+    await savedChat(page, { thread: { messages: [
+      { ...messages[0], id: "old-year", createdAt: "2025-12-31T16:59:00Z" },
+      { ...messages[0], id: "old", createdAt: "2026-10-28T09:00:00Z" },
+      { ...messages[0], id: "yesterday", createdAt: "2026-10-28T17:01:00Z" },
+      { ...messages[1], id: "yesterday-reply", createdAt: "2026-10-29T16:59:00Z" },
+      { ...messages[0], id: "today", createdAt: "2026-10-29T17:01:00Z" },
+      { ...messages[1], id: "legacy", createdAt: null },
+      { ...messages[1], id: "invalid", createdAt: "invalid" },
+    ] } });
+    await expect(page.locator(".message-date-separator")).toHaveText(["31/12/2025", "28/10/2026", "Yesterday", "Today"]);
+    await expect(page.locator(".message-content time")).toHaveCount(5);
+    await expect(page.getByRole("log")).not.toContainText("Invalid Date");
+  });
+
+  test.describe("touch", () => {
+    test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
+
+    test("tap toggles details, switches messages and dismisses outside the message", async ({ page, context }) => {
+      await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+      await savedChat(page, { thread: { messages } });
+      const self = page.locator(".from-self .message-content");
+      const reply = page.locator(".from-bot .message-content");
+      const copy = reply.getByRole("button", { name: "Sao chép câu trả lời", includeHidden: true });
+      await expect(copy).toBeHidden();
+      await expect(reply.locator("time")).toBeHidden();
+      await reply.locator(".chat-bubble").tap();
+      await expect(copy).toBeVisible();
+      await expect(reply.locator("time")).toBeVisible();
+      await page.screenshot({ path: artifactPath("chat-message-details/mobile-tap.png"), fullPage: true });
+      await copy.tap();
+      await expect(reply.getByRole("status")).toHaveText("Đã sao chép câu trả lời.");
+      expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("Mình nghe bạn. Một điều nhỏ nào làm bạn mệt nhất?");
+      await reply.locator(".chat-bubble").tap();
+      await expect(copy).toBeHidden();
+      await reply.locator(".chat-bubble").tap();
+      await self.locator(".chat-bubble").tap();
+      await expect(self.locator("time")).toBeVisible();
+      await expect(copy).toBeHidden();
+      await page.getByRole("textbox", { name: "Tin nhắn cho Mây", exact: true }).tap();
+      await expect(self.locator("time")).toBeHidden();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    });
   });
 });
 
@@ -560,7 +810,7 @@ test.describe("new conversation while a reply is pending", () => {
     const run = await aiRun(page, { terminal: "cancelled" });
     await sendHello(page);
     run.accept.open();
-    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+    await expect(status(page)).toHaveText("Đang trả lời…");
     await (await openNewFromInfo(page)).click();
     const confirm = page.getByRole("dialog", { name: "Dừng phản hồi và mở cuộc trò chuyện mới?" });
     await confirm.getByRole("button", { name: "Tiếp tục trò chuyện" }).click();
@@ -585,7 +835,7 @@ test.describe("new conversation while a reply is pending", () => {
     const run = await aiRun(page, { terminal: "completed" });
     await sendHello(page);
     run.accept.open();
-    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+    await expect(status(page)).toHaveText("Đang trả lời…");
     await (await openNewFromInfo(page)).click();
     await page.getByRole("button", { name: "Dừng và mở mới", exact: true }).click();
     run.finish.open();
@@ -604,7 +854,7 @@ test.describe("new conversation while a reply is pending", () => {
     await page.route(`**/api/v1/ai/runs/${RUN}/cancel`, (route) => route.fulfill({ status: 503, json: { error: { code: "UNAVAILABLE", message: "Dịch vụ tạm gián đoạn." } } }));
     await sendHello(page);
     run.accept.open();
-    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+    await expect(status(page)).toHaveText("Đang trả lời…");
     await (await openNewFromInfo(page)).click();
     await page.getByRole("button", { name: "Dừng và mở mới", exact: true }).click();
     await expect(page.getByText("Chưa xác nhận được trạng thái. Kiểm tra lại cuộc trò chuyện.", { exact: true })).toBeVisible();
@@ -632,10 +882,12 @@ test("a reply arriving while someone reads older messages does not move them, an
   await page.getByRole("textbox", { name: "Tin nhắn cho Mây" }).fill("Một câu hỏi");
   await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
   accept.open();
-  await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+  await expect(status(page)).toHaveText("Đang trả lời…");
   const log = page.getByRole("log");
   await log.evaluate((element) => { element.scrollTop = 200; element.dispatchEvent(new Event("scroll")); });
   const top = await log.evaluate((element) => element.scrollTop);
+  await page.getByRole("textbox", { name: "Tin nhắn cho Mây" }).fill("Nháp nhiều dòng\nĐang đọc tin cũ\nGiữ nguyên vị trí đọc");
+  expect(await log.evaluate((element) => element.scrollTop)).toBe(top);
   finish.open();
   await expect(page.getByRole("button", { name: "Về tin mới" })).toBeVisible();
   expect(await log.evaluate((element) => element.scrollTop)).toBe(top);
@@ -645,45 +897,17 @@ test("a reply arriving while someone reads older messages does not move them, an
 });
 
 // ---- Privacy and memory comprehension (V-PRIVACY-COPY / V-MEMORY / V-DATA-DELETE) ----
-test.describe("privacy and memory comprehension", () => {
+test.describe("personal account and memory comprehension", () => {
   const prefs = { historyEnabled: false, semanticMemoryEnabled: false, version: 1, policyVersion: "ai-data-v1", retentionDays: 30, historyAvailable: true, semanticMemoryAvailable: true };
 
-  test("privacy is five named sections, each with its own withdrawal and real way back", async ({ page }) => {
+  test("personal settings replace privacy switches with account actions", async ({ page }) => {
     await app(page, sessionWith({ AI: true, MEM: false, MATCH: true, VOICE: false }), { "/ai/preferences": () => ({ json: prefs }) });
     await page.goto("/#/settings");
-    await expect(page.getByRole("heading", { level: 2 })).toContainText([
-      "Tin nhắn AI", "Lịch sử trò chuyện", "Thông tin AI ghi nhớ", "Hồ sơ và kết nối", "Xóa dữ liệu",
-    ]);
-    const ai = page.getByRole("region", { name: "Tin nhắn AI" });
-    await expect(ai.getByRole("button", { name: "Rút quyền trò chuyện AI" })).toBeVisible();
-    const memory = page.getByRole("region", { name: "Thông tin AI ghi nhớ" });
-    // MEM is off: no enable toggle is invented, the real path is approving a proposal.
-    await expect(memory).toContainText("duyệt một đề xuất mới");
-    await expect(memory.getByRole("button", { name: /Bật/ })).toHaveCount(0);
-    await expect(page.getByRole("region", { name: "Hồ sơ và kết nối" }).getByRole("button", { name: "Rút quyền tìm bạn" })).toBeVisible();
-  });
-
-  test("with AI withdrawn the section explains that sending a message is how to resume", async ({ page }) => {
-    await app(page, sessionWith({ AI: false, MEM: false }), { "/ai/preferences": () => ({ json: prefs }) });
-    await page.goto("/#/settings");
-    const ai = page.getByRole("region", { name: "Tin nhắn AI" });
-    await expect(ai).toContainText("chọn Gửi");
-    await expect(ai.getByRole("link", { name: "Mở trợ lý" })).toHaveAttribute("href", "#/assistants");
-    await expect(ai.getByRole("button")).toHaveCount(0);
-  });
-
-  test("external memory lookup uses a plain label and discloses Voyage and its data scope on request", async ({ page }) => {
-    await app(page, sessionWith({ AI: true, MEM: true }), { "/ai/preferences": () => ({ json: prefs }) });
-    await page.goto("/#/settings");
-    const toggle = page.getByRole("checkbox", { name: "Giúp trợ lý tìm lại ghi nhớ liên quan" });
-    await expect(toggle).toBeVisible();
-    await expect(toggle).not.toBeChecked();
-    await page.getByText("Xem cách dữ liệu được xử lý", { exact: true }).click();
-    const disclosure = page.locator("details", { hasText: "Xem cách dữ liệu được xử lý" });
-    await expect(disclosure).toContainText("Voyage");
-    await expect(disclosure).toContainText("ghi nhớ bạn đã duyệt");
-    await expect(disclosure).toContainText("không được gửi tới Voyage");
-    await expect(page.getByText(/ngữ nghĩa|dẫn xuất/)).toHaveCount(0);
+    await expect(page).toHaveURL(/#\/profile$/);
+    await expect(page.getByRole("heading", { name: "Cá nhân", exact: true })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Tài khoản & hỗ trợ" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Rút quyền/ })).toHaveCount(0);
+    await expect(page.getByRole("checkbox", { name: "Lưu lịch sử trò chuyện" })).toHaveCount(0);
   });
 
   test("memory separates proposals waiting for review from approved items", async ({ page }) => {
@@ -715,12 +939,9 @@ test.describe("privacy and memory comprehension", () => {
     await expect(page.getByText("Thích đi bộ", { exact: true })).toBeVisible();
   });
 
-  test("data deletion dialogs focus the keep action first", async ({ page }) => {
+  test("account deletion dialog focuses the keep action first", async ({ page }) => {
     await app(page, sessionWith({}), { "/ai/preferences": () => ({ json: prefs }) });
     await page.goto("/#/settings");
-    await page.getByRole("button", { name: "Xóa dữ liệu đã chọn", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Giữ dữ liệu", exact: true })).toBeFocused();
-    await page.keyboard.press("Escape");
     await page.getByRole("button", { name: "Xóa tài khoản", exact: true }).click();
     await expect(page.getByRole("button", { name: "Giữ tài khoản", exact: true })).toBeFocused();
   });
@@ -927,9 +1148,9 @@ test.describe("accessibility sweep", () => {
       });
       const results: Record<string, string[]> = {};
       for (const [name, url, ready] of [
-        ["assistants", "/#/assistants", "Bạn muốn chia sẻ"],
+        ["assistants", "/#/assistants", "Chọn một trợ lý"],
         ["chat", `/#/assistants/may?conversation=${CONV}`, "Một điều nhỏ"],
-        ["settings", "/#/settings", "Tin nhắn AI"],
+        ["profile", "/#/profile", "Cá nhân"],
         ["memory", "/#/memory", "Đề xuất chờ duyệt"],
         ["messages", "/#/messages", "Tin nhắn"],
         ["mood", "/#/self/daily", "Tâm trạng"],
@@ -966,7 +1187,7 @@ test.describe("accessibility sweep", () => {
     await expect(page.getByRole("textbox", { name: "Tin nhắn cho Mây" })).toBeEditable();
   });
 
-  test("ordinary buttons on the redesigned chat, info and privacy screens are at least 44px tall", async ({ page }) => {
+  test("ordinary buttons on the redesigned chat, info and personal screens are at least 44px tall", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await savedChat(page);
     const small = async () => page.evaluate(() =>
@@ -978,11 +1199,11 @@ test.describe("accessibility sweep", () => {
     await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
     expect(await small()).toEqual([]);
     await page.goto("/#/settings");
-    await expect(page.getByRole("heading", { name: "Tin nhắn AI" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Cá nhân", exact: true })).toBeVisible();
     expect(await small()).toEqual([]);
   });
 
-  test("200% text keeps the chat and privacy screens readable without sideways scrolling", async ({ page }) => {
+  test("200% text keeps the chat and personal screens readable without sideways scrolling", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await savedChat(page);
     await page.addStyleTag({ content: "html { font-size: 200% !important; } body { font-size: 2rem !important; }" });
@@ -993,7 +1214,7 @@ test.describe("accessibility sweep", () => {
     await page.keyboard.press("Escape");
     await page.goto("/#/settings");
     await page.addStyleTag({ content: "html { font-size: 200% !important; } body { font-size: 2rem !important; }" });
-    await expect(page.getByRole("heading", { name: "Tin nhắn AI" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Cá nhân", exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
   });
 });
@@ -1077,8 +1298,8 @@ test.describe("final review regressions", () => {
     await page.waitForTimeout(300);
     await page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("link", { name: "Cá nhân" }).click();
     held();
-    await page.getByRole("button", { name: "Quyền riêng tư" }).or(page.getByRole("link", { name: "Quyền riêng tư" })).first().click();
-    await expect(page.getByRole("region", { name: "Tin nhắn AI" }).getByRole("button", { name: "Rút quyền trò chuyện AI" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Cá nhân", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Đăng xuất", exact: true })).toBeVisible();
   });
 
   for (const action of ["Đổi tên", "Mở lịch sử trò chuyện"]) {

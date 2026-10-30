@@ -221,14 +221,14 @@ test("the dialog can be dismissed without creating anything", async ({ page }) =
   expect(calls.filter((call) => call.method !== "GET")).toEqual([]);
 });
 
-test("guest settings ends a trial only after explicit confirmation", async ({ page }) => {
+test("guest personal tab ends a trial only after explicit confirmation", async ({ page }) => {
   const calls: string[] = [];
   await app(page, guestSession(7_000_000), {
     "/auth/guest/end": request => { calls.push(request.method()); return { status: 204 }; },
   });
   await page.goto("/#/settings");
   await expect(page.getByRole("button", { name: "Đăng xuất", exact: true })).toHaveCount(0);
-  await page.getByRole("region", { name: "Phiên đăng nhập" }).getByRole("button", { name: "Kết thúc lượt dùng thử", exact: true }).click();
+  await page.getByRole("region", { name: "Tài khoản & hỗ trợ" }).getByRole("button", { name: "Kết thúc và xóa lượt dùng thử", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Kết thúc và xóa lượt dùng thử?", exact: true })).toBeVisible();
   expect(calls).toEqual([]);
   await page.getByRole("button", { name: "Giữ lượt dùng thử" }).click();

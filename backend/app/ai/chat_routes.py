@@ -142,7 +142,7 @@ async def update_preferences(
             )
             db.add(p)
         p.history_enabled, p.semantic_memory_enabled = (
-            body.history_enabled,
+            settings.chat_history_enabled,
             body.semantic_memory_enabled,
         )
         p.version += 1
@@ -207,15 +207,13 @@ async def conversations(
                 )
             ).all()
         ]
-        consents = await db.execute(select(Consent).where(Consent.user_id == user.id))
-        ai_on = any(c.purpose == "AI" and c.enabled for c in consents.scalars())
         epoch = await _ephemeral_epoch(db, user.id)
     runtime = request.app.state.ai
     runtime.sweep()
     for identity, copy in list(runtime.store.conversations.items()):
         if copy.user_id == str(actor.user_id) and not copy.persistent and _stale(copy, epoch):
             del runtime.store.conversations[identity]
-    if ai_on and before is None and len(result) < limit:
+    if before is None and len(result) < limit:
         result += [
             ephemeral_header(c)
             for c in runtime.store.conversations.values()
@@ -250,17 +248,16 @@ async def create_conversation(
             raise DomainError(503, "AI_UNAVAILABLE", "Trò chuyện AI chưa sẵn sàng.", True)
         if user.account_kind == "guest" and not guest_paid_available(settings, "ai"):
             raise guest_paid_unavailable()
-        p = await db.get(AiPreference, user.id)
         persistent = (
             body.persistent
             if body.persistent is not None
-            else bool(p and p.history_enabled and settings.chat_history_enabled)
+            else settings.chat_history_enabled
         )
-        if persistent and not (p and p.history_enabled and settings.chat_history_enabled):
+        if persistent and not settings.chat_history_enabled:
             raise DomainError(
                 403,
-                "HISTORY_CONSENT_REQUIRED",
-                "Hãy bật lưu lịch sử trước khi tạo cuộc trò chuyện được lưu.",
+                "HISTORY_UNAVAILABLE",
+                "Lưu lịch sử chưa sẵn sàng.",
             )
         if persistent:
             from sqlalchemy import func
@@ -377,12 +374,11 @@ async def send(
             if user.account_kind == "guest" and not guest_paid_available(settings, "ai"):
                 raise guest_paid_unavailable()
             if persistent:
-                p = await db.get(AiPreference, user.id)
-                if not (p and p.history_enabled and settings.chat_history_enabled):
+                if not settings.chat_history_enabled:
                     raise DomainError(
                         403,
-                        "HISTORY_CONSENT_REQUIRED",
-                        "Lưu lịch sử đang tắt. Hãy bật lại hoặc mở cuộc trò chuyện tạm mới.",
+                        "HISTORY_UNAVAILABLE",
+                        "Lưu lịch sử chưa sẵn sàng.",
                     )
             if body.mood_scope is not None:
                 from app.modules.mood.service import validate_scope

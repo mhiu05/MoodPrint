@@ -230,7 +230,7 @@ test.describe("draft ownership (MR01-MR03)", () => {
     await submit(page, "Điều riêng tư của A");
     await expect(page.locator(".from-bot .chat-bubble")).toContainText("Mình nghe bạn đây.");
     await selectChat(page, B);
-    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+    await expect(status(page)).toHaveText("Đang trả lời…");
     store.finish[R2].open();
     await expect(page.getByRole("alert")).toBeVisible();
     await expect(field(page)).toHaveValue("");
@@ -243,7 +243,7 @@ test.describe("draft ownership (MR01-MR03)", () => {
     store.finish[R] = gate();
     await openChat(page);
     await submit(page, "Bản của lượt này");
-    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+    await expect(status(page)).toHaveText("Đang trả lời…");
     store.finish[R].open();
     await expect(page.getByRole("alert")).toBeVisible();
     await expect(field(page)).toHaveValue("Bản của lượt này");
@@ -255,7 +255,7 @@ test.describe("draft ownership (MR01-MR03)", () => {
     store.finish[R] = gate();
     await openChat(page);
     await submit(page, "Bản của lượt này");
-    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+    await expect(status(page)).toHaveText("Đang trả lời…");
     await field(page).fill("Mình vừa gõ tiếp");
     store.finish[R].open();
     await expect(page.getByRole("alert")).toBeVisible();
@@ -268,7 +268,7 @@ test.describe("draft ownership (MR01-MR03)", () => {
     store.finish[R] = gate();
     await openChat(page);
     await submit(page, "Không được rò sang chat khác");
-    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+    await expect(status(page)).toHaveText("Đang trả lời…");
     await selectChat(page, B);
     await expect(page.getByText("Chat B")).toHaveCount(0);
     store.finish[R].open();
@@ -305,7 +305,7 @@ test.describe("human chat starters and receipts (MR01/MR02)", () => {
     await starter(0).click();
     await expect(box).toHaveValue(text);
     await expect(box).toBeFocused();
-    await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toBeVisible();
+    await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toHaveCount(0);
     expect(writes).toEqual([]);
   });
 
@@ -420,7 +420,7 @@ test.describe("New, cancellation and reconciliation races (MR04-MR07)", () => {
     store.finish[R] = gate();
     await openChat(page, A);
     await submit(page, "Đang chờ trả lời");
-    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+    await expect(status(page)).toHaveText("Đang trả lời…");
     await selectChat(page, B);
     await expect(page.getByText("Đang mở cuộc trò chuyện…")).toHaveCount(0);
     store.finish[R].open();
@@ -465,7 +465,7 @@ test.describe("New, cancellation and reconciliation races (MR04-MR07)", () => {
       expect(await page.evaluate(() => (window as any).__held.length)).toBeGreaterThan(0);
       await page.evaluate(() => (window as any).__release());
       await expect(own).toHaveText([text]);
-      await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+      await expect(status(page)).toHaveText("Đang trả lời…");
       await expect(page).toHaveURL(new RegExp(`conversation=${C}`));
       // Same-view canonicalisation keeps the accepted run's reader.
       expect(store.count("GET", /\/events$/)).toBe(1);
@@ -514,7 +514,7 @@ test.describe("New, cancellation and reconciliation races (MR04-MR07)", () => {
     store.finish[R] = gate();
     await openChat(page, A);
     await submit(page, "Xin chào");
-    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+    await expect(status(page)).toHaveText("Đang trả lời…");
     await requestNew(page);
     await expect(page.getByRole("dialog", { name: "Dừng phản hồi và mở cuộc trò chuyện mới?" })).toBeVisible();
     store.finish[R].open();
@@ -535,7 +535,7 @@ test.describe("New, cancellation and reconciliation races (MR04-MR07)", () => {
     store.terminal[R] = "drop";
     await openChat(page, A);
     await submit(page, "Xin chào");
-    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+    await expect(status(page)).toHaveText("Đang trả lời…");
     await requestNew(page);
     store.finish[R].open();
     await expect(status(page)).toHaveText("");
@@ -554,8 +554,8 @@ test.describe("New, cancellation and reconciliation races (MR04-MR07)", () => {
     store.terminal[R] = "cancelled";
     await openChat(page, A);
     await submit(page, "Xin chào");
-    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
-    await page.getByRole("button", { name: "Dừng", exact: true }).click();
+    await expect(status(page)).toHaveText("Đang trả lời…");
+    await page.getByRole("button", { name: "Dừng phản hồi", exact: true }).click();
     await expect.poll(() => store.count("POST", /\/cancel$/)).toBe(1);
     const history = await page.evaluate(() => window.history.length);
     await requestNew(page);
@@ -577,8 +577,8 @@ test.describe("New, cancellation and reconciliation races (MR04-MR07)", () => {
     store.flags.cancel503 = true;
     await openChat(page, A);
     await submit(page, "Xin chào");
-    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
-    await page.getByRole("button", { name: "Dừng", exact: true }).click();
+    await expect(status(page)).toHaveText("Đang trả lời…");
+    await page.getByRole("button", { name: "Dừng phản hồi", exact: true }).click();
     await expect.poll(() => store.count("POST", /\/cancel$/)).toBe(1);
     await field(page).fill("Bản nháp tiếp theo");
     await requestNew(page);
@@ -600,8 +600,8 @@ test.describe("New, cancellation and reconciliation races (MR04-MR07)", () => {
     store.terminal[R] = "cancelled";
     await openChat(page, A);
     await submit(page, "Xin chào");
-    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
-    await page.getByRole("button", { name: "Dừng", exact: true }).click();
+    await expect(status(page)).toHaveText("Đang trả lời…");
+    await page.getByRole("button", { name: "Dừng phản hồi", exact: true }).click();
     store.flags.transcript503 = true;
     store.finish[R].open();
     await expect(page.getByRole("alert")).toContainText("Dịch vụ tạm gián đoạn.");
@@ -622,7 +622,7 @@ test.describe("New, cancellation and reconciliation races (MR04-MR07)", () => {
     store.finish[R2] = gate();
     await openChat(page, A);
     await submit(page, "Xin chào");
-    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+    await expect(status(page)).toHaveText("Đang trả lời…");
     store.flags.transcript503 = true;
     store.finish[R].open();
     await expect(page.getByRole("alert")).toBeVisible();
@@ -631,7 +631,7 @@ test.describe("New, cancellation and reconciliation races (MR04-MR07)", () => {
     store.threads[A].activeRunVersion = 1;
     store.runs[R2] = A;
     await page.getByRole("button", { name: "Thử lại" }).click();
-    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+    await expect(status(page)).toHaveText("Đang trả lời…");
     store.finish[R2].open();
     await expect(page.locator(".from-bot .chat-bubble")).toContainText("Mình nghe bạn đây.");
     expect(store.count("POST", /\/messages$/)).toBe(1);
@@ -645,7 +645,7 @@ test.describe("conversation-scoped notices (MR08)", () => {
     await mount(page);
     await openChat(page, A);
     await page.getByRole("button", { name: "Hôm nay mình hơi mệt", exact: true }).click();
-    await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toBeVisible();
+    await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toHaveCount(0);
     await selectChat(page, B);
     await expect(page.locator("[data-route-heading]")).toBeVisible();
     await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toHaveCount(0);
@@ -656,7 +656,7 @@ test.describe("conversation-scoped notices (MR08)", () => {
     await mount(page);
     await openChat(page, A);
     await page.getByRole("button", { name: "Hôm nay mình hơi mệt", exact: true }).click();
-    await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toBeVisible();
+    await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toHaveCount(0);
     await requestNew(page);
     await expect(page).toHaveURL(/new=/);
     await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toHaveCount(0);
@@ -668,7 +668,7 @@ test.describe("conversation-scoped notices (MR08)", () => {
     store.terminal[R] = "cancelled";
     await openChat(page, A);
     await submit(page, "Xin chào");
-    await expect(status(page)).toHaveText("Đang chuẩn bị câu trả lời…");
+    await expect(status(page)).toHaveText("Đang trả lời…");
     await requestNew(page);
     await confirmNew(page).click();
     store.finish[R].open();

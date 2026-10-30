@@ -69,11 +69,11 @@ test("birth-year onboarding persists16+ access while the server rejects social a
     .getByRole("button", { name: "Xác nhận và tiếp tục", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: /Bạn muốn chia sẻ điều gì/ }),
+    page.getByRole("heading", { name: "Chọn một trợ lý" }),
   ).toBeVisible();
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: /Bạn muốn chia sẻ điều gì/ }),
+    page.getByRole("heading", { name: "Chọn một trợ lý" }),
   ).toBeVisible();
   await page.goto("/#/connect");
   await expect(
@@ -171,10 +171,10 @@ test("the eighteenth-year account explicitly confirms18 in settings without auto
     .getByRole("button", { name: "Xác nhận và tiếp tục", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: /Bạn muốn chia sẻ điều gì/ }),
+    page.getByRole("heading", { name: "Chọn một trợ lý" }),
   ).toBeVisible();
   await page.goto("/#/settings");
-  await expect(page.getByRole("link", { name: "Xem hoặc sửa hồ sơ tìm bạn" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Điều kiện dùng Tìm bạn và Tin nhắn" })).toBeVisible();
   await page
     .getByRole("checkbox", {
       name: "Tôi xác nhận mình đã đủ 18 tuổi để sử dụng Tìm bạn và nhắn tin người thật.",
@@ -185,7 +185,7 @@ test("the eighteenth-year account explicitly confirms18 in settings without auto
     .getByRole("button", { name: "Xác nhận đủ 18 tuổi", exact: true })
     .click();
   await page.reload();
-  await expect(page.getByRole("link", { name: "Xem hoặc sửa hồ sơ tìm bạn" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Điều kiện dùng Tìm bạn và Tin nhắn" })).toBeVisible();
   const stored = await (
     await context.request.get("http://127.0.0.1:5174/api/v1/session")
   ).json();
@@ -236,9 +236,6 @@ test("real FastAPI/PostgreSQL preserves private records and mood, streams throug
   await expect(
     one.locator("article").getByText("Một ngày bình yên", { exact: true }),
   ).toBeVisible();
-  await one.goto("/#/settings");
-  await one.getByRole("checkbox", { name: "Lưu lịch sử trò chuyện", exact: true }).click();
-  await expect(one.getByText("Đã lưu lựa chọn của bạn.", { exact: true })).toBeVisible();
   await one.goto("/#/assistants/may");
   await one
     .getByRole("textbox", { name: "Tin nhắn cho Mây" })
@@ -466,23 +463,9 @@ test("approved memory uses the edited approval, survives reload, and local priva
       exact: true,
     }),
   ).toBeVisible();
-  await page.goto("/#/settings");
-  await expect(
-    page.getByRole("button", { name: "Tải bản sao dữ liệu", exact: true }),
-  ).toHaveCount(0);
-  await page
-    .getByLabel("Dữ liệu bạn muốn xóa", { exact: true })
-    .selectOption("memories");
-  await page
-    .getByRole("button", { name: "Xóa dữ liệu đã chọn", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Xác nhận xóa dữ liệu", exact: true })
-    .click();
-  await expect(
-    page.getByText("Đã xóa dữ liệu đã chọn trong ứng dụng.", { exact: true }),
-  ).toBeVisible();
   await page.goto("/#/memory");
+  await page.getByRole("button", { name: "Xóa ghi nhớ", exact: true }).click();
+  await page.getByRole("button", { name: "Xóa ghi nhớ này", exact: true }).click();
   await expect(
     page.getByText("Bạn chưa lưu ghi nhớ nào. Khi trò chuyện, bạn có thể nhờ trợ lý đề xuất điều cần nhớ rồi duyệt tại đây.", { exact: true }),
   ).toBeVisible();
@@ -508,9 +491,9 @@ test("real authenticated screens reflow and pass automated accessibility checks 
   for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     for (const [route, heading] of [
-      ["/assistants", "Bạn muốn chia sẻ điều gì"],
-      ["/profile", "Hồ sơ riêng"],
-      ["/settings", "Quyền riêng tư"],
+      ["/assistants", "Chọn một trợ lý"],
+      ["/profile", "Cá nhân"],
+      ["/settings", "Cá nhân"],
       ["/self", "Nhật ký cảm xúc"],
       ["/connect", "Tìm bạn đồng điệu"],
     ]) {

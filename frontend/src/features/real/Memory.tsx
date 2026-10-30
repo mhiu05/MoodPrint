@@ -28,7 +28,7 @@ function ProposalReview({
     (proposal.status || "pending") === "pending" && expiry <= now
       ? "expired"
       : proposal.status || "pending";
-  const allowed = session.consents.AI.enabled;
+  const allowed = session.eligible;
   useEffect(() => {
     if (
       !Number.isFinite(expiry) ||
@@ -84,7 +84,7 @@ function ProposalReview({
               <Link to="/assistants">Mở trợ lý</Link>
             </p>
           ) : null}
-          {proposal.purpose === "memory" ? <p>Chọn “Duyệt và lưu” sẽ cho phép trợ lý dùng các ghi nhớ bạn đã duyệt trong những lần trò chuyện sau. Bạn có thể rút quyền và xóa từng ghi nhớ.</p> : null}
+          {proposal.purpose === "memory" ? <p>Chọn “Duyệt và lưu” để trợ lý dùng ghi nhớ này trong những lần trò chuyện sau. Bạn có thể sửa hoặc xóa từng ghi nhớ bất cứ lúc nào.</p> : null}
           <label htmlFor={`proposal-${proposal.id}`}>
             Nội dung sẽ lưu
           </label>
@@ -243,7 +243,6 @@ function MemoryItem({
 }
 
 export function ApprovedMemories() {
-  const { session } = useSession();
   const memories = useResource<MemoryDTO[]>("/memories");
   const proposals = useResource<Proposal[]>("/proposals");
   const [notice, setNotice] = useState("");
@@ -266,19 +265,6 @@ export function ApprovedMemories() {
       </p>
       <Link to="/profile">Về hồ sơ riêng</Link>
       {notice && <p role="status">{notice}</p>}
-      {!session.consents.AI.enabled ? (
-        <p>
-          Trợ lý hiện không dùng ghi nhớ vì quyền xử lý AI đang tắt. Bạn vẫn có
-          thể sửa và xóa các mục đã lưu. Để dùng trợ lý trở lại, mở cuộc trò
-          chuyện và chọn Gửi khi bạn muốn chia sẻ tin nhắn.{" "}
-          <Link to="/assistants">Mở trợ lý</Link>
-        </p>
-      ) : !session.consents.MEM.enabled ? (
-        <p>
-          Trợ lý hiện không dùng ghi nhớ. Bạn vẫn có thể sửa và xóa các mục đã
-          lưu. Trợ lý chỉ dùng lại ghi nhớ sau khi bạn duyệt một đề xuất mới.
-        </p>
-      ) : null}
       <section className="real-section" aria-labelledby="memory-waiting">
         <h2 id="memory-waiting">Đề xuất chờ duyệt</h2>
         <ErrorNotice error={proposals.error} retry={proposals.refresh} />

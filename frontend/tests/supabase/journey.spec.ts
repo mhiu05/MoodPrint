@@ -65,7 +65,7 @@ test("hosted Auth, age, consent, private data, SDK memory, social races, restart
         await page.getByLabel("Năm sinh", { exact: true }).fill(String(year - offset));
         await page.getByRole("checkbox", { name: "Tôi xác nhận mình đã đủ 16 tuổi.", exact: true }).check();
         await page.getByRole("button", { name: "Xác nhận và tiếp tục", exact: true }).click();
-        await expect(page.getByRole("heading", { name: /Bạn muốn chia sẻ điều gì/ })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Chọn một trợ lý" })).toBeVisible();
       }
     }
     if ((await request(a, "GET", "/session")).ageBand === "teen") {

@@ -396,7 +396,7 @@ export const JournalAttachments = forwardRef<JournalAttachmentsHandle, Props>(
         className="journal-attachments"
         aria-labelledby="journal-attachments-title"
       >
-        <h3 id="journal-attachments-title">Giữ lại bằng nhiều cách</h3>
+        <h3 id="journal-attachments-title">Tải lên</h3>
         <div className="journal-media-tools">
           <label className="journal-file-tool">
             <ImagePlus size={19} />
@@ -453,8 +453,7 @@ export const JournalAttachments = forwardRef<JournalAttachmentsHandle, Props>(
           </label>
         </div>
         <p className="journal-help">
-          Ảnh tối đa 10 MB · âm thanh 20 MB · video 50 MB · tối đa 10 tệp. Tệp
-          chỉ dành cho bạn.
+          Ảnh tối đa 10 MB · âm thanh 20 MB · video 50 MB · tối đa 10 tệp.
         </p>
         {recordState === "starting" ? (
           <div className="journal-recording">

@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-30T06:30:00+07:00",
+  "title": "Design System: MoodPrint — AI conversation",
+  "extensions": {
+    "motion": [
+      { "name": "accepted-status", "value": "160ms power2.out; translateY(4px) to 0; opacity 0.6 to 1", "purpose": "One accepted-status entrance; revert on identity, phase, motion policy or unmount." },
+      { "name": "control-feedback", "value": "100ms cubic-bezier(0.2, 0, 0, 1)", "purpose": "Inherited feedback timing; send-button press scale 0.94. Disable optional motion when reduced motion is requested." }
+    ],
+    "breakpoints": [
+      { "name": "phone", "value": "767px" },
+      { "name": "desktop-shell", "value": "1100px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Chat primary action",
+      "kind": "button",
+      "refersTo": "send-button",
+      "description": "One 44px action changes from send to a server cancellation request. This isolated preview shows send.",
+      "html": "<button class=\"chat-action\" aria-label=\"Gửi tin cho AI\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"M12 19V5m-7 7 7-7 7 7\"/></svg></button>",
+      "css": ".chat-action{display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:50%;background:#27282b;color:#fff;cursor:pointer}.chat-action:hover{background:#414247}.chat-action:focus-visible{outline:2px solid #27282b;outline-offset:3px}.chat-action:disabled{background:#e8e8eb;color:#72747a}"
+    },
+    {
+      "name": "Chat composer",
+      "kind": "input",
+      "refersTo": "composer",
+      "description": "Multiline text and a single primary action share a quiet rounded input surface.",
+      "html": "<div class=\"chat-composer\"><textarea rows=\"1\" aria-label=\"Tin nhắn cho Mây\" placeholder=\"Nhắn cho Mây…\"></textarea><button aria-label=\"Gửi tin cho AI\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"M12 19V5m-7 7 7-7 7 7\"/></svg></button></div>",
+      "css": ".chat-composer{display:flex;align-items:flex-end;gap:4px;padding:6px;background:#f7f7f8;border:1px solid #ececee;border-radius:28px}.chat-composer:focus-within{outline:2px solid #27282b;outline-offset:2px}.chat-composer textarea{flex:1;min-width:0;min-height:44px;box-sizing:border-box;padding:10px 8px 10px 12px;border:0;resize:none;background:transparent;color:#252629;font:16px/1.5 'Segoe UI',system-ui,sans-serif}.chat-composer textarea:focus{outline:none}.chat-composer textarea::placeholder{color:#64666b;opacity:1}.chat-composer button{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;border:0;border-radius:50%;background:#27282b;color:white}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Natural agent chat",
+    "overview": "This record applies only to .bot-conversation.ai-conversation. Global MoodPrint tokens still govern human chat, roster and sidebar. Primitive values live in DESIGN.md and the scoped stylesheet.",
+    "keyCharacteristics": ["Unframed assistant prose", "Neutral user bubbles", "One send/stop action", "Inline truthful activity"],
+    "rules": [
+      { "name": "Scoped world", "body": "Require the AI-only wrapper for neutral overrides.", "section": "colors" },
+      { "name": "Truthful cancellation", "body": "Pause requests cancellation; it never promises resume. Wait for the server terminal result.", "section": "components" }
+    ],
+    "dos": ["Keep 44px targets", "Respect reduced motion", "Preserve the reader's scroll position", "Keep message and activity announcements separate"],
+    "donts": ["Do not restyle human chat", "Do not invent reasoning stages", "Do not delay replies for animation"]
+  }
+}

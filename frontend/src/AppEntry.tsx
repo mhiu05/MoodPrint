@@ -3,6 +3,7 @@ import { ApiClient } from "./api/client";
 import { classifyEntry } from "./appEntryRoute";
 import type { AuthCallback } from "./features/auth/callback";
 import { LandingPage } from "./features/public/LandingPage";
+import { LoginPage } from "./features/public/LoginPage";
 
 // The protected app (chat, SDK-heavy views) is fetched only when the visitor goes there.
 const RealApp = lazy(() => import("./features/real/RealApp"));
@@ -49,5 +50,5 @@ export function AppEntry({ callback }: { callback: AuthCallback }) {
         <a href="/">Về trang giới thiệu</a>
       </main>
     );
-  return <LandingPage api={api} />;
+  return window.location.pathname === "/login" ? <LoginPage api={api} /> : <LandingPage api={api} />;
 }

@@ -1,7 +1,7 @@
 import type { SessionView } from "../../api/contracts";
 
 export type TourStep = {
-  id: "assistants" | "mood" | "memory" | "privacy" | "matching";
+  id: "assistants" | "mood" | "memory" | "profile" | "matching";
   route: string;
   target: string;
   title: string;
@@ -43,12 +43,12 @@ export function getTourSteps(
       isApplicable: personal,
     },
     {
-      id: "privacy",
-      route: "/settings",
-      target: "[data-tour='privacy-controls']",
-      title: "Quyền riêng tư",
+      id: "profile",
+      route: "/profile",
+      target: "[data-tour='personal-account']",
+      title: "Không gian cá nhân",
       description:
-        "Bạn chọn quyền xử lý dữ liệu và có thể rút lại bất cứ lúc nào." +
+        "Xem hồ sơ riêng, gửi góp ý và quản lý tài khoản tại đây." +
         (session.accountKind === "guest"
           ? " Dữ liệu của lượt thử không mở lại được sau khi hết giờ."
           : ""),

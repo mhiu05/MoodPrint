@@ -62,9 +62,6 @@ export function JournalTimeline() {
     <div className="journal-page journal-timeline-page">
       <JournalNav />
       <h1 tabIndex={-1}>Khoảnh khắc của bạn</h1>
-      <p className="journal-page-lede">
-        Những ngày đã qua, vẫn ở đây để bạn nhìn lại.
-      </p>
       <form className="journal-search" onSubmit={search}>
         <label htmlFor="journal-search">Tìm trong nhật ký</label>
         <div>
@@ -218,12 +215,6 @@ export function JournalTimeline() {
               <ChevronRight size={19} />
             </Button>
           </nav>
-          <p className="journal-retention">
-            Khoảnh khắc được giữ 90 ngày theo ngày của tài khoản. Hết hạn,
-            chúng không còn trong dòng thời gian, lịch, tìm kiếm và phần Nhịp
-            đọc được. Bản sao lưu của nhà cung cấp có thể còn đến khi bản sao
-            lưu đó hết hạn.
-          </p>
         </>
       ) : null}
     </div>

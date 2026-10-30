@@ -28,7 +28,7 @@ test("real journal HTTP/DB preserves two moments and old mood through reload, ed
   expect(legacy.status).toBe(200);
   await page.goto("/#/self");
   await page
-    .getByLabel("Khoảnh khắc của bạn", { exact: true })
+    .getByRole("textbox", { name: "Ghi lại khoảnh khắc", exact: true })
     .fill("Một buổi sáng bình yên REAL_JOURNAL");
   await page
     .getByRole("button", { name: "Lưu khoảnh khắc", exact: true })
@@ -40,7 +40,7 @@ test("real journal HTTP/DB preserves two moments and old mood through reload, ed
     .getByRole("button", { name: "Viết khoảnh khắc mới", exact: true })
     .click();
   await page
-    .getByLabel("Khoảnh khắc của bạn", { exact: true })
+    .getByRole("textbox", { name: "Ghi lại khoảnh khắc", exact: true })
     .fill("Buổi chiều cần nghỉ một chút REAL_JOURNAL");
   await page
     .getByRole("button", { name: "Lưu khoảnh khắc", exact: true })
@@ -79,7 +79,7 @@ test("real journal HTTP/DB preserves two moments and old mood through reload, ed
     .getByRole("menuitem", { name: "Chỉnh sửa khoảnh khắc", exact: true })
     .click();
   await page
-    .getByLabel("Khoảnh khắc của bạn", { exact: true })
+    .getByRole("textbox", { name: "Ghi lại khoảnh khắc", exact: true })
     .fill("Đã sửa REAL_JOURNAL");
   await page
     .getByRole("button", { name: "Lưu khoảnh khắc", exact: true })

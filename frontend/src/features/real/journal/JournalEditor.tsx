@@ -2,7 +2,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { useMotionPolicy } from "../../../components/motion/useMotionPolicy";
-import { Bookmark, Check, ChevronDown, Leaf, PenLine } from "lucide-react";
+import { Bookmark, Check } from "lucide-react";
 import { Button } from "../../../components/UI";
 import { ApiError } from "../../../api/client";
 import type { JournalEntry, JournalInput } from "../../../api/journal";
@@ -205,8 +205,11 @@ export function JournalEditor({
       onSubmit={(event) => void save("saved", event)}
     >
       <div className="journal-editor-top">
+        <h1 tabIndex={-1} data-tour="mood-entry">
+          Nhật ký cảm xúc
+        </h1>
         <div className="journal-date-control">
-          <label htmlFor="journal-date">Ngày của khoảnh khắc</label>
+          <label className="sr-only" htmlFor="journal-date">Ngày</label>
           <input
             id="journal-date"
             type="date"
@@ -221,26 +224,9 @@ export function JournalEditor({
             }}
           />
         </div>
-        {server?.status === "draft" ? (
-          <span className="journal-draft-badge">
-            <PenLine size={14} />
-            Bản nháp đã lưu
-          </span>
-        ) : server ? (
-          <span className="journal-saved-label">
-            <Check size={15} />
-            Đã lưu
-          </span>
-        ) : (
-          <span className="journal-private">
-            <Leaf size={15} />
-            Một khoảng riêng cho bạn
-          </span>
-        )}
       </div>
       <fieldset className="journal-checkin" disabled={busy} ref={moodRef}>
         <legend>Hôm nay bạn thế nào?</legend>
-        <p>Không có cảm xúc nào là sai cả.</p>
         <div className="journal-mood-options">
           {journalMoodLabels.map((label, index) => (
             <label
@@ -265,7 +251,6 @@ export function JournalEditor({
       </fieldset>
       <fieldset className="journal-choices" disabled={busy}>
         <legend>Cảm xúc nào gần với bạn nhất?</legend>
-        <p>Bạn có thể chọn nhiều cảm xúc.</p>
         <div className="journal-chip-options">
           {[...new Set([...emotionChoices, ...emotions])].map((label) => (
             <label
@@ -311,9 +296,9 @@ export function JournalEditor({
         aria-labelledby="journal-writing-title"
       >
         <h2 id="journal-writing-title">Ghi lại khoảnh khắc</h2>
-        <label htmlFor="journal-text">Khoảnh khắc của bạn</label>
         <textarea
           id="journal-text"
+          aria-labelledby="journal-writing-title"
           value={text}
           maxLength={10000}
           rows={7}
@@ -328,7 +313,6 @@ export function JournalEditor({
           }}
         />
         <div id="journal-text-help" className="journal-text-help">
-          <span>Viết một chút, hoặc giữ lại bằng hình ảnh và âm thanh.</span>
           <span>{Array.from(text).length.toLocaleString("vi-VN")}/10.000</span>
         </div>
       </section>
@@ -341,13 +325,6 @@ export function JournalEditor({
         onBusy={setMediaBusy}
         disabled={saving}
       />
-      <p className="journal-help">
-        Chỉ bạn xem nhật ký. Khi bạn trò chuyện với Nhịp, Nhịp có thể đọc lời
-        viết và cảm xúc đã lưu, không đọc ảnh, ghi âm hay video. Khoảnh khắc
-        được giữ 90 ngày theo ngày của tài khoản. Hết hạn, chúng không còn trong
-        dòng thời gian, lịch, tìm kiếm và phần Nhịp đọc được. Bản sao lưu của
-        nhà cung cấp có thể còn đến khi bản sao lưu đó hết hạn.
-      </p>
       <ErrorNotice error={error} />
       {conflict ? (
         <div className="journal-conflict">

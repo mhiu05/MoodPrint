@@ -83,9 +83,6 @@ export function JournalCalendar() {
     <div className="journal-page journal-calendar-page">
       <JournalNav />
       <h1 tabIndex={-1}>Lịch nhật ký</h1>
-      <p className="journal-page-lede">
-        Mỗi ngày một cảm xúc, mỗi khoảnh khắc một câu chuyện.
-      </p>
       <section className="journal-calendar-surface" aria-label="Lịch tháng">
         <div className="journal-calendar-heading">
           <Button

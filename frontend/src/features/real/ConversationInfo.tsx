@@ -214,7 +214,6 @@ function InfoContent(props: ConversationInfoProps) {
         <p>{props.historyStatus}</p>
         <div className="conversation-info-actions">
           <Button variant="secondary" onClick={props.onHistory}>Mở lịch sử trò chuyện</Button>
-          <Link to="/settings">Cài đặt lưu lịch sử</Link>
         </div>
       </section>
       {props.persistent ? (
@@ -234,10 +233,6 @@ function InfoContent(props: ConversationInfoProps) {
           {props.pendingProposals > 0 ? ` Có ${props.pendingProposals} đề xuất đang chờ bạn duyệt.` : ""}
         </p>
         <Link to="/memory">Xem đề xuất và ghi nhớ đã duyệt</Link>
-      </section>
-      <section>
-        <h3>Quyền</h3>
-        <Link to="/settings">Quyền riêng tư và dữ liệu AI</Link>
       </section>
       <section>
         <Button

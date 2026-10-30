@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Button, cx } from "../../components/UI";
+import { Button } from "../../components/UI";
 import { ErrorNotice, useSession } from "./RealApp";
 import { botById } from "../../companions/registry";
 import type { ConversationHeader, ConversationView } from "../../api/contracts";
@@ -23,7 +23,6 @@ type DataContext = {
   loading: boolean;
   error: unknown;
   reload: () => void;
-  receive: (value: AIDataPreferences) => void;
   historyRevision: number;
   refreshHistory: () => void;
 };
@@ -60,7 +59,7 @@ export function AIDataProvider({ children }: { children: ReactNode }) {
         signal: controller.signal,
       })
       .then((value) => {
-        if (!controller.signal.aborted) receive(value);
+        if (!controller.signal.aborted) receive({ ...value, historyEnabled: value.historyAvailable });
       })
       .catch((reason) => {
         if (!controller.signal.aborted) {
@@ -85,7 +84,6 @@ export function AIDataProvider({ children }: { children: ReactNode }) {
         loading,
         error,
         reload,
-        receive,
         historyRevision,
         refreshHistory,
       }}
@@ -98,125 +96,6 @@ export function useAIData() {
   const value = useContext(Context);
   if (!value) throw new Error("AI data settings are required");
   return value;
-}
-
-/**
- * History storage and external memory lookup are separate choices, each shown
- * in its own privacy section. Both default off; neither enables the other.
- */
-export function AIDataControls({ part }: { part: "history" | "memory" }) {
-  const { api, session } = useSession();
-  const { preferences, loading, error, reload, receive } = useAIData();
-  const [busy, setBusy] = useState(false),
-    [saveError, setSaveError] = useState<unknown>(),
-    [notice, setNotice] = useState("");
-  async function change(
-    key: "historyEnabled" | "semanticMemoryEnabled",
-    enabled: boolean,
-  ) {
-    if (!preferences || busy) return;
-    setBusy(true);
-    setSaveError(undefined);
-    setNotice("");
-    try {
-      const next = await api.request<AIDataPreferences>("/ai/preferences", {
-        method: "PUT",
-        body: {
-          historyEnabled: preferences.historyEnabled,
-          semanticMemoryEnabled: preferences.semanticMemoryEnabled,
-          [key]: enabled,
-          expectedVersion: preferences.version,
-          policyVersion: "ai-data-v1",
-        },
-      });
-      receive(next);
-      setNotice("Đã lưu lựa chọn của bạn.");
-    } catch (reason) {
-      setSaveError(reason);
-      reload();
-    } finally {
-      setBusy(false);
-    }
-  }
-  const memoryAllowed = session.consents.AI.enabled && session.consents.MEM.enabled;
-  return (
-    <div className="ai-data-controls">
-      {loading ? <p role="status">Đang tải lựa chọn dữ liệu AI…</p> : null}
-      <ErrorNotice error={error} retry={reload} />
-      <ErrorNotice error={saveError} />
-      {preferences && part === "history" ? (
-        <>
-          <label className="ai-data-choice">
-            <input
-              type="checkbox"
-              checked={preferences.historyEnabled}
-              disabled={
-                busy ||
-                loading ||
-                (!preferences.historyAvailable && !preferences.historyEnabled)
-              }
-              onChange={(event) =>
-                void change("historyEnabled", event.target.checked)
-              }
-            />
-            Lưu lịch sử trò chuyện
-          </label>
-          <p>
-            {session.accountKind === "guest" ? "Dữ liệu của lượt dùng thử chỉ dùng được đến khi hết giờ. Lịch sử dài hạn và tiếp tục trên thiết bị khác không có trong lượt dùng thử." : <>
-            Lưu các cuộc trò chuyện mới trên máy chủ trong{" "}
-            {preferences.retentionDays} ngày để bạn tiếp tục trên thiết bị khác.
-            Tắt lựa chọn này sẽ dừng lưu mới; lịch sử cũ vẫn xem, tải xuống và
-            xóa được cho đến khi hết hạn. Cuộc trò chuyện tạm thời trước đó
-            không được chuyển sang lịch sử.
-            </>}
-          </p>
-          {!preferences.historyAvailable ? (
-            <p>Lưu lịch sử hiện chưa sẵn sàng.</p>
-          ) : null}
-        </>
-      ) : null}
-      {preferences && part === "memory" ? (
-        <>
-          <label className="ai-data-choice">
-            <input
-              type="checkbox"
-              checked={preferences.semanticMemoryEnabled}
-              disabled={
-                busy ||
-                loading ||
-                (!preferences.semanticMemoryEnabled && !memoryAllowed) ||
-                (!preferences.semanticMemoryAvailable &&
-                  !preferences.semanticMemoryEnabled)
-              }
-              onChange={(event) =>
-                void change("semanticMemoryEnabled", event.target.checked)
-              }
-            />
-            Giúp trợ lý tìm lại ghi nhớ liên quan
-          </label>
-          <details className="ai-data-disclosure">
-            <summary>Xem cách dữ liệu được xử lý</summary>
-            <p>
-              Khi bật, dịch vụ Voyage nhận nội dung ghi nhớ bạn đã duyệt và câu
-              hỏi hiện tại để tìm thông tin liên quan. Nhật ký cảm xúc và toàn
-              bộ cuộc trò chuyện không được gửi tới Voyage. Khi tắt, việc xử lý
-              dừng lại và dữ liệu tìm kiếm tạo từ ghi nhớ sẽ được xóa.
-            </p>
-          </details>
-          {!memoryAllowed ? (
-            <p>
-              Lựa chọn này dùng được khi quyền xử lý AI đang bật và bạn đã
-              duyệt ít nhất một ghi nhớ.
-            </p>
-          ) : null}
-          {!preferences.semanticMemoryAvailable ? (
-            <p>Tính năng tìm lại ghi nhớ hiện chưa sẵn sàng.</p>
-          ) : null}
-        </>
-      ) : null}
-      {notice ? <p role="status">{notice}</p> : null}
-    </div>
-  );
 }
 
 export function ConversationHistory({ onSelect }: { onSelect?: () => void }) {
@@ -346,11 +225,6 @@ export function ConversationHistory({ onSelect }: { onSelect?: () => void }) {
           {olderBusy ? "Đang tải…" : "Tải cuộc trò chuyện cũ hơn"}
         </Button>
       ) : null}
-      <p>
-        <Link to="/settings" onClick={onSelect}>
-          Cài đặt lưu lịch sử
-        </Link>
-      </p>
     </section>
   );
 }

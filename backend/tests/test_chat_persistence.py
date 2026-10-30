@@ -35,22 +35,18 @@ async def enable(client, history=True):
     return response.json()
 
 
-async def test_history_is_explicit_optin_and_cannot_be_implicitly_activated(clients):
+async def test_history_is_available_by_default_without_a_personal_optin(clients):
     app, actors = clients
     app.state.ai.model_override = make_test_model("Synthetic reply")
     client = actors[0][0]
     initial = await client.get("/api/v1/ai/preferences")
     assert initial.status_code == 200
-    assert initial.json()["historyEnabled"] is False
-    await client.put(
-        "/api/v1/consents/AI",
-        json={"enabled": True, "expectedVersion": 1, "policyVersion": "v1"},
-        headers=key(),
-    )
-    denied = await client.post(
+    assert initial.json()["historyEnabled"] is True
+    created = await client.post(
         "/api/v1/ai/conversations", json={"botId": "may", "persistent": True}, headers=key()
     )
-    assert denied.status_code == 403
+    assert created.status_code == 201, created.text
+    assert created.json()["persistent"] is True
 
 
 async def test_new_saved_history_never_exceeds_thirty_days(clients):

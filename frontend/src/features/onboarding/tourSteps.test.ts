@@ -25,7 +25,7 @@ describe("approved tour steps", () => {
       "assistants",
       "mood",
       "memory",
-      "privacy",
+      "profile",
     ]);
     expect(
       getTourSteps(guest, true).some((step) => step.id === "matching"),
@@ -46,7 +46,7 @@ describe("approved tour steps", () => {
   });
   it("selectors/routes are stable teaching targets, never private values", () => {
     for (const step of getTourSteps(guest)) {
-      expect(step.route).toMatch(/^\/(assistants|self|memory|settings)$/);
+      expect(step.route).toMatch(/^\/(assistants|self|memory|profile)$/);
       expect(step.target).toMatch(/^\[data-tour='[a-z-]+'\]$/);
     }
   });

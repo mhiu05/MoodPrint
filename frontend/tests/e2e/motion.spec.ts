@@ -155,7 +155,7 @@ test("the AI status wrapper moves only when an accepted run begins, never while 
     const read = () => {
       const wrapper = document.querySelector<HTMLElement>(".ai-status");
       const label = wrapper?.querySelector("[role=status]")?.textContent || "idle";
-      const key = /gửi/.test(label) ? "sending" : /chuẩn bị/.test(label) ? "accepted" : document.querySelector(".from-bot") ? "final" : "other";
+      const key = /gửi/.test(label) ? "sending" : /trả lời/.test(label) ? "accepted" : document.querySelector(".from-bot") ? "final" : "other";
       (samples[key] ||= []).push(wrapper ? getComputedStyle(wrapper).transform : "none");
     };
     new MutationObserver(read).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true });
@@ -167,7 +167,7 @@ test("the AI status wrapper moves only when an accepted run begins, never while 
   await expect(page.locator(".ai-status [role=status]")).toHaveText("Đang gửi tin nhắn…");
   await page.waitForTimeout(250);
   accept();
-  await expect(page.locator(".ai-status [role=status]")).toHaveText("Đang chuẩn bị câu trả lời…");
+  await expect(page.locator(".ai-status [role=status]")).toHaveText("Đang trả lời…");
   await page.waitForTimeout(300);
   finish();
   // The final reply must survive the authoritative transcript reconciliation.

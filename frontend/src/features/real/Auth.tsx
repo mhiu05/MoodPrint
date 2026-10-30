@@ -1,7 +1,9 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, type InputHTMLAttributes, type ReactNode, useState } from "react";
+import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { ApiError, type ApiClient } from "../../api/client";
 import type { components } from "../../api/generated/schema";
 import type { LoginInput, SessionView } from "../../api/contracts";
+import { BrandMark } from "../../companions/Avatar";
 import { Brand, Button, cx } from "../../components/UI";
 import { ErrorNotice } from "../../components/ErrorNotice";
 import type { AuthCallback } from "../auth/callback";
@@ -14,14 +16,32 @@ export type { AuthCallback } from "../auth/callback";
 function Field({
   id,
   label,
+  leading,
+  trailing,
+  wrapperClassName,
   ...input
-}: { id: string; label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
+}: {
+  id: string;
+  label: string;
+  leading?: ReactNode;
+  trailing?: ReactNode;
+  wrapperClassName?: string;
+} & InputHTMLAttributes<HTMLInputElement>) {
+  const field = (
     <>
       <label htmlFor={id}>{label}</label>
-      <input id={id} required {...input} />
+      {leading || trailing ? (
+        <div className="landing-input-shell">
+          {leading}
+          <input id={id} required {...input} />
+          {trailing}
+        </div>
+      ) : (
+        <input id={id} required {...input} />
+      )}
     </>
   );
+  return wrapperClassName ? <div className={wrapperClassName}>{field}</div> : field;
 }
 
 export function AuthScreen({
@@ -29,18 +49,24 @@ export function AuthScreen({
   receive,
   callback,
   initialMode = "login",
+  presentation = "default",
+  footerActions,
 }: {
   api: ApiClient;
   receive: (value: SessionView) => void;
   callback: AuthCallback;
   initialMode?: "login" | "signup" | "recover";
+  presentation?: "default" | "landing";
+  footerActions?: ReactNode | ((mode: Mode) => ReactNode);
 }) {
+  const landing = presentation === "landing";
   const [mode, setMode] = useState<Mode>(
     callback?.kind === "recovery" ? "reset" : initialMode,
   );
   const [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
     [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>(),
     [notice, setNotice] = useState(
@@ -148,14 +174,23 @@ export function AuthScreen({
     reset: ["Lưu mật khẩu mới", "Đang lưu…"],
   };
   const newPassword = mode === "signup" || mode === "reset";
+  const renderedFooterActions = typeof footerActions === "function" ? footerActions(mode) : footerActions;
   return (
-    <main id="main" className="real-auth">
-      <Brand />
-      <h1 tabIndex={-1}>{titles[mode][0]}</h1>
-      {mode === "login" || mode === "signup" ? (
+    <main id="main" className={`real-auth${landing ? " landing-auth" : ""}`}>
+      {landing ? (
+        <div className="landing-brand">
+          <BrandMark />
+          <span>MoodPrint</span>
+        </div>
+      ) : <Brand />}
+      <h1 tabIndex={-1}>{landing && mode === "login" ? "Bắt đầu với MoodPrint" : titles[mode][0]}</h1>
+      {landing && mode === "login" ? (
+        <p className="landing-auth-lede">Đăng nhập để tiếp tục hành trình khám phá bản thân và lưu giữ những cảm xúc ý nghĩa.</p>
+      ) : null}
+      {!landing && (mode === "login" || mode === "signup") ? (
         <p>MoodPrint là nơi ghi lại cảm xúc, trò chuyện với trợ lý AI và kết nối với người khác qua những điểm chung bạn chọn chia sẻ.</p>
       ) : null}
-      <p className={cx.lede}>{titles[mode][1]}</p>
+      {(!landing || mode !== "login") && <p className={cx.lede}>{titles[mode][1]}</p>}
       {notice && <p role="status">{notice}</p>}
       <ErrorNotice error={error} />
       {unconfirmed && (
@@ -163,7 +198,7 @@ export function AuthScreen({
           Gửi lại thư xác nhận
         </Button>
       )}
-      <form onSubmit={submit} aria-busy={busy}>
+      <form className={landing ? "landing-auth-form" : undefined} onSubmit={submit} aria-busy={busy}>
         {mode !== "reset" && (
           <Field
             id="email"
@@ -171,6 +206,9 @@ export function AuthScreen({
             type="email"
             autoComplete="username"
             maxLength={254}
+            placeholder={landing ? "Nhập email" : undefined}
+            leading={landing ? <Mail size={21} aria-hidden="true" /> : undefined}
+            wrapperClassName={landing ? "landing-auth-field" : undefined}
             value={email}
             onChange={(event) => setEmail(event.target.value)}
           />
@@ -179,10 +217,24 @@ export function AuthScreen({
           <Field
             id="password"
             label={newPassword ? "Mật khẩu mới" : "Mật khẩu"}
-            type="password"
+            type={showPassword ? "text" : "password"}
             autoComplete={newPassword ? "new-password" : "current-password"}
             minLength={newPassword ? 8 : undefined}
             maxLength={newPassword ? 72 : 256}
+            placeholder={landing ? "Nhập mật khẩu" : undefined}
+            leading={landing ? <LockKeyhole size={21} aria-hidden="true" /> : undefined}
+            trailing={landing ? (
+              <button
+                type="button"
+                className="landing-password-toggle"
+                aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((visible) => !visible)}
+              >
+                {showPassword ? <EyeOff size={21} aria-hidden="true" /> : <Eye size={21} aria-hidden="true" />}
+              </button>
+            ) : undefined}
+            wrapperClassName={landing ? "landing-auth-field" : undefined}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />
@@ -195,30 +247,54 @@ export function AuthScreen({
             autoComplete="new-password"
             minLength={8}
             maxLength={72}
+            wrapperClassName={landing ? "landing-auth-field" : undefined}
             value={confirm}
             onChange={(event) => setConfirm(event.target.value)}
           />
         )}
-        <Button type="submit" disabled={busy}>
-          {submitLabels[mode][busy ? 1 : 0]}
-        </Button>
-      </form>
-      <nav className="real-auth-links" aria-label="Lựa chọn tài khoản">
-        {mode === "login" ? (
-          <>
-            <Button variant="text" onClick={() => switchTo("signup")}>
-              Tạo tài khoản mới
-            </Button>
+        {landing && mode === "login" && (
+          <div className="landing-auth-tools">
             <Button variant="text" onClick={() => switchTo("recover")}>
               Quên mật khẩu?
             </Button>
-          </>
-        ) : (
-          <Button variant="text" onClick={() => switchTo("login")}>
-            Quay lại đăng nhập
-          </Button>
+          </div>
         )}
-      </nav>
+        <Button className={landing ? "landing-submit" : ""} type="submit" disabled={busy}>
+          {submitLabels[mode][busy ? 1 : 0]}
+          {landing && mode === "login" && !busy ? <ArrowRight size={20} aria-hidden="true" /> : null}
+        </Button>
+      </form>
+      {landing ? (
+        <>
+          <div className="landing-divider" aria-hidden="true"><span>hoặc</span></div>
+          <div className="landing-auth-actions">{renderedFooterActions}</div>
+          <p className="landing-auth-note">
+            {mode === "login" ? "Chưa có tài khoản? Tạo ngay hoặc dùng thử trước." : "Đã có tài khoản? Đăng nhập hoặc dùng thử trước."}
+          </p>
+          {mode !== "login" ? (
+            <Button variant="text" onClick={() => switchTo("login")}>
+              Quay lại đăng nhập
+            </Button>
+          ) : null}
+        </>
+      ) : (
+        <nav className="real-auth-links" aria-label="Lựa chọn tài khoản">
+          {mode === "login" ? (
+            <>
+              <Button variant="text" onClick={() => switchTo("signup")}>
+                Tạo tài khoản mới
+              </Button>
+              <Button variant="text" onClick={() => switchTo("recover")}>
+                Quên mật khẩu?
+              </Button>
+            </>
+          ) : (
+            <Button variant="text" onClick={() => switchTo("login")}>
+              Quay lại đăng nhập
+            </Button>
+          )}
+        </nav>
+      )}
     </main>
   );
 }

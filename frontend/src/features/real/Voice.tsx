@@ -4,7 +4,6 @@ import { Button, cx } from "../../components/UI";
 import { ApiError } from "../../api/client";
 import { ErrorNotice, useSession } from "./RealApp";
 import { encodeWav } from "./audio";
-import type { ConsentInput, SessionView } from "../../api/contracts";
 import { useTourBlocker } from "../onboarding/tourActivity";
 
 type Recording = {
@@ -26,11 +25,10 @@ export function placeTranscript(draft: string, transcript: string, placement: Tr
 }
 
 export function VoiceRecorder({ draft, onUse }: { draft: string; onUse: (text: string) => void }) {
-  const { api, session, receive } = useSession();
+  const { session } = useSession();
   const allowed = session.features.voice;
-  const authorized = session.consents.AI.enabled && session.consents.VOICE.enabled;
   const allowedRef = useRef(allowed);
-  allowedRef.current = allowed && authorized;
+  allowedRef.current = allowed;
   const [state, setState] = useState<
       "idle" | "starting" | "recording" | "transcribing" | "preview"
     >("idle"),
@@ -63,13 +61,13 @@ export function VoiceRecorder({ draft, onUse }: { draft: string; onUse: (text: s
     };
   }, []);
   useEffect(() => {
-    if (!allowed || (!authorized && state !== "idle" && state !== "starting")) {
+    if (!allowed) {
       cleanup();
       upload.current?.abort();
       setText("");
       setState("idle");
     }
-  }, [allowed, authorized, state]);
+  }, [allowed]);
   async function finish() {
     const value = recording.current;
     if (!value) return;
@@ -131,17 +129,6 @@ export function VoiceRecorder({ draft, onUse }: { draft: string; onUse: (text: s
     setState("starting");
     let stream: MediaStream | undefined, context: AudioContext | undefined;
     try {
-      let next = session;
-      for (const purpose of ["AI", "VOICE"] as const) {
-        if (!next.consents[purpose].enabled) {
-          next = await api.request<SessionView>(`/consents/${purpose}`, {
-            method: "PUT",
-            body: { enabled: true, expectedVersion: next.consents[purpose].version,
-                    policyVersion: "v1" } satisfies ConsentInput,
-          });
-          receive(next);
-        }
-      }
       if (!alive.current) return;
       allowedRef.current = true;
       if (!navigator.mediaDevices?.getUserMedia || !window.AudioContext)

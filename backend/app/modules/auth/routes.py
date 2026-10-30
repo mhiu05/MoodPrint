@@ -35,6 +35,7 @@ from app.core.security import (
 from app.infrastructure.database.models import AgeDeclaration, AuthSession, Consent, User, now
 from app.modules.auth.age import record_age
 from app.modules.auth.provider import SupabaseAuth
+from app.modules.consent.policy import consent_enabled
 from app.modules.feedback.policy import feedback_open
 
 router = APIRouter()
@@ -106,7 +107,12 @@ async def _session_view(request: Request, db, user, user_id, csrf: str | None = 
         alias=user.alias,
         age_band=user.age_band,
         eligible=user.age_band in ("teen", "adult"),
-        consents={c.purpose: ConsentView.model_validate(c) for c in consents},
+        consents={
+            c.purpose: ConsentView.model_validate(c).model_copy(
+                update={"enabled": consent_enabled(c.purpose, c.enabled)}
+            )
+            for c in consents
+        },
         csrf_token=csrf
         or request.cookies.get("moodprint_csrf")
         or request.headers.get("X-CSRF-Token", ""),
@@ -222,7 +228,7 @@ async def login(body: LoginInput, request: Request, response: Response):
         for purpose in ("AI", "MEM", "MATCH", "VOICE"):
             await db.execute(
                 insert(Consent)
-                .values(user_id=user.id, purpose=purpose, enabled=False)
+                .values(user_id=user.id, purpose=purpose, enabled=consent_enabled(purpose, False))
                 .on_conflict_do_nothing()
             )
         session = AuthSession(
