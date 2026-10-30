@@ -45,7 +45,7 @@ import {
   Dialog,
   StatePanel,
 } from "../../components/UI";
-import { BrandMark, BotAvatar } from "../../companions/Avatar";
+import { BotAvatar } from "../../companions/Avatar";
 import { botById, type BotId } from "../../companions/registry";
 import { ApiClient, ApiError, errorMessage } from "../../api/client";
 import { consumeAIEvents, validCards } from "../../api/stream";
@@ -768,13 +768,6 @@ function Shell() {
         className={`me-shell ${assistants ? "assistant-shell" : ""} ${fullChat ? "full-chat" : ""}`}
       >
         <aside className="me-rail">
-          <Link
-            className="rail-brand"
-            aria-label="MoodPrint — Trợ lý"
-            to="/assistants"
-          >
-            <BrandMark />
-          </Link>
           <Navigation />
         </aside>
         <main
@@ -782,13 +775,6 @@ function Shell() {
           tabIndex={-1}
           className={`${cx.main} me-main ${assistants ? "me-assistants" : "me-page"}`}
         >
-          {!assistants ? (
-            <header className="page-app-header">
-              <Link to="/assistants" aria-label="MoodPrint — Trợ lý">
-                <Brand />
-              </Link>
-            </header>
-          ) : null}
           <OfflineBanner />
           <ConnectionBanner />
           <GuestBanner />
@@ -875,11 +861,6 @@ function Assistants() {
   return (
     <div className={`companion-layout ${botId ? "has-conversation" : ""}`}>
       <section className="bot-roster" aria-label="Danh sách trợ lý">
-        <div className="roster-brand">
-          <Link to="/assistants" aria-label="MoodPrint — Trợ lý">
-            <Brand />
-          </Link>
-        </div>
         <label className="bot-search">
           <Search size={18} />
           <input
