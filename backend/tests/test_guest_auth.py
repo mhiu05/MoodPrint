@@ -72,7 +72,9 @@ async def test_guest_grant_has_one_database_deadline(clients):
     assert user.auth_subject != user.id and user.auth_subject == attempt.provider_subject
     assert [s.expires_at for s in sessions] == [user.guest_expires_at]
     assert sessions[0].reauthenticated_at == datetime(1970, 1, 1, tzinfo=UTC)
-    assert len(consents) == 4 and not any(c.enabled for c in consents)
+    assert len(consents) == 4
+    assert {c.purpose for c in consents if c.enabled} == {"AI", "MEM", "VOICE"}
+    assert not any(c.enabled for c in consents if c.purpose == "MATCH")
     assert declaration.birth_year == 2000 and user.age_band in ("teen", "adult")
     assert job.due_at == user.guest_expires_at and job.state == "pending"
     assert (usage.ai_turns, usage.voice_clips, usage.voice_milliseconds) == (0, 0, 0)

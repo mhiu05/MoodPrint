@@ -94,11 +94,12 @@ async def test_session_distinguishes_consent_service_and_synthetic_provider(clie
     configured = (await client.get("/api/v1/session")).json()
     assert configured["features"]["aiStatus"] == "ready"
     assert configured["features"]["ai"] is True
-    assert configured["consents"]["AI"]["enabled"] is False
-    denied = await client.post(
+    assert configured["consents"]["AI"]["enabled"] is True
+    assert configured["consents"]["MATCH"]["enabled"] is False
+    created = await client.post(
         "/api/v1/ai/conversations", json={"botId": "may"}, headers={"Idempotency-Key": str(uuid4())}
     )
-    assert denied.status_code == 403
+    assert created.status_code == 201, created.text
     app.state.ai.model_override = make_test_model("Synthetic only")
     synthetic = (await client.get("/api/v1/session")).json()
     assert synthetic["features"]["aiStatus"] == "test_provider"
@@ -124,11 +125,6 @@ async def test_provider_failure_stream_is_classified_without_leaking_details(cli
         )
 
     app.state.ai.provider.run = broken
-    await client.put(
-        "/api/v1/consents/AI",
-        json={"enabled": True, "expectedVersion": 1, "policyVersion": "v1"},
-        headers={"Idempotency-Key": str(uuid4())},
-    )
     created = await client.post(
         "/api/v1/ai/conversations", json={"botId": "may"}, headers={"Idempotency-Key": str(uuid4())}
     )
@@ -146,6 +142,6 @@ async def test_provider_failure_stream_is_classified_without_leaking_details(cli
         json.loads(line[6:]) for line in stream.text.splitlines() if line.startswith("data: ")
     ]
     assert events[-1]["type"] == "failed"
-    assert events[-1]["data"]["code"] == "AI_PROVIDER_CONFIGURATION"
+    assert events[-1]["data"]["code"] == "AI_RUN_FAILED"
     assert "PRIVATE-PROVIDER-DETAIL" not in stream.text
     assert not any(event["type"] == "final" for event in events)

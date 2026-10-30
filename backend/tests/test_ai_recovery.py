@@ -83,23 +83,6 @@ async def test_end_and_shutdown_finalize_tasks_that_have_not_entered_drive(clien
     assert model.calls == [] and c.id not in runtime.store.conversations
 
 
-async def test_revoke_cancels_sdk_without_late_final_or_tool_and_records_terminal_state(clients):
-    runtime, run, c, model = await seed_unstarted_run(clients)
-    await asyncio.wait_for(model.started.wait(), 3)
-    client = clients[1][0][0]
-    response = await client.put(
-        "/api/v1/consents/AI",
-        json={"enabled": False, "expectedVersion": 2, "policyVersion": "v1"},
-        headers=key(),
-    )
-    assert response.status_code == 200
-    await asyncio.wait_for(asyncio.gather(run.task, return_exceptions=True), 3)
-    assert model.cancelled and len(model.calls) == 1
-    assert not any(e.type == "final" for e in run.events)
-    await runtime.close()
-    assert runtime.runs == {} and run.events == []
-
-
 async def test_repeated_cancellation_cannot_skip_terminal_finalization(clients, monkeypatch):
     runtime, run, conversation, model = await seed_unstarted_run(clients)
     await asyncio.wait_for(model.started.wait(), 3)

@@ -44,7 +44,8 @@ async def test_sixteen_year_attestation_unlocks_private_features_without_consent
     result = response.json()
     assert result["eligible"] and result["ageBand"] == "teen" and result["eligibilityVersion"] == 1
     assert result["birthYear"] == YEAR - 16
-    assert all(not consent["enabled"] for consent in result["consents"].values())
+    assert all(result["consents"][purpose]["enabled"] for purpose in ("AI", "MEM", "VOICE"))
+    assert result["consents"]["MATCH"]["enabled"] is False
     assert (await a.get("/api/v1/profiles/private-items")).status_code == 200
     assert (await a.get("/api/v1/matching/candidates")).status_code == 403
     assert (

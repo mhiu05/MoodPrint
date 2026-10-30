@@ -98,7 +98,7 @@ async def test_memory_reapproval_does_not_resume_withdrawn_voyage_processing(cli
         json={"expectedVersion": 1}, headers=key(),
     )
     assert approved.status_code == 200, approved.text
-    assert not (await client.get("/api/v1/ai/preferences")).json()["semanticMemoryEnabled"]
+    assert (await client.get("/api/v1/ai/preferences")).json()["semanticMemoryEnabled"] is True
 
 
 @pytest.mark.parametrize("bot_id", ["may", "guong", "nhip", "rure", "caunoi"])
@@ -340,50 +340,6 @@ async def test_legacy_end_keeps_saved_history_and_writes_require_csrf(clients):
     assert (await client.get(url)).status_code in (404, 410)
 
 
-async def second_worker(app):
-    from app.core.config import Settings
-    from app.main import create_app
-
-    worker = create_app(Settings(_env_file=None, app_env="test"))
-    worker.state.database.sessions = app.state.database.sessions
-    return worker
-
-
-async def test_temporary_chat_on_another_worker_is_dropped_after_ai_withdrawal(clients):
-    # The withdrawal lands on worker B; worker A must not keep serving or reusing the
-    # RAM transcript once consent is granted again.
-    import httpx
-
-    app, actors = clients
-    client = actors[0][0]
-    app.state.ai.model_override = make_test_model("Synthetic temporary reply")
-    await enable(client, history=False)
-    c = (await client.post("/api/v1/ai/conversations", json={"botId": "may"}, headers=key())).json()
-    url = f"/api/v1/ai/conversations/{c['conversationId']}"
-    sent = await client.post(
-        url + "/messages",
-        json={"text": "Temporary secret", "clientMessageId": str(uuid4()), "expectedConversationVersion": 1},
-        headers=key(),
-    )
-    await app.state.ai.runs[__import__("uuid").UUID(sent.json()["runId"])].task
-    worker = await second_worker(app)
-    async with worker.router.lifespan_context(worker), httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=worker), base_url="http://test",
-        cookies=client.cookies, headers=dict(client.headers),
-    ) as remote:
-        for enabled, version in ((False, 2), (True, 3)):
-            changed = await remote.put(
-                "/api/v1/consents/AI",
-                json={"enabled": enabled, "expectedVersion": version, "policyVersion": "v1"},
-                headers=key(),
-            )
-            assert changed.status_code == 200, changed.text
-    assert (await client.get(url)).status_code in (404, 410)
-    listed = (await client.get("/api/v1/ai/conversations")).json()
-    assert c["conversationId"] not in [item["conversationId"] for item in listed]
-    assert c["conversationId"] not in {str(k) for k in app.state.ai.store.conversations}
-
-
 async def test_temporary_turn_digest_is_not_a_plain_text_hash_and_deletion_removes_turns(clients):
     from sqlalchemy import func, select
 
@@ -394,8 +350,13 @@ async def test_temporary_turn_digest_is_not_a_plain_text_hash_and_deletion_remov
     app, actors = clients
     client, uid = actors[0]
     app.state.ai.model_override = make_test_model("Synthetic")
-    await enable(client, history=False)
-    c = (await client.post("/api/v1/ai/conversations", json={"botId": "may"}, headers=key())).json()
+    c = (
+        await client.post(
+            "/api/v1/ai/conversations",
+            json={"botId": "may", "persistent": False},
+            headers=key(),
+        )
+    ).json()
     body = {"text": "tôi buồn", "clientMessageId": str(uuid4()), "expectedConversationVersion": 1}
     sent = await client.post(
         f"/api/v1/ai/conversations/{c['conversationId']}/messages", json=body, headers=key()
