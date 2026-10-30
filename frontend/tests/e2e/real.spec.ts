@@ -771,13 +771,14 @@ test("a saved mood reloads from the API while a failed edit keeps its note", asy
   await page.route("**/api/v1/moods", (route) =>
     route.fulfill({ json: [saved] }),
   );
-  await page.goto("/#/self");
+  await page.goto("/#/self/daily");
+  const moodHistory = page.locator('section[aria-labelledby="mood-history"]');
   await expect(
-    page.locator("article").getByText("Một ngày nhẹ nhàng", { exact: true }),
+    moodHistory.getByText("Một ngày nhẹ nhàng", { exact: true }),
   ).toBeVisible();
   await page.reload();
   await expect(
-    page.locator("article").getByText("Một ngày nhẹ nhàng", { exact: true }),
+    moodHistory.getByText("Một ngày nhẹ nhàng", { exact: true }),
   ).toBeVisible();
   await page.getByLabel("Ngày", { exact: true }).fill(date);
   await expect(page.getByLabel("Ghi chú", { exact: true })).toHaveValue(
@@ -811,7 +812,7 @@ test("mood calendar selects an entry and shows a truthful weekly comparison on m
     },
   }));
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/#/self");
+  await page.goto("/#/self/daily");
   await expect(page.getByRole("heading", { name: "Lịch cảm xúc" })).toBeVisible();
   await expect(page.getByRole("button", { name: "23/10/2026, Rất vui, hôm nay" })).toBeVisible();
   await expect(page.getByText("Điểm trung bình tự chọn cao hơn 2 điểm so với 7 ngày trước.", { exact: false })).toBeVisible();
