@@ -63,7 +63,7 @@ async def consent(client, purpose, enabled):
 
 
 @pytest.mark.parametrize(
-    "change", ["revoke", "regrant", "edit", "delete", "ai_regrant", "history_regrant"]
+    "change", ["edit", "delete", "history_regrant"]
 )
 @pytest.mark.parametrize("restore", ["restart", "other_worker_and_session"])
 async def test_t04_t05_t18_invalidated_source_never_replays_saved_transcript(
@@ -93,11 +93,7 @@ async def test_t04_t05_t18_invalidated_source_never_replays_saved_transcript(
     if restore == "other_worker_and_session":
         original = app.state.ai
         app.state.ai = AiRuntime(app.state.settings, app.state.database)
-    if change in ("revoke", "regrant"):
-        await consent(client, "MEM", False)
-        if change == "regrant":
-            await consent(client, "MEM", True)
-    elif change in ("edit", "delete"):
+    if change in ("edit", "delete"):
         if change == "edit":
             result = await client.patch(
                 f"/api/v1/memories/{memory_id}",
@@ -112,11 +108,6 @@ async def test_t04_t05_t18_invalidated_source_never_replays_saved_transcript(
                 headers=key(),
             )
         assert result.status_code == 200, result.text
-    elif change == "ai_regrant":
-        await consent(client, "AI", False)
-        assert (await client.get(url)).status_code == 200
-        assert (await client.get(url + "/export")).status_code == 200
-        await consent(client, "AI", True)
     else:
         for enabled in (False, True):
             pref = (await client.get("/api/v1/ai/preferences")).json()
@@ -166,7 +157,7 @@ async def test_t04_t05_t18_invalidated_source_never_replays_saved_transcript(
     await turn(app, client, url, "Continue please", model)
     captured = json.dumps(model.calls[0]["input"])
     assert ECHO not in captured
-    if change in ("revoke", "edit", "delete"):
+    if change in ("edit", "delete"):
         assert SOURCE not in captured
     if change == "edit":
         assert CORRECTED in captured
@@ -285,7 +276,7 @@ async def test_legacy_unknown_provenance_is_visible_but_not_model_context(client
     assert ECHO in (await client.get(url)).text
 
 
-@pytest.mark.parametrize("change", ["revoke", "edit", "source_edit", "source_delete"])
+@pytest.mark.parametrize("change", ["edit", "source_edit", "source_delete"])
 async def test_t18_remote_worker_invalidates_ephemeral_derivatives(clients, change):
     from app.infrastructure.database.models import PrivateItem
 
@@ -312,9 +303,7 @@ async def test_t18_remote_worker_invalidates_ephemeral_derivatives(clients, chan
     await turn(app, client, url, "Recall", make_test_model(ECHO))
     original = app.state.ai
     app.state.ai = AiRuntime(app.state.settings, app.state.database)
-    if change == "revoke":
-        await consent(client, "MEM", False)
-    elif change == "edit":
+    if change == "edit":
         result = await client.patch(
             f"/api/v1/memories/{memory_id}",
             json={"text": CORRECTED, "expectedVersion": 1},
@@ -339,37 +328,12 @@ async def test_t18_remote_worker_invalidates_ephemeral_derivatives(clients, chan
     await app.state.ai.close()
     app.state.ai = original
     model = make_test_model("Safe after remote mutation")
-    run = await turn(app, client, url, "Continue", model)
+    await turn(app, client, url, "Continue", model)
     captured = json.dumps(model.calls[0]["input"])
     assert ECHO not in captured and SOURCE not in captured
-    if change == "revoke":
-        assert run.sources["memory"].authorization == "revoked"
     if change == "edit":
         assert CORRECTED in captured
     assert ECHO in (await client.get(url)).text
-
-
-async def test_t18_copy_chain_outside_context_window_stays_cut_after_regrant(clients):
-    app, actors = clients
-    client, _ = actors[0]
-    await enable(client)
-    app.state.settings.ai_requests_per_minute = 100
-    app.state.ai.model_override = make_test_model("ready")
-    created = await client.post("/api/v1/ai/conversations", json={"botId": "may"}, headers=key())
-    url = f"/api/v1/ai/conversations/{created.json()['conversationId']}"
-    await turn(app, client, url, "Original " + SOURCE, make_test_model(ECHO))
-    for index in range(21):
-        await turn(app, client, url, f"Copy {index} {ECHO}", make_test_model(ECHO))
-    await consent(client, "MEM", False)
-    await consent(client, "MEM", True)
-    await restart(app)
-    model = make_test_model("Fresh suffix")
-    await turn(app, client, url, "Continue", model)
-    assert ECHO not in json.dumps(model.calls[0]["input"])
-    view = (await client.get(url + "?limit=40")).json()
-    assert SOURCE not in json.dumps(view["messages"])
-    assert any(ECHO in m["text"] for m in view["messages"])
-    assert view["hasMoreMessages"]
 
 
 async def test_runtime_source_states_distinguish_authorization_evidence_and_failures(
@@ -388,7 +352,7 @@ async def test_runtime_source_states_distinguish_authorization_evidence_and_fail
     )
     assert no_scope.sources["mood"].authorization == "no_current_authorization"
     assert no_scope.sources["mood"].evidence == "tool_unavailable"
-    assert no_scope.sources["memory"].authorization == "no_current_authorization"
+    assert no_scope.sources["memory"].authorization == "authorized"
     today = datetime.now(UTC).date().isoformat()
     scope = {"fromDate": today, "toDate": today}
     unused = await turn(

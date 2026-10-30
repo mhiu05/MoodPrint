@@ -498,13 +498,13 @@ async def run(args):
                     "message_admission",
                     202,
                     json={
-                        "text": f"LOAD_ACTOR:{number:03d} BOT:may NOMEM",
+                        "text": f"LOAD_ACTOR:{number:03d} BOT:may AFTER_PERSONAL_CONSENT",
                         "clientMessageId": str(uuid4()),
                         "expectedConversationVersion": 1,
                     },
                 )
                 stream = await request(number, "GET", sent.json()["eventsUrl"], "sse_completion")
-                assert "event: completed" in stream.text, "MEM-withdrawn turn did not complete"
+                assert "event: completed" in stream.text, "turn after a personal consent write did not complete"
                 await request(
                     number,
                     "PUT",
@@ -512,18 +512,21 @@ async def run(args):
                     "consent_revoke",
                     json={"enabled": False, "expectedVersion": 1, "policyVersion": "v1"},
                 )
-                blocked = await client.post(
+                sent_again = await request(
+                    number,
+                    "POST",
                     route + "/messages",
-                    headers=headers(number),
+                    "post_consent_send",
+                    202,
                     json={
-                        "text": f"LOAD_ACTOR:{number:03d} BOT:may after revoke",
+                        "text": f"LOAD_ACTOR:{number:03d} BOT:may after consent write",
                         "clientMessageId": str(uuid4()),
                         "expectedConversationVersion": 3,
                     },
                 )
-                statuses[f"post_revoke_send:{blocked.status_code}"] += 1
-                assert blocked.status_code == 403, "AI revocation did not block new turns"
-                # Saved history stays manageable with AI off.
+                follow = await request(number, "GET", sent_again.json()["eventsUrl"], "sse_completion")
+                assert "event: completed" in follow.text, "personal consent write blocked a new turn"
+                # Saved history stays readable.
                 await request(number, "GET", route, "history_resume")
                 await request(number, "GET", route + "/export", "history_export")
 
@@ -581,7 +584,8 @@ async def run(args):
                 )
             recovery_ms = (time.perf_counter() - recovery_started) * 1000
             assert recovered_status == "interrupted", "expired lease was not fenced"
-            expected_completed = args.users + len(revoke_users)
+            # Each revoke user completes the original chat plus two turns after personal consent writes.
+            expected_completed = args.users + 2 * len(revoke_users)
             assert counts.get("completed") == expected_completed, counts
             assert counts.get("cancelled") == len(cancel_users), counts
             # Two messages per completed turn; a cancelled turn keeps only its input.
@@ -590,10 +594,12 @@ async def run(args):
             await final_snapshots()
             assert len(workers) == args.workers, "did not observe every serving process"
             assert sum(w["sdk_calls"] for w in workers.values()) == (
-                args.users + len(cancel_users) + len(revoke_users)
+                args.users + len(cancel_users) + 2 * len(revoke_users)
             ), "a provider call was replayed or skipped"
-            # MEM-withdrawn turns make no external query; held turns query before the model.
-            assert sum(w["query_calls"] for w in workers.values()) == args.users + len(cancel_users)
+            # Personal consent writes do not skip retrieval. Held turns query before the model.
+            assert sum(w["query_calls"] for w in workers.values()) == (
+                args.users + len(cancel_users) + 2 * len(revoke_users)
+            )
             assert sum(w["cancelled_calls"] for w in workers.values()) == len(cancel_users)
             assert not sum(w["isolation_failures"] + w["missing_memory"] for w in workers.values())
             if args.workers > 1:
@@ -714,8 +720,8 @@ async def run(args):
                 },
                 "consent_revocation": {
                     "users": len(revoke_users),
-                    "memory_free_turns": len(revoke_users),
-                    "post_revoke_sends_blocked": statuses.get("post_revoke_send:403", 0),
+                    "turns_after_personal_consent_write": len(revoke_users),
+                    "post_consent_sends_accepted": statuses.get("post_consent_send:202", 0),
                 },
                 "crash_recovery": crash or "not run (use --crash-kill)",
                 "recovery": {

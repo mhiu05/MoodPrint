@@ -194,22 +194,18 @@ async def test_caunoi_cannot_propose_memory_and_consent_is_rechecked(clients):
         await seed_proposal(app, uid, bot_id="caunoi")
     assert forbidden.value.code == "MEMORY_BOT_FORBIDDEN"
     proposal = await seed_proposal(app, uid)
-    revoked = await client.put(
+    ignored = await client.put(
         "/api/v1/consents/MEM",
-        json={"enabled": False, "expectedVersion": 2, "policyVersion": "v1"},
+        json={"enabled": False, "expectedVersion": 1, "policyVersion": "v1"},
         headers=key(),
     )
-    assert revoked.status_code == 200
+    assert ignored.status_code == 200, ignored.text
+    assert ignored.json()["consents"]["MEM"]["enabled"] is True
     response = await client.post(
         f"/api/v1/proposals/{proposal.id}/confirm", json={"expectedVersion": 1}, headers=key()
     )
-    # Withdrawal erases the pending preview itself, not only the approval path.
-    assert response.status_code == 410
-    assert response.json()["error"]["code"] == "PROPOSAL_EXPIRED"
-    async with app.state.database.sessions() as db:
-        stored = await db.get(MemoryProposal, proposal.id)
-        assert stored.status == "expired" and stored.text == ""
-    assert (await client.get("/api/v1/memories")).json() == []
+    assert response.status_code == 200, response.text
+    assert (await client.get("/api/v1/memories")).json() != []
 
 
 async def test_approval_grants_memory_use_for_only_approved_content(
@@ -262,7 +258,7 @@ async def test_rejected_proposal_does_not_grant_memory_permission(clients):
         json={"expectedVersion": 1}, headers=key(),
     )
     assert response.status_code == 200, response.text
-    assert not (await a.get("/api/v1/session")).json()["consents"]["MEM"]["enabled"]
+    assert (await a.get("/api/v1/session")).json()["consents"]["MEM"]["enabled"] is True
     assert (await a.get("/api/v1/memories")).json() == []
 
 
@@ -357,16 +353,17 @@ async def test_consent_withdrawal_and_regrant_still_stales_pending_proposal(clie
     await enable(client, "AI")
     await enable(client, "MEM")
     proposal = await seed_proposal(app, uid)
-    for enabled, version in ((False, 2), (True, 3)):
+    for enabled in (False, True):
         changed = await client.put(
             "/api/v1/consents/MEM",
-            json={"enabled": enabled, "expectedVersion": version, "policyVersion": "v1"},
+            json={"enabled": enabled, "expectedVersion": 1, "policyVersion": "v1"},
             headers=key(),
         )
         assert changed.status_code == 200, changed.text
+        assert changed.json()["consents"]["MEM"]["enabled"] is True
+        assert changed.json()["consents"]["MEM"]["version"] == 1
     response = await client.post(
         f"/api/v1/proposals/{proposal.id}/confirm", json={"expectedVersion": 1}, headers=key()
     )
-    # Re-granting never revives a preview erased by the withdrawal.
-    assert response.status_code == 410
-    assert (await client.get("/api/v1/memories")).json() == []
+    assert response.status_code == 200, response.text
+    assert (await client.get("/api/v1/memories")).json() != []

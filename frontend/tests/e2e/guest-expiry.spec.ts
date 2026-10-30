@@ -201,5 +201,5 @@ test("after the end screen a new trial starts from the public page, and register
   await expect(endedHeading(page)).toBeVisible();
   await page.getByRole("button", { name: "Bắt đầu lượt dùng thử mới" }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole("heading", { name: "Hiểu mình hơn, kết nối chân thành hơn." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Bắt đầu với MoodPrint" })).toBeVisible();
 });

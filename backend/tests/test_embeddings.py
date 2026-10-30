@@ -220,8 +220,7 @@ async def test_no_indexing_before_semantic_optin_or_after_mem_revocation(embeddi
         )
     assert (
         await retrieve_memories(database, settings, actor, "may", "sách", 1, provider=provider)
-        == []
-    )
+    ) == ["Tôi đọc sách để thư giãn"]
     assert provider.calls == []
 
 
@@ -554,36 +553,3 @@ def test_lexical_fallback_ranks_vietnamese_relevance_over_newer_unrelated_memori
     ]
     assert lexical_rank(rows, "đọc sách", 1) == ["Tôi đọc sách để thư giãn"]
 
-
-@pytest.mark.postgres
-async def test_consent_withdrawal_discards_derived_vectors_jobs_and_pending_previews(
-    embedding_env, clients
-):
-    from app.ai.embedding_models import EmbeddingJob, MemoryEmbedding
-    from app.ai.embeddings import process_embedding_jobs
-    from app.ai.memory import create_proposal
-    from app.ai.memory_models import MemoryProposal
-    from app.infrastructure.database.models import User
-
-    database, settings, actor, _ = embedding_env
-    client = clients[1][0][0]
-    indexed = await add_memory(database, actor.user_id)
-    await queue_memory(database, settings, indexed)
-    await process_embedding_jobs(database, settings, provider=SyntheticProvider())
-    queued = await add_memory(database, actor.user_id, "Tôi thích đi bộ")
-    await queue_memory(database, settings, queued)
-    async with database.sessions.begin() as db:
-        user = await db.get(User, actor.user_id)
-        proposal = await create_proposal(db, actor, "may", "Preview", "memory", user.data_version)
-    response = await client.put(
-        "/api/v1/consents/MEM",
-        json={"enabled": False, "expectedVersion": 1, "policyVersion": "v1"},
-        headers={"Idempotency-Key": str(uuid4())},
-    )
-    assert response.status_code == 200, response.text
-    async with database.sessions() as db:
-        assert await db.scalar(select(func.count()).select_from(MemoryEmbedding)) == 0
-        states = set((await db.scalars(select(EmbeddingJob.status))).all())
-        assert states <= {"succeeded", "cancelled"} and "cancelled" in states
-        stored = await db.get(MemoryProposal, proposal.id)
-        assert stored.status == "expired" and stored.text == ""

@@ -59,17 +59,26 @@ async def test_consent_cas_ledger_and_independent_effective_permissions(clients)
     app, actors = clients
     a, uid = actors[0]
     initial = (await a.get("/api/v1/session")).json()
-    assert all(not c["enabled"] for c in initial["consents"].values())
-    response = await a.put(
+    assert all(initial["consents"][purpose]["enabled"] for purpose in ("AI", "MEM", "VOICE"))
+    assert initial["consents"]["MATCH"]["enabled"] is False
+    ignored = await a.put(
         "/api/v1/consents/MEM",
+        json={"enabled": False, "expectedVersion": 1, "policyVersion": "v1"},
+        headers={"Idempotency-Key": str(uuid4())},
+    )
+    assert ignored.status_code == 200, ignored.text
+    assert ignored.json()["consents"]["MEM"]["enabled"] is True
+    assert ignored.json()["consents"]["MEM"]["version"] == 1
+    response = await a.put(
+        "/api/v1/consents/MATCH",
         json={"enabled": True, "expectedVersion": 1, "policyVersion": "v1"},
         headers={"Idempotency-Key": str(uuid4())},
     )
     assert response.status_code == 200, response.text
-    assert response.json()["consents"]["MEM"]["version"] == 2
-    assert response.json()["consents"]["AI"]["enabled"] is False
+    assert response.json()["consents"]["MATCH"]["version"] == 2
+    assert response.json()["consents"]["AI"]["enabled"] is True
     stale = await a.put(
-        "/api/v1/consents/MEM",
+        "/api/v1/consents/MATCH",
         json={"enabled": False, "expectedVersion": 1, "policyVersion": "v1"},
         headers={"Idempotency-Key": str(uuid4())},
     )
@@ -87,7 +96,7 @@ async def test_concurrent_consent_updates_only_one_commits(clients):
     responses = await asyncio.gather(
         *[
             a.put(
-                "/api/v1/consents/AI",
+                "/api/v1/consents/MATCH",
                 json={"enabled": True, "expectedVersion": 1, "policyVersion": "v1"},
                 headers={"Idempotency-Key": str(uuid4())},
             )

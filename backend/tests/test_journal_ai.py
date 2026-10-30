@@ -400,9 +400,9 @@ async def test_journal_sdk_cites_actual_source_without_enabling_optional_privacy
     async with app.state.database.sessions() as db:
         assert (await db.get(AiTurn, run.id)).context_policy == JOURNAL_TURN_POLICY
     prefs = (await client.get("/api/v1/ai/preferences")).json()
-    assert prefs["historyEnabled"] is False and prefs["semanticMemoryEnabled"] is False
+    assert prefs["historyEnabled"] is True and prefs["semanticMemoryEnabled"] is False
     session = (await client.get("/api/v1/session")).json()
-    assert session["consents"]["MEM"]["enabled"] is False
+    assert session["consents"]["MEM"]["enabled"] is True
 
 
 @pytest.mark.postgres

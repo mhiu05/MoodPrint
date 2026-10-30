@@ -92,7 +92,7 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
     page.getByText(/^Đã lưu cảm xúc ngày \d{2}\/\d{2}\/\d{4}\.$/),
   ).toBeVisible();
   await expect(
-    page.locator("article").getByText("Ghi chép MVP", { exact: true }),
+    page.getByText("Ghi chép MVP", { exact: true }).first(),
   ).toBeVisible();
   await expect(page.getByText(/Trung bình từ 1\/7 ngày có ghi/)).toBeVisible();
   await expect(
@@ -114,7 +114,7 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
   await expect(
     page.getByText(/^Đã cập nhật cảm xúc ngày \d{2}\/\d{2}\/\d{4}\.$/),
   ).toBeVisible();
-  await expect(page.locator("article h3").first()).toContainText("2/5");
+  await expect(page.getByText(/2\/5 · /).first()).toBeVisible();
   const stored = (await call(context, 10, "GET", "/moods")).body;
   expect(
     stored.map((m: { version: number; note: string }) => [m.version, m.note]),
@@ -138,7 +138,7 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
     "Bản nhập cần giữ",
   );
   await expect(
-    page.locator("article").getByText("Từ tab khác", { exact: true }),
+    page.getByText("Từ tab khác", { exact: true }).first(),
   ).toBeVisible();
 
   for (const [offset, value] of [
@@ -194,7 +194,7 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
     page.getByText(`Đã xóa tâm trạng ngày ${display(today)}.`),
   ).toBeVisible();
   await page.reload();
-  await expect(page.locator("article")).toHaveCount(2);
+  await expect(page.locator("article.real-item")).toHaveCount(2);
   expect((await call(context, 10, "GET", "/moods")).body).toHaveLength(2);
   await context.close();
 });

@@ -59,16 +59,12 @@ async def test_sdk_fake_model_full_route_stream_isolation_and_no_transcript_in_d
     app, actors = clients
     app.state.ai.model_override = make_test_model("Một phản hồi tổng hợp từ SDK.")
     a, _ = actors[0]
-    await a.put(
-        "/api/v1/consents/AI",
-        json={"enabled": True, "expectedVersion": 1, "policyVersion": "v1"},
-        headers={"Idempotency-Key": str(uuid4())},
-    )
     c = await a.post(
         "/api/v1/ai/conversations", json={"botId": "may"}, headers={"Idempotency-Key": str(uuid4())}
     )
     assert c.status_code == 201, c.text
     conversation = c.json()
+    assert conversation["persistent"] is True
     canary = "PRIVATE-CANARY-DO-NOT-PERSIST"
     accepted = await a.post(
         f"/api/v1/ai/conversations/{conversation['conversationId']}/messages",
@@ -94,11 +90,11 @@ async def test_sdk_fake_model_full_route_stream_isolation_and_no_transcript_in_d
     async with app.state.database.sessions() as db:
         rows = await db.execute(text("select row_to_json(r)::text from moodprint.ai_runs r"))
         assert canary not in "".join(rows.scalars())
-    # Restarting the ephemeral store loses raw text, but never approved memory/domain data.
+    # Saved history is the default, so clearing worker memory does not drop the transcript.
     app.state.ai.store.clear()
-    assert (
-        await a.get(f"/api/v1/ai/conversations/{conversation['conversationId']}")
-    ).status_code == 410
+    restored = await a.get(f"/api/v1/ai/conversations/{conversation['conversationId']}")
+    assert restored.status_code == 200, restored.text
+    assert canary in restored.text
 
 
 @pytest.mark.postgres

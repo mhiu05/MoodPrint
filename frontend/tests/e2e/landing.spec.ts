@@ -37,14 +37,11 @@ test("public root works with the API offline and sends nothing that creates an i
     return route.abort("connectionrefused");
   });
   await page.goto("/");
-  await expect(
-    page.getByRole("heading", { name: "Hiểu mình hơn, kết nối chân thành hơn." }),
-  ).toBeVisible();
-  for (const name of ["Mây", "Gương", "Nhịp", "Rủ Rê", "Cầu Nối"])
-    await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Bắt đầu với MoodPrint" })).toBeVisible();
   await expect(page.getByText("Chưa thể bắt đầu lượt dùng thử. Thử lại sau.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Dùng thử 2 giờ" }).first()).toBeDisabled();
-  await expect(page.getByRole("link", { name: "Đăng nhập / Đăng ký" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Dùng thử 2 giờ" })).toBeDisabled();
+  await expect(page.getByRole("link", { name: "Tạo tài khoản" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Đăng nhập", exact: true })).toBeVisible();
   expect(attempted.filter((entry) => CREATION.test(entry) || entry.startsWith("POST"))).toEqual([]);
 });
 
@@ -72,7 +69,7 @@ test("a registered visitor sees Continue and the session is untouched", async ({
   const link = page.getByRole("link", { name: "Tiếp tục sử dụng" });
   await expect(link).toBeVisible();
   await expect(link).toHaveAttribute("href", "/#/assistants");
-  await expect(page.getByRole("button", { name: "Dùng thử 2 giờ" }).first()).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Dùng thử 2 giờ" })).toHaveCount(0);
   expect(requests.filter((request) => request.method() !== "GET")).toHaveLength(0);
 });
 
@@ -82,12 +79,10 @@ test("keyboard users reach the skip link, the menu and every FAQ answer", async 
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "Đến nội dung chính" })).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(page.locator("#noi-dung")).toBeFocused();
-  const summary = page.getByText("Hết 2 giờ thì sao?");
-  await summary.focus();
-  await page.keyboard.press("Enter");
-  await expect(page.getByText("dữ liệu của lượt này không mở lại được")).toBeVisible();
-  await expect(page.getByText("Tìm bạn và nhắn tin cần tài khoản").first()).toBeAttached();
+  await expect(page.locator("#main")).toBeFocused();
+  await expect(page.getByRole("button", { name: "Dùng thử 2 giờ" })).toBeEnabled();
+  await expect(page.getByRole("link", { name: "Tạo tài khoản" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Đăng nhập", exact: true })).toBeVisible();
 });
 
 test("readiness keeps trial text readable throughout the disabled-to-enabled color change", async ({ page }) => {
@@ -104,7 +99,7 @@ test("readiness keeps trial text readable throughout the disabled-to-enabled col
     await page.goto("/");
     await expect(page.getByRole("button", { name: "Dùng thử 2 giờ" }).first()).toBeDisabled();
     await page.evaluate(() => {
-      const buttons = [...document.querySelectorAll<HTMLButtonElement>(".landing button")];
+      const buttons = [...document.querySelectorAll<HTMLButtonElement>(".home button")];
       buttons.forEach(button => { void getComputedStyle(button).backgroundColor; });
       const observer = new MutationObserver(() => {
         if (buttons.some(button => button.disabled)) return;
@@ -123,7 +118,7 @@ test("readiness keeps trial text readable throughout the disabled-to-enabled col
           animation.currentTime = Number(animation.effect!.getTiming().duration) * progress;
         }
       }, progress);
-      const axe = await new AxeBuilder({ page }).include(".landing").withTags(["wcag2a", "wcag2aa"]).analyze();
+      const axe = await new AxeBuilder({ page }).include(".home").withTags(["wcag2a", "wcag2aa"]).analyze();
       expect(axe.violations.map(v => v.id), JSON.stringify({ progress, violations: axe.violations }, null, 2)).toEqual([]);
     }
   } finally { release(); }
@@ -148,7 +143,8 @@ test("reduced motion does not hide or delay public content", async ({ page }) =>
   await page.emulateMedia({ reducedMotion: "reduce" });
   await serve(page, READY);
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Nhật ký cảm xúc" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Bắt đầu với MoodPrint" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Dùng thử 2 giờ" })).toBeEnabled();
 });
 
 test("an unknown real path is a public not-found page, not the app", async ({ page }) => {
