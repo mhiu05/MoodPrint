@@ -31,7 +31,7 @@ test("route changes swap content immediately without fading it in", async ({ pag
   await page.goto("/#/messages");
   await expect(page.getByRole("heading", { level: 1, name: "Tin nhắn" })).toBeVisible();
   await recordMainOpacity(page);
-  await page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("link", { name: "Cảm xúc" }).click();
+  await page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("link", { name: "Nhật ký" }).click();
   await expect(page).toHaveURL(/#\/self$/);
   await page.waitForTimeout(400);
   expect(await page.evaluate(() => (window as any).mainOpacity)).toEqual([]);

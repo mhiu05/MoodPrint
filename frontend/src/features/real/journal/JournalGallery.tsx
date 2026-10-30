@@ -30,7 +30,7 @@ function MediaAccess({
   entryId: string;
   media: JournalMedia;
   enabled: boolean;
-  children: (url: string) => ReactNode;
+  children: (url: string, onError: () => void) => ReactNode;
 }) {
   const access = useResource<{ url: string; expiresIn: number }>(
     `/journal/entries/${entryId}/media/${media.id}/access`,
@@ -58,7 +58,7 @@ function MediaAccess({
       </div>
     );
   if (!access.data) return <span role="status">Đang mở tệp…</span>;
-  return <>{children(access.data.url)}</>;
+  return <>{children(access.data.url, () => setFailed(true))}</>;
 }
 
 function GalleryThumb({
@@ -76,7 +76,7 @@ function GalleryThumb({
   return (
     <div ref={ref} className="journal-gallery-cell">
       <MediaAccess entryId={entryId} media={media} enabled={seen}>
-        {(url) => (
+        {(url, onError) => (
           <button
             type="button"
             className="journal-gallery-thumb"
@@ -90,8 +90,11 @@ function GalleryThumb({
               alt="Ảnh trong khoảnh khắc của bạn"
               loading="lazy"
               decoding="async"
+              onError={onError}
             />
-            {extra ? <span className="journal-gallery-more">+{extra}</span> : null}
+            {extra ? (
+              <span className="journal-gallery-more">+{extra}</span>
+            ) : null}
           </button>
         )}
       </MediaAccess>
@@ -113,6 +116,7 @@ function JournalLightbox({
   onIndex: (index: number) => void;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const onCloseRef = useRef(onClose);
   const onIndexRef = useRef(onIndex);
   onCloseRef.current = onClose;
@@ -120,12 +124,19 @@ function JournalLightbox({
   const media = images[index];
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
+    const dialog = dialogRef.current;
+    const overflow = document.body.style.overflow;
+    dialog?.showModal();
+    document.body.style.overflow = "hidden";
     closeRef.current?.focus();
-    return () => previous?.focus();
+    return () => {
+      dialog?.close();
+      document.body.style.overflow = overflow;
+      previous?.focus();
+    };
   }, []);
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") onCloseRef.current();
       if (event.key === "ArrowRight")
         onIndexRef.current((index + 1) % images.length);
       if (event.key === "ArrowLeft")
@@ -136,12 +147,31 @@ function JournalLightbox({
   }, [images.length, index]);
   if (!media) return null;
   return (
-    <div
+    <dialog
+      ref={dialogRef}
       className="journal-lightbox"
-      role="dialog"
       aria-modal="true"
       aria-label="Ảnh trong khoảnh khắc"
       onClick={onClose}
+      onKeyDown={(event) => {
+        if (event.key !== "Tab") return;
+        const buttons = [
+          ...event.currentTarget.querySelectorAll<HTMLButtonElement>("button"),
+        ];
+        const first = buttons[0],
+          last = buttons.at(-1);
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }}
+      onCancel={(event) => {
+        event.preventDefault();
+        onCloseRef.current();
+      }}
     >
       <div
         className="journal-lightbox-frame"
@@ -153,14 +183,15 @@ function JournalLightbox({
           className="journal-lightbox-close"
           onClick={onClose}
         >
-          <X size={20} />
+          <X size={20} aria-hidden="true" />
           Đóng
         </button>
-        <MediaAccess entryId={entryId} media={media} enabled>
-          {(url) => (
+        <MediaAccess key={media.id} entryId={entryId} media={media} enabled>
+          {(url, onError) => (
             <img
               src={url}
               alt={`Ảnh ${index + 1} trên ${images.length}`}
+              onError={onError}
             />
           )}
         </MediaAccess>
@@ -172,7 +203,7 @@ function JournalLightbox({
                 onIndex((index - 1 + images.length) % images.length)
               }
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={20} aria-hidden="true" />
               Ảnh trước
             </button>
             <span>
@@ -183,12 +214,12 @@ function JournalLightbox({
               onClick={() => onIndex((index + 1) % images.length)}
             >
               Ảnh sau
-              <ChevronRight size={20} />
+              <ChevronRight size={20} aria-hidden="true" />
             </button>
           </div>
         ) : null}
       </div>
-    </div>
+    </dialog>
   );
 }
 
@@ -200,7 +231,9 @@ export function JournalFeedMedia({
   media: JournalMedia[];
 }) {
   const [open, setOpen] = useState<number | null>(null);
-  const images = media.filter((item) => item.type === "image" && item.status === "ready");
+  const images = media.filter(
+    (item) => item.type === "image" && item.status === "ready",
+  );
   const pendingImages = media.some(
     (item) => item.type === "image" && item.status !== "ready",
   );
@@ -217,7 +250,9 @@ export function JournalFeedMedia({
               key={item.id}
               entryId={entryId}
               media={item}
-              extra={extra > 0 && index === shown.length - 1 ? extra : undefined}
+              extra={
+                extra > 0 && index === shown.length - 1 ? extra : undefined
+              }
               onOpen={() => setOpen(index)}
             />
           ))}
@@ -251,15 +286,19 @@ function LazyPlayback({
 }) {
   const [ref, seen] = useInView<HTMLDivElement>();
   return (
-    <div ref={ref} className={`journal-playback journal-playback-${media.type}`}>
+    <div
+      ref={ref}
+      className={`journal-playback journal-playback-${media.type}`}
+    >
       <MediaAccess entryId={entryId} media={media} enabled={seen}>
-        {(url) =>
+        {(url, onError) =>
           media.type === "audio" ? (
             <audio
               controls
               preload="none"
               src={url}
               aria-label="Bản ghi âm của khoảnh khắc"
+              onError={onError}
             />
           ) : (
             <video
@@ -268,6 +307,7 @@ function LazyPlayback({
               playsInline
               src={url}
               aria-label="Video của khoảnh khắc"
+              onError={onError}
             />
           )
         }

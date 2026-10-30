@@ -176,7 +176,9 @@ export function JournalMomentMenu({
       if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
       const panel = panelRef.current;
       if (!panel) return;
-      const items = [...panel.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+      const items = [
+        ...panel.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+      ];
       if (!items.length) return;
       const current = items.indexOf(document.activeElement as HTMLElement);
       const next =
@@ -273,10 +275,12 @@ export function JournalEntryCard({
   entry,
   variant = "compact",
   onChange,
+  onRemember,
 }: {
   entry: JournalEntry;
   variant?: "compact" | "feed";
   onChange?: () => void;
+  onRemember?: () => void;
 }) {
   const { api } = useSession();
   const [expanded, setExpanded] = useState(false);
@@ -289,8 +293,10 @@ export function JournalEntryCard({
     timeZone: entry.timezone,
   }).format(new Date(entry.createdAt));
   const long = entry.text.length > 220;
+  const textId = useId();
   const openLabel = `Mở khoảnh khắc ngày ${formatJournalDate(entry.localDate)} lúc ${time}`;
   function rememberScroll() {
+    onRemember?.();
     sessionStorage.setItem("journal-feed-scroll", String(window.scrollY));
   }
   async function remove() {
@@ -313,39 +319,59 @@ export function JournalEntryCard({
   }
   return (
     <article
-      className={`journal-entry-card${variant === "feed" ? " is-feed" : ""}`}
+      className={`journal-entry-card${variant === "feed" ? ` is-feed journal-mood-${entry.mood}` : ""}`}
       id={`journal-entry-${entry.id}`}
     >
-      <MoodFace value={entry.mood} size={variant === "feed" ? 44 : 36} />
+      {variant !== "feed" ? <MoodFace value={entry.mood} size={36} /> : null}
       <div className="journal-entry-excerpt">
-        <div className="journal-entry-meta">
-          <strong>
-            {formatJournalDate(entry.localDate)} · {time}
-          </strong>
-          <span>{journalMoodLabels[entry.mood - 1]}</span>
-          {entry.status === "draft" ? (
-            <span className="journal-draft-badge">Bản nháp</span>
-          ) : null}
-        </div>
-        <p className={expanded || !long ? "is-open" : undefined}>
+        {variant === "feed" ? (
+          <div className="journal-moment-heading">
+            <div className="journal-moment-date-mood">
+              <time
+                dateTime={`${entry.localDate}T${time}:00`}
+                aria-label={`${formatJournalDate(entry.localDate)} lúc ${time}`}
+              >
+                {entry.localDate.slice(8, 10)}/{entry.localDate.slice(5, 7)} ·{" "}
+                {time}
+              </time>
+              <span className="journal-moment-mood">
+                <span aria-hidden="true">
+                  {["😞", "😔", "😐", "🙂", "😄"][entry.mood - 1]}
+                </span>
+                {journalMoodLabels[entry.mood - 1]}
+              </span>
+            </div>
+            <JournalMomentMenu
+              menuLabel={`Thao tác với khoảnh khắc ngày ${formatJournalDate(entry.localDate)} lúc ${time}`}
+              editTo={`/self/entry/${entry.id}?edit=1`}
+              onNavigate={rememberScroll}
+              onDelete={() => setDeleting(true)}
+            />
+          </div>
+        ) : (
+          <div className="journal-entry-meta">
+            <strong>
+              {formatJournalDate(entry.localDate)} · {time}
+            </strong>
+            <span>{journalMoodLabels[entry.mood - 1]}</span>
+            {entry.status === "draft" ? (
+              <span className="journal-draft-badge">Bản nháp</span>
+            ) : null}
+          </div>
+        )}
+        <p id={textId} className={expanded || !long ? "is-open" : undefined}>
           {entry.text || "Khoảnh khắc không có lời viết."}
         </p>
         {long ? (
           <button
             type="button"
             className="journal-expand"
+            aria-expanded={expanded}
+            aria-controls={textId}
             onClick={() => setExpanded((value) => !value)}
           >
             {expanded ? "Thu gọn" : "Xem thêm"}
           </button>
-        ) : null}
-        {variant === "feed" &&
-        (entry.emotions.length || entry.factors.length) ? (
-          <ul className="journal-card-tags">
-            {[...entry.emotions, ...entry.factors].map((tag, index) => (
-              <li key={`${tag}-${index}`}>{tag}</li>
-            ))}
-          </ul>
         ) : null}
         {variant === "feed" && entry.media.length ? (
           <JournalFeedMedia entryId={entry.id} media={entry.media} />
@@ -360,14 +386,6 @@ export function JournalEntryCard({
             Xem khoảnh khắc
             <ChevronRight size={17} />
           </Link>
-          {variant === "feed" ? (
-            <JournalMomentMenu
-              menuLabel={`Thao tác với khoảnh khắc lúc ${time}`}
-              editTo={`/self/entry/${entry.id}?edit=1`}
-              onNavigate={rememberScroll}
-              onDelete={() => setDeleting(true)}
-            />
-          ) : null}
         </div>
         <ErrorNotice error={error} />
       </div>

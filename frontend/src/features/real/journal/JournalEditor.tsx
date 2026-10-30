@@ -1,4 +1,10 @@
-import { useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { useMotionPolicy } from "../../../components/motion/useMotionPolicy";
@@ -32,6 +38,15 @@ type Props = {
   onSaved?: (entry: JournalEntry) => void;
 };
 
+function fitWritingBox(element: HTMLTextAreaElement | null) {
+  if (!element) return;
+  element.style.overflowY = "hidden";
+  element.style.height = "auto";
+  const borderHeight = element.offsetHeight - element.clientHeight;
+  element.style.height = `${element.scrollHeight + borderHeight}px`;
+  element.style.overflowY = "auto";
+}
+
 export function JournalEditor({
   today,
   initial,
@@ -44,6 +59,7 @@ export function JournalEditor({
   const [date, setDate] = useState(initial?.localDate || seedDate || today);
   const [mood, setMood] = useState(initial?.mood || 3);
   const [text, setText] = useState(initial?.text || "");
+  const writingRef = useRef<HTMLTextAreaElement>(null);
   const [emotions, setEmotions] = useState(initial?.emotions || []);
   const [factors, setFactors] = useState(initial?.factors || []);
   const [server, setServer] = useState(initial);
@@ -65,6 +81,19 @@ export function JournalEditor({
   const guard = useJournalGuard(dirty || saving || mediaBusy);
   useTourBlocker("draft", dirty || saving);
   useTourBlocker("voice", mediaBusy);
+  useLayoutEffect(() => fitWritingBox(writingRef.current), [text]);
+  useEffect(() => {
+    const element = writingRef.current;
+    if (!element) return;
+    let previousWidth = 0;
+    const observer = new ResizeObserver(([entry]) => {
+      if (!entry || entry.contentRect.width === previousWidth) return;
+      previousWidth = entry.contentRect.width;
+      fitWritingBox(element);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   function receive(entry: JournalEntry) {
     serverRef.current = entry;
     setServer(entry);
@@ -89,7 +118,12 @@ export function JournalEditor({
         gsap.fromTo(
           selected,
           { scale: 0.97 },
-          { scale: 1, duration: 0.18, ease: "power2.out", clearProps: "transform" },
+          {
+            scale: 1,
+            duration: 0.18,
+            ease: "power2.out",
+            clearProps: "transform",
+          },
         );
     },
     { scope: moodRef, dependencies: [mood, animate], revertOnUpdate: true },
@@ -209,7 +243,9 @@ export function JournalEditor({
           Nhật ký cảm xúc
         </h1>
         <div className="journal-date-control">
-          <label className="sr-only" htmlFor="journal-date">Ngày</label>
+          <label className="sr-only" htmlFor="journal-date">
+            Ngày
+          </label>
           <input
             id="journal-date"
             type="date"
@@ -297,11 +333,12 @@ export function JournalEditor({
       >
         <h2 id="journal-writing-title">Ghi lại khoảnh khắc</h2>
         <textarea
+          ref={writingRef}
           id="journal-text"
           aria-labelledby="journal-writing-title"
           value={text}
           maxLength={10000}
-          rows={7}
+          rows={3}
           disabled={busy}
           placeholder={
             prompt || "Hôm nay có điều gì khiến bạn suy nghĩ nhiều nhất?"
@@ -358,7 +395,8 @@ export function JournalEditor({
       <div className="journal-save-actions">
         {paused ? (
           <p className="journal-paused" role="status">
-            Kết nối đang gián đoạn. Phần đang viết vẫn ở trên màn hình và chưa được lưu.
+            Kết nối đang gián đoạn. Phần đang viết vẫn ở trên màn hình và chưa
+            được lưu.
           </p>
         ) : null}
         <Button type="submit" disabled={busy || !date || conflict || paused}>
