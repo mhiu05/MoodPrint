@@ -194,7 +194,7 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
     page.getByText(`Đã xóa tâm trạng ngày ${display(today)}.`),
   ).toBeVisible();
   await page.reload();
-  await expect(page.locator("article")).toHaveCount(2);
+  await expect(page.locator("article.real-item")).toHaveCount(2);
   expect((await call(context, 10, "GET", "/moods")).body).toHaveLength(2);
   await context.close();
 });
