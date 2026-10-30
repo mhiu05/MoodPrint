@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ApiError, type ApiClient } from "../../api/client";
 import type { SessionView } from "../../api/contracts";
 import { remainingGuestMs } from "./guestClock";
 import { clearTourBlockers } from "../onboarding/tourActivity";
@@ -14,12 +13,12 @@ const CHANNEL = "moodprint-guest";
  */
 export function useGuestLifecycle({
   session,
-  api,
   onExpired,
+  onRecheck,
 }: {
   session: SessionView;
-  api: ApiClient;
   onExpired: (reason: "expired" | "ended") => void;
+  onRecheck: () => void;
 }) {
   const observed = useRef(performance.now());
   const lifecycle = useRef(session.userId);
@@ -81,13 +80,7 @@ export function useGuestLifecycle({
     const verify = () => {
       if (document.visibilityState !== "visible" || done.current) return;
       window.clearTimeout(scheduled);
-      scheduled = window.setTimeout(() => {
-        api
-          .request<SessionView>("/session", { signal: controller.signal })
-          .catch((reason) => {
-            if (reason instanceof ApiError && reason.status === 401) expire("expired");
-          });
-      }, 100);
+      scheduled = window.setTimeout(() => onRecheck(), 100);
     };
     window.addEventListener("focus", verify);
     window.addEventListener("online", verify);
@@ -109,7 +102,7 @@ export function useGuestLifecycle({
       document.removeEventListener("visibilitychange", verify);
       channel?.close();
     };
-  }, [api, controller, expire]);
+  }, [controller, expire, onRecheck]);
 
   return { remainingMs, epoch, signal: controller.signal, expire };
 }

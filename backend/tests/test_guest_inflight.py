@@ -357,8 +357,8 @@ async def test_guest_transactions_bound_statements_to_the_remaining_grant(client
     assert 0 < value <= 30_000, setting
 
 
-async def start_guest_run(app, guest, model):
-    """A live guest with AI consent opens a chat and sends one message; the model is held."""
+async def prepare_guest_conversation(app, guest, model):
+    """Consent and an empty conversation. Kept separate so a short deadline can start after setup."""
     from uuid import uuid4
 
     from tests.guest_helpers import enable_paid_fixture
@@ -375,7 +375,12 @@ async def start_guest_run(app, guest, model):
         "/api/v1/ai/conversations", json={"botId": "may"}, headers={"Idempotency-Key": str(uuid4())}
     )
     assert created.status_code == 201, created.text
-    conversation = created.json()
+    return created.json()
+
+
+async def accept_guest_message(guest, conversation):
+    from uuid import uuid4
+
     accepted = await guest.client.post(
         f"/api/v1/ai/conversations/{conversation['conversationId']}/messages",
         json={
@@ -386,7 +391,13 @@ async def start_guest_run(app, guest, model):
         headers={"Idempotency-Key": str(uuid4())},
     )
     assert accepted.status_code == 202, accepted.text
-    return conversation, accepted.json()
+    return accepted.json()
+
+
+async def start_guest_run(app, guest, model):
+    """A live guest with AI consent opens a chat and sends one message; the model is held."""
+    conversation = await prepare_guest_conversation(app, guest, model)
+    return conversation, await accept_guest_message(guest, conversation)
 
 
 async def test_idle_sse_closes_at_deadline_and_the_late_result_is_discarded(clients):
@@ -473,7 +484,10 @@ async def test_ai_run_is_cancelled_at_the_deadline_without_waiting_for_the_monit
         return await original_settle(*args)
 
     monkeypatch.setattr(app.state.ai, 'settle_guest', delayed_settle)
-    guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=2))
+    # Consent and the empty conversation need more than the final two seconds on a
+    # busy CI runner. The 7200s grant is unchanged; the message is sent only once
+    # about two seconds remain, which is what the cancellation oracle measures.
+    guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=20))
     model = ScriptedModel([[message_output(json.dumps({"text": "late", "cards": []}))]], hold=True)
     cancelled_at: list[float] = []
     original_stream = model.stream_response
@@ -487,7 +501,10 @@ async def test_ai_run_is_cancelled_at_the_deadline_without_waiting_for_the_monit
             raise
 
     model.stream_response = observed_stream
-    _, run = await start_guest_run(app, guest, model)
+    conversation = await prepare_guest_conversation(app, guest, model)
+    left = (guest.expires_at - await db_now(app)).total_seconds()
+    await asyncio.sleep(max(0.0, left - 2.2))
+    await accept_guest_message(guest, conversation)
     await asyncio.wait_for(model.started.wait(), 5)
     live = next(iter(app.state.ai.runs.values()))
     assert live.deadline is not None and 0 < live.deadline.remaining() <= 2.5

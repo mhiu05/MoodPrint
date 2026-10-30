@@ -76,4 +76,32 @@ describe("error guidance", () => {
     const error = await failure(new TypeError("Failed to fetch"));
     expect(errorMessage(error)).toBe("Chưa thể kết nối. Bạn hãy thử lại.");
   });
+
+  it("keeps retry metadata from a database outage and does not replay login", async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).endsWith("/auth/login"))
+        return new Response(JSON.stringify({ error: { code: "DATABASE_BUSY", message: "MoodPrint đang hơi đông.", retryable: true, requestId: "req-9" } }), {
+          status: 503,
+          headers: { "Content-Type": "application/json", "Retry-After": "2", "X-Request-ID": "req-9" },
+        });
+      return respond(200);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const client = new ApiClient();
+    const error = await client.request("/auth/login", { method: "POST", body: { email: "a@b.c", password: "secret" }, publicWrite: true }).catch((reason: unknown) => reason);
+    expect(error).toMatchObject({ status: 503, code: "DATABASE_BUSY", retryable: true, requestId: "req-9", retryAfter: "2" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("blocks private writes while a session is unconfirmed and still allows the session read", async () => {
+    const fetchMock = vi.fn(async () => respond(200));
+    vi.stubGlobal("fetch", fetchMock);
+    const client = new ApiClient();
+    client.setCsrf("csrf");
+    client.setPrivateHold(() => true);
+    await expect(client.request("/journal/entries", { method: "POST", body: { text: "private" } })).rejects.toMatchObject({ code: "CONNECTION_PAUSED" });
+    expect(fetchMock).not.toHaveBeenCalled();
+    await expect(client.request("/session")).resolves.toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });

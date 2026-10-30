@@ -4,6 +4,8 @@ services:
     image: ${API_IMAGE:?Set an immutable API image digest}
     env_file:
       - ${API_ENV_FILE:?Set the path to the root-owned runtime env file}
+    environment:
+      RELEASE_SHA: ${RELEASE_SHA:-unknown}
     restart: unless-stopped
     init: true
     read_only: true

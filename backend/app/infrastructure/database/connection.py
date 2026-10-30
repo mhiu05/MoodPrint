@@ -29,6 +29,24 @@ class Database:
             )
             self.sessions = async_sessionmaker(self.engine, expire_on_commit=False)
 
+    def occupancy(self) -> tuple[int | None, int | None]:
+        engine = self.engine
+        if engine is None:
+            return None, None
+        try:
+            pool = engine.pool
+            checked_fn = getattr(pool, "checkedout", None)
+            overflow_fn = getattr(pool, "overflow", None)
+            if not callable(checked_fn) or not callable(overflow_fn):
+                return None, None
+            checked = checked_fn()
+            overflow = overflow_fn()
+        except Exception:
+            return None, None
+        if not isinstance(checked, int) or not isinstance(overflow, int):
+            return None, None
+        return checked, overflow
+
     def require(self) -> async_sessionmaker:
         if self.sessions is None:
             raise DomainError(503, "DATABASE_UNAVAILABLE", "Kết nối dữ liệu chưa sẵn sàng.", True)

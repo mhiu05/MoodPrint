@@ -4,6 +4,8 @@ export class ApiError extends Error {
     public code: string,
     message: string,
     public retryAfter: string | null = null,
+    public retryable: boolean | null = null,
+    public requestId: string | null = null,
   ) {
     super(message);
     this.name = "ApiError";
@@ -32,9 +34,14 @@ export class ApiClient {
   /** Bumped by reset(); callbacks capture it and drop results from an older lifecycle. */
   epoch = 0;
   onUnauthorized?: (error?: ApiError) => void;
+  /** While set, only the session read may reach the network. */
+  private holdPrivate: (() => boolean) | null = null;
 
   setCsrf(token: string) {
     this.csrf = token;
+  }
+  setPrivateHold(hold: (() => boolean) | null) {
+    this.holdPrivate = hold;
   }
   reset() {
     this.csrf = "";
@@ -55,9 +62,21 @@ export class ApiClient {
       idempotencyKey?: string;
       /** Marks the guest-intent/creation requests the backend requires a custom header for. */
       guestIntent?: boolean;
+      /** Per-attempt budget. Session reads use a shorter cap than uploads and streams. */
+      timeoutMs?: number;
     } = {},
   ): Promise<T> {
     const method = options.method || "GET";
+    const sessionRead = method === "GET" && path === "/session";
+    if (!sessionRead && this.holdPrivate?.()) {
+      throw new ApiError(
+        0,
+        "CONNECTION_PAUSED",
+        "Kết nối đang gián đoạn. MoodPrint đang thử kết nối lại…",
+        null,
+        true,
+      );
+    }
     const writing = method !== "GET";
     const encoded =
       options.body === undefined ? undefined : JSON.stringify(options.body);
@@ -92,7 +111,11 @@ export class ApiClient {
     const abort = () => controller.abort();
     if (options.signal?.aborted) controller.abort();
     options.signal?.addEventListener("abort", abort, { once: true });
-    const timeout = setTimeout(abort, 20_000);
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, options.timeoutMs ?? 20_000);
     try {
       const response = await fetch(`/api/v1${path}`, {
         method,
@@ -109,6 +132,12 @@ export class ApiClient {
         // A 4xx means the server rolled the write back, so the key can never be
         // replayed usefully; only 5xx/network outcomes are ambiguous and keep it.
         if (response.status < 500) this.intents.delete(intent);
+        const retryable =
+          typeof detail.retryable === "boolean" ? detail.retryable : response.status >= 500;
+        const requestId =
+          typeof detail.requestId === "string"
+            ? detail.requestId
+            : response.headers.get("X-Request-ID");
         const failure = new ApiError(
           response.status,
           typeof detail.code === "string" ? detail.code : "API_ERROR",
@@ -117,6 +146,8 @@ export class ApiClient {
             ? detail.message
             : "Chưa hoàn tất yêu cầu. Bạn hãy thử lại.",
           response.headers.get("Retry-After"),
+          retryable,
+          requestId,
         );
         // Step-up re-authentication and public auth endpoints are not session loss; an expired
         // guest trial (GUEST_EXPIRED) is session loss even on /session.
@@ -134,6 +165,17 @@ export class ApiClient {
         response.status === 204 ? undefined : await response.json();
       this.intents.delete(intent);
       return result as T;
+    } catch (error) {
+      if (timedOut && !options.signal?.aborted) {
+        throw new ApiError(
+          0,
+          "REQUEST_TIMEOUT",
+          "MoodPrint chưa nhận được phản hồi. Bạn hãy thử lại.",
+          null,
+          true,
+        );
+      }
+      throw error;
     } finally {
       clearTimeout(timeout);
       this.controllers.delete(controller);
