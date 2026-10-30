@@ -18,8 +18,9 @@ from app.ai.schemas import AIEvent, AiOutput
 from app.contracts import ApiError
 from app.core.body_limit import BodyLimitMiddleware
 from app.core.config import Settings
-from app.core.errors import DomainError, install_errors
+from app.core.errors import DomainError, install_errors, render_unexpected
 from app.core.revisions import READY_REVISIONS
+from app.infrastructure.database.budget import has_deployment_headroom
 from app.infrastructure.database.connection import Database
 from app.infrastructure.database.models import AiRun
 from app.modules.guests.output import GuestOutputMiddleware
@@ -32,9 +33,32 @@ def warn_unenforced_budget(config) -> None:
         )
 
 
+def warn_pool_budget(config) -> None:
+    if not has_deployment_headroom(config.database_pool_size, config.database_pool_overflow):
+        logging.getLogger("moodprint").warning(
+            "database_pool_exceeds_headroom size=%s overflow=%s",
+            config.database_pool_size,
+            config.database_pool_overflow,
+        )
+
+
+def pool_counts(database) -> tuple[int | str, int | str]:
+    method = getattr(database, "occupancy", None)
+    if not callable(method):
+        return "-", "-"
+    try:
+        checked, overflow = method()
+    except Exception:
+        return "-", "-"
+    if isinstance(checked, int) and isinstance(overflow, int):
+        return checked, overflow
+    return "-", "-"
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     config = settings or Settings()
     warn_unenforced_budget(config)
+    warn_pool_budget(config)
     shell_policy = content_security_policy(bool(config.guest_captcha_site_key),
         storage_origin=config.supabase_url if config.journal_storage_key.get_secret_value() else "")
     database = Database(config)
@@ -67,6 +91,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 metrics = logging.getLogger("moodprint")
                 metrics.info("metric=sse_streams_open value=%d", STREAM_SLOTS.open())
                 metrics.info("metric=http_requests value=%d", app.state.http_requests)
+                checked_out, overflow = pool_counts(database)
+                if isinstance(checked_out, int):
+                    metrics.info("metric=db_pool_checked_out value=%d", checked_out)
+                    metrics.info("metric=db_pool_overflow value=%d", overflow if isinstance(overflow, int) else 0)
                 app.state.http_requests = 0
                 sweep_clock["sample"] = time.monotonic() + 60
             app.state.exports = {
@@ -245,6 +273,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.middleware("http")
     async def request_boundary(request: Request, call_next):
         request.state.request_id = str(uuid4())
+        started = time.perf_counter()
         content_length = request.headers.get("Content-Length", "0")
         limit = 3_000_000 if request.url.path == "/api/v1/voice/transcriptions" else 65536
         if not content_length.isdigit() or int(content_length) > limit:
@@ -262,25 +291,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             response = await call_next(request)
         except Exception as error:
-            logging.getLogger("moodprint").error(
-                "request_failed request_id=%s error_type=%s",
-                request.state.request_id,
-                type(error).__name__,
-            )
-            response = JSONResponse(
-                {
-                    "error": {
-                        "code": "INTERNAL_ERROR",
-                        "message": "Chưa hoàn tất yêu cầu. Vui lòng thử lại.",
-                        "retryable": True,
-                        "requestId": request.state.request_id,
-                    }
-                },
-                status_code=500,
-            )
+            response = render_unexpected(request, error)
         path = request.url.path
         if path.startswith("/api/"):
             app.state.http_requests += 1
+            route = request.scope.get("route")
+            template = getattr(route, "path", None)
+            if not isinstance(template, str) or len(template) > 120 or not template.startswith("/"):
+                template = "unmatched"
+            checked_out, overflow = pool_counts(database)
+            logging.getLogger("moodprint").info(
+                "request_completed request_id=%s route=%s status=%s duration_ms=%.1f category=%s error_type=%s sqlstate=%s release=%s pool_checked_out=%s pool_overflow=%s",
+                request.state.request_id,
+                template,
+                response.status_code,
+                (time.perf_counter() - started) * 1000,
+                getattr(request.state, "error_category", "-"),
+                getattr(request.state, "error_type", "-"),
+                getattr(request.state, "sqlstate", "-"),
+                config.release_sha,
+                checked_out if checked_out is not None else "-",
+                overflow if overflow is not None else "-",
+            )
             if response.status_code >= 500:
                 logging.getLogger("moodprint").warning("metric=http_5xx")
         hashed = path.startswith("/assets/") and response.status_code == 200

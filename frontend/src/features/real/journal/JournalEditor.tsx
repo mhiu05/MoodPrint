@@ -39,7 +39,7 @@ export function JournalEditor({
   prompt,
   onSaved,
 }: Props) {
-  const { api } = useSession();
+  const { api, paused } = useSession();
   const { earliest } = journalDateWindow(today);
   const [date, setDate] = useState(initial?.localDate || seedDate || today);
   const [mood, setMood] = useState(initial?.mood || 3);
@@ -356,13 +356,18 @@ export function JournalEditor({
         </div>
       ) : null}
       <div className="journal-save-actions">
-        <Button type="submit" disabled={busy || !date || conflict}>
+        {paused ? (
+          <p className="journal-paused" role="status">
+            Kết nối đang gián đoạn. Phần đang viết vẫn ở trên màn hình và chưa được lưu.
+          </p>
+        ) : null}
+        <Button type="submit" disabled={busy || !date || conflict || paused}>
           <Bookmark size={18} />
           {saving ? "Đang lưu…" : "Lưu khoảnh khắc"}
         </Button>
         <Button
           variant="secondary"
-          disabled={busy || !date || conflict}
+          disabled={busy || !date || conflict || paused}
           onClick={() => void save("draft")}
         >
           Lưu bản nháp

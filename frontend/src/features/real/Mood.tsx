@@ -43,6 +43,26 @@ function displayDate(day: string) {
   return `${date}/${month}/${year}`;
 }
 
+function monthStart(day: string) {
+  return `${day.slice(0, 7)}-01`;
+}
+
+function shiftMonth(day: string, months: number) {
+  const value = new Date(`${monthStart(day)}T00:00:00Z`);
+  value.setUTCMonth(value.getUTCMonth() + months);
+  return value.toISOString().slice(0, 10);
+}
+
+function calendarDays(month: string) {
+  const first = new Date(`${monthStart(month)}T00:00:00Z`);
+  const offset = (first.getUTCDay() + 6) % 7;
+  const days = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+  return Array.from({ length: Math.ceil((offset + days) / 7) * 7 }, (_, index) => {
+    const day = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), 1 - offset + index));
+    return day.toISOString().slice(0, 10);
+  });
+}
+
 /** Account-timezone "today", corrected by the server clock and refreshed after midnight. */
 function useAccountToday(session: SessionView) {
   const offset = useMemo(
@@ -74,6 +94,7 @@ export function Moods() {
   const today = useAccountToday(session);
   const earliest = shiftDate(today, -89);
   const [date, setDate] = useState(today);
+  const [calendarMonth, setCalendarMonth] = useState(monthStart(today));
   const [value, setValue] = useState(3),
     [note, setNote] = useState("");
   const [busy, setBusy] = useState(false),
@@ -87,6 +108,8 @@ export function Moods() {
     [resource.data],
   );
   const existing = moods.find((mood) => mood.localDate === date);
+  const monthMoods = moods.filter((mood) => mood.localDate.startsWith(calendarMonth.slice(0, 7)));
+  const daysInCalendar = calendarDays(calendarMonth);
   useTourBlocker("draft", edited || busy);
 
   // Selecting a day that already has an entry loads it, so saving edits that
@@ -94,9 +117,20 @@ export function Moods() {
   function choose(day: string, entries = moods) {
     const entry = entries.find((mood) => mood.localDate === day);
     setDate(day);
+    setCalendarMonth(monthStart(day));
     setValue(entry?.value ?? 3);
     setNote(entry?.note ?? "");
     setEdited(false);
+  }
+  function navigateMonth(months: number) {
+    const nextMonth = shiftMonth(calendarMonth, months);
+    setCalendarMonth(nextMonth);
+    if (!date.startsWith(nextMonth.slice(0, 7))) {
+      const firstAvailable = calendarDays(nextMonth).find(
+        (day) => day.startsWith(nextMonth.slice(0, 7)) && day >= earliest && day <= today,
+      );
+      if (firstAvailable) choose(firstAvailable);
+    }
   }
   const synced = useRef(false);
   useEffect(() => {
@@ -202,6 +236,45 @@ export function Moods() {
       </p>
       <ErrorNotice error={resource.error} retry={resource.refresh} />
       {resource.loading ? <p role="status">Đang tải tâm trạng…</p> : null}
+      <section className="mood-calendar" aria-labelledby="mood-calendar-title">
+        <div className="mood-calendar-heading">
+          <div>
+            <h2 id="mood-calendar-title">Lịch cảm xúc</h2>
+            <p>{monthMoods.length} ngày có ghi chép</p>
+          </div>
+          <div className="mood-calendar-nav" role="group" aria-label="Điều hướng tháng">
+            <Button variant="secondary" aria-label="Tháng trước" disabled={shiftMonth(calendarMonth, -1) < monthStart(earliest)} onClick={() => navigateMonth(-1)}>‹</Button>
+            <strong aria-live="polite">{new Intl.DateTimeFormat("vi-VN", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${calendarMonth}T00:00:00Z`))}</strong>
+            <Button variant="secondary" aria-label="Tháng sau" disabled={shiftMonth(calendarMonth, 1) > monthStart(today)} onClick={() => navigateMonth(1)}>›</Button>
+          </div>
+        </div>
+        <div className="mood-calendar-grid" role="group" aria-label="Lịch tâm trạng theo tháng">
+          {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((label) => <span className="mood-calendar-weekday" aria-hidden="true" key={label}>{label}</span>)}
+          {daysInCalendar.map((day) => {
+            const inMonth = day.startsWith(calendarMonth.slice(0, 7));
+            const mood = moods.find((entry) => entry.localDate === day);
+            const disabled = !inMonth || day < earliest || day > today;
+            return <button
+              key={day}
+              type="button"
+              className={`mood-day${mood ? ` mood-level-${mood.value}` : ""}${day === date ? " is-selected" : ""}${day === today ? " is-today" : ""}${!inMonth ? " is-outside" : ""}`}
+              aria-label={`${displayDate(day)}${mood ? `, ${moodLabels[mood.value - 1]}` : ", chưa ghi"}${day === today ? ", hôm nay" : ""}`}
+              aria-pressed={day === date}
+              disabled={disabled}
+              onClick={() => choose(day)}
+            >{Number(day.slice(8))}</button>;
+          })}
+        </div>
+        <ul className="mood-calendar-legend" aria-label="Chú giải màu tâm trạng">
+          {moodLabels.map((label, index) => <li key={label}><span className={`mood-swatch mood-level-${index + 1}`} aria-hidden="true" />{label}</li>)}
+        </ul>
+        <article className="mood-selected-day" aria-live="polite">
+          <div><h3>{displayDate(date)}{date === today ? " · Hôm nay" : ""}</h3>
+            {existing ? <><p><span className={`mood-swatch mood-level-${existing.value}`} aria-hidden="true" /> {existing.value}/5 · {moodLabels[existing.value - 1]}</p>{existing.note ? <p className="mood-day-note">{existing.note}</p> : <p className={cx.footnote}>Không có ghi chú cho ngày này.</p>}</> : <p>{date > today ? "Ngày chưa đến." : "Chưa có ghi chép cho ngày này."}</p>}
+          </div>
+          <Button variant="secondary" disabled={date < earliest || date > today || !resource.data} onClick={() => document.getElementById("mood-value")?.focus()}>{existing ? "Chỉnh sửa" : "Ghi tâm trạng"}</Button>
+        </article>
+      </section>
       <form onSubmit={save} aria-describedby="mood-mode">
         {/* Inputs wait for the saved list so typing never races the day's entry. */}
         <fieldset className="real-plain" disabled={!resource.data}>
@@ -279,7 +352,7 @@ export function Moods() {
           {receipt}
         </p>
       </form>
-      <MoodInsights revision={summaryRevision} />
+      <MoodInsights revision={summaryRevision} moods={moods} today={today} />
       <section className="real-section" aria-labelledby="mood-history">
         <h2 id="mood-history">Những ngày đã ghi</h2>
         {resource.data && moods.length === 0 ? (
@@ -354,7 +427,7 @@ export function Moods() {
 
 const ranges = [7, 30, 90] as const;
 
-function MoodInsights({ revision }: { revision: number }) {
+function MoodInsights({ revision, moods, today }: { revision: number; moods: MoodDTO[]; today: string }) {
   const [days, setDays] = useState<(typeof ranges)[number]>(7);
   const summary = useResource<MoodSummaryDTO>(`/moods/summary?days=${days}`);
   const { refresh } = summary;
@@ -362,6 +435,11 @@ function MoodInsights({ revision }: { revision: number }) {
     if (revision) refresh();
   }, [revision, refresh]);
   const data = summary.data;
+  const currentWeek = moods.filter((mood) => mood.localDate >= shiftDate(today, -6) && mood.localDate <= today);
+  const previousWeek = moods.filter((mood) => mood.localDate >= shiftDate(today, -13) && mood.localDate < shiftDate(today, -6));
+  const mean = (entries: MoodDTO[]) => entries.length ? entries.reduce((total, mood) => total + mood.value, 0) / entries.length : null;
+  const currentMean = mean(currentWeek);
+  const previousMean = mean(previousWeek);
   const width = 640,
     left = 40,
     right = 620;
@@ -387,6 +465,13 @@ function MoodInsights({ revision }: { revision: number }) {
           </Button>
         ))}
       </div>
+      {days === 7 ? (
+        <div className="mood-weekly-insight" role="group" aria-label="Tóm tắt 7 ngày gần nhất so với 7 ngày trước đó">
+          <div><span>7 ngày gần nhất</span><strong>{currentMean === null ? "—" : currentMean.toLocaleString("vi-VN", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} / 5</strong><small>{currentWeek.length}/7 ngày có ghi</small></div>
+          <div><span>7 ngày trước đó</span><strong>{previousMean === null ? "—" : previousMean.toLocaleString("vi-VN", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} / 5</strong><small>{previousWeek.length}/7 ngày có ghi</small></div>
+          <p>{currentMean === null || previousMean === null ? "Cần có ghi chép ở cả hai khoảng để so sánh điểm trung bình." : `Điểm trung bình tự chọn ${currentMean === previousMean ? "không đổi" : currentMean > previousMean ? "cao hơn" : "thấp hơn"} ${Math.abs(currentMean - previousMean).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} điểm so với 7 ngày trước. Chỉ tính những ngày bạn đã ghi.`}</p>
+        </div>
+      ) : null}
       <ErrorNotice error={summary.error} retry={summary.refresh} />
       {summary.loading && !data ? <p role="status">Đang tải thống kê tâm trạng…</p> : null}
       {data ? (

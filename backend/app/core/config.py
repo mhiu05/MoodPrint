@@ -35,8 +35,9 @@ class Settings(EmbeddingSettings, BaseSettings):
     ai_user_concurrency: int = Field(default=2, ge=1, le=5)
     ai_requests_per_minute: int = Field(default=20, ge=1, le=120)
     ai_timeout_seconds: float = Field(default=30, ge=1, le=120)
-    database_pool_size: int = Field(default=8, ge=1, le=50)
-    database_pool_overflow: int = Field(default=4, ge=0, le=50)
+    # 5+2 stays inside the approved role limit of 20 when two processes overlap.
+    database_pool_size: int = Field(default=5, ge=1, le=50)
+    database_pool_overflow: int = Field(default=2, ge=0, le=50)
     database_pool_timeout: float = Field(default=10, ge=1, le=60)
     session_idle_hours: int = Field(default=12, ge=1, le=72)
     session_max_days: int = Field(default=7, ge=1, le=30)
@@ -68,6 +69,9 @@ class Settings(EmbeddingSettings, BaseSettings):
     product_tour_enabled: bool = False
     # Deployment revision stamped on feedback by the server; a client can never supply it.
     release_version: str = Field(default="unknown", pattern=r"^[A-Za-z0-9._+-]{1,64}$")
+    # Deployment SHA injected by compose. Invalid values become "unknown" so a
+    # missing label cannot stop the process or be written into a log unsanitized.
+    release_sha: str = "unknown"
     # Owner-approved daily guest spend (D02). Unset or zero means paid guest work is unavailable,
     # never unlimited; pricing must also be known or paid dispatch stays closed.
     guest_daily_budget_usd: Decimal | None = Field(default=None, ge=0)
@@ -83,6 +87,15 @@ class Settings(EmbeddingSettings, BaseSettings):
     guest_voice_per_minute: int = Field(default=2, ge=1, le=60)
     guest_voice_concurrency: int = Field(default=1, ge=1, le=5)
     guest_voice_global_concurrency: int = Field(default=3, ge=1, le=100)
+
+    @field_validator("release_sha", mode="before")
+    @classmethod
+    def normalize_release_sha(cls, value: object) -> str:
+        if isinstance(value, str):
+            cleaned = value.strip()
+            if cleaned and len(cleaned) <= 64 and all(char.isalnum() or char in "._+-" for char in cleaned):
+                return cleaned
+        return "unknown"
 
     @field_validator("guest_abuse_hmac_key")
     @classmethod

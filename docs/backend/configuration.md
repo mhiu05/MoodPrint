@@ -29,8 +29,8 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 | `AI_USER_CONCURRENCY` | `int` | `2` |
 | `AI_REQUESTS_PER_MINUTE` | `int` | `20` |
 | `AI_TIMEOUT_SECONDS` | `float` | `30` |
-| `DATABASE_POOL_SIZE` | `int` | `8` |
-| `DATABASE_POOL_OVERFLOW` | `int` | `4` |
+| `DATABASE_POOL_SIZE` | `int` | `5` |
+| `DATABASE_POOL_OVERFLOW` | `int` | `2` |
 | `DATABASE_POOL_TIMEOUT` | `float` | `10` |
 | `SESSION_IDLE_HOURS` | `int` | `12` |
 | `SESSION_MAX_DAYS` | `int` | `7` |
@@ -49,6 +49,7 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 | `FEEDBACK_ADMIN_ENABLED` | `bool` | `False` |
 | `PRODUCT_TOUR_ENABLED` | `bool` | `False` |
 | `RELEASE_VERSION` | `str` | `'unknown'` |
+| `RELEASE_SHA` | `str` | `'unknown'` |
 | `GUEST_DAILY_BUDGET_USD` | `Decimal &#124; None` | `None` |
 | `GUEST_PRICING_JSON` | `dict[str, Any]` | `dict` |
 | `GUEST_ABUSE_HMAC_KEY` | `SecretStr` | `SecretStr('')` |

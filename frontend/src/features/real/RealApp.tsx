@@ -73,7 +73,13 @@ import type {
 import "./real.css";
 import "./agent-chat.css";
 import { Discovery } from "./social/Discovery";
-import { OfflineBanner } from "./OfflineBanner";
+import { OfflineBanner, useOnline } from "./OfflineBanner";
+import {
+  SESSION_GRACE_MS,
+  graceExpired,
+  rememberGraceStart,
+  revalidateSession,
+} from "../../api/sessionPolicy";
 import { AssistantGuide } from "./AssistantGuide";
 import { aiServiceMessage } from "./aiStatus";
 import { HumanChat } from "./social/HumanChat";
@@ -107,6 +113,9 @@ type SessionContextValue = {
   session: SessionView;
   receive: (session: SessionView) => void;
   logout: () => Promise<void>;
+  paused: boolean;
+  link: "ready" | "degraded" | "recovered";
+  retrySession: () => void;
 };
 const SessionContext = createContext<SessionContextValue | null>(null);
 export function useSession() {
@@ -118,7 +127,7 @@ export function useSession() {
 export { ErrorNotice };
 
 export function useResource<T>(path: string, enabled = true) {
-  const { api } = useSession();
+  const { api, paused } = useSession();
   const [data, setData] = useState<T>();
   const [error, setError] = useState<unknown>();
   const [loading, setLoading] = useState(true);
@@ -128,6 +137,10 @@ export function useResource<T>(path: string, enabled = true) {
     if (!enabled) {
       setData(undefined);
       setError(undefined);
+      setLoading(false);
+      return;
+    }
+    if (paused) {
       setLoading(false);
       return;
     }
@@ -146,13 +159,13 @@ export function useResource<T>(path: string, enabled = true) {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [api, path, revision, enabled]);
+  }, [api, path, revision, enabled, paused]);
   // A failed read retries by itself when the browser comes back online.
   useEffect(() => {
-    if (!error || !enabled) return;
+    if (!error || !enabled || paused) return;
     window.addEventListener("online", refresh);
     return () => window.removeEventListener("online", refresh);
-  }, [error, enabled, refresh]);
+  }, [error, enabled, refresh, paused]);
   return { data, setData, error, loading, refresh };
 }
 
@@ -173,80 +186,221 @@ function authMode(): "login" | "signup" {
 function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback }) {
   const entryLocation = useLocation();
   const [session, setSession] = useState<SessionView | null>();
-  const [error, setError] = useState<unknown>();
-  const [revision, setRevision] = useState(0);
+  const [bootstrapError, setBootstrapError] = useState<unknown>();
+  const [unavailable, setUnavailable] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [link, setLink] = useState<"ready" | "degraded" | "recovered">("ready");
   // Set when a guest trial ends so private state is replaced by a content-free screen.
   const [ended, setEnded] = useState<"expired" | "ended" | null>(null);
   const knewGuest = useRef(false);
+  const sessionRef = useRef(session);
+  const graceAnchor = useRef<number | null>(null);
+  const graceTimer = useRef<number | undefined>(undefined);
+  const generation = useRef(0);
+  const inflight = useRef<Promise<void> | null>(null);
+  const autoUsed = useRef(false);
+  const probeAbort = useRef<AbortController | null>(null);
+  const debounce = useRef<number | undefined>(undefined);
+  sessionRef.current = session;
   useEffect(() => {
     knewGuest.current = session?.accountKind === "guest";
   }, [session]);
+  useEffect(() => {
+    if (link !== "recovered") return;
+    const timer = window.setTimeout(() => setLink("ready"), 4000);
+    return () => window.clearTimeout(timer);
+  }, [link]);
+  const clearGrace = useCallback(() => {
+    window.clearTimeout(graceTimer.current);
+    graceTimer.current = undefined;
+    graceAnchor.current = null;
+    api.setPrivateHold(null);
+  }, [api]);
+  const dropPrivate = useCallback(() => {
+    generation.current += 1;
+    probeAbort.current?.abort();
+    clearGrace();
+    api.reset();
+  }, [api, clearGrace]);
   const receive = useCallback(
     (value: SessionView) => {
       const valid = validateSession(value);
       api.setCsrf(valid.csrfToken);
-      setError(undefined);
+      setBootstrapError(undefined);
+      setUnavailable(false);
       setSession(valid);
     },
     [api],
   );
-  useEffect(() => {
-    const controller = new AbortController();
-    // api.reset() (session loss, expiry, logout) aborts every in-flight read and bumps the epoch: an
-    // answer or failure from an older lifecycle must never repaint the screen that replaced it.
-    const epoch = api.epoch;
-    const current = () => !controller.signal.aborted && api.epoch === epoch;
-    api.onUnauthorized = (failure) => {
-      api.reset();
-      setError(undefined);
-      if (failure?.code === "GUEST_EXPIRED" || knewGuest.current) setEnded("expired");
+  const receiveRef = useRef(receive);
+  receiveRef.current = receive;
+  const lose = useCallback(
+    (failure?: ApiError) => {
+      const guestEnded = failure?.code === "GUEST_EXPIRED" || knewGuest.current;
+      dropPrivate();
+      autoUsed.current = false;
+      setLink("ready");
+      setUnavailable(false);
+      setBootstrapError(undefined);
+      setChecking(false);
+      if (guestEnded) {
+        try {
+          new BroadcastChannel("moodprint-guest").postMessage({ type: "expired" });
+        } catch {
+          /* the other tab reaches the same server verdict on its own read */
+        }
+        setEnded("expired");
+      }
       setSession(null);
-    };
-    api
-      .request<SessionView>("/session", { signal: controller.signal })
-      .then((value) => {
-        if (current()) receive(value);
-      })
-      .catch((reason) => {
-        if (!current()) return;
-        if (reason instanceof ApiError && reason.status === 401) {
-          api.reset();
-          if (reason.code === "GUEST_EXPIRED") setEnded("expired");
-          setSession(null);
-        } else setError(reason);
-      });
-    return () => controller.abort();
-  }, [api, receive, revision]);
-  useEffect(() => {
-    if (!session) return;
-    let scheduled: number | undefined;
-    const recheck = () => {
-      if (document.visibilityState !== "visible") return;
-      window.clearTimeout(scheduled);
-      scheduled = window.setTimeout(
-        () => setRevision((value) => value + 1),
-        100,
+    },
+    [dropPrivate],
+  );
+  const loseRef = useRef(lose);
+  loseRef.current = lose;
+  const block = useCallback(
+    (failure: unknown) => {
+      dropPrivate();
+      autoUsed.current = true;
+      setLink("ready");
+      setUnavailable(false);
+      setChecking(false);
+      setSession(null);
+      setBootstrapError(failure);
+    },
+    [dropPrivate],
+  );
+  const expireGrace = useCallback(() => {
+    if (graceAnchor.current === null) return;
+    dropPrivate();
+    autoUsed.current = true;
+    setLink("ready");
+    setBootstrapError(undefined);
+    setChecking(false);
+    setSession(null);
+    setUnavailable(true);
+  }, [dropPrivate]);
+  const expireGraceRef = useRef(expireGrace);
+  expireGraceRef.current = expireGrace;
+  const armGrace = useCallback(() => {
+    const now = Date.now();
+    graceAnchor.current = rememberGraceStart(graceAnchor.current, now);
+    api.setPrivateHold(() => graceAnchor.current !== null);
+    if (graceTimer.current === undefined) {
+      const remaining = SESSION_GRACE_MS - (now - graceAnchor.current);
+      graceTimer.current = window.setTimeout(
+        () => expireGraceRef.current(),
+        Math.max(0, remaining),
       );
+    }
+    setLink("degraded");
+    if (graceExpired(graceAnchor.current, Date.now())) expireGraceRef.current();
+  }, [api]);
+  const scheduleRef = useRef<(kind: "auto" | "manual") => Promise<void>>(async () => {});
+  scheduleRef.current = (kind) => {
+    if (kind === "auto" && autoUsed.current) return inflight.current ?? Promise.resolve();
+    if (inflight.current) return inflight.current;
+    const gen = generation.current;
+    const epoch = api.epoch;
+    const controller = new AbortController();
+    probeAbort.current = controller;
+    let lastFailure: unknown;
+    const run = revalidateSession({
+      signal: controller.signal,
+      isCurrent: () => generation.current === gen && api.epoch === epoch && !controller.signal.aborted,
+      request: async (timeoutMs, signal) => {
+        const value = await api.request<SessionView>("/session", { signal, timeoutMs });
+        if (generation.current !== gen || api.epoch !== epoch || signal.aborted)
+          throw new DOMException("Aborted", "AbortError");
+        receiveRef.current(value);
+      },
+      onTransient: (reason) => {
+        lastFailure = reason;
+        if (sessionRef.current) armGrace();
+      },
+      onSuccess: () => {
+        const degraded = graceAnchor.current !== null;
+        clearGrace();
+        autoUsed.current = false;
+        setChecking(false);
+        setUnavailable(false);
+        setBootstrapError(undefined);
+        setLink(degraded ? "recovered" : "ready");
+      },
+      onUnauthorized: (reason) => loseRef.current(reason),
+      onForbidden: (reason) => block(reason),
+      onInvalid: (reason) => block(reason),
+    }).then((status) => {
+      if (generation.current !== gen || api.epoch !== epoch) return;
+      if (status === "failed") {
+        autoUsed.current = true;
+        if (!sessionRef.current) {
+          setBootstrapError(
+            lastFailure ??
+              new ApiError(
+                503,
+                "DATABASE_UNAVAILABLE",
+                "MoodPrint chưa thể kết nối. Bạn có thể thử lại sau ít phút.",
+                null,
+                true,
+              ),
+          );
+        }
+      }
+    });
+    inflight.current = run;
+    void run.finally(() => {
+      if (inflight.current === run) inflight.current = null;
+    });
+    return run;
+  };
+  useEffect(() => {
+    api.onUnauthorized = (failure) => loseRef.current(failure);
+    const onAuto = () => {
+      if (document.visibilityState === "hidden") return;
+      window.clearTimeout(debounce.current);
+      debounce.current = window.setTimeout(() => void scheduleRef.current("auto"), 100);
     };
-    window.addEventListener("focus", recheck);
-    document.addEventListener("visibilitychange", recheck);
+    window.addEventListener("focus", onAuto);
+    window.addEventListener("online", onAuto);
+    document.addEventListener("visibilitychange", onAuto);
+    void scheduleRef.current("auto");
     return () => {
-      window.clearTimeout(scheduled);
-      window.removeEventListener("focus", recheck);
-      document.removeEventListener("visibilitychange", recheck);
+      generation.current += 1;
+      probeAbort.current?.abort();
+      inflight.current = null;
+      window.clearTimeout(debounce.current);
+      window.clearTimeout(graceTimer.current);
+      graceTimer.current = undefined;
+      window.removeEventListener("focus", onAuto);
+      window.removeEventListener("online", onAuto);
+      document.removeEventListener("visibilitychange", onAuto);
+      api.setPrivateHold(null);
     };
-  }, [session?.userId]);
+  }, [api]);
+  const retrySession = useCallback(() => {
+    setChecking(true);
+    if (!unavailable) setBootstrapError(undefined);
+    void scheduleRef.current("manual").finally(() => setChecking(false));
+  }, [unavailable]);
+  const recheck = useCallback(() => void scheduleRef.current("auto"), []);
   async function logout() {
     const wasGuest = session?.accountKind === "guest";
     await api.request<void>("/auth/logout", { method: "POST" });
-    api.reset();
+    dropPrivate();
+    autoUsed.current = false;
+    setLink("ready");
+    setUnavailable(false);
+    setBootstrapError(undefined);
     if (wasGuest) setEnded("ended");
     setSession(null);
   }
   function expireGuest(reason: "expired" | "ended") {
     // Abort every in-flight request and drop the private tree before anything can repopulate it.
-    api.reset();
-    setError(undefined);
+    dropPrivate();
+    autoUsed.current = false;
+    setLink("ready");
+    setUnavailable(false);
+    setBootstrapError(undefined);
     setEnded(reason);
     setSession(null);
   }
@@ -254,18 +408,30 @@ function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback
   async function requestEnd() {
     await api.request<void>("/auth/guest/end", { method: "POST", body: {} });
   }
-  if (error)
+  if (checking && session == null && !unavailable)
+    return (
+      <main className="real-auth">
+        <Brand />
+        <p role="status">Đang kiểm tra đăng nhập…</p>
+      </main>
+    );
+  if (bootstrapError && session == null)
     return (
       <main className="real-auth">
         <Brand />
         <h1 tabIndex={-1}>Chưa thể mở MoodPrint</h1>
-        <ErrorNotice
-          error={error}
-          retry={() => {
-            setError(undefined);
-            setRevision((value) => value + 1);
-          }}
-        />
+        <ErrorNotice error={bootstrapError} retry={retrySession} />
+      </main>
+    );
+  if (unavailable)
+    return (
+      <main className="real-auth">
+        <Brand />
+        <h1 tabIndex={-1}>MoodPrint chưa thể kết nối</h1>
+        <p role="status">Bạn có thể thử lại sau ít phút. Phần đang mở đã được ẩn cho đến khi kết nối lại.</p>
+        <Button onClick={retrySession} disabled={checking}>
+          {checking ? "Đang thử lại…" : "Thử lại"}
+        </Button>
       </main>
     );
   if (session === undefined)
@@ -311,9 +477,9 @@ function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback
     <EligibilityGate />
   );
   return (
-    <SessionContext.Provider value={{ api, session, receive, logout }}>
+    <SessionContext.Provider value={{ api, session, receive, logout, paused: link === "degraded", link, retrySession }}>
       {session.accountKind === "guest" ? (
-        <GuestHost session={session} api={api} onExpired={expireGuest} onEnd={requestEnd}
+        <GuestHost session={session} onExpired={expireGuest} onEnd={requestEnd} onRecheck={recheck}
           onRegisterAfterEnd={() => {
             // expire() already aborted requests, broadcast the end and discarded
             // the private tree. Choose signup explicitly over the terminal screen.
@@ -332,20 +498,20 @@ function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback
 
 function GuestHost({
   session,
-  api,
   onExpired,
   onEnd,
   onRegisterAfterEnd,
+  onRecheck,
   children,
 }: {
   session: SessionView;
-  api: ApiClient;
   onExpired: (reason: "expired" | "ended") => void;
   onEnd: () => void | Promise<void>;
   onRegisterAfterEnd: () => void;
+  onRecheck: () => void;
   children: ReactNode;
 }) {
-  const { remainingMs, expire } = useGuestLifecycle({ session, api, onExpired });
+  const { remainingMs, expire } = useGuestLifecycle({ session, onExpired, onRecheck });
   const [confirm, setConfirm] = useState<"end" | "register" | null>(null);
   const [ending, setEnding] = useState(false);
   const [endError, setEndError] = useState<unknown>();
@@ -542,6 +708,27 @@ function Navigation() {
   );
 }
 
+function ConnectionBanner() {
+  const online = useOnline();
+  const { link, retrySession } = useSession();
+  if (!online || link === "ready") return null;
+  const degraded = link === "degraded";
+  return (
+    <div className="connection-status" role="status" data-testid="connection-status" data-state={link}>
+      <p>
+        {degraded
+          ? "Kết nối đang gián đoạn. MoodPrint đang thử kết nối lại…"
+          : "Đã kết nối lại. Bạn có thể tiếp tục."}
+      </p>
+      {degraded ? (
+        <button type="button" onClick={retrySession}>
+          Thử lại
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 function Shell() {
   const { session } = useSession();
   const [guideOpen, setGuideOpen] = useState(false);
@@ -609,6 +796,7 @@ function Shell() {
             </header>
           ) : null}
           <OfflineBanner />
+          <ConnectionBanner />
           <GuestBanner />
           <SessionNotices />
           {guideOpen ? <Suspense fallback={<p role="status">Đang mở hướng dẫn…</p>}><TourController session={session} activity={activity} onClose={() => setGuideOpen(false)} /></Suspense> : null}
@@ -813,7 +1001,7 @@ const UNCONFIRMED = "Chưa xác nhận được trạng thái. Kiểm tra lại 
 const compactLayout = () => !window.matchMedia("(min-width: 1100px)").matches;
 
 function ConversationBody({ bot }: { bot: BotPublicDTO }) {
-  const { api, session } = useSession();
+  const { api, session, paused } = useSession();
   const { preferences, loading: preferencesLoading, error: preferencesError, reload: reloadPreferences, refreshHistory } = useAIData();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedId = searchParams.get("conversation");
@@ -1175,6 +1363,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       loading ||
       !ready ||
       moodInvalid ||
+      paused ||
       text.length > 500 ||
       !lifetime.current
     )
@@ -1775,7 +1964,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             ref={composerAction}
             type={canStop ? "button" : "submit"}
             className="send-button"
-            disabled={canStop ? stopDisabled : !draft.trim() || busy || loading || !ready || moodInvalid || preferencesLoading}
+            disabled={canStop ? stopDisabled : !draft.trim() || busy || loading || !ready || moodInvalid || preferencesLoading || paused}
             aria-label={actionLabel}
             title={actionLabel}
             onClick={canStop ? () => void cancel() : undefined}
