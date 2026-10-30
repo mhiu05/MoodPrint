@@ -77,6 +77,207 @@
 .mood-table td:last-child {
   width: auto;
 }
+.mood-calendar {
+  margin: 28px 0 32px;
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg, 18px);
+  background: var(--color-surface);
+}
+.mood-calendar-heading,
+.mood-calendar-nav,
+.mood-selected-day {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.mood-calendar-heading h2,
+.mood-calendar-heading p,
+.mood-selected-day h3,
+.mood-selected-day p {
+  margin: 0;
+}
+.mood-calendar-heading h2 {
+  font-size: 1.2rem;
+}
+.mood-calendar-heading p,
+.mood-selected-day > div > p {
+  margin-top: 5px;
+  color: var(--color-muted);
+}
+.mood-calendar-nav {
+  flex-shrink: 0;
+}
+.mood-calendar-nav strong {
+  min-width: 125px;
+  text-align: center;
+  text-transform: capitalize;
+}
+.mood-calendar-nav .button {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  font-size: 1.35rem;
+}
+.mood-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: clamp(5px, 1.2vw, 10px);
+  margin-top: 22px;
+}
+.mood-calendar-weekday {
+  padding: 4px 0;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+}
+.mood-day {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 1;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  background: var(--color-surface-soft);
+  color: var(--color-muted);
+  font: inherit;
+  font-size: clamp(0.82rem, 2.5vw, 1rem);
+  cursor: pointer;
+}
+.mood-day:hover:not(:disabled) {
+  border-color: var(--color-border);
+}
+.mood-day:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+  z-index: 1;
+}
+.mood-day:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+.mood-day.is-outside {
+  visibility: hidden;
+}
+.mood-day.is-today {
+  border-color: var(--color-primary);
+  font-weight: 700;
+}
+.mood-day.is-selected {
+  box-shadow: inset 0 0 0 2px var(--color-ink);
+  font-weight: 700;
+}
+.mood-level-1 { --mood-bg: #f7d9d2; --mood-ink: #66352f; }
+.mood-level-2 { --mood-bg: #f9e8d4; --mood-ink: #654b2a; }
+.mood-level-3 { --mood-bg: #f2efd7; --mood-ink: #514c2e; }
+.mood-level-4 { --mood-bg: #dcecdf; --mood-ink: #2f5140; }
+.mood-level-5 { --mood-bg: #d9e9dd; --mood-ink: #234936; }
+.mood-day[class*="mood-level-"] {
+  background: var(--mood-bg);
+  color: var(--mood-ink);
+}
+.mood-calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 0;
+  margin: 18px 0 0;
+  list-style: none;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+.mood-calendar-legend li,
+.mood-selected-day > div > p:has(.mood-swatch) {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.mood-swatch {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+  border-radius: 50%;
+  background: var(--mood-bg);
+  border: 1px solid color-mix(in srgb, var(--mood-ink), transparent 55%);
+}
+.mood-selected-day {
+  align-items: flex-start;
+  padding: 16px;
+  margin-top: 18px;
+  border: 1px solid var(--color-divider);
+  border-radius: 14px;
+  background: var(--color-bg);
+}
+.mood-selected-day h3 {
+  font-size: 1rem;
+}
+.mood-selected-day .mood-day-note {
+  max-width: 60ch;
+  margin-top: 8px;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.mood-selected-day .button {
+  flex-shrink: 0;
+}
+.mood-weekly-insight {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 16px;
+  margin: 18px 0;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-soft);
+}
+.mood-weekly-insight > div {
+  display: grid;
+  gap: 4px;
+}
+.mood-weekly-insight > div span,
+.mood-weekly-insight > div small {
+  color: var(--color-muted);
+}
+.mood-weekly-insight > div strong {
+  font-size: 1.2rem;
+}
+.mood-weekly-insight > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-muted);
+}
+@media (max-width: 480px) {
+  .mood-calendar {
+    padding: 16px 12px;
+  }
+  .mood-calendar-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .mood-calendar-nav {
+    width: 100%;
+  }
+  .mood-selected-day {
+    flex-direction: column;
+  }
+  .mood-selected-day .button {
+    width: 100%;
+  }
+  .mood-calendar-legend {
+    gap: 8px 12px;
+  }
+  .mood-weekly-insight {
+    padding: 12px;
+    gap: 10px;
+  }
+}
 .real-voice {
   margin: 0 12px 12px;
 }

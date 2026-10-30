@@ -772,12 +772,13 @@ test("a saved mood reloads from the API while a failed edit keeps its note", asy
     route.fulfill({ json: [saved] }),
   );
   await page.goto("/#/self/daily");
+  const moodHistory = page.locator('section[aria-labelledby="mood-history"]');
   await expect(
-    page.locator("article").getByText("Một ngày nhẹ nhàng", { exact: true }),
+    moodHistory.getByText("Một ngày nhẹ nhàng", { exact: true }),
   ).toBeVisible();
   await page.reload();
   await expect(
-    page.locator("article").getByText("Một ngày nhẹ nhàng", { exact: true }),
+    moodHistory.getByText("Một ngày nhẹ nhàng", { exact: true }),
   ).toBeVisible();
   await page.getByLabel("Ngày", { exact: true }).fill(date);
   await expect(page.getByLabel("Ghi chú", { exact: true })).toHaveValue(
@@ -944,4 +945,30 @@ test("only explicit Send submits: Shift+Enter, IME Enter and double activation c
   release();
   await expect(page.getByRole("alert").filter({ hasText: "Chưa gửi được." })).toBeVisible();
   await expect(draft).toHaveValue("Hôm nay mình hơi mệt\ndòng hai");
+});
+
+test("mood calendar selects an entry and shows a truthful weekly comparison on mobile", async ({ page }) => {
+  const moods = [
+    { id: "m-23", localDate: "2026-10-23", value: 5, note: "Một ngày nhiều năng lượng", timezone: "Asia/Bangkok", version: 1 },
+    { id: "m-21", localDate: "2026-10-21", value: 3, note: "Mọi thứ bình thường", timezone: "Asia/Bangkok", version: 1 },
+    { id: "m-16", localDate: "2026-10-16", value: 2, note: "Hơi chùng xuống", timezone: "Asia/Bangkok", version: 1 },
+  ];
+  await api(page);
+  await page.route("**/api/v1/moods", (route) => route.fulfill({ json: moods }));
+  await page.route("**/api/v1/moods/summary*", (route) => route.fulfill({
+    json: {
+      from: "2026-10-17", to: "2026-10-23", count: 2, mean: 4, min: 3, max: 5,
+      insightAvailable: false,
+      buckets: ["2026-10-17", "2026-10-18", "2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23"].map((localDate) => ({ localDate, value: localDate === "2026-10-21" ? 3 : localDate === "2026-10-23" ? 5 : null })),
+    },
+  }));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/#/self/daily");
+  await expect(page.getByRole("heading", { name: "Lịch cảm xúc" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "23/10/2026, Rất vui, hôm nay" })).toBeVisible();
+  await expect(page.getByText("Điểm trung bình tự chọn cao hơn 2 điểm so với 7 ngày trước.", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "21/10/2026, Bình thường" }).click();
+  await expect(page.locator(".mood-selected-day")).toContainText("Mọi thứ bình thường");
+  await expect(page.locator(".mood-selected-day")).toContainText("3/5 · Bình thường");
+  expect(await page.locator("body").evaluate((element) => element.scrollWidth)).toBeLessThanOrEqual(390);
 });
