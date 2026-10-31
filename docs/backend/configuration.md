@@ -25,6 +25,15 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 | `SANDBOX_ENABLED` | `bool` | `False` |
 | `CHAT_HISTORY_ENABLED` | `bool` | `True` |
 | `AI_MULTI_MESSAGE_ENABLED` | `bool` | `False` |
+| `PROACTIVE_ENABLED` | `bool` | `False` |
+| `PROACTIVE_WORKER_ENABLED` | `bool` | `False` |
+| `PROACTIVE_WORKER_CONCURRENCY` | `int` | `1` |
+| `PROACTIVE_DAILY_CAP_PER_USER` | `int` | `4` |
+| `PROACTIVE_BUDGET_SHARE` | `float` | `0.5` |
+| `PROACTIVE_GRACE_MINUTES` | `int` | `90` |
+| `PROACTIVE_MAX_ATTEMPTS` | `int` | `3` |
+| `PROACTIVE_INACTIVE_DAYS` | `int` | `14` |
+| `PROACTIVE_ROLLOUT_USER_IDS` | `list[UUID]` | `[]` |
 | `CHAT_RETENTION_DAYS` | `int` | `30` |
 | `AI_GLOBAL_CONCURRENCY` | `int` | `50` |
 | `AI_USER_CONCURRENCY` | `int` | `2` |
@@ -84,6 +93,7 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 - **Journal media:** `JOURNAL_STORAGE_KEY` là credential phía server cho bucket riêng tư `journal-media`; không dùng biến `VITE_`, không đưa vào session hoặc log. Thiếu key vẫn lưu nhật ký chữ/bản nháp được; media trả lỗi có thể thử lại. Xem [Storage nhật ký](../supabase/journal-storage.md).
 - **AI:** `AI_ENABLED`, model/key, concurrency/rate/timeout; daily USD budget cần accounting. `AI_LOCAL_TEST_USER_IDS` chỉ được phép ở development, không phải production bypass.
 - **History:** `CHAT_HISTORY_ENABLED` và retention là capability global; preference mặc định của user vẫn tắt.
+- **Lời hỏi thăm (chủ động):** `PROACTIVE_ENABLED` mở API/UI lịch hỏi thăm (`GET/PUT /ai/proactive…`, `features.proactive`); `PROACTIVE_WORKER_ENABLED` bật vòng scheduler/executor **chỉ** trong service Compose `proactive` (`python -m app.jobs.proactive`), không bao giờ trong process API. Production bật worker bắt buộc `PROACTIVE_ENABLED`, `AI_ENABLED`, `AI_ACCOUNTING_ENABLED=true` và `AI_DAILY_BUDGET_USD > 0`. Lời hỏi thăm không trừ lượt chat của người dùng nhưng dừng khi chi tiêu ngày đạt `PROACTIVE_BUDGET_SHARE × AI_DAILY_BUDGET_USD`. `PROACTIVE_ROLLOUT_USER_IDS` khác rỗng giới hạn tính năng cho nhóm thử nghiệm đã đồng ý. Thứ tự bật: [operations](operations.md).
 - **Nhiều bubble:** `AI_MULTI_MESSAGE_ENABLED=true` cho model trả 1–4 tin đã validate trong một lượt (lưu mỗi tin một dòng, SSE v2 qua `?protocol=2`; client cũ nhận bản ghép v1). Tắt là kill switch: trả lời một tin như trước, lịch sử nhiều bubble cũ vẫn hiển thị.
 - **Embedding:** Voyage credentials + semantic capability + user opt-in/MEM. `PROVIDER_FORCE_IPV4` chỉ dùng xử lý network khi cần, không thay authorization.
 - **Social:** scorer mặc định v1; activities và moderation admin mặc định tắt. `ACTIVITY_KINDS` là rollout subset.

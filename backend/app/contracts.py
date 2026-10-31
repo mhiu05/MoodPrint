@@ -55,6 +55,8 @@ class FeatureView(DTO):
     ai_quota_remaining: int | None = None
     # Voluntary ratings are open to live eligible visitors only while the rollout flag is on.
     feedback: bool = False
+    # Scheduled check-ins: flag/cohort, registered, AI service and saved history available.
+    proactive: bool = False
 
 
 class NoticeView(DTO):

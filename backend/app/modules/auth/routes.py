@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 
+from app.ai.proactive.policy import available as proactive_available
 from app.contracts import (
     AuthNotice,
     ConsentView,
@@ -128,6 +129,12 @@ async def _session_view(request: Request, db, user, user_id, csrf: str | None = 
             matching=not guest,
             voice=voice,
             feedback=feedback_open(settings),
+            proactive=bool(
+                not guest
+                and user.age_band in ("teen", "adult")
+                and settings.chat_history_enabled
+                and proactive_available(settings, request.app.state.ai, user)
+            ),
         ),
         account_kind=user.account_kind,  # type: ignore[arg-type]
         guest_started_at=user.guest_started_at,

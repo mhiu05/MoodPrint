@@ -36,6 +36,10 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 | POST | `/api/v1/ai/conversations/{conversation_id}/messages` | `send_api_v1_ai_conversations__conversation_id__messages_post` |
 | GET | `/api/v1/ai/preferences` | `preferences_api_v1_ai_preferences_get` |
 | PUT | `/api/v1/ai/preferences` | `update_preferences_api_v1_ai_preferences_put` |
+| GET | `/api/v1/ai/proactive` | `proactive_api_v1_ai_proactive_get` |
+| PUT | `/api/v1/ai/proactive/schedules/{bot_id}/{slot}` | `save_schedule_api_v1_ai_proactive_schedules__bot_id___slot__put` |
+| DELETE | `/api/v1/ai/proactive/schedules/{bot_id}/{slot}` | `delete_schedule_api_v1_ai_proactive_schedules__bot_id___slot__delete` |
+| PUT | `/api/v1/ai/proactive/settings` | `save_settings_api_v1_ai_proactive_settings_put` |
 | POST | `/api/v1/ai/runs/{run_id}/cancel` | `cancel_api_v1_ai_runs__run_id__cancel_post` |
 | GET | `/api/v1/ai/runs/{run_id}/events` | `events_api_v1_ai_runs__run_id__events_get` |
 | POST | `/api/v1/auth/confirmation` | `resend_confirmation_api_v1_auth_confirmation_post` |
@@ -129,3 +133,19 @@ Admin feedback cần tài khoản đã đăng ký, role admin hiện hành, xác
 | POST | `/api/v1/journal/entries/{entry_id}/media/{media_id}/complete` | `complete_media_api_v1_journal_entries__entry_id__media__media_id__complete_post` |
 | GET | `/api/v1/journal/entries/{entry_id}/media/{media_id}/access` | `access_media_api_v1_journal_entries__entry_id__media__media_id__access_get` |
 | DELETE | `/api/v1/journal/entries/{entry_id}/media/{media_id}` | `delete_media_api_v1_journal_entries__entry_id__media__media_id__delete` |
+
+## Lời hỏi thăm (proactive)
+
+Chỉ tài khoản đã đăng ký (`require_registered_actor`, guest → `403 REGISTERED_REQUIRED`; `age_band` ngoài teen/adult → `403 ELIGIBILITY_REQUIRED`). `GET /ai/proactive` luôn trả đủ 10 cặp trợ lý × buổi (`version: 0` = chưa lưu) cùng `available`, `settings`, `limits` (cap, số khung đang bật, khung giờ theo tuổi, bước 15 phút) và `eligibility.reason` cho từng cặp. Ghi yêu cầu `Idempotency-Key` và `expectedVersion` (0 = tạo mới). `available=false` (cờ `PROACTIVE_ENABLED`, nhóm `PROACTIVE_ROLLOUT_USER_IDS` hoặc AI tắt) → ghi trả `503 PROACTIVE_UNAVAILABLE`.
+
+| Lỗi | HTTP | Khi |
+| --- | --- | --- |
+| `STALE_VERSION` | 409 | `expectedVersion` lệch |
+| `SCHEDULE_WINDOW` | 422 | Ngoài khung sáng 05:00–11:30 / tối 17:00–22:30 (teen ≤ 21:00) hoặc lệch bước 15 phút |
+| `SCHEDULE_IN_QUIET_HOURS` | 422 (lịch) / 409 (settings) | Lịch đang bật nằm trong giờ yên lặng |
+| `PROACTIVE_DAILY_CAP` | 409 | Bật quá `PROACTIVE_DAILY_CAP_PER_USER` khung |
+| `PROACTIVE_INELIGIBLE` | 403 | Cầu Nối khi chưa đủ điều kiện kết nối (adult + MATCH + không hạn chế) hoặc lịch sử trò chuyện không khả dụng |
+| `SCHEDULE_PAUSE` | 422 | `pausedUntil` quá 30 ngày |
+| `INVALID_TIMEZONE`, `QUIET_HOURS_INVALID` | 422 | Múi giờ IANA không hợp lệ; giờ yên lặng ngoài 4–12 giờ |
+
+Mọi lần lưu hủy job chưa chạy của lịch liên quan; đổi múi giờ/giờ yên lặng tính lại `nextDeliveryAt` cho mọi lịch; tắt `journalContextEnabled` tăng `journal_context_version` và `users.data_version`, hủy job Nhịp chưa chạy và lượt chat đang chạy.

@@ -698,6 +698,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/proactive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Proactive */
+        get: operations["proactive_api_v1_ai_proactive_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/proactive/schedules/{bot_id}/{slot}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save Schedule */
+        put: operations["save_schedule_api_v1_ai_proactive_schedules__bot_id___slot__put"];
+        post?: never;
+        /** Delete Schedule */
+        delete: operations["delete_schedule_api_v1_ai_proactive_schedules__bot_id___slot__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/proactive/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save Settings */
+        put: operations["save_settings_api_v1_ai_proactive_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/memories": {
         parameters: {
             query?: never;
@@ -2304,6 +2356,13 @@ export interface components {
              */
             publishedVersion: number;
         };
+        /** Eligibility */
+        Eligibility: {
+            /** Allowed */
+            allowed: boolean;
+            /** Reason */
+            reason?: ("teen_social_unavailable" | "social_not_enabled" | "social_restricted" | "history_unavailable" | "ai_unavailable") | null;
+        };
         /** EligibilityInput */
         EligibilityInput: {
             /** Expectedversion */
@@ -2390,6 +2449,11 @@ export interface components {
              * @default false
              */
             feedback: boolean;
+            /**
+             * Proactive
+             * @default false
+             */
+            proactive: boolean;
         };
         /** FeedbackAdminView */
         FeedbackAdminView: {
@@ -3037,6 +3101,65 @@ export interface components {
             /** Previewdigest */
             previewDigest: string;
         };
+        /** ProactiveLimits */
+        ProactiveLimits: {
+            /** Dailycap */
+            dailyCap: number;
+            /** Enabledslots */
+            enabledSlots: number;
+            /** Windows */
+            windows: {
+                [key: string]: string[];
+            };
+            /** Stepminutes */
+            stepMinutes: number;
+        };
+        /** ProactiveSettingsInput */
+        ProactiveSettingsInput: {
+            /** Timezone */
+            timezone: string;
+            /** Quietstart */
+            quietStart: string;
+            /** Quietend */
+            quietEnd: string;
+            /** Badgesenabled */
+            badgesEnabled: boolean;
+            /** Journalcontextenabled */
+            journalContextEnabled: boolean;
+            /** Expectedversion */
+            expectedVersion: number;
+            /**
+             * Policyversion
+             * @constant
+             */
+            policyVersion: "proactive-v1";
+        };
+        /** ProactiveSettingsView */
+        ProactiveSettingsView: {
+            /** Timezone */
+            timezone: string;
+            /** Quietstart */
+            quietStart: string;
+            /** Quietend */
+            quietEnd: string;
+            /** Badgesenabled */
+            badgesEnabled: boolean;
+            /** Journalcontextenabled */
+            journalContextEnabled: boolean;
+            /** Version */
+            version: number;
+            /** Policyversion */
+            policyVersion: string;
+        };
+        /** ProactiveView */
+        ProactiveView: {
+            /** Available */
+            available: boolean;
+            settings: components["schemas"]["ProactiveSettingsView"];
+            /** Schedules */
+            schedules: components["schemas"]["ScheduleView"][];
+            limits: components["schemas"]["ProactiveLimits"];
+        };
         /** ProgressView */
         ProgressView: {
             /** Round */
@@ -3313,6 +3436,50 @@ export interface components {
             previewValue?: string | null;
             /** Previewdigest */
             previewDigest?: string | null;
+        };
+        /** ScheduleInput */
+        ScheduleInput: {
+            /** Enabled */
+            enabled: boolean;
+            /** Localtime */
+            localTime: string;
+            /** Weekdays */
+            weekdays: number[];
+            /** Pauseduntil */
+            pausedUntil?: string | null;
+            /** Expectedversion */
+            expectedVersion: number;
+        };
+        /** ScheduleView */
+        ScheduleView: {
+            /**
+             * Botid
+             * @enum {string}
+             */
+            botId: "may" | "guong" | "nhip" | "rure" | "caunoi";
+            /**
+             * Slot
+             * @enum {string}
+             */
+            slot: "morning" | "evening";
+            /** Enabled */
+            enabled: boolean;
+            /** Localtime */
+            localTime: string;
+            /** Weekdays */
+            weekdays: number[];
+            /** Pauseduntil */
+            pausedUntil?: string | null;
+            /**
+             * Autopaused
+             * @default false
+             */
+            autoPaused: boolean;
+            /** Nextdeliveryat */
+            nextDeliveryAt?: string | null;
+            /** Version */
+            version: number;
+            eligibility: components["schemas"]["Eligibility"];
         };
         /** ScoreView */
         ScoreView: {
@@ -8574,6 +8741,428 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    proactive_api_v1_ai_proactive_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProactiveView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    save_schedule_api_v1_ai_proactive_schedules__bot_id___slot__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bot_id: "may" | "guong" | "nhip" | "rure" | "caunoi";
+                slot: "morning" | "evening";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    delete_schedule_api_v1_ai_proactive_schedules__bot_id___slot__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bot_id: "may" | "guong" | "nhip" | "rure" | "caunoi";
+                slot: "morning" | "evening";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VersionInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionReceipt"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    save_settings_api_v1_ai_proactive_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProactiveSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProactiveSettingsView"];
+                };
             };
             /** @description Unauthorized */
             401: {

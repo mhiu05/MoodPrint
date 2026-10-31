@@ -33,6 +33,18 @@ class Settings(EmbeddingSettings, BaseSettings):
     # 1–4 validated bubbles per reply (SSE v2); off keeps the single-message contract.
     ai_multi_message_enabled: bool = False
     chat_retention_days: int = Field(default=30, ge=1, le=90)
+    # Scheduled check-ins (phase-1/05 §8). API/UI flag, then the dedicated worker service.
+    proactive_enabled: bool = False
+    proactive_worker_enabled: bool = False
+    proactive_worker_concurrency: int = Field(default=1, ge=1, le=4)
+    proactive_daily_cap_per_user: int = Field(default=4, ge=1, le=6)
+    # Share of AI_DAILY_BUDGET_USD proactive work may use before it yields to user chat.
+    proactive_budget_share: float = Field(default=0.5, ge=0.1, le=0.9)
+    proactive_grace_minutes: int = Field(default=90, ge=15, le=180)
+    proactive_max_attempts: int = Field(default=3, ge=1, le=5)
+    proactive_inactive_days: int = Field(default=14, ge=1, le=60)
+    # Non-empty: only these consenting test accounts see or receive check-ins.
+    proactive_rollout_user_ids: list[UUID] = Field(default_factory=list)
     ai_global_concurrency: int = Field(default=50, ge=1, le=100)
     ai_user_concurrency: int = Field(default=2, ge=1, le=5)
     ai_requests_per_minute: int = Field(default=20, ge=1, le=120)
@@ -141,7 +153,23 @@ class Settings(EmbeddingSettings, BaseSettings):
                 raise ValueError("OPENAI_API_KEY and STT_MODEL are required when STT_ENABLED")
             if self.semantic_memory_enabled and not self.voyage_api_key.get_secret_value():
                 raise ValueError("VOYAGE_API_KEY is required when SEMANTIC_MEMORY_ENABLED")
+            if self.proactive_worker_enabled and not (
+                self.proactive_enabled
+                and self.ai_enabled
+                and self.ai_accounting_enabled
+                and self.ai_daily_budget_usd > 0
+            ):
+                raise ValueError(
+                    "PROACTIVE_WORKER_ENABLED requires PROACTIVE_ENABLED, AI_ENABLED, "
+                    "AI_ACCOUNTING_ENABLED and AI_DAILY_BUDGET_USD > 0"
+                )
         return self
+
+    def proactive_open_for(self, user_id: UUID) -> bool:
+        """Feature flag plus optional rollout cohort; never a consent or eligibility grant."""
+        return self.proactive_enabled and (
+            not self.proactive_rollout_user_ids or user_id in self.proactive_rollout_user_ids
+        )
 
     def ai_available_for(self, user_id: UUID | None) -> bool:
         return self.ai_enabled or bool(

@@ -6274,6 +6274,528 @@
         }
       }
     },
+    "/api/v1/ai/proactive": {
+      "get": {
+        "summary": "Proactive",
+        "operationId": "proactive_api_v1_ai_proactive_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProactiveView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/proactive/schedules/{bot_id}/{slot}": {
+      "put": {
+        "summary": "Save Schedule",
+        "operationId": "save_schedule_api_v1_ai_proactive_schedules__bot_id___slot__put",
+        "parameters": [
+          {
+            "name": "bot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "may",
+                "guong",
+                "nhip",
+                "rure",
+                "caunoi"
+              ],
+              "type": "string",
+              "title": "Bot Id"
+            }
+          },
+          {
+            "name": "slot",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "morning",
+                "evening"
+              ],
+              "type": "string",
+              "title": "Slot"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleView"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Schedule",
+        "operationId": "delete_schedule_api_v1_ai_proactive_schedules__bot_id___slot__delete",
+        "parameters": [
+          {
+            "name": "bot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "may",
+                "guong",
+                "nhip",
+                "rure",
+                "caunoi"
+              ],
+              "type": "string",
+              "title": "Bot Id"
+            }
+          },
+          {
+            "name": "slot",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "morning",
+                "evening"
+              ],
+              "type": "string",
+              "title": "Slot"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionReceipt"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/ai/proactive/settings": {
+      "put": {
+        "summary": "Save Settings",
+        "operationId": "save_settings_api_v1_ai_proactive_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProactiveSettingsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProactiveSettingsView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/memories": {
       "get": {
         "summary": "Memories",
@@ -16061,6 +16583,38 @@
         ],
         "title": "DraftView"
       },
+      "Eligibility": {
+        "properties": {
+          "allowed": {
+            "type": "boolean",
+            "title": "Allowed"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "teen_social_unavailable",
+                  "social_not_enabled",
+                  "social_restricted",
+                  "history_unavailable",
+                  "ai_unavailable"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "allowed"
+        ],
+        "title": "Eligibility"
+      },
       "EligibilityInput": {
         "properties": {
           "expectedVersion": {
@@ -16263,6 +16817,11 @@
           "feedback": {
             "type": "boolean",
             "title": "Feedback",
+            "default": false
+          },
+          "proactive": {
+            "type": "boolean",
+            "title": "Proactive",
             "default": false
           }
         },
@@ -17817,6 +18376,165 @@
         ],
         "title": "PreviewView"
       },
+      "ProactiveLimits": {
+        "properties": {
+          "dailyCap": {
+            "type": "integer",
+            "title": "Dailycap"
+          },
+          "enabledSlots": {
+            "type": "integer",
+            "title": "Enabledslots"
+          },
+          "windows": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Windows"
+          },
+          "stepMinutes": {
+            "type": "integer",
+            "title": "Stepminutes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "dailyCap",
+          "enabledSlots",
+          "windows",
+          "stepMinutes"
+        ],
+        "title": "ProactiveLimits"
+      },
+      "ProactiveSettingsInput": {
+        "properties": {
+          "timezone": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Timezone"
+          },
+          "quietStart": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "Quietstart"
+          },
+          "quietEnd": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "Quietend"
+          },
+          "badgesEnabled": {
+            "type": "boolean",
+            "title": "Badgesenabled"
+          },
+          "journalContextEnabled": {
+            "type": "boolean",
+            "title": "Journalcontextenabled"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expectedversion"
+          },
+          "policyVersion": {
+            "type": "string",
+            "const": "proactive-v1",
+            "title": "Policyversion"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "timezone",
+          "quietStart",
+          "quietEnd",
+          "badgesEnabled",
+          "journalContextEnabled",
+          "expectedVersion",
+          "policyVersion"
+        ],
+        "title": "ProactiveSettingsInput"
+      },
+      "ProactiveSettingsView": {
+        "properties": {
+          "timezone": {
+            "type": "string",
+            "title": "Timezone"
+          },
+          "quietStart": {
+            "type": "string",
+            "title": "Quietstart"
+          },
+          "quietEnd": {
+            "type": "string",
+            "title": "Quietend"
+          },
+          "badgesEnabled": {
+            "type": "boolean",
+            "title": "Badgesenabled"
+          },
+          "journalContextEnabled": {
+            "type": "boolean",
+            "title": "Journalcontextenabled"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "policyVersion": {
+            "type": "string",
+            "title": "Policyversion"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "timezone",
+          "quietStart",
+          "quietEnd",
+          "badgesEnabled",
+          "journalContextEnabled",
+          "version",
+          "policyVersion"
+        ],
+        "title": "ProactiveSettingsView"
+      },
+      "ProactiveView": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ProactiveSettingsView"
+          },
+          "schedules": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduleView"
+            },
+            "type": "array",
+            "title": "Schedules"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/ProactiveLimits"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "available",
+          "settings",
+          "schedules",
+          "limits"
+        ],
+        "title": "ProactiveView"
+      },
       "ProgressView": {
         "properties": {
           "round": {
@@ -18512,6 +19230,140 @@
           "expiresAt"
         ],
         "title": "RevealView"
+      },
+      "ScheduleInput": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "localTime": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "Localtime"
+          },
+          "weekdays": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "maxItems": 7,
+            "minItems": 1,
+            "title": "Weekdays"
+          },
+          "pausedUntil": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pauseduntil"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expectedversion"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "enabled",
+          "localTime",
+          "weekdays",
+          "expectedVersion"
+        ],
+        "title": "ScheduleInput"
+      },
+      "ScheduleView": {
+        "properties": {
+          "botId": {
+            "type": "string",
+            "enum": [
+              "may",
+              "guong",
+              "nhip",
+              "rure",
+              "caunoi"
+            ],
+            "title": "Botid"
+          },
+          "slot": {
+            "type": "string",
+            "enum": [
+              "morning",
+              "evening"
+            ],
+            "title": "Slot"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "localTime": {
+            "type": "string",
+            "title": "Localtime"
+          },
+          "weekdays": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Weekdays"
+          },
+          "pausedUntil": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pauseduntil"
+          },
+          "autoPaused": {
+            "type": "boolean",
+            "title": "Autopaused",
+            "default": false
+          },
+          "nextDeliveryAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextdeliveryat"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "eligibility": {
+            "$ref": "#/components/schemas/Eligibility"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "botId",
+          "slot",
+          "enabled",
+          "localTime",
+          "weekdays",
+          "version",
+          "eligibility"
+        ],
+        "title": "ScheduleView"
       },
       "ScoreView": {
         "properties": {

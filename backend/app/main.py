@@ -367,6 +367,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     from app.ai.chat_routes import router as ai
     from app.ai.memory import router as memory
+    from app.ai.proactive.routes import router as proactive
     from app.modules.activities.routes import router as activities
     from app.modules.auth.routes import router as auth
     from app.modules.consent.routes import router as consent
@@ -396,6 +397,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         journal,
         journal_media,
         ai,
+        proactive,
         memory,
         social,
         social_summary,
