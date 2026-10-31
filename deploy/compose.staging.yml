@@ -27,6 +27,41 @@ services:
       options: {max-size: 10m, max-file: '3'}
     networks: [internal]
 
+  # Scheduled check-ins (96 HD-01): same image as api, separate process and limits. It idles
+  # (heartbeat only) until PROACTIVE_WORKER_ENABLED=true in its env file; the API never runs it.
+  proactive:
+    image: ${API_IMAGE:?Set an immutable API image digest}
+    command: [/srv/moodprint/.venv/bin/python, -m, app.jobs.proactive]
+    env_file:
+      - ${API_ENV_FILE:?Set the path to the root-owned runtime env file}
+    environment:
+      RELEASE_SHA: ${RELEASE_SHA:-unknown}
+      # HD-02: 2 + 0 keeps API (5+2)x2 + worker 2 = 16 of moodprint_backend's 20 connections.
+      DATABASE_POOL_SIZE: ${PROACTIVE_DATABASE_POOL_SIZE:-2}
+      DATABASE_POOL_OVERFLOW: '0'
+      PROACTIVE_WORKER_ENABLED: ${PROACTIVE_WORKER_ENABLED:-false}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 384m
+    cpus: 0.5
+    # An interrupted job keeps its lease and is reclaimed after 90 s; nothing half-commits.
+    stop_grace_period: 100s
+    healthcheck:
+      test: [CMD, /srv/moodprint/.venv/bin/python, -m, app.jobs.proactive, --health]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+    networks: [internal]
+
   web:
     image: ${WEB_IMAGE:?Set an immutable web image digest}
     environment:
