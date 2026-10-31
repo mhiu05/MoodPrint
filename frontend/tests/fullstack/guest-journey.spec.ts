@@ -15,7 +15,7 @@ test("end and register opens signup after one confirmed HTTP end", async ({ brow
     await page.getByRole('dialog').getByRole('button', { name: 'Kết thúc và tạo tài khoản' }).click();
     expect((await response).status()).toBe(204);
     await expect(page.getByLabel('Nhập lại mật khẩu', { exact: true })).toBeVisible();
-    await expect(page).toHaveURL(/#\/login\?mode=signup$/);
+    await expect(page).toHaveURL(/\/login\?mode=signup$/);
     await expect(page.getByTestId('guest-status')).toHaveCount(0);
     expect((await context.request.get(api + '/session')).status()).toBe(401);
     expect((await context.cookies()).some(c => c.name === 'moodprint_session')).toBe(false);
