@@ -173,10 +173,59 @@ class AIRunAccepted(DTO):
 
 
 class AIEvent(DTO):
-    version: Literal["ai-events-v1"] = "ai-events-v1"
+    version: Literal["ai-events-v1", "ai-events-v2"] = "ai-events-v1"
     seq: str = Field(pattern=r"^[1-9][0-9]*$")
     type: Literal["progress", "final", "completed", "failed", "cancelled"]
     data: dict
+
+
+class AIReplyBubble(DTO):
+    """One validated bubble of an ai-events-v2 final event."""
+
+    message_id: UUID
+    part_index: int = Field(ge=0, le=MAX_BUBBLES - 1)
+    text: str
+    cards: list[Card] = Field(default_factory=list, max_length=3)
+
+
+class AIFinalV2(DTO):
+    """ai-events-v2 final data; v1 receives the bubbles joined as {text, cards}."""
+
+    part_count: int = Field(ge=1, le=MAX_BUBBLES)
+    messages: list[AIReplyBubble] = Field(min_length=1, max_length=MAX_BUBBLES)
+
+
+def final_v2(bubbles: list[tuple[UUID, str, list]]) -> dict:
+    """Normalized final payload from (message id, text, JSON cards) in part order."""
+    return AIFinalV2(
+        part_count=len(bubbles),
+        messages=[
+            AIReplyBubble(message_id=identity, part_index=index, text=text, cards=cards)
+            for index, (identity, text, cards) in enumerate(bubbles)
+        ],
+    ).model_dump(mode="json", by_alias=True)
+
+
+def as_protocol(event: AIEvent, protocol: int, final: dict | None = None) -> AIEvent:
+    """Render one stored event for the requested SSE protocol (default v1).
+
+    ``final`` is the v2 final data of a live (temporary) run whose stored event is v1.
+    """
+    if protocol == 2:
+        update: dict = {"version": "ai-events-v2"}
+        if event.type == "final" and "messages" not in event.data:
+            if final is None:
+                raise ValueError("v2 final requires its bubbles")
+            update["data"] = final
+        return event.model_copy(update=update)
+    if event.type == "final" and "messages" in event.data:
+        messages = event.data["messages"]
+        joined = {
+            "text": "\n\n".join(message["text"] for message in messages),
+            "cards": [card for message in messages for card in message["cards"]],
+        }
+        return event.model_copy(update={"data": joined})
+    return event
 
 
 class ProposalConfirm(VersionInput):

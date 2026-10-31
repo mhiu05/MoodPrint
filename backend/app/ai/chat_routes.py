@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from contextlib import ExitStack
 from datetime import timedelta
 from uuid import UUID, uuid4
@@ -519,12 +520,16 @@ async def durable_run(request, actor, run_id, *, poll=False, recover=True):
             raise DomainError(404, "NOT_FOUND", "Không tìm thấy cuộc trò chuyện.")
         if user.data_version != turn.data_version:
             raise DomainError(410, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
-        answer = await db.scalar(
-            select(AiMessageRecord).where(
-                AiMessageRecord.run_id == run_id, AiMessageRecord.actor == "bot"
+        # Every bubble of the run, in order; a replay never shows a partial reply because
+        # all parts commit together with the run's completed state.
+        answers = (
+            await db.scalars(
+                select(AiMessageRecord)
+                .where(AiMessageRecord.run_id == run_id, AiMessageRecord.actor == "bot")
+                .order_by(AiMessageRecord.part_index)
             )
-        )
-        return row, turn, answer
+        ).all()
+        return row, turn, answers
 
 
 async def authorized_run(request, actor, run_id, *, poll=False):
@@ -552,9 +557,10 @@ async def events(
     run_id: UUID,
     request: Request,
     after_seq: int = Query(0, alias="afterSeq", ge=0),
+    protocol: int = Query(1, ge=1, le=2),
     actor: Actor = Depends(require_actor),
 ):
-    from app.ai.schemas import AIEvent
+    from app.ai.schemas import AIEvent, as_protocol, final_v2
 
     runtime = request.app.state.ai
     release = runtime.streams.reserve(actor.user_id)
@@ -577,6 +583,7 @@ async def events(
             or (persistent and after_seq > 3)
         ):
             raise DomainError(409, "CURSOR_GAP", "Hãy tải lại cuộc trò chuyện.")
+        logging.getLogger("moodprint").info("metric=ai_events_protocol value=v%d", protocol)
     except BaseException:
         release()
         raise
@@ -595,6 +602,7 @@ async def events(
         return deadline is not None and deadline.remaining() <= 0
 
     async def poll(cursor, tick):
+        live_final = None
         while not await request.is_disconnected():
             tick += 1
             if past_deadline():
@@ -603,16 +611,16 @@ async def events(
             try:
                 # lock_actor in the polling read re-verifies the session each tick.
                 if persistent:
-                    row, turn, answer = await durable_run(
+                    row, turn, answers = await durable_run(
                         request, actor, run_id, poll=True, recover=tick % 8 == 1
                     )
                     data = [AIEvent(seq="1", type="progress", data={})]
-                    if row.status == "completed" and answer is not None:
+                    if row.status == "completed" and answers:
                         data += [
                             AIEvent(
                                 seq="2",
                                 type="final",
-                                data={"text": answer.text, "cards": answer.cards},
+                                data=final_v2([(m.id, m.text, m.cards) for m in answers]),
                             ),
                             AIEvent(seq="3", type="completed", data={}),
                         ]
@@ -632,7 +640,7 @@ async def events(
                     terminal = row.status != "running"
                 else:
                     run = await authorized_run(request, actor, run_id, poll=True)
-                    data, terminal = run.events, run.terminal
+                    data, terminal, live_final = run.events, run.terminal, run.final_v2
             except DomainError:
                 yield REVOKED_EVENT.decode()
                 return
@@ -641,7 +649,7 @@ async def events(
                     # Each event (buffered or replayed, including the final) is judged on its own.
                     yield REVOKED_EVENT.decode()
                     return
-                event = data[cursor]
+                event = as_protocol(data[cursor], protocol, None if persistent else live_final)
                 cursor += 1
                 yield f"id: {event.seq}\nevent: {event.type}\ndata: {event.model_dump_json(by_alias=True)}\n\n"
             if terminal:

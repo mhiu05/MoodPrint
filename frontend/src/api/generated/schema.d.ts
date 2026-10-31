@@ -3574,9 +3574,9 @@ export interface components {
             /**
              * Version
              * @default ai-events-v1
-             * @constant
+             * @enum {string}
              */
-            version: "ai-events-v1";
+            version: "ai-events-v1" | "ai-events-v2";
             /** Seq */
             seq: string;
             /**
@@ -3595,6 +3595,33 @@ export interface components {
             text: string;
             /** Cards */
             cards?: (components["schemas"]["NavigateCard"] | components["schemas"]["MoodCard"] | components["schemas"]["DiscoveryCard"])[];
+        };
+        /**
+         * AIReplyBubble
+         * @description One validated bubble of an ai-events-v2 final event.
+         */
+        AIReplyBubble: {
+            /**
+             * Messageid
+             * Format: uuid
+             */
+            messageId: string;
+            /** Partindex */
+            partIndex: number;
+            /** Text */
+            text: string;
+            /** Cards */
+            cards?: (components["schemas"]["NavigateCard"] | components["schemas"]["MoodCard"] | components["schemas"]["DiscoveryCard"])[];
+        };
+        /**
+         * AIFinalV2
+         * @description ai-events-v2 final data; v1 receives the bubbles joined as {text, cards}.
+         */
+        AIFinalV2: {
+            /** Partcount */
+            partCount: number;
+            /** Messages */
+            messages: components["schemas"]["AIReplyBubble"][];
         };
     };
     responses: never;
@@ -8220,6 +8247,7 @@ export interface operations {
         parameters: {
             query?: {
                 afterSeq?: number;
+                protocol?: number;
             };
             header?: never;
             path: {

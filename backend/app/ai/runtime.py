@@ -35,7 +35,7 @@ from app.ai.journal import (
 from app.ai.models import AiMessageRecord
 from app.ai.persistence import current_turn, owned_conversation
 from app.ai.prompts import SELECTED_VARIANTS, prompt_version
-from app.ai.schemas import AIEvent, AIMessage, AiReply, MoodReadScope
+from app.ai.schemas import AIEvent, AIMessage, AiReply, MoodReadScope, final_v2
 from app.ai.store import ConversationStore
 from app.ai.usage import UsageEvent
 from app.core.errors import DomainError
@@ -55,6 +55,8 @@ class LiveRun:
     id: UUID
     mood_scope: MoodReadScope | None = None
     events: list[AIEvent] = field(default_factory=list)
+    # ai-events-v2 final data (ordered bubbles with ids); None until the run completes.
+    final_v2: dict | None = None
     wake: asyncio.Event = field(default_factory=asyncio.Event)
     task: asyncio.Task | None = None
     terminal: bool = False
@@ -145,6 +147,7 @@ class AiRuntime:
             if run.conversation_id not in self.store.conversations:
                 self.request_cancel(run)
                 run.events.clear()
+                run.final_v2 = None
                 del self.runs[identity]
         for identity, proposal in list(self.proposals.items()):
             if proposal.expires_at <= time.monotonic():
@@ -357,6 +360,7 @@ class AiRuntime:
             await asyncio.gather(*self.finalizers, return_exceptions=True)
         for run in (*self.runs.values(), *self.pending_terminal.values()):
             run.events.clear()
+            run.final_v2 = None
         self.runs.clear()
         self.store.clear()
         self.proposals.clear()
@@ -566,6 +570,7 @@ class AiRuntime:
         for identity, run in list(self.runs.items()):
             if str(run.actor.user_id) == uid:
                 run.events.clear()
+                run.final_v2 = None
                 run.mood_evidence = None
                 run.journal_evidence = None
                 run.sources.clear()
@@ -739,6 +744,11 @@ class AiRuntime:
                 )
                 c.version += len(parts)
                 logging.getLogger("moodprint").info("metric=ai_reply_parts value=%d", len(parts))
+                # The stored event keeps the v1 shape (joined); v2 streams read the ordered bubbles.
+                run.final_v2 = final_v2([
+                    (identity, part.text, [card.model_dump(mode="json", by_alias=True) for card in part.cards])
+                    for identity, part in zip(identities, parts, strict=True)
+                ])
                 self.event(run, "final", reply.joined().model_dump(mode="json", by_alias=True))
                 self.event(run, "completed", {})
                 status = "completed"

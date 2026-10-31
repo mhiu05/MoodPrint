@@ -5804,6 +5804,18 @@
               "default": 0,
               "title": "Afterseq"
             }
+          },
+          {
+            "name": "protocol",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 2,
+              "minimum": 1,
+              "default": 1,
+              "title": "Protocol"
+            }
           }
         ],
         "responses": {
@@ -19209,8 +19221,11 @@
         "additionalProperties": false,
         "properties": {
           "version": {
-            "const": "ai-events-v1",
             "default": "ai-events-v1",
+            "enum": [
+              "ai-events-v1",
+              "ai-events-v2"
+            ],
             "title": "Version",
             "type": "string"
           },
@@ -19284,6 +19299,87 @@
           "text"
         ],
         "title": "AiOutput",
+        "type": "object"
+      },
+      "AIReplyBubble": {
+        "additionalProperties": false,
+        "description": "One validated bubble of an ai-events-v2 final event.",
+        "properties": {
+          "messageId": {
+            "format": "uuid",
+            "title": "Messageid",
+            "type": "string"
+          },
+          "partIndex": {
+            "maximum": 3,
+            "minimum": 0,
+            "title": "Partindex",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "cards": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "discovery": "#/components/schemas/DiscoveryCard",
+                  "mood_form": "#/components/schemas/MoodCard",
+                  "navigate_bot": "#/components/schemas/NavigateCard"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/NavigateCard"
+                },
+                {
+                  "$ref": "#/components/schemas/MoodCard"
+                },
+                {
+                  "$ref": "#/components/schemas/DiscoveryCard"
+                }
+              ]
+            },
+            "maxItems": 3,
+            "title": "Cards",
+            "type": "array"
+          }
+        },
+        "required": [
+          "messageId",
+          "partIndex",
+          "text"
+        ],
+        "title": "AIReplyBubble",
+        "type": "object"
+      },
+      "AIFinalV2": {
+        "additionalProperties": false,
+        "description": "ai-events-v2 final data; v1 receives the bubbles joined as {text, cards}.",
+        "properties": {
+          "partCount": {
+            "maximum": 4,
+            "minimum": 1,
+            "title": "Partcount",
+            "type": "integer"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/AIReplyBubble"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Messages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "partCount",
+          "messages"
+        ],
+        "title": "AIFinalV2",
         "type": "object"
       }
     }
