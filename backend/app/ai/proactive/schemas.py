@@ -2,6 +2,7 @@
 
 from datetime import date, datetime
 from typing import Annotated, Literal
+from uuid import UUID
 
 from pydantic import Field, field_validator
 
@@ -84,3 +85,34 @@ class ScheduleInput(DTO):
         if len(set(value)) != len(value) or any(day not in range(1, 8) for day in value):
             raise ValueError("weekdays must be distinct ISO weekdays 1..7")
         return sorted(value)
+
+
+class InboxLatest(DTO):
+    conversation_id: UUID
+    run_id: UUID
+    slot: Slot
+    delivered_at: datetime
+    first_sequence: int
+
+
+class InboxBot(DTO):
+    bot_id: BotId
+    unread: int
+    latest: InboxLatest
+
+
+class InboxView(DTO):
+    """Counts and navigation only; never message text or a preview."""
+
+    badges_enabled: bool = False
+    unread_total: int = 0
+    bots: list[InboxBot] = Field(default_factory=list)
+
+
+class ReadInput(DTO):
+    last_read_sequence: int = Field(ge=0, le=1_000_000)
+
+
+class ReadView(DTO):
+    conversation_id: UUID
+    last_read_sequence: int

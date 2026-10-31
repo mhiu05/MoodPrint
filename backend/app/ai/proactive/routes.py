@@ -4,11 +4,16 @@ from datetime import time, timedelta
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Request
-from sqlalchemy import select, update
+from sqlalchemy import and_, exists, func, select, update
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import aliased
 
+from app.ai.models import AiConversation, AiMessageRecord
+from app.ai.persistence import owned_conversation
 from app.ai.proactive import schedule as math
 from app.ai.proactive.models import (
     POLICY_VERSION,
+    AiConversationRead,
     AiProactiveJob,
     AiProactiveSchedule,
     AiProactiveSettings,
@@ -16,10 +21,15 @@ from app.ai.proactive.models import (
 from app.ai.proactive.policy import available, eligibility_reason, match_enabled
 from app.ai.proactive.schemas import (
     Eligibility,
+    InboxBot,
+    InboxLatest,
+    InboxView,
     ProactiveLimits,
     ProactiveSettingsInput,
     ProactiveSettingsView,
     ProactiveView,
+    ReadInput,
+    ReadView,
     ScheduleInput,
     ScheduleView,
     Slot,
@@ -30,6 +40,7 @@ from app.core.security import (
     Actor,
     idempotency_key,
     previous_receipt,
+    require_actor,
     require_registered_actor,
     save_receipt,
     transaction,
@@ -340,3 +351,127 @@ async def save_settings(
         request.app.state.ai.invalidate(str(actor.user_id))
     return result
 
+
+
+def _unread_runs(user_id: UUID):
+    """Unread check-ins: one row per delivered run (phase-1/05 §2.5)."""
+    window = now() - timedelta(days=30)
+    runs = select(AiRun.id).where(
+        AiRun.user_id == user_id, AiRun.origin == "proactive", AiRun.status == "completed",
+        AiRun.created_at > window,
+    )
+    parts = (
+        select(
+            AiMessageRecord.run_id,
+            AiMessageRecord.conversation_id,
+            func.min(AiMessageRecord.sequence).label("first"),
+            func.max(AiMessageRecord.created_at).label("delivered"),
+        )
+        .where(AiMessageRecord.actor == "bot", AiMessageRecord.run_id.in_(runs))
+        .group_by(AiMessageRecord.run_id, AiMessageRecord.conversation_id)
+        .subquery()
+    )
+    replied = aliased(AiMessageRecord)
+    return (
+        select(AiRun.bot_id, AiRun.id.label("run_id"), parts.c.conversation_id,
+               AiRun.proactive_slot.label("slot"), parts.c.first, parts.c.delivered)
+        .join(parts, parts.c.run_id == AiRun.id)
+        # Owner equality on columns (not a constant) keeps this a primary-key join.
+        .join(AiConversation, and_(AiConversation.id == parts.c.conversation_id,
+                                   AiConversation.user_id == AiRun.user_id))
+        .outerjoin(AiConversationRead, AiConversationRead.conversation_id == AiConversation.id)
+        .where(
+            AiConversation.expires_at > now(),
+            parts.c.first > func.coalesce(AiConversationRead.last_read_sequence, 0),
+            # Replying after a check-in means it was seen, even before the marker moved.
+            ~exists().where(
+                replied.conversation_id == parts.c.conversation_id,
+                replied.actor == "self",
+                replied.sequence > parts.c.first,
+            ),
+        )
+    )
+
+
+async def inbox_rows(db, user_id: UUID) -> list:
+    """Per companion: unread count and the newest unread delivery (at most five rows)."""
+    unread = _unread_runs(user_id).subquery()
+    ranked = select(
+        unread,
+        func.count().over(partition_by=unread.c.bot_id).label("unread"),
+        func.row_number().over(
+            partition_by=unread.c.bot_id, order_by=(unread.c.delivered.desc(), unread.c.run_id.desc())
+        ).label("rank"),
+    ).subquery()
+    statement = (
+        select(ranked.c.bot_id, ranked.c.run_id, ranked.c.conversation_id, ranked.c.slot,
+               ranked.c.first, ranked.c.delivered, ranked.c.unread)
+        .where(ranked.c.rank == 1)
+        .order_by(ranked.c.delivered.desc())
+    )
+    return list((await db.execute(statement)).all())
+
+
+def _inbox(rows, badges: bool) -> InboxView:
+    bots = [
+        InboxBot(
+            bot_id=bot_id, unread=count,
+            latest=InboxLatest(conversation_id=conversation_id, run_id=run_id, slot=slot,
+                               delivered_at=delivered_at, first_sequence=first),
+        )
+        for bot_id, run_id, conversation_id, slot, first, delivered_at, count in rows
+    ]
+    return InboxView(badges_enabled=badges, unread_total=sum(bot.unread for bot in bots), bots=bots)
+
+
+async def _inbox_for(request: Request, db, user: User) -> InboxView:
+    if user.account_kind != "registered" or not request.app.state.settings.proactive_open_for(user.id):
+        return InboxView()
+    prefs = await db.get(AiProactiveSettings, user.id)
+    return _inbox(await inbox_rows(db, user.id), prefs.badges_enabled if prefs else True)
+
+
+@router.get("/ai/inbox", response_model=InboxView)
+async def inbox(request: Request, actor: Actor = Depends(require_actor)):
+    # Polled every 30 s per visible tab: never takes the account row lock.
+    async with transaction(request, actor, lock=False) as (db, user):
+        return await _inbox_for(request, db, user)
+
+
+async def _mark(db, user_id: UUID, conversation: AiConversation, sequence: int) -> int:
+    target = min(sequence, conversation.version)
+    # Monotonic: a stale tab or replayed request can never move the marker back.
+    statement = insert(AiConversationRead).values(
+        conversation_id=conversation.id, user_id=user_id, last_read_sequence=target, updated_at=now()
+    ).on_conflict_do_update(
+        index_elements=["conversation_id"],
+        set_={
+            "last_read_sequence": func.greatest(AiConversationRead.last_read_sequence, target),
+            "updated_at": now(),
+        },
+    ).returning(AiConversationRead.last_read_sequence)
+    return int((await db.execute(statement)).scalar_one())
+
+
+@router.put("/ai/conversations/{conversation_id}/read", response_model=ReadView)
+async def mark_read(
+    conversation_id: UUID, body: ReadInput, request: Request, actor: Actor = Depends(require_actor)
+):
+    async with transaction(request, actor) as (db, user):
+        conversation = await owned_conversation(db, conversation_id, user.id, lock=True)
+        if conversation is None:
+            raise DomainError(404, "NOT_FOUND", "Không tìm thấy cuộc trò chuyện.")
+        marked = await _mark(db, user.id, conversation, body.last_read_sequence)
+        return ReadView(conversation_id=conversation.id, last_read_sequence=marked)
+
+
+@router.post("/ai/inbox/read-all", response_model=InboxView)
+async def read_all(request: Request, actor: Actor = Depends(require_actor)):
+    async with transaction(request, actor) as (db, user):
+        unread = _unread_runs(user.id).subquery()
+        ids = (await db.scalars(select(unread.c.conversation_id).distinct())).all()
+        for conversation_id in ids:
+            conversation = await owned_conversation(db, conversation_id, user.id, lock=True)
+            if conversation is not None:
+                await _mark(db, user.id, conversation, conversation.version)
+        return await _inbox_for(request, db, user)

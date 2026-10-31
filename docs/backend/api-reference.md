@@ -33,8 +33,11 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 | DELETE | `/api/v1/ai/conversations/{conversation_id}` | `delete_conversation_api_v1_ai_conversations__conversation_id__delete` |
 | POST | `/api/v1/ai/conversations/{conversation_id}/end` | `end_api_v1_ai_conversations__conversation_id__end_post` |
 | GET | `/api/v1/ai/conversations/{conversation_id}/export` | `export_conversation_api_v1_ai_conversations__conversation_id__export_get` |
+| PUT | `/api/v1/ai/conversations/{conversation_id}/read` | `mark_read_api_v1_ai_conversations__conversation_id__read_put` |
 | POST | `/api/v1/ai/conversations/{conversation_id}/messages` | `send_api_v1_ai_conversations__conversation_id__messages_post` |
 | GET | `/api/v1/ai/preferences` | `preferences_api_v1_ai_preferences_get` |
+| GET | `/api/v1/ai/inbox` | `inbox_api_v1_ai_inbox_get` |
+| POST | `/api/v1/ai/inbox/read-all` | `read_all_api_v1_ai_inbox_read_all_post` |
 | PUT | `/api/v1/ai/preferences` | `update_preferences_api_v1_ai_preferences_put` |
 | GET | `/api/v1/ai/proactive` | `proactive_api_v1_ai_proactive_get` |
 | PUT | `/api/v1/ai/proactive/schedules/{bot_id}/{slot}` | `save_schedule_api_v1_ai_proactive_schedules__bot_id___slot__put` |
@@ -149,3 +152,6 @@ Chỉ tài khoản đã đăng ký (`require_registered_actor`, guest → `403 R
 | `INVALID_TIMEZONE`, `QUIET_HOURS_INVALID` | 422 | Múi giờ IANA không hợp lệ; giờ yên lặng ngoài 4–12 giờ |
 
 Mọi lần lưu hủy job chưa chạy của lịch liên quan; đổi múi giờ/giờ yên lặng tính lại `nextDeliveryAt` cho mọi lịch; tắt `journalContextEnabled` tăng `journal_context_version` và `users.data_version`, hủy job Nhịp chưa chạy và lượt chat đang chạy.
+
+**Lời nhắn mới (inbox).** `GET /ai/inbox` (không khóa hàng tài khoản, poll 30 s) trả `badgesEnabled`, `unreadTotal` và mỗi trợ lý một dòng `{botId, unread, latest:{conversationId, runId, slot, deliveredAt, firstSequence}}` — **không** có nội dung hay preview. Đếm theo lượt giao (3 bubble = 1), chỉ hội thoại còn hạn, run trong 30 ngày; trả lời sau lời hỏi thăm được tính là đã đọc. Guest, cờ tắt hoặc ngoài nhóm rollout → `{badgesEnabled:false, unreadTotal:0, bots:[]}`. `PUT /ai/conversations/{id}/read` `{lastReadSequence}` upsert đơn điệu (`GREATEST`), cắt về `conversation.version`, hội thoại người khác → 404. `POST /ai/inbox/read-all` đánh dấu mọi hội thoại có lời nhắn mới và trả lại inbox.
+

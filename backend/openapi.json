@@ -6796,6 +6796,352 @@
         }
       }
     },
+    "/api/v1/ai/inbox": {
+      "get": {
+        "summary": "Inbox",
+        "operationId": "inbox_api_v1_ai_inbox_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/conversations/{conversation_id}/read": {
+      "put": {
+        "summary": "Mark Read",
+        "operationId": "mark_read_api_v1_ai_conversations__conversation_id__read_put",
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/app__ai__proactive__schemas__ReadInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__ai__proactive__schemas__ReadView"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/ai/inbox/read-all": {
+      "post": {
+        "summary": "Read All",
+        "operationId": "read_all_api_v1_ai_inbox_read_all_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/memories": {
       "get": {
         "summary": "Memories",
@@ -9198,7 +9544,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ReadInput"
+                "$ref": "#/components/schemas/app__modules__social__schemas__ReadInput"
               }
             }
           }
@@ -9209,7 +9555,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReadView"
+                  "$ref": "#/components/schemas/app__modules__social__schemas__ReadView"
                 }
               }
             }
@@ -17340,6 +17686,102 @@
         ],
         "title": "IdentityView"
       },
+      "InboxBot": {
+        "properties": {
+          "botId": {
+            "type": "string",
+            "enum": [
+              "may",
+              "guong",
+              "nhip",
+              "rure",
+              "caunoi"
+            ],
+            "title": "Botid"
+          },
+          "unread": {
+            "type": "integer",
+            "title": "Unread"
+          },
+          "latest": {
+            "$ref": "#/components/schemas/InboxLatest"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "botId",
+          "unread",
+          "latest"
+        ],
+        "title": "InboxBot"
+      },
+      "InboxLatest": {
+        "properties": {
+          "conversationId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Conversationid"
+          },
+          "runId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Runid"
+          },
+          "slot": {
+            "type": "string",
+            "enum": [
+              "morning",
+              "evening"
+            ],
+            "title": "Slot"
+          },
+          "deliveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Deliveredat"
+          },
+          "firstSequence": {
+            "type": "integer",
+            "title": "Firstsequence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "conversationId",
+          "runId",
+          "slot",
+          "deliveredAt",
+          "firstSequence"
+        ],
+        "title": "InboxLatest"
+      },
+      "InboxView": {
+        "properties": {
+          "badgesEnabled": {
+            "type": "boolean",
+            "title": "Badgesenabled",
+            "default": false
+          },
+          "unreadTotal": {
+            "type": "integer",
+            "title": "Unreadtotal",
+            "default": 0
+          },
+          "bots": {
+            "items": {
+              "$ref": "#/components/schemas/InboxBot"
+            },
+            "type": "array",
+            "title": "Bots"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "InboxView",
+        "description": "Counts and navigation only; never message text or a preview."
+      },
       "InviteInput": {
         "properties": {
           "kind": {
@@ -18825,35 +19267,6 @@
         ],
         "title": "PublishedView"
       },
-      "ReadInput": {
-        "properties": {
-          "seq": {
-            "type": "string",
-            "pattern": "^\\d{1,19}$",
-            "title": "Seq"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "seq"
-        ],
-        "title": "ReadInput"
-      },
-      "ReadView": {
-        "properties": {
-          "lastReadSeq": {
-            "type": "string",
-            "title": "Lastreadseq"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "lastReadSeq"
-        ],
-        "title": "ReadView"
-      },
       "ReadyInput": {
         "properties": {
           "expectedVersion": {
@@ -19984,6 +20397,42 @@
         ],
         "title": "VersionInput"
       },
+      "app__ai__proactive__schemas__ReadInput": {
+        "properties": {
+          "lastReadSequence": {
+            "type": "integer",
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Lastreadsequence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "lastReadSequence"
+        ],
+        "title": "ReadInput"
+      },
+      "app__ai__proactive__schemas__ReadView": {
+        "properties": {
+          "conversationId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Conversationid"
+          },
+          "lastReadSequence": {
+            "type": "integer",
+            "title": "Lastreadsequence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "conversationId",
+          "lastReadSequence"
+        ],
+        "title": "ReadView"
+      },
       "app__modules__activities__schemas__FeedbackInput": {
         "properties": {
           "rating": {
@@ -20068,6 +20517,35 @@
         ],
         "title": "FeedbackInput",
         "description": "A required 1-5 rating; categories, comment and context are optional and never identifying."
+      },
+      "app__modules__social__schemas__ReadInput": {
+        "properties": {
+          "seq": {
+            "type": "string",
+            "pattern": "^\\d{1,19}$",
+            "title": "Seq"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "seq"
+        ],
+        "title": "ReadInput"
+      },
+      "app__modules__social__schemas__ReadView": {
+        "properties": {
+          "lastReadSeq": {
+            "type": "string",
+            "title": "Lastreadseq"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "lastReadSeq"
+        ],
+        "title": "ReadView"
       },
       "AIEvent": {
         "additionalProperties": false,
