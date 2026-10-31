@@ -8,7 +8,7 @@ Mỗi ADR có trạng thái **Đề xuất (mặc định đã chọn)** trừ k
 | ADR-02 | Version/sequence | Giữ bất biến `version == max(sequence)`; mỗi bubble chiếm một sequence |
 | ADR-03 | Tiến hóa SSE | Thêm `ai-events-v2` theo `?protocol=2`; v1 vẫn phục vụ client cũ bằng bản ghép |
 | ADR-04 | Danh tính run chủ động | Principal hệ thống `proactive_schedule`; `ai_runs.origin='proactive'`; không có session, không có tin nhắn giả của người dùng |
-| ADR-05 | Scheduler | Worker durable **trong process API** (lifespan), hàng đợi bảng PostgreSQL; không pg_cron/pgmq ở Phase 1 |
+| ADR-05 | Scheduler | ~~Worker trong process API~~ → service Compose riêng `proactive` ([96 HD-01](96-architecture-hardening-review.md#2-quyết-định-kiến-trúc-thay-đổi-so-với-bộ-kế-hoạch)), hàng đợi bảng PostgreSQL; không pg_cron/pgmq ở Phase 1 |
 | ADR-06 | Job queue & claim | `ai_proactive_jobs` lease + `SKIP LOCKED` + unique `(user, bot, slot, local_date)` |
 | ADR-07 | Vị trí tin chủ động | Ghép vào hội thoại đã lưu gần nhất của bot nếu đủ điều kiện, nếu không tạo hội thoại mới |
 | ADR-08 | Context policy cho tin chủ động | `proactive-text-v1` / `proactive-journal-v1`; tin journal chỉ vào context sau khi **revalidate provenance** |
@@ -16,6 +16,7 @@ Mỗi ADR có trạng thái **Đề xuất (mặc định đã chọn)** trừ k
 | ADR-10 | Uỷ quyền liên agent | Ma trận cạnh cố định + quyền chia sẻ opt-in theo cạnh + chỉ trường enum/đã kiểm |
 | ADR-11 | Lưu sự kiện cộng tác | `ai_collaborations` content-free (digest), run con riêng; tóm tắt hiển thị render từ template |
 | ADR-12 | Trạng thái chưa đọc | `ai_conversation_reads.last_read_sequence`; đếm theo **lượt giao** (run), không theo bubble |
+| ADR-13 | OD-01…OD-07 | Owner ủy quyền; giữ mặc định sau khi so sánh phương án (bảng ở cuối tài liệu) |
 
 ---
 
@@ -197,3 +198,22 @@ Mỗi ADR có trạng thái **Đề xuất (mặc định đã chọn)** trừ k
 ## ADR-12 — Trạng thái chưa đọc
 
 **Quyết định.** `ai_conversation_reads(conversation_id, user_id, last_read_sequence)` tăng đơn điệu (`GREATEST`). Unread = số **run proactive đã giao** có bubble đầu `sequence > last_read_sequence` trong hội thoại còn hạn. Một lượt giao 3 bubble = 1 thông báo. Không có preview nội dung ngoài hội thoại. Chi tiết [phase-1/05 §4](phase-1/05-backend-api-and-agent-runtime.md).
+
+## ADR-13 — Quyết định OD-01…OD-07 (owner ủy quyền, 31/10/2026)
+
+**Bối cảnh.** Owner ủy quyền tự quyết OD-01…OD-07 ([94 §4](94-dependencies-risks-and-open-decisions.md)) theo thứ tự ưu tiên: trải nghiệm, độ trễ, độ tin cậy, quyền riêng tư, accessibility, bảo trì, chi phí. Mặc định là điểm xuất phát, không phải ràng buộc.
+
+| ID | Phương án đã cân nhắc | Quyết định | Lý do |
+| --- | --- | --- | --- |
+| OD-01 | (a) hội thoại đã lưu gần nhất còn ≥ 48 h, nếu không tạo mới; (b) luôn tạo mới; (c) một hội thoại "Lời hỏi thăm" cố định | **(a)** | Giống ứng dụng nhắn tin: một luồng liên tục với mỗi trợ lý, danh sách lịch sử không phình thêm 1–4 mục/ngày như (b); người dùng trả lời ngay trong ngữ cảnh. (c) tách lời hỏi thăm khỏi nơi người dùng thật sự trò chuyện. Chống xung đột: hoãn khi hội thoại có run hoặc tin người dùng < 10 phút |
+| OD-02 | Cap 2/4/6; khung rộng hơn (04:00–12:00, 16:00–23:00); bước 5/15/30 phút | **4/ngày; sáng 05:00–11:30, tối 17:00–22:30; bước 15 phút** | 4 = đủ cho sáng + tối của hai trợ lý mà không thành "spam"; khung đã có CHECK trong 0022 (không cần migration); bước 15 phút cho danh sách chọn ngắn (≤ 27 lựa chọn) dễ dùng với screen reader |
+| OD-03 | Chặn hoàn toàn 16–17; cho phép có giới hạn | **Cho phép trừ Cầu Nối; tối ≤ 21:00; giờ yên lặng mặc định 21:30–07:00** | Cầu Nối đã chỉ dành cho adult ([security.py](../../../backend/app/core/security.py) `assert_purpose MATCH`); các trợ lý khác đang phục vụ teen trong chat thường nên chặn lời hỏi thăm không giảm rủi ro mà làm giảm giá trị. Giới hạn buổi tối + lớp prompt `PROACTIVE_TEEN` |
+| OD-04 | Opt-in mặc định tắt; opt-out mặc định bật; không có tính năng | **Opt-in mặc định tắt**, văn bản [phase-1/06 §9](phase-1/06-frontend-ux-and-notifications.md) gắn `policy_version = proactive-v1`; tắt có hiệu lực ngay (tăng `journal_context_version` + `data_version`) | Đọc nhật ký là dữ liệu nhạy cảm nhất; không suy diễn consent. Không mở rộng quyền dữ liệu so với hiện trạng (chat Nhịp đã đọc nhật ký khi người dùng hỏi) |
+| OD-05 | 7/14/30 ngày; auto-pause 2/3/5 lời | **14 ngày không hoạt động → bỏ qua; auto-pause sau 3 lời liên tiếp chưa mở của cùng trợ lý** | 14 ngày đủ cho kỳ nghỉ ngắn mà vẫn ngừng sớm với người đã rời đi; 3 lời = khoảng 1,5–3 ngày, đủ tín hiệu mà không làm phiền. Bật lại một chạm |
+| OD-06 | 30/50/70 % | **50 % `AI_DAILY_BUDGET_USD`** | Chat do người dùng chủ động luôn còn ≥ 50 % ngân sách; cấu hình 0,1–0,9 |
+| OD-07 | Số khẩn cấp theo quốc gia; không số | **Không có số điện thoại** | Múi giờ mặc định `Asia/Bangkok` dùng chung cho VN/TH nên không suy ra quốc gia đáng tin; số sai trong tình huống nguy cấp gây hại hơn không có. Mẫu tin hướng tới người tin cậy ở gần và dịch vụ cấp cứu nơi người dùng đang ở |
+
+**Hệ quả.** Không cần migration mới; mọi giá trị là hằng/cấu hình đã có trong [phase-1/05 §8](phase-1/05-backend-api-and-agent-runtime.md). Không quyết định nào mở rộng quyền đọc dữ liệu nhạy cảm. OD-08…OD-12 giữ nguyên trạng thái (Phase 2 hoặc không cần quyết thêm).
+
+**Rollback.** Đổi hằng/cấu hình; cap và khung giờ hẹp hơn chỉ cần một migration CHECK nhỏ.
+

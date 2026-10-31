@@ -39,7 +39,9 @@
 | R-13 | Số migration bị chiếm bởi nhánh khác | Trung bình | Conflict | Dùng ký hiệu M-P1-A…; gán số khi rebase |
 | R-14 | Hosted bảng mới chưa có trong `docs/supabase/schema.md` → CI fail | Cao nếu quên | CI | Task P1-02 bắt buộc cập nhật |
 
-## 4. Quyết định mở (đã có mặc định, cần owner xác nhận)
+## 4. Quyết định mở
+
+OD-01…OD-07 **đã quyết** ngày 31/10/2026 theo ủy quyền của owner — xem [ADR-13](03-architecture-decisions.md#adr-13--quyết-định-od-01od-07-owner-ủy-quyền-31102026). Các mặc định dưới đây được giữ sau khi so sánh phương án.
 
 | ID | Câu hỏi | Mặc định đề xuất | Nếu khác |
 | --- | --- | --- | --- |
