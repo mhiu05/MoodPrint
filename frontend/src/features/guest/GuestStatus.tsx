@@ -9,11 +9,13 @@ import { WARNING_MS, remainingLabel } from "./guestClock";
  */
 export function GuestStatus({
   remainingMs,
+  aiAvailable,
   aiTurnsRemaining,
   aiTurnsLimit,
   onEnd,
 }: {
   remainingMs: number;
+  aiAvailable: boolean;
   aiTurnsRemaining?: number;
   aiTurnsLimit?: number;
   onEnd?: () => void;
@@ -26,7 +28,7 @@ export function GuestStatus({
   return (
     <div className="guest-status" data-testid="guest-status">
       <p className={cx.footnote}>Đang dùng thử · còn {remainingLabel(remainingMs)}</p>
-      {aiTurnsRemaining != null && aiTurnsLimit != null && aiTurnsRemaining <= 10 ? (
+      {aiAvailable && aiTurnsRemaining != null && aiTurnsLimit != null && aiTurnsRemaining <= 10 ? (
         <p className={cx.footnote} role="status">
           {aiTurnsRemaining === 0
             ? "Bạn đã dùng hết lượt trò chuyện của lượt dùng thử."

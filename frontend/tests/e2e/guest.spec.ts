@@ -180,6 +180,7 @@ test("guest AI quota warning stays hidden while AI is unavailable", async ({ pag
   await openEntry(page);
   await fillEligible(page);
   await submit(page).click();
+  await expect(page.getByTestId("guest-status")).toBeVisible();
   await expect(page.getByText("Bạn đã sử dụng 40/50 lượt trò chuyện trong phiên dùng thử.")).toHaveCount(0);
 });
 

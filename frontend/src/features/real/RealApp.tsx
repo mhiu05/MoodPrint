@@ -600,6 +600,7 @@ function GuestBanner() {
   return (
     <GuestStatus
       remainingMs={guest.remainingMs}
+      aiAvailable={session.features.ai}
       aiTurnsRemaining={session.guestQuota?.aiTurnsRemaining}
       aiTurnsLimit={session.guestQuota?.aiTurnsLimit}
       onEnd={pathname === "/profile" ? undefined : guest.end}
