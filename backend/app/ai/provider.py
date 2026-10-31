@@ -31,13 +31,15 @@ from app.ai.conversation import conversation_intent, requested_presentation
 from app.ai.evidence import MoodAnalysisPlan, render_mood_analysis, source_instructions
 from app.ai.journal import (
     NhipOutput,
+    NhipReply,
     has_journal_link,
     journal_instructions,
     journal_read_refused,
     render_journal_output,
+    render_journal_reply,
 )
 from app.ai.prompts import LEGACY_BOTS, conversation_instructions, instructions
-from app.ai.schemas import AiOutput
+from app.ai.schemas import AiOutput, AiReply, CompanionReply
 from app.ai.usage import UsageEvent, UsageObserver
 from app.core.config import Settings
 from app.core.errors import DomainError
@@ -52,16 +54,25 @@ _DURABLE_CLAIM = re.compile(
 )
 
 
+def output_texts(output: Any) -> list[str]:
+    """Every user-visible text of a single-message or multi-bubble model output."""
+    messages = getattr(output, "messages", None)
+    if messages is not None:
+        return [bubble.text for bubble in messages]
+    return [output.text]
+
+
 @output_guardrail
 async def _no_unreceipted_claim(
-    context: RunContextWrapper[Any], agent: Agent[Any], output: AiOutput
+    context: RunContextWrapper[Any], agent: Agent[Any], output: AiOutput | CompanionReply
 ) -> GuardrailFunctionOutput:
     # No current model-facing tool performs a durable write. This narrow check
-    # catches common unsupported success statements; schema validation separately
-    # rejects forged receipt/action fields. It is not a semantic safety classifier.
+    # catches common unsupported success statements in every bubble; schema
+    # validation separately rejects forged receipt/action fields. It is not a
+    # semantic safety classifier.
     return GuardrailFunctionOutput(
         output_info={"code": "UNRECEIPTED_ACTION_CLAIM"},
-        tripwire_triggered=bool(_DURABLE_CLAIM.search(output.text)),
+        tripwire_triggered=any(_DURABLE_CLAIM.search(text) for text in output_texts(output)),
     )
 
 
@@ -141,7 +152,11 @@ class SdkProvider:
             client, self._client = self._client, None
             await client.close()
 
-    async def run(
+    async def run(self, **kwargs: Any) -> AiOutput:
+        """Legacy single-message view (evals/scripts): bubbles joined as ai-events-v1 sends them."""
+        return (await self.run_reply(**kwargs)).joined()
+
+    async def run_reply(
         self,
         *,
         bot_id: str,
@@ -151,7 +166,7 @@ class SdkProvider:
         on_progress: Callable[[], Awaitable[None]],
         model_override: Model | str | None = None,
         usage_observer: UsageObserver | None = None,
-    ) -> AiOutput:
+    ) -> AiReply:
         if bot_id not in LEGACY_BOTS:
             raise DomainError(404, "BOT_NOT_FOUND", "Không tìm thấy trợ lý.")
         set_tracing_disabled(True)
@@ -187,7 +202,7 @@ class SdkProvider:
         on_progress: Callable[[], Awaitable[None]],
         model: Model,
         observer: UsageObserver,
-    ) -> AiOutput:
+    ) -> AiReply:
         guard = getattr(context, "before_dispatch", None)
         if guard is not None:
             from app.ai.guest_model import GuestGuardedModel
@@ -204,12 +219,21 @@ class SdkProvider:
             context.journal_read_allowed = journal_allowed
         selected_tools: list[Tool] = [tool for tool in tools if (analytical or tool.name != 'read_mood_summary') and (journal_allowed or tool.name != 'search_journal_entries')]
         runtime_guidance = conversation_instructions(bot_id, intent) if runtime_context else ''
+        # Flag off: byte-identical single-message contract. Scoped mood analysis is always
+        # rendered by the backend as one message.
+        multi = self.settings.ai_multi_message_enabled and not scoped_mood
+        output_type: type = (
+            MoodAnalysisPlan if scoped_mood
+            else (NhipReply if multi else NhipOutput) if journal_mode
+            else CompanionReply if multi
+            else AiOutput
+        )
         agent = Agent[Any](
             name=f"MoodPrint:{bot_id}",
             instructions=instructions(bot_id, self.prompt_variant) + source_instructions(context, bot_id, mood_analysis=analytical) + (journal_instructions(context) if journal_mode else "") + runtime_guidance,
             model=model,
             tools=selected_tools,
-            output_type=MoodAnalysisPlan if scoped_mood else NhipOutput if journal_mode else AiOutput,
+            output_type=output_type,
             output_guardrails=[] if scoped_mood else [_no_unreceipted_claim],
             model_settings=ModelSettings(
                 store=False,
@@ -240,13 +264,19 @@ class SdkProvider:
                         plan.detail = 'brief'
                     if omit_mean:
                         plan.include_mean = False
-                return render_mood_analysis(plan, context)
+                return AiReply(parts=[render_mood_analysis(plan, context)])
             if journal_mode:
-                return render_journal_output(NhipOutput.model_validate(result.final_output), context)
-            output = AiOutput.model_validate(result.final_output)
-            if has_journal_link(output.text):
+                if multi:
+                    return AiReply(parts=render_journal_reply(NhipReply.model_validate(result.final_output), context))
+                return AiReply(parts=[render_journal_output(NhipOutput.model_validate(result.final_output), context)])
+            if multi:
+                reply = CompanionReply.model_validate(result.final_output)
+                parts = [AiOutput(text=bubble.text, cards=bubble.cards) for bubble in reply.messages]
+            else:
+                parts = [AiOutput.model_validate(result.final_output)]
+            if any(has_journal_link(part.text) for part in parts):
                 raise DomainError(409, "JOURNAL_EVIDENCE_REQUIRED", "Chưa đọc được nguồn nhật ký cho lượt này.")
-            return output
+            return AiReply(parts=parts)
         except BaseException as error:
             await _cancel_and_drain(result)
             if isinstance(error, UserError) and isinstance(error.__cause__, DomainError):

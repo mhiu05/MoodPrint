@@ -24,6 +24,7 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 | `STT_MODEL` | `str` | `''` |
 | `SANDBOX_ENABLED` | `bool` | `False` |
 | `CHAT_HISTORY_ENABLED` | `bool` | `True` |
+| `AI_MULTI_MESSAGE_ENABLED` | `bool` | `False` |
 | `CHAT_RETENTION_DAYS` | `int` | `30` |
 | `AI_GLOBAL_CONCURRENCY` | `int` | `50` |
 | `AI_USER_CONCURRENCY` | `int` | `2` |
@@ -83,6 +84,7 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 - **Journal media:** `JOURNAL_STORAGE_KEY` là credential phía server cho bucket riêng tư `journal-media`; không dùng biến `VITE_`, không đưa vào session hoặc log. Thiếu key vẫn lưu nhật ký chữ/bản nháp được; media trả lỗi có thể thử lại. Xem [Storage nhật ký](../supabase/journal-storage.md).
 - **AI:** `AI_ENABLED`, model/key, concurrency/rate/timeout; daily USD budget cần accounting. `AI_LOCAL_TEST_USER_IDS` chỉ được phép ở development, không phải production bypass.
 - **History:** `CHAT_HISTORY_ENABLED` và retention là capability global; preference mặc định của user vẫn tắt.
+- **Nhiều bubble:** `AI_MULTI_MESSAGE_ENABLED=true` cho model trả 1–4 tin đã validate trong một lượt (lưu mỗi tin một dòng, SSE v2 qua `?protocol=2`; client cũ nhận bản ghép v1). Tắt là kill switch: trả lời một tin như trước, lịch sử nhiều bubble cũ vẫn hiển thị.
 - **Embedding:** Voyage credentials + semantic capability + user opt-in/MEM. `PROVIDER_FORCE_IPV4` chỉ dùng xử lý network khi cần, không thay authorization.
 - **Social:** scorer mặc định v1; activities và moderation admin mặc định tắt. `ACTIVITY_KINDS` là rollout subset.
 - **Sandbox:** hiện không có model tool thực thi code/file; không cần bật để chạy các bot hiện tại.

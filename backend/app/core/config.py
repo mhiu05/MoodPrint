@@ -30,6 +30,8 @@ class Settings(EmbeddingSettings, BaseSettings):
     stt_model: str = ""
     sandbox_enabled: bool = False
     chat_history_enabled: bool = True
+    # 1–4 validated bubbles per reply (SSE v2); off keeps the single-message contract.
+    ai_multi_message_enabled: bool = False
     chat_retention_days: int = Field(default=30, ge=1, le=90)
     ai_global_concurrency: int = Field(default=50, ge=1, le=100)
     ai_user_concurrency: int = Field(default=2, ge=1, le=5)

@@ -28,6 +28,57 @@ class AiOutput(DTO):
     cards: list[Card] = Field(default_factory=list, max_length=3)
 
 
+MAX_BUBBLES = 4
+MAX_BUBBLE_CHARS = 1500
+# SSE v1 joins bubbles with "\n\n" and old clients reject a final text above 6000 chars.
+MAX_REPLY_CHARS = 5900
+
+
+class Bubble(DTO):
+    """Model-facing: one short chat message of a multi-bubble reply."""
+
+    text: str = Field(min_length=1, max_length=MAX_BUBBLE_CHARS)
+    cards: list[Card] = Field(default_factory=list, max_length=3)
+
+    @field_validator("text")
+    @classmethod
+    def visible(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("bubble must contain visible text")
+        return value.strip()
+
+
+class CompanionReply(DTO):
+    """Model-facing: one turn is 1–4 bubbles, by default one. Not a public DTO."""
+
+    messages: list[Bubble] = Field(min_length=1, max_length=MAX_BUBBLES)
+
+    @model_validator(mode="after")
+    def bounded(self):
+        joined = sum(len(bubble.text) for bubble in self.messages) + 2 * (len(self.messages) - 1)
+        if joined > MAX_REPLY_CHARS:
+            raise ValueError("reply too long")
+        if sum(len(bubble.cards) for bubble in self.messages) > 3:
+            raise ValueError("at most 3 cards per reply")
+        texts = [bubble.text.casefold() for bubble in self.messages]
+        if len(set(texts)) != len(texts):
+            raise ValueError("duplicate bubbles")
+        return self
+
+
+class AiReply(DTO):
+    """Validated, backend-rendered reply: the parts persisted as one bubble each."""
+
+    parts: list[AiOutput] = Field(min_length=1, max_length=MAX_BUBBLES)
+
+    def joined(self) -> AiOutput:
+        """The ai-events-v1 / legacy single-message representation."""
+        return AiOutput(
+            text="\n\n".join(part.text for part in self.parts),
+            cards=[card for part in self.parts for card in part.cards],
+        )
+
+
 class ConversationInput(DTO):
     bot_id: BotId
     persistent: bool | None = None
