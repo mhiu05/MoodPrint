@@ -138,8 +138,12 @@ for (const width of [1440, 768, 390, 360]) {
     expect(order[0]).toContain("collaboration-line");
     await expect(line.locator(".collaboration-avatars")).toHaveAttribute("aria-hidden", "true");
     const why = line.getByRole("button", { name: "Vì sao?" });
-    const box = await why.boundingBox();
-    expect(box!.height).toBeGreaterThanOrEqual(44);
+    // The touch area (not the text box, whose focus ring must not cover the line) is 44 px tall.
+    const box = (await why.boundingBox())!;
+    const center = box.y + box.height / 2;
+    for (const y of [center - 21, center + 21]) {
+      expect(await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.textContent, [box.x + box.width / 2, y])).toBe("Vì sao?");
+    }
     await noHorizontalOverflow(page);
     expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze()).violations).toEqual([]);
   });

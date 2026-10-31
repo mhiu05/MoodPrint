@@ -8,11 +8,12 @@
 .collaboration-avatars .bot-avatar { border: 1.5px solid var(--color-surface); border-radius: 50%; }
 .collaboration-avatars .bot-avatar + .bot-avatar { margin-left: -5px; }
 .collaboration-why {
-  display: inline-flex; align-items: center; min-height: var(--target-min); margin: calc((var(--target-min) - 1.45em) / -2) 0;
-  padding: 0 var(--space-1); border: 0; background: none; font: inherit; color: var(--color-primary);
-  text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
+  /* The box (and its focus ring) hugs the text; ::before extends only the touch area to 44 px. */
+  position: relative; display: inline; padding: 0 2px; border: 0; background: none; font: inherit;
+  color: var(--color-primary); text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
 }
-.collaboration-why:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; border-radius: 4px; }
+.collaboration-why::before { content: ""; position: absolute; left: -6px; right: -6px; top: 50%; height: var(--target-min); transform: translateY(-50%); }
+.collaboration-why:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; border-radius: 3px; }
 .collaboration-why-body p { margin: 0 0 var(--space-3); max-width: 60ch; }
 .collaboration-why-note { color: var(--color-muted); font-size: var(--text-support); }
 .collaboration-why-body a { display: inline-flex; align-items: center; min-height: var(--target-min); }
