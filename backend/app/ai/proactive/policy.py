@@ -63,7 +63,7 @@ def eligibility_reason(*, settings, user: User, bot_id: str, match: bool) -> str
 class Decision:
     """A content-free reason not to run this job now."""
 
-    outcome: Literal["skip", "cancel", "defer"]
+    outcome: Literal["skip", "cancel", "defer", "retry"]
     reason: str
 
 

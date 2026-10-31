@@ -287,3 +287,65 @@ class SdkProvider:
             if isinstance(error, UserError) and isinstance(error.__cause__, DomainError):
                 raise error.__cause__ from None
             raise
+
+    async def run_proactive(
+        self,
+        *,
+        bot_id: str,
+        slot: str,
+        input_item: dict,
+        output_type: type,
+        teen: bool,
+        on_progress: Callable[[], Awaitable[None]],
+        model_override: Model | str | None = None,
+        usage_observer: UsageObserver | None = None,
+        user_id: Any = None,
+    ) -> Any:
+        """One check-in: no transcript, no tools, no tracing; a single system-built input item."""
+        from app.ai.prompts import proactive_instructions
+
+        if bot_id not in LEGACY_BOTS:
+            raise DomainError(404, "BOT_NOT_FOUND", "Không tìm thấy trợ lý.")
+        set_tracing_disabled(True)
+        if isinstance(model_override, Model):
+            model: Model = model_override
+        else:
+            key = self.settings.openai_api_key.get_secret_value()
+            if not key or not (model_override or self.settings.openai_model) or not self.settings.ai_available_for(user_id):
+                raise DomainError(503, "AI_UNAVAILABLE", "Trò chuyện AI hiện chưa khả dụng.")
+            model = OpenAIResponsesModel(model_override or self.settings.openai_model, self._openai(key))
+        agent = Agent[Any](
+            name=f"MoodPrint:{bot_id}:proactive",
+            instructions=instructions(bot_id, self.prompt_variant) + proactive_instructions(bot_id, slot, teen=teen),
+            model=model,
+            tools=[],
+            output_type=output_type,
+            output_guardrails=[_no_unreceipted_claim],
+            model_settings=ModelSettings(
+                store=False, max_tokens=1200, timeout=30, retry=ModelRetrySettings(max_retries=0),
+            ),
+        )
+
+        async def observe(event: UsageEvent):
+            if usage_observer:
+                await usage_observer(event)
+            if self.usage_observer:
+                await self.usage_observer(event)
+
+        async with asyncio.timeout(RUN_TIMEOUT_SECONDS):
+            result = Runner.run_streamed(
+                agent,
+                input=cast(list[TResponseInputItem], [input_item]),
+                max_turns=2,
+                hooks=_BudgetHooks(on_progress, observe),
+                run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False),
+            )
+            try:
+                async for _ in result.stream_events():
+                    pass
+                return cast(Any, output_type).model_validate(result.final_output)
+            except BaseException as error:
+                await _cancel_and_drain(result)
+                if isinstance(error, UserError) and isinstance(error.__cause__, DomainError):
+                    raise error.__cause__ from None
+                raise

@@ -13,6 +13,12 @@ MAX_CONTEXT_BYTES = 24_000
 TEXT_POLICY = "text-v1"
 MOOD_TURN_POLICY = "mood-turn-v1"
 JOURNAL_TURN_POLICY = "journal-turn-v1"
+# Check-ins (ADR-08): plain text joins context like any reply; a journal-derived check-in
+# joins only after its sources are revalidated under the owner lock for the current turn.
+PROACTIVE_TEXT_POLICY = "proactive-text-v1"
+PROACTIVE_JOURNAL_POLICY = "proactive-journal-v1"
+TEXT_POLICIES = (TEXT_POLICY, PROACTIVE_TEXT_POLICY)
+EVIDENCE_POLICIES = (MOOD_TURN_POLICY, JOURNAL_TURN_POLICY)
 
 
 @dataclass(frozen=True)
@@ -49,6 +55,7 @@ def model_messages(
     *,
     current_run: UUID,
     data_version: int,
+    revalidated: frozenset[UUID] = frozenset(),
 ) -> list[AIMessage]:
     """Project a safe contiguous suffix without changing the visible transcript.
 
@@ -56,16 +63,17 @@ def model_messages(
     unrecognized policy stamps fail closed: their inputs may already contain
     revoked derivatives even when their data_version happens to match today.
     Mood and journal evidence expires after its current run, including reselected scopes.
+    A journal-derived check-in survives only when listed in ``revalidated``.
     """
     result = []
     for message in reversed(messages):
         stamp = stamps.get(message.run_id) if message.run_id else None
-        if (
-            stamp is None
-            or stamp.data_version != data_version
-            or stamp.policy not in (TEXT_POLICY, MOOD_TURN_POLICY, JOURNAL_TURN_POLICY)
-            or (stamp.policy in (MOOD_TURN_POLICY, JOURNAL_TURN_POLICY) and message.run_id != current_run)
-        ):
+        allowed = stamp is not None and stamp.data_version == data_version and (
+            stamp.policy in TEXT_POLICIES
+            or (stamp.policy in EVIDENCE_POLICIES and message.run_id == current_run)
+            or (stamp.policy == PROACTIVE_JOURNAL_POLICY and message.run_id in revalidated)
+        )
+        if not allowed:
             break
         result.append(message)
     return list(reversed(result))
