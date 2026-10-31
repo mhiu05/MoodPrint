@@ -61,6 +61,9 @@ async def purge_expired(app):
             await db.execute(delete(AiProactiveJob).where(AiProactiveJob.id.in_(job_ids)))
         # Collaboration receipts are content-free audit metadata kept 90 days (as ai_usage).
         from app.ai.collaboration.models import AiCollaboration
+        from app.ai.persistence import close_orphaned_consultations
+
+        await close_orphaned_consultations(db)
 
         receipt_ids = (
             await db.scalars(

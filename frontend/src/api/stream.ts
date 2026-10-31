@@ -31,7 +31,13 @@ type BotName = "may" | "guong" | "nhip" | "rure" | "caunoi";
 export type StreamActivity = { activity: "consulting"; companion: BotName } | { activity: "composing" };
 
 const BOTS: readonly string[] = ["may", "guong", "nhip", "rure", "caunoi"];
-const EDGES: readonly string[] = ["nhip_energy_for_rure", "nhip_habit_for_may", "rure_activity_for_guong"];
+/** The only allowed edges and their [specialist, requester] pairs (mirrors collaboration/policy.py). */
+const EDGE_COMPANIONS: Record<string, [BotName, BotName]> = {
+  nhip_energy_for_rure: ["nhip", "rure"],
+  nhip_habit_for_may: ["nhip", "may"],
+  rure_activity_for_guong: ["rure", "guong"],
+};
+const SPECIALISTS: readonly string[] = ["nhip", "rure"];
 
 const RUN_EVENTS = /^\/api\/v1\/ai\/runs\/[a-zA-Z0-9-]+\/events$/;
 const MAX_BUBBLES = 4;
@@ -86,10 +92,10 @@ export function validCollaboration(value: unknown): value is CollaborationLine |
   return (
     object(value) &&
     Object.keys(value).every((key) => ["kind", "companions", "summary"].includes(key)) &&
-    EDGES.includes(String(value.kind)) &&
+    Object.hasOwn(EDGE_COMPANIONS, String(value.kind)) &&
     Array.isArray(value.companions) &&
     value.companions.length === 2 &&
-    value.companions.every((bot) => BOTS.includes(String(bot))) &&
+    value.companions.every((bot, index) => bot === EDGE_COMPANIONS[String(value.kind)][index]) &&
     typeof value.summary === "string" &&
     value.summary.trim().length > 0 &&
     Array.from(value.summary).length <= 200
@@ -100,7 +106,7 @@ export function validCollaboration(value: unknown): value is CollaborationLine |
 function progressActivity(data: Record<string, unknown>): StreamActivity | null {
   const keys = Object.keys(data);
   if (!keys.length) return null;
-  if (data.activity === "consulting" && keys.length === 2 && BOTS.includes(String(data.companion)))
+  if (data.activity === "consulting" && keys.length === 2 && SPECIALISTS.includes(String(data.companion)))
     return { activity: "consulting", companion: data.companion as BotName };
   if (data.activity === "composing" && keys.length === 1) return { activity: "composing" };
   throw invalidStream();

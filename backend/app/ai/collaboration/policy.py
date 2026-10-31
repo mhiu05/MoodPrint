@@ -61,8 +61,9 @@ def edge_for(requester: str, specialist: str) -> EdgeSpec | None:
 
 # Backend-rendered collaboration lines (phase-2/04 §3). The model never writes or edits these.
 TEMPLATES: dict[tuple[Edge, RuleId], str] = {
+    # Deviation (review finding 4): the spec's "một hoạt động nhẹ nhàng" was false for high energy.
     ("nhip_energy_for_rure", "R2"): (
-        "Nhịp đã gợi ý một hoạt động nhẹ nhàng. Rủ Rê đã dựa vào đó để chuẩn bị thử thách hôm nay."
+        "Nhịp đã gợi ý mức năng lượng phù hợp với bạn. Rủ Rê đã dựa vào đó để chuẩn bị thử thách hôm nay."
     ),
     ("nhip_energy_for_rure", "R1"): (
         "Nhịp đã gợi ý mức năng lượng phù hợp với bạn. Rủ Rê đã dựa vào đó để chọn hoạt động này."
@@ -153,6 +154,8 @@ class Signals:
     slot: str | None = None
     depth: int = 0
     already_consulted: bool = False
+    # The current message refuses any journal read ("đừng đọc nhật ký"): journal edges never match.
+    journal_refused: bool = False
 
 
 @dataclass(frozen=True)
@@ -174,7 +177,8 @@ def match_rule(signals: Signals) -> Match | None:
         if signals.bot_id == "rure" and signals.slot == "morning":
             return Match("R2", "nhip_energy_for_rure")
         return None
-    if signals.bot_id == "rure" and signals.intent == "activity" and _PERSONAL.search(folded):
+    if (signals.bot_id == "rure" and signals.intent == "activity" and not signals.journal_refused
+            and _PERSONAL.search(folded)):
         return Match("R1", "nhip_energy_for_rure")
     # Deviation (recorded): conversation_intent() classifies the canonical UC-3 message
     # "mấy hôm nay mất ngủ" as 'conversation', so R3 also accepts it; it never fires when the

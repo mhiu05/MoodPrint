@@ -12,7 +12,7 @@ from tests.fakes import ScriptedModel, message_output
 from tests.test_proactive_executor import due_schedule, only_job, proactive_messages, ready
 
 pytestmark = pytest.mark.postgres
-R2 = "Nhịp đã gợi ý một hoạt động nhẹ nhàng. Rủ Rê đã dựa vào đó để chuẩn bị thử thách hôm nay."
+R2 = "Nhịp đã gợi ý mức năng lượng phù hợp với bạn. Rủ Rê đã dựa vào đó để chuẩn bị thử thách hôm nay."
 
 
 def rure_model(**kwargs) -> ScriptedModel:

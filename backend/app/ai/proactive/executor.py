@@ -154,12 +154,17 @@ async def _open(runtime, claimed: Claimed) -> Attempt | None:
             # specialist itself runs at E3 with no connection held.
             from app.ai.collaboration.policy import Signals
 
-            opened = await runtime.coordinator.open(
-                db, user, primary_run_id=run_id,
-                signals=Signals(origin="proactive", bot_id="rure", slot="morning"),
-                data_version=user.data_version, seconds_remaining=45.0, worker_id=runtime.worker_id,
-                local_today=job.local_date,
-            )
+            try:
+                async with db.begin_nested():
+                    opened = await runtime.coordinator.open(
+                        db, user, primary_run_id=run_id,
+                        signals=Signals(origin="proactive", bot_id="rure", slot="morning"),
+                        data_version=user.data_version, seconds_remaining=45.0, worker_id=runtime.worker_id,
+                        local_today=job.local_date,
+                    )
+            except Exception as error:  # optional step: the plain check-in still goes out
+                log.warning("metric=collaboration_open_error error_type=%s", type(error).__name__)
+                opened = None
         return Attempt(claimed, run_id, user.data_version, payload, user.age_band == "teen",
                        UsageSnapshot(), time.monotonic(), opened=opened)
 
@@ -199,7 +204,8 @@ async def _generate(runtime, attempt: Attempt) -> Validated:
             await check()
             async with transaction(runtime.database) as db:
                 user = await db.get(User, claimed.user_id)
-                if user is None or not await still_authorized(db, runtime.settings, user, opened.consultation):
+                if user is None or not await still_authorized(db, runtime.settings, user, opened.consultation,
+                                                              require_data_version=False):
                     raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
 
         attempt.consultation = await runtime.coordinator.execute(

@@ -199,8 +199,13 @@ async def live_grants(db, settings, user: User) -> policy.Grants:
     )
 
 
-async def still_authorized(db, settings, user: User, consultation: Consultation) -> bool:
-    """Authorization #2 (pre-request hook) and #3 (publish): same edge, same grant version."""
+async def still_authorized(db, settings, user: User, consultation: Consultation, *,
+                           require_data_version: bool = True) -> bool:
+    """Authorization #2 (pre-request hook) and #3 (publish): same edge, same grant version.
+
+    Chat requires an unchanged ``data_version`` (as every Phase 1 chat check does). A check-in
+    (R2) does not: an unrelated mood or entry save must not cancel it; revocation is still caught
+    by the grant version and journal consent, and an edited source by its revision."""
     grants = await live_grants(db, settings, user)
     if not (grants.feature_enabled and grants.eligible):
         return False
@@ -208,7 +213,7 @@ async def still_authorized(db, settings, user: User, consultation: Consultation)
         return False
     if policy.EDGES[consultation.edge].reads_journal and not grants.journal_context_enabled:  # type: ignore[index]
         return False
-    return user.data_version == consultation.data_version
+    return not require_data_version or user.data_version == consultation.data_version
 
 
 def brief_for(edge: str, output: SpecialistOutput) -> PrimaryBrief | None:
@@ -307,6 +312,12 @@ class CollaborationCoordinator:
         if spec.reads_journal and match.edge in grants.enabled_edges and grants.journal_context_enabled:
             recent = await count_recent(db, user, days=CHAT_JOURNAL_DAYS,
                                         only_yesterday=signals.origin == "proactive", today=local_today)
+        # Review finding 6: decide everything that needs no counter before the global lock, so a
+        # matching message from someone who never opted in stays as cheap as in Phase 1.
+        early = policy.evaluate(signals, match, grants, policy.Counters(
+            recent_entries=max(recent, 1), seconds_remaining=1e9, capacity_available=True))
+        if not early.allowed and not early.recorded:
+            return None
         at = now()
         budget_ratio = None
         if settings.ai_daily_budget_usd > 0 and settings.ai_accounting_enabled:
@@ -452,7 +463,8 @@ class CollaborationCoordinator:
         CONTEXT_CHANGED when the grant, consent or any read entry changed meanwhile."""
         if consultation.brief is None or consultation.status != "completed":
             return
-        if not await still_authorized(db, self.settings, user, consultation):
+        if not await still_authorized(db, self.settings, user, consultation,
+                                      require_data_version=policy_name == "chat"):
             raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
         if not await sources_current(db, user, consultation.sources):
             # Distinct from a revocation: a check-in regenerates from fresh data (Phase 1 rule).

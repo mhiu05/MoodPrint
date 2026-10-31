@@ -212,6 +212,34 @@ async def recover_turns(db):
         await interrupt_consultations(db, expired)
 
 
+async def close_orphaned_consultations(db) -> None:
+    """Retention sweep: a consultation still open while its primary run already ended (a
+    settle that failed, or a crash recovered by the usage lease first) is closed, never left
+    'authorized'. Completed-but-unused receipts are legitimate and stay as they are."""
+    from app.ai.collaboration.models import AiCollaboration
+
+    ended = (
+        await db.scalars(
+            select(AiCollaboration.id)
+            .join(AiRun, AiRun.id == AiCollaboration.primary_run_id)
+            .where(AiCollaboration.status == "authorized", AiRun.status != "running")
+            .limit(1000)
+            .with_for_update(of=AiCollaboration, skip_locked=True)
+        )
+    ).all()
+    if ended:
+        await db.execute(
+            update(AiCollaboration).where(AiCollaboration.id.in_(ended))
+            .values(status="cancelled", failure_code="interrupted", finished_at=now())
+        )
+    parent = select(AiRun.id).where(AiRun.status == "running").scalar_subquery()
+    await db.execute(
+        update(AiRun)
+        .where(AiRun.origin == "collaboration", AiRun.status == "running", AiRun.parent_run_id.not_in(parent))
+        .values(status="interrupted", version=2)
+    )
+
+
 async def interrupt_consultations(db, primary_run_ids) -> None:
     """A consultation never outlives its primary run (crash recovery, Phase 2)."""
     from sqlalchemy import case

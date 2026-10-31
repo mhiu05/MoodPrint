@@ -558,6 +558,7 @@ class AiRuntime:
         signals = policy.Signals(
             origin="chat", bot_id=c.bot_id, text=latest if isinstance(latest, str) else "",
             intent=conversation_intent(c.bot_id, history, scoped=False),
+            journal_refused=journal_read_refused(history),
         )
         if policy.match_rule(signals) is None:
             return None
@@ -573,11 +574,22 @@ class AiRuntime:
             if user.data_version != run.data_version:
                 raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
             await current_turn(db, run, self.worker_id)
-            opened = await self.coordinator.open(
-                db, user, primary_run_id=run.id, signals=signals, data_version=run.data_version,
-                seconds_remaining=self.settings.ai_timeout_seconds - (time.monotonic() - run.started),
-                worker_id=self.worker_id, on_journal_read=stamp_journal_turn,
-            )
+            try:
+                # The consultation is optional: an unexpected failure while opening it rolls back
+                # only its own savepoint and the turn continues as a single reply.
+                async with db.begin_nested():
+                    opened = await self.coordinator.open(
+                        db, user, primary_run_id=run.id, signals=signals, data_version=run.data_version,
+                        seconds_remaining=self.settings.ai_timeout_seconds - (time.monotonic() - run.started),
+                        worker_id=self.worker_id, on_journal_read=stamp_journal_turn,
+                    )
+            except DomainError:
+                raise
+            except Exception as error:
+                logging.getLogger("moodprint").warning(
+                    "metric=collaboration_open_error error_type=%s", type(error).__name__
+                )
+                opened = None
         if opened is None:
             return None
         run.collaboration = opened.consultation

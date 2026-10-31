@@ -83,3 +83,23 @@ describe("server revocation frame", () => {
     await expect(consumeAIReply("/api/v1/ai/runs/run-1/events", new AbortController().signal)).rejects.toMatchObject({ code: "RUN_CANCELLED" });
   });
 });
+
+describe("validator binds companions to the declared edge", () => {
+  it.each([
+    [{ activity: "consulting", companion: "caunoi" }],
+    [{ activity: "consulting", companion: "may" }],
+  ])("rejects a consulted companion that is never a specialist %j", async (data) => {
+    serve([
+      { seq: "1", type: "progress", data: {} },
+      { seq: "2", type: "progress", data },
+      { seq: "3", type: "final", data: { partCount: 1, messages: [bubble] } },
+      { seq: "4", type: "completed", data: {} },
+    ]);
+    await expect(consumeAIReply("/api/v1/ai/runs/run-1/events", new AbortController().signal)).rejects.toMatchObject({ code: "INVALID_AI_EVENT" });
+  });
+
+  it("rejects companions that do not match the edge", async () => {
+    collaborative([], { ...line, companions: ["rure", "nhip"] });
+    await expect(consumeAIReply("/api/v1/ai/runs/run-1/events", new AbortController().signal)).rejects.toMatchObject({ code: "INVALID_AI_EVENT" });
+  });
+});
