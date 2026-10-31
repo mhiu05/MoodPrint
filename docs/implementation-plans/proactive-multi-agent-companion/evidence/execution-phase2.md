@@ -131,7 +131,7 @@ Bộ collaboration sau sửa: **223 passed, 1 skipped** (benchmark opt-in); fron
 | `check_docs.py` | PASS (sau khi thêm sổ này) |
 | Frontend unit / typecheck / build | **168 passed (28 files)** / 0 lỗi / OK |
 | Fixture E2E toàn bộ (`npx playwright test`) | **344 passed, 14 failed**. 13 fail **trùng từng dòng** với tập có sẵn ở Gate G1 (`auth` :141/:166/:188, `discovery` :76/:148, `real` :471, `ux-redesign` :186/:901/:1128×2/:1180/:1196/:1273). Fail thứ 14 `real.spec.ts:563` là **hồi quy do Phase 2 gây ra**: D-10 bắt client từ chối progress v1 có dữ liệu, trong khi hợp đồng Phase 1 là bỏ qua im lặng (raw delta). Đã hoàn tác phần v1 (v2 vẫn chặt) → chạy lại `real` + `collaboration` + `multi-message`: **53 passed, 1 failed** (`real` :471 có sẵn) |
-| Fullstack | collaboration **4 passed**; Phase 1 multi-message/proactive/chat-history **4 passed**; bộ fullstack toàn phần: GATE_FULLSTACK |
+| Fullstack | collaboration **4 passed**; Phase 1 multi-message/proactive/chat-history **4 passed**; bộ fullstack toàn phần (`scripts/test_fullstack.py`): **34 passed, 6 failed** (G1: 30/6; +4 là journey phối hợp). Cả 6 fail (`guest-experience:8`, `journeys:267`, `journeys:454`, `mvp:42`, `mvp:507`, `product-experience:32`) **cũng fail trên baseline `44f4201`** (chạy lại đúng 6 test trên bản tách rời, DB mới) ⇒ có sẵn, không phải hồi quy |
 | agent-browser | xem P2-09 (0 page error, 2 phát hiện thật đã sửa) |
 | Review độc lập | subagent đối kháng chỉ đọc; 1 High + 1 Medium + Low đã sửa (mục trên) |
 | Chi tiêu API | 0 USD |
