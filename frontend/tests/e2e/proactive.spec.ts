@@ -222,10 +222,12 @@ test("a check-in in chat is labelled, links to its schedule and is marked read",
   const seen = await mount(page, { inbox });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(`/#/assistants/nhip?conversation=${CONV}`);
-  await expect(page.getByText("Lời hỏi thăm buổi sáng · 07:31")).toBeVisible();
+  await expect(page.getByText("Lời hỏi thăm buổi sáng · 07:31", { exact: true })).toBeVisible();
   await expect(page.getByText("Lời hỏi thăm buổi sáng từ Nhịp lúc 07:31")).toBeAttached();
   await expect(page.getByRole("group", { name: "Tin nhắn từ Nhịp, 2 phần" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Đổi hoặc tắt lời hỏi thăm này" })).toHaveAttribute("href", "#/check-ins?bot=nhip");
+  // People answer a check-in in their own words; conversation starters do not come back (06 §4).
+  await expect(page.getByLabel("Gợi ý trò chuyện")).toHaveCount(0);
   await expect.poll(() => seen.writes.find((w) => w.path === `/ai/conversations/${CONV}/read`)?.body).toEqual({ lastReadSequence: 3 });
   await expect(page.getByRole("link", { name: "Trợ lý, 1 lời nhắn mới" })).toBeAttached();
 });

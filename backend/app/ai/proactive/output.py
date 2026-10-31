@@ -27,6 +27,10 @@ MAX_PROACTIVE_CHARS = 1200
 ALLOWED_CARDS = {"nhip": {"mood_form"}, "caunoi": {"discovery"}}
 _LINK = re.compile(r"\]\s*\(|https?://|www\.|javascript:|data:", re.I)
 _YESTERDAY = re.compile(r"\bhom qua\b")
+# Quoting yesterday's entry as if written today ("Sáng nay, bạn đã ghi…") misdates the user's words.
+_WRONG_DAY = re.compile(
+    r"\b(?:sang nay|hom nay|toi nay|chieu nay|vua roi)\b[^.!?\n]{0,24}\b(?:da|co|vua) ghi"
+)
 _MATCH_CLAIM = re.compile(
     r"\d+\s*%|phan tram|da ket noi|loi moi da (?:duoc )?gui|da gui loi moi|da tim (?:thay|duoc)"
     r"|(?:rat|cuc|hoan toan) (?:hop|tuong hop)"
@@ -111,6 +115,8 @@ def validate_proactive(output: ProactiveReply, payload) -> Validated:
         else:
             if not claimed or any(identity not in digests for identity in claimed):
                 raise InvalidOutput("unsupported_source")
+            if any(_WRONG_DAY.search(text) for text in folded):
+                raise InvalidOutput("wrong_day")
             sources = tuple(claimed)
     if bot_id == "caunoi" and any(_MATCH_CLAIM.search(text) for text in folded):
         raise InvalidOutput("matching_claim")

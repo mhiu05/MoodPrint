@@ -1150,7 +1150,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const moodInvalid = moodSelected && (!moodFrom || !moodTo || moodFrom > moodTo ||
     moodFrom < moodWindow.earliest || moodTo > moodWindow.today);
   const hasUserMessages = conversation?.messages.some((message) => message.actor === "self") ?? false;
-  const showStarters = !loading && !busy && !hasUserMessages;
+  // A check-in is answered in the person's own words: starters do not come back under it (06 §4).
+  const showStarters = !loading && !busy && !hasUserMessages && !conversation?.messages.some((message) => message.origin === "proactive");
   const update = useCallback((value: SavedConversation) => {
     current.current = value;
     setConversation(value);

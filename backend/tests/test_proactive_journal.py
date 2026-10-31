@@ -234,3 +234,22 @@ def test_distress_screen_positive_and_negative_cases():
     for text in ("Từ từ rồi sẽ ổn", "tu tu lam", "Hôm nay mệt chết đi được vì chạy deadline",
                  "Tự làm hài lòng bản thân", "Đọc truyện kết thúc buồn", ""):
         assert not distress_screen([text]), text
+
+
+async def test_attributing_yesterdays_entry_to_today_is_rejected(clients):
+    app, [(_client, uid), _] = clients
+    ok = await entry(app, uid, text="trưa ăn bún chả ngon")
+    ready(app, scripted(["Sáng nay, bạn đã ghi trưa ăn bún chả ngon.", "Thử ngồi đón nắng 5 phút nhé."], [ok]))
+    await due_schedule(app, uid, bot="nhip", journal=True)
+    await worker.proactive_tick(app.state.ai)
+    job = await only_job(app, uid)
+    assert (job.status, job.last_error) == ("retry", "wrong_day")
+
+
+async def test_check_ins_request_low_reasoning_effort(clients):
+    app, [(_client, uid), _] = clients
+    model = scripted(["Chào buổi sáng! Uống một cốc nước ấm nhé."])
+    ready(app, model)
+    await due_schedule(app, uid, bot="nhip")
+    await worker.proactive_tick(app.state.ai)
+    assert model.calls[0]["settings"].reasoning.effort == "low"

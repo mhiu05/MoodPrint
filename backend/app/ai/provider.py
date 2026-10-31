@@ -26,6 +26,7 @@ from agents.models.openai_responses import OpenAIResponsesModel
 from agents.result import RunResultStreaming
 from agents.tool import Tool
 from openai import AsyncOpenAI
+from openai.types.shared import Reasoning
 
 from app.ai.conversation import conversation_intent, requested_presentation
 from app.ai.evidence import MoodAnalysisPlan, render_mood_analysis, source_instructions
@@ -321,8 +322,11 @@ class SdkProvider:
             tools=[],
             output_type=output_type,
             output_guardrails=[_no_unreceipted_claim],
+            # Short, structured messages: low effort cuts latency and reasoning-token overruns
+            # (measured: 2 of 91 default-effort generations hit max_output_tokens or the timeout).
             model_settings=ModelSettings(
                 store=False, max_tokens=1200, timeout=30, retry=ModelRetrySettings(max_retries=0),
+                reasoning=Reasoning(effort="low"),
             ),
         )
 
