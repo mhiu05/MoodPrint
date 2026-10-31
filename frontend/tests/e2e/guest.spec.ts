@@ -295,7 +295,7 @@ for (const width of [390, 1280]) {
       await dialog.getByRole("button", { name: "Kết thúc và tạo tài khoản" }).click();
       await confirmed;
       await expect(page.getByLabel("Nhập lại mật khẩu", { exact: true })).toBeVisible();
-      await expect(page).toHaveURL(/#\/login\?mode=signup$/);
+      await expect(page).toHaveURL(/\/login\?mode=signup$/);
       await expect(page.getByTestId("guest-status")).toHaveCount(0);
       expect(ends).toBe(1);
     } finally { release(); }

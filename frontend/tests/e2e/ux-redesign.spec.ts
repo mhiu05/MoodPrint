@@ -1085,8 +1085,8 @@ test.describe("personal journeys", () => {
 
   test("first-time sign in explains what MoodPrint is in one sentence", async ({ page }) => {
     await page.route("**/api/v1/session", (route) => route.fulfill({ status: 401, json: { error: { code: "AUTH_REQUIRED", message: "Vui lòng đăng nhập." } } }));
-    await page.goto("/#/");
-    await expect(page.getByRole("heading", { name: "Chào bạn trở lại" })).toBeVisible();
+    await page.goto("/login");
+    await expect(page.getByRole("heading", { name: "Bắt đầu với MoodPrint" })).toBeVisible();
     await expect(page.getByText(/MoodPrint là nơi/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Đăng nhập", exact: true })).toBeInViewport();
   });

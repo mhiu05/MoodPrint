@@ -182,8 +182,17 @@ test("T12 T14 T19: refresh failure keeps the mounted dirty reducer and exit conf
 test("T14 T19: terminal eligibility refusal clears publication and preserves secure exit", async ({
   page,
 }) => {
-  const state = await friendshipFixture(page);
-  await page.route("**/api/v1/auth/logout", (route) => route.fulfill({ status: 204 }));
+  const state = await friendshipFixture(page, LEGACY, true);
+  let loggedOut = false;
+  await page.route("**/api/v1/auth/logout", (route) => {
+    loggedOut = true;
+    return route.fulfill({ status: 204 });
+  });
+  await page.route("**/api/v1/session", (route) =>
+    loggedOut
+      ? route.fulfill({ status: 401, json: { error: { code: "AUTH_REQUIRED", message: "Vui lòng đăng nhập." } } })
+      : route.fallback(),
+  );
   await page.route("**/api/v1/profiles/matching-draft", (route) =>
     route.request().method() === "PUT"
       ? (state.eligible = false, route.fulfill({
@@ -198,6 +207,10 @@ test("T14 T19: terminal eligibility refusal clears publication and preserves sec
       : route.fallback(),
   );
   await page.goto("/#/connect");
+  await page.getByRole("tab", { name: "Hồ sơ tìm bạn", exact: true }).click();
+  const editProfile = page.getByRole("button", { name: "Chỉnh hồ sơ tìm bạn", exact: true });
+  await expect(editProfile).toBeEnabled();
+  await editProfile.click();
   await page.getByRole("radio", { name: "Bạn cùng học", exact: true }).check();
   await page.getByRole("button", { name: "Lưu bản nháp", exact: true }).click();
   await expect(

@@ -194,12 +194,13 @@ test("after the end screen a new trial starts from the public page, and register
   await expect(endedHeading(page)).toBeVisible();
   await page.getByRole("button", { name: "Tạo tài khoản" }).click();
   await expect(endedHeading(page)).toHaveCount(0);
-  await expect(page).toHaveURL(/#\/login\?mode=signup$/);
+  await expect(page).toHaveURL(/\/login\?mode=signup$/);
 
   await page.goto("/");
   await page.goto("/#/assistants");
   await expect(endedHeading(page)).toBeVisible();
   await page.getByRole("button", { name: "Bắt đầu lượt dùng thử mới" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByRole("heading", { name: "Bắt đầu với MoodPrint" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Dùng thử 2 giờ", exact: true })).toBeVisible();
 });

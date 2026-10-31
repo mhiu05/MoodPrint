@@ -39,7 +39,7 @@ test("an expired session leaves the private screen immediately", async ({ page }
   await expect(page.getByText("Mây").first()).toBeVisible();
   expired = true;
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
-  await expect(page.getByRole("heading", { name: "Chào bạn trở lại" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Bắt đầu với MoodPrint" })).toBeVisible();
   await expect(page.getByText("Mây")).toHaveCount(0);
 });
 

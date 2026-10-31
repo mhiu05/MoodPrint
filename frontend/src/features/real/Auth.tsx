@@ -189,7 +189,7 @@ export function AuthScreen({
       ) : <Brand />}
       <h1 tabIndex={-1}>{landing && mode === "login" ? "Bắt đầu với MoodPrint" : titles[mode][0]}</h1>
       {landing && mode === "login" ? (
-        <p className="landing-auth-lede">Đăng nhập để tiếp tục hành trình khám phá bản thân và lưu giữ những cảm xúc ý nghĩa.</p>
+        <p className="landing-auth-lede">MoodPrint là nơi ghi lại cảm xúc, trò chuyện với trợ lý AI và kết nối với người khác qua những điểm chung bạn chọn chia sẻ.</p>
       ) : null}
       {!landing && (mode === "login" || mode === "signup") ? (
         <p>MoodPrint là nơi ghi lại cảm xúc, trò chuyện với trợ lý AI và kết nối với người khác qua những điểm chung bạn chọn chia sẻ.</p>
