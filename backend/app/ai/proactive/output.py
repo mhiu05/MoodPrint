@@ -47,6 +47,17 @@ _KIND_HINTS = {
 }
 
 
+# Meta-remarks about replying add nothing; the message itself must already feel optional.
+_FILLER = re.compile(
+    r"\bkhong (?:can|phai|nhat thiet)(?: phai)? (?:tra loi|rep|hoi am)\b|\bkhong tra loi cung duoc\b"
+    r"|\b(?:co the|thi|cu) bo qua\b|\bbo qua (?:cau hoi|tin|loi hoi tham) nay\b"
+)
+
+
+def has_filler(text: str) -> bool:
+    return bool(_FILLER.search(fold(text)))
+
+
 class ProactiveReply(CompanionReply):
     model_config = ConfigDict(alias_generator=None)
     messages: list[Bubble] = Field(min_length=1, max_length=MAX_PROACTIVE_BUBBLES)
@@ -107,6 +118,8 @@ def validate_proactive(output: ProactiveReply, payload) -> Validated:
         raise GuardrailBlocked()
     if sum(text.count("?") for text in texts) > 1:
         raise InvalidOutput("too_many_questions")
+    if any(has_filler(text) for text in texts):
+        raise InvalidOutput("filler")
     if any(has_journal_link(text) or _LINK.search(text) for text in texts):
         raise InvalidOutput("link_in_text")
     cards = [card for bubble in output.messages for card in bubble.cards]

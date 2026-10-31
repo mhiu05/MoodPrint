@@ -382,7 +382,7 @@ async def test_accounting_records_proactive_usage_under_its_prompt_version(clien
     await tick(app)
     async with app.state.database.sessions() as db:
         usage = (await db.scalars(select(AiUsage))).one()
-    assert usage.prompt_version.endswith("+proactive-2026-11-a6")
+    assert usage.prompt_version.endswith("+proactive-2026-11-a8")
     assert usage.state == "settled" and usage.requests_started == 1
 
 
@@ -461,3 +461,23 @@ async def test_rure_mislabelled_activity_of_an_avoided_kind_is_regenerated(clien
     async with app.state.database.sessions() as db:
         job = await db.scalar(select(AiProactiveJob).where(AiProactiveJob.slot == "morning"))
     assert (job.status, job.last_error) == ("retry", "repeated_challenge")
+
+
+async def test_filler_about_not_replying_is_regenerated(clients):
+    app, [(_client, uid), _] = clients
+    ready(app, reply("Chào buổi sáng! Không cần trả lời đâu nhé."))
+    await due_schedule(app, uid)
+    await tick(app)
+    job = await only_job(app, uid)
+    assert (job.status, job.last_error) == ("retry", "filler")
+
+
+def test_filler_detection_is_narrow():
+    from app.ai.proactive.output import has_filler
+
+    for text in ("Không cần trả lời đâu.", "Bạn có thể bỏ qua câu hỏi này nhé.", "không cần phải trả lời mình",
+                 "Không trả lời cũng được.", "Nếu không tiện thì bỏ qua nhé."):
+        assert has_filler(text), text
+    for text in ("Muốn kể gì thì Mây nghe, còn không thì cứ nghỉ ngơi nha.", "Trả lời câu đố trong đầu thôi.",
+                 "Thử ghi lại một khoảnh khắc nếu muốn.", "Bỏ qua phần khó, chọn một từ dễ trước."):
+        assert not has_filler(text), text

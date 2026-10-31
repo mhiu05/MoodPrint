@@ -15,8 +15,15 @@ Ngày 31/10/2026. Chỉ dữ liệu tổng hợp ([backend/evals/proactive/cases
 
 Tách bubble (20 case P1-08, gpt-6-luna, 4 lần): hợp lệ 100/100/95/100 %, câu ngắn 1 bubble 100 % cả 4 lần, danh sách không bị tách 100/100/83/100 %; 2/80 lời gọi chat bị `response.incomplete (max_output_tokens)` (cả hai là yêu cầu liệt kê) → rủi ro R-15.
 
-**Tổng chi tiêu API: 11,02 USD / trần 100 USD** (1.665 lời gọi, 11 lỗi/timeout của provider đã tính vào số liệu). Không có dữ liệu thật.
+**Vòng 7–8 (sau chỉ đạo của owner: trần thêm ~3 USD, chỉ gpt-6-luna sinh, Claude Code tự chấm, bỏ câu đệm):**
+
+| Vòng | Prompt | Validator | Sinh lại | Câu đệm | Đánh giá của Claude Code (8 tiêu chí, đọc toàn bộ 91 output) | Trùng 4-gram 7 ngày (Mây / Rủ Rê / Gương) | p50 / p95 | Chi phí |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 7 | a7 (bỏ câu đệm) | 70/70 | 0 | 0 | 68/70: `nhip-e-monday` bubble 2 lặp bubble 1; `hold-nhip-m-two` trích nguyên văn cả câu. Lỗi hệ thống: lặp nội dung giữa các ngày | 0,093 / 0,037 / 0,202 | 1,64 / 3,79 s | 0,020 USD |
+| **8** | **a8** (`angle` xoay vòng) | **70/70** | 0 | **0** | **70/70**; ghi chú nhỏ: Nhịp đôi khi trích ngắn nguyên văn, một câu "một ngụm nước trong 10 phút tới" hơi gượng, Mây thường mở bằng "Chào buổi sáng" (tự nhiên) | **0,001 / 0,000 / 0,011** | 1,79 / 2,81 s | 0,020 USD |
+
+**Tổng chi tiêu API: 11,06 USD / trần 100 USD** (sau chỉ đạo mới: 0,04 USD / 3 USD) (1.665 lời gọi, 11 lỗi/timeout của provider đã tính vào số liệu). Không có dữ liệu thật.
 
 Phân tích → sửa (không sửa test để xanh): vòng 1 phần lớn lỗi là judge áp quy tắc ngoài đặc tả (ví dụ câu mẫu của Mây trong [07 §5](../phase-1/07-persona-behaviors-and-prompts.md) bị chấm "hai gợi ý") → hiệu chỉnh rubric bám đặc tả; lỗi thật được sửa ở prompt/validator: hai hành động nối bằng "và", trích nguyên văn dài, mở đầu lặp tên thứ (a2); **gán điều đã ghi hôm qua thành "sáng nay"** → luật validator `wrong_day` + prompt (a3); effort `low` giảm p95 4,2 → 2,6 s và token output 61 %; giả định đồ vật "trước mặt" (a4); nối cảm xúc với sự việc bằng "vì" = suy diễn nguyên nhân (a5); **Rủ Rê gắn nhãn sai để né `avoidChallengeKinds`** (bắt được nhờ held-out) → định nghĩa từng loại trong prompt + kiểm nội dung trong validator (a6). gpt-6.1-terra kém hơn gpt-6-luna trên cùng bộ case với chi phí sinh gấp 10 ⇒ giữ `OPENAI_MODEL` (OD-12), không nâng model.
 
-Còn lại (không chặn): câu kết "không cần trả lời đâu" xuất hiện ở hầu hết lời hỏi thăm; chuỗi 7 ngày của Mây buổi sáng chỉ 3 cách mở đầu khác nhau (độ trùng 4-gram trung bình 0,15–0,17). Timeout 30 s không token của API xuất hiện ~1–3 % lời gọi ở concurrency 4 — production tự retry theo backoff.
+Đã xử lý ở a7–a8: câu đệm "không cần trả lời đâu" (0 lần ở vòng 7–8, validator chặn nếu tái xuất hiện) và lặp nội dung giữa các ngày. Timeout 30 s không token của API xuất hiện ~1–3 % lời gọi ở concurrency 4 — production tự retry theo backoff.
