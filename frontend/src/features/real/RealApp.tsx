@@ -92,6 +92,7 @@ import { VoiceRecorder } from "./Voice";
 import { AccountActions, AccountDeletionComplete } from "./AccountActions";
 import { focusRouteHeading, useRouteFocus } from "./useRouteFocus";
 import { AIActivityStatus } from "./AIActivityStatus";
+import { CollaborationLine } from "./collaboration/CollaborationLine";
 import { ConversationInfo, useInfoPanelMounted } from "./ConversationInfo";
 import { insertAtSelection } from "./draftInsert";
 import { createMessageDateFormatter } from "./messageDates";
@@ -104,6 +105,7 @@ const FeedbackPage = lazy(() => import("../feedback/FeedbackPage"));
 const FeedbackAdmin = lazy(() => import("./admin/Feedback"));
 const TourController = lazy(() => import("../onboarding/TourController"));
 const CheckInsPage = lazy(() => import("./checkins/CheckInsPage").then(module => ({ default: module.CheckInsPage })));
+const SharingPage = lazy(() => import("./collaboration/SharingPage").then(module => ({ default: module.SharingPage })));
 const JournalPage = lazy(() => import("./journal/JournalPage").then(module => ({ default: module.JournalPage })));
 const JournalCalendar = lazy(() => import("./journal/JournalCalendar").then(module => ({ default: module.JournalCalendar })));
 const JournalTimeline = lazy(() => import("./journal/JournalTimeline").then(module => ({ default: module.JournalTimeline })));
@@ -813,6 +815,7 @@ function Shell() {
                 element={session.accountKind === "guest" ? <GuestLocked /> : <HumanChat key={location.pathname} />}
               />
               <Route path="/check-ins" element={session.accountKind === "guest" ? <GuestLocked /> : <Suspense fallback={<p role="status">Đang tải lịch hỏi thăm…</p>}><CheckInsPage /></Suspense>} />
+              <Route path="/companion-sharing" element={session.accountKind === "guest" ? <GuestLocked /> : <Suspense fallback={<p role="status">Đang tải cài đặt phối hợp…</p>}><SharingPage /></Suspense>} />
               <Route path="*" element={<Navigate replace to="/assistants" />} />
           </Routes>
         </main>
@@ -1043,6 +1046,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const [stopRequested, setStopRequested] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [stopped, setStopped] = useState(false);
+  // Companion currently consulted, set only by a server `consulting` progress event of this run.
+  const [consulting, setConsulting] = useState<string | null>(null);
   const activeRun = useRef<string | undefined>(undefined);
   const [revision, setRevision] = useState(0);
   const loadedRevision = useRef(0);
@@ -1179,7 +1184,10 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       let outcome: RunOutcome = "unknown";
       const ownerId = current.current?.conversationId;
       try {
-        const reply = await consumeAIReply(eventsUrl, signal);
+        const reply = await consumeAIReply(eventsUrl, signal, (activity) => {
+          if (!signal.aborted) setConsulting(activity.activity === "consulting" ? activity.companion : null);
+        });
+        setConsulting(null);
         if (!signal.aborted && current.current) {
           const before = current.current;
           const publishedAt = new Date().toISOString();
@@ -1200,6 +1208,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
                 partIndex: bubble.partIndex,
                 partCount: reply.messages.length,
                 origin: "user" as const,
+                // Backend template from a completed, used receipt; reconciled from history below.
+                collaboration: bubble.partIndex === 0 ? reply.collaboration ?? null : null,
               })),
             ],
           });
@@ -1252,6 +1262,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           if (ownerId) settled.current = { runId: id, conversationId: ownerId, outcome };
           activeRun.current = undefined; cancelRequested.current = undefined;
           setRun(undefined);
+          setConsulting(null);
           setBusy(false);
           setStopRequested(false);
           setSyncing(false);
@@ -1710,7 +1721,11 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     // The transcript turn status already says a reconciled turn stopped.
     : stopped && lastSelf?.status !== "cancelled" ? "cancelled"
     : "idle";
-  const activity = deriveAIActivity({ phase, requestKey: run?.key ?? intent.current?.clientMessageId, runId: run?.id });
+  const consultedName = consulting && session.features.collaboration ? botById(consulting)?.name : undefined;
+  const activity = deriveAIActivity({
+    phase, requestKey: run?.key ?? intent.current?.clientMessageId, runId: run?.id,
+    consulting: consultedName ? { requester: bot.name, specialist: consultedName } : null,
+  });
   const canStop = Boolean(run && !syncing);
   const stopDisabled = stopRequested || awaitingNew;
   const actionLabel = canStop ? (stopRequested ? "Đang yêu cầu dừng" : "Dừng phản hồi") : "Gửi tin cho AI";
@@ -1929,10 +1944,14 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           const manage = checkIn ? (
             <p className="proactive-manage"><Link to={`/check-ins?bot=${bot.botId}`}>Đổi hoặc tắt lời hỏi thăm này</Link></p>
           ) : null;
+          // Shown only from the server's receipt-backed line (never inferred client-side).
+          const line = lead.actor === "bot" && lead.collaboration && session.features.collaboration
+            ? <CollaborationLine line={lead.collaboration} /> : null;
           return group.items.length === 1 ? (
             <Fragment key={group.key}>
               {dateSeparator(group.items[0])}
               {label}
+              {line}
               {messageRow(group.items[0])}
               {manage}
             </Fragment>
@@ -1941,6 +1960,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
               {dateSeparator(group.items[0])}
               {label}
               <div className="message-group" role="group" aria-label={`Tin nhắn từ ${bot.name}, ${group.items.length} phần`}>
+                {line}
                 {group.items.map((item, index) => (
                   <Fragment key={item.message.id}>{messageRow(item, { index, count: group.items.length })}</Fragment>
                 ))}
@@ -2133,6 +2153,18 @@ function CheckInsSummary() {
   );
 }
 
+function CollaborationSummaryCard() {
+  const { session } = useSession();
+  if (!session.features.collaboration || session.accountKind === "guest") return null;
+  return (
+    <section className="real-section" aria-labelledby="collaboration-summary">
+      <h2 id="collaboration-summary">Trợ lý phối hợp với nhau</h2>
+      <p>Cho phép một trợ lý nhờ trợ lý khác một việc nhỏ. Bạn chọn chính xác điều gì được chia sẻ; mặc định đều tắt.</p>
+      <Link className={`${cx.button} ${cx.secondary}`} to="/companion-sharing">Cài đặt phối hợp</Link>
+    </section>
+  );
+}
+
 function AccountPage({ onGuide }: { onGuide: () => void }) {
   const [accountDeleted, setAccountDeleted] = useState(false);
   if (accountDeleted) return <AccountDeletionComplete />;
@@ -2141,6 +2173,7 @@ function AccountPage({ onGuide }: { onGuide: () => void }) {
       <h1 tabIndex={-1} data-tour="personal-account">Tài khoản</h1>
       <AdultEligibility />
       <CheckInsSummary />
+      <CollaborationSummaryCard />
       <AccountActions onGuide={onGuide} onDeleted={() => setAccountDeleted(true)} />
     </div>
   );

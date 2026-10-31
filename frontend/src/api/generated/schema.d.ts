@@ -1876,6 +1876,7 @@ export interface components {
             origin: "user" | "proactive";
             /** Proactiveslot */
             proactiveSlot?: ("morning" | "evening") | null;
+            collaboration?: components["schemas"]["CollaborationSummary"] | null;
         };
         /** AIRunAccepted */
         AIRunAccepted: {
@@ -2191,6 +2192,22 @@ export interface components {
         ClaimInput: {
             /** Expectedversion */
             expectedVersion: number;
+        };
+        /**
+         * CollaborationSummary
+         * @description Public line of a completed, used consultation. ``summary`` is a backend template chosen
+         *     by (edge, rule); never model text (ADR-11).
+         */
+        CollaborationSummary: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "nhip_energy_for_rure" | "nhip_habit_for_may" | "rure_activity_for_guong";
+            /** Companions */
+            companions: ("may" | "guong" | "nhip" | "rure" | "caunoi")[];
+            /** Summary */
+            summary: string;
         };
         /** ConnectionView */
         ConnectionView: {
@@ -2554,6 +2571,11 @@ export interface components {
              * @default false
              */
             proactive: boolean;
+            /**
+             * Collaboration
+             * @default false
+             */
+            collaboration: boolean;
         };
         /** FeedbackAdminView */
         FeedbackAdminView: {

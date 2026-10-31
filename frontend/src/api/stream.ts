@@ -19,7 +19,19 @@ export type ValidatedBubble = {
   text: string;
   cards: AICard[];
 };
-export type ValidatedReply = { messages: ValidatedBubble[] };
+/** Backend-rendered collaboration line (Phase 2); present only when the server sent the key. */
+export type CollaborationLine = {
+  kind: "nhip_energy_for_rure" | "nhip_habit_for_may" | "rure_activity_for_guong";
+  companions: [BotName, BotName];
+  summary: string;
+};
+export type ValidatedReply = { messages: ValidatedBubble[]; collaboration?: CollaborationLine | null };
+type BotName = "may" | "guong" | "nhip" | "rure" | "caunoi";
+/** Real, server-derived progress of a collaborative turn. Never a guessed stage. */
+export type StreamActivity = { activity: "consulting"; companion: BotName } | { activity: "composing" };
+
+const BOTS: readonly string[] = ["may", "guong", "nhip", "rure", "caunoi"];
+const EDGES: readonly string[] = ["nhip_energy_for_rure", "nhip_habit_for_may", "rure_activity_for_guong"];
 
 const RUN_EVENTS = /^\/api\/v1\/ai\/runs\/[a-zA-Z0-9-]+\/events$/;
 const MAX_BUBBLES = 4;
@@ -69,10 +81,36 @@ function v1Final(data: Record<string, unknown>): ValidatedFinal {
   return { text: data.text, cards: data.cards };
 }
 
+export function validCollaboration(value: unknown): value is CollaborationLine | null {
+  if (value === null) return true;
+  return (
+    object(value) &&
+    Object.keys(value).every((key) => ["kind", "companions", "summary"].includes(key)) &&
+    EDGES.includes(String(value.kind)) &&
+    Array.isArray(value.companions) &&
+    value.companions.length === 2 &&
+    value.companions.every((bot) => BOTS.includes(String(bot))) &&
+    typeof value.summary === "string" &&
+    value.summary.trim().length > 0 &&
+    Array.from(value.summary).length <= 200
+  );
+}
+
+/** progress.data is `{}` or exactly one of the two collaboration shapes. */
+function progressActivity(data: Record<string, unknown>): StreamActivity | null {
+  const keys = Object.keys(data);
+  if (!keys.length) return null;
+  if (data.activity === "consulting" && keys.length === 2 && BOTS.includes(String(data.companion)))
+    return { activity: "consulting", companion: data.companion as BotName };
+  if (data.activity === "composing" && keys.length === 1) return { activity: "composing" };
+  throw invalidStream();
+}
+
 function v2Final(data: Record<string, unknown>): ValidatedReply {
   const messages = data.messages;
   if (
-    Object.keys(data).some((key) => !["partCount", "messages"].includes(key)) ||
+    Object.keys(data).some((key) => !["partCount", "messages", "collaboration"].includes(key)) ||
+    ("collaboration" in data && !validCollaboration(data.collaboration)) ||
     !Array.isArray(messages) ||
     messages.length < 1 ||
     messages.length > MAX_BUBBLES ||
@@ -97,7 +135,9 @@ function v2Final(data: Record<string, unknown>): ValidatedReply {
   const joined = bubbles.map((bubble) => bubble.text).join("\n\n");
   if (Array.from(joined).length > MAX_JOINED || bubbles.flatMap((bubble) => bubble.cards).length > 3)
     throw invalidStream();
-  return { messages: bubbles };
+  return "collaboration" in data
+    ? { messages: bubbles, collaboration: data.collaboration as CollaborationLine | null }
+    : { messages: bubbles };
 }
 
 /** Buffer until a validated final and terminal receipt. Provider deltas never enter UI state. */
@@ -106,6 +146,7 @@ async function consume<T>(
   signal: AbortSignal,
   accept: (version: unknown) => boolean,
   final: (version: string, data: Record<string, unknown>) => T,
+  onProgress?: (activity: StreamActivity) => void,
 ): Promise<T> {
   const response = await fetch(url, {
     credentials: "same-origin",
@@ -166,7 +207,13 @@ async function consume<T>(
         if (next <= sequence) continue;
         if (next !== sequence + 1n) throw invalidStream();
         sequence = next;
-        if (event.type === "progress") continue;
+        if (event.type === "progress") {
+          // v1 progress is always `{}`; v2 may carry the two collaboration activities.
+          const activity = version === "ai-events-v2" ? progressActivity(event.data) : null;
+          if (version !== "ai-events-v2" && Object.keys(event.data).length) throw invalidStream();
+          if (activity) onProgress?.(activity);
+          continue;
+        }
         if (event.type === "final") {
           result = final(version, event.data);
         } else if (event.type === "completed") {
@@ -220,6 +267,7 @@ export async function consumeAIEvents(
 export async function consumeAIReply(
   eventsUrl: string,
   signal: AbortSignal,
+  onProgress?: (activity: StreamActivity) => void,
 ): Promise<ValidatedReply> {
   if (!RUN_EVENTS.test(eventsUrl)) throw invalidStream();
   return consume(
@@ -231,5 +279,6 @@ export async function consumeAIReply(
       const single = v1Final(data);
       return { messages: [{ messageId: null, partIndex: 0, text: single.text, cards: single.cards }] };
     },
+    onProgress,
   );
 }
