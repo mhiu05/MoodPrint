@@ -227,7 +227,12 @@ async def daily_turns(db, user_id, at: datetime) -> int:
         await db.scalar(
             select(func.count())
             .select_from(AiRun)
-            .where(AiRun.user_id == user_id, AiRun.created_at >= quota_day_start(at))
+            # Check-ins the user scheduled never consume their own chat turns.
+            .where(
+                AiRun.user_id == user_id,
+                AiRun.origin == "user",
+                AiRun.created_at >= quota_day_start(at),
+            )
         )
         or 0
     )
@@ -258,18 +263,23 @@ async def admission(db, user, settings):
 
     await db.execute(text("select pg_advisory_xact_lock(664201, 1)"))
     await recover_turns(db)
+    # Global capacity counts every origin (chat and check-ins share the provider).
     active = await db.scalar(
         select(func.count()).select_from(AiRun).where(AiRun.status == "running")
     )
     own = await db.scalar(
         select(func.count())
         .select_from(AiRun)
-        .where(AiRun.status == "running", AiRun.user_id == user.id)
+        .where(AiRun.status == "running", AiRun.user_id == user.id, AiRun.origin == "user")
     )
     recent = await db.scalar(
         select(func.count())
         .select_from(AiRun)
-        .where(AiRun.user_id == user.id, AiRun.created_at > now() - timedelta(minutes=1))
+        .where(
+            AiRun.user_id == user.id,
+            AiRun.origin == "user",
+            AiRun.created_at > now() - timedelta(minutes=1),
+        )
     )
     if active >= settings.ai_global_concurrency or own >= settings.ai_user_concurrency:
         raise DomainError(
