@@ -41,10 +41,40 @@ class SlowCheckInModel(ScriptedModel):
         if data["companion"] == "rure":
             reply["challenge_kind"] = next(k for k in ("observation", "riddle", "drawing", "word_play")
                                            if k not in data.get("avoidChallengeKinds", []))
-        self.responses = [[message_output(json.dumps(reply, ensure_ascii=False))]]
         await asyncio.sleep(self.delay)
+        # Set after the await: concurrent calls share this instance and the base class reads it
+        # synchronously before its first yield.
+        self.responses = [[message_output(json.dumps(reply, ensure_ascii=False))]]
         async for event in super().stream_response(*args, **kwargs):
             yield event
+
+
+def peak_rss_mib() -> float | None:
+    """Peak resident memory of this process (the real interpreter, not a launcher)."""
+    try:
+        if sys.platform == "win32":
+            import ctypes
+            from ctypes import wintypes
+
+            class Counters(ctypes.Structure):
+                _fields_ = [("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD),
+                            ("PeakWorkingSetSize", ctypes.c_size_t), ("WorkingSetSize", ctypes.c_size_t),
+                            ("QuotaPeakPagedPoolUsage", ctypes.c_size_t), ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                            ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t), ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                            ("PagefileUsage", ctypes.c_size_t), ("PeakPagefileUsage", ctypes.c_size_t)]
+
+            counters = Counters()
+            counters.cb = ctypes.sizeof(Counters)
+            kernel32, psapi = ctypes.windll.kernel32, ctypes.windll.psapi
+            kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+            psapi.GetProcessMemoryInfo.argtypes = [wintypes.HANDLE, ctypes.POINTER(Counters), wintypes.DWORD]
+            psapi.GetProcessMemoryInfo(kernel32.GetCurrentProcess(), ctypes.byref(counters), counters.cb)
+            return round(counters.PeakWorkingSetSize / 1048576, 1)
+        import resource
+
+        return round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1)
+    except Exception:
+        return None
 
 
 async def main() -> None:
@@ -87,7 +117,8 @@ async def main() -> None:
     await runtime.close()
     await database.engine.dispose()
     print(json.dumps({"ticks": ticks, "claimed": claimed, "seconds": round(time.monotonic() - started, 2),
-                      "pool_peak_checked_out": peak["checked_out"], "concurrency": concurrency}))
+                      "pool_peak_checked_out": peak["checked_out"], "concurrency": concurrency,
+                      "peak_rss_mib": peak_rss_mib()}))
 
 
 if __name__ == "__main__":
