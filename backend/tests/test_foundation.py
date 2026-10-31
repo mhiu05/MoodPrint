@@ -18,11 +18,11 @@ async def test_live_works_without_configuration_but_ready_and_auth_fail_closed()
         assert "requestId" in response.json()["error"]
 
 
-def test_ready_revisions_cover_the_reviewed_migration_window():
+def test_ready_revision_requires_the_destructive_retirement_head():
     from app.core.revisions import READY_REVISIONS
 
     assert READY_REVISIONS == (
-        "0019_journal",
+        "0020_private_profile_retirement",
     )
 
 
@@ -38,11 +38,13 @@ def test_ready_revisions_cover_the_reviewed_migration_window():
         ("0016_guest_foundation", 503),
         ("0017_guest_security", 503),
         ("0018_app_feedback", 503),
-        ("0019_journal", 200),
+        ("0019_journal", 503),
+        ("0020_private_profile_retirement", 200),
         ("0017_unreviewed", 503),
+        ("9999_unknown", 503),
     ],
 )
-async def test_ready_supports_expand_migration_window_and_rejects_unknown(
+async def test_ready_rejects_pre_retirement_and_unknown_revisions(
     monkeypatch, revision, expected_status
 ):
     from app import main
