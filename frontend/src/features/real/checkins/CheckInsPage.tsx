@@ -121,6 +121,8 @@ export function CheckInsPage() {
         );
         return { ...value, schedules, limits: { ...value.limits, enabledSlots: schedules.filter((s) => s.enabled).length } };
       });
+      // The first saved schedule also creates the settings row on the server.
+      if (before?.settings.version === 0) await load();
       setStatus({ key, text: "Đã lưu" });
     } catch (reason) {
       setView(before);
@@ -136,20 +138,30 @@ export function CheckInsPage() {
     setStatus(undefined);
     const current = view.settings;
     setView((value) => value && { ...value, settings: { ...value.settings, ...patch } });
+    const put = (base: Settings) => api.request<Settings>("/ai/proactive/settings", {
+      method: "PUT",
+      body: {
+        timezone: base.timezone,
+        quietStart: base.quietStart,
+        quietEnd: base.quietEnd,
+        badgesEnabled: base.badgesEnabled,
+        journalContextEnabled: base.journalContextEnabled,
+        policyVersion: base.policyVersion,
+        ...patch,
+        expectedVersion: base.version,
+      },
+    });
     try {
-      const next = await api.request<Settings>("/ai/proactive/settings", {
-        method: "PUT",
-        body: {
-          timezone: current.timezone,
-          quietStart: current.quietStart,
-          quietEnd: current.quietEnd,
-          badgesEnabled: current.badgesEnabled,
-          journalContextEnabled: current.journalContextEnabled,
-          policyVersion: current.policyVersion,
-          ...patch,
-          expectedVersion: current.version,
-        },
-      });
+      let next: Settings;
+      try {
+        next = await put(current);
+      } catch (reason) {
+        if (!(reason instanceof ApiError && reason.code === "STALE_VERSION")) throw reason;
+        // Another save moved the version (e.g. this page's own first schedule). The patch only
+        // carries the one control the person changed, so apply it once on the fresh state.
+        const fresh = await api.request<View>("/ai/proactive");
+        next = await put(fresh.settings);
+      }
       const timing = next.timezone !== current.timezone || next.quietStart !== current.quietStart || next.quietEnd !== current.quietEnd;
       setView((value) => (value ? { ...value, settings: next } : value));
       if (timing) await load(); // next delivery times move with the time zone

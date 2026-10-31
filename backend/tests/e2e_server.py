@@ -74,6 +74,10 @@ app = create_app(
         product_tour_enabled=True,
         # Multi-bubble replies (Gate G1a) on by default here; E2E_MULTI_MESSAGE=0 checks the off path.
         ai_multi_message_enabled=os.environ.get("E2E_MULTI_MESSAGE", "1") == "1",
+        # Check-ins: API/UI on (E2E_PROACTIVE=0 checks the off path). There is no background
+        # worker here (HD-04); /__test/proactive/run materializes and executes jobs on demand.
+        proactive_enabled=os.environ.get("E2E_PROACTIVE", "1") == "1",
+        proactive_worker_enabled=True,
     )
 )
 app.state.ai.model_override = MoodE2EModel([])
@@ -142,6 +146,36 @@ async def seed_guest_proposal(body: dict):
         db.add(proposal)
         await db.flush()
         return {"id": str(proposal.id), "version": proposal.version}
+
+
+@app.post("/__test/proactive/run", include_in_schema=False)
+async def run_check_ins(body: dict):
+    """Test clock: make this user's enabled schedules due now, then drain the queue once."""
+    from datetime import date
+
+    from sqlalchemy import func, select, update
+
+    from app.ai.proactive.models import AiProactiveJob, AiProactiveSchedule
+    from app.jobs.proactive import proactive_tick
+    from app.modules.journal.models import JournalEntry
+
+    uid = UUID(body["userId"])
+    async with app.state.database.sessions.begin() as db:
+        if body.get("journalYesterday"):
+            db.add(JournalEntry(user_id=uid, local_date=date.fromisoformat(body["journalYesterday"]),
+                                timezone="Asia/Bangkok", mood=3, text="Khoảnh khắc tổng hợp cho E2E",
+                                emotions=["bình yên"], factors=["đi bộ"], status="saved"))
+        await db.execute(update(AiProactiveSchedule)
+                         .where(AiProactiveSchedule.user_id == uid, AiProactiveSchedule.enabled)
+                         .values(next_due_at=func.now() - timedelta(seconds=5)))
+    for _ in range(6):
+        if not (await proactive_tick(app.state.ai)).get("claimed"):
+            break
+    async with app.state.database.sessions() as db:
+        rows = (await db.execute(select(AiProactiveJob.bot_id, AiProactiveJob.status, AiProactiveJob.skip_reason,
+                                        AiProactiveJob.last_error)
+                                 .where(AiProactiveJob.user_id == uid))).all()
+    return {"jobs": [dict(bot=b, status=s, reason=r, error=e) for b, s, r, e in rows]}
 
 
 async def seed():

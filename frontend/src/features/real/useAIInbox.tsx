@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { components } from "../../api/generated/schema";
+import { useLocation } from "react-router-dom";
 import type { ApiClient } from "../../api/client";
 
 export type Inbox = components["schemas"]["InboxView"];
@@ -59,6 +60,7 @@ export function useAIInbox() {
 export function AIInboxProvider({ api, enabled, children }: { api: ApiClient; enabled: boolean; children: ReactNode }) {
   const [inbox, setInbox] = useState<Inbox>(EMPTY_INBOX);
   const channel = useRef<BroadcastChannel | null>(null);
+  const { pathname } = useLocation();
   const refresh = useCallback(() => {
     if (!enabled) return;
     // Advisory counts: a failed poll keeps the last known state.
@@ -95,6 +97,10 @@ export function AIInboxProvider({ api, enabled, children }: { api: ApiClient; en
       channel.current = null;
     };
   }, [enabled, refresh]);
+  useEffect(() => {
+    // Moving between screens is a natural moment to pick up a check-in that just arrived.
+    refresh();
+  }, [pathname, refresh]);
   const markRead = useCallback(async (conversationId: string, sequence: number) => {
     if (!enabled) return;
     await api.request(`/ai/conversations/${encodeURIComponent(conversationId)}/read`, {

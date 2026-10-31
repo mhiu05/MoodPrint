@@ -86,10 +86,13 @@ async function mount(page: Page, options: { view?: ReturnType<typeof proactiveVi
       delete (next as Record<string, unknown>).expectedVersion;
       view = { ...view, schedules: view.schedules.map((s) => (s === current ? next : s)) };
       view.limits = { ...view.limits, enabledSlots: view.schedules.filter((s) => s.enabled).length };
+      // Like the API: the first saved schedule creates the settings row.
+      if (view.settings.version === 0) view = { ...view, settings: { ...view.settings, version: 1 } };
       return json(next);
     }
     if (path === "/ai/proactive/settings" && method === "PUT") {
-      const body = request.postDataJSON();
+      const { expectedVersion, ...body } = request.postDataJSON();
+      if (expectedVersion !== view.settings.version) return json({ error: { code: "STALE_VERSION", message: "stale" } }, 409);
       view = { ...view, settings: { ...view.settings, ...body, version: view.settings.version + 1 } };
       return json(view.settings);
     }
@@ -242,4 +245,19 @@ test("the account page links to the schedule", async ({ page }) => {
   await expect(page.getByText("1 lời hỏi thăm mỗi ngày, vào giờ bạn chọn.")).toBeVisible();
   await page.getByRole("link", { name: "Chỉnh lịch hỏi thăm" }).click();
   await expect(page).toHaveURL(/#\/check-ins$/);
+});
+
+test("the first schedule creates settings and the next settings change still saves", async ({ page }) => {
+  const fresh = proactiveView({ enabled: [] });
+  fresh.settings.version = 0;
+  const seen = await mount(page, { view: fresh });
+  await page.goto("/#/check-ins");
+  await page.getByRole("region", { name: "Nhịp" }).getByRole("switch", { name: /Buổi sáng/ }).click();
+  await expect(page.getByRole("region", { name: "Nhịp" }).getByRole("status")).toHaveText("Đã lưu");
+  const optIn = page.getByRole("checkbox", { name: "Dùng khoảnh khắc đã lưu hôm qua" });
+  await optIn.click();
+  await expect(page.getByRole("region", { name: "Nhịp" }).getByRole("status")).toHaveText("Đã lưu");
+  await expect(optIn).toBeChecked();
+  const write = seen.writes.filter((w) => w.path === "/ai/proactive/settings").at(-1);
+  expect(write?.body).toMatchObject({ journalContextEnabled: true, expectedVersion: 1 });
 });
