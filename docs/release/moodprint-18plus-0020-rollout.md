@@ -255,7 +255,29 @@ git ls-remote --heads origin refs/heads/feat/friendship-discovery-18plus
 gh run list --repo mhiu05/MoodPrint --branch feat/friendship-discovery-18plus
 ```
 
-The functional commit manifest follows. The final evidence-document commit is
+The first pushed workflow, [41197762668](https://github.com/mhiu05/MoodPrint/actions/runs/41197762668),
+passed backend checks (**1197 passed, 0 failed, 1 skipped**), migration/load,
+frontend checks (**145 Vitest + 1 tooling + 355 browser passed**), real fullstack
+(**35 passed**), SQL/documentation/release controls and actionlint. Its single
+skipped test is the opt-in hosted guest compatibility test without an approved
+non-production target; it is not counted as a pass. The workflow then **failed**
+while building the standalone frontend image: a source-adjacent unit test imports
+the authoritative backend taxonomy outside that image's build context. The
+combined SPA/API image has the same boundary, so both image variants are checked
+for the correction.
+
+The correction adds a production TypeScript configuration for application source.
+The existing full `npm run typecheck` and all taxonomy-backed unit/browser tests
+remain enabled in CI; `npm run build` checks production source before bundling.
+No timeout, assertion, taxonomy fixture or privacy check is weakened. Both the
+standalone web image and combined SPA/API image build successfully from the
+intended committed-source overlay. Their static-file/source-map and unprivileged
+runtime/no-env checks pass. Full typecheck, 145 unit tests, the tooling regression
+and production build also pass after the correction. Image IDs and smoke results
+are retained in `image-build-final-results.json` outside Git. The final CI rerun
+result is recorded in the delivery response.
+
+The functional commit manifest follows. The final packaging correction is
 identified by the current branch history and delivery SHA (a document cannot
 contain its own Git object ID).
 
@@ -280,3 +302,4 @@ contain its own Git object ID).
 | `717a8a4` | chore(release): hold publication until the compatible 0020 rollout is ready |
 | `db5cfcd` | test(eligibility): verify age denial and align complete browser and fullstack journeys |
 | `7bbd39b` | fix(tooling): patch minimatch without changing generated API contracts |
+| `cb1fe5d` | docs(release): record 18plus QA and the guarded 0020 rollout dependency |
