@@ -211,7 +211,7 @@ def test_reviewed_upgrade_sql_executes_verbatim_with_supabase_roles(tmp_path):
     url = os.getenv("TEST_DATABASE_URL")
     if not url:
         pytest.skip("TEST_DATABASE_URL must identify a disposable real PostgreSQL database")
-    target = require_local_test_database(url)
+    require_local_test_database(url)
     runner = script("apply_supabase_review")
     plans = [runner.UPGRADES[key] for key in sorted(runner.UPGRADES)]
     exports = []
@@ -221,15 +221,9 @@ def test_reviewed_upgrade_sql_executes_verbatim_with_supabase_roles(tmp_path):
             exports.append(runner.alembic_export(f"{plans[index - 1].to_revision}:{plan.from_revision}"))
         exports.append(runner.alembic_export(f"{plan.from_revision}:{plan.to_revision}"))
     assert all("%%" not in sql for sql in exports)
-    name = f"{target.database.removesuffix('_test')}_offline_test"
-    admin = target.set(drivername="postgresql", database="postgres").render_as_string(
-        hide_password=False
-    )
-    scratch = target.set(database=name)
-    with psycopg.connect(admin, autocommit=True) as db:
-        db.execute(f'drop database if exists "{name}"')
-        db.execute(f'create database "{name}"')
-    try:
+    from tests.database_target import owned_scratch_database
+
+    with owned_scratch_database(url) as scratch:
         env = {
             **os.environ,
             "DATABASE_URL": "",
@@ -278,6 +272,3 @@ def test_reviewed_upgrade_sql_executes_verbatim_with_supabase_roles(tmp_path):
                 "select has_function_privilege('moodprint_runtime', %s, 'EXECUTE')", (identity,)
             ).fetchone()[0]
             db.rollback()
-    finally:
-        with psycopg.connect(admin, autocommit=True) as db:
-            db.execute(f'drop database if exists "{name}" with (force)')

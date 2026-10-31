@@ -42,6 +42,12 @@ def test_rollback_rejects_unknown_or_incomplete_public_profiles(patch):
 
 @pytest.mark.parametrize("scorer", ["v1", "shadow", "v2"])
 async def test_extended_profiles_can_discover_explain_invite_and_accept(clients, scorer):
+    from datetime import date
+    from uuid import uuid4
+
+    from app.infrastructure.database.models import Memory, Mood
+    from app.modules.journal.models import JournalEntry
+
     app, actors = clients
     app.state.settings.matching_scorer = scorer
     (one, _), (two, _) = actors
@@ -53,6 +59,40 @@ async def test_extended_profiles_can_discover_explain_invite_and_accept(clients,
     assert len(cards) == 1
     assert cards[0]["scoringVersion"] == ("rules-v2" if scorer == "v2" else "rules-v1.1")
     assert any("cờ vua" in reason.lower() for reason in cards[0]["reasons"])
+    # T31: private state must neither appear in nor change the published match.
+    for client in (one, two):
+        identity = await client.patch(
+            "/api/v1/users/me/identity",
+            json={"field": "displayName", "value": "PRIVATE-T31-IDENTITY", "expectedVersion": 0},
+            headers=key(),
+        )
+        assert identity.status_code == 200, identity.text
+    async with app.state.database.sessions.begin() as db:
+        for _, uid in actors:
+            db.add(Mood(user_id=uid, local_date=date.today(), value=4,
+                        note="PRIVATE-T31-MOOD", timezone="Asia/Bangkok"))
+            db.add(JournalEntry(user_id=uid, local_date=date.today(), timezone="Asia/Bangkok",
+                                mood=4, text="PRIVATE-T31-JOURNAL"))
+            db.add(Memory(user_id=uid, bot_id="may", text="PRIVATE-T31-MEMORY", proposal_id=uuid4()))
+    private_draft = await two.put(
+        "/api/v1/profiles/matching-draft",
+        json={**EXTENDED, "interests": ["coffee", "music", "travel"],
+              "discovery": {"version": 1, "intention": "experiences",
+                            "connectionApproach": "activity-first", "featuredInterests": ["coffee"]},
+              "expectedVersion": 1},
+        headers=key(),
+    )
+    assert private_draft.status_code == 200, private_draft.text
+    after = await one.get("/api/v1/matching/candidates")
+    assert after.status_code == 200, after.text
+    # candidateRef intentionally rotates; every public fact/reason/order must remain identical.
+    def public_cards(items):
+        return [{name: value for name, value in card.items() if name != "candidateRef"}
+                for card in items]
+
+    assert public_cards(after.json()["candidates"]) == public_cards(cards)
+    assert "PRIVATE-T31" not in after.text
+    assert (await one.get("/api/v1/profiles/matching-draft")).json()["profile"]["discovery"] is None
     sent = await one.post(
         "/api/v1/connection-requests",
         json={"candidateRef": cards[0]["candidateRef"]},

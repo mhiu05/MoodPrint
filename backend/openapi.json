@@ -15979,6 +15979,16 @@
             "type": "boolean",
             "title": "Strictgoal",
             "default": false
+          },
+          "discovery": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FriendshipDiscovery"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -16555,6 +16565,61 @@
         "additionalProperties": false,
         "type": "object",
         "title": "FocusOptions"
+      },
+      "FriendshipDiscovery": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Version",
+            "default": 1
+          },
+          "intention": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "talk",
+                  "shared-interests",
+                  "study",
+                  "experiences"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intention"
+          },
+          "connectionApproach": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "gradual",
+                  "lively",
+                  "activity-first"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connectionapproach"
+          },
+          "featuredInterests": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Featuredinterests"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "FriendshipDiscovery",
+        "description": "Explicit public display choices, independent of canonical matching facets."
       },
       "GuestEligibility": {
         "properties": {
@@ -17983,6 +18048,16 @@
             "type": "boolean",
             "title": "Strictgoal",
             "default": false
+          },
+          "discovery": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FriendshipDiscovery"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,

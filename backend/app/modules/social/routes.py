@@ -71,7 +71,10 @@ async def get_draft(request: Request, actor: Actor = Depends(require_registered_
 
 @router.put("/profiles/matching-draft", response_model=DraftView)
 async def save_draft(body: DraftInput, request: Request, actor: Actor = Depends(require_registered_actor)):
-    key, payload = idempotency_key(request), body.model_dump(mode="json")
+    # Presence matters: omitted discovery preserves metadata; explicit null clears it.
+    key, payload = idempotency_key(request), body.model_dump(
+        mode="json", exclude={"discovery"} if "discovery" not in body.model_fields_set else set()
+    )
     async with transaction(request, actor) as (db, user):
         old = await previous_receipt(db, user, "draft:save", key, payload)
         draft = await db.get(MatchingDraft, user.id)
@@ -79,10 +82,18 @@ async def save_draft(body: DraftInput, request: Request, actor: Actor = Depends(
             if (draft.version if draft else 0) != body.expected_version:
                 raise DomainError(409, "STALE_VERSION", "Bản nháp đã thay đổi.")
             if draft is None:
-                draft = MatchingDraft(user_id=user.id, payload=svc.public_payload(body))
+                published = await db.scalar(
+                    select(PublishedProfile).where(
+                        PublishedProfile.user_id == user.id, PublishedProfile.valid
+                    )
+                )
+                draft = MatchingDraft(
+                    user_id=user.id,
+                    payload=svc.public_payload(body, previous=published.payload if published else None),
+                )
                 db.add(draft)
             else:
-                draft.payload = svc.public_payload(body)
+                draft.payload = svc.public_payload(body, previous=draft.payload)
                 draft.version += 1
                 draft.preview_digest = None
                 draft.preview_expires_at = None

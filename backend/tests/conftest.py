@@ -53,7 +53,7 @@ async def database():
     url = os.getenv("TEST_DATABASE_URL")
     if not url:
         pytest.skip("TEST_DATABASE_URL must identify a disposable real PostgreSQL database")
-    from tests.database_target import require_local_test_database
+    from tests.database_target import require_local_test_database, verify_test_database
 
     require_local_test_database(url)
     from app.ai import (
@@ -74,6 +74,7 @@ async def database():
 
     engine = create_async_engine(url, connect_args={"prepare_threshold": None})
     async with engine.begin() as conn:
+        await verify_test_database(conn)
         # Tests run only against an explicitly named disposable DB, never DATABASE_URL.
         name = await conn.scalar(text("select current_database()"))
         if not name or not name.endswith("_test"):

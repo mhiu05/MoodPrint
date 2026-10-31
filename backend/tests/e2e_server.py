@@ -46,6 +46,7 @@ from app.infrastructure.database.models import AuthSession, Base, Consent, Memor
 from app.main import create_app
 from app.modules.guests import models as guest_models  # noqa: F401 -- register before reset
 from app.modules.moderation.models import StaffRole
+from tests.database_target import verify_test_database
 from tests.e2e_auth import LocalAuth
 from tests.feedback_schema import install_feedback_functions
 from tests.guest_helpers import LIFETIME, add_guest, enable_paid_fixture
@@ -143,6 +144,7 @@ async def seed_guest_proposal(body: dict):
 
 async def seed():
     async with app.state.database.engine.begin() as connection:
+        await verify_test_database(connection)
         await connection.execute(text("create schema if not exists moodprint"))
         await connection.execute(text("create schema if not exists extensions"))
         await connection.execute(text("create extension if not exists vector with schema extensions"))

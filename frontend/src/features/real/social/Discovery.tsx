@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Button, cx, Dialog, StatePanel } from "../../../components/UI";
 import type { components } from "../../../api/generated/schema";
@@ -8,6 +14,8 @@ import { CandidateCard } from "./CandidateCard";
 import { ProfileEditor } from "./ProfileEditor";
 import { RequestCard } from "./RequestCard";
 import { OwnIdentity } from "../Safety";
+import type { LeaveRequest } from "./useProfileNavigationGuard";
+import { ApiError, errorMessage } from "../../../api/client";
 
 type Schema = components["schemas"];
 type Draft = Schema["DraftView"];
@@ -18,16 +26,22 @@ type RequestView = Schema["RequestView"];
 const TABS = ["suggestions", "requests", "profile", "identity"] as const;
 const IDENTITY_TAB = ["identity"] as const;
 type Tab = (typeof TABS)[number];
-const isTab = (value: string | null): value is Tab => TABS.includes(value as Tab);
+const isTab = (value: string | null): value is Tab =>
+  TABS.includes(value as Tab);
 
 /** Matching and identity tabs, kept in `?tab=`. */
 export function Discovery() {
   const { api, session, receive } = useSession();
-  const restricted = session.notices?.some((notice) => notice.kind === "restricted");
+  const restricted = session.notices?.some(
+    (notice) => notice.kind === "restricted",
+  );
   const matchingAvailable =
     session.features.matching && session.ageBand === "adult" && !restricted;
   const [params, setParams] = useSearchParams();
-  const draft = useResource<Draft>("/profiles/matching-draft", matchingAvailable);
+  const draft = useResource<Draft>(
+    "/profiles/matching-draft",
+    matchingAvailable,
+  );
   const taxonomy = useResource<Taxonomy>("/taxonomy", matchingAvailable);
   const published = useResource<Published | null>(
     "/profiles/published/current",
@@ -51,12 +65,55 @@ export function Discovery() {
   }, [requests.refresh, canMatch]);
   const [editing, setEditing] = useState(false),
     [busy, setBusy] = useState(false);
+  const [closedNewEditor, setClosedNewEditor] = useState(false);
+  const editorLeave = useRef<LeaveRequest | null>(null);
+  const registerLeave = useCallback((guard: LeaveRequest | null) => {
+    editorLeave.current = guard;
+  }, []);
   const [error, setError] = useState<unknown>(),
     [notice, setNotice] = useState("");
   const [blocking, setBlocking] = useState<string>();
   const [sent, setSent] = useState<string[]>([]);
+  const [candidateErrors, setCandidateErrors] = useState<
+    Record<string, { message: string; expired: boolean }>
+  >({});
+  const acting = useRef(false);
+  const mounted = useRef(false);
+  const focusNext = useRef<number | null>(null);
+  const suggestionsHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (focusNext.current === null) return;
+    const index = focusNext.current;
+    focusNext.current = null;
+    requestAnimationFrame(() => {
+      const headings = document.querySelectorAll<HTMLElement>(
+        ".peer-grid [data-peer-heading]",
+      );
+      (
+        headings[Math.min(index, headings.length - 1)] ??
+        suggestionsHeading.current
+      )?.focus();
+    });
+  }, [suggestions.data]);
   const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
   const live = published.data?.state === "live";
+  useEffect(() => {
+    // Own the auto-opened editor independently of draft.version: its first save
+    // must not unmount it between PUT and the authoritative preview response.
+    if (
+      matchingAvailable &&
+      draft.data?.version === 0 &&
+      published.data === null &&
+      !closedNewEditor
+    )
+      setEditing(true);
+  }, [matchingAvailable, draft.data?.version, published.data, closedNewEditor]);
   const named = params.get("tab");
   // Without a named tab, a live profile opens on suggestions; otherwise on the editor.
   const tab: Tab = !matchingAvailable
@@ -83,9 +140,18 @@ export function Discovery() {
   };
   function select(next: Tab, focus = false) {
     if (!visibleTabs.includes(next)) return;
-    // Replace, so Back leaves Discovery instead of stepping through tabs.
-    setParams({ tab: next }, { replace: true });
-    if (focus) tabRefs.current[next]?.focus();
+    const leave = () => {
+      if (next !== tab) {
+        setEditing(false);
+        setClosedNewEditor(true);
+      }
+      // Replace, so Back leaves Discovery instead of stepping through tabs.
+      setParams({ tab: next }, { replace: true });
+      if (focus) tabRefs.current[next]?.focus();
+    };
+    if (tab === "profile" && next !== "profile" && editorLeave.current)
+      editorLeave.current(leave);
+    else leave();
   }
   // Move from the tab that has focus, not from state that may not have re-rendered yet.
   function onTabKey(event: KeyboardEvent<HTMLButtonElement>, from: Tab) {
@@ -121,6 +187,78 @@ export function Discovery() {
       setBusy(false);
     }
   }
+  async function candidateAct(ref: string, kind: "invite" | "skip" | "block") {
+    if (acting.current || busy || suggestions.loading || !canMatch) return;
+    acting.current = true;
+    setBusy(true);
+    setNotice("");
+    const epoch = api.epoch;
+    const current = () => mounted.current && api.epoch === epoch;
+    setCandidateErrors((previous) => {
+      const next = { ...previous };
+      delete next[ref];
+      return next;
+    });
+    try {
+      await api.request(
+        kind === "invite"
+          ? "/connection-requests"
+          : kind === "skip"
+            ? "/matching/skips"
+            : "/blocks",
+        {
+          method: "POST",
+          body: kind === "block" ? { peerRef: ref } : { candidateRef: ref },
+        },
+      );
+      if (!current()) return;
+      if (kind === "invite") {
+        // Retain this reviewed card and its block action; don't immediately erase
+        // the sent status by fetching a list that excludes pending invitations.
+        setSent((previous) => [...previous, ref]);
+        requests.refresh();
+        setNotice("Đã gửi lời mời kết nối.");
+      } else {
+        focusNext.current =
+          suggestions.data?.candidates.findIndex(
+            (card) => card.candidateRef === ref,
+          ) ?? 0;
+        suggestions.setData(
+          (previous) =>
+            previous && {
+              ...previous,
+              candidates: previous.candidates.filter(
+                (card) => card.candidateRef !== ref,
+              ),
+            },
+        );
+        setNotice(kind === "block" ? "Đã chặn kết nối." : "Đã bỏ qua gợi ý.");
+        if (kind === "block") setBlocking(undefined);
+        requests.refresh();
+      }
+    } catch (reason) {
+      if (!current()) return;
+      const expired =
+        reason instanceof ApiError &&
+        ["CANDIDATE_EXPIRED", "CANDIDATE_CHANGED"].includes(reason.code);
+      setCandidateErrors((previous) => ({
+        ...previous,
+        [ref]: { message: errorMessage(reason), expired },
+      }));
+      if (reason instanceof ApiError && reason.status === 403)
+        void api
+          .request<SessionView>("/session")
+          .then((value) => {
+            if (current()) receive(value);
+          })
+          .catch(() => {});
+    } finally {
+      if (current()) {
+        acting.current = false;
+        setBusy(false);
+      }
+    }
+  }
   const label = (key: string) =>
     (taxonomy.data &&
       {
@@ -134,8 +272,10 @@ export function Discovery() {
       }[key]) ||
     key;
   return (
-    <div className={cx.reading}>
-      <h1 tabIndex={-1} data-tour="matching-intro">Tìm bạn đồng điệu</h1>
+    <div className={`${cx.reading} discovery-page`}>
+      <h1 tabIndex={-1} data-tour="matching-intro">
+        Tìm một người bạn hợp gu 🌷
+      </h1>
       <p className={cx.lede}>
         Bắt đầu từ những điểm chung bạn chủ động chia sẻ.
       </p>
@@ -199,7 +339,11 @@ export function Discovery() {
         {tab === "identity" && <OwnIdentity />}
         {tab === "profile" && (
           <>
-            <p>Hồ sơ chỉ hiện với người khác sau khi bạn xem trước và chọn Hiển thị hồ sơ. Trò chuyện AI, nhật ký cảm xúc và ghi nhớ không dùng để gợi ý bạn bè.</p>
+            <p>
+              Hồ sơ chỉ hiện với người khác sau khi bạn xem trước và chọn Hiển
+              thị hồ sơ. Trò chuyện AI, nhật ký cảm xúc và ghi nhớ không dùng để
+              gợi ý bạn bè.
+            </p>
             {!session.consents.MATCH.enabled ? (
               <p className={cx.note}>
                 Quyền tìm bạn đang tắt. Khi bạn xem lại hồ sơ và chọn Hiển thị
@@ -207,40 +351,77 @@ export function Discovery() {
                 hợp.
               </p>
             ) : null}
-            {!editing && (
-              <Button
-                variant="secondary"
-                disabled={!draft.data || !taxonomy.data}
-                onClick={() => setEditing(true)}
-              >
-                Chỉnh hồ sơ tìm bạn
-              </Button>
-            )}
-            {editing && taxonomy.data && draft.data && (
-              <ProfileEditor
-                taxonomy={taxonomy.data}
-                draft={draft.data}
-                published={published.data}
-                onDraft={(saved) => draft.setData(saved)}
-                onPublished={(result) => {
-                  published.setData(result);
-                  void api.request<SessionView>("/session").then(receive).catch(setError);
-                  draft.setData(
-                    (previous) =>
-                      previous && {
-                        ...previous,
-                        publishedVersion: result.profileVersion,
-                      },
-                  );
-                  setEditing(false);
-                  setNotice("Đã hiển thị hồ sơ tìm bạn.");
-                  suggestions.refresh();
-                  requests.refresh();
-                  select("suggestions");
-                }}
-                onClose={() => setEditing(false)}
-              />
-            )}
+            {(draft.loading || taxonomy.loading || published.loading) &&
+              !draft.data && (
+                <div className="friendship-loading" aria-busy="true">
+                  <p role="status">Đang tải hồ sơ…</p>
+                  <div className="friendship-skeleton" />
+                </div>
+              )}
+            {!editing &&
+              !(
+                draft.data?.version === 0 &&
+                published.data === null &&
+                !closedNewEditor
+              ) && (
+                <Button
+                  variant="secondary"
+                  disabled={
+                    !draft.data ||
+                    !taxonomy.data ||
+                    published.data === undefined ||
+                    Boolean(draft.error || taxonomy.error || published.error)
+                  }
+                  onClick={() => setEditing(true)}
+                >
+                  Chỉnh hồ sơ tìm bạn
+                </Button>
+              )}
+            {(editing ||
+              (draft.data?.version === 0 &&
+                published.data === null &&
+                !closedNewEditor)) &&
+              taxonomy.data &&
+              draft.data &&
+              published.data !== undefined &&
+              (editing ||
+                !(draft.error || taxonomy.error || published.error)) && (
+                <ProfileEditor
+                  key={session.userId}
+                  taxonomy={taxonomy.data}
+                  draft={draft.data}
+                  published={published.data}
+                  registerLeave={registerLeave}
+                  onDraft={(saved) => draft.setData(saved)}
+                  onPublished={(result) => {
+                    published.setData(result);
+                    void api
+                      .request<SessionView>("/session")
+                      .then(receive)
+                      .catch(setError);
+                    draft.setData(
+                      (previous) =>
+                        previous && {
+                          ...previous,
+                          publishedVersion: result.profileVersion,
+                        },
+                    );
+                    setEditing(false);
+                    setNotice(
+                      live
+                        ? "Đã cập nhật hồ sơ hiển thị."
+                        : "Đã hiển thị hồ sơ tìm bạn.",
+                    );
+                    suggestions.refresh();
+                    requests.refresh();
+                    setParams({ tab: "suggestions" }, { replace: true });
+                  }}
+                  onClose={() => {
+                    setEditing(false);
+                    setClosedNewEditor(true);
+                  }}
+                />
+              )}
             {published.data && (
               <section className="real-section">
                 <h2>{live ? "Hồ sơ đang hiển thị" : "Hồ sơ đang tạm ẩn"}</h2>
@@ -272,7 +453,9 @@ export function Discovery() {
                     void act(async () => {
                       await api.request("/profiles/published/current", {
                         method: "DELETE",
-                        body: { expectedVersion: published.data!.profileVersion },
+                        body: {
+                          expectedVersion: published.data!.profileVersion,
+                        },
                       });
                       published.setData(null);
                       draft.refresh();
@@ -285,128 +468,141 @@ export function Discovery() {
             )}
           </>
         )}
-        {tab === "suggestions" &&
-          (
-            <section className="real-section">
-              <h2>Gợi ý từ những điểm chung</h2>
-              <Button
-                variant="text"
-                disabled={suggestions.loading}
-                onClick={suggestions.refresh}
-              >
-                Tải lại gợi ý
-              </Button>
-              {suggestions.loading && <p role="status">Đang tải gợi ý kết nối…</p>}
-              {!suggestions.loading && !live && (
-                <p>
-                  Hãy hiển thị hồ sơ tìm bạn để nhận gợi ý.{" "}
-                  <Button variant="text" onClick={() => select("profile", true)}>
-                    Mở hồ sơ tìm bạn
-                  </Button>
+        {tab === "suggestions" && (
+          <section className="real-section">
+            <h2 ref={suggestionsHeading} tabIndex={-1}>
+              Gợi ý từ những điểm chung
+            </h2>
+            <Button
+              variant="text"
+              disabled={suggestions.loading}
+              onClick={suggestions.refresh}
+            >
+              Tải lại gợi ý
+            </Button>
+            {suggestions.loading && (
+              <p role="status">Đang tải gợi ý kết nối…</p>
+            )}
+            {suggestions.loading && !suggestions.data && canMatch && (
+              <div className="peer-grid" aria-hidden="true">
+                <div className="friendship-skeleton" />
+                <div className="friendship-skeleton" />
+              </div>
+            )}
+            {busy && <p role="status">Đang cập nhật kết nối…</p>}
+            {!suggestions.loading && !live && (
+              <p>
+                Hãy hiển thị hồ sơ tìm bạn để nhận gợi ý.{" "}
+                <Button variant="text" onClick={() => select("profile", true)}>
+                  Mở hồ sơ tìm bạn
+                </Button>
+              </p>
+            )}
+            {Boolean(suggestions.error) && live && (
+              <ErrorNotice
+                error={suggestions.error}
+                retry={suggestions.refresh}
+              />
+            )}
+            {live && suggestions.data?.candidates.length === 0 && (
+              <>
+                <p>Chưa có gợi ý phù hợp lúc này.</p>
+                <p className={cx.footnote}>
+                  Bạn có thể quay lại sau hoặc cập nhật những điều muốn chia sẻ.
                 </p>
-              )}
-              {Boolean(suggestions.error) && live && (
-                <ErrorNotice
-                  error={suggestions.error}
-                  retry={suggestions.refresh}
-                />
-              )}
-              {live && suggestions.data?.candidates.length === 0 && (
-                <>
-                  <p>Chưa có gợi ý kết nối.</p>
-                  <p className={cx.footnote}>
-                    Có thể hiện chưa có người cùng điểm chung, hoặc họ chưa bật
-                    chia sẻ hồ sơ. Bạn có thể quay lại sau; không cần thay đổi
-                    điều mình thích để nhận gợi ý.
-                  </p>
-                  <Button variant="secondary" onClick={() => select("profile", true)}>
-                    Mở rộng hồ sơ tìm bạn
-                  </Button>
-                </>
-              )}
-              <div className="peer-grid">
-                {suggestions.data?.candidates.map((candidate) => (
+                <Button
+                  variant="secondary"
+                  onClick={() => select("profile", true)}
+                >
+                  Chỉnh hồ sơ
+                </Button>
+              </>
+            )}
+            <div className="peer-grid" aria-busy={suggestions.loading}>
+              {canMatch &&
+                suggestions.data?.candidates.map((candidate) => (
                   <CandidateCard
                     key={candidate.candidateRef}
                     card={candidate}
                     label={label}
-                    busy={busy}
+                    taxonomy={taxonomy.data}
+                    busy={
+                      busy || suggestions.loading || Boolean(suggestions.error)
+                    }
                     sent={sent.includes(candidate.candidateRef)}
+                    error={candidateErrors[candidate.candidateRef]?.message}
+                    onReload={
+                      candidateErrors[candidate.candidateRef]?.expired
+                        ? () => {
+                            setCandidateErrors({});
+                            suggestions.refresh();
+                          }
+                        : undefined
+                    }
                     onGreet={() =>
-                      void act(async () => {
-                        await api.request("/connection-requests", {
-                          method: "POST",
-                          body: { candidateRef: candidate.candidateRef },
-                        });
-                        setSent((value) => [...value, candidate.candidateRef]);
-                      }, "Đã gửi lời mời kết nối.")
+                      void candidateAct(candidate.candidateRef, "invite")
                     }
                     onSkip={() =>
-                      void act(
-                        () =>
-                          api.request("/matching/skips", {
-                            method: "POST",
-                            body: { candidateRef: candidate.candidateRef },
-                          }),
-                        "Đã bỏ qua gợi ý.",
-                      )
+                      void candidateAct(candidate.candidateRef, "skip")
                     }
                     onBlock={() => setBlocking(candidate.candidateRef)}
                   />
                 ))}
-              </div>
-              {Boolean(suggestions.data?.candidates.length) && (
-                <p className="discovery-footnote">
-                  Gợi ý dựa trên những điểm chung bạn và họ tự chọn chia sẻ —
-                  không phải đánh giá mức độ hợp nhau.
-                </p>
-              )}
-            </section>
-          )}
-        {tab === "requests" &&
-          (
-            <section className="real-section">
-              <h2>Lời mời kết nối</h2>
-              <ErrorNotice error={requests.error} retry={requests.refresh} />
-              {requests.loading && !requests.data && (
-                <p role="status">Đang tải lời mời…</p>
-              )}
-              {requests.data?.length === 0 && (
-                <>
-                  <p>Bạn chưa có lời mời nào.</p>
-                  <Button variant="secondary" onClick={() => select("suggestions", true)}>
-                    Xem gợi ý
-                  </Button>
-                </>
-              )}
-              {requests.data?.map((item) => (
-                <RequestCard
-                  key={item.id}
-                  item={item}
-                  label={label}
-                  busy={busy}
-                  onDecide={(row, decision) =>
-                    void act(
-                      () =>
-                        api.request(
-                          `/connection-requests/${row.id}/${decision}`,
-                          {
-                            method: "POST",
-                            body: { expectedVersion: row.version },
-                          },
-                        ),
-                      decision === "accept"
-                        ? "Đã kết nối. Bạn có thể bắt đầu trò chuyện."
-                        : "Đã cập nhật lời mời.",
-                    )
-                  }
-                />
-              ))}
-              <Button variant="text" onClick={requests.refresh}>
-                Tải lại lời mời
-              </Button>
-            </section>
-          )}
+            </div>
+            {Boolean(suggestions.data?.candidates.length) && (
+              <p className="discovery-footnote">
+                Gợi ý dựa trên những điểm chung bạn và họ tự chọn chia sẻ —
+                không phải đánh giá mức độ hợp nhau.
+              </p>
+            )}
+          </section>
+        )}
+        {tab === "requests" && (
+          <section className="real-section">
+            <h2>Lời mời kết nối</h2>
+            <ErrorNotice error={requests.error} retry={requests.refresh} />
+            {requests.loading && !requests.data && (
+              <p role="status">Đang tải lời mời…</p>
+            )}
+            {requests.data?.length === 0 && (
+              <>
+                <p>Bạn chưa có lời mời nào.</p>
+                <Button
+                  variant="secondary"
+                  onClick={() => select("suggestions", true)}
+                >
+                  Xem gợi ý
+                </Button>
+              </>
+            )}
+            {requests.data?.map((item) => (
+              <RequestCard
+                key={item.id}
+                item={item}
+                label={label}
+                busy={busy}
+                onDecide={(row, decision) =>
+                  void act(
+                    () =>
+                      api.request(
+                        `/connection-requests/${row.id}/${decision}`,
+                        {
+                          method: "POST",
+                          body: { expectedVersion: row.version },
+                        },
+                      ),
+                    decision === "accept"
+                      ? "Đã kết nối. Bạn có thể bắt đầu trò chuyện."
+                      : "Đã cập nhật lời mời.",
+                  )
+                }
+              />
+            ))}
+            <Button variant="text" onClick={requests.refresh}>
+              Tải lại lời mời
+            </Button>
+          </section>
+        )}
       </div>
       {blocking && (
         <Dialog
@@ -418,6 +614,9 @@ export function Discovery() {
             Hai bạn sẽ không được gợi ý cho nhau và không thể gửi lời mời hay
             tin nhắn cho nhau nữa. Việc chặn không thể hoàn tác trong ứng dụng.
           </p>
+          {candidateErrors[blocking] && (
+            <p role="alert">{candidateErrors[blocking].message}</p>
+          )}
           <div className={cx.actions}>
             <Button
               variant="secondary"
@@ -430,15 +629,7 @@ export function Discovery() {
             <Button
               variant="danger"
               disabled={busy}
-              onClick={() =>
-                void act(async () => {
-                  await api.request("/blocks", {
-                    method: "POST",
-                    body: { peerRef: blocking },
-                  });
-                  setBlocking(undefined);
-                }, "Đã chặn kết nối.")
-              }
+              onClick={() => void candidateAct(blocking, "block")}
             >
               Chặn người này
             </Button>

@@ -44,11 +44,28 @@ Mật khẩu trên chỉ dành cho container local bind127.0.0.1. Local PostgreS
 
 ## Kiểm tra
 
+Từ repository root, tạo PostgreSQL/pgvector riêng cho lượt kiểm thử (cần Docker đang
+chạy). Script không dùng lại database hay volume của ứng dụng:
+
+```powershell
+./backend/.venv/Scripts/python.exe scripts/disposable_postgres.py
+```
+
+Script in đường dẫn `environment_file` chứa cấu hình cục bộ. Nạp file này vào
+environment của terminal; không chép URL chứa mật khẩu vào source/log:
+
+```powershell
+Get-Content -LiteralPath '<environment_file vừa được in>' | ForEach-Object {
+  $testKey, $testValue = $_ -split '=', 2
+  Set-Item -LiteralPath "Env:$testKey" -Value $testValue
+}
+$env:APP_ENV='test'
+```
+
 ```powershell
 cd backend
 uv run --locked ruff check app tests
 uv run --locked mypy app
-$env:TEST_DATABASE_URL='postgresql+psycopg://postgres:moodprint-local-only@127.0.0.1:55432/moodprint_test'
 uv run --locked pytest -q
 uv run --locked python ../scripts/export_openapi.py
 cd ../frontend
@@ -59,14 +76,17 @@ npm.cmd run build
 npm.cmd run test:e2e
 ```
 
-PostgreSQL tests chỉ chấp nhận database disposable có hậu tố `_test`; thiếu TEST_DATABASE_URL thì skip rõ ràng. Không dùng SQLite cho locks/concurrency. Cài Chromium bằng `npx playwright install chromium` hoặc đặt `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` trỏ tới Chrome cài sẵn.
+PostgreSQL tests cần `TEST_DATABASE_URL` riêng; thiếu biến này thì skip rõ ràng.
+Trước reset, fixture kiểm tra loopback thật, tên DB/owner và marker thuộc
+`MOODPRINT_TEST_RUN_ID`, cùng `APP_ENV=test`; hậu tố `_test` đơn thuần chưa đủ.
+Không dùng SQLite cho locks/concurrency. Cài Chromium bằng `npx playwright install chromium`
+hoặc đặt `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` trỏ tới Chrome cài sẵn.
 
 Full-stack thật với hai phiên tổng hợp, PostgreSQL và SDK fake model, không mock HTTP:
 
 ```powershell
-# Từ repository root; tạo database một lần trong container local.
-docker compose -f deploy/compose.local.yml exec database createdb -U postgres moodprint_e2e_test
-$env:TEST_DATABASE_URL='postgresql+psycopg://postgres:moodprint-local-only@127.0.0.1:55432/moodprint_e2e_test'
+# Từ repository root, sau khi nạp environment_file của container disposable ở trên.
+# Không chạy song song pytest/full-stack dùng cùng TEST_DATABASE_URL.
 ./scripts/test-fullstack.ps1
 ```
 
@@ -78,5 +98,9 @@ Harness Python dùng được trên Windows/Linux và trong CI, sau khi đã đ�
 cd backend
 uv run --locked python ../scripts/test_fullstack.py
 ```
+
+Khi kiểm thử xong, từ root chạy `./backend/.venv/Scripts/python.exe scripts/disposable_postgres.py --remove <run_id>`
+với run ID do script provisioning in ra. Cleanup chỉ xóa container có đúng label
+quyền sở hữu và tmpfs của lượt đó; không xóa database/volume đang dùng khác.
 
 Kiểm tra cấu hình không in secrets, từ `backend/`: `uv run --locked python ../scripts/check_config.py`. Kiểm tra Supabase chỉ đọc: `uv run --locked python ../scripts/inspect_database.py`. Xem [cấu hình](docs/backend/configuration.md), [xử lý sự cố](docs/backend/operations.md) và [migration runbook](docs/supabase/migrations.md); không chạy remote migration trước khi review target/schema/role/SQL và được phép.

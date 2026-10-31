@@ -207,18 +207,7 @@ def test_upgrade_from_0015_preserves_registered_rows_and_matches_models():
     url = os.getenv("TEST_DATABASE_URL")
     if not url:
         pytest.skip("TEST_DATABASE_URL must identify a disposable real PostgreSQL database")
-    target = require_local_test_database(url)
-    name = f"{target.database.removesuffix('_test')}_guest_upgrade_test"
-    admin = target.set(drivername="postgresql", database="postgres").render_as_string(
-        hide_password=False
-    )
-    scratch = target.set(database=name)
-    env = {
-        **os.environ,
-        "DATABASE_URL": "",
-        "DATABASE_MIGRATION_URL": scratch.render_as_string(hide_password=False),
-    }
-
+    require_local_test_database(url)
     def alembic(*args):
         return subprocess.run(
             [sys.executable, "-m", "alembic", *args],
@@ -229,10 +218,14 @@ def test_upgrade_from_0015_preserves_registered_rows_and_matches_models():
             check=True,
         )
 
-    with psycopg.connect(admin, autocommit=True) as db:
-        db.execute(f'drop database if exists "{name}" with (force)')
-        db.execute(f'create database "{name}"')
-    try:
+    from tests.database_target import owned_scratch_database
+
+    with owned_scratch_database(url) as scratch:
+        env = {
+            **os.environ,
+            "DATABASE_URL": "",
+            "DATABASE_MIGRATION_URL": scratch.render_as_string(hide_password=False),
+        }
         alembic("upgrade", "0015_context_privacy")
         raw = scratch.set(drivername="postgresql").render_as_string(hide_password=False)
         uid, sid = uuid4(), uuid4()
@@ -250,7 +243,7 @@ def test_upgrade_from_0015_preserves_registered_rows_and_matches_models():
                 (sid, uid, "a" * 64, "b" * 64, uuid4()),
             )
         alembic("upgrade", "head")
-        assert "0019_journal" in alembic("current").stdout
+        assert "0020_private_profile_retirement" in alembic("current").stdout
         with psycopg.connect(raw, autocommit=True) as db:
             kind = db.execute(
                 "select account_kind, guest_started_at, guest_expires_at"
@@ -317,6 +310,3 @@ def test_upgrade_from_0015_preserves_registered_rows_and_matches_models():
             assert public_validators == 0
         drift = alembic("check")
         assert "No new upgrade operations detected" in drift.stdout
-    finally:
-        with psycopg.connect(admin, autocommit=True) as db:
-            db.execute(f'drop database if exists "{name}" with (force)')
