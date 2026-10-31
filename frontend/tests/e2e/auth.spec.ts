@@ -56,6 +56,8 @@ test("sign-up checks the password confirmation and never claims the account exis
   await page.getByLabel("Email", { exact: true }).fill("new@example.test");
   await page.getByLabel("Mật khẩu mới", { exact: true }).fill("a long passphrase");
   await page.getByLabel("Nhập lại mật khẩu", { exact: true }).fill("different passphrase");
+  await page.getByLabel("Năm sinh", { exact: true }).fill("2000");
+  await page.getByRole("checkbox", { name: "Tôi xác nhận mình đã đủ 18 tuổi.", exact: true }).check();
   await page.getByRole("button", { name: "Tạo tài khoản", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText("chưa khớp");
   expect(calls.some((call) => call.path === "/auth/signup")).toBe(false);
@@ -64,7 +66,7 @@ test("sign-up checks the password confirmation and never claims the account exis
   await expect(page.getByRole("status")).toContainText("thư xác nhận");
   await expect(page.getByRole("heading", { name: "Chào bạn trở lại" })).toBeVisible();
   const signup = calls.find((call) => call.path === "/auth/signup")!;
-  expect(signup.body).toEqual({ email: "new@example.test", password: "a long passphrase" });
+  expect(signup.body).toEqual({ email: "new@example.test", password: "a long passphrase", eligibility: { birthYear: 2000, confirmedMinimumAge: true, confirmedAdultAge: false, policyVersion: "self-declared-age-v2-18plus", expectedVersion: 0 } });
 });
 
 test("an unconfirmed email offers to resend the confirmation instead of a password error", async ({ page }) => {
@@ -141,7 +143,7 @@ test("callback: an expired email link explains itself on the login screen", asyn
 test("personal tab does not offer a data download and keeps account deletion", async ({ page }) => {
   const calls = await api(page, true, {});
   await page.goto("/#/settings");
-  await expect(page.getByRole("heading", { name: "Cá nhân", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tài khoản", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Tải bản sao dữ liệu" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Tải xuống cuộc trò chuyện" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Xóa tài khoản" })).toBeVisible();
@@ -176,7 +178,7 @@ test("identity values typed while the stored value loads are never overwritten",
     await new Promise((resolve) => setTimeout(resolve, 600));
     await route.fulfill({ json: [{ field: "displayName", value: "Old stored name", version: 1 }] });
   });
-  await page.goto("/#/profile");
+  await page.goto("/#/connect?tab=identity");
   const input = page.locator("#identity-displayName");
   await expect(input).toBeDisabled();
   await input.fill("New typed name");
@@ -194,7 +196,7 @@ test("the gender selector normalizes a stored value and saves the chosen canonic
       return { json: { field: "gender", value: stored, version: 4 } };
     },
   });
-  await page.goto("/#/profile");
+  await page.goto("/#/connect?tab=identity");
   const gender = page.getByRole("combobox", { name: "Giới tính", exact: true });
   await expect(gender).toHaveValue("Nữ");
   await gender.selectOption("Khác");

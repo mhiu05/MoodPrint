@@ -28,7 +28,7 @@ uv run python ../scripts/check_config.py
 uv run python -m app
 ```
 
-Frontend tại `http://127.0.0.1:5173`, API tại `http://127.0.0.1:8001`. Proxy Vite giữ request cùng origin. Điền cấu hình trong `backend/.env`; không commit hoặc gửi secret trong chat. Chưa đủ cấu hình thì UI báo unavailable, không dùng dữ liệu/AI giả thay thế. Đăng nhập mới có eligibility `unknown`; nhập năm sinh và xác nhận đã đủ16 tuổi để dùng tính năng cá nhân. Tìm bạn và nhắn tin người thật cần18 tuổi; ở năm tròn18 cần xác nhận đã đủ18, có thể làm sau trong cài đặt. Backend dẫn xuất quyền theo chính sách tự khai báo người dùng đã chốt24/10/2026, không tự bật consent.
+Frontend tại `http://127.0.0.1:5173`, API tại `http://127.0.0.1:8001`. Proxy Vite giữ request cùng origin. Điền cấu hình trong `backend/.env`; không commit hoặc gửi secret trong chat. Chưa đủ cấu hình thì UI báo unavailable, không dùng dữ liệu/AI giả thay thế. MoodPrint dành cho người từ đủ 18 tuổi, gồm đăng ký, dùng thử và mọi tính năng cá nhân/kết nối. Backend kiểm tra khai báo tuổi trong database trên từng giao dịch; năm tròn 18 cần xác nhận đã qua sinh nhật. Đây là tự khai báo, không phải xác minh giấy tờ. Tài khoản chưa đủ điều kiện vẫn giữ dữ liệu và có luồng bảo mật để xuất/xóa dữ liệu, đăng xuất và rút quyền MATCH. Xem [chính sách 18+ và rollout 0020](docs/release/moodprint-18plus-0020-rollout.md).
 
 Database local tùy chọn:
 

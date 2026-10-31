@@ -13,6 +13,7 @@ from app.contracts import ActionReceipt
 from app.core.errors import DomainError
 from app.core.security import Actor, digest, verify_actor
 from app.infrastructure.database.models import Consent, User, now
+from app.modules.auth.age import is_adult_eligible
 from app.modules.matching import explain, scoring_compat, scoring_v2
 from app.modules.profiles import taxonomy
 from app.modules.social.models import (
@@ -95,7 +96,7 @@ async def match_consent(db: AsyncSession, user: User) -> Consent:
     if (
         user.status != "active"
         or user.deletion_pending
-        or user.age_band != "adult"
+        or not await is_adult_eligible(db, user)
         or not consent
         or not consent.enabled
     ):

@@ -13,7 +13,7 @@ export function getTourSteps(
   session: SessionView,
   includeMatching = false,
 ): TourStep[] {
-  const personal = (value: SessionView) => value.eligible;
+  const personal = (value: SessionView) => value.eligible && value.ageBand === "adult";
   const steps: TourStep[] = [
     {
       id: "assistants",

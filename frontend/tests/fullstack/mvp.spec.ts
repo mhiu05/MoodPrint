@@ -57,7 +57,7 @@ test("Journey E: settings does not offer a download and moods stay on the owner 
     page.getByRole("button", { name: "Tải bản sao dữ liệu", exact: true }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole("heading", { name: "Cá nhân", exact: true }),
+    page.getByRole("heading", { name: "Tài khoản", exact: true }),
   ).toBeVisible();
   const moods = await call(context, 13, "GET", "/moods");
   expect(moods.body.map((item: { note: string }) => item.note)).toEqual([
@@ -518,10 +518,10 @@ test("Every real screen passes axe and reflows at 1440, 1280, 430 and 390 with r
   const routes = [
     ["/assistants", "Chọn một trợ lý"],
     ["/self", "Nhật ký cảm xúc"],
-    ["/profile", "Cá nhân"],
+    ["/profile", "Tài khoản"],
     ["/memory", ""],
-    ["/settings", "Cá nhân"],
-    ["/connect", "Tìm bạn đồng điệu"],
+    ["/settings", "Tài khoản"],
+    ["/connect", "Tìm một người bạn hợp gu"],
     ["/messages", "Tin nhắn"],
   ] as const;
   for (const width of [1440, 1280, 430, 390]) {

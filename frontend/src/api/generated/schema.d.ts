@@ -2304,7 +2304,7 @@ export interface components {
              * Policyversion
              * @constant
              */
-            policyVersion: "self-declared-age-v1";
+            policyVersion: "self-declared-age-v2-18plus";
         };
         /** EmailInput */
         EmailInput: {
@@ -2339,7 +2339,7 @@ export interface components {
         /** ExportInput */
         ExportInput: {
             /** Scopes */
-            scopes: ("account" | "memories" | "moods" | "journal" | "consents" | "social")[];
+            scopes: ("account" | "memories" | "moods" | "journal" | "consents" | "social" | "conversations")[];
             /** Guestconfirmation */
             guestConfirmation?: "guest-data-v1" | null;
         };
@@ -2512,7 +2512,7 @@ export interface components {
         };
         /**
          * GuestEligibility
-         * @description The existing age attestation, parsed leniently so under-16 and a missing confirmation
+         * @description The adult attestation, parsed leniently so under-18 and a missing confirmation
          *     answer GUEST_INELIGIBLE (before any provider call) instead of a generic validation error.
          */
         GuestEligibility: {
@@ -2531,7 +2531,7 @@ export interface components {
              * Policyversion
              * @constant
              */
-            policyVersion: "self-declared-age-v1";
+            policyVersion: "self-declared-age-v2-18plus";
         };
         /**
          * GuestInput
@@ -3403,6 +3403,7 @@ export interface components {
             email: string;
             /** Password */
             password: string;
+            eligibility: components["schemas"]["EligibilityInput"];
         };
         /** SocialSummaryView */
         SocialSummaryView: {

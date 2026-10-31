@@ -22,7 +22,7 @@ Nguồn helper được review ở [provider_session.sql](../../backend/app/infr
 
 Signup/confirmation/password-recovery trả thông báo theo route, tránh suy ra tồn tại email từ nội dung UI. Callback password-reset được frontend xử lý và bỏ token khỏi URL. Step-up `/auth/reauthenticate` khác đăng nhập lại toàn bộ; export/deletion/staff có yêu cầu thời gian reauth tương ứng.
 
-Eligibility lưu năm sinh/khai báo và các cờ xác nhận tuổi trong policy backend. `unknown` chưa đủ quyền tính năng cá nhân; teen/adult phụ thuộc tự khai báo. Tính năng kết nối yêu cầu adult. Đây không phải xác minh giấy tờ hoặc bằng chứng tuổi độc lập.
+Toàn bộ MoodPrint yêu cầu từ đủ 18 tuổi, gồm guest và session đã phát hành trước đây. `verify_actor` kiểm tra `AgeDeclaration` do backend lưu: band adult, policy được hỗ trợ, năm sinh hợp lệ, timestamp hợp lệ và xác nhận adult trong năm tròn 18. Band/JWT metadata riêng lẻ không cấp quyền. Khai báo mới dùng `self-declared-age-v2-18plus`; khai báo v1 của adult hợp lệ vẫn dùng được. Session, logout, khai báo tuổi, reauthentication, rút MATCH và xuất/xóa dữ liệu có ngoại lệ bảo mật cụ thể. Đây là tự khai báo, không phải xác minh giấy tờ. [Chi tiết policy và release](../release/moodprint-18plus-0020-rollout.md).
 
 ## Consent và resource ownership
 

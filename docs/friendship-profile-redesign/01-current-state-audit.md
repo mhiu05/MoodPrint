@@ -1,5 +1,7 @@
 # Friendship Discovery — current-state audit
 
+> Policy update, 2026-10-31: the approved global minimum is now **18+ for all MoodPrint**, including guests and personal features. Earlier 16+/teen statements below are historical audit evidence and are superseded by the [18+ rollout](../release/moodprint-18plus-0020-rollout.md). Friendship functionality and separate publication consent remain preserved.
+
 Status: planning only. Inspected on 2026-10-31 (Asia/Bangkok). No implementation is authorized by this document.
 
 ## 1. Evidence boundary

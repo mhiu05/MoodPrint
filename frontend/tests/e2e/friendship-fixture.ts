@@ -42,6 +42,7 @@ export async function friendshipFixture(
     version: initial ? 2 : 0,
     publication: live ? 7 : 0,
     live,
+    eligible: true,
     writes: [] as {
       path: string;
       body: Record<string, unknown>;
@@ -70,8 +71,9 @@ export async function friendshipFixture(
           userId: "11111111-1111-4111-8111-111111111111",
           alias: "Private Name",
           accountKind: "registered",
-          ageBand: "adult",
-          eligible: true,
+          ageBand: state.eligible ? "adult" : "teen",
+          eligible: state.eligible,
+          birthYear: state.eligible ? 2000 : 2009,
           csrfToken: "csrf",
           serverTime: "2026-10-31T08:00:00Z",
           timezone: "Asia/Bangkok",

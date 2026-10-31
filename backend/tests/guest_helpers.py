@@ -35,7 +35,7 @@ async def add_guest(
     consents: bool = False,
 ) -> SeededGuest:
     """Seed one guest whose deadline is exactly ``start + 7200s`` with a capped opaque session."""
-    from app.infrastructure.database.models import AuthSession, Consent, User
+    from app.infrastructure.database.models import AgeDeclaration, AuthSession, Consent, User
     from app.modules.guests.models import GuestCleanupJob, GuestUsage
 
     uid, sid, provider_sid = uuid4(), uuid4(), uuid4()
@@ -55,6 +55,8 @@ async def add_guest(
             )
         )
         await db.flush()
+        if age_band == "adult":
+            db.add(AgeDeclaration(user_id=uid, birth_year=2000, policy_version="self-declared-age-v1"))
         db.add(
             AuthSession(
                 id=sid,
@@ -111,7 +113,7 @@ ELIGIBILITY = {
     "birthYear": 2000,
     "confirmedMinimumAge": True,
     "confirmedAdultAge": False,
-    "policyVersion": "self-declared-age-v1",
+    "policyVersion": "self-declared-age-v2-18plus",
     "expectedVersion": 0,
 }
 

@@ -293,7 +293,7 @@ test("year onboarding requires confirmation and server success, retaining input 
   await page.getByLabel("Năm sinh", { exact: true }).fill("2007");
   await page
     .getByRole("checkbox", {
-      name: "Tôi xác nhận mình đã đủ 16 tuổi.",
+      name: "Tôi xác nhận mình đã đủ 18 tuổi.",
       exact: true,
     })
     .check();
@@ -475,7 +475,7 @@ test("personal account actions replace privacy controls on mobile and desktop", 
     await page.setViewportSize({ width, height: 844 });
     await page.goto("/#/settings");
     await expect(page).toHaveURL(/#\/profile$/);
-    await expect(page.getByRole("heading", { name: "Cá nhân", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tài khoản", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Góp ý cho MoodPrint", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Đăng xuất", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Xóa tài khoản", exact: true })).toBeVisible();

@@ -70,6 +70,11 @@ def require_staff(role: str = "moderator", *, feature: Literal["moderation", "fe
         async with request.app.state.database.require()() as db:
             if feature == "feedback":
                 return await assert_feedback_admin(db, actor)
+            # Staff roles never override the global product age/session policy.
+            # This read-only dependency closes before routes acquire subject
+            # locks, preserving moderation's subject -> report lock order.
+            user = await lock_actor(db, actor, lock=False)
+            require_registered_user(user)
             granted = await staff_role(db, actor.user_id)
             session = await db.get(AuthSession, actor.session_id)
         if granted is None or RANK[granted] < RANK[role]:

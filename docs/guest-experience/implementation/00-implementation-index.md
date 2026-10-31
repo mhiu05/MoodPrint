@@ -1,5 +1,7 @@
 # Guest Experience Implementation Plan
 
+> Superseded age policy (2026-10-31): MoodPrint now requires self-declared **18+ across all functionality**, including guests. Earlier 16+ design statements are historical; use the [current rollout policy](../../release/moodprint-18plus-0020-rollout.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended when authorized and available) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. The owner selected a future Claude Sonnet implementation session; this Codex session only writes plans.
 
 **Goal:** Deliver an isolated 7200-second guest trial, public Vietnamese landing, optional onboarding, and unlinked ratings with protected administration.

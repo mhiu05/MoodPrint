@@ -60,24 +60,16 @@ test("hosted Auth, age, account data, SDK memory, social races, restart and revo
     const sessionA = await request(a, "GET", "/session"), sessionB = await request(b, "GET", "/session");
     const year = Number(new Intl.DateTimeFormat("en", { timeZone: "Asia/Bangkok", year: "numeric" }).format(new Date(sessionA.serverTime)));
     for (const [page, session, offset] of [[one, sessionA, 18], [two, sessionB, 20]] as const) {
-      if (session.ageBand === "unknown") {
+      if (!session.eligible) {
         expect(Object.values(session.consents).every((c: any) => !c.enabled)).toBe(true);
         await page.getByLabel("Năm sinh", { exact: true }).fill(String(year - offset));
-        await page.getByRole("checkbox", { name: "Tôi xác nhận mình đã đủ 16 tuổi.", exact: true }).check();
+        await page.getByRole("checkbox", { name: "Tôi xác nhận mình đã đủ 18 tuổi.", exact: true }).check();
         await page.getByRole("button", { name: "Xác nhận và tiếp tục", exact: true }).click();
         await expect(page.getByRole("heading", { name: "Chọn một trợ lý" })).toBeVisible();
       }
     }
-    if ((await request(a, "GET", "/session")).ageBand === "teen") {
-      await request(a, "PUT", "/consents/MATCH", { enabled: true, expectedVersion: 1, policyVersion: "v1" }, 403);
-      record("teenSocialDeniedBeforeAdultConfirmation");
-      await one.goto(base + "/#/settings");
-      await one.getByRole("checkbox", { name: /Tôi xác nhận mình đã đủ 18 tuổi/ }).check();
-      await one.getByRole("button", { name: "Xác nhận đủ 18 tuổi", exact: true }).click();
-      await expect(one.getByRole("button", { name: "Xác nhận đủ 18 tuổi", exact: true })).toHaveCount(0);
-    }
     expect((await request(a, "GET", "/session")).ageBand).toBe("adult");
-    record("onboardingPrivate16PlusAndExplicit18Boundary");
+    record("onboardingGlobal18PlusAndExplicitBirthdayBoundary");
     const tag = randomUUID().slice(0, 8), moodText = `Supabase mood ${tag}`, aliasText = `Synthetic owner ${tag}`;
     await one.goto(base + "/#/profile");
     await one.getByRole("textbox", { name: "Tên hiển thị", exact: true }).fill(aliasText);

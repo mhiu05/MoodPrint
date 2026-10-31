@@ -46,7 +46,15 @@ from app.ai.memory_models import MemoryProposal
 from app.ai.models import AiPreference
 from app.core.config import Settings
 from app.core.security import digest
-from app.infrastructure.database.models import AuthSession, Base, Consent, Memory, User, now
+from app.infrastructure.database.models import (
+    AgeDeclaration,
+    AuthSession,
+    Base,
+    Consent,
+    Memory,
+    User,
+    now,
+)
 from app.main import create_app
 from app.modules.guests import models as guest_models  # noqa: F401 -- register before reset
 from tests.fakes import completed_response, message_output
@@ -246,6 +254,7 @@ async def seed(count: int):
                 User(id=uid, auth_subject=uid, alias=f"Synthetic actor {number}", age_band="adult")
             )
             await db.flush()
+            db.add(AgeDeclaration(user_id=uid, birth_year=2000, policy_version="self-declared-age-v1"))
             db.add(
                 AuthSession(
                     id=identity("session", number),

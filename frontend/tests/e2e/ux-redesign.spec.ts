@@ -189,7 +189,7 @@ test.describe("navigation and route focus (V-NAV / V-ROUTE-FOCUS)", () => {
       await page.setViewportSize({ width, height: 844 });
       await page.goto("/#/messages");
       const nav = page.getByRole("navigation", { name: "Điều hướng chính" });
-      await expect(nav.getByRole("link")).toHaveText(["Trợ lý", "Nhật ký", "Tìm bạn", "Tin nhắn", "Cá nhân"]);
+      await expect(nav.getByRole("link")).toHaveText(["Trợ lý", "Nhật ký", "Tìm bạn", "Tin nhắn", "Tài khoản"]);
       await nav.getByRole("link", { name: "Nhật ký" }).click();
       await expect(page).toHaveURL(/#\/self$/);
       await expect(nav.getByRole("link", { name: "Nhật ký" })).toHaveAttribute("aria-current", "page");
@@ -902,7 +902,7 @@ test.describe("personal account and memory comprehension", () => {
     await app(page, sessionWith({ AI: true, MEM: false, MATCH: true, VOICE: false }), { "/ai/preferences": () => ({ json: prefs }) });
     await page.goto("/#/settings");
     await expect(page).toHaveURL(/#\/profile$/);
-    await expect(page.getByRole("heading", { name: "Cá nhân", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tài khoản", exact: true })).toBeVisible();
     await expect(page.getByRole("region", { name: "Tài khoản & hỗ trợ" })).toBeVisible();
     await expect(page.getByRole("button", { name: /Rút quyền/ })).toHaveCount(0);
     await expect(page.getByRole("checkbox", { name: "Lưu lịch sử trò chuyện" })).toHaveCount(0);
@@ -1140,7 +1140,7 @@ test.describe("accessibility sweep", () => {
       for (const [name, url, ready] of [
         ["assistants", "/#/assistants", "Chọn một trợ lý"],
         ["chat", `/#/assistants/may?conversation=${CONV}`, "Một điều nhỏ"],
-        ["profile", "/#/profile", "Cá nhân"],
+        ["profile", "/#/profile", "Tài khoản"],
         ["memory", "/#/memory", "Đề xuất chờ duyệt"],
         ["messages", "/#/messages", "Tin nhắn"],
         ["mood", "/#/self/daily", "Tâm trạng"],
@@ -1189,7 +1189,7 @@ test.describe("accessibility sweep", () => {
     await page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true }).click();
     expect(await small()).toEqual([]);
     await page.goto("/#/settings");
-    await expect(page.getByRole("heading", { name: "Cá nhân", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tài khoản", exact: true })).toBeVisible();
     expect(await small()).toEqual([]);
   });
 
@@ -1204,7 +1204,7 @@ test.describe("accessibility sweep", () => {
     await page.keyboard.press("Escape");
     await page.goto("/#/settings");
     await page.addStyleTag({ content: "html { font-size: 200% !important; } body { font-size: 2rem !important; }" });
-    await expect(page.getByRole("heading", { name: "Cá nhân", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tài khoản", exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
   });
 });
@@ -1286,9 +1286,9 @@ test.describe("final review regressions", () => {
     await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
     await expect(status(page)).toHaveText("Đang gửi tin nhắn…");
     await page.waitForTimeout(300);
-    await page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("link", { name: "Cá nhân" }).click();
+    await page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("link", { name: "Tài khoản" }).click();
     held();
-    await expect(page.getByRole("heading", { name: "Cá nhân", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tài khoản", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Đăng xuất", exact: true })).toBeVisible();
   });
 

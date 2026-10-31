@@ -1,5 +1,19 @@
 # Friendship Discovery — final QA, 2026-10-31
 
+> Policy update, 2026-10-31: the approved global minimum is now **18+ for all MoodPrint**, including guests and personal features. Earlier 16+/teen statements below are historical audit evidence and are superseded by the [18+ rollout](../release/moodprint-18plus-0020-rollout.md). Friendship functionality and separate publication consent remain preserved.
+
+Current release preparation on `feat/friendship-discovery-18plus`: applicable
+backend **1175 passed**, staff follow-up **37 passed**, fixture browser **355 passed**,
+fullstack v1 **35 passed**, v2 **10 passed**, Vitest **145 passed** and tooling
+integration **1 passed**, all with zero failures/skips in those final runs.
+The [current rollout report](../release/moodprint-18plus-0020-rollout.md) records
+overlap, earlier failures, migration/restore proof and the functional commit manifest.
+Hosted revision remains 0019; **HOSTED_MIGRATION_DEFERRED — COMPATIBLE_RELEASE_REQUIRED**.
+A repository publication hold prevents premature automatic activation after merge.
+The earlier session's no-push authorization statements below are historical;
+the current owner request authorizes the review-branch push, while PR/merge/deploy
+remain outside this session.
+
 This report covers the recovery/completion session on `test/local-2026-10-30`.
 The original implementation was retained. Historical results and the FR/NFR/PRE →
 T01–T37 matrix remain in [08 implementation evidence](08-implementation-evidence.md).

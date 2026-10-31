@@ -42,7 +42,14 @@ from app.ai import embedding_models  # noqa: F401
 from app.ai import models as chat_models  # noqa: F401
 from app.ai.memory_models import MemoryProposal
 from app.core.config import Settings
-from app.infrastructure.database.models import AuthSession, Base, Consent, Memory, User
+from app.infrastructure.database.models import (
+    AgeDeclaration,
+    AuthSession,
+    Base,
+    Consent,
+    Memory,
+    User,
+)
 from app.main import create_app
 from app.modules.guests import models as guest_models  # noqa: F401 -- register before reset
 from app.modules.moderation.models import StaffRole
@@ -158,8 +165,8 @@ async def seed():
         # 1-9 back the original journeys; 10-20 are fresh adults for the MVP journeys;
         # 21-36 back the activity, matching-v2 and moderation journeys; 37 is staff;
         # 38-39 are the responsive/accessibility pair; 40-41 the v2-only-goal pair.
-        # 42-43 cover product experience; 44 the five-assistant review; 47-48 mood evidence.
-        for number in range(1, 51):
+        # 44 covers assistant review; 47-48 mood evidence; 51-52 isolate product starters.
+        for number in range(1, 53):
             uid = UUID(f"00000000-0000-4000-8000-{number:012d}")
             provider = UUID(f"00000000-0000-4000-9000-{number:012d}")
             db.add(
@@ -171,6 +178,8 @@ async def seed():
                 )
             )
             await db.flush()
+            if not 7 <= number <= 9:
+                db.add(AgeDeclaration(user_id=uid, birth_year=2000, policy_version="self-declared-age-v1"))
             for purpose in ("AI", "MEM", "MATCH", "VOICE"):
                 db.add(
                     Consent(

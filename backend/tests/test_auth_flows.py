@@ -185,7 +185,7 @@ async def test_signup_is_enumeration_safe_and_never_echoes_password(auth_env):
     _, fake, client, _ = auth_env
     first = await client.post(
         "/api/v1/auth/signup",
-        json={"email": "fresh@example.com", "password": "PASSWORD-CANARY-1"},
+        json={"email": "fresh@example.com", "password": "PASSWORD-CANARY-1", "eligibility": signup_eligibility()},
         headers={"Origin": ORIGIN},
     )
     assert first.status_code == 202 and first.json() == {"status": "sent"}
@@ -193,7 +193,7 @@ async def test_signup_is_enumeration_safe_and_never_echoes_password(auth_env):
     assert (method, path) == ("POST", "/signup")
     assert params["redirect_to"] == ORIGIN + "/auth/callback"
     again = await client.post(
-        "/api/v1/auth/signup", json={"email": "fresh@example.com", "password": "PASSWORD-CANARY-2"}
+        "/api/v1/auth/signup", json={"email": "fresh@example.com", "password": "PASSWORD-CANARY-2", "eligibility": signup_eligibility()}
     )
     assert again.status_code == 202 and again.json() == first.json()
     short = await client.post(
@@ -202,7 +202,7 @@ async def test_signup_is_enumeration_safe_and_never_echoes_password(auth_env):
     assert short.status_code == 422 and "CANARY" not in short.text
     foreign = await client.post(
         "/api/v1/auth/signup",
-        json={"email": "y@example.com", "password": "long enough"},
+        json={"email": "y@example.com", "password": "long enough", "eligibility": signup_eligibility()},
         headers={"Origin": "https://evil.example"},
     )
     assert foreign.status_code == 403
@@ -332,3 +332,34 @@ async def test_last_seen_is_written_only_with_the_sliding_session_refresh(client
     assert first is not None
     assert (await client.get("/api/v1/session")).status_code == 200
     assert await last_seen() == first  # no extra write inside the 15-minute window
+
+
+def signup_eligibility(**changes):
+    return {"birthYear": 2000, "confirmedMinimumAge": True, "confirmedAdultAge": False,
+            "expectedVersion": 0, "policyVersion": "self-declared-age-v2-18plus", **changes}
+
+
+@pytest.mark.postgres
+@pytest.mark.parametrize("years,confirmed,want", [(16,False,403),(17,False,403),(18,False,403),(18,True,202),(19,False,202)])
+async def test_signup_requires_adult_declaration_before_provider(auth_env, years, confirmed, want):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    _, fake, client, _ = auth_env
+    year = datetime.now(ZoneInfo("Asia/Bangkok")).year
+    response = await client.post("/api/v1/auth/signup", json={
+        "email":"adult-policy@example.invalid", "password":"synthetic-password",
+        "eligibility":signup_eligibility(birthYear=year-years,confirmedAdultAge=confirmed)})
+    assert response.status_code == want, response.text
+    if want == 403:
+        assert fake.calls == []
+
+
+@pytest.mark.postgres
+async def test_signup_rejects_old_or_missing_age_policy_without_provider_call(auth_env):
+    _, fake, client, _ = auth_env
+    payload={"email":"adult-policy@example.invalid","password":"synthetic-password"}
+    for body in (payload,{**payload,"eligibility":signup_eligibility(policyVersion="self-declared-age-v1")},
+                 {**payload,"eligibility":signup_eligibility(expectedVersion=1)}):
+        response=await client.post("/api/v1/auth/signup",json=body)
+        assert response.status_code==422,response.text
+    assert fake.calls==[]

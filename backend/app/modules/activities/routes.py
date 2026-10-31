@@ -16,6 +16,7 @@ from app.core.security import (
     previous_receipt,
     require_registered_actor,
     save_receipt,
+    transaction,
 )
 from app.infrastructure.database.models import now
 from app.modules.activities import machine
@@ -41,6 +42,8 @@ FOCUS = ("pause", "resume", "leave", "join")
 
 @router.get("/activities/catalog", response_model=list[ActivityDefinitionDTO])
 async def catalog(request: Request, actor: Actor = Depends(require_registered_actor)):
+    async with transaction(request, actor, lock=False):
+        pass
     settings = request.app.state.settings
     if not settings.activities_enabled:
         return []

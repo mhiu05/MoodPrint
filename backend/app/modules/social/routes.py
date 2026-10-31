@@ -18,7 +18,14 @@ from app.core.security import (
     save_receipt,
     transaction,
 )
-from app.infrastructure.database.models import Consent, ConsentEvent, User, now
+from app.infrastructure.database.models import (
+    AgeDeclaration,
+    AuthSession,
+    Consent,
+    ConsentEvent,
+    User,
+    now,
+)
 from app.modules.activities import hooks
 from app.modules.matching import stats
 from app.modules.profiles.taxonomy import TAXONOMY
@@ -253,21 +260,34 @@ async def candidates(request: Request, actor: Actor = Depends(require_registered
     scorer = svc.scorer_of(request)
     served: Literal["rules-v1.1", "rules-v2"] = "rules-v2" if scorer == "v2" else "rules-v1.1"
     async with request.app.state.database.require()() as db, db.begin():
-        user = await db.get(User, actor.user_id)
+        identity = (
+            await db.execute(
+                select(User, AgeDeclaration, AuthSession)
+                .select_from(User)
+                .outerjoin(AgeDeclaration, AgeDeclaration.user_id == User.id)
+                .outerjoin(AuthSession, AuthSession.id == actor.session_id)
+                .where(User.id == actor.user_id)
+            )
+        ).one_or_none()
+        # Retain these rows for the transaction so the authoritative checks share
+        # its identity map instead of issuing duplicate declaration/session reads.
+        user, _declaration, _session = identity or (None, None, None)
+        user = await verify_actor(db, actor, user)
         own, consent = await svc.current_profile(db, user)
         shortlist = await ranked_candidates(db, user, own, consent, scorer)
     # Recheck the shortlisted public snapshots while holding all account gates
     # in canonical order. Never acquire a peer gate after locking the actor first.
     async with request.app.state.database.require()() as db, db.begin():
         rows = (
-            await db.scalars(
-                select(User)
+            await db.execute(
+                select(User, AgeDeclaration)
+                .outerjoin(AgeDeclaration, AgeDeclaration.user_id == User.id)
                 .where(User.id.in_([actor.user_id, *shortlist]))
                 .order_by(User.id)
-                .with_for_update(read=True)
+                .with_for_update(read=True, of=User)
             )
         ).all()
-        users = {user.id: user for user in rows}
+        users = {user.id: user for user, _declaration in rows}
         # Shared account gates let simultaneous discovery reads coexist, while
         # profile/consent/block writers still need exclusive gates and must wait.
         user = await verify_actor(db, actor, users.get(actor.user_id))

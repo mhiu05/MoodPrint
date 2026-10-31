@@ -179,13 +179,14 @@ test("T12 T14 T19: refresh failure keeps the mounted dirty reducer and exit conf
   ).toBeVisible();
 });
 
-test("T14 T19: terminal eligibility refusal disables publication and still permits exit", async ({
+test("T14 T19: terminal eligibility refusal clears publication and preserves secure exit", async ({
   page,
 }) => {
-  await friendshipFixture(page);
+  const state = await friendshipFixture(page);
+  await page.route("**/api/v1/auth/logout", (route) => route.fulfill({ status: 204 }));
   await page.route("**/api/v1/profiles/matching-draft", (route) =>
     route.request().method() === "PUT"
-      ? route.fulfill({
+      ? (state.eligible = false, route.fulfill({
           status: 403,
           json: {
             error: {
@@ -193,26 +194,21 @@ test("T14 T19: terminal eligibility refusal disables publication and still permi
               message: "Tính năng kết nối không còn khả dụng.",
             },
           },
-        })
+        }))
       : route.fallback(),
   );
   await page.goto("/#/connect");
   await page.getByRole("radio", { name: "Bạn cùng học", exact: true }).check();
   await page.getByRole("button", { name: "Lưu bản nháp", exact: true }).click();
   await expect(
-    page.getByRole("heading", {
-      name: "Tìm bạn không còn khả dụng",
-      exact: true,
-    }),
+    page.getByText("Bạn cần đủ 18 tuổi để sử dụng MoodPrint.", { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Hiển thị hồ sơ", exact: true }),
   ).toHaveCount(0);
-  await page
-    .getByRole("navigation", { name: "Điều hướng chính" })
-    .getByRole("link", { name: "Tin nhắn", exact: true })
-    .click();
-  await expect(page).toHaveURL(/#\/messages$/);
+  await expect(page.locator(".profile-editor")).toHaveCount(0);
+  await page.getByRole("button", { name: "Đăng xuất", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Email", exact: true })).toBeVisible();
 });
 
 test("T12 T14: a CSRF refusal retains edits and an accessible exit guard", async ({
@@ -1419,26 +1415,12 @@ test("the main navigation opens suggestions for a live profile", async ({
   await expect(page.getByRole("tabpanel", { name: "Gợi ý" })).toBeVisible();
 });
 
-test("minors can navigate to the matching eligibility explanation without loading candidates", async ({
-  page,
-}) => {
+test("minors reach the global age gate without loading candidates", async ({ page }) => {
   const reads: string[] = [];
-  page.on("request", (request) => {
-    if (request.url().includes("/matching/candidates"))
-      reads.push(request.url());
-  });
+  page.on("request", request => { if (request.url().includes("/matching/candidates")) reads.push(request.url()); });
   await mock(page, { ageBand: "teen" });
-  await page.goto("/#/assistants");
-  await page
-    .getByRole("navigation", { name: "Điều hướng chính" })
-    .getByRole("link", { name: "Tìm bạn", exact: true })
-    .click();
-  await expect(page).toHaveURL(/#\/connect\?tab=identity$/);
-  const tabs = page.getByRole("tablist", { name: "Tìm bạn" });
-  await expect(tabs.getByRole("tab")).toHaveCount(1);
-  await expect(
-    tabs.getByRole("tab", { name: "Thông tin riêng" }),
-  ).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("main")).toContainText("18");
+  await page.goto("/#/connect");
+  await expect(page.getByText("Bạn cần đủ 18 tuổi để sử dụng MoodPrint.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toHaveCount(0);
   expect(reads).toEqual([]);
 });

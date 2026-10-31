@@ -1,5 +1,7 @@
 # Guest authentication, expiry and deletion design
 
+> Superseded age policy (2026-10-31): MoodPrint now requires self-declared **18+ across all functionality**, including guests. Earlier 16+ design statements are historical; use the [current rollout policy](../release/moodprint-18plus-0020-rollout.md).
+
 **PROPOSED, not implemented.** Baseline and exact evidence: [01](01-current-architecture-audit.md). Verdict: **CONDITIONALLY_READY**. Exact two-hour authorization is a hard requirement; physical cleanup has a separately monitored completion target.
 
 ## 1. Architecture choice

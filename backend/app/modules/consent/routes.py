@@ -28,7 +28,7 @@ async def update_consent(
     if purpose in PERSONAL_PURPOSES:
         # Compatibility for older clients: these switches no longer disable features.
         return await session_view(request, actor)
-    async with transaction(request, actor) as (db, user):
+    async with transaction(request, actor, eligible=body.enabled) as (db, user):
         if purpose == "MATCH" and body.enabled:
             # Fabricated adult/consent rows can never make a guest a social participant;
             # withdrawing MATCH stays possible and creates nothing.

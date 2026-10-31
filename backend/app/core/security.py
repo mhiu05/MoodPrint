@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import DomainError
 from app.infrastructure.database.models import AuthSession, Consent, Idempotency, User, now
+from app.modules.auth.age import AGE_REQUIRED_MESSAGE, is_adult_eligible
 from app.modules.consent.policy import consent_enabled
 from app.modules.guests import policy as guest_policy
 from app.modules.guests.deadlines import final_guest_authorization, guest_deadline
@@ -155,9 +156,9 @@ async def verify_actor(
     ):
         raise DomainError(401, "SESSION_EXPIRED", "Phiên đã kết thúc.")
     await verify_session(db, session, user)
-    if eligible and user.age_band not in ("teen", "adult"):
+    if eligible and not await is_adult_eligible(db, user):
         raise DomainError(
-            403, "ELIGIBILITY_REQUIRED", "Tài khoản chưa đủ điều kiện sử dụng tính năng này."
+            403, "ELIGIBILITY_REQUIRED", AGE_REQUIRED_MESSAGE
         )
     if eligible and user.deletion_pending:
         raise DomainError(
@@ -192,7 +193,7 @@ async def assert_purpose(db: AsyncSession, user: User, purpose: str) -> dict[str
     needed = [purpose] + (["AI"] if purpose in ("MEM", "VOICE") else [])
     if any(not values.get(p) or not consent_enabled(p, values[p].enabled) for p in needed):
         raise DomainError(403, "CONSENT_REQUIRED", "Bạn chưa bật quyền cần thiết.")
-    if purpose == "MATCH" and user.age_band != "adult":
+    if purpose == "MATCH" and not await is_adult_eligible(db, user):
         raise DomainError(
             403, "ADULT_REQUIRED", "Tính năng kết nối chỉ dành cho tài khoản đủ điều kiện."
         )
