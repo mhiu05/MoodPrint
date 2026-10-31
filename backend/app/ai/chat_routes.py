@@ -513,7 +513,8 @@ async def durable_run(request, actor, run_id, *, poll=False, recover=True):
             await recover_turns(db)
         row = await db.scalar(select(AiRun).where(AiRun.id == run_id, AiRun.user_id == user.id))
         turn = await db.get(AiTurn, run_id)
-        if row is None or turn is None or turn.conversation_id is None:
+        # Check-ins have no stream; they appear through the conversation and the inbox.
+        if row is None or row.origin != "user" or turn is None or turn.conversation_id is None:
             raise DomainError(404, "NOT_FOUND", "Không tìm thấy lượt trò chuyện.")
         c = await owned_conversation(db, turn.conversation_id, user.id)
         if not c:

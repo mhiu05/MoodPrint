@@ -319,6 +319,33 @@ class AiRuntime:
                 if usage is None or usage.worker_id != self.worker_id or usage.lease_until <= now():
                     raise DomainError(410, "WORKER_FENCED", "Lượt trò chuyện đã kết thúc.")
 
+    async def revalidate_check_ins(self, db, user, run: LiveRun, c) -> frozenset[UUID]:
+        """ADR-08: recent journal-derived check-ins join context only after revalidation.
+
+        Runs under the caller's owner lock. On success this turn is stamped journal-turn-v1
+        *before* any check-in prose reaches the model, so later turns cut it (fail closed).
+        """
+        from app.ai.context import PROACTIVE_JOURNAL_POLICY, TEXT_POLICY
+        from app.ai.proactive.provenance import REVALIDATION_WINDOW, revalidate_sources
+
+        since = now() - REVALIDATION_WINDOW
+        candidates = {
+            m.run_id for m in c.messages
+            if m.run_id and m.origin == "proactive" and m.created_at > since
+            and (stamp := c.context_stamps.get(m.run_id)) is not None
+            and stamp.policy == PROACTIVE_JOURNAL_POLICY
+        }
+        if not candidates:
+            return frozenset()
+        revalidated = await revalidate_sources(db, user, candidates)
+        current = c.context_stamps.get(run.id)
+        if revalidated and (current is None or current.policy == TEXT_POLICY):
+            turn = await current_turn(db, run, self.worker_id)
+            if turn is not None:
+                turn.context_policy = JOURNAL_TURN_POLICY
+            c.context_stamps[run.id] = ContextStamp(run.data_version, JOURNAL_TURN_POLICY)
+        return revalidated
+
     async def reserve_usage(self, db, run_id: UUID, user_id: UUID, bot_id: str):
         if self.settings.ai_accounting_enabled:
             await reserve_accounting(db, run_id, user_id, self.worker_id, self.settings.openai_model,
@@ -617,6 +644,7 @@ class AiRuntime:
                     if c.bot_id not in MEMORY_BOTS:
                         memory_state.evidence = "tool_unavailable"
                     run.sources["memory"] = memory_state
+                    revalidated = await self.revalidate_check_ins(db, user, run, c)
                 run.sources["mood"] = SourceState(
                     authorization="authorized" if run.mood_scope else "no_current_authorization",
                     previous="previously_authorized" if any(
@@ -627,7 +655,8 @@ class AiRuntime:
                 if c.bot_id == "nhip" and run.mood_scope is None:
                     run.sources["journal"] = SourceState(authorization="authorized")
                 projected = model_messages(
-                    c.messages, c.context_stamps, current_run=run.id, data_version=run.data_version
+                    c.messages, c.context_stamps, current_run=run.id, data_version=run.data_version,
+                    revalidated=revalidated,
                 )
                 memories = []
                 if memory_state.authorization == "authorized" and memory_state.evidence != "tool_unavailable":
