@@ -261,3 +261,18 @@ test("the first schedule creates settings and the next settings change still sav
   const write = seen.writes.filter((w) => w.path === "/ai/proactive/settings").at(-1);
   expect(write?.body).toMatchObject({ journalContextEnabled: true, expectedVersion: 1 });
 });
+
+test("keyboard focus stays on a control after it saves", async ({ page }) => {
+  await mount(page);
+  await page.goto("/#/check-ins");
+  const evening = page.getByRole("region", { name: "Mây" }).getByRole("switch", { name: /Buổi tối/ });
+  await evening.focus();
+  await page.keyboard.press("Space");
+  await expect(page.getByRole("region", { name: "Mây" }).getByRole("status")).toHaveText("Đã lưu");
+  await expect(evening).toBeFocused();
+  const time = page.getByRole("region", { name: "Mây" }).getByLabel("Giờ nhắn");
+  await time.focus();
+  await time.selectOption("21:00");
+  await expect(page.getByRole("region", { name: "Mây" }).getByRole("status")).toHaveText("Đã lưu");
+  await expect(time).toBeFocused();
+});

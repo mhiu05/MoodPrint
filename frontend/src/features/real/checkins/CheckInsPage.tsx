@@ -230,7 +230,7 @@ export function CheckInsPage() {
         <span>Đang dùng {limits.enabledSlots}/{limits.dailyCap}</span>
         <span aria-hidden="true">·</span>
         <span>Múi giờ: {zoneLabel(settings.timezone)}</span>
-        <Button variant="text" onClick={() => setZoneOpen(true)} disabled={Boolean(saving)}>Đổi múi giờ</Button>
+        <Button variant="text" onClick={() => setZoneOpen(true)} aria-disabled={Boolean(saving) || undefined}>Đổi múi giờ</Button>
       </p>
       {limits.enabledSlots === 0 ? (
         <p className="checkins-empty">Chưa có trợ lý nào hỏi thăm bạn. Bật buổi sáng hoặc buổi tối ở một trợ lý bạn thích.</p>
@@ -275,7 +275,7 @@ export function CheckInsPage() {
                   <input
                     type="checkbox"
                     checked={settings.journalContextEnabled}
-                    disabled={Boolean(saving)}
+                    aria-disabled={Boolean(saving) || undefined}
                     onChange={(event) => void saveSettings({ journalContextEnabled: event.target.checked }, botId)}
                   />
                   <span>Dùng khoảnh khắc đã lưu hôm qua</span>
@@ -288,7 +288,7 @@ export function CheckInsPage() {
             ) : null}
             {schedules.some((s) => s.version > 0) ? (
               <div className="checkin-card-actions">
-                <Button variant="text" disabled={Boolean(saving)} onClick={() => setRemoveBot(botId)}>Xóa lịch</Button>
+                <Button variant="text" aria-disabled={Boolean(saving) || undefined} onClick={() => setRemoveBot(botId)}>Xóa lịch</Button>
               </div>
             ) : null}
             <p className={`checkin-status ${cardStatus?.error ? "is-error" : ""}`} role="status">{cardStatus?.text ?? ""}</p>
@@ -302,7 +302,7 @@ export function CheckInsPage() {
           <input
             type="checkbox"
             checked={settings.badgesEnabled}
-            disabled={Boolean(saving)}
+            aria-disabled={Boolean(saving) || undefined}
             onChange={(event) => void saveSettings({ badgesEnabled: event.target.checked })}
           />
           <span>Hiện chấm báo khi có lời nhắn mới</span>
@@ -396,8 +396,7 @@ function SlotRow({
             type="checkbox"
             role="switch"
             checked={schedule.enabled}
-            disabled={disabled}
-            aria-disabled={capReached || undefined}
+            aria-disabled={capReached || disabled || undefined}
             aria-describedby={capReached ? `${id}-cap` : undefined}
             onChange={(event) => {
               if (capReached && event.target.checked) return;
@@ -417,13 +416,13 @@ function SlotRow({
           {schedule.autoPaused ? (
             <div className="checkin-banner" role="note">
               <p>Mình tạm dừng lời hỏi thăm này vì 3 lời gần đây bạn chưa mở. Bật lại khi bạn muốn nhé.</p>
-              <Button variant="secondary" disabled={disabled} onClick={() => onSave({ enabled: true })}>Bật lại</Button>
+              <Button variant="secondary" aria-disabled={disabled || undefined} onClick={() => onSave({ enabled: true })}>Bật lại</Button>
             </div>
           ) : null}
           <div className="checkin-controls">
             <label>
               <span>Giờ nhắn</span>
-              <select value={schedule.localTime} disabled={disabled} onChange={(event) => onSave({ localTime: event.target.value })}>
+              <select value={schedule.localTime} aria-disabled={disabled || undefined} onChange={(event) => onSave({ localTime: event.target.value })}>
                 {options.map((value) => (
                   <option key={value} value={value} disabled={inQuiet(value, settings.quietStart, settings.quietEnd)}>{value}</option>
                 ))}
@@ -433,7 +432,7 @@ function SlotRow({
               <span>Lặp lại</span>
               <select
                 value={repeat}
-                disabled={disabled}
+                aria-disabled={disabled || undefined}
                 onChange={(event) => {
                   const kind = event.target.value as RepeatKind;
                   setCustom(kind === "custom");
@@ -450,7 +449,7 @@ function SlotRow({
               <span>Tạm dừng</span>
               <select
                 value=""
-                disabled={disabled}
+                aria-disabled={disabled || undefined}
                 onChange={(event) => {
                   const choice = event.target.value;
                   if (choice === "off") onSave({ enabled: false });
@@ -476,7 +475,8 @@ function SlotRow({
                     <input
                       type="checkbox"
                       checked={checked}
-                      disabled={disabled || (checked && schedule.weekdays.length === 1)}
+                      disabled={checked && schedule.weekdays.length === 1}
+                      aria-disabled={disabled || undefined}
                       onChange={() => onSave({ weekdays: checked ? schedule.weekdays.filter((d) => d !== day) : [...schedule.weekdays, day].sort() })}
                     />
                     <span>{name}</span>
@@ -488,7 +488,7 @@ function SlotRow({
           {paused ? (
             <p className="checkin-next">
               Đang tạm dừng đến hết {shortDate(paused)}.{" "}
-              <Button variant="text" disabled={disabled} onClick={() => onSave({ pausedUntil: null })}>Tiếp tục</Button>
+              <Button variant="text" aria-disabled={disabled || undefined} onClick={() => onSave({ pausedUntil: null })}>Tiếp tục</Button>
             </p>
           ) : !schedule.autoPaused ? (
             <p className="checkin-next">{nextDeliveryText(schedule.nextDeliveryAt, settings.timezone)}</p>
@@ -511,13 +511,13 @@ function QuietHours({ settings, disabled, onSave }: { settings: Settings; disabl
       <div className="checkin-controls">
         <label>
           <span>Bắt đầu</span>
-          <select value={settings.quietStart} disabled={disabled} onChange={(event) => onSave(event.target.value, settings.quietEnd)}>
+          <select value={settings.quietStart} aria-disabled={disabled || undefined} onChange={(event) => onSave(event.target.value, settings.quietEnd)}>
             {options.map((value) => <option key={value} value={value}>{value}</option>)}
           </select>
         </label>
         <label>
           <span>Kết thúc</span>
-          <select value={settings.quietEnd} disabled={disabled} onChange={(event) => onSave(settings.quietStart, event.target.value)}>
+          <select value={settings.quietEnd} aria-disabled={disabled || undefined} onChange={(event) => onSave(settings.quietStart, event.target.value)}>
             {options.map((value) => <option key={value} value={value}>{value}</option>)}
           </select>
         </label>
