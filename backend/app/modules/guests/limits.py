@@ -427,6 +427,7 @@ async def guest_quota_view(db: AsyncSession, user: User, settings) -> GuestQuota
     )
     return GuestQuota(
         ai_turns_remaining=max(0, settings.guest_ai_turns - turns),
+        ai_turns_limit=settings.guest_ai_turns,
         voice_clips_remaining=max(0, settings.guest_voice_clips - clips),
         voice_seconds_remaining=max(0, settings.guest_voice_seconds * 1000 - millis) / 1000,
     )

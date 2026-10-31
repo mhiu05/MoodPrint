@@ -54,12 +54,12 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 | `GUEST_PRICING_JSON` | `dict[str, Any]` | `dict` |
 | `GUEST_ABUSE_HMAC_KEY` | `SecretStr` | `SecretStr('')` |
 | `GUEST_CAPTCHA_SITE_KEY` | `str` | `''` |
-| `GUEST_AI_TURNS` | `int` | `25` |
+| `GUEST_AI_TURNS` | `int` | `50` |
 | `GUEST_AI_PER_MINUTE` | `int` | `6` |
 | `GUEST_AI_CONCURRENCY` | `int` | `1` |
 | `GUEST_AI_GLOBAL_CONCURRENCY` | `int` | `10` |
-| `GUEST_VOICE_CLIPS` | `int` | `6` |
-| `GUEST_VOICE_SECONDS` | `int` | `180` |
+| `GUEST_VOICE_CLIPS` | `int` | `20` |
+| `GUEST_VOICE_SECONDS` | `int` | `600` |
 | `GUEST_VOICE_PER_MINUTE` | `int` | `2` |
 | `GUEST_VOICE_CONCURRENCY` | `int` | `1` |
 | `GUEST_VOICE_GLOBAL_CONCURRENCY` | `int` | `3` |

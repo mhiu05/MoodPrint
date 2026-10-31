@@ -2545,7 +2545,7 @@ export interface components {
              * Disclosureversion
              * @constant
              */
-            disclosureVersion: "guest-v1";
+            disclosureVersion: "guest-v2";
         };
         /**
          * GuestQuota
@@ -2554,6 +2554,8 @@ export interface components {
         GuestQuota: {
             /** Aiturnsremaining */
             aiTurnsRemaining: number;
+            /** Aiturnslimit */
+            aiTurnsLimit: number;
             /** Voiceclipsremaining */
             voiceClipsRemaining: number;
             /** Voicesecondsremaining */

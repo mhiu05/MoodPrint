@@ -122,7 +122,7 @@ def guest_body(**eligibility) -> dict:
     return {
         "eligibility": {**ELIGIBILITY, **eligibility},
         "captchaToken": "synthetic-captcha-token",
-        "disclosureVersion": "guest-v1",
+        "disclosureVersion": "guest-v2",
     }
 
 
