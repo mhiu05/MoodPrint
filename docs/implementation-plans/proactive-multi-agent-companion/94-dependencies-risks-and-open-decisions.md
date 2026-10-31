@@ -38,6 +38,7 @@
 | R-12 | Tin nguy cơ nghiêm trọng bị bỏ sót bởi sàng lọc từ vựng | Trung bình | An toàn | Không tuyên bố là bộ phân loại toàn diện; guardrail output; owner review danh sách mẫu |
 | R-13 | Số migration bị chiếm bởi nhánh khác | Trung bình | Conflict | Dùng ký hiệu M-P1-A…; gán số khi rebase |
 | R-14 | Hosted bảng mới chưa có trong `docs/supabase/schema.md` → CI fail | Cao nếu quên | CI | Task P1-02 bắt buộc cập nhật |
+| R-15 | Chat (có sẵn, không phải lời hỏi thăm) giới hạn `max_tokens=1200` gồm cả reasoning token của gpt-6-luna: 2/80 yêu cầu dạng liệt kê trả `response.incomplete` trong eval 31/10/2026 | Thấp–TB | Người dùng thấy lỗi phải gửi lại | Ngoài phạm vi Phase 1 vì 1200 gắn với dự phòng chi phí guest (`guests/pricing.py AI_OUTPUT_TOKENS`). Đề xuất: đặt `reasoning.effort="low"` cho chat hoặc nâng cả hai lên 2000 trong một thay đổi riêng có review chi phí guest; lời hỏi thăm đã dùng effort `low` (0 incomplete trong 420 lời ở vòng a3–a6) |
 
 ## 4. Quyết định mở
 
