@@ -4,7 +4,7 @@ import type { components } from "../../../api/generated/schema";
 import { ApiError } from "../../../api/client";
 import { cx, StatePanel } from "../../../components/UI";
 import { ErrorNotice, useSession } from "../RealApp";
-import { CAUNOI_NOTE, EDGE_COPY, EDGE_ORDER, sharingReason, type Edge } from "./collaborationCopy";
+import { CAUNOI_NOTE, EDGE_COPY, EDGE_ORDER, sharingReason, V3_NOTE, type Edge } from "./collaborationCopy";
 import "./collaboration.css";
 
 type View = components["schemas"]["SharingView"];
@@ -118,7 +118,7 @@ export function SharingPage() {
             {reason ? (
               <p id={`sharing-${edge}-reason`} className="sharing-reason">
                 {reason}{" "}
-                {item.reason === "journal_context_off" ? <Link to="/check-ins?bot=nhip">Mở Lịch hỏi thăm</Link> : null}
+                {item.reason === "journal_context_off" ? <Link to={`/check-ins?bot=${item.specialist === "nhatky" ? "nhatky" : "nhip"}`}>Mở Lịch hỏi thăm</Link> : null}
               </p>
             ) : null}
             <p className={`sharing-status${status?.error ? " is-error" : ""}`} role="status">
@@ -127,7 +127,7 @@ export function SharingPage() {
           </section>
         );
       })}
-      <p className="sharing-note">{CAUNOI_NOTE}</p>
+      <p className="sharing-note">{view.edges.some((e) => e.edge.startsWith("dieuphoi_")) ? V3_NOTE : CAUNOI_NOTE}</p>
     </div>
   );
 }

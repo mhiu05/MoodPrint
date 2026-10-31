@@ -74,7 +74,7 @@ def collaboration_view(edge, rule_id):
     return CollaborationSummary(kind=edge, companions=[spec.specialist, spec.requester], summary=summary)
 
 
-def message_view(m, run, collaboration=None) -> AIMessage:
+def message_view(m, run, collaboration=None, steps=None) -> AIMessage:
     from app.ai.agents import ALL_IDS
 
     speaker = getattr(run, "bot_id", None)
@@ -88,15 +88,29 @@ def message_view(m, run, collaboration=None) -> AIMessage:
         status=run.status,
         part_index=m.part_index,
         part_count=m.part_count,
-        origin=run.origin,
+        # A handoff/group child run (origin "agent") answers a user-initiated turn.
+        origin=run.origin if run.origin == "proactive" else "user",
         proactive_slot=run.proactive_slot,
         collaboration=collaboration if m.actor == "bot" and m.part_index == 0 else None,
         speaker=speaker if m.actor == "bot" and speaker in ALL_IDS else None,
+        steps=steps if m.actor == "bot" and m.part_index == 0 and steps else None,
     )
 
 
 async def conversation_view(db, c, limit=50, before=None, *, collaboration=False):
-    run_columns = (AiRun.status, AiRun.origin, AiRun.proactive_slot, AiRun.bot_id)
+    messages, has_more, active = await message_page(db, c, limit, before, collaboration=collaboration)
+    return ConversationView(
+        **conversation_header(c).model_dump(),
+        messages=messages,
+        active_run_id=active[0] if active else None,
+        active_run_version=active[1] if active else None,
+        has_more_messages=has_more,
+    )
+
+
+async def message_page(db, c, limit=50, before=None, *, collaboration=False):
+    """(messages, has_more, (active run id, version) | None) of a direct chat or a group."""
+    run_columns = (AiRun.status, AiRun.origin, AiRun.proactive_slot, AiRun.bot_id, AiRun.parent_run_id)
     statement = (
         select(AiMessageRecord, *run_columns)
         .join(AiRun, AiRun.id == AiMessageRecord.run_id)
@@ -160,7 +174,29 @@ async def conversation_view(db, c, limit=50, before=None, *, collaboration=False
                 )
             ).all()
         }
-    messages = [message_view(row[0], row, lines.get(row[0].run_id)) for row in page]
+    steps: dict = {}
+    if page:
+        # V3: receipt-backed specialist steps of each turn; a handoff reply sits on a child run.
+        from app.ai.orchestration.models import AiOrchestrationStep
+        from app.ai.schemas import ReplyStep
+
+        workflows = {row.parent_run_id or row[0].run_id for row in page if row[0].actor == "bot"}
+        for workflow, kind, target in (
+            await db.execute(
+                select(AiOrchestrationStep.workflow_run_id, AiOrchestrationStep.kind, AiOrchestrationStep.target_bot)
+                .where(
+                    AiOrchestrationStep.user_id == c.user_id, AiOrchestrationStep.workflow_run_id.in_(workflows),
+                    AiOrchestrationStep.kind.in_(("consult", "handoff")),
+                    AiOrchestrationStep.status == "completed", AiOrchestrationStep.used_in_reply.is_(True),
+                )
+                .order_by(AiOrchestrationStep.started_at, AiOrchestrationStep.id)
+            )
+        ).all():
+            steps.setdefault(workflow, []).append(ReplyStep(kind=kind, companion=target))
+    messages = [
+        message_view(row[0], row, lines.get(row[0].run_id), steps.get(row.parent_run_id or row[0].run_id))
+        for row in page
+    ]
     active = (
         await db.execute(
             select(AiRun.id, AiRun.version).where(
@@ -168,27 +204,41 @@ async def conversation_view(db, c, limit=50, before=None, *, collaboration=False
             )
         )
     ).first()
-    return ConversationView(
-        **conversation_header(c).model_dump(),
-        messages=messages,
-        active_run_id=active[0] if active else None,
-        active_run_version=active[1] if active else None,
-        has_more_messages=has_more,
-    )
+    return messages, has_more, (active[0], active[1]) if active else None
 
 
 async def load_runtime_conversation(db, c, session_id):
     # Context is always the newest bounded page; old transcript remains pageable.
-    view = await conversation_view(db, c, limit=40)
+    messages, _more, active = await message_page(db, c, limit=40)
+    run_ids = [m.run_id for m in messages if m.run_id]
+    # V3: bubbles of a handoff target live under a child run; they share the turn's stamp.
+    parents = dict(
+        (await db.execute(
+            select(AiRun.id, AiRun.parent_run_id).where(
+                AiRun.id.in_(run_ids), AiRun.user_id == c.user_id, AiRun.origin == "agent",
+            )
+        )).all()
+    )
     turns = (
         await db.scalars(
             select(AiTurn).where(
                 AiTurn.user_id == c.user_id,
                 AiTurn.conversation_id == c.id,
-                AiTurn.run_id.in_([m.run_id for m in view.messages if m.run_id]),
+                AiTurn.run_id.in_([parents.get(identity, identity) for identity in run_ids]),
             )
         )
     ).all()
+    stamps = {t.run_id: ContextStamp(t.data_version, t.context_policy) for t in turns}
+    for child, parent in parents.items():
+        if parent in stamps:
+            stamps[child] = stamps[parent]
+    segment: frozenset = frozenset()
+    if c.active_agent and c.active_agent_since is not None:
+        segment = frozenset((await db.scalars(
+            select(AiMessageRecord.id).where(
+                AiMessageRecord.conversation_id == c.id, AiMessageRecord.sequence >= c.active_agent_since,
+            )
+        )).all())
     return Conversation(
         str(c.user_id),
         str(session_id),
@@ -196,10 +246,12 @@ async def load_runtime_conversation(db, c, session_id):
         id=c.id,
         version=c.version,
         expires_at=c.expires_at,
-        messages=view.messages,
-        context_stamps={t.run_id: ContextStamp(t.data_version, t.context_policy) for t in turns},
-        active_run_id=view.active_run_id,
+        messages=messages,
+        context_stamps=stamps,
+        active_run_id=active[0] if active else None,
         persistent=True,
+        active_agent=c.active_agent,
+        segment_ids=segment,
     )
 
 

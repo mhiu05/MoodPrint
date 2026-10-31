@@ -3,7 +3,9 @@
  * "agent", "tool", "run", model or technical names. The server never sends these texts; it
  * sends only the edge, so the description of what is shared cannot drift from the code.
  */
-export type Edge = "nhip_energy_for_rure" | "nhip_habit_for_may" | "rure_activity_for_guong";
+export type Edge =
+  | "nhip_energy_for_rure" | "nhip_habit_for_may" | "rure_activity_for_guong"
+  | "dieuphoi_consult_nhatky" | "dieuphoi_consult_hoatdong" | "dieuphoi_handoff_nhatky" | "dieuphoi_handoff_hoatdong";
 
 export type EdgeCopy = {
   title: string;
@@ -15,9 +17,43 @@ export type EdgeCopy = {
   requiresJournal?: boolean;
 };
 
-export const EDGE_ORDER: Edge[] = ["nhip_energy_for_rure", "nhip_habit_for_may", "rure_activity_for_guong"];
+export const EDGE_ORDER: Edge[] = [
+  "dieuphoi_consult_nhatky", "dieuphoi_consult_hoatdong", "dieuphoi_handoff_nhatky", "dieuphoi_handoff_hoatdong",
+  "nhip_energy_for_rure", "nhip_habit_for_may", "rure_activity_for_guong",
+];
 
 export const EDGE_COPY: Record<Edge, EdgeCopy> = {
+  dieuphoi_consult_nhatky: {
+    title: "Điều phối được hỏi ý Nhật ký",
+    shared: "Chia sẻ: một tóm tắt ngắn Nhật ký rút ra từ những gì bạn đã ghi gần đây (chủ đề lặp lại, điều bạn đã ghi, điều chỉ là đoán).",
+    notShared: "Không chia sẻ: nguyên văn nhật ký, ngày cụ thể, ảnh, âm thanh, bản nháp.",
+    whyTitle: "Vì sao Điều phối biết điều này?",
+    why:
+      "Bạn đã cho phép Điều phối hỏi ý Nhật ký. Lần này Nhật ký đọc vài khoảnh khắc bạn đã lưu gần đây và chỉ gửi " +
+      "cho Điều phối một tóm tắt ngắn, không có nguyên văn hay ngày cụ thể.",
+    requiresJournal: true,
+  },
+  dieuphoi_consult_hoatdong: {
+    title: "Điều phối được hỏi ý Hoạt động",
+    shared: "Chia sẻ: mục tiêu ngắn bạn vừa nói, thời lượng và mức năng lượng mong muốn.",
+    notShared: "Không chia sẻ: nhật ký, ghi nhớ, các tin nhắn khác của bạn.",
+    whyTitle: "Vì sao có những gợi ý này?",
+    why: "Bạn đã cho phép Điều phối hỏi ý Hoạt động. Hoạt động chỉ nhận mục tiêu ngắn, thời lượng và mức năng lượng.",
+  },
+  dieuphoi_handoff_nhatky: {
+    title: "Điều phối được mời Nhật ký trò chuyện trực tiếp",
+    shared: "Chia sẻ: tin nhắn bạn vừa gửi và một dòng chủ đề ngắn.",
+    notShared: "Không chia sẻ: phần trò chuyện trước đó với Điều phối, ghi nhớ.",
+    whyTitle: "Vì sao Nhật ký trả lời?",
+    why: "Bạn muốn nói chuyện trực tiếp với Nhật ký. Nhật ký chỉ nhận tin nhắn vừa gửi và một dòng chủ đề ngắn.",
+  },
+  dieuphoi_handoff_hoatdong: {
+    title: "Điều phối được mời Hoạt động trò chuyện trực tiếp",
+    shared: "Chia sẻ: tin nhắn bạn vừa gửi và một dòng chủ đề ngắn.",
+    notShared: "Không chia sẻ: phần trò chuyện trước đó với Điều phối, nhật ký, ghi nhớ.",
+    whyTitle: "Vì sao Hoạt động trả lời?",
+    why: "Bạn muốn nói chuyện trực tiếp với Hoạt động. Hoạt động chỉ nhận tin nhắn vừa gửi và một dòng chủ đề ngắn.",
+  },
   nhip_energy_for_rure: {
     title: "Nhịp gợi ý mức năng lượng cho Rủ Rê",
     shared: "Chia sẻ: mức năng lượng (thấp/vừa/cao), thời lượng gợi ý.",
@@ -50,6 +86,7 @@ export const EDGE_COPY: Record<Edge, EdgeCopy> = {
 };
 
 export const CAUNOI_NOTE = "Cầu Nối không nhận thông tin từ trợ lý khác.";
+export const V3_NOTE = "Tìm bạn không bao giờ nhận nhật ký, cảm xúc hay tin nhắn với trợ lý.";
 
 export function edgeCopy(kind: string): EdgeCopy | undefined {
   return Object.hasOwn(EDGE_COPY, kind) ? EDGE_COPY[kind as Edge] : undefined;

@@ -22,6 +22,7 @@ from app.ai.persistence import (
 )
 from app.ai.runtime import LiveRun
 from app.ai.schemas import (
+    AgentReturnInput,
     AIMessage,
     AiPreferenceInput,
     AiPreferenceView,
@@ -455,7 +456,16 @@ async def send(
                     limit_nano_usd=budget_nano(settings.guest_daily_budget_usd) or 0,
                 )
             run_id, message_id = uuid4(), uuid4()
-            db.add(AiRun(id=run_id, user_id=user.id, conversation_id=c.id, bot_id=c.bot_id))
+            # V3 handoff continuation: the specialist keeps answering while its edge is enabled.
+            responder = c.bot_id
+            if persistent is not None and persistent.active_agent:
+                from app.ai.orchestration.workflow import handoff_allowed
+
+                if await handoff_allowed(db, settings, user, persistent.active_agent):
+                    responder = persistent.active_agent
+                else:
+                    persistent.active_agent = persistent.active_agent_since = None
+            db.add(AiRun(id=run_id, user_id=user.id, conversation_id=c.id, bot_id=responder))
             await db.flush()
             db.add(
                 AiTurn(
@@ -472,7 +482,7 @@ async def send(
                     lease_until=now() + timedelta(seconds=settings.ai_timeout_seconds + 15),
                 )
             )
-            await runtime.reserve_usage(db, run_id, user.id, c.bot_id)
+            await runtime.reserve_usage(db, run_id, user.id, responder)
             data_version = user.data_version
             if persistent:
                 persistent.version += 1
@@ -516,6 +526,9 @@ async def send(
             )
         )
         c.version += 1
+        if responder != c.bot_id:
+            # The new message opens or continues the specialist's segment.
+            c.segment_ids = c.segment_ids | {message_id}
         c.active_run_id = run_id
         c.client_runs[str(body.client_message_id)] = (message_digest, run_id)
         run = LiveRun(
@@ -528,6 +541,8 @@ async def send(
             deadline=getattr(request.state, "guest_output", None),
             quota=quota,
             reservation=reservation,
+            responder=responder if responder != c.bot_id else None,
+            user_sequence=persistent.version if persistent else None,
         )
         if reservation is not None:
             run.before_dispatch = runtime.guest_dispatch_guard(run)
@@ -542,7 +557,8 @@ async def send(
     )
 
 
-def persistent_events(row, answers, receipt, *, protocol: int, collaboration_enabled: bool) -> list:
+def persistent_events(row, answers, receipt, *, protocol: int, collaboration_enabled: bool,
+                      steps=None, orchestration: bool = False) -> list:
     """The event list of a saved run as a pure, forward-only function of DB state.
 
     v2 with collaboration on: progress {} → consulting (a non-denied receipt exists) → composing
@@ -553,16 +569,31 @@ def persistent_events(row, answers, receipt, *, protocol: int, collaboration_ena
     from app.ai.persistence import collaboration_view
     from app.ai.schemas import AIEvent, final_v2
 
-    v2 = protocol == 2 and collaboration_enabled
+    v2 = protocol == 2 and (collaboration_enabled or orchestration)
     data = [AIEvent(seq="1", type="progress", data={})]
-    if v2 and receipt is not None and receipt.status != "denied":
+    v3 = protocol == 2 and orchestration
+    if v3:
+        # V3: one event per specialist step actually opened (receipts only ever get added, so the
+        # list is forward-only); no "composing" stage, which would not be prefix-stable here.
+        for step in steps or ():
+            data.append(AIEvent(seq=str(len(data) + 1), type="progress", data={
+                "activity": "transferring" if step.kind == "handoff" else "consulting",
+                "companion": step.target_bot,
+            }))
+    if v2 and not v3 and receipt is not None and receipt.status != "denied":
         data.append(AIEvent(seq=str(len(data) + 1), type="progress",
                             data={"activity": "consulting", "companion": receipt.specialist_bot}))
         if receipt.status != "authorized":
             data.append(AIEvent(seq=str(len(data) + 1), type="progress", data={"activity": "composing"}))
     if row.status == "completed" and answers:
         final = final_v2([(m.id, m.text, m.cards) for m in answers])
-        if v2:
+        if v3:
+            final["speaker"] = getattr(answers[0], "speaker", None)
+            final["steps"] = [
+                {"kind": step.kind, "companion": step.target_bot}
+                for step in steps or () if step.status == "completed" and step.used_in_reply
+            ]
+        if v2 and not v3:
             line = (
                 collaboration_view(receipt.edge, receipt.rule_id)
                 if receipt is not None and receipt.status == "completed" and receipt.used_in_reply else None
@@ -593,7 +624,19 @@ async def run_receipt(db, run_id, user_id):
     )
 
 
-async def durable_run(request, actor, run_id, *, poll=False, recover=True, with_receipt=False):
+async def run_steps(db, run_id, user_id):
+    """V3: the consult/handoff receipts of a turn that actually ran (never denied ones), in order."""
+    from app.ai.orchestration.models import AiOrchestrationStep
+
+    return (await db.scalars(
+        select(AiOrchestrationStep).where(
+            AiOrchestrationStep.workflow_run_id == run_id, AiOrchestrationStep.user_id == user_id,
+            AiOrchestrationStep.kind.in_(("consult", "handoff")), AiOrchestrationStep.status != "denied",
+        ).order_by(AiOrchestrationStep.started_at, AiOrchestrationStep.id)
+    )).all()
+
+
+async def durable_run(request, actor, run_id, *, poll=False, recover=True, with_receipt=False, with_steps=False):
     # Polling reads never take the account row lock; lease recovery runs only on
     # every few ticks rather than on each 0.25 s read.
     async with transaction(request, actor, lock=not poll) as (db, user):
@@ -612,15 +655,26 @@ async def durable_run(request, actor, run_id, *, poll=False, recover=True, with_
             raise DomainError(410, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
         # Every bubble of the run, in order; a replay never shows a partial reply because
         # all parts commit together with the run's completed state.
-        answers = (
-            await db.scalars(
-                select(AiMessageRecord)
-                .where(AiMessageRecord.run_id == run_id, AiMessageRecord.actor == "bot")
-                .order_by(AiMessageRecord.part_index)
+        # V3: a handoff target's bubbles live under its child run of this turn.
+        children = select(AiRun.id).where(AiRun.parent_run_id == run_id, AiRun.origin == "agent")
+        answers = []
+        for record, speaker in (
+            await db.execute(
+                select(AiMessageRecord, AiRun.bot_id)
+                .join(AiRun, AiRun.id == AiMessageRecord.run_id)
+                .where(
+                    (AiMessageRecord.run_id == run_id) | AiMessageRecord.run_id.in_(children),
+                    AiMessageRecord.actor == "bot",
+                )
+                .order_by(AiMessageRecord.sequence)
             )
-        ).all()
-        if with_receipt:
-            return row, turn, answers, await run_receipt(db, run_id, user.id)
+        ).all():
+            record.speaker = speaker
+            answers.append(record)
+        if with_receipt or with_steps:
+            receipt = await run_receipt(db, run_id, user.id) if with_receipt else None
+            steps = await run_steps(db, run_id, user.id) if with_steps else None
+            return row, turn, answers, receipt, steps
         return row, turn, answers
 
 
@@ -656,6 +710,7 @@ async def events(
 
     runtime = request.app.state.ai
     collaboration = protocol == 2 and request.app.state.settings.ai_collaboration_enabled
+    orchestration = protocol == 2 and request.app.state.settings.ai_smart_orchestration_enabled
     release = runtime.streams.reserve(actor.user_id)
     try:
         local = runtime.runs.get(run_id)
@@ -673,7 +728,7 @@ async def events(
         if (
             after_seq < 0
             or (not persistent and after_seq > len(local.events))
-            or (persistent and after_seq > (5 if collaboration else 3))
+            or (persistent and after_seq > (6 if orchestration else 5 if collaboration else 3))
         ):
             raise DomainError(409, "CURSOR_GAP", "Hãy tải lại cuộc trò chuyện.")
         logging.getLogger("moodprint").info("metric=ai_events_protocol value=v%d", protocol)
@@ -705,12 +760,17 @@ async def events(
                 # lock_actor in the polling read re-verifies the session each tick.
                 if persistent:
                     found = await durable_run(
-                        request, actor, run_id, poll=True, recover=tick % 8 == 1, with_receipt=collaboration
+                        request, actor, run_id, poll=True, recover=tick % 8 == 1, with_receipt=collaboration,
+                        with_steps=orchestration,
                     )
                     row, answers = found[0], found[2]
                     receipt = found[3] if collaboration else None
+                    steps = found[4] if orchestration else None
+                    from app.ai.agents import is_v3
+
                     data = persistent_events(row, answers, receipt, protocol=protocol,
-                                             collaboration_enabled=collaboration)
+                                             collaboration_enabled=collaboration, steps=steps,
+                                             orchestration=orchestration and is_v3(row.bot_id))
                     terminal = row.status != "running"
                 else:
                     run = await authorized_run(request, actor, run_id, poll=True)
@@ -789,6 +849,29 @@ async def rename_conversation(
         return conversation_header(c)
 
 
+@router.post("/ai/conversations/{conversation_id}/agent", response_model=ConversationHeader)
+async def return_to_agent(
+    conversation_id: UUID, body: AgentReturnInput, request: Request, actor: Actor = Depends(require_actor)
+):
+    """V3: end a handoff continuation; the conversation's own agent answers the next turn."""
+    key, payload = idempotency_key(request), body.model_dump(mode="json")
+    async with transaction(request, actor) as (db, user):
+        c = await owned_conversation(db, conversation_id, user.id, lock=True)
+        if c is None:
+            raise DomainError(404, "NOT_FOUND", "Không tìm thấy cuộc trò chuyện.")
+        if await previous_receipt(db, user, f"ai:agent:{c.id}", key, payload):
+            return conversation_header(c)
+        if body.agent != c.bot_id:
+            raise DomainError(422, "INVALID_AGENT", "Chỉ có thể quay lại trợ lý của cuộc trò chuyện này.")
+        if c.version != body.expected_version:
+            raise DomainError(409, "STALE_VERSION", "Cuộc trò chuyện đã thay đổi. Vui lòng tải lại.")
+        if await db.scalar(select(AiRun.id).where(AiRun.conversation_id == c.id, AiRun.status == "running")):
+            raise DomainError(409, "RUN_IN_PROGRESS", "Đang có một lượt trò chuyện chưa kết thúc.")
+        c.active_agent = c.active_agent_since = None
+        save_receipt(db, user, f"ai:agent:{c.id}", key, payload, {"resourceId": str(c.id)})
+        return conversation_header(c)
+
+
 @router.get("/ai/conversations/{conversation_id}/export")
 async def export_conversation(
     conversation_id: UUID, request: Request, actor: Actor = Depends(require_actor)
@@ -813,7 +896,7 @@ async def export_conversation(
         result["messages"] = [
             AIMessage(
                 id=m.id, actor=m.actor, text=m.text, cards=m.cards, created_at=m.created_at,
-                part_index=m.part_index, part_count=m.part_count, origin=origin,
+                part_index=m.part_index, part_count=m.part_count, origin="proactive" if origin == "proactive" else "user",
                 proactive_slot=slot,
             ).model_dump(mode="json", by_alias=True)
             for m, origin, slot in rows

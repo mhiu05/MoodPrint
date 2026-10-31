@@ -87,6 +87,12 @@ class LiveRun:
     before_dispatch: Callable[[], Awaitable[None]] | None = None
     # Phase 2: at most one bounded consultation per turn (coordinator.Consultation).
     collaboration: Any = None
+    # V3: the orchestrated workflow of a Điều phối turn (orchestration.workflow.Workflow).
+    workflow: Any = None
+    # V3 handoff continuation: the agent answering this turn when it is not the conversation's bot.
+    responder: str | None = None
+    # Sequence of this turn's user message (start of a handoff segment).
+    user_sequence: int | None = None
 
 
 @dataclass
@@ -114,6 +120,8 @@ class AiRuntime:
         self.coordinator = CollaborationCoordinator(self)
         # Tests only: a separate synthetic model for specialist consultations.
         self.specialist_model_override = None
+        # Tests only (V3): synthetic models per workflow role ('planner', 'nhatky:consult', ...).
+        self.agent_model_overrides: dict = {}
         self.store = ConversationStore()
         self.runs: dict[UUID, LiveRun] = {}
         self.proposals: dict[UUID, Proposal] = {}
@@ -608,6 +616,14 @@ class AiRuntime:
             opened, user_id=run.actor.user_id, check=check, worker_id=self.worker_id
         )
 
+    def orchestrates(self, run: LiveRun, c) -> bool:
+        """V3 smart orchestration: Điều phối's own turns in a saved chat of an eligible account."""
+        return bool(
+            self.settings.orchestration_open_for(run.actor.user_id) and self.settings.ai_multi_message_enabled
+            and run.persistent and run.mood_scope is None and run.actor.account_kind == "registered"
+            and run.deadline is None and c.bot_id == "dieuphoi" and run.responder in (None, "dieuphoi")
+        )
+
     def guest_dispatch_guard(self, run: LiveRun) -> Callable[[], Awaitable[None]]:
         """Last awaited authorization before each provider request of a guest run."""
         from app.modules.guests.accounting import mark_guest_dispatched
@@ -702,6 +718,8 @@ class AiRuntime:
                 c = self.store.get(
                     run.conversation_id, str(run.actor.user_id), str(run.actor.session_id)
                 )
+                # V3 handoff continuation: the specialist answers in Điều phối's conversation.
+                bot = run.responder or c.bot_id
                 from app.ai.embeddings import MEMORY_BOTS, retrieve_memories
 
                 # Check live durable policy before projecting either transcript or
@@ -717,7 +735,7 @@ class AiRuntime:
                         memory_state.authorization = "authorized"
                     elif mem and mem.version > 1:
                         memory_state.authorization = "revoked"
-                    if c.bot_id not in MEMORY_BOTS:
+                    if bot not in MEMORY_BOTS:
                         memory_state.evidence = "tool_unavailable"
                     run.sources["memory"] = memory_state
                     revalidated = await self.revalidate_check_ins(db, user, run, c)
@@ -726,19 +744,22 @@ class AiRuntime:
                     previous="previously_authorized" if any(
                         s.policy == MOOD_TURN_POLICY for rid, s in c.context_stamps.items() if rid != run.id
                     ) else "missing_verified_evidence",
-                    evidence="missing_verified_evidence" if caps(c.bot_id).mood_scope and run.mood_scope else "tool_unavailable",
+                    evidence="missing_verified_evidence" if caps(bot).mood_scope and run.mood_scope else "tool_unavailable",
                 )
-                if caps(c.bot_id).journal and run.mood_scope is None:
+                if caps(bot).journal and run.mood_scope is None:
                     run.sources["journal"] = SourceState(authorization="authorized")
                 projected = model_messages(
                     c.messages, c.context_stamps, current_run=run.id, data_version=run.data_version,
                     revalidated=revalidated,
                 )
+                if bot != c.bot_id:
+                    # The specialist sees only its own segment (from the handoff on), never the rest.
+                    projected = [m for m in projected if m.id in c.segment_ids]
                 memories = []
                 if memory_state.authorization == "authorized" and memory_state.evidence != "tool_unavailable":
                     try:
                         memories = await retrieve_memories(
-                            self.database, self.settings, run.actor, c.bot_id,
+                            self.database, self.settings, run.actor, bot,
                             projected[-1].text if projected else "", run.data_version,
                             operation_key=f"embed-query:{run.id}",
                         )
@@ -763,6 +784,11 @@ class AiRuntime:
                 monitor = asyncio.create_task(monitor_policy())
                 consultation = await self.consult(run, c, history)
                 brief = consultation.brief if consultation is not None else None
+                if self.orchestrates(run, c):
+                    from app.ai.orchestration.workflow import Workflow
+
+                    run.workflow = Workflow(self, run, c)
+                    await run.workflow.decide(history)
 
                 async def progress():
                     await self.check(run)
@@ -773,17 +799,20 @@ class AiRuntime:
                 async def observe(event):
                     await self.record_usage(run, event)
 
-                reply = await self.provider.run_reply(
-                    bot_id=c.bot_id,
-                    history=history,
-                    tools=self.tools(run, c.bot_id, memory_enabled=True),
-                    context=run,
-                    on_progress=progress,
-                    model_override=self.model_override,
-                    usage_observer=observe,
-                    extra_instructions=brief.instructions if brief else "",
-                    extra_input=[brief.data_item] if brief and brief.data_item else [],
-                )
+                if run.workflow is not None and run.workflow.decision.delegates:
+                    reply = await run.workflow.respond(history, on_progress=progress, observer=observe)
+                else:
+                    reply = await self.provider.run_reply(
+                        bot_id=bot,
+                        history=history,
+                        tools=self.tools(run, bot, memory_enabled=True),
+                        context=run,
+                        on_progress=progress,
+                        model_override=self.agent_model_overrides.get(bot, self.model_override),
+                        usage_observer=observe,
+                        extra_instructions=brief.instructions if brief else "",
+                        extra_input=[brief.data_item] if brief and brief.data_item else [],
+                    )
                 reply = AiReply.model_validate(reply)
                 parts = reply.parts
                 if run.mood_evidence is not None:
@@ -806,6 +835,10 @@ class AiRuntime:
                     if run.collaboration is not None:
                         # Authorization #3 and provenance, in the same transaction as the bubbles.
                         await self.coordinator.confirm(db, user, run.collaboration, run.id, policy_name="chat")
+                    # V3: the run of whoever actually answered carries the bubbles (speaker = its bot).
+                    speaker_run = run.id
+                    if run.workflow is not None:
+                        speaker_run = await run.workflow.confirm(db, user)
                     if run.deadline is not None:
                         await final_guest_authorization(db, user)
                     if run.persistent:
@@ -838,19 +871,27 @@ class AiRuntime:
                             db.add(AiMessageRecord(
                                 id=identity, conversation_id=c.id, sequence=base + 1 + index, actor="bot",
                                 text=part.text, cards=[card.model_dump(mode="json", by_alias=True) for card in part.cards],
-                                run_id=run.id, part_index=index, part_count=len(parts),
+                                run_id=speaker_run, part_index=index, part_count=len(parts),
                             ))
                         durable.version = base + len(parts)
                         durable.updated_at = now()
+                        if speaker_run != run.id and run.workflow is not None:
+                            # A completed handoff: the specialist keeps answering until the user returns.
+                            durable.active_agent = run.workflow.speaker
+                            durable.active_agent_since = run.user_sequence
                 if run.deadline is not None and run.deadline.remaining() <= 0:
                     # Decided before T but published after it: drop, never append late output.
                     raise guest_expired()
                 # Do not publish tokens/JSON before output and live policy have both passed.
                 published = now()
+                if speaker_run != run.id:
+                    c.context_stamps[speaker_run] = c.context_stamps.get(run.id, ContextStamp(run.data_version, None))
+                speaker = run.workflow.speaker if run.workflow is not None else bot
                 c.messages.extend(
                     AIMessage(
                         id=identity, actor="bot", text=part.text, cards=part.cards, created_at=published,
-                        run_id=run.id, status="completed", part_index=index, part_count=len(parts),
+                        run_id=speaker_run, status="completed", part_index=index, part_count=len(parts),
+                        speaker=speaker,  # type: ignore[arg-type]
                     )
                     for index, (identity, part) in enumerate(zip(identities, parts, strict=True))
                 )
@@ -886,6 +927,8 @@ class AiRuntime:
                 run.reserved_output_bytes = 0
                 if status != "completed":
                     await self.coordinator.discard(run.collaboration, status)
+                    if run.workflow is not None:
+                        await run.workflow.discard(status)
                 await self.settle_guest(run, status)
                 await self.finalize(run, status)
 

@@ -44,6 +44,7 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 | DELETE | `/api/v1/ai/proactive/schedules/{bot_id}/{slot}` | `delete_schedule_api_v1_ai_proactive_schedules__bot_id___slot__delete` |
 | PUT | `/api/v1/ai/proactive/settings` | `save_settings_api_v1_ai_proactive_settings_put` |
 | GET | `/api/v1/ai/sharing` | `read_sharing_api_v1_ai_sharing_get` |
+| POST | `/api/v1/ai/conversations/{conversation_id}/agent` | `return_to_agent_api_v1_ai_conversations__conversation_id__agent_post` |
 | GET | `/api/v1/bots/legacy` | `legacy_bots_api_v1_bots_legacy_get` |
 | POST | `/api/v1/ai/proactive/schedules/{bot_id}/{slot}/migrate` | `migrate_schedule_api_v1_ai_proactive_schedules__bot_id___slot__migrate_post` |
 | PUT | `/api/v1/ai/sharing/{edge}` | `update_sharing_api_v1_ai_sharing__edge__put` |
@@ -173,3 +174,9 @@ Chỉ tài khoản đã đăng ký (`require_registered_actor`, guest → `403 R
 | `COLLABORATION_UNAVAILABLE` | 503 | Bật khi `AI_COLLABORATION_ENABLED=false`, ngoài nhóm rollout hoặc chưa bật `AI_MULTI_MESSAGE_ENABLED` |
 | `ADULT_REQUIRED` | 403 | Bật khi tài khoản chưa đủ 18 tuổi, bị tạm khóa hoặc đang chờ xóa |
 
+
+### V3 — ba trợ lý, điều phối, handoff
+
+Cờ `AI_THREE_AGENT_EXPERIENCE_ENABLED`: `GET /bots` trả đúng ba trợ lý `dieuphoi`, `nhatky`, `hoatdong`; `GET /bots/legacy` trả năm trợ lý cũ (`legacy:true`, `replacedBy`) chỉ để gắn nhãn lịch sử. Hội thoại của trợ lý cũ đọc/đổi tên/tải xuống/xóa được nhưng gửi tin → `409 LEGACY_CONVERSATION`; tạo mới → `409 LEGACY_COMPANION`. Khi cờ tắt, hội thoại của trợ lý mới chỉ đọc (`409 AGENT_UNAVAILABLE`).
+
+Cờ `AI_SMART_ORCHESTRATION_ENABLED`: lượt của Điều phối có thể hỏi ý (`Agent.as_tool`) hoặc chuyển lượt (handoff) trên cạnh người dùng đã bật ở `/ai/sharing` (bốn cạnh `dieuphoi_*`). SSE `?protocol=2`: `progress {activity:"consulting"|"transferring", companion}` cho mỗi bước thật, `final` thêm `speaker` và `steps:[{kind, companion}]` (chỉ bước `completed ∧ used_in_reply`); tối đa 6 event. v1 không đổi. `ConversationHeader.activeAgent` ≠ null khi chuyên gia đang trả lời tiếp; `POST /ai/conversations/{id}/agent {agent:"dieuphoi", expectedVersion}` quay lại Điều phối (`Idempotency-Key`). `AIMessage.speaker` = trợ lý của run sinh bubble; `AIMessage.steps` trên phần 0 của câu trả lời.

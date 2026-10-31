@@ -381,6 +381,75 @@ class SdkProvider:
                     raise error.__cause__ from None
                 raise
 
+    def model(self, override: Model | str | None, user_id: Any) -> Model:
+        """The SDK model of one agent in a V3 workflow (tests pass a synthetic Model)."""
+        if isinstance(override, Model):
+            return override
+        key = self.settings.openai_api_key.get_secret_value()
+        if not key or not (override or self.settings.openai_model) or not self.settings.ai_available_for(user_id):
+            raise DomainError(503, "AI_UNAVAILABLE", "Trò chuyện AI hiện chưa khả dụng.")
+        return OpenAIResponsesModel(override or self.settings.openai_model, self._openai(key))
+
+    async def run_once(
+        self,
+        *,
+        name: str,
+        instructions: str,
+        input_items: list[dict],
+        output_type: type,
+        model: Model,
+        hooks: RunHooks,
+        limit_seconds: float,
+        max_tokens: int = 600,
+    ) -> Any:
+        """One structured model call (V3 planner/selector): no tools, no transcript, no tracing."""
+        set_tracing_disabled(True)
+        agent = Agent[Any](
+            name=name, instructions=instructions, model=model, tools=[], output_type=output_type,
+            model_settings=ModelSettings(
+                store=False, max_tokens=max_tokens, timeout=limit_seconds, retry=ModelRetrySettings(max_retries=0),
+                reasoning=Reasoning(effort="low"),
+            ),
+        )
+        async with asyncio.timeout(limit_seconds):
+            result = Runner.run_streamed(
+                agent, input=cast(list[TResponseInputItem], input_items), max_turns=1, hooks=hooks,
+                run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False),
+            )
+            try:
+                async for _ in result.stream_events():
+                    pass
+                return cast(Any, output_type).model_validate(result.final_output)
+            except BaseException as error:
+                await _cancel_and_drain(result)
+                if isinstance(error, UserError) and isinstance(error.__cause__, DomainError):
+                    raise error.__cause__ from None
+                raise
+
+    async def run_agents(
+        self, agent: Agent[Any], history: list[dict], *, context: Any, hooks: RunHooks, max_turns: int
+    ) -> RunResultStreaming:
+        """A V3 multi-agent run (``as_tool`` consultations or a handoff) on the streaming path.
+
+        Only the validated final result leaves this method; raw deltas, tool calls and nested
+        runs stay inside the SDK. Tracing is off and nothing is stored provider-side.
+        """
+        set_tracing_disabled(True)
+        async with asyncio.timeout(RUN_TIMEOUT_SECONDS):
+            result = Runner.run_streamed(
+                agent, input=cast(list[TResponseInputItem], history), context=context, max_turns=max_turns,
+                hooks=hooks, run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False),
+            )
+            try:
+                async for _ in result.stream_events():
+                    pass
+                return result
+            except BaseException as error:
+                await _cancel_and_drain(result)
+                if isinstance(error, UserError) and isinstance(error.__cause__, DomainError):
+                    raise error.__cause__ from None
+                raise
+
     async def run_specialist(
         self,
         *,

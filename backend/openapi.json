@@ -6159,6 +6159,137 @@
         }
       }
     },
+    "/api/v1/ai/conversations/{conversation_id}/agent": {
+      "post": {
+        "summary": "Return To Agent",
+        "description": "V3: end a handoff continuation; the conversation's own agent answers the next turn.",
+        "operationId": "return_to_agent_api_v1_ai_conversations__conversation_id__agent_post",
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentReturnInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationHeader"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/api/v1/ai/conversations/{conversation_id}/export": {
       "get": {
         "summary": "Export Conversation",
@@ -15958,6 +16089,20 @@
               }
             ],
             "title": "Speaker"
+          },
+          "steps": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ReplyStep"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Steps"
           }
         },
         "additionalProperties": false,
@@ -16505,6 +16650,28 @@
           "priorActions"
         ],
         "title": "AdminReportView"
+      },
+      "AgentReturnInput": {
+        "properties": {
+          "agent": {
+            "type": "string",
+            "const": "dieuphoi",
+            "title": "Agent"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expectedversion"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "agent",
+          "expectedVersion"
+        ],
+        "title": "AgentReturnInput",
+        "description": "V3: return a handed-over conversation to its own agent."
       },
       "AiPreferenceInput": {
         "properties": {
@@ -20061,6 +20228,34 @@
         ],
         "title": "ReadyInput"
       },
+      "ReplyStep": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "consult",
+              "handoff"
+            ],
+            "title": "Kind"
+          },
+          "companion": {
+            "type": "string",
+            "enum": [
+              "nhatky",
+              "hoatdong"
+            ],
+            "title": "Companion"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "companion"
+        ],
+        "title": "ReplyStep",
+        "description": "A receipt-backed specialist step of one reply (consulted or handed over)."
+      },
       "ReportInput": {
         "properties": {
           "peerRef": {
@@ -20817,13 +21012,35 @@
       "SharingEdgeView": {
         "properties": {
           "edge": {
-            "type": "string",
-            "enum": [
-              "nhip_energy_for_rure",
-              "nhip_habit_for_may",
-              "rure_activity_for_guong"
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "nhip_energy_for_rure",
+                  "nhip_habit_for_may",
+                  "rure_activity_for_guong"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "dieuphoi_consult_nhatky",
+                  "dieuphoi_consult_hoatdong",
+                  "dieuphoi_handoff_nhatky",
+                  "dieuphoi_handoff_hoatdong"
+                ]
+              }
             ],
             "title": "Edge"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "consult",
+              "handoff"
+            ],
+            "title": "Kind",
+            "default": "consult"
           },
           "requester": {
             "type": "string",

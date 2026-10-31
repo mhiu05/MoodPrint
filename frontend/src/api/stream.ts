@@ -25,10 +25,21 @@ export type CollaborationLine = {
   companions: [BotName, BotName];
   summary: string;
 };
-export type ValidatedReply = { messages: ValidatedBubble[]; collaboration?: CollaborationLine | null };
-type BotName = "may" | "guong" | "nhip" | "rure" | "caunoi";
+/** V3: a specialist step that actually ran and was used for this reply (server receipt). */
+export type ReplyStep = { kind: "consult" | "handoff"; companion: "nhatky" | "hoatdong" };
+export type ValidatedReply = {
+  messages: ValidatedBubble[];
+  collaboration?: CollaborationLine | null;
+  /** V3: who actually answered (a handoff changes it) and which specialists helped. */
+  speaker?: BotName | null;
+  steps?: ReplyStep[];
+};
+type BotName = "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
 /** Real, server-derived progress of a collaborative turn. Never a guessed stage. */
-export type StreamActivity = { activity: "consulting"; companion: BotName } | { activity: "composing" };
+export type StreamActivity =
+  | { activity: "consulting"; companion: BotName }
+  | { activity: "transferring"; companion: BotName }
+  | { activity: "composing" };
 
 const BOTS: readonly string[] = ["may", "guong", "nhip", "rure", "caunoi", "dieuphoi", "nhatky", "hoatdong"];
 /** The only allowed edges and their [specialist, requester] pairs (mirrors collaboration/policy.py). */
@@ -37,7 +48,8 @@ const EDGE_COMPANIONS: Record<string, [BotName, BotName]> = {
   nhip_habit_for_may: ["nhip", "may"],
   rure_activity_for_guong: ["rure", "guong"],
 };
-const SPECIALISTS: readonly string[] = ["nhip", "rure"];
+const SPECIALISTS: readonly string[] = ["nhip", "rure", "nhatky", "hoatdong"];
+const V3_SPECIALISTS: readonly string[] = ["nhatky", "hoatdong"];
 
 const RUN_EVENTS = /^\/api\/v1\/ai\/runs\/[a-zA-Z0-9-]+\/events$/;
 const MAX_BUBBLES = 4;
@@ -106,15 +118,33 @@ function progressActivity(data: Record<string, unknown>): StreamActivity | null 
   if (!keys.length) return null;
   if (data.activity === "consulting" && keys.length === 2 && SPECIALISTS.includes(String(data.companion)))
     return { activity: "consulting", companion: data.companion as BotName };
+  if (data.activity === "transferring" && keys.length === 2 && V3_SPECIALISTS.includes(String(data.companion)))
+    return { activity: "transferring", companion: data.companion as BotName };
   if (data.activity === "composing" && keys.length === 1) return { activity: "composing" };
   throw invalidStream();
+}
+
+export function validSteps(value: unknown): value is ReplyStep[] {
+  return (
+    Array.isArray(value) &&
+    value.length <= 2 &&
+    value.every(
+      (step) =>
+        object(step) &&
+        Object.keys(step).every((key) => ["kind", "companion"].includes(key)) &&
+        ["consult", "handoff"].includes(String(step.kind)) &&
+        V3_SPECIALISTS.includes(String(step.companion)),
+    )
+  );
 }
 
 function v2Final(data: Record<string, unknown>): ValidatedReply {
   const messages = data.messages;
   if (
-    Object.keys(data).some((key) => !["partCount", "messages", "collaboration"].includes(key)) ||
+    Object.keys(data).some((key) => !["partCount", "messages", "collaboration", "speaker", "steps"].includes(key)) ||
     ("collaboration" in data && !validCollaboration(data.collaboration)) ||
+    ("speaker" in data && data.speaker !== null && !BOTS.includes(String(data.speaker))) ||
+    ("steps" in data && !validSteps(data.steps)) ||
     !Array.isArray(messages) ||
     messages.length < 1 ||
     messages.length > MAX_BUBBLES ||
@@ -139,9 +169,11 @@ function v2Final(data: Record<string, unknown>): ValidatedReply {
   const joined = bubbles.map((bubble) => bubble.text).join("\n\n");
   if (Array.from(joined).length > MAX_JOINED || bubbles.flatMap((bubble) => bubble.cards).length > 3)
     throw invalidStream();
-  return "collaboration" in data
-    ? { messages: bubbles, collaboration: data.collaboration as CollaborationLine | null }
-    : { messages: bubbles };
+  const reply: ValidatedReply = { messages: bubbles };
+  if ("collaboration" in data) reply.collaboration = data.collaboration as CollaborationLine | null;
+  if ("speaker" in data) reply.speaker = data.speaker as BotName | null;
+  if ("steps" in data) reply.steps = data.steps as ReplyStep[];
+  return reply;
 }
 
 /** Buffer until a validated final and terminal receipt. Provider deltas never enter UI state. */

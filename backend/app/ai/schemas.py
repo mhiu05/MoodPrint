@@ -84,6 +84,13 @@ class ConversationInput(DTO):
     persistent: bool | None = None
 
 
+class AgentReturnInput(DTO):
+    """V3: return a handed-over conversation to its own agent."""
+
+    agent: Literal["dieuphoi"]
+    expected_version: int = Field(ge=1)
+
+
 class ConversationRename(DTO):
     title: str = Field(min_length=1, max_length=100)
 
@@ -120,6 +127,13 @@ class CollaborationSummary(DTO):
     summary: str = Field(min_length=1, max_length=200)
 
 
+class ReplyStep(DTO):
+    """A receipt-backed specialist step of one reply (consulted or handed over)."""
+
+    kind: Literal["consult", "handoff"]
+    companion: Literal["nhatky", "hoatdong"]
+
+
 class AIMessage(DTO):
     id: UUID
     actor: Literal["self", "bot"]
@@ -137,6 +151,8 @@ class AIMessage(DTO):
     collaboration: CollaborationSummary | None = None
     # V3: the companion whose run produced this bubble (handoff/group); None for the user.
     speaker: BotId | None = None
+    # V3: on part 0 only — specialist steps that actually ran and were used for this reply.
+    steps: list[ReplyStep] | None = None
 
 
 class ConversationView(ConversationHeader):

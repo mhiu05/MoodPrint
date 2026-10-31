@@ -76,6 +76,7 @@ class ScriptedModel(Model):
                 "settings": args[2],
                 "tools": args[3],
                 "output_schema": args[4],
+                "handoffs": args[5],
                 "tracing": args[6],
                 **kwargs,
             }

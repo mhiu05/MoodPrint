@@ -93,6 +93,7 @@ import { AccountActions, AccountDeletionComplete } from "./AccountActions";
 import { focusRouteHeading, useRouteFocus } from "./useRouteFocus";
 import { AIActivityStatus } from "./AIActivityStatus";
 import { CollaborationLine } from "./collaboration/CollaborationLine";
+import { AgentStepsLine, HandoffBanner, SpeakerTag } from "./orchestration/AgentLines";
 import { ConversationInfo, useInfoPanelMounted } from "./ConversationInfo";
 import { insertAtSelection } from "./draftInsert";
 import { createMessageDateFormatter } from "./messageDates";
@@ -1052,7 +1053,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const [syncing, setSyncing] = useState(false);
   const [stopped, setStopped] = useState(false);
   // Companion currently consulted, set only by a server `consulting` progress event of this run.
-  const [consulting, setConsulting] = useState<string | null>(null);
+  const [consulting, setConsulting] = useState<{ companion: string; transfer: boolean } | null>(null);
+  const [returning, setReturning] = useState(false);
   const activeRun = useRef<string | undefined>(undefined);
   const [revision, setRevision] = useState(0);
   const loadedRevision = useRef(0);
@@ -1190,7 +1192,12 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       const ownerId = current.current?.conversationId;
       try {
         const reply = await consumeAIReply(eventsUrl, signal, (activity) => {
-          if (!signal.aborted) setConsulting(activity.activity === "consulting" ? activity.companion : null);
+          if (!signal.aborted)
+            setConsulting(
+              activity.activity === "consulting" || activity.activity === "transferring"
+                ? { companion: activity.companion, transfer: activity.activity === "transferring" }
+                : null,
+            );
         });
         setConsulting(null);
         if (!signal.aborted && current.current) {
@@ -1215,6 +1222,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
                 origin: "user" as const,
                 // Backend template from a completed, used receipt; reconciled from history below.
                 collaboration: bubble.partIndex === 0 ? reply.collaboration ?? null : null,
+                // V3: who answered (a handoff changes it) and the receipt-backed steps.
+                speaker: reply.speaker ?? null,
+                steps: bubble.partIndex === 0 ? reply.steps ?? null : null,
               })),
             ],
           });
@@ -1726,11 +1736,32 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     // The transcript turn status already says a reconciled turn stopped.
     : stopped && lastSelf?.status !== "cancelled" ? "cancelled"
     : "idle";
-  const consultedName = consulting && session.features.collaboration ? botById(consulting)?.name : undefined;
+  const consultedName = consulting && (session.features.collaboration || session.features.smartOrchestration)
+    ? botById(consulting.companion)?.name : undefined;
   const activity = deriveAIActivity({
     phase, requestKey: run?.key ?? intent.current?.clientMessageId, runId: run?.id,
-    consulting: consultedName ? { requester: bot.name, specialist: consultedName } : null,
+    consulting: consultedName ? { requester: bot.name, specialist: consultedName, transfer: consulting?.transfer } : null,
   });
+  // V3: a specialist keeps answering here after a handoff until the user returns.
+  const activeAgent = conversation?.activeAgent && conversation.activeAgent !== bot.botId ? conversation.activeAgent : null;
+  async function returnToOwner() {
+    const thread = current.current;
+    if (!thread || returning) return;
+    setReturning(true);
+    setError(undefined);
+    try {
+      const header = await api.request<SavedConversationHeader>(`/ai/conversations/${thread.conversationId}/agent`, {
+        method: "POST",
+        body: { agent: bot.botId, expectedVersion: thread.version },
+      });
+      update({ ...thread, ...header });
+      requestAnimationFrame(() => composer.current?.focus());
+    } catch (reason) {
+      setError(reason);
+    } finally {
+      setReturning(false);
+    }
+  }
   const canStop = Boolean(run && !syncing);
   const stopDisabled = stopRequested || awaitingNew;
   const actionLabel = canStop ? (stopRequested ? "Đang yêu cầu dừng" : "Dừng phản hồi") : "Gửi tin cho AI";
@@ -1780,7 +1811,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             <div
               className="message-content"
               role="group"
-              aria-label={part ? `Phần ${part.index + 1} trên ${part.count}` : message.actor === "self" ? "Tin nhắn của bạn" : `Tin nhắn từ ${bot.name}`}
+              aria-label={part ? `Phần ${part.index + 1} trên ${part.count}` : message.actor === "self" ? "Tin nhắn của bạn" : `Tin nhắn từ ${(message.speaker && botById(message.speaker)?.name) || bot.name}`}
               tabIndex={date || message.actor === "bot" ? 0 : undefined}
               onFocus={(event) => {
                 if (event.target.matches(":focus-visible")) setRevealedMessage(message.id);
@@ -1953,12 +1984,18 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           ) : null;
           // Shown only from the server's receipt-backed line (never inferred client-side).
           const line = lead.actor === "bot" && lead.collaboration && session.features.collaboration
-            ? <CollaborationLine line={lead.collaboration} /> : null;
+            ? <CollaborationLine line={lead.collaboration} />
+            : lead.actor === "bot" && lead.steps?.length
+              ? <AgentStepsLine requester={bot.botId} steps={lead.steps} /> : null;
+          // V3: the real speaker of this reply when it is not the conversation's own agent.
+          const speaker = lead.actor === "bot" && lead.speaker && lead.speaker !== bot.botId ? lead.speaker : null;
+          const speakerName = speaker ? botById(speaker)?.name ?? bot.name : bot.name;
           return group.items.length === 1 ? (
             <Fragment key={group.key}>
               {dateSeparator(group.items[0])}
               {label}
               {line}
+              {speaker ? <SpeakerTag id={speaker} /> : null}
               {messageRow(group.items[0])}
               {manage}
             </Fragment>
@@ -1966,8 +2003,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             <Fragment key={group.key}>
               {dateSeparator(group.items[0])}
               {label}
-              <div className="message-group" role="group" aria-label={`Tin nhắn từ ${bot.name}, ${group.items.length} phần`}>
+              <div className="message-group" role="group" aria-label={`Tin nhắn từ ${speakerName}, ${group.items.length} phần`}>
                 {line}
+                {speaker ? <SpeakerTag id={speaker} /> : null}
                 {group.items.map((item, index) => (
                   <Fragment key={item.message.id}>{messageRow(item, { index, count: group.items.length })}</Fragment>
                 ))}
@@ -2021,7 +2059,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       </div>
       {session.features.aiStatus === "test_provider" ? <p className={cx.footnote} role="note">Môi trường kiểm thử · phản hồi từ model giả, không phải OpenAI.</p> : null}
       {!canSend ? <div className="chat-readonly" role="status" data-legacy={legacyReadOnly || undefined}><p>{readOnlyMessage}</p>{legacyReadOnly ? <div className={cx.actions}><Link className={`${cx.button} ${cx.secondary}`} to={successor ? `/assistants/${successor.id}` : "/connect"}>{successor ? `Trò chuyện với ${successor.name}` : "Mở Tìm bạn"}</Link></div> : allowed && preferences && !historyWritable ? <div className={cx.actions}><Button variant="secondary" onClick={requestNew}>Mở cuộc trò chuyện mới</Button></div> : null}</div> : <div className="chat-bottom">
-        {bot.botId === "nhip" ? (
+        {activeAgent ? <HandoffBanner agent={activeAgent} owner={bot.name} busy={returning || busy} onReturn={() => void returnToOwner()} /> : null}
+        {bot.botId === "nhip" || (bot.botId === "nhatky" && !activeAgent) ? (
           <>
           {lastMoodRange && lastMoodRange.conversationId === conversation?.conversationId && !shareMood ? (
             <Button variant="secondary" disabled={busy || loading || !ready}

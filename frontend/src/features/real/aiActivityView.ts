@@ -15,7 +15,7 @@ export type AIActivityInput = {
   requestKey?: string;
   runId?: string;
   /** Set only from a server `consulting` progress event of this run (Phase 2). */
-  consulting?: { requester: string; specialist: string } | null;
+  consulting?: { requester: string; specialist: string; transfer?: boolean } | null;
 };
 
 export type AIActivityView = {
@@ -36,7 +36,12 @@ export function deriveAIActivity({ phase, requestKey, runId, consulting }: AIAct
       if (!requestKey || !runId) return { label: CHECKING, busy: true, orbState: null };
       // A consultation is named only while the server says it is running; never a guessed stage.
       return consulting
-        ? { label: `${consulting.requester} đang hỏi ${consulting.specialist} một chút…`, busy: true, orbState: "working", consulting }
+        ? {
+          label: consulting.transfer
+            ? `${consulting.requester} đang mời ${consulting.specialist} trò chuyện cùng bạn…`
+            : `${consulting.requester} đang hỏi ${consulting.specialist} một chút…`,
+          busy: true, orbState: "working", consulting,
+        }
         : { label: "Đang trả lời…", busy: true, orbState: "working" };
     case "cancelling":
       return { label: "Đang yêu cầu dừng…", busy: true, orbState: null };

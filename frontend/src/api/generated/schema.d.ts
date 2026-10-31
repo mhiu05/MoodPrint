@@ -684,6 +684,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/conversations/{conversation_id}/agent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Return To Agent
+         * @description V3: end a handoff continuation; the conversation's own agent answers the next turn.
+         */
+        post: operations["return_to_agent_api_v1_ai_conversations__conversation_id__agent_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ai/conversations/{conversation_id}/export": {
         parameters: {
             query?: never;
@@ -1924,6 +1944,8 @@ export interface components {
             collaboration?: components["schemas"]["CollaborationSummary"] | null;
             /** Speaker */
             speaker?: ("may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong") | null;
+            /** Steps */
+            steps?: components["schemas"]["ReplyStep"][] | null;
         };
         /** AIRunAccepted */
         AIRunAccepted: {
@@ -2107,6 +2129,19 @@ export interface components {
             evidence: components["schemas"]["EvidenceView"][];
             /** Prioractions */
             priorActions: number;
+        };
+        /**
+         * AgentReturnInput
+         * @description V3: return a handed-over conversation to its own agent.
+         */
+        AgentReturnInput: {
+            /**
+             * Agent
+             * @constant
+             */
+            agent: "dieuphoi";
+            /** Expectedversion */
+            expectedVersion: number;
         };
         /** AiPreferenceInput */
         AiPreferenceInput: {
@@ -3548,6 +3583,22 @@ export interface components {
             /** Round */
             round: number;
         };
+        /**
+         * ReplyStep
+         * @description A receipt-backed specialist step of one reply (consulted or handed over).
+         */
+        ReplyStep: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "consult" | "handoff";
+            /**
+             * Companion
+             * @enum {string}
+             */
+            companion: "nhatky" | "hoatdong";
+        };
         /** ReportInput */
         ReportInput: {
             /**
@@ -3829,11 +3880,14 @@ export interface components {
         };
         /** SharingEdgeView */
         SharingEdgeView: {
+            /** Edge */
+            edge: ("nhip_energy_for_rure" | "nhip_habit_for_may" | "rure_activity_for_guong") | ("dieuphoi_consult_nhatky" | "dieuphoi_consult_hoatdong" | "dieuphoi_handoff_nhatky" | "dieuphoi_handoff_hoatdong");
             /**
-             * Edge
+             * Kind
+             * @default consult
              * @enum {string}
              */
-            edge: "nhip_energy_for_rure" | "nhip_habit_for_may" | "rure_activity_for_guong";
+            kind: "consult" | "handoff";
             /**
              * Requester
              * @enum {string}
@@ -8949,6 +9003,113 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    return_to_agent_api_v1_ai_conversations__conversation_id__agent_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentReturnInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationHeader"];
                 };
             };
             /** @description Unauthorized */
