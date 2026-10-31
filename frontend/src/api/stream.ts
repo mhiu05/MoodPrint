@@ -180,6 +180,10 @@ async function consume<T>(
       while ((separator = /\r?\n\r?\n/.exec(buffer))) {
         const block = buffer.slice(0, separator.index);
         buffer = buffer.slice(separator.index + separator[0].length);
+        // The server ends a stream with `event: revoked` when the turn lost its permission,
+        // session or data version mid-run: the run is already stopped server-side.
+        if (block.split(/\r?\n/).some((line) => line.trim() === "event: revoked"))
+          throw new ApiError(409, "RUN_CANCELLED", "Phản hồi đã dừng vì quyền hoặc dữ liệu vừa thay đổi.");
         const data = block
           .split(/\r?\n/)
           .filter((line) => line.startsWith("data:"))

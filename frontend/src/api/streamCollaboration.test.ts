@@ -73,3 +73,13 @@ describe("collaboration over ai-events-v2", () => {
     await expect(consumeAIReply("/api/v1/ai/runs/run-1/events", new AbortController().signal)).rejects.toMatchObject({ code: "INVALID_AI_EVENT" });
   });
 });
+
+describe("server revocation frame", () => {
+  it("is a confirmed stop, never an invalid stream", async () => {
+    const body = `id: 1\ndata: ${JSON.stringify({ version: "ai-events-v2", seq: "1", type: "progress", data: {} })}\n\n` +
+      `id: 2\ndata: ${JSON.stringify({ version: "ai-events-v2", seq: "2", type: "progress", data: { activity: "consulting", companion: "nhip" } })}\n\n` +
+      "event: revoked\ndata: {}\n\n";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(body, { headers: { "Content-Type": "text/event-stream" } })));
+    await expect(consumeAIReply("/api/v1/ai/runs/run-1/events", new AbortController().signal)).rejects.toMatchObject({ code: "RUN_CANCELLED" });
+  });
+});

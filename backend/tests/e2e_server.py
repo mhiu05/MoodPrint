@@ -78,6 +78,8 @@ app = create_app(
         # Check-ins: API/UI on (E2E_PROACTIVE=0 checks the off path). There is no background
         # worker here (HD-04); /__test/proactive/run materializes and executes jobs on demand.
         proactive_enabled=os.environ.get("E2E_PROACTIVE", "1") == "1",
+        # Companion collaboration (Phase 2): every edge still starts off per user.
+        ai_collaboration_enabled=os.environ.get("E2E_COLLABORATION", "1") == "1",
         proactive_worker_enabled=True,
     )
 )
@@ -149,6 +151,26 @@ async def seed_guest_proposal(body: dict):
         return {"id": str(proposal.id), "version": proposal.version}
 
 
+@app.post("/__test/collaboration", include_in_schema=False)
+async def collaboration_controls(body: dict):
+    """Test-only: specialist behaviour, the feature flag, and a saved entry for today."""
+    from datetime import date
+
+    from app.modules.journal.models import JournalEntry
+
+    model = app.state.ai.model_override
+    model.specialist_mode = body.get("mode", model.specialist_mode)
+    model.specialist_delay = float(body.get("delay", model.specialist_delay))
+    if "enabled" in body:
+        app.state.settings.ai_collaboration_enabled = bool(body["enabled"])
+    if body.get("journalToday"):
+        async with app.state.database.sessions.begin() as db:
+            db.add(JournalEntry(user_id=UUID(body["journalToday"]), local_date=date.fromisoformat(body["day"]),
+                                timezone="Asia/Ho_Chi_Minh", mood=2, text="Khoảnh khắc tổng hợp: hơi mệt",
+                                emotions=["mệt"], factors=["học tập"], status="saved"))
+    return {"mode": model.specialist_mode, "enabled": app.state.settings.ai_collaboration_enabled}
+
+
 @app.post("/__test/proactive/run", include_in_schema=False)
 async def run_check_ins(body: dict):
     """Test clock: make this user's enabled schedules due now, then drain the queue once."""
@@ -196,7 +218,8 @@ async def seed():
         # 38-39 are the responsive/accessibility pair; 40-41 the v2-only-goal pair.
         # 42-43 cover product experience; 44 the five-assistant review; 47-48 mood evidence.
         # 51-55 belong to the proactive companion journeys (51: multi-bubble replies).
-        for number in range(1, 56):
+        # 56-59 belong to the companion-collaboration journeys (Phase 2).
+        for number in range(1, 60):
             uid = UUID(f"00000000-0000-4000-8000-{number:012d}")
             provider = UUID(f"00000000-0000-4000-9000-{number:012d}")
             db.add(
