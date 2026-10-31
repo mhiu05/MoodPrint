@@ -44,6 +44,13 @@ Output thường là `AiOutput`: `text` 1–6.000 ký tự, tối đa 3 card thu
 
 Envelope `AIEvent` có `version="ai-events-v1"`, `seq` dạng chuỗi số dương, `type`, `data`. Dùng chuỗi để không mất độ chính xác số lớn ở JavaScript.
 
+Hai phiên bản giao thức trên cùng endpoint `GET /api/v1/ai/runs/{run_id}/events`:
+
+- **v1 (mặc định, không có query):** `final.data = {text, cards}`; khi lượt có nhiều bubble (`AI_MULTI_MESSAGE_ENABLED`), text là các bubble nối bằng `"\n\n"` (≤ 6.000 ký tự) và cards nối theo thứ tự. Lượt một bubble giống hệt byte-for-byte trước đây.
+- **v2 (`?protocol=2`):** mọi event có `version="ai-events-v2"`; `final.data = {partCount, messages: [{messageId, partIndex, text, cards}]}` theo thứ tự bubble, `messageId` là id đã lưu (hoặc id đã publish trong RAM cho chat tạm). Persistent replay vẫn cố định seq 1–3, `afterSeq > 3` → `409 CURSOR_GAP`.
+
+Mọi bubble của một run được ghi trong cùng transaction chuyển run sang `completed`, nên không có trạng thái "đã hiện một phần".
+
 | Event | Ý nghĩa đối với client |
 | --- | --- |
 | `progress` | Thông tin hoạt động, chưa có câu trả lời thành công |
