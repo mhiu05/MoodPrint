@@ -59,18 +59,24 @@ async def live(max_usd: float, *, provider=None, model_override=None) -> dict:
     async def no_progress():
         return None
 
+    errors: dict[str, int] = {}
     for case in CASES:
         if spent_nano >= cap_nano:
             break
-        reply = await provider.run_reply(
-            bot_id=case.bot_id, history=[{"role": "user", "content": case.prompt}], tools=[], context={},
-            on_progress=no_progress, model_override=model_override, usage_observer=observe,
-        )
+        try:
+            reply = await provider.run_reply(
+                bot_id=case.bot_id, history=[{"role": "user", "content": case.prompt}], tools=[], context={},
+                on_progress=no_progress, model_override=model_override, usage_observer=observe,
+            )
+        except Exception as error:  # a provider/schema failure is a scored result, not a crash
+            errors[type(error).__name__] = errors.get(type(error).__name__, 0) + 1
+            scores.append(score(case, {}) | {"error": type(error).__name__})
+            continue
         payload = {"messages": [{"text": part.text, "cards": [c.model_dump(by_alias=True) for c in part.cards]}
                                 for part in reply.parts]}
         scores.append(score(case, payload))
     return {"mode": "live", "estimatedUsd": spent_nano / 1_000_000_000, "capUsd": max_usd,
-            "completedCases": len(scores), "summary": summarize(scores), "scores": scores}
+            "completedCases": len(scores), "errors": errors, "summary": summarize(scores), "scores": scores}
 
 
 def main(argv: list[str] | None = None) -> int:

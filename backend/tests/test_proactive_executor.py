@@ -382,7 +382,7 @@ async def test_accounting_records_proactive_usage_under_its_prompt_version(clien
     await tick(app)
     async with app.state.database.sessions() as db:
         usage = (await db.scalars(select(AiUsage))).one()
-    assert usage.prompt_version.endswith("+proactive-2026-11-a1")
+    assert usage.prompt_version.endswith("+proactive-2026-11-a2")
     assert usage.state == "settled" and usage.requests_started == 1
 
 
