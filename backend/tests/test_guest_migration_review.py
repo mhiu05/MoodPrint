@@ -5,7 +5,6 @@ import importlib
 import os
 import sys
 from pathlib import Path
-from uuid import uuid4
 
 import psycopg
 import pytest
@@ -53,13 +52,9 @@ def test_verifier_refuses_nonempty_public_schema(tmp_path):
     raw = os.environ.get("TEST_DATABASE_URL")
     if not raw:
         pytest.skip("Explicit disposable local DB required")
-    target = verify.require_target(raw)
-    name = "moodprint_guest_review_guard_" + uuid4().hex[:8] + "_test"
-    admin = target.set(drivername="postgresql", database="postgres").render_as_string(hide_password=False)
-    with psycopg.connect(admin, autocommit=True) as db:
-        db.execute(psycopg.sql.SQL("create database {}").format(psycopg.sql.Identifier(name)))
-    try:
-        scratch = target.set(database=name)
+    from tests.database_target import owned_scratch_database
+
+    with owned_scratch_database(raw) as scratch:
         with psycopg.connect(scratch.set(drivername="postgresql").render_as_string(hide_password=False), autocommit=True) as db:
             db.execute("create table public.synthetic_existing_data(value integer); insert into public.synthetic_existing_data values (42)")
         pending = tmp_path / "pending.sql"
@@ -68,6 +63,3 @@ def test_verifier_refuses_nonempty_public_schema(tmp_path):
             verify.verify(pending, scratch.render_as_string(hide_password=False))
         with psycopg.connect(scratch.set(drivername="postgresql").render_as_string(hide_password=False)) as db:
             assert db.execute("select value from public.synthetic_existing_data").fetchone() == (42,)
-    finally:
-        with psycopg.connect(admin, autocommit=True) as db:
-            db.execute(psycopg.sql.SQL("drop database {} with (force)").format(psycopg.sql.Identifier(name)))
