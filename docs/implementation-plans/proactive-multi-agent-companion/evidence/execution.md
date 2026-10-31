@@ -90,3 +90,24 @@ Fail có sẵn (phân loại):
 - Commit `703c084`. `MULTI_MESSAGE_GUIDANCE` (lớp runtime, chỉ khi cờ bật); `evals/multi_message/` 20 case tổng hợp, rubric content-free, CLI offline + live có cổng ngân sách.
 - Test prompt: RED (thiếu hằng) → GREEN. `test_multi_message_eval.py` **8 passed** (viết sau code — ghi nhận). 
 - **Eval live: CHƯA CHẠY** (cần owner duyệt ngân sách). Không có số liệu chất lượng tách bubble thật.
+
+## Gate G1a — kiểm chứng (31/10/2026)
+
+| Hạng mục | Lệnh / cách chạy | Kết quả thật |
+| --- | --- | --- |
+| Backend toàn bộ | `pytest -q` trên DB mới `moodprint_p1_unit_test` (không sửa file backend trong lúc chạy) | **1167 passed, 1 failed, 1 skipped** (1321 s). Fail duy nhất `test_guest_embeddings::test_guest_proposal_and_history_expiry_capped` — **có sẵn** (fail y hệt trên `d6eaf71`) |
+| Ruff / mypy | `ruff check app tests evals alembic`, `mypy app` | sạch / Success (129 files) |
+| Migration | `alembic upgrade head` (chuỗi sạch) + `alembic check`; rehearsal offline SQL 0020→0022 với role mirror + dữ liệu cũ | `0022_proactive_messages (head)`, không drift; rehearsal PASS (xem P1-03) |
+| Frontend unit / type / build | `npx vitest run`, `npm run typecheck`, `npm run build` | **136 passed (25 files)** / 0 lỗi / OK |
+| E2E fixture toàn bộ | `npx playwright test` | 295 passed, 7 failed, 23 không chạy do `globalTimeout` 600 s (CPU tranh với backend suite). `ux-redesign.spec.ts` chạy riêng: 62 passed, 7 failed. **Mọi fail đều có sẵn**, giống hệt trên `d6eaf71` sạch: `auth` :141/:166/:188, `discovery` :76/:148, `real` :471, `ux-redesign` :186/:901/:1128×2/:1180/:1196/:1273 |
+| E2E nhiều bubble (fixture) | `multi-message.spec.ts` | **8 passed** (1440/768/390, khoảng cách nhóm ≤ 16 px, sao chép từng bubble, không bubble trước `completed`, fallback v1, STALE_VERSION, bàn phím, reduced motion) |
+| Fullstack backend thật + fake SDK model, cờ **bật** | `scripts/test_fullstack.py` (`E2E_MULTI_MESSAGE=1`) ×2 | Lần 1: 27 passed / 7 failed; lần 2: **28 passed / 6 failed**. 6 fail = đúng tập fail của `d6eaf71` sạch (27/6). Fail thêm ở lần 1 `journeys:421` (strict mode, 2 nút xóa ghi nhớ) không tái hiện: 2/2 pass khi chạy riêng, pass ở lần 2 ⇒ flake phụ thuộc thứ tự, không liên quan chat |
+| Fullstack cờ **tắt** | `E2E_MULTI_MESSAGE=0` | **27 passed, 1 skipped (spec nhiều bubble), 6 failed** = tập có sẵn |
+| Spec fullstack mới | `tests/fullstack/multi-message.spec.ts` (user 51) | pass: 3 row cùng run, `partIndex` 0..2, `version == số tin + 1`, v1 nhận bản ghép, reload giữ nhóm, 768/390 không tràn ngang, 0 console error |
+| agent-browser (trình duyệt thật, backend thật, cờ bật) | session `p1-g1a-multi`, cookie tổng hợp user 51, `set media light reduced-motion` | Nhóm "Tin nhắn từ Mây, 3 phần" với "Phần 1/2/3 trên 3"; nhãn ngày "Hôm nay"; 1440/768/390 không tràn ngang; 0 page error, 0 console error. **Phát hiện và sửa:** mỗi bubble giữ chỗ 44 px cho hàng giờ/sao chép nên 3 bubble trông như 3 lượt → commit `abdb454` (chỉ bubble cuối giữ chỗ; bubble trước hiện khi focus bàn phím/chạm). Ảnh chụp lưu ngoài git (scratchpad phiên) |
+| `check_docs.py` | | PASS |
+| Eval tách bubble live | | **Chưa chạy** (cần owner duyệt ngân sách) |
+
+Cách ly Codex: HEAD worktree gốc vẫn `d6eaf71`; trong phiên Codex đã tự stage/sửa nhiều file (kể cả `database/models.py`, `test_data_lifecycle.py`, `test_guest_embeddings.py`, các test readiness, `e2e_server.py`, `conftest.py`, `openapi.json`, `schema.d.ts`) — **trùng file với nhánh này ⇒ dự kiến conflict khi tích hợp**, cần rebase có kiểm soát. Nhánh này không ghi vào working tree/index của worktree gốc.
+
+Artifact chưa track do harness sinh trong worktree (`frontend/evidence/**`, `docs/mvp-validation|plans|productization/`) không được commit.
