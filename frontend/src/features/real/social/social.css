@@ -260,3 +260,456 @@
 .discovery-panel > .real-section:first-child {
   margin-top: 8px;
 }
+
+/* Friendship Discovery: available content width owns the composition. */
+.discovery-page {
+  /* Scoped correction: the shared #8c9a92 border measures 2.94:1 on white. */
+  --color-border: #87958d;
+  width: 100%;
+  max-width: var(--content-max);
+  container: friendship / inline-size;
+}
+.discovery-page > h1 {
+  font-size: 2rem;
+  line-height: 1.25;
+  font-weight: 650;
+}
+.profile-editor {
+  margin-block: 1.5rem;
+  min-width: 0;
+}
+.friendship-layout {
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
+}
+.friendship-form {
+  min-width: 0;
+  container: friendship-form / inline-size;
+}
+.friendship-question {
+  border: 0;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  min-width: 0;
+  scroll-margin-top: 1rem;
+}
+.friendship-question legend {
+  width: 100%;
+  font-size: 1.125rem;
+  line-height: 1.4;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+.friendship-question .tag-hint {
+  margin: 0 0 0.75rem;
+}
+.friendship-intentions,
+.friendship-approaches {
+  display: grid;
+  gap: 0.5rem;
+}
+.friendship-choice {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 3rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  line-height: 1.4;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-feedback) var(--ease-state),
+    border-color var(--duration-feedback) var(--ease-state);
+}
+.friendship-choice input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+  z-index: 1;
+}
+.friendship-choice[data-checked] {
+  border-color: var(--color-primary);
+  background: var(--color-selected-bg);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.choice-check {
+  margin-left: auto;
+  min-width: 0.75rem;
+}
+.friendship-pill {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.9375rem;
+  gap: 0.5rem;
+}
+.featured-count {
+  float: right;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  font-weight: 400;
+  color: var(--color-muted);
+  margin-inline-start: 0.5rem;
+}
+.featured-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0;
+}
+.featured-tray button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid var(--color-primary);
+  border-radius: 999px;
+  background: var(--color-selected-bg);
+  color: var(--color-primary);
+  font: inherit;
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+.friendship-choice:has(input:focus-visible),
+.friendship-choice:focus-visible,
+.featured-tray button:focus-visible,
+.discovery-page summary:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 3px;
+}
+.friendship-choice:has(input:disabled),
+.friendship-choice:disabled,
+.featured-tray button:disabled {
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  cursor: default;
+  opacity: 1;
+}
+.profile-editor .tag-chip:has(input:disabled) {
+  opacity: 1;
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+}
+.friendship-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+.publication-confirmation {
+  flex-basis: 100%;
+}
+.friendship-preview-aside {
+  display: none;
+  min-width: 0;
+}
+.friendship-preview-aside h2 {
+  font-size: 1.125rem;
+  line-height: 1.4;
+  margin: 0 0 1rem;
+}
+.friendship-compact-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.mobile-question-number,
+.mobile-question-next,
+.mobile-question-back {
+  display: none;
+}
+.public-profile-card {
+  padding: 1.5rem;
+  margin: 0;
+  box-shadow: none;
+}
+.public-profile-card .seed-avatar {
+  width: 3rem;
+  height: 3rem;
+}
+.public-profile-card .peer-card-header h2,
+.public-profile-card .peer-card-header h3 {
+  font-size: 1.125rem;
+  line-height: 1.4;
+  font-weight: 600;
+}
+.public-profile-card .card-status {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+.public-profile-card .tag-hint {
+  margin-top: 1rem;
+}
+.profile-highlights {
+  display: grid;
+  gap: 1.25rem;
+  margin: 1.25rem 0;
+}
+.profile-highlights dt {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+  margin-bottom: 0.375rem;
+}
+.profile-highlights dd {
+  margin: 0;
+  line-height: 1.6;
+}
+.public-profile-details {
+  margin-top: 1.25rem;
+}
+.public-profile-details summary,
+.review-settings summary {
+  min-height: 2.75rem;
+  padding-block: 0.625rem;
+  cursor: pointer;
+  color: var(--color-primary);
+}
+.public-profile-details .peer-facts {
+  gap: 0.75rem;
+}
+.public-profile-details .peer-facts div {
+  grid-template-columns: 1fr;
+  gap: 0.25rem;
+}
+.public-profile-details dd {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+.profile-privacy {
+  margin-top: 1.25rem;
+  border-top: 1px solid var(--color-divider);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+.profile-privacy p {
+  margin: 0.75rem 0 0;
+}
+.review-settings {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  min-width: 0;
+}
+.review-settings h2 {
+  font-size: 1.125rem;
+  line-height: 1.4;
+}
+.friendship-mobile-review-card {
+  margin-top: 1.5rem;
+}
+.friendship-errors {
+  padding: 1rem;
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+  border-radius: var(--radius-sm);
+}
+.friendship-errors a {
+  color: inherit;
+  display: inline-block;
+  padding-block: 0.625rem;
+  min-height: 2.75rem;
+}
+.editor-status {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+.friendship-picker {
+  min-width: 0;
+}
+.picker-field {
+  display: grid;
+  gap: 0.5rem;
+  margin-block: 1rem;
+  font-size: 0.9375rem;
+}
+.picker-field input,
+.picker-field select {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0.625rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+}
+.picker-pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-block: 1rem;
+}
+.full-interest-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.full-interest-list li {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--color-divider);
+}
+.conversation-starter {
+  padding: 0.75rem;
+  margin-top: 1.25rem;
+  border-radius: 0.5rem;
+  background: var(--color-surface-soft);
+}
+.conversation-starter p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+.conversation-starter .starter-label {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  font-weight: 650;
+  margin-bottom: 0.5rem;
+}
+.peer-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.peer-grid > .peer-card {
+  margin: 0;
+}
+.friendship-skeleton {
+  height: 12rem;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-soft);
+}
+.friendship-loading {
+  margin-block: 1.5rem;
+}
+.friendship-question legend:focus,
+.friendship-errors:focus,
+[data-peer-heading]:focus {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 3px;
+}
+.profile-editor :is(input, button, select, summary, a) {
+  scroll-margin-block: 1rem;
+}
+@container friendship-form (min-width: 26rem) {
+  .friendship-intentions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container friendship (min-width: 48rem) {
+  .peer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container friendship (min-width: 56rem) {
+  .friendship-layout {
+    grid-template-columns: minmax(0, 3fr) minmax(20rem, 2fr);
+  }
+  .friendship-preview-aside {
+    display: block;
+  }
+  .friendship-preview-aside[data-sticky] {
+    position: sticky;
+    top: 1.5rem;
+    align-self: start;
+  }
+  .friendship-compact-toolbar,
+  .friendship-mobile-review-card {
+    display: none;
+  }
+}
+@media (max-width: 767px) {
+  .discovery-page > h1 {
+    font-size: 1.75rem;
+    line-height: 1.3;
+  }
+  .friendship-compact-toolbar {
+    justify-content: space-between;
+  }
+  .mobile-question-number {
+    display: inline;
+    font-size: 0.875rem;
+    color: var(--color-muted);
+  }
+  .friendship-questions > [data-question] {
+    display: none;
+  }
+  .friendship-questions[data-question="0"] > [data-question="0"],
+  .friendship-questions[data-question="1"] > [data-question="1"],
+  .friendship-questions[data-question="2"] > [data-question="2"] {
+    display: block;
+  }
+  .friendship-layout[data-stage="builder"]:not([data-question="2"])
+    .builder-review-action {
+    display: none;
+  }
+  .friendship-layout[data-question="2"] .mobile-question-next {
+    display: none;
+  }
+  .mobile-question-next,
+  .mobile-question-back {
+    display: inline-flex;
+  }
+  .friendship-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .friendship-actions > button,
+  .publication-confirmation > button {
+    width: 100%;
+  }
+  .public-profile-card {
+    padding: 1.25rem;
+  }
+}
+@media (hover: hover) {
+  .friendship-choice:not([data-checked]):not(:disabled):hover {
+    background: var(--color-surface-soft);
+    border-color: var(--color-primary);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .profile-editor *,
+  .public-profile-card * {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+  }
+}
+@media (forced-colors: active) {
+  .friendship-choice[data-checked] {
+    border-color: Highlight;
+  }
+  .friendship-choice:has(input:focus-visible),
+  .friendship-choice:focus-visible,
+  .featured-tray button:focus-visible {
+    outline-color: Highlight;
+  }
+}
