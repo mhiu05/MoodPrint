@@ -82,6 +82,12 @@ app = create_app(
         # Companion collaboration (Phase 2): every edge still starts off per user.
         ai_collaboration_enabled=os.environ.get("E2E_COLLABORATION", "1") == "1",
         proactive_worker_enabled=True,
+        # V3 (three agents, smart orchestration, groups): on only for the users 60-69 cohort, so
+        # every older journey keeps the five Phase 1/2 companions. E2E_V3=0 checks the off path.
+        ai_three_agent_experience_enabled=os.environ.get("E2E_V3", "1") == "1",
+        ai_smart_orchestration_enabled=os.environ.get("E2E_V3", "1") == "1",
+        ai_group_chat_enabled=os.environ.get("E2E_V3", "1") == "1",
+        ai_v3_rollout_user_ids=[UUID(f"00000000-0000-4000-8000-{number:012d}") for number in range(60, 70)],
     )
 )
 app.state.ai.model_override = MoodE2EModel([])
@@ -172,6 +178,28 @@ async def collaboration_controls(body: dict):
     return {"mode": model.specialist_mode, "enabled": app.state.settings.ai_collaboration_enabled}
 
 
+@app.post("/__test/v3", include_in_schema=False)
+async def v3_controls(body: dict):
+    """Test-only: V3 flags, model delay, and a saved journal entry for a user."""
+    from datetime import date
+
+    from app.modules.journal.models import JournalEntry
+
+    settings = app.state.settings
+    for name in ("ai_three_agent_experience_enabled", "ai_smart_orchestration_enabled", "ai_group_chat_enabled"):
+        if name in body:
+            setattr(settings, name, bool(body[name]))
+    if "delay" in body:
+        app.state.ai.model_override.v3_delay = float(body["delay"])
+    if body.get("journal"):
+        async with app.state.database.sessions.begin() as db:
+            db.add(JournalEntry(user_id=UUID(body["journal"]), local_date=date.fromisoformat(body["day"]),
+                                timezone="Asia/Ho_Chi_Minh", mood=2, text="Học tới khuya, hơi mệt nhưng vui",
+                                emotions=["mệt"], factors=["học tập"], status="saved"))
+    return {"threeAgents": settings.ai_three_agent_experience_enabled,
+            "smart": settings.ai_smart_orchestration_enabled, "groups": settings.ai_group_chat_enabled}
+
+
 @app.post("/__test/proactive/run", include_in_schema=False)
 async def run_check_ins(body: dict):
     """Test clock: make this user's enabled schedules due now, then drain the queue once."""
@@ -220,7 +248,8 @@ async def seed():
         # 42-43 cover product experience; 44 the five-assistant review; 47-48 mood evidence.
         # 51-55 belong to the proactive companion journeys (51: multi-bubble replies).
         # 56-59 belong to the companion-collaboration journeys (Phase 2).
-        for number in range(1, 60):
+        # 60-69 are the V3 cohort (three agents, orchestration, groups); 60 also has legacy history.
+        for number in range(1, 70):
             uid = UUID(f"00000000-0000-4000-8000-{number:012d}")
             provider = UUID(f"00000000-0000-4000-9000-{number:012d}")
             db.add(
@@ -268,6 +297,21 @@ async def seed():
                 text("insert into auth.sessions(id,user_id) values (:id,:uid)"),
                 {"id": provider, "uid": uid},
             )
+            if number == 60:
+                # Legacy history: a saved chat with Mây from before the three agents.
+                from app.ai.models import AiConversation, AiMessageRecord
+                from app.infrastructure.database.models import AiRun
+
+                legacy = AiConversation(user_id=uid, bot_id="may", title="Chuyện cũ với Mây", version=3,
+                                        expires_at=datetime.now(UTC) + timedelta(days=20))
+                db.add(legacy)
+                await db.flush()
+                legacy_run = AiRun(user_id=uid, conversation_id=legacy.id, bot_id="may", status="completed")
+                db.add(legacy_run)
+                await db.flush()
+                for sequence, actor, body in ((2, "self", "Hôm qua mình hơi buồn"), (3, "bot", "Mây nghe bạn nè.")):
+                    db.add(AiMessageRecord(conversation_id=legacy.id, sequence=sequence, actor=actor, text=body,
+                                           cards=[], run_id=legacy_run.id))
             if number == 37:
                 db.add(StaffRole(user_id=uid, role="moderator", granted_by="e2e-seed"))
             if number == 49:

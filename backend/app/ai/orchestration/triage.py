@@ -13,7 +13,7 @@ from app.ai.proactive.safety import distress_screen
 
 _TRIVIAL = re.compile(
     r"^(?:(?:dieu phoi|ban|minh|oi|a|nhe|nha|nhieu|lam|chao|xin chao|hi|hello|alo|cam on|thanks|thank you|ok|oke|"
-    r"okay|uh|um|vang|da|hihi|haha|hehe|tot|duoc|bye|tam biet|good morning|chuc ngu ngon)[\s,!.?~]*)+$"
+    r"okay|uh|um|vang|da|hihi|haha|hehe|tot|duoc|bye|tam biet|good morning|chuc ngu ngon|moi nguoi|ca nhom|nhom)[\s,!.?~]*)+$"
 )
 # Broad, recall-oriented cues: whether a specialist *might* help. The planner decides.
 _SPECIALIST = re.compile(

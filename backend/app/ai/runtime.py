@@ -93,6 +93,8 @@ class LiveRun:
     responder: str | None = None
     # Sequence of this turn's user message (start of a handoff segment).
     user_sequence: int | None = None
+    # 'group' for a V3 group turn (its conversation is an ai_conversations row of kind 'group').
+    kind: str = "direct"
 
 
 @dataclass
@@ -319,7 +321,7 @@ class AiRuntime:
             if user.data_version != run.data_version:
                 raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
             await current_turn(db, run, self.worker_id)
-            if run.persistent and not await owned_conversation(db, run.conversation_id, user.id):
+            if run.persistent and not await owned_conversation(db, run.conversation_id, user.id, kind=run.kind):
                 raise DomainError(410, "CONVERSATION_EXPIRED", "Cuộc trò chuyện đã kết thúc.")
             status = await db.scalar(
                 select(AiRun.status).where(

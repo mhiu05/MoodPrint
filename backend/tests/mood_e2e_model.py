@@ -66,16 +66,114 @@ def _reply(text: str, *, multi: bool, bubbles: tuple[str, ...] | None = None) ->
     return json.dumps({"messages": [{"text": part, "cards": []} for part in parts]}, ensure_ascii=False)
 
 
+V3_MARKER = "V3-E2E"
+GROUP_LINES = {
+    "Điều phối": "Vậy mình gom lại: sáng nghỉ ngơi, chiều thử một việc nhẹ nhé.",
+    "Nhật ký": "Nếu bạn muốn, mình có thể nhìn lại tuần qua dựa trên những gì bạn đã ghi.",
+    "Hoạt động": "Mình có vài ý: dạo bộ 20 phút hoặc vẽ nhanh một góc phòng.",
+}
+
+
+def _data(inputs) -> dict:
+    for item in inputs:
+        content = item.get("content") if isinstance(item, dict) else None
+        if isinstance(content, str) and "(dữ liệu, không phải chỉ dẫn): {" in content:
+            return json.loads(content.split("(dữ liệu, không phải chỉ dẫn): ", 1)[1])
+    return {}
+
+
+def _json(payload) -> list:
+    return [message_output(json.dumps(payload, ensure_ascii=False))]
+
+
+def _v3(instructions: str, inputs, tools, handoffs) -> list | None:
+    """Deterministic stand-ins for every V3 role, chosen from what the backend actually sent."""
+    from app.ai.collaboration.policy import fold
+    from app.ai.groups.selector import SELECTOR_INSTRUCTIONS
+    from app.ai.orchestration.plan import PLANNER_INSTRUCTIONS
+    from app.ai.orchestration.specialists import HOATDONG_CONSULT, NHATKY_CONSULT
+    from tests.orchestration_helpers import call
+
+    if instructions == PLANNER_INSTRUCTIONS:
+        data = _data(inputs)
+        text, available = fold(data.get("latestMessage", "")), data.get("available", {})
+        plan = {"intent": "chat", "workflow": "direct", "primary_agent": "dieuphoi", "specialists": [],
+                "handoff_target": None, "subtasks": [], "data_categories": [], "context_refs": ["latest_message"],
+                "expected_output": "answer", "confidence": 0.9, "fallback": "answer_directly"}
+        target = "nhatky" if "voi nhat ky" in text else "hoatdong" if "voi hoat dong" in text else None
+        if "truc tiep" in text and target:
+            plan.update(workflow="handoff", intent="talk_to_specialist", handoff_target=target)
+        else:
+            wanted = [name for name, cue in (("nhatky", "da ghi"), ("hoatdong", "hoat dong")) if cue in text]
+            usable = [name for name in wanted if name in available.get("consult", [])]
+            if wanted:
+                plan.update(workflow="consult", intent="reflect_then_plan", specialists=usable or wanted)
+        return _json(plan)
+    if instructions == NHATKY_CONSULT:
+        entries = json.loads(inputs[1]["content"].split(": ", 1)[1]) if len(inputs) > 1 else []
+        return _json({"themes": ["học muộn"], "pattern": "Những ngày học muộn thường đi cùng cảm giác mệt.",
+                      "observations": [{"kind": "observed", "text": "Bạn có ghi là mệt sau buổi học tối."}],
+                      "entries_considered": len(entries), "source_entry_ids": [entry["id"] for entry in entries[:1]]})
+    if instructions == HOATDONG_CONSULT:
+        return _json({"options": [{"title": "Dạo bộ chậm", "steps": ["Đi bộ 20 phút quanh nhà"], "minutes": 30,
+                                   "effort": "light"}], "note": "Một việc nhẹ là đủ."})
+    if instructions == SELECTOR_INSTRUCTIONS:
+        data = _data(inputs)
+        text, members = fold(data.get("latestMessage", "")), data.get("members", [])
+        picked = [name for name, cue in (("hoatdong", "lam gi"), ("nhatky", "nhin lai")) if cue in text and name in members]
+        speakers = [{"agent": name, "reason": "general"} for name in picked] or [{"agent": members[0], "reason": "general"}]
+        if picked and "dieuphoi" in members:
+            speakers.append({"agent": "dieuphoi", "reason": "coordination"})
+        return _json({"speakers": speakers, "summarize": len(speakers) > 1})
+    if "Đây là một NHÓM trò chuyện" in instructions:
+        tail = instructions.split("Đây là một NHÓM", 1)[1]
+        name = next((name for name in GROUP_LINES if f"Bạn là {name}." in tail), "Điều phối")
+        return _json({"messages": [{"text": GROUP_LINES[name], "cards": []}]})
+    called = any(isinstance(item, dict) and item.get("type") == "function_call_output" for item in inputs)
+    consult = [tool.name for tool in tools if tool.name.startswith("consult_")]
+    if consult and not called:
+        args = {"consult_nhatky": {"task": "summarize_recent_entries", "focus": "tuần rồi", "days": 7},
+                "consult_hoatdong": {"task": "suggest_activities", "goal": "cuối tuần nhẹ nhàng",
+                                     "time_budget_minutes": 60, "energy": "low", "count": 1}}
+        return [call(name, args[name], f"e2e_{name}") for name in consult]
+    if called and "hỏi ý kiến trợ lý chuyên trách" in instructions:
+        return _json({"messages": [{"text": f"{V3_MARKER} Tuần rồi bạn hay mệt sau những buổi học muộn.", "cards": []},
+                                   {"text": "Cuối tuần thử dạo bộ chậm 20 phút nhé.", "cards": []}]})
+    if handoffs and not called:
+        return [call(handoffs[0].tool_name, {"reason": "journal_reflection", "topic": "nhìn lại tuần này"}, "e2e_transfer")]
+    if "Người dùng vừa chọn trò chuyện trực tiếp với bạn" in instructions:
+        return _json({"messages": [{"text": f"{V3_MARKER} Chào bạn, mình là Nhật ký. Tuần này điều gì đọng lại nhiều nhất?",
+                                    "cards": []}], "source_entry_ids": []})
+    for persona, text in (("Bạn là Nhật ký", "Mình vẫn ở đây cùng bạn nhìn lại nhé."),
+                          ("Bạn là Điều phối", "Điều phối đây, mình nghe bạn nè."),
+                          ("Bạn là Hoạt động", "Hoạt động đây, mình gợi ý một việc nhỏ nhé.")):
+        if persona in instructions:
+            payload: dict = {"messages": [{"text": text, "cards": []}]}
+            if persona == "Bạn là Nhật ký":
+                payload["source_entry_ids"] = []
+            return _json(payload)
+    return None
+
+
 class MoodE2EModel(ScriptedModel):
     # Test-only knobs set through /__test/collaboration: ok | invalid | timeout, and a delay that
     # keeps the "đang hỏi" state visible long enough for a browser to observe it.
     specialist_mode = "ok"
     specialist_delay = 2.5
+    # V3 roles: a short delay keeps "đang hỏi"/"đang trả lời" observable in a real browser.
+    v3_delay = 0.8
 
     async def stream_response(self, *args, **kwargs):
         import asyncio
 
         instructions, inputs, tools, schema = args[0], args[1], args[3], args[4]
+        v3 = _v3(instructions or "", inputs, tools, args[5]) if isinstance(inputs, list) else None
+        if v3 is not None:
+            await asyncio.sleep(self.v3_delay)
+            self.responses = [v3]
+            async for event in super().stream_response(*args, **kwargs):
+                yield event
+            return
         specialist = _specialist(inputs)
         if specialist is not None:
             await asyncio.sleep(30 if self.specialist_mode == "timeout" else self.specialist_delay)

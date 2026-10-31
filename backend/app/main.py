@@ -367,6 +367,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     from app.ai.chat_routes import router as ai
     from app.ai.collaboration.routes import router as sharing
+    from app.ai.groups.routes import router as groups
     from app.ai.memory import router as memory
     from app.ai.proactive.routes import router as proactive
     from app.modules.activities.routes import router as activities
@@ -400,6 +401,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         ai,
         proactive,
         sharing,
+        groups,
         memory,
         social,
         social_summary,

@@ -56,6 +56,7 @@ def model_messages(
     current_run: UUID,
     data_version: int,
     revalidated: frozenset[UUID] = frozenset(),
+    also_current: frozenset[UUID] = frozenset(),
 ) -> list[AIMessage]:
     """Project a safe contiguous suffix without changing the visible transcript.
 
@@ -70,7 +71,7 @@ def model_messages(
         stamp = stamps.get(message.run_id) if message.run_id else None
         allowed = stamp is not None and stamp.data_version == data_version and (
             stamp.policy in TEXT_POLICIES
-            or (stamp.policy in EVIDENCE_POLICIES and message.run_id == current_run)
+            or (stamp.policy in EVIDENCE_POLICIES and (message.run_id == current_run or message.run_id in also_current))
             or (stamp.policy == PROACTIVE_JOURNAL_POLICY and message.run_id in revalidated)
         )
         if not allowed:

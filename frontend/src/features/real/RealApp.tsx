@@ -107,6 +107,9 @@ const FeedbackAdmin = lazy(() => import("./admin/Feedback"));
 const TourController = lazy(() => import("../onboarding/TourController"));
 const CheckInsPage = lazy(() => import("./checkins/CheckInsPage").then(module => ({ default: module.CheckInsPage })));
 const SharingPage = lazy(() => import("./collaboration/SharingPage").then(module => ({ default: module.SharingPage })));
+const GroupChat = lazy(() => import("./groups/GroupChat").then(module => ({ default: module.GroupChat })));
+const GroupCreate = lazy(() => import("./groups/GroupCreate").then(module => ({ default: module.GroupCreate })));
+const GroupsSection = lazy(() => import("./groups/GroupsSection").then(module => ({ default: module.GroupsSection })));
 const JournalPage = lazy(() => import("./journal/JournalPage").then(module => ({ default: module.JournalPage })));
 const JournalCalendar = lazy(() => import("./journal/JournalCalendar").then(module => ({ default: module.JournalCalendar })));
 const JournalTimeline = lazy(() => import("./journal/JournalTimeline").then(module => ({ default: module.JournalTimeline })));
@@ -801,6 +804,8 @@ function Shell() {
               )}
               <Route path="/assistants" element={<Assistants />} />
               <Route path="/assistants/:botId" element={<Assistants />} />
+              <Route path="/assistants/groups/new" element={<Assistants group="new" />} />
+              <Route path="/assistants/groups/:groupId" element={<Assistants group="chat" />} />
               <Route path="/settings" element={<Navigate replace to="/profile" />} />
               <Route path="/self" element={<Suspense fallback={<p role="status">Đang mở nhật ký…</p>}><JournalPage /></Suspense>} />
               <Route path="/self/calendar" element={<Suspense fallback={<p role="status">Đang mở lịch nhật ký…</p>}><JournalCalendar /></Suspense>} />
@@ -862,8 +867,8 @@ function PublicAvatar({ bot, size }: { bot: BotPublicDTO; size?: number }) {
   );
 }
 
-function Assistants() {
-  const { botId } = useParams();
+function Assistants({ group }: { group?: "new" | "chat" }) {
+  const { botId, groupId } = useParams();
   const resource = useResource<BotPublicDTO[]>("/bots");
   const [search, setSearch] = useState("");
   const bots = resource.data || [];
@@ -879,7 +884,7 @@ function Assistants() {
       .includes(search.toLocaleLowerCase("vi-VN")),
   );
   return (
-    <div className={`companion-layout ${botId ? "has-conversation" : ""}`}>
+    <div className={`companion-layout ${botId || group ? "has-conversation" : ""}`}>
       <section className="bot-roster" aria-label="Danh sách trợ lý">
         <label className="bot-search">
           <Search size={18} />
@@ -952,15 +957,24 @@ function Assistants() {
             <Button variant="text" onClick={() => setSearch("")}>Xóa tìm kiếm</Button>
           </div>
         ) : null}
+        {session.features.groupChat ? (
+          <Suspense fallback={<p role="status">Đang tải nhóm…</p>}><GroupsSection selected={groupId} /></Suspense>
+        ) : null}
         <ConversationHistory />
       </section>
       <section
         className="conversation-pane"
         aria-label={
-          bot ? `Trò chuyện với ${bot.name}` : "Cuộc trò chuyện"
+          group ? "Nhóm trợ lý" : bot ? `Trò chuyện với ${bot.name}` : "Cuộc trò chuyện"
         }
       >
-        {bot ? (
+        {group === "new" && session.features.groupChat ? (
+          <Suspense fallback={<p role="status">Đang mở…</p>}><GroupCreate /></Suspense>
+        ) : group === "chat" && groupId && session.features.groupChat ? (
+          <Suspense fallback={<p role="status">Đang mở nhóm…</p>}><GroupChat key={groupId} groupId={groupId} /></Suspense>
+        ) : group ? (
+          <div className="conversation-welcome"><h2>Nhóm trợ lý chưa mở cho tài khoản của bạn</h2><Link to="/assistants">Về danh sách trợ lý</Link></div>
+        ) : bot ? (
           <Conversation key={bot.botId} bot={bot} />
         ) : botId ? (
           <div className="conversation-welcome">
