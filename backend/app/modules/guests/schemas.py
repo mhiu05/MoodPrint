@@ -10,13 +10,13 @@ __all__ = ["GuestEligibility", "GuestInput", "GuestQuota", "PublicExperience"]
 
 
 class GuestEligibility(VersionInput):
-    """The existing age attestation, parsed leniently so under-16 and a missing confirmation
+    """The adult attestation, parsed leniently so under-18 and a missing confirmation
     answer GUEST_INELIGIBLE (before any provider call) instead of a generic validation error."""
 
     birth_year: int = Field(ge=1900, le=9999, strict=True)
     confirmed_minimum_age: StrictBool
     confirmed_adult_age: StrictBool = False
-    policy_version: Literal["self-declared-age-v1"]
+    policy_version: Literal["self-declared-age-v2-18plus"]
 
 
 class GuestInput(DTO):

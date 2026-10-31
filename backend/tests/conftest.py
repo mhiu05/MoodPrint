@@ -115,13 +115,15 @@ async def clients(database):
 
 async def add_actor(app, index: int, age_band: str = "adult"):
     """Seed one synthetic account with an opaque session; all consents start disabled."""
-    from app.infrastructure.database.models import AuthSession, Consent, User
+    from app.infrastructure.database.models import AgeDeclaration, AuthSession, Consent, User
 
     uid, sid = uuid4(), uuid4()
     token, csrf = f"test-session-{index}-{uuid4()}", f"csrf-{uuid4()}"
     async with app.state.database.sessions.begin() as db:
         db.add(User(id=uid, auth_subject=uid, alias=f"User {index}", age_band=age_band))
         await db.flush()
+        if age_band == "adult":
+            db.add(AgeDeclaration(user_id=uid, birth_year=2000, policy_version="self-declared-age-v1"))
         db.add(
             AuthSession(
                 user_id=uid,

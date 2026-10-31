@@ -23,8 +23,8 @@ class DataJobView(DTO):
 
 
 class ExportInput(DTO):
-    # All six distinct names fit data_jobs.scope (String(64)): 60 characters.
+    # All seven distinct names fit data_jobs.scope (String(64)): 60 characters.
     scopes: list[
-        Literal["account", "memories", "moods", "journal", "consents", "social"]
-    ] = Field(min_length=1, max_length=6)
+        Literal["account", "memories", "moods", "journal", "consents", "social", "conversations"]
+    ] = Field(min_length=1, max_length=7)
     guest_confirmation: Literal["guest-data-v1"] | None = None

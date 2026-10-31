@@ -33,7 +33,7 @@ from app.core.security import (
     transaction,
 )
 from app.infrastructure.database.models import AgeDeclaration, AuthSession, Consent, User, now
-from app.modules.auth.age import record_age
+from app.modules.auth.age import AGE_REQUIRED_MESSAGE, adult_eligible, age_band, record_age
 from app.modules.auth.provider import SupabaseAuth
 from app.modules.consent.policy import consent_enabled
 from app.modules.feedback.policy import feedback_open
@@ -45,6 +45,7 @@ async def _session_view(request: Request, db, user, user_id, csrf: str | None = 
     settings = request.app.state.settings
     consents = (await db.scalars(select(Consent).where(Consent.user_id == user.id))).all()
     declaration = await db.get(AgeDeclaration, user.id)
+    eligible = adult_eligible(user, declaration)
     guest = user.account_kind == "guest"
     staff = None
     notices = []
@@ -66,9 +67,9 @@ async def _session_view(request: Request, db, user, user_id, csrf: str | None = 
         )
         if warned:
             notices.append(NoticeView(kind="warning"))
-    ai_available = request.app.state.ai.available_for(user_id)
+    ai_available = eligible and request.app.state.ai.available_for(user_id)
     ai_status = request.app.state.ai.status_for(user_id)
-    voice = request.app.state.transcriber is not None and (
+    voice = eligible and request.app.state.transcriber is not None and (
         not settings.ai_local_test_user_ids or ai_available
     )
     remaining = None
@@ -106,7 +107,7 @@ async def _session_view(request: Request, db, user, user_id, csrf: str | None = 
         user_id=user.id,
         alias=user.alias,
         age_band=user.age_band,
-        eligible=user.age_band in ("teen", "adult"),
+        eligible=eligible,
         consents={
             c.purpose: ConsentView.model_validate(c).model_copy(
                 update={"enabled": consent_enabled(c.purpose, c.enabled)}
@@ -125,9 +126,9 @@ async def _session_view(request: Request, db, user, user_id, csrf: str | None = 
             ai=ai_available,
             ai_status=ai_status,
             ai_quota_remaining=remaining,
-            matching=not guest,
+            matching=eligible and not guest,
             voice=voice,
-            feedback=feedback_open(settings),
+            feedback=eligible and feedback_open(settings),
         ),
         account_kind=user.account_kind,  # type: ignore[arg-type]
         guest_started_at=user.guest_started_at,
@@ -262,6 +263,14 @@ async def login(body: LoginInput, request: Request, response: Response):
 @router.post("/auth/signup", response_model=AuthNotice, status_code=202)
 async def signup(body: SignupInput, request: Request):
     _check_origin(request)
+    from zoneinfo import ZoneInfo
+
+    if age_band(
+        body.eligibility.birth_year,
+        body.eligibility.confirmed_adult_age,
+        current_year=now().astimezone(ZoneInfo("Asia/Bangkok")).year,
+    ) != "adult":
+        raise DomainError(403, "ADULT_REQUIRED", AGE_REQUIRED_MESSAGE)
     email = body.email.strip().lower()
     IP_LIMIT.check(_client_key(request))
     EMAIL_LIMIT.check("signup:" + email)

@@ -13,7 +13,7 @@ ELIGIBILITY = {
     "birthYear": 2000,
     "confirmedMinimumAge": True,
     "confirmedAdultAge": False,
-    "policyVersion": "self-declared-age-v1",
+    "policyVersion": "self-declared-age-v2-18plus",
     "expectedVersion": 0,
 }
 

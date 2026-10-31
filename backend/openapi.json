@@ -16045,7 +16045,7 @@
           },
           "policyVersion": {
             "type": "string",
-            "const": "self-declared-age-v1",
+            "const": "self-declared-age-v2-18plus",
             "title": "Policyversion"
           }
         },
@@ -16152,11 +16152,12 @@
                 "moods",
                 "journal",
                 "consents",
-                "social"
+                "social",
+                "conversations"
               ]
             },
             "type": "array",
-            "maxItems": 6,
+            "maxItems": 7,
             "minItems": 1,
             "title": "Scopes"
           },
@@ -16645,7 +16646,7 @@
           },
           "policyVersion": {
             "type": "string",
-            "const": "self-declared-age-v1",
+            "const": "self-declared-age-v2-18plus",
             "title": "Policyversion"
           }
         },
@@ -16658,7 +16659,7 @@
           "policyVersion"
         ],
         "title": "GuestEligibility",
-        "description": "The existing age attestation, parsed leniently so under-16 and a missing confirmation\nanswer GUEST_INELIGIBLE (before any provider call) instead of a generic validation error."
+        "description": "The adult attestation, parsed leniently so under-18 and a missing confirmation\nanswer GUEST_INELIGIBLE (before any provider call) instead of a generic validation error."
       },
       "GuestInput": {
         "properties": {
@@ -18772,13 +18773,17 @@
             "maxLength": 72,
             "minLength": 8,
             "title": "Password"
+          },
+          "eligibility": {
+            "$ref": "#/components/schemas/EligibilityInput"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
           "email",
-          "password"
+          "password",
+          "eligibility"
         ],
         "title": "SignupInput"
       },
