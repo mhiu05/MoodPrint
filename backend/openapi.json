@@ -15652,6 +15652,16 @@
               }
             ],
             "title": "Proactiveslot"
+          },
+          "collaboration": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CollaborationSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -16527,6 +16537,50 @@
           "expectedVersion"
         ],
         "title": "ClaimInput"
+      },
+      "CollaborationSummary": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "nhip_energy_for_rure",
+              "nhip_habit_for_may",
+              "rure_activity_for_guong"
+            ],
+            "title": "Kind"
+          },
+          "companions": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "may",
+                "guong",
+                "nhip",
+                "rure",
+                "caunoi"
+              ]
+            },
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Companions"
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Summary"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "companions",
+          "summary"
+        ],
+        "title": "CollaborationSummary",
+        "description": "Public line of a completed, used consultation. ``summary`` is a backend template chosen\nby (edge, rule); never model text (ADR-11)."
       },
       "ConnectionView": {
         "properties": {
@@ -17441,6 +17495,11 @@
           "proactive": {
             "type": "boolean",
             "title": "Proactive",
+            "default": false
+          },
+          "collaboration": {
+            "type": "boolean",
+            "title": "Collaboration",
             "default": false
           }
         },

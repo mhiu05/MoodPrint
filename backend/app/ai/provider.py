@@ -182,7 +182,10 @@ class SdkProvider:
         on_progress: Callable[[], Awaitable[None]],
         model_override: Model | str | None = None,
         usage_observer: UsageObserver | None = None,
+        extra_instructions: str = "",
+        extra_input: list[dict] | None = None,
     ) -> AiReply:
+        """``extra_*`` carry an approved collaboration brief (Phase 2); empty = Phase 1 bytes."""
         if bot_id not in LEGACY_BOTS:
             raise DomainError(404, "BOT_NOT_FOUND", "Không tìm thấy trợ lý.")
         set_tracing_disabled(True)
@@ -195,7 +198,8 @@ class SdkProvider:
         async with asyncio.timeout(RUN_TIMEOUT_SECONDS):
             if isinstance(model_override, Model):
                 return await self._stream(
-                    bot_id, history, tools, context, on_progress, model_override, observe
+                    bot_id, history, tools, context, on_progress, model_override, observe,
+                    extra_instructions, extra_input or [],
                 )
             key = self.settings.openai_api_key.get_secret_value()
             if (
@@ -207,7 +211,8 @@ class SdkProvider:
             model = OpenAIResponsesModel(
                 model_override or self.settings.openai_model, self._openai(key)
             )
-            return await self._stream(bot_id, history, tools, context, on_progress, model, observe)
+            return await self._stream(bot_id, history, tools, context, on_progress, model, observe,
+                                      extra_instructions, extra_input or [])
 
     async def _stream(
         self,
@@ -218,6 +223,8 @@ class SdkProvider:
         on_progress: Callable[[], Awaitable[None]],
         model: Model,
         observer: UsageObserver,
+        extra_instructions: str = "",
+        extra_input: list[dict] | None = None,
     ) -> AiReply:
         guard = getattr(context, "before_dispatch", None)
         if guard is not None:
@@ -246,7 +253,7 @@ class SdkProvider:
         )
         agent = Agent[Any](
             name=f"MoodPrint:{bot_id}",
-            instructions=instructions(bot_id, self.prompt_variant) + source_instructions(context, bot_id, mood_analysis=analytical) + (journal_instructions(context) if journal_mode else "") + runtime_guidance + (MULTI_MESSAGE_GUIDANCE if multi else ""),
+            instructions=instructions(bot_id, self.prompt_variant) + source_instructions(context, bot_id, mood_analysis=analytical) + (journal_instructions(context) if journal_mode else "") + runtime_guidance + (MULTI_MESSAGE_GUIDANCE if multi else "") + extra_instructions,
             model=model,
             tools=selected_tools,
             output_type=output_type,
@@ -259,9 +266,15 @@ class SdkProvider:
                 retry=ModelRetrySettings(max_retries=0),
             ),
         )
+        # Intent and refusal detection above read only the user's history. A collaboration data
+        # item goes right before the newest user message, which stays the last thing read.
+        model_input = history
+        if extra_input:
+            last_is_user = bool(history) and history[-1].get("role") == "user"
+            model_input = [*history[:-1], *extra_input, history[-1]] if last_is_user else [*history, *extra_input]
         result = Runner.run_streamed(
             agent,
-            input=cast(list[TResponseInputItem], history),
+            input=cast(list[TResponseInputItem], model_input),
             context=context,
             max_turns=3,
             hooks=_BudgetHooks(on_progress, observer),
@@ -311,8 +324,10 @@ class SdkProvider:
         model_override: Model | str | None = None,
         usage_observer: UsageObserver | None = None,
         user_id: Any = None,
+        extra_instructions: str = "",
     ) -> Any:
-        """One check-in: no transcript, no tools, no tracing; a single system-built input item."""
+        """One check-in: no transcript, no tools, no tracing; a single system-built input item.
+        ``extra_instructions`` carries an approved R2 energy block (Phase 2); empty = Phase 1."""
         from app.ai.prompts import proactive_instructions
 
         if bot_id not in LEGACY_BOTS:
@@ -327,7 +342,8 @@ class SdkProvider:
             model = OpenAIResponsesModel(model_override or self.settings.openai_model, self._openai(key))
         agent = Agent[Any](
             name=f"MoodPrint:{bot_id}:proactive",
-            instructions=instructions(bot_id, self.prompt_variant) + proactive_instructions(bot_id, slot, teen=teen),
+            instructions=instructions(bot_id, self.prompt_variant) + proactive_instructions(bot_id, slot, teen=teen)
+            + extra_instructions,
             model=model,
             tools=[],
             output_type=output_type,

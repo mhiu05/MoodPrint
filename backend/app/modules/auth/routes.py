@@ -135,6 +135,14 @@ async def _session_view(request: Request, db, user, user_id, csrf: str | None = 
                 and settings.chat_history_enabled
                 and proactive_available(settings, request.app.state.ai, user)
             ),
+            collaboration=bool(
+                not guest
+                and user.age_band == "adult"
+                and settings.chat_history_enabled
+                and settings.ai_multi_message_enabled
+                and settings.collaboration_open_for(user.id)
+                and request.app.state.ai.available_for(user.id)
+            ),
         ),
         account_kind=user.account_kind,  # type: ignore[arg-type]
         guest_started_at=user.guest_started_at,

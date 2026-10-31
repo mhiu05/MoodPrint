@@ -315,7 +315,9 @@ async def conversation(
         await recover_turns(db)
         c = await owned_conversation(db, conversation_id, user.id)
         if c:
-            return await conversation_view(db, c, limit, before)
+            return await conversation_view(
+                db, c, limit, before, collaboration=request.app.state.settings.ai_collaboration_enabled
+            )
         if await db.scalar(select(AiConversation.id).where(AiConversation.id == conversation_id)):
             raise DomainError(404, "NOT_FOUND", "Không tìm thấy cuộc trò chuyện.")
         c = await live_ephemeral(db, runtime, user.id, conversation_id, actor.session_id)
@@ -504,7 +506,58 @@ async def send(
     )
 
 
-async def durable_run(request, actor, run_id, *, poll=False, recover=True):
+def persistent_events(row, answers, receipt, *, protocol: int, collaboration_enabled: bool) -> list:
+    """The event list of a saved run as a pure, forward-only function of DB state.
+
+    v2 with collaboration on: progress {} → consulting (a non-denied receipt exists) → composing
+    (that receipt is settled) → final/completed or failed/cancelled; at most 5 events, and every
+    element appears only after the previous one, so a reconnect prefix never changes. v1 (and
+    v2 with the flag off) keep the Phase 1 shape: at most 3 events, no new keys.
+    """
+    from app.ai.persistence import collaboration_view
+    from app.ai.schemas import AIEvent, final_v2
+
+    v2 = protocol == 2 and collaboration_enabled
+    data = [AIEvent(seq="1", type="progress", data={})]
+    if v2 and receipt is not None and receipt.status != "denied":
+        data.append(AIEvent(seq=str(len(data) + 1), type="progress",
+                            data={"activity": "consulting", "companion": receipt.specialist_bot}))
+        if receipt.status != "authorized":
+            data.append(AIEvent(seq=str(len(data) + 1), type="progress", data={"activity": "composing"}))
+    if row.status == "completed" and answers:
+        final = final_v2([(m.id, m.text, m.cards) for m in answers])
+        if v2:
+            line = (
+                collaboration_view(receipt.edge, receipt.rule_id)
+                if receipt is not None and receipt.status == "completed" and receipt.used_in_reply else None
+            )
+            final["collaboration"] = line.model_dump(mode="json", by_alias=True) if line else None
+        data += [
+            AIEvent(seq=str(len(data) + 1), type="final", data=final),
+            AIEvent(seq=str(len(data) + 2), type="completed", data={}),
+        ]
+    elif row.status != "running":
+        data.append(AIEvent(
+            seq=str(len(data) + 1),
+            type="cancelled" if row.status == "cancelled" else "failed",
+            data={
+                "code": "AI_INTERRUPTED" if row.status == "interrupted" else "AI_RUN_FAILED",
+                "message": "Phản hồi chưa hoàn tất. Bạn có thể gửi một lượt mới.",
+            },
+        ))
+    return data
+
+
+async def run_receipt(db, run_id, user_id):
+    """The (at most one) collaboration receipt of a primary run, owner-scoped."""
+    from app.ai.collaboration.models import AiCollaboration
+
+    return await db.scalar(
+        select(AiCollaboration).where(AiCollaboration.primary_run_id == run_id, AiCollaboration.user_id == user_id)
+    )
+
+
+async def durable_run(request, actor, run_id, *, poll=False, recover=True, with_receipt=False):
     # Polling reads never take the account row lock; lease recovery runs only on
     # every few ticks rather than on each 0.25 s read.
     async with transaction(request, actor, lock=not poll) as (db, user):
@@ -530,6 +583,8 @@ async def durable_run(request, actor, run_id, *, poll=False, recover=True):
                 .order_by(AiMessageRecord.part_index)
             )
         ).all()
+        if with_receipt:
+            return row, turn, answers, await run_receipt(db, run_id, user.id)
         return row, turn, answers
 
 
@@ -561,9 +616,10 @@ async def events(
     protocol: int = Query(1, ge=1, le=2),
     actor: Actor = Depends(require_actor),
 ):
-    from app.ai.schemas import AIEvent, as_protocol, final_v2
+    from app.ai.schemas import as_protocol
 
     runtime = request.app.state.ai
+    collaboration = protocol == 2 and request.app.state.settings.ai_collaboration_enabled
     release = runtime.streams.reserve(actor.user_id)
     try:
         local = runtime.runs.get(run_id)
@@ -581,7 +637,7 @@ async def events(
         if (
             after_seq < 0
             or (not persistent and after_seq > len(local.events))
-            or (persistent and after_seq > 3)
+            or (persistent and after_seq > (5 if collaboration else 3))
         ):
             raise DomainError(409, "CURSOR_GAP", "Hãy tải lại cuộc trò chuyện.")
         logging.getLogger("moodprint").info("metric=ai_events_protocol value=v%d", protocol)
@@ -612,32 +668,13 @@ async def events(
             try:
                 # lock_actor in the polling read re-verifies the session each tick.
                 if persistent:
-                    row, turn, answers = await durable_run(
-                        request, actor, run_id, poll=True, recover=tick % 8 == 1
+                    found = await durable_run(
+                        request, actor, run_id, poll=True, recover=tick % 8 == 1, with_receipt=collaboration
                     )
-                    data = [AIEvent(seq="1", type="progress", data={})]
-                    if row.status == "completed" and answers:
-                        data += [
-                            AIEvent(
-                                seq="2",
-                                type="final",
-                                data=final_v2([(m.id, m.text, m.cards) for m in answers]),
-                            ),
-                            AIEvent(seq="3", type="completed", data={}),
-                        ]
-                    elif row.status != "running":
-                        data += [
-                            AIEvent(
-                                seq="2",
-                                type="cancelled" if row.status == "cancelled" else "failed",
-                                data={
-                                    "code": "AI_INTERRUPTED"
-                                    if row.status == "interrupted"
-                                    else "AI_RUN_FAILED",
-                                    "message": "Phản hồi chưa hoàn tất. Bạn có thể gửi một lượt mới.",
-                                },
-                            )
-                        ]
+                    row, answers = found[0], found[2]
+                    receipt = found[3] if collaboration else None
+                    data = persistent_events(row, answers, receipt, protocol=protocol,
+                                             collaboration_enabled=collaboration)
                     terminal = row.status != "running"
                 else:
                     run = await authorized_run(request, actor, run_id, poll=True)

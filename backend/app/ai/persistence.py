@@ -56,7 +56,19 @@ async def owned_conversation(db, identity, user_id, *, lock=False):
     return await db.scalar(statement)
 
 
-def message_view(m, run) -> AIMessage:
+def collaboration_view(edge, rule_id):
+    """Template line for a completed, used receipt; never model text (ADR-11)."""
+    from app.ai.collaboration.contracts import CollaborationSummary
+    from app.ai.collaboration.policy import EDGES, summary_for
+
+    summary = summary_for(edge, rule_id) if edge else None
+    if summary is None:
+        return None
+    spec = EDGES[edge]
+    return CollaborationSummary(kind=edge, companions=[spec.specialist, spec.requester], summary=summary)
+
+
+def message_view(m, run, collaboration=None) -> AIMessage:
     return AIMessage(
         id=m.id,
         actor=m.actor,
@@ -69,10 +81,11 @@ def message_view(m, run) -> AIMessage:
         part_count=m.part_count,
         origin=run.origin,
         proactive_slot=run.proactive_slot,
+        collaboration=collaboration if m.actor == "bot" and m.part_index == 0 else None,
     )
 
 
-async def conversation_view(db, c, limit=50, before=None):
+async def conversation_view(db, c, limit=50, before=None, *, collaboration=False):
     run_columns = (AiRun.status, AiRun.origin, AiRun.proactive_slot)
     statement = (
         select(AiMessageRecord, *run_columns)
@@ -120,7 +133,24 @@ async def conversation_view(db, c, limit=50, before=None):
                 .limit(1)
             )
         )
-    messages = [message_view(row[0], row) for row in page]
+    lines: dict = {}
+    if collaboration and page:
+        from app.ai.collaboration.models import AiCollaboration
+
+        lines = {
+            run_id: collaboration_view(edge, rule_id)
+            for run_id, edge, rule_id in (
+                await db.execute(
+                    select(AiCollaboration.primary_run_id, AiCollaboration.edge, AiCollaboration.rule_id).where(
+                        AiCollaboration.user_id == c.user_id,
+                        AiCollaboration.primary_run_id.in_({row[0].run_id for row in page if row[0].run_id}),
+                        AiCollaboration.status == "completed",
+                        AiCollaboration.used_in_reply.is_(True),
+                    )
+                )
+            ).all()
+        }
+    messages = [message_view(row[0], row, lines.get(row[0].run_id)) for row in page]
     active = (
         await db.execute(
             select(AiRun.id, AiRun.version).where(
@@ -179,6 +209,32 @@ async def recover_turns(db):
             .where(AiRun.id.in_(expired), AiRun.status == "running")
             .values(status="interrupted", version=2)
         )
+        await interrupt_consultations(db, expired)
+
+
+async def interrupt_consultations(db, primary_run_ids) -> None:
+    """A consultation never outlives its primary run (crash recovery, Phase 2)."""
+    from sqlalchemy import case
+
+    from app.ai.collaboration.models import AiCollaboration
+
+    await db.execute(
+        update(AiRun)
+        .where(AiRun.parent_run_id.in_(primary_run_ids), AiRun.status == "running")
+        .values(status="interrupted", version=2)
+    )
+    await db.execute(
+        update(AiCollaboration)
+        .where(
+            AiCollaboration.primary_run_id.in_(primary_run_ids),
+            AiCollaboration.status.in_(("authorized", "completed")),
+            AiCollaboration.used_in_reply.is_(False),
+        )
+        .values(
+            status=case((AiCollaboration.status == "authorized", "cancelled"), else_="discarded"),
+            failure_code="interrupted",
+        )
+    )
 
 
 async def current_turn(db, run, worker_id):

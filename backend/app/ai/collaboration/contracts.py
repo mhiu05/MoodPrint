@@ -19,7 +19,8 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.ai.proactive.output import ChallengeKind
-from app.contracts import DTO, BotId
+from app.ai.schemas import CollaborationSummary  # noqa: F401 -- public DTO, re-exported
+from app.contracts import BotId
 
 Edge = Literal["nhip_energy_for_rure", "nhip_habit_for_may", "rure_activity_for_guong"]
 RuleId = Literal["R1", "R2", "R3", "R4"]
@@ -191,14 +192,6 @@ class PrimaryBrief(_Frozen):
     kind: Literal["derived_estimate", "generated_suggestion"]
     instructions: str
     data_item: dict | None = None
-
-
-class CollaborationSummary(DTO):
-    """Public DTO. ``summary`` is a backend template chosen by (edge, rule); never model text."""
-
-    kind: Edge
-    companions: list[BotId] = Field(min_length=2, max_length=2)
-    summary: str = Field(min_length=1, max_length=200)
 
 
 def output_digest(output: BaseModel) -> str:

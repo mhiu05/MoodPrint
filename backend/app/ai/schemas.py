@@ -107,6 +107,15 @@ class ConversationHeader(DTO):
     updated_at: datetime | None = None
 
 
+class CollaborationSummary(DTO):
+    """Public line of a completed, used consultation. ``summary`` is a backend template chosen
+    by (edge, rule); never model text (ADR-11)."""
+
+    kind: Literal["nhip_energy_for_rure", "nhip_habit_for_may", "rure_activity_for_guong"]
+    companions: list[BotId] = Field(min_length=2, max_length=2)
+    summary: str = Field(min_length=1, max_length=200)
+
+
 class AIMessage(DTO):
     id: UUID
     actor: Literal["self", "bot"]
@@ -120,6 +129,8 @@ class AIMessage(DTO):
     part_count: int = Field(default=1, ge=1, le=MAX_BUBBLES)
     origin: Literal["user", "proactive"] = "user"
     proactive_slot: Literal["morning", "evening"] | None = None
+    # Phase 2: backend-rendered line, only on part 0 of a run whose receipt is completed and used.
+    collaboration: CollaborationSummary | None = None
 
 
 class ConversationView(ConversationHeader):

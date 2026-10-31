@@ -12,6 +12,7 @@ import logging
 import time
 from dataclasses import dataclass
 from datetime import timedelta
+from typing import Any
 from uuid import UUID, uuid4
 
 from agents.exceptions import (
@@ -80,6 +81,9 @@ class Attempt:
     teen: bool
     usage: UsageSnapshot
     started: float
+    # Phase 2 (R2): an authorized consultation opened at E2 and its settled outcome after E3.
+    opened: Any = None
+    consultation: Any = None
 
 
 def default_title(slot: str, local_date) -> str:
@@ -144,8 +148,20 @@ async def _open(runtime, claimed: Claimed) -> Attempt | None:
                 db, run_id, user.id, runtime.worker_id, settings.openai_model,
                 prompt_version(SELECTED_VARIANTS[job.bot_id]) + "+" + PROACTIVE_PROMPT_VERSION,
             )
+        opened = None
+        if settings.ai_collaboration_enabled and job.bot_id == "rure" and job.slot == "morning":
+            # R2 (phase-2/02 §4.2): authorize and read under this same owner lock; the
+            # specialist itself runs at E3 with no connection held.
+            from app.ai.collaboration.policy import Signals
+
+            opened = await runtime.coordinator.open(
+                db, user, primary_run_id=run_id,
+                signals=Signals(origin="proactive", bot_id="rure", slot="morning"),
+                data_version=user.data_version, seconds_remaining=45.0, worker_id=runtime.worker_id,
+                local_today=job.local_date,
+            )
         return Attempt(claimed, run_id, user.data_version, payload, user.age_band == "teen",
-                       UsageSnapshot(), time.monotonic())
+                       UsageSnapshot(), time.monotonic(), opened=opened)
 
 
 async def _generate(runtime, attempt: Attempt) -> Validated:
@@ -172,10 +188,29 @@ async def _generate(runtime, attempt: Attempt) -> Validated:
                 if not await persist_snapshot(db, attempt.run_id, runtime.worker_id, attempt.usage):
                     raise DomainError(410, "WORKER_FENCED", "Lượt hỏi thăm đã kết thúc.")
 
+    brief = None
+    if attempt.opened is not None:
+        from app.ai.collaboration.coordinator import still_authorized
+        from app.infrastructure.database.models import User
+
+        opened = attempt.opened
+
+        async def collaboration_check() -> None:
+            await check()
+            async with transaction(runtime.database) as db:
+                user = await db.get(User, claimed.user_id)
+                if user is None or not await still_authorized(db, runtime.settings, user, opened.consultation):
+                    raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
+
+        attempt.consultation = await runtime.coordinator.execute(
+            opened, user_id=claimed.user_id, check=collaboration_check, worker_id=runtime.worker_id
+        )
+        brief = attempt.consultation.brief
     output = await runtime.provider.run_proactive(
         bot_id=claimed.bot_id, slot=claimed.slot, input_item=payload.input_item(),
         output_type=output_type(claimed.bot_id), teen=attempt.teen, on_progress=check,
         model_override=runtime.model_override, usage_observer=observe, user_id=claimed.user_id,
+        extra_instructions=brief.instructions if brief else "",
     )
     return validate_proactive(output, payload)
 
@@ -261,6 +296,15 @@ async def publish(db, runtime, attempt: Attempt, validated: Validated) -> UUID:
         or locked.lease_token != claimed.lease_token or locked.lease_until <= at
     ):
         raise Fenced()
+    consultation = attempt.consultation
+    if consultation is not None and consultation.brief is not None:
+        # Authorization #3 for R2 under the owner lock, before anything is written.
+        try:
+            await runtime.coordinator.confirm(db, user, consultation, attempt.run_id, policy_name="proactive")
+        except DomainError as error:
+            if error.code == "SOURCE_CHANGED":
+                raise Halt(Decision("retry", "source_changed")) from None
+            raise Halt(Decision("cancel", "collaboration_revoked")) from None
     sources = [d for d in attempt.payload.digests if d.entry_id in validated.source_ids]
     if sources:
         if (
@@ -292,7 +336,8 @@ async def publish(db, runtime, attempt: Attempt, validated: Validated) -> UUID:
         raise Fenced()
     turn.conversation_id = conversation.id
     # The stamp proves which projection this message may join; journal-free text is plain text.
-    turn.context_policy = JOURNAL_POLICY if sources else TEXT_POLICY
+    used_journal = bool(consultation is not None and consultation.brief is not None and consultation.sources)
+    turn.context_policy = JOURNAL_POLICY if sources or used_journal else TEXT_POLICY
     turn.data_version = user.data_version
     if settings.ai_accounting_enabled and not await persist_snapshot(
         db, attempt.run_id, runtime.worker_id, attempt.usage, terminal=True
@@ -323,7 +368,7 @@ def _classify(error: BaseException) -> tuple[str, str]:
     if isinstance(error, (ModelBehaviorError, ValidationError, MaxTurnsExceeded)):
         return "invalid", "invalid_output"
     if isinstance(error, DomainError):
-        if error.code in ("PROACTIVE_CHANGED", "WORKER_FENCED"):
+        if error.code in ("PROACTIVE_CHANGED", "WORKER_FENCED", "CONTEXT_CHANGED"):
             return "cancel", error.code.lower()
         if error.code == "AI_UNAVAILABLE":
             return "skip", "ai_unavailable"
@@ -347,6 +392,7 @@ async def execute_job(runtime, claimed: Claimed) -> None:
         action, code = _classify(error)
         log.warning("proactive_generate_error job_id=%s action=%s code=%s error_type=%s",
                     claimed.id, action, code, type(error).__name__)
+        await runtime.coordinator.discard(attempt.consultation, action)
         async with transaction(runtime.database) as db:
             await _settle(db, runtime, attempt, "cancelled" if action in ("cancel", "skip") else "failed")
             if action == "guardrail":
@@ -369,6 +415,7 @@ async def execute_job(runtime, claimed: Claimed) -> None:
         async with transaction(runtime.database) as db:
             await publish(db, runtime, attempt, validated)
     except (Defer, Halt, Fenced) as outcome:
+        await runtime.coordinator.discard(attempt.consultation, type(outcome).__name__.lower())
         async with transaction(runtime.database) as db:
             await _settle(db, runtime, attempt, "cancelled")
             if isinstance(outcome, Defer):
@@ -376,6 +423,7 @@ async def execute_job(runtime, claimed: Claimed) -> None:
             elif isinstance(outcome, Halt):
                 await _decide(db, claimed, outcome.decision)
     except Exception:
+        await runtime.coordinator.discard(attempt.consultation, "storage")
         # Storage failed mid-publish: nothing committed. Close the run; the job's lease (or the
         # worker's retry) brings it back, so the user still sees the check-in exactly once.
         async with transaction(runtime.database) as db:

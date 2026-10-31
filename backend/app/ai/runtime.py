@@ -84,6 +84,8 @@ class LiveRun:
     reservation: Any = None
     dispatched: bool = False
     before_dispatch: Callable[[], Awaitable[None]] | None = None
+    # Phase 2: at most one bounded consultation per turn (coordinator.Consultation).
+    collaboration: Any = None
 
 
 @dataclass
@@ -106,6 +108,11 @@ class AiRuntime:
         self.settings, self.database = settings, database
         self.worker_id = uuid4()
         self.provider = SdkProvider(settings)
+        from app.ai.collaboration.coordinator import CollaborationCoordinator
+
+        self.coordinator = CollaborationCoordinator(self)
+        # Tests only: a separate synthetic model for specialist consultations.
+        self.specialist_model_override = None
         self.store = ConversationStore()
         self.runs: dict[UUID, LiveRun] = {}
         self.proposals: dict[UUID, Proposal] = {}
@@ -532,6 +539,63 @@ class AiRuntime:
             return [propose_memory] if memory_enabled else []
         return []
 
+    async def consult(self, run: LiveRun, c, history: list[dict]):
+        """Phase 2: maybe one bounded specialist consultation before the primary reply.
+
+        No database access and no extra model call unless a deterministic rule matches. Returns
+        the consultation (with or without a usable brief) or None.
+        """
+        if not (
+            self.settings.ai_collaboration_enabled and run.persistent and run.mood_scope is None
+            and run.actor.account_kind == "registered" and run.collaboration is None
+        ):
+            return None
+        from app.ai.collaboration import policy
+        from app.ai.collaboration.coordinator import still_authorized
+        from app.ai.conversation import conversation_intent
+
+        latest = history[-1].get("content") if history and history[-1].get("role") == "user" else ""
+        signals = policy.Signals(
+            origin="chat", bot_id=c.bot_id, text=latest if isinstance(latest, str) else "",
+            intent=conversation_intent(c.bot_id, history, scoped=False),
+        )
+        if policy.match_rule(signals) is None:
+            return None
+
+        async def stamp_journal_turn(db) -> None:
+            turn = await current_turn(db, run, self.worker_id)
+            if turn is not None:
+                turn.context_policy = JOURNAL_TURN_POLICY
+
+        async with self.database.require()() as db, db.begin():
+            user = await lock_actor(db, run.actor)
+            await assert_purpose(db, user, "AI")
+            if user.data_version != run.data_version:
+                raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
+            await current_turn(db, run, self.worker_id)
+            opened = await self.coordinator.open(
+                db, user, primary_run_id=run.id, signals=signals, data_version=run.data_version,
+                seconds_remaining=self.settings.ai_timeout_seconds - (time.monotonic() - run.started),
+                worker_id=self.worker_id, on_journal_read=stamp_journal_turn,
+            )
+        if opened is None:
+            return None
+        run.collaboration = opened.consultation
+        if opened.consultation.sources:
+            c.context_stamps[run.id] = ContextStamp(run.data_version, JOURNAL_TURN_POLICY)
+
+        async def check() -> None:
+            # Authorization #2: before the specialist's only model request.
+            await self.check(run)
+            async with self.database.require()() as db, db.begin():
+                user = await lock_actor(db, run.actor, lock=False)
+                if not await still_authorized(db, self.settings, user, opened.consultation):
+                    raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
+
+        return await self.coordinator.execute(
+            opened, user_id=run.actor.user_id, check=check, worker_id=self.worker_id
+        )
+
     def guest_dispatch_guard(self, run: LiveRun) -> Callable[[], Awaitable[None]]:
         """Last awaited authorization before each provider request of a guest run."""
         from app.modules.guests.accounting import mark_guest_dispatched
@@ -685,6 +749,8 @@ class AiRuntime:
                             return
 
                 monitor = asyncio.create_task(monitor_policy())
+                consultation = await self.consult(run, c, history)
+                brief = consultation.brief if consultation is not None else None
 
                 async def progress():
                     await self.check(run)
@@ -703,6 +769,8 @@ class AiRuntime:
                     on_progress=progress,
                     model_override=self.model_override,
                     usage_observer=observe,
+                    extra_instructions=brief.instructions if brief else "",
+                    extra_input=[brief.data_item] if brief and brief.data_item else [],
                 )
                 reply = AiReply.model_validate(reply)
                 parts = reply.parts
@@ -723,6 +791,9 @@ class AiRuntime:
                         raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
                     await current_turn(db, run, self.worker_id)
                     await assert_journal_revisions(db, user, run)
+                    if run.collaboration is not None:
+                        # Authorization #3 and provenance, in the same transaction as the bubbles.
+                        await self.coordinator.confirm(db, user, run.collaboration, run.id, policy_name="chat")
                     if run.deadline is not None:
                         await final_guest_authorization(db, user)
                     if run.persistent:
@@ -801,6 +872,8 @@ class AiRuntime:
             async def finish_terminal():
                 await asyncio.gather(*(task for task in (monitor, expiry) if task), return_exceptions=True)
                 run.reserved_output_bytes = 0
+                if status != "completed":
+                    await self.coordinator.discard(run.collaboration, status)
                 await self.settle_guest(run, status)
                 await self.finalize(run, status)
 

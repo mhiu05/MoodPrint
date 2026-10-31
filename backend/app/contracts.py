@@ -57,6 +57,8 @@ class FeatureView(DTO):
     feedback: bool = False
     # Scheduled check-ins: flag/cohort, registered, AI service and saved history available.
     proactive: bool = False
+    # Companion collaboration (Phase 2): flag/cohort, registered adult, v2 stream, saved history.
+    collaboration: bool = False
 
 
 class NoticeView(DTO):
