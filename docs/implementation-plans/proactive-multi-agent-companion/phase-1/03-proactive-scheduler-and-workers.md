@@ -41,7 +41,7 @@ Khác biệt so với run người dùng:
 | `materialize_due` | `backend/app/jobs/proactive.py` | Tạo job từ lịch đến hạn |
 | `claim_job` / `execute_job` / `publish_job` | `backend/app/jobs/proactive.py`, `backend/app/ai/proactive/executor.py` | Claim, quyền, dữ liệu, model, publish |
 | `proactive_tick(app)` | `backend/app/jobs/proactive.py` | Một lượt bounded: materialize ≤100 lịch, xử lý ≤ `PROACTIVE_WORKER_CONCURRENCY` job |
-| Vòng lặp lifespan | [main.py](../../../../backend/app/main.py) | `proactive_worker()` mỗi 60 s khi `PROACTIVE_WORKER_ENABLED` |
+| ~~Vòng lặp lifespan~~ → **Entry point riêng** | `python -m app.jobs.proactive` (service Compose `proactive`, [96 HD-01](../96-architecture-hardening-review.md#2-quyết-định-kiến-trúc-thay-đổi-so-với-bộ-kế-hoạch)) | Vòng scheduler (materialize mỗi 30 s) + executor (claim liên tục, ≤ `PROACTIVE_WORKER_CONCURRENCY`) khi `PROACTIVE_WORKER_ENABLED`; process API không chạy lời hỏi thăm. §8 và §12 dưới đây áp dụng cho process này (pool 2+0, không chồng khi deploy) |
 
 ## 3. Materialize lịch → job
 

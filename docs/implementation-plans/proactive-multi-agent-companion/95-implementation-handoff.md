@@ -6,7 +6,7 @@
 2. [01-current-codebase-audit.md](01-current-codebase-audit.md) — dữ kiện, số dòng, ràng buộc
 3. [03-architecture-decisions.md](03-architecture-decisions.md) — ADR-01…ADR-12
 4. Phase 1: [01](phase-1/01-product-requirements.md) → [02](phase-1/02-multi-message-contract.md) → [03](phase-1/03-proactive-scheduler-and-workers.md) → [04](phase-1/04-database-and-migrations.md) → [05](phase-1/05-backend-api-and-agent-runtime.md) → [06](phase-1/06-frontend-ux-and-notifications.md) → [07](phase-1/07-persona-behaviors-and-prompts.md) → **[08 kế hoạch](phase-1/08-implementation-plan.md)** → [09](phase-1/09-testing-and-acceptance.md)
-5. Cross-phase: [90](90-security-privacy-threat-model.md), [91](91-performance-cost-and-capacity.md), [92](92-visual-qa-and-agent-browser.md), [93](93-release-rollback-and-observability.md), [94](94-dependencies-risks-and-open-decisions.md)
+5. Cross-phase: [90](90-security-privacy-threat-model.md), [91](91-performance-cost-and-capacity.md), [92](92-visual-qa-and-agent-browser.md), [93](93-release-rollback-and-observability.md), [94](94-dependencies-risks-and-open-decisions.md), **[96 — gia cố kiến trúc](96-architecture-hardening-review.md)** (thay đổi so với ADR-05, ngân sách kết nối, ma trận migration; ưu tiên hơn 01/03 khi khác nhau). Sổ tiến độ triển khai: [evidence/execution.md](evidence/execution.md)
 6. Phase 2 (chỉ sau Gate G1): [phase-2/01](phase-2/01-product-requirements.md) … [phase-2/07](phase-2/07-testing-and-acceptance.md)
 
 ## 2. Thứ tự triển khai

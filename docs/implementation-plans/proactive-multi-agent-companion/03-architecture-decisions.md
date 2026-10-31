@@ -98,6 +98,8 @@ Mỗi ADR có trạng thái **Đề xuất (mặc định đã chọn)** trừ k
 
 ## ADR-05 — Chọn công nghệ scheduler
 
+> **Cập nhật 31/10/2026 (gia cố kiến trúc):** phần *vị trí chạy* của quyết định này được thay bằng [HD-01](96-architecture-hardening-review.md#2-quyết-định-kiến-trúc-thay-đổi-so-với-bộ-kế-hoạch): worker chạy trong **service Compose riêng `proactive`** (cùng image, `python -m app.jobs.proactive`), không chạy trong lifespan API. Hàng đợi bảng PostgreSQL, không pg_cron/pgmq, claim/lease giữ nguyên. Lý do: owner ưu tiên độ trễ/ổn định hơn tối thiểu chi phí; ngân sách kết nối vẫn đạt nhờ pool worker 2+0 ([96 §4](96-architecture-hardening-review.md#4-ngân-sách-kết-nối-supabase)).
+
 **Bối cảnh.** Một EC2, một container API (768 MB, 1,5 CPU), một uvicorn worker, pool 5+2, role limit 20 ([01 §10](01-current-codebase-audit.md)). Đã có 4 vòng lặp nền trong lifespan. pg_cron/pgmq có sẵn nhưng chưa cài. AWS không kiểm được trong phiên.
 
 **Ma trận quyết định** (điểm 1–5, cao = tốt):

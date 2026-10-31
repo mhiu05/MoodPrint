@@ -95,6 +95,8 @@ Beta (≤ 100 users, ≤ 400 job/ngày, giờ phổ biến 07:00–07:30): c = 1
 
 ## 8. Database
 
+> Cập nhật: topology mới (service `proactive` riêng, pool 2+0) và công thức ngân sách kết nối ở [96 §4](96-architecture-hardening-review.md#4-ngân-sách-kết-nối-supabase) thay cho đoạn "không thêm engine" dưới đây.
+
 - **Kết nối**: không thêm engine. Worker dùng tối đa `c + 1` checkout ngắn trong pool 5+2 của process; khi deploy chồng 2 process: 14 ≤ role limit 20 (headroom 6 ≥ `MINIMUM_HEADROOM = 4`, [budget.py](../../../backend/app/infrastructure/database/budget.py)). Hosted lúc kiểm: 15 kết nối `moodprint_backend` (12 idle, 3 *idle in transaction*) — cần làm rõ nguồn trước khi tăng tải ([94](94-dependencies-risks-and-open-decisions.md) R-06).
 - **Ghi**: mỗi job ~6 transaction, ≤ 11 row (job, run, turn, usage, 1–3 message, 0–3 source, 0–1 conversation). Kịch bản 1.500 job/ngày ⇒ ~16.500 row/ngày; job giữ 30 ngày ⇒ ~45.000 row. Không đáng kể với PostgreSQL 17.
 - **Đọc inbox**: một truy vấn nhóm mỗi 30 s/tab hiển thị; index `ai_runs(user_id, origin, created_at)` + `ai_messages(run_id)`.
