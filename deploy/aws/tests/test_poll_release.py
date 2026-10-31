@@ -154,6 +154,7 @@ class AttestationCommandTests(unittest.TestCase):
         command = poll_release.attestation_command(
             "release.json", REPOSITORY, SHA, bundle_path, trusted_root_path
         )
+        self.assertEqual(command[3], "release.json")
         self.assertIn("--cert-identity", command)
         self.assertNotIn("--signer-workflow", command)
         self.assertEqual(command[command.index("--bundle") + 1], str(bundle_path))
@@ -167,6 +168,16 @@ class AttestationCommandTests(unittest.TestCase):
         )
         self.assertEqual(command[command.index("--source-ref") + 1], "refs/heads/main")
         self.assertEqual(command[command.index("--source-digest") + 1], SHA)
+
+    def test_uses_oci_scheme_for_container_image_subjects(self):
+        bundle_path = pathlib.Path("/run/moodprint/test-bundle.jsonl")
+        trusted_root_path = pathlib.Path("/run/moodprint/test-trusted-root.jsonl")
+        for image_ref in (f"{API_IMAGE}@{API_DIGEST}", f"{WEB_IMAGE}@{WEB_DIGEST}"):
+            with self.subTest(image_ref=image_ref):
+                command = poll_release.attestation_command(
+                    image_ref, REPOSITORY, SHA, bundle_path, trusted_root_path
+                )
+                self.assertEqual(command[3], f"oci://{image_ref}")
 
 
 class GitHubEnvironmentTests(unittest.TestCase):

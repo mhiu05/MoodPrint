@@ -305,8 +305,9 @@ def attestation_command(
     bundle_path: Path,
     trusted_root_path: Path,
 ) -> list[str]:
+    artifact = f"oci://{subject}" if subject.startswith("ghcr.io/") else subject
     return [
-        "gh", "attestation", "verify", subject,
+        "gh", "attestation", "verify", artifact,
         "--bundle", str(bundle_path),
         "--custom-trusted-root", str(trusted_root_path),
         "--repo", repository,
