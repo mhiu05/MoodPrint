@@ -34,7 +34,7 @@ Existing source inspected: main.tsx always imports RealApp; RealApp owns HashRou
 | `RealApp` narrow entry adjustment        | `RealApp({api,callback}:{api:ApiClient;callback:AuthCallback})`; pass into SessionRoot, remove useState(readAuthCallback), retain HashRouter internally. Callback recovery forces AuthScreen even with existing session.                                                                              |
 | `features/public/LandingPage.tsx`        | `LandingPage({api}:{api:ApiClient})`; public content, public experience readiness, optional session read/Continue; never imports RealApp/AIData/social modules.                                                                                                                                       |
 | `features/guest/GuestEntry.tsx`          | `GuestEntry({api,onStarted,onClose}:{api:ApiClient;onStarted:(s:SessionView)=>void;onClose:()=>void})`; disclosure/age/CAPTCHA, explicit submit only.                                                                                                                                                 |
-| `features/guest/GuestStatus.tsx`         | `GuestStatus({session,remainingMs}:{session:SessionView;remainingMs:number})`; minute display, quiet five-minute notice once, no live per-second announcements.                                                                                                                                       |
+| `features/guest/GuestStatus.tsx`         | `GuestStatus({remainingMs,aiTurnsRemaining,aiTurnsLimit})`; minute display, AI notice near exhaustion, quiet 15-minute notice once, no live per-second announcements.                                                                                                                                 |
 | `features/guest/GuestExpired.tsx`        | `GuestExpired({reason,onNewTrial,onRegister}:{reason:'expired'\|'ended';onNewTrial:()=>void;onRegister:()=>void})`; content-free ended/expired screen.                                                                                                                                                |
 | `features/guest/useGuestLifecycle.ts`    | `useGuestLifecycle({session,api,onExpired}:{session:SessionView;api:ApiClient;onExpired:()=>void}):{remainingMs:number;epoch:number;signal:AbortSignal;expire:()=>void}`; offset from serverTime, monotonic elapsed for display, focus/visibility/online revalidation, BroadcastChannel signals only. |
 
@@ -61,7 +61,7 @@ Use the detailed approved section/FAQ/assistant copy in audit 03. Required struc
 
 Five cards: Mây listens; Gương explores interests/values; Nhịp reflects emotions/small habits; Rủ Rê offers conversational play/learning; Cầu Nối practices opening a conversation. Do not promise guest matching/multiplayer or health treatment.
 
-Trial disclosure “Lượt dùng thử kết thúc sau 2 giờ kể từ khi bắt đầu. Khi hết giờ, bạn không thể mở lại dữ liệu của lượt này.” Expand approved active-store/backup/provider/security-counter notice before public enablement (D01). No published 5-minute guarantee before approval.
+Trial disclosure explains the 2-hour lifetime, active-store cleanup schedule, provider and backup retention limits, and separate 180-day feedback retention. Avoid promising immediate deletion from providers or backups.
 
 Guest variants must also replace **additional inspected RealApp retentionLabel/historyStatus** near chat rendering, not only audit AIData text:
 

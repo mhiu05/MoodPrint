@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { remainingGuestMs, remainingLabel } from "./guestClock";
+import { remainingGuestMs, remainingLabel, WARNING_MS } from "./guestClock";
 
 describe("guest clock", () => {
+  it("warns when fifteen minutes remain", () => {
+    expect(WARNING_MS).toBe(15 * 60_000);
+  });
+
   it("guestClockDoesNotExtendOnRefreshOrWallClockChange", () => {
     const expires = "2026-10-28T02:00:00Z";
     const server = "2026-10-28T00:00:00Z";

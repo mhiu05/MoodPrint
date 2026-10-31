@@ -25,7 +25,7 @@ class GuestInput(DTO):
     eligibility: GuestEligibility
     # Verified upstream by the provider; never persisted, logged or echoed.
     captcha_token: str = Field(min_length=1, max_length=4096, repr=False)
-    disclosure_version: Literal["guest-v1"]
+    disclosure_version: Literal["guest-v2"]
 
     @field_validator("eligibility")
     @classmethod

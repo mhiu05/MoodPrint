@@ -1,4 +1,4 @@
-export const WARNING_MS = 5 * 60 * 1000;
+export const WARNING_MS = 15 * 60 * 1000;
 
 /**
  * Remaining trial time from the server's own clock reading plus *monotonic* elapsed time, so a

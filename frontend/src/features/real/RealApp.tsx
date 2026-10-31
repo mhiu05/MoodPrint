@@ -593,12 +593,15 @@ function GuestHost({
 
 function GuestBanner() {
   const guest = useGuest();
+  const { session } = useSession();
   const { pathname } = useLocation();
   if (!guest) return null;
   // The personal tab already has the trial-ending action.
   return (
     <GuestStatus
       remainingMs={guest.remainingMs}
+      aiTurnsRemaining={session.guestQuota?.aiTurnsRemaining}
+      aiTurnsLimit={session.guestQuota?.aiTurnsLimit}
       onEnd={pathname === "/profile" ? undefined : guest.end}
     />
   );
@@ -661,19 +664,9 @@ function SessionNotices() {
 /** Shown only when few AI turns remain today (Asia/Bangkok day). */
 function QuotaHint() {
   const { session } = useSession();
-  const guest = session.accountKind === "guest";
-  const remaining = guest
-    ? (session.guestQuota?.aiTurnsRemaining ?? null)
-    : session.features.aiQuotaRemaining;
+  if (session.accountKind === "guest") return null;
+  const remaining = session.features.aiQuotaRemaining;
   if (remaining == null || remaining > 10) return null;
-  if (guest)
-    return (
-      <p className={cx.footnote} role="status">
-        {remaining === 0
-          ? "Bạn đã dùng hết lượt trò chuyện của lượt dùng thử."
-          : `Lượt dùng thử còn ${remaining} lượt trò chuyện với trợ lý.`}
-      </p>
-    );
   return (
     <p className={cx.footnote} role="status">
       {remaining === 0

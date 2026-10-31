@@ -87,6 +87,7 @@ async def _session_view(request: Request, db, user, user_id, csrf: str | None = 
         )
         guest_quota = GuestQuota(
             ai_turns_remaining=max(0, settings.guest_ai_turns - ai_turns),
+            ai_turns_limit=settings.guest_ai_turns,
             voice_clips_remaining=max(0, settings.guest_voice_clips - clips),
             voice_seconds_remaining=max(0, settings.guest_voice_seconds * 1000 - millis) / 1000,
         )

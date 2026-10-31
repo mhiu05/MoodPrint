@@ -16674,7 +16674,7 @@
           },
           "disclosureVersion": {
             "type": "string",
-            "const": "guest-v1",
+            "const": "guest-v2",
             "title": "Disclosureversion"
           }
         },
@@ -16695,6 +16695,11 @@
             "minimum": 0.0,
             "title": "Aiturnsremaining"
           },
+          "aiTurnsLimit": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Aiturnslimit"
+          },
           "voiceClipsRemaining": {
             "type": "integer",
             "minimum": 0.0,
@@ -16710,6 +16715,7 @@
         "type": "object",
         "required": [
           "aiTurnsRemaining",
+          "aiTurnsLimit",
           "voiceClipsRemaining",
           "voiceSecondsRemaining"
         ],

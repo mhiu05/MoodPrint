@@ -43,7 +43,7 @@ export function guestSession(expiresInMs: number, patch: Record<string, unknown>
     guestStartedAt: new Date(expires - 7_200_000).toISOString(),
     guestExpiresAt: new Date(expires).toISOString(),
     serverTime: new Date().toISOString(),
-    guestQuota: { aiTurnsRemaining: 25, voiceClipsRemaining: 6, voiceSecondsRemaining: 180 },
+    guestQuota: { aiTurnsRemaining: 50, aiTurnsLimit: 50, voiceClipsRemaining: 20, voiceSecondsRemaining: 600 },
     features: { ai: false, matching: false, voice: false, feedback: false },
     consents: {
       AI: { enabled: false, version: 1, policyVersion: "v1" },

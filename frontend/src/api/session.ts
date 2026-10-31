@@ -45,11 +45,21 @@ export function validateSession(value: SessionView): SessionView {
     const started = instant(value.guestStartedAt);
     const expires = instant(value.guestExpiresAt);
     instant(value.serverTime);
+    const quota = value.guestQuota;
     if (
       expires - started !== GUEST_LIFETIME_MS ||
       value.features.matching !== false ||
       value.staff ||
-      !value.guestQuota
+      !quota ||
+      !Number.isInteger(quota.aiTurnsLimit) ||
+      quota.aiTurnsLimit < 1 ||
+      !Number.isInteger(quota.aiTurnsRemaining) ||
+      quota.aiTurnsRemaining < 0 ||
+      quota.aiTurnsRemaining > quota.aiTurnsLimit ||
+      !Number.isInteger(quota.voiceClipsRemaining) ||
+      quota.voiceClipsRemaining < 0 ||
+      !Number.isFinite(quota.voiceSecondsRemaining) ||
+      quota.voiceSecondsRemaining < 0
     )
       invalid();
   } else if (value.guestStartedAt || value.guestExpiresAt || value.guestQuota) {

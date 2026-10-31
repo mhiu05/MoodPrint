@@ -27,7 +27,7 @@ const body = {
     expectedVersion: 0,
   },
   captchaToken: "synthetic",
-  disclosureVersion: "guest-v1",
+  disclosureVersion: "guest-v2",
 } as never;
 
 beforeEach(() => {

@@ -43,24 +43,28 @@ type Call = { method: string; path: string; headers: Record<string, string>; bod
 type GuestReply = Reply | "ok";
 
 /** The public entry flow: readiness, anonymous /session, intent, guest creation, then the app. */
-async function entry(page: Page, replies: GuestReply[], options: { guestDelayMs?: number } = {}) {
+async function entry(page: Page, replies: GuestReply[], options: { guestDelayMs?: number; aiTurnsRemaining?: number; aiEnabled?: boolean } = {}) {
   const calls: Call[] = [];
   let created = false;
   let guestPosts = 0;
+  const guestSessionForEntry = () => guestSession(7_200_000 - 5_000, {
+    guestQuota: { aiTurnsRemaining: options.aiTurnsRemaining ?? 50, aiTurnsLimit: 50, voiceClipsRemaining: 20, voiceSecondsRemaining: 600 },
+    features: { ai: options.aiEnabled ?? false, matching: false, voice: false, feedback: false },
+  });
   await page.route("https://challenges.cloudflare.com/**", (route) =>
     route.fulfill({ contentType: "application/javascript", body: TURNSTILE_STUB }),
   );
   await app(page, null, {
     "/public/experience": () => ({ json: READY }),
     "/session": () =>
-      created ? { json: guestSession(7_200_000 - 5_000) } : failure(401, "AUTH_REQUIRED", "Cần đăng nhập"),
+      created ? { json: guestSessionForEntry() } : failure(401, "AUTH_REQUIRED", "Cần đăng nhập"),
     "/auth/guest-intents": (request) => (request.method() === "POST" ? { status: 204 } : undefined),
     "/auth/guest": (request) => {
       if (request.method() !== "POST") return undefined;
       const reply = replies[Math.min(guestPosts++, replies.length - 1)];
       if (reply !== "ok") return reply;
       created = true;
-      return { status: 201, json: guestSession(7_200_000 - 5_000) };
+      return { status: 201, json: guestSessionForEntry() };
     },
   });
   // Registered last, so it sees every request first and then hands it to the fixture above.
@@ -148,7 +152,7 @@ test("a started trial opens the app with the countdown and stores no secret", as
   expect(posts(calls, "/auth/guest-intents")).toHaveLength(1);
   const [guest] = posts(calls, "/auth/guest");
   expect(guest.body).toMatchObject({
-    disclosureVersion: "guest-v1",
+    disclosureVersion: "guest-v2",
     eligibility: { birthYear: THIS_YEAR - 25, confirmedMinimumAge: true, confirmedAdultAge: false },
   });
   expect(guest.headers["x-guest-intent"]).toBe("1");
@@ -160,6 +164,31 @@ test("a started trial opens the app with the countdown and stores no secret", as
   expect(stored).not.toContain("captcha-token");
   expect(stored).not.toContain("csrf");
   expect(stored).not.toContain("moodprint.guestAttempt");
+});
+
+test("guest AI usage warning shows used turns against the session limit", async ({ page }) => {
+  const calls = await entry(page, ["ok"], { aiTurnsRemaining: 10, aiEnabled: true });
+  await openEntry(page);
+  await fillEligible(page);
+  await submit(page).click();
+  await expect(page.getByText("Bạn đã sử dụng 40/50 lượt trò chuyện trong phiên dùng thử.")).toBeVisible();
+  expect(posts(calls, "/auth/guest")).toHaveLength(1);
+});
+
+test("guest AI quota warning stays hidden while AI is unavailable", async ({ page }) => {
+  await entry(page, ["ok"], { aiTurnsRemaining: 10, aiEnabled: false });
+  await openEntry(page);
+  await fillEligible(page);
+  await submit(page).click();
+  await expect(page.getByText("Bạn đã sử dụng 40/50 lượt trò chuyện trong phiên dùng thử.")).toHaveCount(0);
+});
+
+test("guest onboarding explains provider and backup retention limits", async ({ page }) => {
+  await entry(page, ["ok"]);
+  await openEntry(page);
+  await expect(page.getByText(/theo lịch dọn dẹp/)).toBeVisible();
+  await expect(page.getByText(/Nhà cung cấp có thể lưu dữ liệu đã nhận theo chính sách riêng/)).toBeVisible();
+  await expect(page.getByText(/Bản sao lưu có thể còn lưu trong thời hạn lưu trữ/)).toBeVisible();
 });
 
 test("a failed attempt retries with the same key and creates no second intent", async ({ page }) => {

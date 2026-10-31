@@ -66,6 +66,7 @@ class GuestQuota(DTO):
     """Durable remaining allowance for one trial (never per day, never reset by a new tab)."""
 
     ai_turns_remaining: int = Field(ge=0)
+    ai_turns_limit: int = Field(ge=1)
     voice_clips_remaining: int = Field(ge=0)
     voice_seconds_remaining: float = Field(ge=0)
 

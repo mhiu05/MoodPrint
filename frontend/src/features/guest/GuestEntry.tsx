@@ -111,7 +111,7 @@ export function GuestEntry({
         {
           eligibility: ageDeclaration(year, minimum, thisYear),
           captchaToken: token,
-          disclosureVersion: "guest-v1",
+          disclosureVersion: "guest-v2",
         },
         attempt,
         controller.current.signal,
@@ -143,7 +143,13 @@ export function GuestEntry({
       <form onSubmit={submit} aria-busy={busy} className="guest-entry">
         <p>
           Lượt dùng thử kết thúc sau 2 giờ kể từ khi bắt đầu. Khi hết giờ, bạn không thể mở lại dữ liệu của
-          lượt này. MoodPrint sẽ xóa dữ liệu khỏi hệ thống đang hoạt động.
+          lượt này. MoodPrint sẽ xóa dữ liệu khỏi hệ thống đang hoạt động theo lịch dọn dẹp.
+        </p>
+        <p>
+          Nhà cung cấp có thể lưu dữ liệu đã nhận theo chính sách riêng của họ.
+          Bản sao lưu có thể còn lưu trong thời hạn lưu trữ. MoodPrint không thể
+          bảo đảm xóa tức thì tại nhà cung cấp hoặc trong bản sao lưu. Góp ý bạn
+          chủ động gửi được lưu riêng tối đa 180 ngày.
         </p>
         <p className={cx.footnote}>
           Không cần email để dùng thử. MoodPrint dành cho người từ đủ 18 tuổi.

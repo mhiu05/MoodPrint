@@ -17,7 +17,7 @@ export async function createGuest(context: BrowserContext) {
   const response = await context.request.post(api + "/auth/guest", {
     data: { eligibility: { birthYear: 2000, confirmedMinimumAge: true, confirmedAdultAge: false,
       policyVersion: "self-declared-age-v2-18plus", expectedVersion: 0 },
-      captchaToken: "synthetic-captcha-token", disclosureVersion: "guest-v1" },
+      captchaToken: "synthetic-captcha-token", disclosureVersion: "guest-v2" },
     headers: { Origin: origin, "X-Guest-Intent": "1", "Idempotency-Key": randomUUID() },
   });
   expect(response.status(), await response.text()).toBe(201);
