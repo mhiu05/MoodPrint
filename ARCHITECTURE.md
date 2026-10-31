@@ -121,6 +121,10 @@ sequenceDiagram
 
 `store=False`, tracing disabled và no automatic provider retry là cấu hình client; không phải cam kết về retention hạ tầng của provider. Restart đánh dấu lượt đang chạy interrupted và không replay model call. Xem [runtime](docs/agents/runtime.md), [context-memory](docs/agents/context-memory.md).
 
+### Lời hỏi thăm chủ động (Phase 1)
+
+Người dùng tự hẹn giờ (sáng 05:00–11:30, tối 17:00–22:30, tối đa 4/ngày, giờ yên lặng) để trợ lý nhắn trước. Service Compose riêng `proactive` (cùng image) materialize lịch thành job PostgreSQL rồi chạy E1–E5 không giữ transaction quanh model; process API chỉ phục vụ `/ai/proactive`, `/ai/inbox` và read marker. Năm bảng mới (`ai_proactive_settings`, `ai_proactive_schedules`, `ai_proactive_jobs`, `ai_conversation_reads`, `ai_message_sources`) đều content-free trừ tin đã giao nằm trong `ai_messages`. Chi tiết: [runtime](docs/agents/runtime.md), [context](docs/agents/context-memory.md), [operations](docs/backend/operations.md).
+
 ## 6. Matching và social
 
 Luồng public profile là draft → preview có hạn → publish có kiểm tra digest/version. Matching chỉ đọc payload của published profile hiện hành cùng eligibility/consent/counters. Không đọc private profile, mood, chat hoặc memory để chấm điểm.

@@ -111,3 +111,44 @@ Beta (≤ 100 users, ≤ 400 job/ngày, giờ phổ biến 07:00–07:30): c = 1
 | Loại instance, mức dùng hiện tại | **Chưa biết** — AWS MCP không kết nối | Trước khi bật worker: CloudWatch `mem_used_percent` p95 < 70 %, `cpu_usage_active` p95 < 50 % trong 7 ngày |
 
 Kết luận: EC2 hiện tại **có khả năng** chạy worker trong process ở quy mô beta, **với điều kiện** kiểm chứng hai metric trên (chưa làm được trong phiên này).
+
+## 10. Số đo Phase 1 (31/10/2026, local + AWS/Supabase chỉ đọc)
+
+### 10.1 Tải worker (`scripts/load_proactive.py`)
+
+Một máy Windows (API in-process pool 5+2, worker **process riêng** như service `proactive`, PostgreSQL 17 container cùng máy), model giả trễ 1,5 s cho cả chat và lời hỏi thăm, 20 người chat đồng thời × 3 lượt chạy **song song** với N lịch đến hạn cùng lúc. Chat đo hai lần không có worker (lần đầu làm nóng; lần đầu tiên chưa làm nóng cho +36 % là sai số khởi động nên đã đổi phương pháp).
+
+| N lịch | Concurrency | Pool worker | Chat p95 không worker → có worker | Lag giao p50 / p95 | Thông lượng | Pool peak | RSS peak worker | Kết nối PG peak | Transaction dài nhất |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 20 | 1 | 2+0 | 3,13 → 3,37 s (+7,5 %) | 23 / 36 s | 35/phút | 1 | 145 MiB | 7 | 0,15 s |
+| 20 | 2 | 2+0 | 3,19 → 3,43 s (+7,7 %) | 15 / 22 s | 66/phút | 2 | 145 MiB | 8 | 0,14 s |
+| 100 | 1 | 2+0 | 2,99 → 3,19 s (+6,4 %) | 88 / 159 s | 37/phút | 1 | 146 MiB | 7 | 0,66 s |
+| 100 | 2 | 2+0 | 2,94 → 3,65 s (+24,2 %) | 50 / 87 s | 71/phút | 2 | 147 MiB | 8 | 1,15 s |
+| 100 | 4 | 2+0 | 3,38 → 3,67 s (+8,4 %) | 29 / 48 s | 131/phút | 2 | 148 MiB | 8 | 0,66 s |
+| 100 | 4 | 4+0 | 3,00 → 3,44 s (+14,7 %) | 29 / 47 s | 133/phút | 4 | 147 MiB | 10 | 0,47 s |
+| 400 | 4 | 4+0 | 3,23 → 3,31 s (+2,4 %) | 96 / 171 s | 137/phút | 4 | 154 MiB | 10 | 0,79 s |
+| 400 | 4 | **2+0** | 2,99 → 3,19 s (+6,9 %) | 97 / 173 s | 135/phút | 2 | 154 MiB | 8 | 0,72 s |
+
+Mọi job đến hạn đều `delivered`, 0 lỗi chat, 0 transaction dài (lâu nhất 1,15 s khi CPU bão hòa; *idle in transaction* chỉ là trạng thái tức thời giữa hai câu lệnh trong transaction ngắn). Kết luận:
+
+- Mỗi đơn vị concurrency xử lý ~35 job/phút với model 1,5 s; với gpt-6-luna thật (p50 2,7 s, p95 4,2 s — §10.3) ước ~20 job/phút.
+- **Pool 2+0 đủ cho concurrency 4** (peak 2, không pool timeout): mỗi job chỉ giữ một kết nối trong các transaction ngắn và không giữ trong lúc gọi model. Tăng concurrency **không** cần tăng pool ⇒ không đụng ngân sách kết nối.
+- Ảnh hưởng tới chat p95: 2,4 %–24 % trên máy dùng chung CPU (6/8 lần ≤ 10 %); dao động chủ yếu do tranh CPU của laptop (worker + API + PostgreSQL cùng máy). Trên EC2, service `proactive` bị giới hạn `cpus: 0.5` nên không thể chiếm CPU của API.
+- Đề xuất: beta `PROACTIVE_WORKER_CONCURRENCY=2` (≈ 40 lời/phút với model thật: 400 lời hỏi thăm cùng 07:30 giao xong ~10 phút, trong grace 90 phút); tăng 4 khi cùng một mốc giờ có > 500 lịch. Giữ pool 2+0. RAM: đỉnh 154 MiB ⇒ `mem_limit 384m` dư; có thể hạ 320m.
+
+### 10.2 Hạ tầng thật (chỉ đọc)
+
+| Mục | Số liệu | Nguồn |
+| --- | --- | --- |
+| EC2 `moodprint-staging` | `t3.small` (2 vCPU, 2 GiB), `ap-southeast-2b`, credit `unlimited`, gp3 30 GiB/3000 IOPS, Ubuntu 24.04, SSM Online | `aws ec2 describe-*` |
+| CPU 7 ngày | trung bình ngày 1,8–3,0 %, max ngày 4–17 %; p95 3,1 %, p99 4,1 %; `CPUCreditBalance` 576 (đầy), `CPUSurplusCreditsCharged` 0 | CloudWatch |
+| RAM | **Không có số đo**: không có namespace `CWAgent`, không có log group CloudWatch | CloudWatch |
+| Compose hiện tại | api `768m`/1,5 CPU, web `256m`/0,5 CPU ⇒ + proactive `384m` = 1.408 MiB giới hạn trên 2 GiB máy (còn ~600 MiB cho OS/Docker) | `deploy/compose.staging.yml` |
+| Credit/chi phí | Gói Free ACTIVE, còn **95 USD** credit, hết hạn **09/04/2027**; tháng 10/2026 dùng 4,74 USD, credit bù 4,74 USD | Cost Explorer, Free Tier API |
+| Supabase | Hosted `0019_journal`, `max_connections 60`, `moodprint_backend` limit 20, `idle_in_transaction_session_timeout 0`, `statement_timeout 120 s`; lúc đo 19 kết nối tổng, 5 của backend (4 idle, 1 idle-in-tx 0,1 s tức thời) | Supabase MCP, chỉ metadata |
+
+Khuyến nghị: (1) cài CloudWatch agent (`deploy/aws/cloudwatch-agent.json` đã có) để có `mem_used_percent` 7 ngày trước khi bật worker; nếu p95 + 384 MiB > 70 % RAM → nâng `t3.medium` (4 GiB). (2) S1 Supabase (connection limit 30 + idle-tx 60 s) trước khi bật worker như 96 §5. CPU không phải ràng buộc (p95 3 %).
+
+### 10.3 Chi phí model thật
+
+gpt-6-luna (giá chuẩn đã kiểm trên trang pricing chính thức 31/10/2026: 0,10 / 0,01 cached / 0,50 USD mỗi 1M token): trung bình **1.651 input + 160 output token** mỗi lời hỏi thăm (91 lời sinh thật ở vòng eval 1, kể cả reasoning token) ⇒ ≈ **0,00025 USD/lời**. 100 người × 4 lời/ngày ≈ 0,10 USD/ngày (≈ 3 USD/tháng); 1.000 người ≈ 30 USD/tháng. Độ trễ model (thật): p50 2,7 s, p95 4,2 s.

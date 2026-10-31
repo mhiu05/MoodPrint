@@ -63,6 +63,10 @@ Mọi bubble của một run được ghi trong cùng transaction chuyển run s
 
 Cancel là thao tác server (`POST /ai/runs/{run_id}/cancel`); hủy fetch chỉ đóng stream đọc, không chứng minh model đã dừng. Sau mất mạng/timeout, tải lại trạng thái trước khi tạo lượt mới để tránh gọi model lặp. Startup recover đánh dấu interrupted, không replay cuộc gọi provider.
 
+## Lời hỏi thăm (run chủ động)
+
+Run `origin='proactive'` do service `proactive` tạo khi lịch người dùng tự hẹn đến hạn ([operations](../backend/operations.md#lời-hỏi-thăm-service-proactive)). Không có `Actor`, session, tin `self` hay transcript: `SdkProvider.run_proactive` nhận **một** input item dữ liệu do code dựng (`Dữ liệu cho lời hỏi thăm …`), không tool, tracing tắt, `store=False`, `max_turns=2`, timeout 30 s, guardrail claim như chat. Prompt là lớp runtime `PROACTIVE_*` (`proactive-2026-11-a1`) nối sau `instructions(bot)` đã đóng băng. Output `ProactiveReply` (1–3 bubble, ≤ 1.200 ký tự; Nhịp thêm `source_entry_ids`, Rủ Rê thêm `challenge_kind`) rồi qua validator nghiệp vụ (≤ 1 câu hỏi, không link, card theo trợ lý, Nhịp không nói "hôm qua" khi không có entry, ID nguồn phải thuộc digest, Cầu Nối không phần trăm/"đã kết nối"). Quyền được kiểm ở E1, trước mỗi model request và lại dưới owner lock khi publish; publish đặt `conversation_id` + `completed` trong **một** UPDATE. Quota người dùng (lượt/ngày, rate, concurrency) chỉ đếm `origin='user'`; trần toàn cục và ngân sách ngày đếm cả hai, lời hỏi thăm dừng ở `PROACTIVE_BUDGET_SHARE`. `GET /ai/runs/{id}/events` của run chủ động trả 404 — tin xuất hiện qua `GET /ai/conversations/{id}` và `/ai/inbox`.
+
 ## Kiểm tra khi thay đổi
 
 Chạy `test_sdk_adapter.py`, `test_context_selection.py`, `test_scoped_mood_tool.py`, `test_mood_evidence_runtime.py`, `test_privacy_lifecycle.py` cùng unit test `src/api/stream.test.ts`. Toàn bộ lệnh và phân tầng test ở [development](../development.md), [evaluation](evaluation.md).

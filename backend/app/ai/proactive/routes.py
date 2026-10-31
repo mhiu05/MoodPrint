@@ -20,6 +20,8 @@ from app.ai.proactive.models import (
 )
 from app.ai.proactive.policy import available, eligibility_reason, match_enabled
 from app.ai.proactive.schemas import (
+    ConversationReadInput,
+    ConversationReadView,
     Eligibility,
     InboxBot,
     InboxLatest,
@@ -28,8 +30,6 @@ from app.ai.proactive.schemas import (
     ProactiveSettingsInput,
     ProactiveSettingsView,
     ProactiveView,
-    ConversationReadInput,
-    ConversationReadView,
     ScheduleInput,
     ScheduleView,
     Slot,

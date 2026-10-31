@@ -84,6 +84,11 @@ def _metric_state(job_id: UUID, bot_id: str, slot: str, state: str, reason: str 
         "proactive_job_state job_id=%s state=%s reason=%s bot=%s slot=%s attempt=%s",
         job_id, state, reason or "-", bot_id, slot, attempt,
     )
+    # Alarm counters (deploy/aws/cloudwatch-alarms.json); content-free.
+    if state == "failed":
+        log.warning("metric=proactive_job_failed reason=%s", reason or "-")
+    elif state == "skipped" and reason in ("expired", "missed_window"):
+        log.warning("metric=proactive_job_expired reason=%s", reason)
 
 
 async def materialize_due(db, settings, at: datetime) -> int:
@@ -383,7 +388,7 @@ async def serve(settings, *, stop: asyncio.Event, heartbeat: Path = HEARTBEAT,
             try:
                 claimed = (await proactive_tick(runtime)).get("claimed", 0)
             except Exception as error:
-                log.error("proactive_tick_error error_type=%s", type(error).__name__)
+                log.error("metric=proactive_tick_error error_type=%s", type(error).__name__)
             beat(heartbeat)
             if claimed:
                 continue  # drain due work without waiting
