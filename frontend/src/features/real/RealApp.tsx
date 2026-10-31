@@ -177,6 +177,18 @@ function authMode(): "login" | "signup" {
   return /[?&]mode=signup\b/.test(window.location.hash) ? "signup" : "login";
 }
 
+function PublicLoginRedirect({ signup }: { signup: boolean }) {
+  useEffect(() => {
+    window.location.replace(signup ? "/login?mode=signup" : "/login");
+  }, [signup]);
+  return (
+    <main className="real-auth" aria-busy="true">
+      <Brand />
+      <p role="status">Đang mở trang đăng nhập…</p>
+    </main>
+  );
+}
+
 function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback }) {
   const entryLocation = useLocation();
   const [session, setSession] = useState<SessionView | null>();
@@ -475,6 +487,8 @@ function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback
         <Link to="/login">Đăng nhập / Đăng ký</Link>
       </main>
     );
+  if (session === null && !callback)
+    return <PublicLoginRedirect signup={authMode() === "signup"} />;
   if (session === null || callback?.kind === "recovery")
     return (
       <AuthScreen api={api} receive={receive} callback={callback} initialMode={authMode()} />
