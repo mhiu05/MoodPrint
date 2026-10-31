@@ -33,6 +33,9 @@ PERSONAL = {
     ("PUT", "/consents/{purpose}"),
     ("GET", "/ai/preferences"),
     ("PUT", "/ai/preferences"),
+    # Read markers act only on the caller's own conversations; read-all is empty for a guest.
+    ("PUT", "/ai/conversations/{conversation_id}/read"),
+    ("POST", "/ai/inbox/read-all"),
     ("GET", "/ai/conversations"),
     ("POST", "/ai/conversations"),
     ("GET", "/ai/conversations/{conversation_id}"),
@@ -72,6 +75,11 @@ PERSONAL = {
     ("GET", "/data-deletions/{job_id}"),
 }
 REGISTERED_ONLY = {
+    # Scheduled check-ins are for permanent accounts only (P1-10).
+    ("GET", "/ai/proactive"),
+    ("PUT", "/ai/proactive/settings"),
+    ("PUT", "/ai/proactive/schedules/{bot_id}/{slot}"),
+    ("DELETE", "/ai/proactive/schedules/{bot_id}/{slot}"),
     ("GET", "/admin/feedback"),
     ("GET", "/admin/feedback/summary"),
     ("PATCH", "/admin/feedback/{id}"),
@@ -129,7 +137,7 @@ REGISTERED_ONLY = {
     ("POST", "/admin/users/{ref}/lift"),
 }
 # Deliberate zero projection: no social SQL for a guest, no 403 for the badge poll.
-SUMMARY_ZERO = {("GET", "/social/summary")}
+SUMMARY_ZERO = {("GET", "/social/summary"), ("GET", "/ai/inbox")}
 # Guest lifecycle entry points added by this feature; each has its own guards (plan 01).
 GUEST_ENTRY = {
     ("POST", "/auth/guest-intents"),
