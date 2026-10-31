@@ -12,7 +12,7 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy import select, update
 
-from app.infrastructure.database.models import User, now
+from app.infrastructure.database.models import AgeDeclaration, User, now
 from app.modules.social.models import (
     CandidateReference,
     Connection,
@@ -112,6 +112,7 @@ async def test_sending_back_completes_a_match_even_at_invitation_quota(clients):
             peer = uuid4()
             db.add(User(id=peer, auth_subject=peer, age_band="adult"))
             await db.flush()
+            db.add(AgeDeclaration(user_id=peer, birth_year=1990, policy_version="self-declared-age-v1"))
             low, high = sorted((actors[1][1], peer))
             pair = Pair(low_user_id=low, high_user_id=high)
             db.add(pair)

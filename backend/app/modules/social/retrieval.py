@@ -16,7 +16,8 @@ from sqlalchemy import String, and_, exists, func, or_, select
 from sqlalchemy.dialects.postgresql import array
 from sqlalchemy.orm import aliased
 
-from app.infrastructure.database.models import Consent, User, now
+from app.infrastructure.database.models import AgeDeclaration, Consent, User, now
+from app.modules.auth.age import adult_eligible
 from app.modules.matching import ranking, scoring_compat, scoring_v2
 from app.modules.social.models import Block, Connection, ConnectionRequest, Pair, PublishedProfile
 
@@ -86,13 +87,16 @@ async def eligible_peers(
     recently_seen = User.last_seen_at > at - INACTIVE_AFTER
     statement = (
         select(
-            User.id,
+            User,
+            AgeDeclaration,
             PublishedProfile.version,
             PublishedProfile.payload,
             Consent.version.label("consent_version"),
             pending_incoming.label("pending_incoming"),
             first_published.label("first_published_at"),
         )
+        .select_from(User)
+        .join(AgeDeclaration, AgeDeclaration.user_id == User.id)
         .join(
             PublishedProfile,
             (PublishedProfile.user_id == User.id)
@@ -136,7 +140,14 @@ async def eligible_peers(
         statement = statement.where(PublishedProfile.payload["goal"].astext == goal)
     if peer_ids is not None:
         statement = statement.where(User.id.in_(peer_ids))
-    return [PeerRow(*row) for row in (await db.execute(statement)).all()]
+    # Load declarations in this bounded query rather than one lookup per peer.
+    # The same check runs again under the route's canonical account locks before
+    # a public card is returned; an old adult-band cache is never authorization.
+    return [
+        PeerRow(owner.id, *row[2:])
+        for row in (await db.execute(statement)).all()
+        if adult_eligible(owner := row[0], row[1], at=at)
+    ]
 
 
 def rank_v1(own: PublishedProfile, peers: list[PeerRow]) -> list[UUID]:

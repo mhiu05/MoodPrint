@@ -22,7 +22,8 @@ from app.ai.models import AiPreference
 from app.ai.voyage import EmbeddingError, EmbeddingProvider, VoyageProvider, validate_vector
 from app.core.errors import DomainError
 from app.core.security import Actor, lock_actor
-from app.infrastructure.database.models import Consent, Memory, User, now
+from app.infrastructure.database.models import AgeDeclaration, Consent, Memory, User, now
+from app.modules.auth.age import adult_eligible, is_adult_eligible
 from app.modules.consent.policy import consent_enabled
 from app.modules.guests.deadlines import guest_deadline
 from app.modules.guests.policy import database_time, lifetime_allows
@@ -51,7 +52,7 @@ async def _authorization(db: AsyncSession, user_id: UUID) -> Authorization | Non
         not user
         or user.status != "active"
         or user.deletion_pending
-        or user.age_band not in ("teen", "adult")
+        or not await is_adult_eligible(db, user)
     ):
         return None
     if user.account_kind == "guest" and not lifetime_allows(user, await database_time(db)):
@@ -348,35 +349,38 @@ async def reconcile_embedding_jobs(database: "Database", settings: EmbeddingSett
                 EmbeddingJob.status != "cancelled",
             )
         )
-        ids = list(
-            (
-                await db.scalars(
-                    select(Memory.id)
-                    .join(User, User.id == Memory.user_id)
-                    .join(AiPreference, AiPreference.user_id == User.id)
-                    .join(ai, and_(ai.user_id == User.id, ai.purpose == "AI"))
-                    .join(mem, and_(mem.user_id == User.id, mem.purpose == "MEM"))
-                    .where(
-                        User.status == "active",
-                        User.deletion_pending.is_(False),
-                        User.age_band.in_(("teen", "adult")),
-                        or_(
-                            User.account_kind == "registered",
-                            User.guest_expires_at > func.clock_timestamp(),
-                        ),
-                        AiPreference.semantic_memory_enabled.is_(True),
-                        AiPreference.policy_version == "ai-data-v1",
-                        ai.policy_version == "v1",
-                        mem.policy_version == "v1",
-                        Memory.status == "active",
-                        Memory.bot_id.in_(MEMORY_BOTS),
-                        missing,
-                    )
-                    .order_by(Memory.id)
-                    .limit(settings.embedding_job_batch_size)
+        rows = (
+            await db.execute(
+                select(Memory.id, User, AgeDeclaration)
+                .select_from(Memory)
+                .join(User, User.id == Memory.user_id)
+                .join(AgeDeclaration, AgeDeclaration.user_id == User.id)
+                .join(AiPreference, AiPreference.user_id == User.id)
+                .join(ai, and_(ai.user_id == User.id, ai.purpose == "AI"))
+                .join(mem, and_(mem.user_id == User.id, mem.purpose == "MEM"))
+                .where(
+                    User.status == "active",
+                    User.deletion_pending.is_(False),
+                    User.age_band == "adult",
+                    or_(
+                        User.account_kind == "registered",
+                        User.guest_expires_at > func.clock_timestamp(),
+                    ),
+                    AiPreference.semantic_memory_enabled.is_(True),
+                    AiPreference.policy_version == "ai-data-v1",
+                    ai.policy_version == "v1",
+                    mem.policy_version == "v1",
+                    Memory.status == "active",
+                    Memory.bot_id.in_(MEMORY_BOTS),
+                    missing,
                 )
-            ).all()
-        )
+                .order_by(Memory.id)
+                .limit(settings.embedding_job_batch_size)
+            )
+        ).all()
+        ids = [
+            memory_id for memory_id, user, declaration in rows if adult_eligible(user, declaration)
+        ]
     # Separate short owner transactions avoid holding many account locks at once.
     for memory_id in ids:
         async with database.require()() as db, db.begin():

@@ -12,6 +12,7 @@ from sqlalchemy import and_, func, or_, select
 from app.core.errors import DomainError
 from app.core.security import Actor, require_actor, transaction
 from app.infrastructure.database.models import Consent, User, now
+from app.modules.auth.age import is_adult_eligible
 from app.modules.social import service as svc
 from app.modules.social.models import Connection, ConnectionRead, ConnectionRequest, HumanMessage
 from app.modules.social.schemas import SocialSummaryView
@@ -94,7 +95,7 @@ async def social_summary(request: Request, actor: Actor = Depends(require_actor)
         return SocialSummaryView()
     async with transaction(request, actor, lock=False) as (db, user):
         consent = await db.get(Consent, (user.id, "MATCH"))
-        if user.age_band != "adult" or not consent or not consent.enabled:
+        if not await is_adult_eligible(db, user) or not consent or not consent.enabled:
             return SocialSummaryView()
         pending = await db.scalar(
             select(func.count())
