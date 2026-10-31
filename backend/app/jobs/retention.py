@@ -43,6 +43,22 @@ async def purge_expired(app):
             ).all()
             if ids:
                 await db.execute(delete(AiUsage).where(AiUsage.run_id.in_(ids)))
+        # Finished proactive jobs are content-free dead letters kept 30 days for diagnosis.
+        from app.ai.proactive.models import AiProactiveJob
+
+        job_ids = (
+            await db.scalars(
+                select(AiProactiveJob.id)
+                .where(
+                    AiProactiveJob.finished_at.is_not(None),
+                    AiProactiveJob.finished_at <= now() - timedelta(days=30),
+                )
+                .limit(1000)
+                .with_for_update(skip_locked=True)
+            )
+        ).all()
+        if job_ids:
+            await db.execute(delete(AiProactiveJob).where(AiProactiveJob.id.in_(job_ids)))
         # Content-free run metadata; saved threads expire within 90 days, so older runs
         # no longer anchor any message. Usage rows for these runs cascade.
         from app.ai.models import AiMessageRecord

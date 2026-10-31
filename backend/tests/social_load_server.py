@@ -36,6 +36,7 @@ from app.ai import (
     memory_models,  # noqa: F401
 )
 from app.ai import models as chat_models  # noqa: F401
+from app.ai.proactive import models as proactive_models  # noqa: F401
 from app.core.config import Settings
 from app.infrastructure.database.models import AuthSession, Base, Consent, User
 from app.main import create_app

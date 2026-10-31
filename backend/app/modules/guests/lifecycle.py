@@ -91,6 +91,11 @@ INVENTORY: dict[str, str] = {
     "ai_turns": "purged",
     "ai_runs": "purged",
     "ai_usage": "purged",
+    "ai_proactive_settings": "purged",
+    "ai_proactive_schedules": "purged",
+    "ai_proactive_jobs": "purged",
+    "ai_conversation_reads": "purged",
+    "ai_message_sources": "purged",
     "idempotency_keys": "purged",
     "outbox": "purged",
     "data_jobs": "purged",
@@ -264,7 +269,10 @@ async def _delete_guest_only_social(db: AsyncSession, uid: UUID) -> None:
 
 
 async def _delete_owned(db: AsyncSession, uid: UUID) -> None:
+    from app.ai.proactive.lifecycle import purge_proactive
+
     await purge_owned_journal(db, uid)
+    await purge_proactive(db, uid)
     conversations = (
         await db.scalars(select(AiConversation.id).where(AiConversation.user_id == uid))
     ).all()

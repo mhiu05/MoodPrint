@@ -90,7 +90,10 @@ async def process_deletions(app):
         if job.scope in ("all_private", "account"):
             scopes = {"memories", "moods", "journal", "identity", "matching"}
             from app.ai.models import AiConversation, AiPreference, AiTurn
+            from app.ai.proactive.lifecycle import purge_proactive
 
+            # Schedules reveal daily routines; provenance names journal entries.
+            await purge_proactive(db, uid)
             await db.execute(delete(AiConversation).where(AiConversation.user_id == uid))
             await db.execute(delete(AiPreference).where(AiPreference.user_id == uid))
             # Temporary-chat turn digests have no conversation row to cascade from.
