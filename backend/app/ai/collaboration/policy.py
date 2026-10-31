@@ -22,6 +22,7 @@ from app.ai.collaboration.contracts import (
     TimeOfDay,
 )
 from app.ai.proactive.safety import distress_screen
+from app.contracts import BotId
 
 POLICY_VERSION = "collaboration-v1"
 SHARING_POLICY_VERSION = "sharing-v1"
@@ -31,8 +32,8 @@ MAX_DEPTH = 1
 @dataclass(frozen=True)
 class EdgeSpec:
     edge: Edge
-    requester: str
-    specialist: str
+    requester: BotId
+    specialist: BotId
     rules: tuple[RuleId, ...]
     input_schema: InputSchema
     # The specialist reads the user's saved journal entries (only this edge).

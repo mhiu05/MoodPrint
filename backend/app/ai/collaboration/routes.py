@@ -11,7 +11,7 @@ from sqlalchemy import select, update
 from app.ai.collaboration.eligibility import collaboration_eligible
 from app.ai.collaboration.models import SHARING_POLICY_VERSION, AiSharingPermission
 from app.ai.collaboration.policy import EDGES
-from app.ai.collaboration.schemas import SharingEdgeView, SharingInput, SharingView
+from app.ai.collaboration.schemas import SharingEdgeView, SharingInput, SharingReason, SharingView
 from app.ai.proactive.models import AiProactiveSettings
 from app.core.errors import DomainError
 from app.core.security import (
@@ -41,7 +41,7 @@ async def sharing_view(db, settings, user) -> SharingView:
     edges = []
     for spec in EDGES.values():
         row = rows.get(spec.edge)
-        reason = None
+        reason: SharingReason | None = None
         if not open_:
             reason = "feature_unavailable"
         elif not eligible:

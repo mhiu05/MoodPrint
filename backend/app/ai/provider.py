@@ -83,11 +83,21 @@ async def _no_unreceipted_claim(
 
 
 class _BudgetHooks(RunHooks[Any]):
-    def __init__(self, on_progress: Callable[[], Awaitable[None]], observer: UsageObserver | None = None):
+    def __init__(
+        self,
+        on_progress: Callable[[], Awaitable[None]],
+        observer: UsageObserver | None = None,
+        *,
+        model_limit: int = 3,
+        tool_limit: int = 2,
+    ):
         self.model_calls = 0
         self.tool_calls = 0
         self.on_progress = on_progress
         self.observer = observer
+        # Chat keeps 3/2 (ai_usage CHECK); a specialist consultation is 1 model call, 0 tools.
+        self.model_limit = model_limit
+        self.tool_limit = tool_limit
 
     async def on_llm_start(
         self,
@@ -97,7 +107,7 @@ class _BudgetHooks(RunHooks[Any]):
         input_items: list[TResponseInputItem],
     ) -> None:
         self.model_calls += 1
-        if self.model_calls > 3:
+        if self.model_calls > self.model_limit:
             raise DomainError(429, "MODEL_LIMIT", "Đã hết số phản hồi cho lượt này.")
         # The caller can revalidate live authorization without receiving model I/O.
         await self.on_progress()
@@ -120,7 +130,7 @@ class _BudgetHooks(RunHooks[Any]):
         tool: Tool,
     ) -> None:
         self.tool_calls += 1
-        if self.tool_calls > 2:
+        if self.tool_calls > self.tool_limit:
             raise DomainError(429, "TOOL_LIMIT", "Đã hết số thao tác cho lượt này.")
         if self.observer:
             await self.observer(UsageEvent(kind="tool_started", tool_name=tool.name))
@@ -342,6 +352,69 @@ class SdkProvider:
                 input=cast(list[TResponseInputItem], [input_item]),
                 max_turns=2,
                 hooks=_BudgetHooks(on_progress, observe),
+                run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False),
+            )
+            try:
+                async for _ in result.stream_events():
+                    pass
+                return cast(Any, output_type).model_validate(result.final_output)
+            except BaseException as error:
+                await _cancel_and_drain(result)
+                if isinstance(error, UserError) and isinstance(error.__cause__, DomainError):
+                    raise error.__cause__ from None
+                raise
+
+    async def run_specialist(
+        self,
+        *,
+        name: str,
+        instructions: str,
+        input_item: dict,
+        output_type: type,
+        context: Any,
+        on_progress: Callable[[], Awaitable[None]],
+        usage_observer: UsageObserver | None,
+        limit_seconds: float,
+        model_override: Model | str | None = None,
+        user_id: Any = None,
+    ) -> Any:
+        """One bounded consultation (phase-2/05 §6): purpose-only instructions, no persona, no
+        tools, no transcript, one model call, no tracing, no retries, a hard timeout."""
+        set_tracing_disabled(True)
+        if isinstance(model_override, Model):
+            model: Model = model_override
+        else:
+            key = self.settings.openai_api_key.get_secret_value()
+            if not key or not (model_override or self.settings.openai_model) or not self.settings.ai_available_for(user_id):
+                raise DomainError(503, "AI_UNAVAILABLE", "Trò chuyện AI hiện chưa khả dụng.")
+            model = OpenAIResponsesModel(model_override or self.settings.openai_model, self._openai(key))
+        agent = Agent[Any](
+            name=name,
+            instructions=instructions,
+            model=model,
+            tools=[],
+            output_type=output_type,
+            # 600 includes reasoning tokens (R-15: 300 risks response.incomplete); output is
+            # still bounded by the schema (≤ 240 characters of text).
+            model_settings=ModelSettings(
+                store=False, max_tokens=600, timeout=limit_seconds, retry=ModelRetrySettings(max_retries=0),
+                reasoning=Reasoning(effort="low"),
+            ),
+        )
+
+        async def observe(event: UsageEvent):
+            if usage_observer:
+                await usage_observer(event)
+            if self.usage_observer:
+                await self.usage_observer(event)
+
+        async with asyncio.timeout(limit_seconds):
+            result = Runner.run_streamed(
+                agent,
+                input=cast(list[TResponseInputItem], [input_item]),
+                context=context,
+                max_turns=1,
+                hooks=_BudgetHooks(on_progress, observe, model_limit=1, tool_limit=0),
                 run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False),
             )
             try:
