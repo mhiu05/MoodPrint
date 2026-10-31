@@ -166,7 +166,7 @@ async def test_each_paid_adapter_requires_reservation_and_final_lifetime(clients
     app.state.settings.guest_daily_budget_usd = Decimal("0.00001")  # 10_000 nano < one reservation
     refused = await send(app, tight, conversation)
     assert refused.status_code == 429 and refused.json()["error"]["code"] == "GUEST_BUDGET_EXHAUSTED"
-    spent = await add_guest(app, consents=True, usage={"ai_turns": 25})
+    spent = await add_guest(app, consents=True, usage={"ai_turns": app.state.settings.guest_ai_turns})
     app.state.settings.guest_daily_budget_usd = Decimal("0.01")
     spent_chat = (await open_chat(app, spent, tight_model)).json()
     over = await send(app, spent, spent_chat)
