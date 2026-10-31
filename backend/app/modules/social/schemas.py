@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from app.contracts import DTO, MessageText, VersionInput
 from app.modules.profiles.taxonomy import (
@@ -15,6 +15,22 @@ from app.modules.profiles.taxonomy import (
     STYLES,
     VALUES,
 )
+
+
+class FriendshipDiscovery(DTO):
+    """Explicit public display choices, independent of canonical matching facets."""
+
+    version: Literal[1] = 1
+    intention: Literal["talk", "shared-interests", "study", "experiences"] | None = None
+    connection_approach: Literal["gradual", "lively", "activity-first"] | None = None
+    featured_interests: list[str] = Field(default_factory=list, max_length=3)
+
+    @field_validator("featured_interests")
+    @classmethod
+    def known_unique_featured(cls, value: list[str]):
+        if len(value) != len(set(value)) or any(tag not in INTERESTS for tag in value):
+            raise ValueError("Unknown or duplicate featured interest")
+        return value
 
 
 class PublicProfile(DTO):
@@ -33,6 +49,13 @@ class PublicProfile(DTO):
     availability: list[str] = Field(default_factory=list, max_length=LIMITS["availability"][1])
     # Only show people with the same goal (applied to both sides).
     strict_goal: bool = False
+    discovery: FriendshipDiscovery | None = None
+
+    @model_validator(mode="after")
+    def featured_subset(self):
+        if self.discovery and not set(self.discovery.featured_interests).issubset(self.interests):
+            raise ValueError("Featured interests must be a subset of full interests")
+        return self
 
     @field_validator("interests", "values", "languages", "activities", "availability")
     @classmethod

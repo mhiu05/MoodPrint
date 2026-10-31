@@ -11,6 +11,9 @@ PRIVATE_NAMES = {
     "MemoryProposal",
     "MemoryEmbedding",
     "EmbeddingJob",
+    "JournalEntry",
+    "JournalMedia",
+    "JournalStorageDeletion",
     "AiConversation",
     "AiMessageRecord",
     "AiTurn",
@@ -25,6 +28,7 @@ PRIVATE_NAMES = {
 PRIVATE_MODULES = (
     "app.ai",
     "app.modules.mood",
+    "app.modules.journal",
     "app.modules.moderation",
     "app.modules.activities",
     "app.modules.users",

@@ -2274,6 +2274,7 @@ export interface components {
              * @default false
              */
             strictGoal: boolean;
+            discovery?: components["schemas"]["FriendshipDiscovery"] | null;
         };
         /** DraftView */
         DraftView: {
@@ -2490,6 +2491,24 @@ export interface components {
              * @default 1
              */
             cycles: number;
+        };
+        /**
+         * FriendshipDiscovery
+         * @description Explicit public display choices, independent of canonical matching facets.
+         */
+        FriendshipDiscovery: {
+            /**
+             * Version
+             * @default 1
+             * @constant
+             */
+            version: 1;
+            /** Intention */
+            intention?: ("talk" | "shared-interests" | "study" | "experiences") | null;
+            /** Connectionapproach */
+            connectionApproach?: ("gradual" | "lively" | "activity-first") | null;
+            /** Featuredinterests */
+            featuredInterests?: string[];
         };
         /**
          * GuestEligibility
@@ -3108,6 +3127,7 @@ export interface components {
              * @default false
              */
             strictGoal: boolean;
+            discovery?: components["schemas"]["FriendshipDiscovery"] | null;
         };
         /** PublishInput */
         PublishInput: {
