@@ -121,6 +121,10 @@ sequenceDiagram
 
 `store=False`, tracing disabled và no automatic provider retry là cấu hình client; không phải cam kết về retention hạ tầng của provider. Restart đánh dấu lượt đang chạy interrupted và không replay model call. Xem [runtime](docs/agents/runtime.md), [context-memory](docs/agents/context-memory.md).
 
+### Trợ lý phối hợp (Phase 2)
+
+Khi người dùng bật từng cạnh (mặc định tắt), một trợ lý có thể nhờ trợ lý khác **một** việc nhỏ trong lượt: Nhịp → Rủ Rê (mức năng lượng từ khoảnh khắc đã lưu, chat R1 và lời hỏi thăm sáng R2), Nhịp → Mây (một thói quen nhỏ, R3), Rủ Rê → Gương (một hoạt động theo sở thích, R4). Cầu Nối không có cạnh nào — matching không bao giờ dùng mood, nhật ký hay chat. Quyết định nhờ là luật trong code, không phải model; specialist là run con không tool, 1 model call, chỉ nhận trường có cấu trúc; câu "Nhịp đã gợi ý…" do backend dựng từ receipt `ai_collaborations` đã `completed` và đã dùng. Chi tiết: [runtime](docs/agents/runtime.md#trợ-lý-phối-hợp-phase-2), [operations](docs/backend/operations.md#trợ-lý-phối-hợp-phase-2), kế hoạch [phase-2](docs/implementation-plans/proactive-multi-agent-companion/phase-2/02-orchestration-architecture.md).
+
 ### Lời hỏi thăm chủ động (Phase 1)
 
 Người dùng tự hẹn giờ (sáng 05:00–11:30, tối 17:00–22:30, tối đa 4/ngày, giờ yên lặng) để trợ lý nhắn trước. Service Compose riêng `proactive` (cùng image) materialize lịch thành job PostgreSQL rồi chạy E1–E5 không giữ transaction quanh model; process API chỉ phục vụ `/ai/proactive`, `/ai/inbox` và read marker. Năm bảng mới (`ai_proactive_settings`, `ai_proactive_schedules`, `ai_proactive_jobs`, `ai_conversation_reads`, `ai_message_sources`) đều content-free trừ tin đã giao nằm trong `ai_messages`. Chi tiết: [runtime](docs/agents/runtime.md), [context](docs/agents/context-memory.md), [operations](docs/backend/operations.md).

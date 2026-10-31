@@ -211,6 +211,42 @@
           "defaultValue": 0
         }
       ]
+    },
+    {
+      "filterName": "collaboration-consulted",
+      "filterPattern": "\"metric=collaboration_consulted\"",
+      "metricTransformations": [
+        {
+          "metricName": "CollaborationConsulted",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "collaboration-timeout",
+      "filterPattern": "\"metric=collaboration_timeout\"",
+      "metricTransformations": [
+        {
+          "metricName": "CollaborationTimeout",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "collaboration-failed",
+      "filterPattern": "\"metric=collaboration_failed\"",
+      "metricTransformations": [
+        {
+          "metricName": "CollaborationFailed",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
     }
   ],
   "alarms": [
@@ -354,6 +390,30 @@
       "period": 3600,
       "evaluationPeriods": 1,
       "threshold": 1,
+      "comparisonOperator": "GreaterThanOrEqualToThreshold",
+      "treatMissingData": "notBreaching"
+    },
+    {
+      "alarmName": "CollaborationTimeouts",
+      "description": "Five or more specialist consultations timed out in 15 minutes (Phase 2 gate: timeout rate < 5 % of CollaborationConsulted). Users still get a single reply; check provider latency, then AI_COLLABORATION_ENABLED=false.",
+      "namespace": "MoodPrint/Staging",
+      "metricName": "CollaborationTimeout",
+      "statistic": "Sum",
+      "period": 900,
+      "evaluationPeriods": 1,
+      "threshold": 5,
+      "comparisonOperator": "GreaterThanOrEqualToThreshold",
+      "treatMissingData": "notBreaching"
+    },
+    {
+      "alarmName": "CollaborationFailures",
+      "description": "Five or more consultations failed (invalid/unsafe output or provider error) in 15 minutes. Replies fall back to a single companion; inspect reason codes, then consider AI_COLLABORATION_ENABLED=false.",
+      "namespace": "MoodPrint/Staging",
+      "metricName": "CollaborationFailed",
+      "statistic": "Sum",
+      "period": 900,
+      "evaluationPeriods": 1,
+      "threshold": 5,
       "comparisonOperator": "GreaterThanOrEqualToThreshold",
       "treatMissingData": "notBreaching"
     }

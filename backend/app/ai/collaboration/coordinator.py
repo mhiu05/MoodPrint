@@ -95,6 +95,13 @@ def _log(edge: str, rule: str, status: str, reason: str, started: float | None =
     duration = round((time.monotonic() - started) * 1000) if started is not None else 0
     log.info("metric=collaboration_state edge=%s rule=%s status=%s reason=%s duration_ms=%d",
              edge, rule, status, reason, duration)
+    # Dedicated counters for CloudWatch filters (deploy/aws/cloudwatch-alarms.json).
+    if status == "authorized":
+        log.info("metric=collaboration_consulted edge=%s", edge)
+    elif status == "timeout":
+        log.warning("metric=collaboration_timeout edge=%s", edge)
+    elif status == "failed":
+        log.warning("metric=collaboration_failed edge=%s reason=%s", edge, reason)
 
 
 def _denied_digest(schema: str, reason: str) -> str:

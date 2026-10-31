@@ -73,6 +73,30 @@ Service Compose riêng `proactive` (cùng image API, lệnh `python -m app.jobs.
 
 **Dừng khẩn cấp / rollback:** `PROACTIVE_WORKER_ENABLED=false` rồi `docker compose up -d proactive` (dừng sinh mới; job đang chạy để lease hết hạn, không commit dở). `PROACTIVE_ENABLED=false` ẩn API/UI (GET trả `available=false`, ghi `503`). Tin đã giao vẫn hợp lệ trong lịch sử. Rollback image R1 → R0 an toàn ở 0022 (R0 bỏ qua bảng mới; nhiều bubble hiển thị thành nhiều tin). Không downgrade schema.
 
+## Trợ lý phối hợp (Phase 2)
+
+Không có service mới: coordinator chạy trong process đang phục vụ lượt (API cho chat R1/R3/R4, service `proactive` cho R2). Mỗi lần nhờ là một run con `origin='collaboration'` (`parent_run_id`, `conversation_id` NULL) có `ai_usage` riêng, tính vào `AI_GLOBAL_CONCURRENCY` và ngân sách ngày nhưng không vào lượt chat của người dùng. Specialist không có tool, 1 model call, timeout `AI_COLLABORATION_TIMEOUT_SECONDS`; không giữ transaction trong lúc gọi model.
+
+**Thứ tự bật (sau khi Phase 1 đã ổn định trên staging):**
+
+1. Hosted ở `0023_collaboration` qua quy trình review SQL ([offline SQL ứng viên](../implementation-plans/proactive-multi-agent-companion/evidence/sql/0022-0023-offline.candidate.sql)); image R2 (`READY_REVISIONS = 0023`) ready. Rollback image R1 phải chấp nhận cả 0022 và 0023 trước khi áp dụng 0023 (xem sổ Phase 2).
+2. `AI_MULTI_MESSAGE_ENABLED=true`, `AI_ACCOUNTING_ENABLED=true`, `AI_DAILY_BUDGET_USD > 0` (validator production từ chối cờ phối hợp nếu thiếu accounting).
+3. `AI_COLLABORATION_ENABLED=true` với `AI_COLLABORATION_ROLLOUT_USER_IDS=[…]` (tài khoản thử nghiệm đã đồng ý). Mọi cạnh vẫn tắt cho tới khi chính người dùng bật ở `/companion-sharing`.
+4. Quan sát 7 ngày (Gate G2): 0 dòng cộng tác không có receipt `completed`+`used_in_reply`, timeout < 5 % (`CollaborationTimeout / CollaborationConsulted`), chi phí trong ±50 % ước tính.
+5. Mở rộng cohort, cuối cùng `AI_COLLABORATION_ROLLOUT_USER_IDS=[]`.
+
+**Log/metric (không nội dung, không `user_id`, không entry id):** `metric=collaboration_state edge rule status reason duration_ms` (mọi chuyển trạng thái), `metric=collaboration_consulted`, `metric=collaboration_timeout`, `metric=collaboration_failed reason`. Alarm `CollaborationTimeouts`, `CollaborationFailures` trong [cloudwatch-alarms.json](../../deploy/aws/cloudwatch-alarms.json) (cấu hình, chưa áp dụng). Receipt `ai_collaborations` giữ 90 ngày.
+
+| Triệu chứng | Kiểm tra theo thứ tự |
+| --- | --- |
+| Không bao giờ thấy dòng cộng tác | Cờ + cohort? `features.collaboration` trong `/session`? người dùng đã bật cạnh? tin có khớp luật R1–R4? `metric=collaboration_state … status=denied reason=…` |
+| Nhiều `timeout` | Độ trễ provider; specialist có 1 call nên timeout là trần cứng — người dùng vẫn nhận câu trả lời đơn; tạm `AI_COLLABORATION_ENABLED=false` nếu kéo dài |
+| Nhiều `failed reason=unsafe_*`/`invalid_output` | Model/prompt đổi hành vi; chạy `python -m evals.collaboration --offline`, live chỉ khi owner duyệt ngân sách |
+| `denied reason=budget` | Chi tiêu ngày ≥ `AI_COLLABORATION_BUDGET_SHARE × AI_DAILY_BUDGET_USD` |
+| Receipt kẹt `authorized` | Worker chết giữa chừng: `recover_turns` đóng run con và receipt (`failure_code=interrupted`) khi lease lượt cha hết hạn |
+
+**Dừng khẩn cấp / rollback:** `AI_COLLABORATION_ENABLED=false` (không cần redeploy schema): không còn specialist call, không receipt mới, không progress `consulting`, DTO không còn dòng cộng tác; người dùng vẫn tắt được cạnh. Rollback image R2 → R1 an toàn ở 0023 khi R1 chấp nhận 0023 (bảng/cột mới bị bỏ qua). Không downgrade schema.
+
 ## Rollback
 
 App rollback dùng image trước trên expanded schema tương thích và phải đáp ứng readiness thực tế. Ứng dụng journal chỉ chấp nhận `0019_journal`. Image tương thích ngay trước đó chấp nhận `0018_app_feedback` và `0019_journal`, nên nó vẫn ready sau upgrade cộng thêm và là rollback target. Không downgrade schema để rollback. Alembic destructive downgrade bị từ chối trong migrations. Hosted schema change và restore cần review riêng; xem [migrations](../supabase/migrations.md).
