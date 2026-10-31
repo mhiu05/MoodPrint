@@ -104,15 +104,15 @@ class InboxBot(DTO):
 class InboxView(DTO):
     """Counts and navigation only; never message text or a preview."""
 
-    badges_enabled: bool = False
-    unread_total: int = 0
-    bots: list[InboxBot] = Field(default_factory=list)
+    badges_enabled: bool
+    unread_total: int
+    bots: list[InboxBot]
 
 
-class ReadInput(DTO):
+class ConversationReadInput(DTO):
     last_read_sequence: int = Field(ge=0, le=1_000_000)
 
 
-class ReadView(DTO):
+class ConversationReadView(DTO):
     conversation_id: UUID
     last_read_sequence: int

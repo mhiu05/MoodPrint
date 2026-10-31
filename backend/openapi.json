@@ -6925,7 +6925,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/app__ai__proactive__schemas__ReadInput"
+                "$ref": "#/components/schemas/ConversationReadInput"
               }
             }
           }
@@ -6936,7 +6936,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__ai__proactive__schemas__ReadView"
+                  "$ref": "#/components/schemas/ConversationReadView"
                 }
               }
             }
@@ -9544,7 +9544,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/app__modules__social__schemas__ReadInput"
+                "$ref": "#/components/schemas/ReadInput"
               }
             }
           }
@@ -9555,7 +9555,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__modules__social__schemas__ReadView"
+                  "$ref": "#/components/schemas/ReadView"
                 }
               }
             }
@@ -16552,6 +16552,42 @@
         ],
         "title": "ConversationInput"
       },
+      "ConversationReadInput": {
+        "properties": {
+          "lastReadSequence": {
+            "type": "integer",
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Lastreadsequence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "lastReadSequence"
+        ],
+        "title": "ConversationReadInput"
+      },
+      "ConversationReadView": {
+        "properties": {
+          "conversationId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Conversationid"
+          },
+          "lastReadSequence": {
+            "type": "integer",
+            "title": "Lastreadsequence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "conversationId",
+          "lastReadSequence"
+        ],
+        "title": "ConversationReadView"
+      },
       "ConversationRename": {
         "properties": {
           "title": {
@@ -17761,13 +17797,11 @@
         "properties": {
           "badgesEnabled": {
             "type": "boolean",
-            "title": "Badgesenabled",
-            "default": false
+            "title": "Badgesenabled"
           },
           "unreadTotal": {
             "type": "integer",
-            "title": "Unreadtotal",
-            "default": 0
+            "title": "Unreadtotal"
           },
           "bots": {
             "items": {
@@ -17779,6 +17813,11 @@
         },
         "additionalProperties": false,
         "type": "object",
+        "required": [
+          "badgesEnabled",
+          "unreadTotal",
+          "bots"
+        ],
         "title": "InboxView",
         "description": "Counts and navigation only; never message text or a preview."
       },
@@ -19267,6 +19306,35 @@
         ],
         "title": "PublishedView"
       },
+      "ReadInput": {
+        "properties": {
+          "seq": {
+            "type": "string",
+            "pattern": "^\\d{1,19}$",
+            "title": "Seq"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "seq"
+        ],
+        "title": "ReadInput"
+      },
+      "ReadView": {
+        "properties": {
+          "lastReadSeq": {
+            "type": "string",
+            "title": "Lastreadseq"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "lastReadSeq"
+        ],
+        "title": "ReadView"
+      },
       "ReadyInput": {
         "properties": {
           "expectedVersion": {
@@ -20397,42 +20465,6 @@
         ],
         "title": "VersionInput"
       },
-      "app__ai__proactive__schemas__ReadInput": {
-        "properties": {
-          "lastReadSequence": {
-            "type": "integer",
-            "maximum": 1000000.0,
-            "minimum": 0.0,
-            "title": "Lastreadsequence"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "lastReadSequence"
-        ],
-        "title": "ReadInput"
-      },
-      "app__ai__proactive__schemas__ReadView": {
-        "properties": {
-          "conversationId": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Conversationid"
-          },
-          "lastReadSequence": {
-            "type": "integer",
-            "title": "Lastreadsequence"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "conversationId",
-          "lastReadSequence"
-        ],
-        "title": "ReadView"
-      },
       "app__modules__activities__schemas__FeedbackInput": {
         "properties": {
           "rating": {
@@ -20517,35 +20549,6 @@
         ],
         "title": "FeedbackInput",
         "description": "A required 1-5 rating; categories, comment and context are optional and never identifying."
-      },
-      "app__modules__social__schemas__ReadInput": {
-        "properties": {
-          "seq": {
-            "type": "string",
-            "pattern": "^\\d{1,19}$",
-            "title": "Seq"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "seq"
-        ],
-        "title": "ReadInput"
-      },
-      "app__modules__social__schemas__ReadView": {
-        "properties": {
-          "lastReadSeq": {
-            "type": "string",
-            "title": "Lastreadseq"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "lastReadSeq"
-        ],
-        "title": "ReadView"
       },
       "AIEvent": {
         "additionalProperties": false,

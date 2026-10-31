@@ -28,8 +28,8 @@ from app.ai.proactive.schemas import (
     ProactiveSettingsInput,
     ProactiveSettingsView,
     ProactiveView,
-    ReadInput,
-    ReadView,
+    ConversationReadInput,
+    ConversationReadView,
     ScheduleInput,
     ScheduleView,
     Slot,
@@ -426,7 +426,7 @@ def _inbox(rows, badges: bool) -> InboxView:
 
 async def _inbox_for(request: Request, db, user: User) -> InboxView:
     if user.account_kind != "registered" or not request.app.state.settings.proactive_open_for(user.id):
-        return InboxView()
+        return InboxView(badges_enabled=False, unread_total=0, bots=[])
     prefs = await db.get(AiProactiveSettings, user.id)
     return _inbox(await inbox_rows(db, user.id), prefs.badges_enabled if prefs else True)
 
@@ -453,16 +453,16 @@ async def _mark(db, user_id: UUID, conversation: AiConversation, sequence: int) 
     return int((await db.execute(statement)).scalar_one())
 
 
-@router.put("/ai/conversations/{conversation_id}/read", response_model=ReadView)
+@router.put("/ai/conversations/{conversation_id}/read", response_model=ConversationReadView)
 async def mark_read(
-    conversation_id: UUID, body: ReadInput, request: Request, actor: Actor = Depends(require_actor)
+    conversation_id: UUID, body: ConversationReadInput, request: Request, actor: Actor = Depends(require_actor)
 ):
     async with transaction(request, actor) as (db, user):
         conversation = await owned_conversation(db, conversation_id, user.id, lock=True)
         if conversation is None:
             raise DomainError(404, "NOT_FOUND", "Không tìm thấy cuộc trò chuyện.")
         marked = await _mark(db, user.id, conversation, body.last_read_sequence)
-        return ReadView(conversation_id=conversation.id, last_read_sequence=marked)
+        return ConversationReadView(conversation_id=conversation.id, last_read_sequence=marked)
 
 
 @router.post("/ai/inbox/read-all", response_model=InboxView)
