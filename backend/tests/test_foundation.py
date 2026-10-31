@@ -21,8 +21,9 @@ async def test_live_works_without_configuration_but_ready_and_auth_fail_closed()
 def test_ready_revisions_cover_the_reviewed_migration_window():
     from app.core.revisions import READY_REVISIONS
 
+    # R1 writes bubble parts, run origin and proactive tables, so only 0022 is ready.
     assert READY_REVISIONS == (
-        "0019_journal",
+        "0022_proactive_messages",
     )
 
 
@@ -38,7 +39,10 @@ def test_ready_revisions_cover_the_reviewed_migration_window():
         ("0016_guest_foundation", 503),
         ("0017_guest_security", 503),
         ("0018_app_feedback", 503),
-        ("0019_journal", 200),
+        ("0019_journal", 503),
+        ("0020_private_profile_retirement", 503),
+        ("0021_multi_message", 503),
+        ("0022_proactive_messages", 200),
         ("0017_unreviewed", 503),
     ],
 )

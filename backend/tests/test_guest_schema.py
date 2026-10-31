@@ -250,7 +250,7 @@ def test_upgrade_from_0015_preserves_registered_rows_and_matches_models():
                 (sid, uid, "a" * 64, "b" * 64, uuid4()),
             )
         alembic("upgrade", "head")
-        assert "0019_journal" in alembic("current").stdout
+        assert "0022_proactive_messages (head)" in alembic("current").stdout
         with psycopg.connect(raw, autocommit=True) as db:
             kind = db.execute(
                 "select account_kind, guest_started_at, guest_expires_at"
