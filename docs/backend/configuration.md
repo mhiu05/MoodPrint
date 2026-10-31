@@ -34,6 +34,11 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 | `PROACTIVE_MAX_ATTEMPTS` | `int` | `3` |
 | `PROACTIVE_INACTIVE_DAYS` | `int` | `14` |
 | `PROACTIVE_ROLLOUT_USER_IDS` | `list[UUID]` | `[]` |
+| `AI_COLLABORATION_ENABLED` | `bool` | `False` |
+| `AI_COLLABORATION_DAILY_CAP` | `int` | `10` |
+| `AI_COLLABORATION_TIMEOUT_SECONDS` | `float` | `8` |
+| `AI_COLLABORATION_BUDGET_SHARE` | `float` | `0.7` |
+| `AI_COLLABORATION_ROLLOUT_USER_IDS` | `list[UUID]` | `[]` |
 | `CHAT_RETENTION_DAYS` | `int` | `30` |
 | `AI_GLOBAL_CONCURRENCY` | `int` | `50` |
 | `AI_USER_CONCURRENCY` | `int` | `2` |
@@ -94,6 +99,7 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 - **AI:** `AI_ENABLED`, model/key, concurrency/rate/timeout; daily USD budget cần accounting. `AI_LOCAL_TEST_USER_IDS` chỉ được phép ở development, không phải production bypass.
 - **History:** `CHAT_HISTORY_ENABLED` và retention là capability global; preference mặc định của user vẫn tắt.
 - **Lời hỏi thăm (chủ động):** `PROACTIVE_ENABLED` mở API/UI lịch hỏi thăm (`GET/PUT /ai/proactive…`, `features.proactive`); `PROACTIVE_WORKER_ENABLED` bật vòng scheduler/executor **chỉ** trong service Compose `proactive` (`python -m app.jobs.proactive`), không bao giờ trong process API. Production bật worker bắt buộc `PROACTIVE_ENABLED`, `AI_ENABLED`, `AI_ACCOUNTING_ENABLED=true` và `AI_DAILY_BUDGET_USD > 0`. Lời hỏi thăm không trừ lượt chat của người dùng nhưng dừng khi chi tiêu ngày đạt `PROACTIVE_BUDGET_SHARE × AI_DAILY_BUDGET_USD`. `PROACTIVE_ROLLOUT_USER_IDS` khác rỗng giới hạn tính năng cho nhóm thử nghiệm đã đồng ý. Thứ tự bật: [operations](operations.md).
+- **Trợ lý phối hợp (Phase 2):** `AI_COLLABORATION_ENABLED` (mặc định tắt) cho phép một trợ lý nhờ trợ lý khác **một** việc nhỏ theo luật xác định R1–R4, chỉ trên các cạnh người dùng đã bật ở `/ai/sharing` (mặc định tắt từng cạnh). Bắt buộc `AI_MULTI_MESSAGE_ENABLED=true` (mọi môi trường) và, ở production, `AI_ACCOUNTING_ENABLED=true` vì run con không có lease `ai_turns`. Mỗi người dùng tối đa `AI_COLLABORATION_DAILY_CAP` lần/ngày Asia/Bangkok; specialist có timeout `AI_COLLABORATION_TIMEOUT_SECONDS` (3–10 s); dừng phối hợp khi chi tiêu ngày đạt `AI_COLLABORATION_BUDGET_SHARE × AI_DAILY_BUDGET_USD`. `AI_COLLABORATION_ROLLOUT_USER_IDS` khác rỗng giới hạn cho nhóm thử nghiệm. Tắt cờ: không có specialist call, không có receipt mới, không có dòng cộng tác; người dùng vẫn luôn tắt được cạnh đã bật.
 - **Nhiều bubble:** `AI_MULTI_MESSAGE_ENABLED=true` cho model trả 1–4 tin đã validate trong một lượt (lưu mỗi tin một dòng, SSE v2 qua `?protocol=2`; client cũ nhận bản ghép v1). Tắt là kill switch: trả lời một tin như trước, lịch sử nhiều bubble cũ vẫn hiển thị.
 - **Embedding:** Voyage credentials + semantic capability + user opt-in/MEM. `PROVIDER_FORCE_IPV4` chỉ dùng xử lý network khi cần, không thay authorization.
 - **Social:** scorer mặc định v1; activities và moderation admin mặc định tắt. `ACTIVITY_KINDS` là rollout subset.

@@ -43,6 +43,8 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 | PUT | `/api/v1/ai/proactive/schedules/{bot_id}/{slot}` | `save_schedule_api_v1_ai_proactive_schedules__bot_id___slot__put` |
 | DELETE | `/api/v1/ai/proactive/schedules/{bot_id}/{slot}` | `delete_schedule_api_v1_ai_proactive_schedules__bot_id___slot__delete` |
 | PUT | `/api/v1/ai/proactive/settings` | `save_settings_api_v1_ai_proactive_settings_put` |
+| GET | `/api/v1/ai/sharing` | `read_sharing_api_v1_ai_sharing_get` |
+| PUT | `/api/v1/ai/sharing/{edge}` | `update_sharing_api_v1_ai_sharing__edge__put` |
 | POST | `/api/v1/ai/runs/{run_id}/cancel` | `cancel_api_v1_ai_runs__run_id__cancel_post` |
 | GET | `/api/v1/ai/runs/{run_id}/events` | `events_api_v1_ai_runs__run_id__events_get` |
 | POST | `/api/v1/auth/confirmation` | `resend_confirmation_api_v1_auth_confirmation_post` |
@@ -154,4 +156,18 @@ Chỉ tài khoản đã đăng ký (`require_registered_actor`, guest → `403 R
 Mọi lần lưu hủy job chưa chạy của lịch liên quan; đổi múi giờ/giờ yên lặng tính lại `nextDeliveryAt` cho mọi lịch; tắt `journalContextEnabled` tăng `journal_context_version` và `users.data_version`, hủy job Nhịp chưa chạy và lượt chat đang chạy.
 
 **Lời nhắn mới (inbox).** `GET /ai/inbox` (không khóa hàng tài khoản, poll 30 s) trả `badgesEnabled`, `unreadTotal` và mỗi trợ lý một dòng `{botId, unread, latest:{conversationId, runId, slot, deliveredAt, firstSequence}}` — **không** có nội dung hay preview. Đếm theo lượt giao (3 bubble = 1), chỉ hội thoại còn hạn, run trong 30 ngày; trả lời sau lời hỏi thăm được tính là đã đọc. Guest, cờ tắt hoặc ngoài nhóm rollout → `{badgesEnabled:false, unreadTotal:0, bots:[]}`. `PUT /ai/conversations/{id}/read` `{lastReadSequence}` upsert đơn điệu (`GREATEST`), cắt về `conversation.version`, hội thoại người khác → 404. `POST /ai/inbox/read-all` đánh dấu mọi hội thoại có lời nhắn mới và trả lại inbox.
+
+## Trợ lý phối hợp (Phase 2)
+
+Chỉ tài khoản đã đăng ký (`require_registered_actor`, guest → `403 REGISTERED_REQUIRED`). `GET /ai/sharing` trả `{available, edges:[{edge, requester, specialist, enabled, version, requires, available, reason}]}` cho đúng ba cạnh `nhip_energy_for_rure`, `nhip_habit_for_may`, `rure_activity_for_guong` (Cầu Nối không có cạnh). Tài khoản mới: mọi cạnh `enabled:false, version:0`. `reason ∈ {feature_unavailable, ineligible_account, journal_context_off}`; văn bản "chia sẻ gì / không chia sẻ gì" là hằng frontend theo `edge`.
+
+`PUT /ai/sharing/{edge}` `{enabled, expectedVersion, policyVersion:"sharing-v1"}` (bắt buộc `Idempotency-Key`). Bật: version +1. **Tắt luôn được phép** (kể cả khi cờ tắt): version +1, `users.data_version` +1, mọi run `running` của tài khoản → `cancelled`, `runtime.invalidate()` — lượt đang chạy không dùng hay lưu được kết quả phối hợp.
+
+| Lỗi | HTTP | Khi |
+| --- | --- | --- |
+| `NOT_FOUND` | 404 | Cạnh ngoài allowlist (mọi cạnh có Cầu Nối, mọi cặp không khai báo) |
+| `STALE_VERSION` | 409 | `expectedVersion` lệch |
+| `SHARING_REQUIRES_JOURNAL_CONTEXT` | 409 | Bật `nhip_energy_for_rure` khi chưa bật "Dùng khoảnh khắc đã lưu hôm qua" |
+| `COLLABORATION_UNAVAILABLE` | 503 | Bật khi `AI_COLLABORATION_ENABLED=false`, ngoài nhóm rollout hoặc chưa bật `AI_MULTI_MESSAGE_ENABLED` |
+| `ADULT_REQUIRED` | 403 | Bật khi tài khoản chưa đủ 18 tuổi, bị tạm khóa hoặc đang chờ xóa |
 

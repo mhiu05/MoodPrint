@@ -45,6 +45,14 @@ class Settings(EmbeddingSettings, BaseSettings):
     proactive_inactive_days: int = Field(default=14, ge=1, le=60)
     # Non-empty: only these consenting test accounts see or receive check-ins.
     proactive_rollout_user_ids: list[UUID] = Field(default_factory=list)
+    # Companion collaboration (phase-2/05 §7). Off: no specialist call, no receipt, no UI line.
+    ai_collaboration_enabled: bool = False
+    ai_collaboration_daily_cap: int = Field(default=10, ge=1, le=50)
+    ai_collaboration_timeout_seconds: float = Field(default=8, ge=3, le=10)
+    # Collaboration stops once today's estimated spend reaches this share of AI_DAILY_BUDGET_USD.
+    ai_collaboration_budget_share: float = Field(default=0.7, ge=0.1, le=0.9)
+    # Non-empty: only these consenting test accounts can enable or use collaboration.
+    ai_collaboration_rollout_user_ids: list[UUID] = Field(default_factory=list)
     ai_global_concurrency: int = Field(default=50, ge=1, le=100)
     ai_user_concurrency: int = Field(default=2, ge=1, le=5)
     ai_requests_per_minute: int = Field(default=20, ge=1, le=120)
@@ -130,6 +138,13 @@ class Settings(EmbeddingSettings, BaseSettings):
         return self
 
     @model_validator(mode="after")
+    def collaboration_requires_v2(self):
+        # The consulting/composing progress and the final summary exist only in ai-events-v2.
+        if self.ai_collaboration_enabled and not self.ai_multi_message_enabled:
+            raise ValueError("AI_COLLABORATION_ENABLED requires AI_MULTI_MESSAGE_ENABLED")
+        return self
+
+    @model_validator(mode="after")
     def local_live_scope(self):
         if self.ai_local_test_user_ids and self.app_env != "development":
             raise ValueError("Local live AI actors are allowed only in development")
@@ -163,12 +178,21 @@ class Settings(EmbeddingSettings, BaseSettings):
                     "PROACTIVE_WORKER_ENABLED requires PROACTIVE_ENABLED, AI_ENABLED, "
                     "AI_ACCOUNTING_ENABLED and AI_DAILY_BUDGET_USD > 0"
                 )
+            if self.ai_collaboration_enabled and not self.ai_accounting_enabled:
+                # Child runs have no ai_turns lease; crash recovery relies on the ai_usage lease.
+                raise ValueError("AI_COLLABORATION_ENABLED requires AI_ACCOUNTING_ENABLED in production")
         return self
 
     def proactive_open_for(self, user_id: UUID) -> bool:
         """Feature flag plus optional rollout cohort; never a consent or eligibility grant."""
         return self.proactive_enabled and (
             not self.proactive_rollout_user_ids or user_id in self.proactive_rollout_user_ids
+        )
+
+    def collaboration_open_for(self, user_id: UUID) -> bool:
+        """Feature flag plus optional rollout cohort; never a sharing permission."""
+        return self.ai_collaboration_enabled and (
+            not self.ai_collaboration_rollout_user_ids or user_id in self.ai_collaboration_rollout_user_ids
         )
 
     def ai_available_for(self, user_id: UUID | None) -> bool:

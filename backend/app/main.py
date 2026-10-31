@@ -366,6 +366,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"status": "ready"}
 
     from app.ai.chat_routes import router as ai
+    from app.ai.collaboration.routes import router as sharing
     from app.ai.memory import router as memory
     from app.ai.proactive.routes import router as proactive
     from app.modules.activities.routes import router as activities
@@ -398,6 +399,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         journal_media,
         ai,
         proactive,
+        sharing,
         memory,
         social,
         social_summary,

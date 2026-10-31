@@ -80,6 +80,9 @@ REGISTERED_ONLY = {
     ("PUT", "/ai/proactive/settings"),
     ("PUT", "/ai/proactive/schedules/{bot_id}/{slot}"),
     ("DELETE", "/ai/proactive/schedules/{bot_id}/{slot}"),
+    # Companion collaboration opt-in is for permanent adult accounts only (P2-02).
+    ("GET", "/ai/sharing"),
+    ("PUT", "/ai/sharing/{edge}"),
     ("GET", "/admin/feedback"),
     ("GET", "/admin/feedback/summary"),
     ("PATCH", "/admin/feedback/{id}"),
