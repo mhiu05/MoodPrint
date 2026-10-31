@@ -148,3 +148,13 @@ CONVERSATIONAL_PERSONAS = {
 
 def conversation_instructions(bot_id: str, intent: str) -> str:
     return CONVERSATIONAL_SHARED + '\n' + CONVERSATIONAL_PERSONAS[bot_id] + '\nÝ định gợi ý cho lượt hiện tại: ' + intent + '.\n'
+
+
+# Runtime layer for AI_MULTI_MESSAGE_ENABLED only; appended after the frozen instructions.
+MULTI_MESSAGE_GUIDANCE = """
+Định dạng trả lời: messages là 1 đến 4 tin ngắn như khi nhắn tin. Mặc định dùng 1 tin.
+Chỉ tách khi tự nhiên: một câu đón nhận ngắn rồi một ý chính; hoặc một câu hỏi lại tách
+khỏi phần trả lời. Không tách danh sách, các bước, một đoạn giải thích liền mạch hay câu
+trả lời ngắn. Không lặp nội dung giữa các tin. Card đặt ở tin cuối. Nếu có source_entry_ids,
+ghi một lần ở cấp ngoài; backend tự thêm dòng tham khảo vào tin cuối.
+"""

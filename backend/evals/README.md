@@ -32,3 +32,18 @@ this checker does not infer them. Any observed unauthorized action/leakage or fa
 success is a Hold. Quality targets and live budget still require Q08 approval.
 
 The live runner is `python -m evals.live --live --variants A B --splits calibration development --output <new-file.json>`. It refuses overwrite and fake fallback, bounds concurrency to 1–5 and records content-free usage. `evals.judge` records blinded scores and order repeats; `evals.report` aggregates saved evidence without API calls. The existing evaluate.py checks only the historical offline envelope. Live runs require explicit target and budget approval; see [evaluation scope](../../docs/agents/evaluation.md).
+
+## Multi-message splitting (P1-08)
+
+`evals/multi_message/` checks how `AI_MULTI_MESSAGE_ENABLED` replies are split: 20 synthetic
+cases (`short` must be one bubble, `list` must not be split across bubbles, `open` may split).
+Gate: valid contract 100 %, short single-bubble ≥ 95 %, lists unsplit ≥ 95 %. Reports are
+content-free (no reply text).
+
+```powershell
+uv run python -m evals.multi_message --offline recorded.jsonl --output report.json
+uv run python -m evals.multi_message --live --confirm-live --max-usd 0.05 --output report.json
+```
+
+Live mode is paid and refuses to start without `--confirm-live` and a positive `--max-usd`;
+it stops before the next call once the estimated spend reaches the cap. It has not been run.

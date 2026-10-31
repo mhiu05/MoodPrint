@@ -38,7 +38,12 @@ from app.ai.journal import (
     render_journal_output,
     render_journal_reply,
 )
-from app.ai.prompts import LEGACY_BOTS, conversation_instructions, instructions
+from app.ai.prompts import (
+    LEGACY_BOTS,
+    MULTI_MESSAGE_GUIDANCE,
+    conversation_instructions,
+    instructions,
+)
 from app.ai.schemas import AiOutput, AiReply, CompanionReply
 from app.ai.usage import UsageEvent, UsageObserver
 from app.core.config import Settings
@@ -230,7 +235,7 @@ class SdkProvider:
         )
         agent = Agent[Any](
             name=f"MoodPrint:{bot_id}",
-            instructions=instructions(bot_id, self.prompt_variant) + source_instructions(context, bot_id, mood_analysis=analytical) + (journal_instructions(context) if journal_mode else "") + runtime_guidance,
+            instructions=instructions(bot_id, self.prompt_variant) + source_instructions(context, bot_id, mood_analysis=analytical) + (journal_instructions(context) if journal_mode else "") + runtime_guidance + (MULTI_MESSAGE_GUIDANCE if multi else ""),
             model=model,
             tools=selected_tools,
             output_type=output_type,

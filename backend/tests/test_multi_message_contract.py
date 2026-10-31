@@ -139,3 +139,19 @@ async def test_flag_on_journal_link_written_by_model_in_first_bubble_is_rejected
             on_progress=no_progress, model_override=scripted(payload),
         )
     assert error.value.code == "JOURNAL_CITATION_INVALID"
+
+
+async def test_splitting_guidance_is_sent_only_with_the_flag_on():
+    from app.ai.prompts import MULTI_MESSAGE_GUIDANCE
+
+    on = scripted(bubbles("Một"))
+    await SdkProvider(multi_settings()).run_reply(
+        bot_id="may", history=[], tools=[], context={}, on_progress=no_progress, model_override=on
+    )
+    assert MULTI_MESSAGE_GUIDANCE in on.calls[0]["instructions"]
+    assert "Mặc định dùng 1 tin" in MULTI_MESSAGE_GUIDANCE
+    off = make_test_model("Một")
+    await SdkProvider(Settings(_env_file=None)).run_reply(
+        bot_id="may", history=[], tools=[], context={}, on_progress=no_progress, model_override=off
+    )
+    assert "messages là 1 đến 4 tin" not in off.calls[0]["instructions"]
