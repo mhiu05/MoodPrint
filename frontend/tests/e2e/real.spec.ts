@@ -93,7 +93,7 @@ test("AI starters edit the draft without sending and stay hidden after the first
       eventsUrl: "/api/v1/ai/runs/33333333-3333-4333-8333-333333333333/events",
     } });
   });
-  await page.route("**/api/v1/ai/runs/*/events", (route) => route.fulfill({
+  await page.route("**/api/v1/ai/runs/*/events*", (route) => route.fulfill({
     contentType: "text/event-stream",
     body: [
       { version: "ai-events-v1", seq: "1", type: "final", data: { text: "Mình đang lắng nghe bạn.", cards: [] } },
@@ -123,7 +123,7 @@ async function scopedNhip(page: Page, submitted: any[], fail = false) {
     version += 2;
     return route.fulfill({ status: 202, json: { runId: "33333333-3333-4333-8333-333333333333", conversationId: conversation.conversationId, version: version - 1, runVersion: 1, eventsUrl: "/api/v1/ai/runs/33333333-3333-4333-8333-333333333333/events" } });
   });
-  await page.route("**/api/v1/ai/runs/*/events", route => route.fulfill({ contentType: "text/event-stream", body: [
+  await page.route("**/api/v1/ai/runs/*/events*", route => route.fulfill({ contentType: "text/event-stream", body: [
     { version: "ai-events-v1", seq: "1", type: "final", data: { text: "Đã phản hồi.", cards: [] } },
     { version: "ai-events-v1", seq: "2", type: "completed", data: {} },
   ].map(event => `id: ${event.seq}\ndata: ${JSON.stringify(event)}\n\n`).join("") }));
@@ -206,7 +206,7 @@ for (const width of [1280, 390]) {
 test("terminal AI failure restores text without regranting the consumed mood scope", async ({ page }) => {
   const submitted: any[] = [];
   await scopedNhip(page, submitted);
-  await page.route("**/api/v1/ai/runs/*/events", route => route.fulfill({ contentType: "text/event-stream", body:
+  await page.route("**/api/v1/ai/runs/*/events*", route => route.fulfill({ contentType: "text/event-stream", body:
     `data: ${JSON.stringify({ version: "ai-events-v1", seq: "1", type: "failed", data: {} })}\n\n` }));
   const input = page.getByRole("textbox", { name: "Tin nhắn cho Nhịp" });
   await input.fill("Một lời nhắn cần thử lại");
@@ -597,7 +597,7 @@ test("AI presents the validated final and rejects raw stream deltas", async ({
         },
       }),
   );
-  await page.route("**/api/v1/ai/runs/*/events", (route) =>
+  await page.route("**/api/v1/ai/runs/*/events*", (route) =>
     route.fulfill({
       contentType: "text/event-stream",
       body: [
@@ -692,7 +692,7 @@ test("the next AI send uses the version persisted after final completion", async
       );
     },
   );
-  await page.route("**/api/v1/ai/runs/*/events", (route) =>
+  await page.route("**/api/v1/ai/runs/*/events*", (route) =>
     route.fulfill({
       contentType: "text/event-stream",
       body: 'data: {"version":"ai-events-v1","seq":"1","type":"final","data":{"text":"Mình đang lắng nghe bạn.","cards":[]}}\n\ndata: {"version":"ai-events-v1","seq":"2","type":"completed","data":{}}\n\n',
@@ -736,7 +736,7 @@ test("an invalid AI final fails visibly without rendering provider JSON", async 
         },
       }),
   );
-  await page.route("**/api/v1/ai/runs/*/events", (route) =>
+  await page.route("**/api/v1/ai/runs/*/events*", (route) =>
     route.fulfill({
       contentType: "text/event-stream",
       body: 'data: {"version":"ai-events-v1","seq":"1","type":"final","data":{"raw":"PROVIDER_JSON_SECRET"}}\n\n',
@@ -836,7 +836,7 @@ test("validated AI cards navigate to existing tools without claiming a saved act
         },
       }),
   );
-  await page.route("**/api/v1/ai/runs/*/events", (route) =>
+  await page.route("**/api/v1/ai/runs/*/events*", (route) =>
     route.fulfill({
       contentType: "text/event-stream",
       body: 'data: {"version":"ai-events-v1","seq":"1","type":"final","data":{"text":"Bạn có thể ghi cảm xúc hôm nay.","cards":[{"kind":"mood_form"},{"kind":"navigate_bot","botId":"guong"},{"kind":"discovery"}]}}\n\ndata: {"version":"ai-events-v1","seq":"2","type":"completed","data":{}}\n\n',

@@ -255,7 +255,7 @@ async function aiRun(page: Page, options: { terminal?: "completed" | "cancelled"
     thread.messages.push({ id: sent.clientMessageId, actor: "self", text: sent.text });
     await route.fulfill({ status: 202, json: { runId: RUN, conversationId: CONV, version: 2, runVersion: 1, eventsUrl: `/api/v1/ai/runs/${RUN}/events` } });
   });
-  await page.route(`**/api/v1/ai/runs/${RUN}/events`, async (route) => {
+  await page.route(`**/api/v1/ai/runs/${RUN}/events*`, async (route) => {
     await finish.promise;
     if (terminal === "completed") thread.messages.push({ id: `${RUN}-bot`, actor: "bot", text: "Mình nghe bạn đây.", cards: [] });
     const body = terminal === "completed"
@@ -528,7 +528,7 @@ test.describe("compact agent chat", () => {
         thread.messages.push({ id: sent.clientMessageId, actor: "self", text: sent.text });
         await route.fulfill({ status: 202, json: { runId: RUN, conversationId: CONV, version: 3, runVersion: 1, eventsUrl: `/api/v1/ai/runs/${RUN}/events` } });
       });
-      await page.route(`**/api/v1/ai/runs/${RUN}/events`, async (route) => {
+      await page.route(`**/api/v1/ai/runs/${RUN}/events*`, async (route) => {
         await finish.promise;
         await route.fulfill({ contentType: "text/event-stream", body: sse([{ type: "cancelled" }]) });
       });
@@ -751,7 +751,7 @@ test.describe("AI message dates and details", () => {
       { ...messages[1], id: "legacy", createdAt: null },
       { ...messages[1], id: "invalid", createdAt: "invalid" },
     ] } });
-    await expect(page.locator(".message-date-separator")).toHaveText(["31/12/2025", "28/10/2026", "Yesterday", "Today"]);
+    await expect(page.locator(".message-date-separator")).toHaveText(["31/12/2025", "28/10/2026", "Hôm qua", "Hôm nay"]);
     await expect(page.locator(".message-content time")).toHaveCount(5);
     await expect(page.getByRole("log")).not.toContainText("Invalid Date");
   });
@@ -875,7 +875,7 @@ test("a reply arriving while someone reads older messages does not move them, an
     [`/ai/conversations/${CONV}`]: () => ({ json: thread }),
   });
   await page.route(`**/api/v1/ai/conversations/${CONV}/messages`, async (route) => { await accept.promise; await route.fulfill({ status: 202, json: { runId: RUN, conversationId: CONV, version: 4, runVersion: 1, eventsUrl: `/api/v1/ai/runs/${RUN}/events` } }); });
-  await page.route(`**/api/v1/ai/runs/${RUN}/events`, async (route) => { await finish.promise; await route.fulfill({ contentType: "text/event-stream", body: sse([{ type: "final", data: { text: "Câu trả lời mới.", cards: [] } }, { type: "completed" }]) }); });
+  await page.route(`**/api/v1/ai/runs/${RUN}/events*`, async (route) => { await finish.promise; await route.fulfill({ contentType: "text/event-stream", body: sse([{ type: "final", data: { text: "Câu trả lời mới.", cards: [] } }, { type: "completed" }]) }); });
   await page.goto(`/#/assistants/may?conversation=${CONV}`);
   await page.getByRole("textbox", { name: "Tin nhắn cho Mây" }).fill("Một câu hỏi");
   await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
@@ -1262,7 +1262,7 @@ test.describe("final review regressions", () => {
   test("a completed reply keeps older messages the reader loaded", async ({ page }) => {
     await pagedChat(page, `/#/assistants/may?conversation=${CONV}`);
     await page.route(`**/api/v1/ai/conversations/${CONV}/messages`, (route) => route.fulfill({ status: 202, json: { runId: RUN, conversationId: CONV, version: 4, runVersion: 1, eventsUrl: `/api/v1/ai/runs/${RUN}/events` } }));
-    await page.route(`**/api/v1/ai/runs/${RUN}/events`, (route) => route.fulfill({ contentType: "text/event-stream", body: sse([{ type: "final", data: { text: "Câu trả lời mới.", cards: [] } }, { type: "completed" }]) }));
+    await page.route(`**/api/v1/ai/runs/${RUN}/events*`, (route) => route.fulfill({ contentType: "text/event-stream", body: sse([{ type: "final", data: { text: "Câu trả lời mới.", cards: [] } }, { type: "completed" }]) }));
     await page.getByRole("textbox", { name: "Tin nhắn cho Mây" }).fill("Một câu hỏi");
     await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
     await expect(status(page)).toHaveText("");

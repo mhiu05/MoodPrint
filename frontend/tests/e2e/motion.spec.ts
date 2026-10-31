@@ -142,7 +142,7 @@ test("the AI status wrapper moves only when an accepted run begins, never while 
     thread.messages.push({ id: sent.clientMessageId, actor: "self", text: sent.text });
     await route.fulfill({ status: 202, json: { runId: RUN, conversationId: CONV, version: 2, runVersion: 1, eventsUrl: `/api/v1/ai/runs/${RUN}/events` } });
   });
-  await page.route(`**/api/v1/ai/runs/${RUN}/events`, async (route) => {
+  await page.route(`**/api/v1/ai/runs/${RUN}/events*`, async (route) => {
     await finished;
     // The real backend records the reply before publishing completion.
     thread.messages.push({ id: `${RUN}-bot`, actor: "bot", text: "Xong.", cards: [] });

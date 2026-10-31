@@ -48,7 +48,7 @@ import {
 import { BotAvatar } from "../../companions/Avatar";
 import { botById, type BotId } from "../../companions/registry";
 import { ApiClient, ApiError, errorMessage } from "../../api/client";
-import { consumeAIEvents, validCards } from "../../api/stream";
+import { consumeAIReply, validCards } from "../../api/stream";
 import { AdultEligibility, EligibilityGate } from "./Eligibility";
 import { AuthScreen } from "./Auth";
 import type { AuthCallback } from "../auth/callback";
@@ -90,6 +90,7 @@ import { AIActivityStatus } from "./AIActivityStatus";
 import { ConversationInfo, useInfoPanelMounted } from "./ConversationInfo";
 import { insertAtSelection } from "./draftInsert";
 import { createMessageDateFormatter } from "./messageDates";
+import { groupMessages } from "./messageGroups";
 import { deriveAIActivity, type AIActivityPhase } from "./aiActivityView";
 import { AIDataProvider, ConversationHistory, useAIData, type SavedConversation, type SavedConversationHeader } from "./AIData";
 
@@ -1063,6 +1064,10 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       return { message, date, showDate };
     });
   }, [conversation?.messages, session.timezone, messageClock]);
+  const messageGroupsView = useMemo(
+    () => groupMessages(datedMessages ?? [], (row) => row.message),
+    [datedMessages],
+  );
   const [unseen, setUnseen] = useState(false);
   const [manageError, setManageError] = useState<unknown>();
   const [deleteError, setDeleteError] = useState<unknown>();
@@ -1132,25 +1137,28 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       let outcome: RunOutcome = "unknown";
       const ownerId = current.current?.conversationId;
       try {
-        const final = await consumeAIEvents(eventsUrl, signal);
+        const reply = await consumeAIReply(eventsUrl, signal);
         if (!signal.aborted && current.current) {
           const before = current.current;
+          const publishedAt = new Date().toISOString();
+          // Every validated bubble enters in one update, so the live region reads the turn once.
           update({
             ...before,
             activeRunId: null,
             activeRunVersion: null,
             messages: [
               ...before.messages,
-              {
-                id: `${id}-final`,
-                actor: "bot",
-                text: final.text,
-                cards: final.cards,
-                createdAt: new Date().toISOString(),
-                partIndex: 0,
-                partCount: 1,
-                origin: "user",
-              },
+              ...reply.messages.map((bubble) => ({
+                id: bubble.messageId ?? `${id}-final-${bubble.partIndex}`,
+                actor: "bot" as const,
+                text: bubble.text,
+                cards: bubble.cards,
+                createdAt: publishedAt,
+                runId: id,
+                partIndex: bubble.partIndex,
+                partCount: reply.messages.length,
+                origin: "user" as const,
+              })),
             ],
           });
           // The validated reply is already on screen; only reconciliation remains.
@@ -1351,6 +1359,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     setBusy(true);
     setStopped(false);
     setError(undefined);
+    setNotice("");
     const moodScope = moodSelected ? { fromDate: moodFrom, toDate: moodTo } : undefined;
     const scopeKey = moodScope ? `${moodScope.fromDate}/${moodScope.toDate}` : "";
     if (intent.current?.text !== text || intent.current?.scopeKey !== scopeKey)
@@ -1428,7 +1437,20 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         requestKey,
       );
     } catch (reason) {
-      if (!signal.aborted) setError(reason);
+      if (signal.aborted) return;
+      const thread = current.current;
+      if (reason instanceof ApiError && reason.code === "STALE_VERSION" && thread) {
+        // A newer message (for example a check-in) arrived first. The server accepted
+        // nothing, so the draft and its clientMessageId stay for an explicit resend.
+        try {
+          const stored = await api.request<SavedConversation>(`/ai/conversations/${thread.conversationId}`, { signal });
+          if (signal.aborted) return;
+          update(withOlder(stored));
+          setNotice(`Có tin mới từ ${bot.name}. Tin của bạn vẫn còn trong ô nhập — gửi lại khi bạn sẵn sàng.`);
+        } catch (readError) {
+          if (!signal.aborted) setError(readError);
+        }
+      } else setError(reason);
     } finally {
       if (!signal.aborted) setBusy(false);
     }
@@ -1683,6 +1705,75 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       : awaitingNew ? "Đang chờ phản hồi hiện tại dừng lại…"
         : undefined;
   const infoTitle = conversation?.title?.trim() || "Cuộc trò chuyện mới";
+  type DatedRow = NonNullable<typeof datedMessages>[number];
+  const dateSeparator = ({ message, date, showDate }: DatedRow) =>
+    showDate && date ? <div className="message-date-separator"><time dateTime={message.createdAt!}>{date.dayLabel}</time></div> : null;
+  /** One message; inside a bubble group `part` names its position for screen readers. */
+  const messageRow = ({ message, date }: DatedRow, part?: { index: number; count: number }) => (
+          <div
+            className={`message-row ai-message-row ${message.actor === "self" ? "from-self" : "from-bot"}${part ? " in-group" : ""} ${revealedMessage === message.id ? "message-details-open" : ""}`}
+          >
+            <div
+              className="message-content"
+              role="group"
+              aria-label={part ? `Phần ${part.index + 1} trên ${part.count}` : message.actor === "self" ? "Tin nhắn của bạn" : `Tin nhắn từ ${bot.name}`}
+              tabIndex={date || message.actor === "bot" ? 0 : undefined}
+              onFocus={(event) => {
+                if (event.target.matches(":focus-visible")) setRevealedMessage(message.id);
+              }}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  setRevealedMessage(value => value === message.id ? undefined : value);
+                }
+              }}
+              onPointerUp={(event) => {
+                if (event.pointerType === "mouse" || !(event.target instanceof Element) ||
+                  event.target.closest("a, button") || !window.getSelection()?.isCollapsed) return;
+                setRevealedMessage(value => value === message.id ? undefined : message.id);
+              }}
+            >
+              <div className="chat-bubble">
+                {message.actor === "bot" ? (
+                  <Suspense fallback={<p>{message.text}</p>}>
+                    <MessageMarkdown text={message.text} />
+                  </Suspense>
+                ) : <p>{message.text}</p>}
+              </div>
+              {validCards(message.cards) &&
+                message.cards.map((card, index) => (
+                  <div className="inline-card" key={`${message.id}-${index}`}>
+                    {card.kind === "mood_form" ? (
+                      <Link to="/self">Ghi lại cảm xúc <ArrowUpRight size={15} aria-hidden="true" /></Link>
+                    ) : card.kind === "navigate_bot" ? (
+                      <Link to={`/assistants/${card.botId}`}>
+                        Trò chuyện với {botById(card.botId)?.name} <ArrowUpRight size={15} aria-hidden="true" />
+                      </Link>
+                    ) : (
+                      <Link to="/connect">Tìm bạn đồng điệu <ArrowUpRight size={15} aria-hidden="true" /></Link>
+                    )}
+                  </div>
+                ))}
+              {date || message.actor === "bot" ? (
+                <div className="message-actions">
+                  {date ? <time dateTime={message.createdAt!}>{date.time}</time> : null}
+                  {message.actor === "bot" ? <>
+                  <button
+                    type="button"
+                    className="message-action"
+                    aria-label="Sao chép câu trả lời"
+                    title="Sao chép câu trả lời"
+                    onClick={(event) => void copyReply(message.id, event.currentTarget.closest(".message-content")?.querySelector(".chat-bubble"))}
+                  >
+                    <Copy size={15} aria-hidden="true" />
+                  </button>
+                  {copyStatus?.id === message.id ? <span role="status">{copyStatus.ok ? "Đã sao chép câu trả lời." : "Chưa sao chép được. Bạn có thể chọn và sao chép nội dung."}</span> : null}
+                  </> : null}
+                </div>
+              ) : null}
+              {message.actor === "self" && message.status && ["failed", "interrupted", "cancelled"].includes(message.status) ? <small className="message-turn-status" role="status">{message.status === "interrupted" ? "Phản hồi bị gián đoạn; lượt này không tự chạy lại." : message.status === "cancelled" ? "Đã dừng phản hồi." : "Phản hồi chưa hoàn tất."}</small> : null}
+            </div>
+          </div>
+  );
   return (
     <>
       <header className="conversation-header">
@@ -1748,71 +1839,18 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         {loading ? <p role="status">Đang mở cuộc trò chuyện…</p> : null}
         {conversation?.hasMoreMessages ? <Button variant="secondary" disabled={olderBusy || loading} onClick={() => void olderMessages()}>{olderBusy ? "Đang tải tin nhắn…" : "Tải tin nhắn cũ hơn"}</Button> : null}
         <div className="conversation-messages" aria-live="polite" aria-relevant="additions text">
-        {datedMessages?.map(({ message, date, showDate }) => (
-          <Fragment key={message.id}>
-            {showDate && date ? <div className="message-date-separator"><time dateTime={message.createdAt!}>{date.dayLabel}</time></div> : null}
-            <div
-              className={`message-row ai-message-row ${message.actor === "self" ? "from-self" : "from-bot"} ${revealedMessage === message.id ? "message-details-open" : ""}`}
-            >
-              <div
-                className="message-content"
-                role="group"
-                aria-label={message.actor === "self" ? "Tin nhắn của bạn" : `Tin nhắn từ ${bot.name}`}
-                tabIndex={date || message.actor === "bot" ? 0 : undefined}
-                onFocus={(event) => {
-                  if (event.target.matches(":focus-visible")) setRevealedMessage(message.id);
-                }}
-                onBlur={(event) => {
-                  if (!event.currentTarget.contains(event.relatedTarget)) {
-                    setRevealedMessage(value => value === message.id ? undefined : value);
-                  }
-                }}
-                onPointerUp={(event) => {
-                  if (event.pointerType === "mouse" || !(event.target instanceof Element) ||
-                    event.target.closest("a, button") || !window.getSelection()?.isCollapsed) return;
-                  setRevealedMessage(value => value === message.id ? undefined : message.id);
-                }}
-              >
-                <div className="chat-bubble">
-                  {message.actor === "bot" ? (
-                    <Suspense fallback={<p>{message.text}</p>}>
-                      <MessageMarkdown text={message.text} />
-                    </Suspense>
-                  ) : <p>{message.text}</p>}
-                </div>
-                {validCards(message.cards) &&
-                  message.cards.map((card, index) => (
-                    <div className="inline-card" key={`${message.id}-${index}`}>
-                      {card.kind === "mood_form" ? (
-                        <Link to="/self">Ghi lại cảm xúc <ArrowUpRight size={15} aria-hidden="true" /></Link>
-                      ) : card.kind === "navigate_bot" ? (
-                        <Link to={`/assistants/${card.botId}`}>
-                          Trò chuyện với {botById(card.botId)?.name} <ArrowUpRight size={15} aria-hidden="true" />
-                        </Link>
-                      ) : (
-                        <Link to="/connect">Tìm bạn đồng điệu <ArrowUpRight size={15} aria-hidden="true" /></Link>
-                      )}
-                    </div>
-                  ))}
-                {date || message.actor === "bot" ? (
-                  <div className="message-actions">
-                    {date ? <time dateTime={message.createdAt!}>{date.time}</time> : null}
-                    {message.actor === "bot" ? <>
-                    <button
-                      type="button"
-                      className="message-action"
-                      aria-label="Sao chép câu trả lời"
-                      title="Sao chép câu trả lời"
-                      onClick={(event) => void copyReply(message.id, event.currentTarget.closest(".message-content")?.querySelector(".chat-bubble"))}
-                    >
-                      <Copy size={15} aria-hidden="true" />
-                    </button>
-                    {copyStatus?.id === message.id ? <span role="status">{copyStatus.ok ? "Đã sao chép câu trả lời." : "Chưa sao chép được. Bạn có thể chọn và sao chép nội dung."}</span> : null}
-                    </> : null}
-                  </div>
-                ) : null}
-                {message.actor === "self" && message.status && ["failed", "interrupted", "cancelled"].includes(message.status) ? <small className="message-turn-status" role="status">{message.status === "interrupted" ? "Phản hồi bị gián đoạn; lượt này không tự chạy lại." : message.status === "cancelled" ? "Đã dừng phản hồi." : "Phản hồi chưa hoàn tất."}</small> : null}
-              </div>
+        {messageGroupsView.map((group) => group.items.length === 1 ? (
+          <Fragment key={group.key}>
+            {dateSeparator(group.items[0])}
+            {messageRow(group.items[0])}
+          </Fragment>
+        ) : (
+          <Fragment key={group.key}>
+            {dateSeparator(group.items[0])}
+            <div className="message-group" role="group" aria-label={`Tin nhắn từ ${bot.name}, ${group.items.length} phần`}>
+              {group.items.map((item, index) => (
+                <Fragment key={item.message.id}>{messageRow(item, { index, count: group.items.length })}</Fragment>
+              ))}
             </div>
           </Fragment>
         ))}

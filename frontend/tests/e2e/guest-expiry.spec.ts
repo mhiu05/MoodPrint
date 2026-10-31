@@ -103,7 +103,7 @@ test("a late SSE final cannot repopulate the private tree after expiry", async (
   let release!: () => void;
   let queued = false, answered = false;
   const gate = new Promise<void>(resolve => { release = resolve; });
-  await page.route("**/api/v1/ai/runs/*/events", async route => {
+  await page.route("**/api/v1/ai/runs/*/events*", async route => {
     queued = true;
     await gate;
     await route.fulfill({ contentType: "text/event-stream", body: 'data: {"version":"ai-events-v1","seq":"1","type":"final","data":{"text":"LATE-SSE-PRIVATE","cards":[]}}\n\n' }).catch(() => undefined);

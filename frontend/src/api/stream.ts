@@ -12,6 +12,19 @@ const aiFailureMessages: Record<string, string> = {
 
 export type ValidatedFinal = AiOutput & { cards: AICard[] };
 
+export type ValidatedBubble = {
+  /** Saved/published id from ai-events-v2; null when an older server answered with v1. */
+  messageId: string | null;
+  partIndex: number;
+  text: string;
+  cards: AICard[];
+};
+export type ValidatedReply = { messages: ValidatedBubble[] };
+
+const RUN_EVENTS = /^\/api\/v1\/ai\/runs\/[a-zA-Z0-9-]+\/events$/;
+const MAX_BUBBLES = 4;
+const MAX_JOINED = 6000;
+
 function object(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -44,14 +57,57 @@ const invalidStream = () =>
     "Chưa nhận được phản hồi hợp lệ. Vui lòng tải lại cuộc trò chuyện.",
   );
 
-/** Buffer until a validated final and terminal receipt. Provider deltas never enter UI state. */
-export async function consumeAIEvents(
-  eventsUrl: string,
-  signal: AbortSignal,
-): Promise<ValidatedFinal> {
-  if (!/^\/api\/v1\/ai\/runs\/[a-zA-Z0-9-]+\/events$/.test(eventsUrl))
+function v1Final(data: Record<string, unknown>): ValidatedFinal {
+  if (
+    typeof data.text !== "string" ||
+    !data.text.trim() ||
+    Array.from(data.text).length > MAX_JOINED ||
+    Object.keys(data).some((key) => !["text", "cards"].includes(key)) ||
+    !validCards(data.cards)
+  )
     throw invalidStream();
-  const response = await fetch(eventsUrl, {
+  return { text: data.text, cards: data.cards };
+}
+
+function v2Final(data: Record<string, unknown>): ValidatedReply {
+  const messages = data.messages;
+  if (
+    Object.keys(data).some((key) => !["partCount", "messages"].includes(key)) ||
+    !Array.isArray(messages) ||
+    messages.length < 1 ||
+    messages.length > MAX_BUBBLES ||
+    data.partCount !== messages.length
+  )
+    throw invalidStream();
+  const bubbles = messages.map((message: unknown, index): ValidatedBubble => {
+    if (
+      !object(message) ||
+      Object.keys(message).some((key) => !["messageId", "partIndex", "text", "cards"].includes(key)) ||
+      typeof message.messageId !== "string" ||
+      !/^[a-zA-Z0-9-]{1,64}$/.test(message.messageId) ||
+      message.partIndex !== index ||
+      typeof message.text !== "string" ||
+      !message.text.trim() ||
+      !validCards(message.cards)
+    )
+      throw invalidStream();
+    return { messageId: message.messageId, partIndex: index, text: message.text, cards: message.cards };
+  });
+  // The same bounds an old client enforces on the joined v1 text and its cards.
+  const joined = bubbles.map((bubble) => bubble.text).join("\n\n");
+  if (Array.from(joined).length > MAX_JOINED || bubbles.flatMap((bubble) => bubble.cards).length > 3)
+    throw invalidStream();
+  return { messages: bubbles };
+}
+
+/** Buffer until a validated final and terminal receipt. Provider deltas never enter UI state. */
+async function consume<T>(
+  url: string,
+  signal: AbortSignal,
+  accept: (version: unknown) => boolean,
+  final: (version: string, data: Record<string, unknown>) => T,
+): Promise<T> {
+  const response = await fetch(url, {
     credentials: "same-origin",
     cache: "no-store",
     headers: { Accept: "text/event-stream" },
@@ -71,8 +127,9 @@ export async function consumeAIEvents(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "",
-    sequence = 0n;
-  let final: ValidatedFinal | undefined;
+    sequence = 0n,
+    version: string | undefined;
+  let result: T | undefined;
   try {
     while (true) {
       const chunk = await reader.read();
@@ -96,32 +153,25 @@ export async function consumeAIEvents(
         }
         if (
           !object(event) ||
-          event.version !== "ai-events-v1" ||
+          !accept(event.version) ||
+          (version !== undefined && event.version !== version) ||
           typeof event.seq !== "string" ||
           !/^[1-9]\d*$/.test(event.seq) ||
           !object(event.data)
         )
           throw invalidStream();
+        // One stream never mixes protocol versions.
+        version = event.version as string;
         const next = BigInt(event.seq);
         if (next <= sequence) continue;
         if (next !== sequence + 1n) throw invalidStream();
         sequence = next;
         if (event.type === "progress") continue;
         if (event.type === "final") {
-          if (
-            typeof event.data.text !== "string" ||
-            !event.data.text.trim() ||
-            Array.from(event.data.text).length > 6000 ||
-            Object.keys(event.data).some(
-              (key) => !["text", "cards"].includes(key),
-            ) ||
-            !validCards(event.data.cards)
-          )
-            throw invalidStream();
-          final = { text: event.data.text, cards: event.data.cards };
+          result = final(version, event.data);
         } else if (event.type === "completed") {
-          if (!final) throw invalidStream();
-          return final;
+          if (result === undefined) throw invalidStream();
+          return result;
         } else if (event.type === "cancelled") {
           throw new ApiError(
             409,
@@ -151,4 +201,35 @@ export async function consumeAIEvents(
     await reader.cancel().catch(() => {});
     reader.releaseLock();
   }
+}
+
+/** ai-events-v1: one joined final message (the legacy contract). */
+export async function consumeAIEvents(
+  eventsUrl: string,
+  signal: AbortSignal,
+): Promise<ValidatedFinal> {
+  if (!RUN_EVENTS.test(eventsUrl)) throw invalidStream();
+  return consume(eventsUrl, signal, (version) => version === "ai-events-v1", (_version, data) => v1Final(data));
+}
+
+/**
+ * ai-events-v2: the validated bubbles of one reply, all at once after `completed`.
+ * The server's eventsUrl never carries a query; this client adds `?protocol=2`. A server
+ * that predates v2 ignores the query and answers v1, which becomes one bubble without an id.
+ */
+export async function consumeAIReply(
+  eventsUrl: string,
+  signal: AbortSignal,
+): Promise<ValidatedReply> {
+  if (!RUN_EVENTS.test(eventsUrl)) throw invalidStream();
+  return consume(
+    `${eventsUrl}?protocol=2`,
+    signal,
+    (version) => version === "ai-events-v1" || version === "ai-events-v2",
+    (version, data) => {
+      if (version === "ai-events-v2") return v2Final(data);
+      const single = v1Final(data);
+      return { messages: [{ messageId: null, partIndex: 0, text: single.text, cards: single.cards }] };
+    },
+  );
 }

@@ -56,3 +56,37 @@ Fail có sẵn (phân loại):
 - Offline SQL `0020→0022` (258 dòng, không `%%`): [sql/0020-0022-offline.candidate.sql](sql/0020-0022-offline.candidate.sql), sha256 `14097febf574fe3a19950759e61a879157c0619ad72f9c5561b33d131acddf52` — **ứng viên chưa duyệt**, không nằm trong `reviewed-sql/`.
 - Diễn tập (DB `moodprint_p1_rehearsal_test`, role tạm `moodprint_runtime`, `moodprint_app ∈ moodprint_runtime`, `anon`, `authenticated`, `service_role`): `alembic upgrade 0020` → seed dữ liệu cũ tổng hợp → `psql -v ON_ERROR_STOP=1 < offline.sql` (một transaction) → exit 0; version `0022`; tin cũ `part 0/1`; run cũ `origin=user`; 5 policy `backend_access`; client roles 0 quyền; `moodprint_app` có DML trên 5 bảng. Đã xóa DB và **cả 5 role** (đếm lại = 0).
 - **Chưa làm (cần owner):** rehearsal trên bản khôi phục `pg_dump --schema-only` của hosted (U-04); áp dụng 0020 hosted (BLK-02).
+
+## P1-04 — Hợp đồng output nhiều bubble
+
+- Commit `637fdc3`. File: `app/ai/schemas.py` (`Bubble`, `CompanionReply`, `AiReply`), `app/ai/journal.py` (`NhipReply`, renderer chung), `app/ai/provider.py` (`run_reply()`, guardrail mọi bubble), `app/core/config.py` (`AI_MULTI_MESSAGE_ENABLED=false`), docs cấu hình, `.env.example`.
+- RED: thiếu `AiReply`. GREEN: `test_multi_message_contract.py` **19 passed**.
+- Điều kiện chấp nhận "không sửa kỳ vọng khi cờ tắt": `test_sdk_adapter`, `test_journal_ai`, `test_mood_evidence_runtime`, `test_mood_evidence`, `test_live_observability`, `test_ai`, `test_ai_availability`, `test_context_selection` + test mới → **138 passed**, không sửa test cũ nào.
+- **Chênh lệch tài liệu:** `run()` giữ API cũ và trả bản ghép v1 (`AiReply.joined()`); runtime dùng `run_reply()`.
+
+## P1-05 — Lưu N bubble, phân trang, context, export
+
+- Commit `d97e99f`. File: `runtime.py` (publish mọi phần trong transaction kết thúc run, id dùng chung DB/RAM, metric `ai_reply_parts`), `persistence.py` (`message_view`, hoàn thiện nhóm ở mép trang, `hasMoreMessages` tính lại), `context.py` (`turn_messages` gộp bubble trước giới hạn 24), `chat_routes.py` (export), `AIMessage` thêm `partIndex/partCount/origin/proactiveSlot`, OpenAPI + `schema.d.ts`, 2 tin lạc quan ở `RealApp.tsx`.
+- RED → GREEN: `test_multi_message_persistence.py` **9 passed** (2 lỗi kỳ vọng sequence trong chính test mới được sửa: hội thoại mới bắt đầu ở version 1).
+- Hồi quy AI rộng: **214 passed**. `test_ai_availability` đổi điểm monkeypatch `provider.run` → `provider.run_reply` (cùng khẳng định).
+
+## P1-06 — SSE v2
+
+- Commit `0bf35af` (+ docs `eda5df0`). `?protocol=2` (1–2, khác → 422); persistent dựng final từ mọi bubble đã lưu theo `part_index`; RAM giữ event v1 và `LiveRun.final_v2` cho v2; OpenAPI `AIFinalV2`, `AIReplyBubble`; metric `ai_events_protocol`.
+- RED → GREEN: `test_ai_events_v2.py` **14 passed** (v1 byte-for-byte 1 bubble persistent + temporary, v1 ghép, v2 thứ tự/id, `afterSeq` 0..3, `Last-Event-ID`, `CURSOR_GAP`, protocol=3 → 422, OpenAPI).
+- Lần đầu lưu event final dạng v2 làm 9 test hiện có (đọc `run.events` nội bộ) fail → **đổi thiết kế** thay vì sửa test: event lưu dạng v1, v2 đọc `final_v2`. Sau sửa: hồi quy **193 passed**.
+
+## P1-07 — Frontend
+
+- File: `src/api/stream.ts` (`consumeAIReply`, lõi parser chung, v1 fallback), `messageGroups.ts`, `RealApp.tsx` (chèn N bubble một lần, render nhóm `role=group` "Tin nhắn từ X, N phần", mỗi bubble "Phần i trên N", STALE_VERSION giữ nháp + tải lại + thông báo), `agent-chat.css` (khoảng cách nhóm), `messageDates.ts` ("Hôm nay"/"Hôm qua").
+- Unit: RED (thiếu module) → GREEN **136 passed / 25 files** (118 cũ + 18 mới). Typecheck, build OK.
+- **Chênh lệch tài liệu 02 §4.3:** giới hạn client mỗi bubble 6.000 (không phải 1.500) vì lượt cờ tắt hoặc bubble cuối có dòng trích dẫn hợp lệ dài hơn 1.500; client kiểm tổng ghép ≤ 6.000 và ≤ 3 card. Không có hiệu ứng vào (render ngay) — đáp ứng "animation must never delay content", reduced motion hiển nhiên.
+- E2E fixture: 11 test cũ fail do glob stub `**/runs/*/events` không khớp `?protocol=2` → **đã chứng minh trên `d6eaf71` sạch các test đó pass** → sửa glob thành `events*` (giữ body v1 → kiểm luôn đường fallback). `ux-redesign:744` cập nhật kỳ vọng "Hôm qua"/"Hôm nay".
+- Fail E2E có sẵn (giống hệt trên `d6eaf71` sạch): `real.spec:471`; `ux-redesign` :186, :901, :1128 ×2, :1180, :1196, :1273.
+- Spec mới `multi-message.spec.ts` (đăng ký trong `playwright.config.ts`): **7 passed** (1440/768/390, không bubble trước `completed`, fallback v1, STALE_VERSION, bàn phím + reduced motion). Viết sau code → kiểm bằng mutation: tắt nhánh STALE_VERSION → test fail; khôi phục → xanh.
+
+## P1-08 — Hướng dẫn tách bubble và eval
+
+- Commit `703c084`. `MULTI_MESSAGE_GUIDANCE` (lớp runtime, chỉ khi cờ bật); `evals/multi_message/` 20 case tổng hợp, rubric content-free, CLI offline + live có cổng ngân sách.
+- Test prompt: RED (thiếu hằng) → GREEN. `test_multi_message_eval.py` **8 passed** (viết sau code — ghi nhận). 
+- **Eval live: CHƯA CHẠY** (cần owner duyệt ngân sách). Không có số liệu chất lượng tách bubble thật.
