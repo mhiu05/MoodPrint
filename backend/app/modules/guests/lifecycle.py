@@ -96,6 +96,8 @@ INVENTORY: dict[str, str] = {
     "ai_proactive_jobs": "purged",
     "ai_conversation_reads": "purged",
     "ai_message_sources": "purged",
+    "ai_sharing_permissions": "purged",
+    "ai_collaborations": "purged",
     "idempotency_keys": "purged",
     "outbox": "purged",
     "data_jobs": "purged",

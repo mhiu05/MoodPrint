@@ -198,6 +198,10 @@ class AiRun(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     origin: Mapped[str] = mapped_column(String(16), default="user", server_default=text("'user'"))
     proactive_slot: Mapped[str | None] = mapped_column(String(16))
+    # A bounded specialist consultation (origin='collaboration') is a child of exactly one run.
+    parent_run_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("moodprint.ai_runs.id", ondelete="CASCADE"), nullable=True
+    )
     __table_args__ = (
         Index(
             "uq_ai_active_conversation",
@@ -206,7 +210,12 @@ class AiRun(Base):
             postgresql_where=(status == "running"),
         ),
         Index("ix_ai_runs_user_origin_created", "user_id", "origin", "created_at"),
-        CheckConstraint("origin in ('user', 'proactive')", name="origin"),
+        Index(
+            "ix_ai_runs_parent_run_id", "parent_run_id",
+            postgresql_where=text("parent_run_id IS NOT NULL"),
+        ),
+        CheckConstraint("origin in ('user', 'proactive', 'collaboration')", name="origin"),
+        CheckConstraint("(origin = 'collaboration') = (parent_run_id is not null)", name="parent"),
         CheckConstraint(
             "(origin = 'proactive') = (proactive_slot is not null) "
             "and (proactive_slot is null or proactive_slot in ('morning', 'evening'))",

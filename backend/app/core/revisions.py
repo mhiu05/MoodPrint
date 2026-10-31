@@ -1,12 +1,13 @@
-"""Proactive check-ins (R1) require migration 0022 before accepting traffic.
+"""Companion collaboration (R2) requires migration 0023 before accepting traffic.
 
-The ORM writes ``ai_messages.part_index/part_count`` and ``ai_runs.origin`` on every insert
-(0021) and account/guest purge deletes the five proactive tables (0022), so an older head
-would fail at the first chat turn or deletion. The compatible rollback image is R0
-(``release/proactive-r0-compat``): pre-feature code whose window accepts 0020, 0021 and
-0022. Keep this tuple at the current head; never accept a head that predates the schema.
+The ORM maps ``ai_runs.parent_run_id`` on every run select/insert and account/guest purge
+deletes ``ai_sharing_permissions``/``ai_collaborations`` (0023), so an older head would fail
+at the first chat turn or deletion. 0023 is expand-only: the Phase 1 image (R1, head 0022)
+keeps working on a 0023 schema once its window also accepts 0023 (integration requirement
+recorded in evidence/execution-phase2.md). Keep this tuple at the current head; never accept a
+head that predates the schema.
 """
 
 READY_REVISIONS: tuple[str, ...] = (
-    "0022_proactive_messages",
+    "0023_collaboration",
 )

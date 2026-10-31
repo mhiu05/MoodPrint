@@ -59,6 +59,19 @@ async def purge_expired(app):
         ).all()
         if job_ids:
             await db.execute(delete(AiProactiveJob).where(AiProactiveJob.id.in_(job_ids)))
+        # Collaboration receipts are content-free audit metadata kept 90 days (as ai_usage).
+        from app.ai.collaboration.models import AiCollaboration
+
+        receipt_ids = (
+            await db.scalars(
+                select(AiCollaboration.id)
+                .where(AiCollaboration.started_at <= now() - timedelta(days=90))
+                .limit(1000)
+                .with_for_update(skip_locked=True)
+            )
+        ).all()
+        if receipt_ids:
+            await db.execute(delete(AiCollaboration).where(AiCollaboration.id.in_(receipt_ids)))
         # Content-free run metadata; saved threads expire within 90 days, so older runs
         # no longer anchor any message. Usage rows for these runs cascade.
         from app.ai.models import AiMessageRecord

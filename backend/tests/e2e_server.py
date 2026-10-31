@@ -40,6 +40,7 @@ os.environ.update(
 
 from app.ai import embedding_models  # noqa: F401
 from app.ai import models as chat_models  # noqa: F401
+from app.ai.collaboration import models as collaboration_models  # noqa: F401
 from app.ai.memory_models import MemoryProposal
 from app.ai.proactive import models as proactive_models  # noqa: F401
 from app.core.config import Settings
