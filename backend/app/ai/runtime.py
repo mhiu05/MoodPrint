@@ -372,7 +372,7 @@ class AiRuntime:
             if run.tool_calls > 2:
                 raise DomainError(429, "TOOL_LIMIT", "Đã hết số thao tác cho lượt này.")
 
-        async def propose(text: str, purpose: str):
+        async def propose(text: str):
             await check_tool()
             if not text.strip() or len(text.strip()) > 120:
                 raise DomainError(422, "INVALID_PROPOSAL", "Nội dung đề xuất chưa hợp lệ.")
@@ -384,24 +384,18 @@ class AiRuntime:
                     raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
                 from app.ai.memory import create_proposal
 
-                p = await create_proposal(db, run.actor, bot_id, text.strip(), purpose, run.data_version)
+                p = await create_proposal(db, run.actor, bot_id, text.strip(), run.data_version)
             return {
                 "status": "proposed",
                 "proposalId": str(p.id),
                 "proposalVersion": 1,
                 "text": p.text,
-                "purpose": purpose,
             }
 
         @function_tool(failure_error_function=None)
         async def propose_memory(ctx: RunContextWrapper[LiveRun], text: str) -> str:
             """Propose one short memory for the user to preview and approve. This never saves it."""
-            return json.dumps(await propose(text, "memory"), ensure_ascii=False)
-
-        @function_tool(failure_error_function=None)
-        async def propose_private_item(ctx: RunContextWrapper[LiveRun], text: str) -> str:
-            """Propose a tentative self-description, requiring explicit human confirmation."""
-            return json.dumps(await propose(text, "private_item"), ensure_ascii=False)
+            return json.dumps(await propose(text), ensure_ascii=False)
 
         async def read_mood_summary(ctx: RunContextWrapper[LiveRun], arguments: str) -> str:
             """Read only mood scores for the dates explicitly selected for this turn. No notes or inferred missing days."""
@@ -475,7 +469,7 @@ class AiRuntime:
             return json.dumps(result, ensure_ascii=False)
 
         if bot_id == "guong":
-            return ([propose_memory] if memory_enabled else []) + [propose_private_item]
+            return [propose_memory] if memory_enabled else []
         if bot_id == "nhip" and run.mood_scope is not None:
             return [
                 *([propose_memory] if memory_enabled else []),

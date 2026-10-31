@@ -90,7 +90,7 @@ async function openEntry(page: Page) {
 
 async function fillEligible(page: Page, year = THIS_YEAR - 25) {
   await page.getByLabel("Năm sinh").fill(String(year));
-  await page.getByLabel("Tôi xác nhận mình từ 16 tuổi trở lên.").check();
+  await page.getByLabel("Tôi xác nhận mình đã đủ 18 tuổi.").check();
 }
 
 const submit = (page: Page) => page.getByRole("button", { name: /Bắt đầu dùng thử|Thử lại/ });
@@ -100,7 +100,7 @@ test("under 16 is stopped on the device: no intent, no identity request", async 
   await openEntry(page);
   await fillEligible(page, THIS_YEAR - 12);
   await submit(page).click();
-  await expect(page.getByText("MoodPrint hiện dành cho người từ 16 tuổi.")).toBeVisible();
+  await expect(page.getByText("Bạn cần đủ 18 tuổi để sử dụng MoodPrint.")).toBeVisible();
   expect(calls.filter((call) => call.method !== "GET")).toEqual([]);
 });
 
@@ -109,18 +109,32 @@ test("an unconfirmed age attestation also never reaches the network", async ({ p
   await openEntry(page);
   await page.getByLabel("Năm sinh").fill(String(THIS_YEAR - 30));
   await submit(page).click();
-  await expect(page.getByText("MoodPrint hiện dành cho người từ 16 tuổi.")).toBeVisible();
+  await expect(page.getByText("Bạn cần đủ 18 tuổi để sử dụng MoodPrint.")).toBeVisible();
   expect(calls.filter((call) => call.method !== "GET")).toEqual([]);
 });
 
-test("the 18th-birthday attestation appears only at the exact boundary year", async ({ page }) => {
-  await entry(page, ["ok"]);
+for (const years of [16, 17]) {
+  test(`guest age ${years} is denied before an identity request`, async ({ page }) => {
+    const calls = await entry(page, ["ok"]);
+    await openEntry(page);
+    await fillEligible(page, THIS_YEAR - years);
+    await submit(page).click();
+    await expect(page.getByText("Bạn cần đủ 18 tuổi để sử dụng MoodPrint.", { exact: true })).toBeVisible();
+    expect(calls.filter(call => call.method !== "GET")).toEqual([]);
+  });
+}
+
+test("the eighteenth-year guest explicitly attests actual birthday before creation", async ({ page }) => {
+  const calls = await entry(page, ["ok"]);
   await openEntry(page);
-  const adult = page.getByLabel("Tôi đã đủ 18 tuổi (chỉ cần khi tạo tài khoản sau này).");
   await page.getByLabel("Năm sinh").fill(String(THIS_YEAR - 18));
-  await expect(adult).toBeVisible();
-  await page.getByLabel("Năm sinh").fill(String(THIS_YEAR - 25));
-  await expect(adult).toHaveCount(0);
+  await submit(page).click();
+  await expect(page.getByText("Bạn cần đủ 18 tuổi để sử dụng MoodPrint.", { exact: true })).toBeVisible();
+  expect(posts(calls, "/auth/guest")).toEqual([]);
+  await page.getByRole("checkbox", { name: "Tôi xác nhận mình đã đủ 18 tuổi.", exact: true }).check();
+  await submit(page).click();
+  await expect(page.getByTestId("guest-status")).toBeVisible();
+  expect(posts(calls, "/auth/guest")[0].body).toMatchObject({ eligibility: { confirmedAdultAge: true, policyVersion: "self-declared-age-v2-18plus" } });
 });
 
 test("a started trial opens the app with the countdown and stores no secret", async ({ page }) => {

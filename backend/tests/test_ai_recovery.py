@@ -198,7 +198,7 @@ async def test_interrupted_run_cannot_create_a_new_tool_proposal(clients):
         await db.execute(
             update(AiRun).where(AiRun.id == run.id).values(status="interrupted", version=2)
         )
-    tool = next(t for t in runtime.tools(run, "guong") if t.name == "propose_private_item")
+    tool = next(t for t in runtime.tools(run, "guong") if t.name == "propose_memory")
     arguments = '{"text":"A stale synthetic proposal"}'
     with pytest.raises(DomainError) as stopped:
         await tool.on_invoke_tool(

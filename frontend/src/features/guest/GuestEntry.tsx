@@ -5,6 +5,8 @@ import type { SessionView } from "../../api/contracts";
 import { validateSession } from "../../api/session";
 import { Button, Dialog, cx } from "../../components/UI";
 import { ErrorNotice } from "../../components/ErrorNotice";
+import { AgeFields } from "../auth/AgeFields";
+import { ageDeclaration, bangkokYear } from "../auth/ageDeclaration";
 import { beginAttempt, beginOrResumeGuest, clearAttempt } from "./guestAttempt";
 
 declare global {
@@ -54,7 +56,6 @@ export function GuestEntry({
 }) {
   const [year, setYear] = useState("");
   const [minimum, setMinimum] = useState(false);
-  const [adult, setAdult] = useState(false);
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>();
@@ -63,9 +64,7 @@ export function GuestEntry({
   const challenge = useRef<HTMLDivElement>(null);
   const widget = useRef<string | undefined>(undefined);
   const controller = useRef<AbortController | undefined>(undefined);
-  const yearField = useRef<HTMLInputElement>(null);
-  const thisYear = new Date().getFullYear();
-  const boundaryAdult = Number(year) === thisYear - 18;
+  const thisYear = bangkokYear();
 
   useEffect(() => {
     let active = true;
@@ -91,8 +90,8 @@ export function GuestEntry({
     event.preventDefault();
     if (busy) return;
     const birthYear = Number(year);
-    // Under 16 never reaches the network: no intent, no provider, no identity.
-    if (!minimum || !Number.isInteger(birthYear) || birthYear > thisYear - 16 || birthYear < 1900) {
+    // Under 18 never reaches the network: no intent, no provider, no identity.
+    if (!minimum || !Number.isInteger(birthYear) || birthYear > thisYear - 18 || birthYear < 1900) {
       setIneligible(true);
       return;
     }
@@ -110,13 +109,7 @@ export function GuestEntry({
       const session = await beginOrResumeGuest(
         api,
         {
-          eligibility: {
-            birthYear,
-            confirmedMinimumAge: true,
-            confirmedAdultAge: boundaryAdult && adult,
-            policyVersion: "self-declared-age-v1",
-            expectedVersion: 0,
-          },
+          eligibility: ageDeclaration(year, minimum, thisYear),
           captchaToken: token,
           disclosureVersion: "guest-v1",
         },
@@ -146,42 +139,22 @@ export function GuestEntry({
   }
 
   return (
-    <Dialog title="Dùng thử 2 giờ, không cần email" initialFocus={yearField} onClose={() => !busy && onClose()}>
+    <Dialog title="Dùng thử 2 giờ, không cần email" onClose={() => !busy && onClose()}>
       <form onSubmit={submit} aria-busy={busy} className="guest-entry">
         <p>
           Lượt dùng thử kết thúc sau 2 giờ kể từ khi bắt đầu. Khi hết giờ, bạn không thể mở lại dữ liệu của
           lượt này. MoodPrint sẽ xóa dữ liệu khỏi hệ thống đang hoạt động.
         </p>
         <p className={cx.footnote}>
-          Không cần email để dùng thử. Không gian riêng dành cho người từ 16 tuổi. Tìm bạn và nhắn tin cần
-          tài khoản và dành cho người từ 18 tuổi.
+          Không cần email để dùng thử. MoodPrint dành cho người từ đủ 18 tuổi.
+          Tìm bạn và nhắn tin cần tài khoản đã đăng ký.
         </p>
-        <label htmlFor="guest-birth-year">Năm sinh</label>
-        <input
-          id="guest-birth-year"
-          ref={yearField}
-          type="number"
-          inputMode="numeric"
-          min={1900}
-          max={thisYear}
-          required
-          value={year}
-          onChange={(event) => setYear(event.target.value)}
-        />
-        <label className="guest-check">
-          <input type="checkbox" checked={minimum} onChange={(event) => setMinimum(event.target.checked)} />
-          Tôi xác nhận mình từ 16 tuổi trở lên.
-        </label>
-        {boundaryAdult ? (
-          <label className="guest-check">
-            <input type="checkbox" checked={adult} onChange={(event) => setAdult(event.target.checked)} />
-            Tôi đã đủ 18 tuổi (chỉ cần khi tạo tài khoản sau này).
-          </label>
-        ) : null}
+        <AgeFields prefix="guest" year={year} confirmed={minimum} currentYear={thisYear}
+          onYear={setYear} onConfirmed={setMinimum} />
         <div ref={challenge} aria-label="Bước kiểm tra an toàn" />
         {ineligible ? (
           <p role="alert" className={cx.error}>
-            MoodPrint hiện dành cho người từ 16 tuổi.
+            Bạn cần đủ 18 tuổi để sử dụng MoodPrint.
           </p>
         ) : null}
         {waiting ? (

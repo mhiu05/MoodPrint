@@ -28,7 +28,7 @@ uv run python ../scripts/check_config.py
 uv run python -m app
 ```
 
-Frontend tại `http://127.0.0.1:5173`, API tại `http://127.0.0.1:8001`. Proxy Vite giữ request cùng origin. Điền cấu hình trong `backend/.env`; không commit hoặc gửi secret trong chat. Chưa đủ cấu hình thì UI báo unavailable, không dùng dữ liệu/AI giả thay thế. Đăng nhập mới có eligibility `unknown`; nhập năm sinh và xác nhận đã đủ16 tuổi để dùng tính năng cá nhân. Tìm bạn và nhắn tin người thật cần18 tuổi; ở năm tròn18 cần xác nhận đã đủ18, có thể làm sau trong cài đặt. Backend dẫn xuất quyền theo chính sách tự khai báo người dùng đã chốt24/10/2026, không tự bật consent.
+Frontend tại `http://127.0.0.1:5173`, API tại `http://127.0.0.1:8001`. Proxy Vite giữ request cùng origin. Điền cấu hình trong `backend/.env`; không commit hoặc gửi secret trong chat. Chưa đủ cấu hình thì UI báo unavailable, không dùng dữ liệu/AI giả thay thế. MoodPrint dành cho người từ đủ 18 tuổi, gồm đăng ký, dùng thử và mọi tính năng cá nhân/kết nối. Backend kiểm tra khai báo tuổi trong database trên từng giao dịch; năm tròn 18 cần xác nhận đã qua sinh nhật. Đây là tự khai báo, không phải xác minh giấy tờ. Tài khoản chưa đủ điều kiện vẫn giữ dữ liệu và có luồng bảo mật để xuất/xóa dữ liệu, đăng xuất và rút quyền MATCH. Xem [chính sách 18+ và rollout 0020](docs/release/moodprint-18plus-0020-rollout.md).
 
 Database local tùy chọn:
 
@@ -44,11 +44,28 @@ Mật khẩu trên chỉ dành cho container local bind127.0.0.1. Local PostgreS
 
 ## Kiểm tra
 
+Từ repository root, tạo PostgreSQL/pgvector riêng cho lượt kiểm thử (cần Docker đang
+chạy). Script không dùng lại database hay volume của ứng dụng:
+
+```powershell
+./backend/.venv/Scripts/python.exe scripts/disposable_postgres.py
+```
+
+Script in đường dẫn `environment_file` chứa cấu hình cục bộ. Nạp file này vào
+environment của terminal; không chép URL chứa mật khẩu vào source/log:
+
+```powershell
+Get-Content -LiteralPath '<environment_file vừa được in>' | ForEach-Object {
+  $testKey, $testValue = $_ -split '=', 2
+  Set-Item -LiteralPath "Env:$testKey" -Value $testValue
+}
+$env:APP_ENV='test'
+```
+
 ```powershell
 cd backend
 uv run --locked ruff check app tests
 uv run --locked mypy app
-$env:TEST_DATABASE_URL='postgresql+psycopg://postgres:moodprint-local-only@127.0.0.1:55432/moodprint_test'
 uv run --locked pytest -q
 uv run --locked python ../scripts/export_openapi.py
 cd ../frontend
@@ -59,14 +76,17 @@ npm.cmd run build
 npm.cmd run test:e2e
 ```
 
-PostgreSQL tests chỉ chấp nhận database disposable có hậu tố `_test`; thiếu TEST_DATABASE_URL thì skip rõ ràng. Không dùng SQLite cho locks/concurrency. Cài Chromium bằng `npx playwright install chromium` hoặc đặt `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` trỏ tới Chrome cài sẵn.
+PostgreSQL tests cần `TEST_DATABASE_URL` riêng; thiếu biến này thì skip rõ ràng.
+Trước reset, fixture kiểm tra loopback thật, tên DB/owner và marker thuộc
+`MOODPRINT_TEST_RUN_ID`, cùng `APP_ENV=test`; hậu tố `_test` đơn thuần chưa đủ.
+Không dùng SQLite cho locks/concurrency. Cài Chromium bằng `npx playwright install chromium`
+hoặc đặt `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` trỏ tới Chrome cài sẵn.
 
 Full-stack thật với hai phiên tổng hợp, PostgreSQL và SDK fake model, không mock HTTP:
 
 ```powershell
-# Từ repository root; tạo database một lần trong container local.
-docker compose -f deploy/compose.local.yml exec database createdb -U postgres moodprint_e2e_test
-$env:TEST_DATABASE_URL='postgresql+psycopg://postgres:moodprint-local-only@127.0.0.1:55432/moodprint_e2e_test'
+# Từ repository root, sau khi nạp environment_file của container disposable ở trên.
+# Không chạy song song pytest/full-stack dùng cùng TEST_DATABASE_URL.
 ./scripts/test-fullstack.ps1
 ```
 
@@ -78,5 +98,9 @@ Harness Python dùng được trên Windows/Linux và trong CI, sau khi đã đ�
 cd backend
 uv run --locked python ../scripts/test_fullstack.py
 ```
+
+Khi kiểm thử xong, từ root chạy `./backend/.venv/Scripts/python.exe scripts/disposable_postgres.py --remove <run_id>`
+với run ID do script provisioning in ra. Cleanup chỉ xóa container có đúng label
+quyền sở hữu và tmpfs của lượt đó; không xóa database/volume đang dùng khác.
 
 Kiểm tra cấu hình không in secrets, từ `backend/`: `uv run --locked python ../scripts/check_config.py`. Kiểm tra Supabase chỉ đọc: `uv run --locked python ../scripts/inspect_database.py`. Xem [cấu hình](docs/backend/configuration.md), [xử lý sự cố](docs/backend/operations.md) và [migration runbook](docs/supabase/migrations.md); không chạy remote migration trước khi review target/schema/role/SQL và được phép.

@@ -2,7 +2,7 @@
 
 ## Public profile
 
-Private items không tự thành hồ sơ tìm bạn. Người dùng chọn taxonomy tags trong matching draft (`GET/PUT /profiles/matching-draft`). `POST .../preview` tạo digest ngẫu nhiên, có hạn **15 phút**, gắn draft version. Publish nhận `draftVersion`, `previewDigest`, `expectedPublishedVersion`, kiểm tra lại content/version/expiry rồi commit published snapshot.
+Người dùng chọn taxonomy tags trong matching draft (`GET/PUT /profiles/matching-draft`). `POST .../preview` tạo digest ngẫu nhiên, có hạn **15 phút**, gắn draft version. Publish nhận `draftVersion`, `previewDigest`, `expectedPublishedVersion`, kiểm tra lại content/version/expiry rồi commit published snapshot.
 
 Publish là hành động người dùng cho phép hiển thị hồ sơ; consent/version được cập nhật theo route. Không thay bằng việc AI nói “đã tạo hồ sơ”. Response `PublishedView.state` có `live`, `needs_republish`, `stale`. Sau rút MATCH rồi bật lại không tự live; sau 180 ngày cần xác nhận lại.
 
@@ -32,7 +32,7 @@ Pending request card chỉ trả peer public card khi request và pair còn đ�
 
 Human messages có seq dạng chuỗi, client message ID, sender `self/peer`, accepted timestamp. Read watermark chỉ thuộc viewer. Notification SSE cho biết room watermark/activity thay đổi; GET projection/message vẫn chạy authorization. UI dùng polling/reconnect khi cần, không tự coi socket còn mở là quyền vĩnh viễn.
 
-Message reads bị giới hạn retention 90 ngày. Connection summary có last message preview/unread và active activity theo DTO; không thêm raw private profile/memory vào inbox để “cá nhân hóa”.
+Message reads bị giới hạn retention 90 ngày. Connection summary có last message preview/unread và active activity theo DTO; không thêm raw identity fields, mood data hay AI memories vào inbox để “cá nhân hóa”.
 
 ## Race và privacy checks
 

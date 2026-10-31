@@ -27,172 +27,67 @@ async function publish(page: Page) {
   await fillProfileEditor(page);
 }
 
-test("birth-year onboarding persists16+ access while the server rejects social access and under16 users", async ({
-  browser,
-}) => {
-  const context = await browser.newContext({
-    viewport: { width: 390, height: 844 },
-    reducedMotion: "reduce",
-  });
-  await session(context, 7);
-  const page = await context.newPage();
-  await page.goto("/#/");
-  await expect(
-    page.getByRole("heading", { name: "Xác nhận độ tuổi" }),
-  ).toBeVisible();
-  const initial = await (
-    await context.request.get("http://127.0.0.1:5174/api/v1/session")
-  ).json();
-  const year = Number(
-    new Intl.DateTimeFormat("en", {
-      timeZone: "Asia/Bangkok",
-      year: "numeric",
-    }).format(new Date(initial.serverTime)),
-  );
-  await page.getByLabel("Năm sinh", { exact: true }).fill(String(year - 16));
-  const axe = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
-    .analyze();
-  expect(axe.passes.length).toBeGreaterThan(0);
-  expect(axe.violations).toEqual([]);
-  await page.screenshot({
-    path: artifactPath("plans/validation-artifacts/visual/onboarding-390.png", "../docs/plans/validation-artifacts/visual/onboarding-390.png"),
-    fullPage: true,
-  });
-  await page
-    .getByRole("checkbox", {
-      name: "Tôi xác nhận mình đã đủ 16 tuổi.",
-      exact: true,
-    })
-    .check();
-  await page
-    .getByRole("button", { name: "Xác nhận và tiếp tục", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", { name: "Chọn một trợ lý" }),
-  ).toBeVisible();
-  await page.reload();
-  await expect(
-    page.getByRole("heading", { name: "Chọn một trợ lý" }),
-  ).toBeVisible();
-  await page.goto("/#/connect");
-  await expect(
-    page.getByText(
-      "Tìm bạn và nhắn tin người thật dành cho người đã đủ 18 tuổi.",
-      { exact: true },
-    ),
-  ).toBeVisible();
-  const forbidden = await context.request.put(
-    "http://127.0.0.1:5174/api/v1/consents/MATCH",
-    {
-      data: { enabled: true, expectedVersion: 1, policyVersion: "v1" },
-      headers: {
-        "X-CSRF-Token": "e2e-synthetic-csrf-7",
-        "Idempotency-Key": randomUUID(),
-      },
-    },
-  );
-  expect(forbidden.status()).toBe(403);
-  const stored = await (
-    await context.request.get("http://127.0.0.1:5174/api/v1/session")
-  ).json();
-  expect(stored.ageBand).toBe("teen");
-  expect(stored.birthYear).toBe(year - 16);
-  expect(stored.consents.MATCH.enabled).toBe(false);
-  expect(["AI", "MEM", "VOICE"].every((purpose) => stored.consents[purpose].enabled)).toBe(true);
-  await context.close();
-  const younger = await browser.newContext();
-  await session(younger, 8);
-  const underage = await younger.newPage();
-  await underage.goto("/#/");
-  await underage
-    .getByLabel("Năm sinh", { exact: true })
-    .fill(String(year - 15));
-  await underage
-    .getByRole("checkbox", {
-      name: "Tôi xác nhận mình đã đủ 16 tuổi.",
-      exact: true,
-    })
-    .check();
-  await underage
-    .getByRole("button", { name: "Xác nhận và tiếp tục", exact: true })
-    .click();
-  await expect(
-    underage.getByRole("heading", {
-      name: "Ứng dụng dành cho người từ 16 tuổi",
-    }),
-  ).toBeVisible();
-  await underage.reload();
-  await expect(
-    underage.getByRole("heading", {
-      name: "Ứng dụng dành cho người từ 16 tuổi",
-    }),
-  ).toBeVisible();
-  expect(
-    (await younger.request.get("http://127.0.0.1:5174/api/v1/moods")).status(),
-  ).toBe(403);
-  await younger.close();
+test("existing ages 16 and 17 retain accounts but cannot use any private or social feature", async ({ browser }) => {
+  for (const [number, years] of [[7, 16], [8, 17]]) {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
+    try {
+      await session(context, number);
+      const initial = await (await context.request.get("http://127.0.0.1:5174/api/v1/session")).json();
+      const year = Number(new Intl.DateTimeFormat("en", { timeZone: "Asia/Bangkok", year: "numeric" }).format(new Date(initial.serverTime)));
+      const declared = await context.request.put("http://127.0.0.1:5174/api/v1/users/me/eligibility", {
+        data: { birthYear: year - years, confirmedMinimumAge: true, confirmedAdultAge: false, policyVersion: "self-declared-age-v2-18plus", expectedVersion: 0 },
+        headers: { "X-CSRF-Token": `e2e-synthetic-csrf-${number}`, "Idempotency-Key": randomUUID() },
+      });
+      expect(declared.status(), await declared.text()).toBe(200);
+      const denied = await declared.json();
+      expect(denied.eligible).toBe(false);
+      expect(denied.ageBand).toBe("teen");
+      expect(denied.userId).toBe(initial.userId);
+      const page = await context.newPage();
+      await page.goto("/#/assistants/may");
+      await expect(page.getByText("Bạn cần đủ 18 tuổi để sử dụng MoodPrint.", { exact: true })).toBeVisible();
+      await expect(page.getByRole("textbox", { name: /Tin nhắn/ })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Xóa tài khoản", exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Tải dữ liệu của tôi", exact: true })).toBeVisible();
+      for (const path of ["/ai/conversations", "/moods", "/journal/entries", "/matching/candidates", "/connections", "/activities/catalog"]) {
+        const response = await context.request.get(`http://127.0.0.1:5174/api/v1${path}`);
+        expect(response.status(), path).toBe(403);
+      }
+      await page.reload();
+      await expect(page.getByText("Bạn cần đủ 18 tuổi để sử dụng MoodPrint.", { exact: true })).toBeVisible();
+      const stored = await (await context.request.get("http://127.0.0.1:5174/api/v1/session")).json();
+      expect(stored.birthYear).toBe(year - years);
+      expect(stored.consents.MATCH.enabled).toBe(false);
+      expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
+    } finally { await context.close(); }
+  }
 });
 
-test("the eighteenth-year account explicitly confirms18 in settings without automatically enabling MATCH", async ({
-  browser,
-}) => {
-  const context = await browser.newContext({
-    viewport: { width: 1440, height: 960 },
-    reducedMotion: "reduce",
-  });
-  await session(context, 9);
-  const page = await context.newPage();
-  await page.goto("/#/");
-  const initial = await (
-    await context.request.get("http://127.0.0.1:5174/api/v1/session")
-  ).json();
-  const year = Number(
-    new Intl.DateTimeFormat("en", {
-      timeZone: "Asia/Bangkok",
-      year: "numeric",
-    }).format(new Date(initial.serverTime)),
-  );
-  await page.getByLabel("Năm sinh", { exact: true }).fill(String(year - 18));
-  await page
-    .getByRole("checkbox", {
-      name: "Tôi xác nhận mình đã đủ 16 tuổi.",
-      exact: true,
-    })
-    .check();
-  await page.screenshot({
-    path: artifactPath("plans/validation-artifacts/visual/onboarding-1440.png", "../docs/plans/validation-artifacts/visual/onboarding-1440.png"),
-    fullPage: true,
-  });
-  await page
-    .getByRole("button", { name: "Xác nhận và tiếp tục", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", { name: "Chọn một trợ lý" }),
-  ).toBeVisible();
-  await page.goto("/#/settings");
-  await expect(page.getByRole("heading", { name: "Điều kiện dùng Tìm bạn và Tin nhắn" })).toBeVisible();
-  await page
-    .getByRole("checkbox", {
-      name: "Tôi xác nhận mình đã đủ 18 tuổi để sử dụng Tìm bạn và nhắn tin người thật.",
-      exact: true,
-    })
-    .check();
-  await page
-    .getByRole("button", { name: "Xác nhận đủ 18 tuổi", exact: true })
-    .click();
-  await page.reload();
-  await expect(page.getByRole("heading", { name: "Điều kiện dùng Tìm bạn và Tin nhắn" })).toHaveCount(0);
-  const stored = await (
-    await context.request.get("http://127.0.0.1:5174/api/v1/session")
-  ).json();
-  expect(stored.ageBand).toBe("adult");
-  expect(stored.eligibilityVersion).toBe(2);
-  expect(stored.consents.MATCH.enabled).toBe(false);
-  await context.close();
+test("the eighteenth-year account confirms its actual birthday before application access without enabling MATCH", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 960 }, reducedMotion: "reduce" });
+  try {
+    await session(context, 9);
+    const page = await context.newPage();
+    await page.goto("/#/");
+    const initial = await (await context.request.get("http://127.0.0.1:5174/api/v1/session")).json();
+    const year = Number(new Intl.DateTimeFormat("en", { timeZone: "Asia/Bangkok", year: "numeric" }).format(new Date(initial.serverTime)));
+    await page.getByLabel("Năm sinh", { exact: true }).fill(String(year - 18));
+    await expect(page.getByRole("button", { name: "Xác nhận và tiếp tục", exact: true })).toBeDisabled();
+    await expect(page.getByRole("textbox", { name: /Tin nhắn/ })).toHaveCount(0);
+    await page.getByRole("checkbox", { name: "Tôi xác nhận mình đã đủ 18 tuổi.", exact: true }).check();
+    await page.getByRole("button", { name: "Xác nhận và tiếp tục", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Chọn một trợ lý" })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Chọn một trợ lý" })).toBeVisible();
+    const stored = await (await context.request.get("http://127.0.0.1:5174/api/v1/session")).json();
+    expect(stored.ageBand).toBe("adult");
+    expect(stored.eligible).toBe(true);
+    expect(stored.eligibilityVersion).toBe(1);
+    expect(stored.consents.MATCH.enabled).toBe(false);
+  } finally { await context.close(); }
 });
 
-test("real FastAPI/PostgreSQL preserves private records and mood, streams through the SDK, and connects two users", async ({
+test("real FastAPI/PostgreSQL preserves mood, streams through the SDK, and connects two users", async ({
   browser,
 }) => {
   const a = await browser.newContext(),
@@ -201,26 +96,6 @@ test("real FastAPI/PostgreSQL preserves private records and mood, streams throug
   await session(b, 2);
   const one = await a.newPage(),
     two = await b.newPage();
-  await one.goto("/#/profile");
-  await one
-    .getByRole("textbox", { name: "Điều bạn muốn ghi lại" })
-    .fill("Mình thích những buổi sáng yên tĩnh");
-  await one
-    .getByRole("button", { name: "Lưu vào hồ sơ riêng", exact: true })
-    .click();
-  await expect(
-    one.getByText("Đã lưu vào hồ sơ riêng.", { exact: true }),
-  ).toBeVisible();
-  await one.reload();
-  await expect(
-    one
-      .locator("article")
-      .getByText("Mình thích những buổi sáng yên tĩnh", { exact: true }),
-  ).toBeVisible();
-  await two.goto("/#/profile");
-  await expect(
-    two.getByText("Mình thích những buổi sáng yên tĩnh", { exact: true }),
-  ).toHaveCount(0);
   await one.goto("/#/self/daily");
   await one
     .getByRole("textbox", { name: "Ghi chú", exact: true })
@@ -367,7 +242,7 @@ test("only the identity owner grants reveal, revocation removes access, and repo
     { expectedVersion: pending.version },
   );
   const room = accepted.connectionId;
-  await one.goto("/#/profile");
+  await one.goto("/#/connect?tab=identity");
   await one
     .getByRole("textbox", { name: "Tên hiển thị", exact: true })
     .fill("Tên được chủ nhân lựa chọn");
@@ -464,6 +339,7 @@ test("approved memory uses the edited approval, survives reload, and local priva
   while (await page.getByRole("button", { name: "Xóa ghi nhớ", exact: true }).count()) {
     await page.getByRole("button", { name: "Xóa ghi nhớ", exact: true }).first().click();
     await page.getByRole("button", { name: "Xóa ghi nhớ này", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Xóa ghi nhớ này", exact: true })).toHaveCount(0);
   }
   await expect(
     page.getByText("Bạn chưa lưu ghi nhớ nào. Khi trò chuyện, bạn có thể nhờ trợ lý đề xuất điều cần nhớ rồi duyệt tại đây.", { exact: true }),
@@ -491,10 +367,10 @@ test("real authenticated screens reflow and pass automated accessibility checks 
     await page.setViewportSize({ width, height: 900 });
     for (const [route, heading] of [
       ["/assistants", "Chọn một trợ lý"],
-      ["/profile", "Cá nhân"],
-      ["/settings", "Cá nhân"],
+      ["/profile", "Tài khoản"],
+      ["/settings", "Tài khoản"],
       ["/self", "Nhật ký cảm xúc"],
-      ["/connect", "Tìm bạn đồng điệu"],
+      ["/connect", "Tìm một người bạn hợp gu"],
     ]) {
       await page.goto(`/#${route}`);
       await expect(

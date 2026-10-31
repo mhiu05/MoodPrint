@@ -13,7 +13,7 @@ export function getTourSteps(
   session: SessionView,
   includeMatching = false,
 ): TourStep[] {
-  const personal = (value: SessionView) => value.eligible;
+  const personal = (value: SessionView) => value.eligible && value.ageBand === "adult";
   const steps: TourStep[] = [
     {
       id: "assistants",
@@ -46,9 +46,9 @@ export function getTourSteps(
       id: "profile",
       route: "/profile",
       target: "[data-tour='personal-account']",
-      title: "Không gian cá nhân",
+      title: "Tài khoản",
       description:
-        "Xem hồ sơ riêng, gửi góp ý và quản lý tài khoản tại đây." +
+        "Quản lý tài khoản, gửi góp ý và xem hướng dẫn tại đây." +
         (session.accountKind === "guest"
           ? " Dữ liệu của lượt thử không mở lại được sau khi hết giờ."
           : ""),

@@ -57,6 +57,7 @@ export function LandingPage({ api }: { api: ApiClient }) {
         </div>
         <section className="home-entry" aria-labelledby="home-title">
           <h1 id="home-title">Bắt đầu với MoodPrint</h1>
+          <p>MoodPrint dành cho người từ đủ 18 tuổi.</p>
           <div className="home-actions">
             {known ? (
               <a className={`${cx.button} ${cx.primary} home-continue`} href="/#/assistants">

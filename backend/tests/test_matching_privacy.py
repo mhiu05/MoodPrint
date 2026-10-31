@@ -7,11 +7,13 @@ APP = Path(__file__).resolve().parents[1] / "app"
 SOURCES = [*sorted((APP / "modules/matching").glob("*.py")), APP / "modules/social/retrieval.py"]
 PRIVATE_NAMES = {
     "Mood",
-    "PrivateItem",
     "Memory",
     "MemoryProposal",
     "MemoryEmbedding",
     "EmbeddingJob",
+    "JournalEntry",
+    "JournalMedia",
+    "JournalStorageDeletion",
     "AiConversation",
     "AiMessageRecord",
     "AiTurn",
@@ -26,6 +28,7 @@ PRIVATE_NAMES = {
 PRIVATE_MODULES = (
     "app.ai",
     "app.modules.mood",
+    "app.modules.journal",
     "app.modules.moderation",
     "app.modules.activities",
     "app.modules.users",

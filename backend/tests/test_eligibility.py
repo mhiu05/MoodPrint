@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from sqlalchemy import select
 
-from app.infrastructure.database.models import User
+from app.infrastructure.database.models import AgeDeclaration, User
 from tests.social_helpers import key
 
 pytestmark = pytest.mark.postgres
@@ -19,7 +19,7 @@ def declaration(years=16, **changes):
         "confirmedMinimumAge": True,
         "confirmedAdultAge": False,
         "expectedVersion": 0,
-        "policyVersion": "self-declared-age-v1",
+        "policyVersion": "self-declared-age-v2-18plus",
         **changes,
     }
 
@@ -29,24 +29,27 @@ async def unknown(clients):
     async with app.state.database.sessions.begin() as db:
         for _, uid in actors:
             (await db.get(User, uid)).age_band = "unknown"
+            age = await db.get(AgeDeclaration, uid)
+            if age:
+                await db.delete(age)
     return app, actors
 
 
-async def test_sixteen_year_attestation_unlocks_private_features_without_consents_or_social(
+async def test_sixteen_year_declaration_denies_all_product_features_without_deleting_account(
     clients,
 ):
     _, actors = await unknown(clients)
     a, _ = actors[0]
-    assert (await a.get("/api/v1/profiles/private-items")).status_code == 403
     headers = key()
     response = await a.put(PATH, json=declaration(), headers=headers)
     assert response.status_code == 200, response.text
     result = response.json()
-    assert result["eligible"] and result["ageBand"] == "teen" and result["eligibilityVersion"] == 1
+    assert not result["eligible"] and result["ageBand"] == "teen" and result["eligibilityVersion"] == 1
+    assert (await a.get("/api/v1/moods")).status_code == 403
+    assert not any(result["features"][name] for name in ("ai", "voice", "matching", "feedback"))
     assert result["birthYear"] == YEAR - 16
     assert all(result["consents"][purpose]["enabled"] for purpose in ("AI", "MEM", "VOICE"))
     assert result["consents"]["MATCH"]["enabled"] is False
-    assert (await a.get("/api/v1/profiles/private-items")).status_code == 200
     assert (await a.get("/api/v1/matching/candidates")).status_code == 403
     assert (
         await a.put(
@@ -66,10 +69,12 @@ async def test_eighteenth_year_requires_explicit_adult_confirmation_then_can_upg
     a, _ = actors[0]
     initial = await a.put(PATH, json=declaration(18), headers=key())
     assert initial.status_code == 200 and initial.json()["ageBand"] == "teen"
+    assert initial.json()["eligible"] is False
     confirmed = await a.put(
         PATH, json=declaration(18, confirmedAdultAge=True, expectedVersion=1), headers=key()
     )
     assert confirmed.status_code == 200 and confirmed.json()["ageBand"] == "adult"
+    assert confirmed.json()["eligible"] is True
     assert confirmed.json()["eligibilityVersion"] == 2
     assert not confirmed.json()["consents"]["MATCH"]["enabled"]
     older = await actors[1][0].put(PATH, json=declaration(19), headers=key())

@@ -66,7 +66,7 @@ test("admin sees sample counts, matching filters, escaped comment and versioned 
   await page.getByRole("button", { name: `Lưu trạng thái ${id}` }).click();
   await expect(page.getByRole("status").filter({ hasText: "Đã cập nhật trạng thái góp ý." })).toBeVisible();
   expect(calls.find((call) => call.method === "PATCH")?.body).toEqual({ status: "reviewed", expectedVersion: 1 });
-  expect(calls.filter((call) => /^\/(ai\/conversations|moods|memories|profiles\/private-items)/.test(call.path))).toHaveLength(0);
+  expect(calls.filter((call) => /^\/(ai\/conversations|moods|memories)/.test(call.path))).toHaveLength(0);
 });
 
 test("empty feedback has null mean and no invented rating", async ({ page }) => {

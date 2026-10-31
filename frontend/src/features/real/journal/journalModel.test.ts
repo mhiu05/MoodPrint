@@ -9,9 +9,88 @@ import {
   journalDateWindow,
   isActiveJournalDate,
   activeMonthBounds,
+  mergeTimelineEntries,
+  groupEntriesByMonth,
 } from "./journalModel";
 
 describe("journal dates and browsing", () => {
+  it("preserves PostgreSQL microseconds before falling back to IDs", () => {
+    const rows = [
+      {
+        id: "z",
+        localDate: "2026-10-23",
+        createdAt: "2026-10-23T08:00:00.123001Z",
+      },
+      {
+        id: "a",
+        localDate: "2026-10-23",
+        createdAt: "2026-10-23T15:00:00.123999+07:00",
+      },
+      {
+        id: "b",
+        localDate: "2026-10-23",
+        createdAt: "2026-10-23T08:00:00.123999Z",
+      },
+    ];
+    expect(mergeTimelineEntries([], rows).map((row) => row.id)).toEqual([
+      "b",
+      "a",
+      "z",
+    ]);
+  });
+  it("orders actual moment days then creation instants and IDs, never edit times", () => {
+    const rows = [
+      { id: "a", localDate: "2026-09-30", createdAt: "2026-10-30T12:00:00Z" },
+      { id: "b", localDate: "2026-10-01", createdAt: "2026-10-01T12:00:00Z" },
+      { id: "c", localDate: "2026-10-01", createdAt: "2026-10-01T12:00:00Z" },
+      {
+        id: "d",
+        localDate: "2026-10-01",
+        createdAt: "2026-10-01T14:00:00+07:00",
+      },
+    ];
+    expect(mergeTimelineEntries([], rows).map((row) => row.id)).toEqual([
+      "c",
+      "b",
+      "d",
+      "a",
+    ]);
+    expect(rows[0].id).toBe("a");
+  });
+  it("deduplicates overlapping pages, keeping the latest fetched version and grouping months once", () => {
+    const first = [
+      {
+        id: "b",
+        localDate: "2026-10-23",
+        createdAt: "2026-10-23T08:00:00Z",
+        text: "old",
+      },
+      {
+        id: "a",
+        localDate: "2026-09-30",
+        createdAt: "2026-09-30T08:00:00Z",
+        text: "September",
+      },
+    ];
+    const merged = mergeTimelineEntries(first, [
+      { ...first[0], text: "edited" },
+      {
+        id: "c",
+        localDate: "2025-10-23",
+        createdAt: "2025-10-23T08:00:00Z",
+        text: "last year",
+      },
+    ]);
+    expect(merged).toHaveLength(3);
+    expect(merged[0].text).toBe("edited");
+    const groups = groupEntriesByMonth(merged);
+    expect(groups.map((group) => group.label)).toEqual([
+      "Tháng 10, 2026",
+      "Tháng 9, 2026",
+      "Tháng 10, 2025",
+    ]);
+    expect(groupEntriesByMonth([])).toEqual([]);
+  });
   it("places October 2026 on a Monday-first calendar without inventing days", () => {
     const cells = calendarDays("2026-10");
     expect(cells.slice(0, 5)).toEqual([

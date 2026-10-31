@@ -24,7 +24,7 @@ from app.core.security import (
     save_receipt,
     transaction,
 )
-from app.infrastructure.database.models import Consent, ConsentEvent, Memory, PrivateItem, now
+from app.infrastructure.database.models import Consent, ConsentEvent, Memory, now
 
 router = APIRouter()
 
@@ -33,21 +33,9 @@ class ProposalDTO(DTO):
     id: UUID
     bot_id: BotId
     text: str
-    purpose: str
     version: int
     status: str
     expires_at: datetime
-
-
-async def _source_valid(db: AsyncSession, user_id: UUID, source_id, source_version) -> bool:
-    if source_id is None:
-        return source_version is None
-    source = await db.scalar(
-        select(PrivateItem)
-        .where(PrivateItem.id == source_id, PrivateItem.user_id == user_id)
-        .with_for_update()
-    )
-    return bool(source and source.status == "confirmed" and source.version == source_version)
 
 
 async def create_proposal(
@@ -55,22 +43,17 @@ async def create_proposal(
     actor: Actor,
     bot_id: str,
     text: str,
-    purpose: str,
     data_version: int,
-    source_id: UUID | None = None,
-    source_version: int | None = None,
 ) -> MemoryProposal:
     """Create only a preview, in the caller's short transaction; never approve it."""
     user = await lock_actor(db, actor)
     await assert_purpose(db, user, "AI")
     if bot_id not in ("may", "guong", "nhip", "rure"):
         raise DomainError(422, "MEMORY_BOT_FORBIDDEN", "Trợ lý này không được đề xuất ghi nhớ.")
-    if purpose not in ("memory", "private_item") or not 1 <= len(text.strip()) <= 120:
+    if not 1 <= len(text.strip()) <= 120:
         raise DomainError(422, "INVALID_PROPOSAL", "Nội dung đề xuất chưa hợp lệ.")
     if user.data_version != data_version:
         raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
-    if not await _source_valid(db, user.id, source_id, source_version):
-        raise DomainError(409, "SOURCE_CHANGED", "Nguồn dữ liệu đã thay đổi.")
     consents = {
         c.purpose: c.version
         for c in (
@@ -96,12 +79,9 @@ async def create_proposal(
         user_id=user.id,
         bot_id=bot_id,
         text=text.strip(),
-        purpose=purpose,
         data_version=data_version,
         ai_consent_version=consents.get("AI", 0),
         mem_consent_version=consents.get("MEM", 0),
-        source_id=source_id,
-        source_version=source_version,
         expires_at=expires,
     )
     db.add(proposal)
@@ -124,22 +104,6 @@ async def expire_proposals(db: AsyncSession, user_id: UUID | None = None) -> int
         )
     )
     return result.rowcount  # type: ignore[attr-defined, no-any-return]
-
-
-async def withdraw_proposals(db: AsyncSession, user_id: UUID, purpose: str) -> None:
-    """Erase pending previews that the withdrawn consent made undecidable."""
-    from sqlalchemy import update
-
-    query = update(MemoryProposal).where(
-        MemoryProposal.user_id == user_id, MemoryProposal.status == "pending"
-    )
-    if purpose == "MEM":
-        query = query.where(MemoryProposal.purpose == "memory")
-    await db.execute(
-        query.values(
-            status="expired", text="", version=MemoryProposal.version + 1, decided_at=now()
-        )
-    )
 
 
 async def purge_proposals(db: AsyncSession) -> int:
@@ -248,17 +212,12 @@ async def confirm(
             if (
                 proposal.version != body.expected_version
                 or consents["AI"].version != proposal.ai_consent_version
-                or (
-                    proposal.purpose == "memory"
-                    and consents["MEM"].version != proposal.mem_consent_version
-                )
+                or consents["MEM"].version != proposal.mem_consent_version
             ):
                 raise DomainError(409, "STALE_VERSION", "Đề xuất hoặc quyền đã thay đổi.")
             if proposal.bot_id == "caunoi":
                 raise DomainError(403, "MEMORY_BOT_FORBIDDEN", "Trợ lý này không được ghi nhớ.")
-            if not await _source_valid(db, user.id, proposal.source_id, proposal.source_version):
-                raise DomainError(409, "SOURCE_CHANGED", "Nguồn dữ liệu đã thay đổi.")
-            if proposal.purpose == "memory" and not consents["MEM"].enabled:
+            if not consents["MEM"].enabled:
                 # Approving this item is the explicit authorization to retain and
                 # retrieve approved memories. The decision is audited in one commit.
                 memory_consent = consents["MEM"]
@@ -276,24 +235,17 @@ async def confirm(
                         MemoryProposal.user_id == user.id,
                         MemoryProposal.id != proposal.id,
                         MemoryProposal.status == "pending",
-                        MemoryProposal.purpose == "memory",
                         MemoryProposal.mem_consent_version == proposal.mem_consent_version,
                     )
                     .values(mem_consent_version=memory_consent.version)
                 )
             text = body.edited_text if body.edited_text is not None else proposal.text
-            record: Memory | PrivateItem
-            if proposal.purpose == "memory":
-                record = Memory(
-                    user_id=user.id,
-                    bot_id=proposal.bot_id,
-                    text=text,
-                    proposal_id=proposal.id,
-                    source_id=proposal.source_id,
-                    source_version=proposal.source_version,
-                )
-            else:
-                record = PrivateItem(user_id=user.id, text=text, origin="ai")
+            record = Memory(
+                user_id=user.id,
+                bot_id=proposal.bot_id,
+                text=text,
+                proposal_id=proposal.id,
+            )
             db.add(record)
             await db.flush()
             receipt = ActionReceipt(
@@ -310,8 +262,7 @@ async def confirm(
             proposal.receipt = receipt.model_dump(mode="json", by_alias=True)
             save_receipt(db, user, f"proposal:{proposal_id}", key, payload, proposal.receipt)
             user.data_version += 1
-            if isinstance(record, Memory):
-                await enqueue_memory(db, record, request.app.state.settings)
+            await enqueue_memory(db, record, request.app.state.settings)
     if expired:
         raise DomainError(410, "PROPOSAL_EXPIRED", "Đề xuất đã hết hạn.")
     _changed(request, actor)

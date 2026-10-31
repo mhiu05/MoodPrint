@@ -66,12 +66,14 @@ test("real journal HTTP/DB preserves two moments and old mood through reload, ed
   await page
     .getByRole("link", { name: "Khoảnh khắc của bạn", exact: true })
     .click();
-  await page.getByLabel("Tìm trong nhật ký", { exact: true }).fill("buổi sáng");
-  await page.getByRole("button", { name: "Tìm kiếm", exact: true }).click();
   await expect(
     page.getByText("Một buổi sáng bình yên REAL_JOURNAL", { exact: true }),
   ).toBeVisible();
-  await page.getByRole("link", { name: /Mở khoảnh khắc ngày/ }).click();
+  await page
+    .locator(".journal-entry-card")
+    .filter({ hasText: "Một buổi sáng bình yên REAL_JOURNAL" })
+    .getByRole("link", { name: /Mở khoảnh khắc ngày/ })
+    .click();
   await page
     .getByRole("button", { name: "Thao tác với khoảnh khắc", exact: true })
     .click();

@@ -42,10 +42,18 @@ from app.ai import embedding_models  # noqa: F401
 from app.ai import models as chat_models  # noqa: F401
 from app.ai.memory_models import MemoryProposal
 from app.core.config import Settings
-from app.infrastructure.database.models import AuthSession, Base, Consent, Memory, User
+from app.infrastructure.database.models import (
+    AgeDeclaration,
+    AuthSession,
+    Base,
+    Consent,
+    Memory,
+    User,
+)
 from app.main import create_app
 from app.modules.guests import models as guest_models  # noqa: F401 -- register before reset
 from app.modules.moderation.models import StaffRole
+from tests.database_target import verify_test_database
 from tests.e2e_auth import LocalAuth
 from tests.feedback_schema import install_feedback_functions
 from tests.guest_helpers import LIFETIME, add_guest, enable_paid_fixture
@@ -134,7 +142,7 @@ async def seed_guest_proposal(body: dict):
         user = await db.get(User, uid)
         assert user and user.account_kind == "guest"
         consents = {c.purpose: c.version for c in (await db.scalars(select(Consent).where(Consent.user_id == uid))).all()}
-        proposal = MemoryProposal(user_id=uid, bot_id="may", text="SYNTHETIC-GUEST-MEMORY", purpose="memory", data_version=user.data_version,
+        proposal = MemoryProposal(user_id=uid, bot_id="may", text="SYNTHETIC-GUEST-MEMORY", data_version=user.data_version,
                                   ai_consent_version=consents["AI"], mem_consent_version=consents["MEM"], expires_at=user.guest_expires_at)
         db.add(proposal)
         await db.flush()
@@ -143,6 +151,7 @@ async def seed_guest_proposal(body: dict):
 
 async def seed():
     async with app.state.database.engine.begin() as connection:
+        await verify_test_database(connection)
         await connection.execute(text("create schema if not exists moodprint"))
         await connection.execute(text("create schema if not exists extensions"))
         await connection.execute(text("create extension if not exists vector with schema extensions"))
@@ -156,8 +165,8 @@ async def seed():
         # 1-9 back the original journeys; 10-20 are fresh adults for the MVP journeys;
         # 21-36 back the activity, matching-v2 and moderation journeys; 37 is staff;
         # 38-39 are the responsive/accessibility pair; 40-41 the v2-only-goal pair.
-        # 42-43 cover product experience; 44 the five-assistant review; 47-48 mood evidence.
-        for number in range(1, 51):
+        # 44 covers assistant review; 47-48 mood evidence; 51-52 isolate product starters.
+        for number in range(1, 53):
             uid = UUID(f"00000000-0000-4000-8000-{number:012d}")
             provider = UUID(f"00000000-0000-4000-9000-{number:012d}")
             db.add(
@@ -169,6 +178,8 @@ async def seed():
                 )
             )
             await db.flush()
+            if not 7 <= number <= 9:
+                db.add(AgeDeclaration(user_id=uid, birth_year=2000, policy_version="self-declared-age-v1"))
             for purpose in ("AI", "MEM", "MATCH", "VOICE"):
                 db.add(
                     Consent(
@@ -200,7 +211,7 @@ async def seed():
                         proposal_id=__import__("uuid").uuid4(),
                     )
                 )
-                db.add(MemoryProposal(user_id=uid, bot_id="guong", text="Đề xuất tổng hợp để bạn chỉnh sửa", purpose="memory", data_version=1, ai_consent_version=1, mem_consent_version=1, expires_at=datetime.now(UTC) + timedelta(minutes=15)))
+                db.add(MemoryProposal(user_id=uid, bot_id="guong", text="Đề xuất tổng hợp để bạn chỉnh sửa", data_version=1, ai_consent_version=1, mem_consent_version=1, expires_at=datetime.now(UTC) + timedelta(minutes=15)))
             await db.execute(
                 text("insert into auth.sessions(id,user_id) values (:id,:uid)"),
                 {"id": provider, "uid": uid},

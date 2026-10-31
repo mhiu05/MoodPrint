@@ -62,10 +62,6 @@ PERSONAL = {
     ("POST", "/journal/entries/{entry_id}/media/{media_id}/complete"),
     ("GET", "/journal/entries/{entry_id}/media/{media_id}/access"),
     ("DELETE", "/journal/entries/{entry_id}/media/{media_id}"),
-    ("GET", "/profiles/private-items"),
-    ("POST", "/profiles/private-items"),
-    ("PATCH", "/profiles/private-items/{item_id}"),
-    ("DELETE", "/profiles/private-items/{item_id}"),
     ("GET", "/users/me/identity"),
     ("PATCH", "/users/me/identity"),
     ("POST", "/voice/transcriptions"),
@@ -338,52 +334,6 @@ async def test_registered_cannot_select_guest_peer(clients):
     async with app.state.database.sessions() as db:
         stored = (await db.scalars(select(HumanMessage))).all()
     assert stored == [], "a message must never be created in a room that includes a guest"
-
-
-async def test_guest_cannot_read_other_guest(clients):
-    app, _ = clients
-    first = await add_guest(app)
-    second = await add_guest(app)
-    created = await first.client.post(
-        "/api/v1/profiles/private-items", json={"text": "Điều riêng tư của khách A"}, headers=key()
-    )
-    assert created.status_code == 201, created.text
-    item = created.json()["id"]
-    for method, body in (
-        ("PATCH", {"text": "bị sửa", "expectedVersion": 1}),
-        ("DELETE", {"expectedVersion": 1}),
-    ):
-        response = await second.client.request(
-            method, f"/api/v1/profiles/private-items/{item}", json=body, headers=key()
-        )
-        assert response.status_code == 404, (method, response.text)
-        assert "Điều riêng tư" not in response.text
-    listing = await second.client.get("/api/v1/profiles/private-items")
-    assert listing.status_code == 200 and "Điều riêng tư" not in listing.text
-    own = await first.client.get("/api/v1/profiles/private-items")
-    assert "Điều riêng tư của khách A" in own.text
-
-
-async def test_guest_cannot_read_registered_data(clients):
-    app, actors = clients
-    registered_client, _ = actors[0]
-    created = await registered_client.post(
-        "/api/v1/profiles/private-items", json={"text": "Canary người dùng chính thức"}, headers=key()
-    )
-    assert created.status_code == 201, created.text
-    item = created.json()["id"]
-    guest = await add_guest(app)
-    for method, body in (
-        ("PATCH", {"text": "ghi đè", "expectedVersion": 1}),
-        ("DELETE", {"expectedVersion": 1}),
-    ):
-        response = await guest.client.request(
-            method, f"/api/v1/profiles/private-items/{item}", json=body, headers=key()
-        )
-        assert response.status_code == 404
-    assert "Canary" not in (await guest.client.get("/api/v1/profiles/private-items")).text
-    still = await registered_client.get("/api/v1/profiles/private-items")
-    assert "Canary người dùng chính thức" in still.text and "ghi đè" not in still.text
 
 
 async def test_forged_staff_role_never_grants_a_guest(clients):

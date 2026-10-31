@@ -208,7 +208,7 @@ async def evaluate(args):
                     }
                     row['intent_assertions'] = {
                         'no_unrequested_mood_read': not step.get('avoidMoodRead') or 'read_mood_summary' not in row['tools'],
-                        'no_unrequested_proposal': not any(tool in ('propose_memory','propose_private_item') for tool in row['tools']),
+                        'no_unrequested_proposal': 'propose_memory' not in row['tools'],
                     }
                     if step.get('historyLimit'):
                         row['assertions']['truncated_prefix_absent'] = case['turns'][0]['text'] not in serialized_inputs

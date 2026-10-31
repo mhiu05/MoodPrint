@@ -1,2 +1,3 @@
 # Approved SQL is pinned by SHA256: no newline conversion, and no whitespace lint on generated DDL.
 deploy/supabase/reviewed-sql/*.sql -text -whitespace
+deploy/supabase/pending-review/0020/*.sql -text -whitespace

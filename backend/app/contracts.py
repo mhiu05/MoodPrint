@@ -97,7 +97,7 @@ class EligibilityInput(VersionInput):
     birth_year: int = Field(ge=1900, le=9999, strict=True)
     confirmed_minimum_age: StrictBool
     confirmed_adult_age: StrictBool = False
-    policy_version: Literal["self-declared-age-v1"]
+    policy_version: Literal["self-declared-age-v2-18plus"]
 
     @field_validator("confirmed_minimum_age")
     @classmethod
@@ -119,6 +119,14 @@ class EmailInput(DTO):
 class SignupInput(EmailInput):
     # Supabase hashes with bcrypt, which ignores bytes beyond 72.
     password: str = Field(min_length=8, max_length=72, repr=False)
+    eligibility: EligibilityInput
+
+    @field_validator("eligibility")
+    @classmethod
+    def first_declaration(cls, value: EligibilityInput) -> EligibilityInput:
+        if value.expected_version != 0:
+            raise ValueError("A signup age declaration starts at version 0")
+        return value
 
 
 class PasswordResetInput(DTO):
@@ -133,22 +141,6 @@ class AuthNotice(DTO):
 class ConsentInput(VersionInput):
     enabled: bool
     policy_version: Literal["v1"]
-
-
-class PrivateItemInput(DTO):
-    text: ShortText
-
-
-class PrivateItemEdit(PrivateItemInput, VersionInput):
-    pass
-
-
-class PrivateItemDTO(DTO):
-    id: UUID
-    text: str
-    version: int
-    origin: Literal["declared", "ai"]
-    status: Literal["confirmed", "edited", "deleted"]
 
 
 class MoodInput(VersionInput):

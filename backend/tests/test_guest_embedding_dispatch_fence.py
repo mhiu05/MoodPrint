@@ -17,19 +17,10 @@ embedding_env = test_embeddings.embedding_env
 
 
 async def prepared(app):
-    from app.infrastructure.database.models import Memory, PrivateItem
-
     guest, settings, mid = await semantic_guest(app, started_ago=timedelta(minutes=1))
     settings.embedding_job_batch_size = 1
-    async with app.state.database.sessions.begin() as db:
-        source = PrivateItem(user_id=guest.user_id, text="approved source")
-        db.add(source)
-        await db.flush()
-        memory = await db.get(Memory, mid)
-        memory.source_id, memory.source_version = source.id, 1
-        sid = source.id
     await queue(app, settings, mid)
-    return guest, settings, mid, sid
+    return guest, settings, mid
 
 
 async def paused_worker(app, settings, monkeypatch):
@@ -64,12 +55,10 @@ async def no_disclosure(app, provider):
         assert all(row.state == "completed" for row in (await db.scalars(select(GuestOperationLink))).all())
 
 
-@pytest.mark.parametrize("mutation", ["edit", "delete", "source"])
+@pytest.mark.parametrize("mutation", ["edit", "delete"])
 async def test_invalidated_document_never_reaches_provider(clients, monkeypatch, mutation):
-    from app.infrastructure.database.models import PrivateItem, User
-
     app, _ = clients
-    guest, settings, mid, sid = await prepared(app)
+    guest, settings, mid = await prepared(app)
     provider, task, resume = await paused_worker(app, settings, monkeypatch)
     try:
         headers = {"Idempotency-Key": str(uuid4())}
@@ -81,12 +70,6 @@ async def test_invalidated_document_never_reaches_provider(clients, monkeypatch,
             response = await guest.client.request("DELETE", f"/api/v1/memories/{mid}",
                 json={"expectedVersion": 1}, headers=headers)
             assert response.status_code == 200, response.text
-        else:
-            # The source can become stale without cancelling this document's job.
-            async with app.state.database.sessions.begin() as db:
-                await db.get(User, guest.user_id, with_for_update=True)
-                source = await db.get(PrivateItem, sid)
-                source.version += 1
     finally:
         resume.set()
         await asyncio.wait_for(task, 5)
@@ -99,7 +82,7 @@ async def test_stolen_or_expired_document_lease_blocks_dispatch(clients, monkeyp
     from app.modules.guests.policy import database_time
 
     app, _ = clients
-    _, settings, _, _ = await prepared(app)
+    _, settings, _ = await prepared(app)
     provider, task, resume = await paused_worker(app, settings, monkeypatch)
     try:
         async with app.state.database.sessions.begin() as db:
@@ -115,16 +98,15 @@ async def test_stolen_or_expired_document_lease_blocks_dispatch(clients, monkeyp
 
 
 async def test_unrelated_personal_edit_preserves_document_dispatch(clients, monkeypatch):
-    from app.infrastructure.database.models import PrivateItem, User
+    from app.infrastructure.database.models import User
 
     app, _ = clients
-    guest, settings, _, _ = await prepared(app)
+    guest, settings, _ = await prepared(app)
     provider, task, resume = await paused_worker(app, settings, monkeypatch)
     try:
         async with app.state.database.sessions.begin() as db:
             user = await db.get(User, guest.user_id, with_for_update=True)
             user.data_version += 1
-            db.add(PrivateItem(user_id=user.id, text="unrelated approved personal item"))
     finally:
         resume.set()
         await asyncio.wait_for(task, 5)
@@ -137,7 +119,7 @@ async def test_query_embedding_keeps_separate_funded_scope(clients):
     from app.modules.guests.models import GuestUsage
 
     app, _ = clients
-    guest, settings, _, _ = await prepared(app)
+    guest, settings, _ = await prepared(app)
     provider = PausedProvider()
     provider.release.set()
     await process_embedding_jobs(app.state.database, settings, provider)

@@ -152,7 +152,7 @@ async def test_every_assistant_rebuilds_context_from_postgres_after_runtime_rest
     else:
         assert "Approved synthetic watercolor memory" not in history
     tools = {tool.name for tool in model.calls[0]["tools"]}
-    assert tools == ({"propose_memory", "propose_private_item"} if bot_id == "guong" else
+    assert tools == ({"propose_memory"} if bot_id == "guong" else
                      {"propose_memory", "search_journal_entries"} if bot_id == "nhip" else
                      {"propose_memory"} if bot_id == "may" else set())
     assert (await actors[1][0].get(url)).status_code == 404

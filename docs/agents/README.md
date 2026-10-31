@@ -5,7 +5,7 @@ Năm trợ lý dùng chung backend runtime và OpenAI Agents SDK Python. Danh t�
 | Bot ID | Tên | Vai trò | Tool có thể được cấp |
 | --- | --- | --- | --- |
 | `may` | Mây | Lắng nghe và tâm sự | `propose_memory` |
-| `guong` | Gương | Khám phá bản thân | `propose_memory`, `propose_private_item` |
+| `guong` | Gương | Khám phá bản thân | `propose_memory` |
 | `nhip` | Nhịp | Cảm xúc và thói quen | `propose_memory`; `read_mood_summary` khi có scope |
 | `rure` | Rủ Rê | Học hỏi và cùng chơi | Không có tool trong runtime hiện tại |
 | `caunoi` | Cầu Nối | Hướng dẫn tìm bạn | Không có tool trong runtime hiện tại |

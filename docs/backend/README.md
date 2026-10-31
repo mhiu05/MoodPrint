@@ -10,7 +10,7 @@ Backend Python 3.12/FastAPI là modular monolith, dùng async SQLAlchemy + psyco
 | --- | --- | --- |
 | `auth` | Password/provider flow, app session, eligibility | User, AuthSession, AgeDeclaration |
 | `consent` | Quyền theo purpose, version và invalidation | Consent, ConsentEvent |
-| `profiles` | Private items và taxonomy | PrivateItem, taxonomy JSON |
+| `profiles` | Taxonomy cho hồ sơ kết nối | taxonomy JSON |
 | `mood` | Nhật ký ngày local, summary có nguồn | Mood |
 | `ai` | Conversation, runs, tools, history, memory, embeddings | AI tables, Memory |
 | `social` | Public profile, discovery, requests, room/message, notifications | PublishedProfile, Pair, Connection |

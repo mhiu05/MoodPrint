@@ -51,7 +51,7 @@ async function publish(page: Page) {
   await expect(page.getByText("Đã hiển thị hồ sơ tìm bạn.", { exact: true })).toBeVisible();
 }
 
-test("hosted Auth, age, consent, private data, SDK memory, social races, restart and revoke", async ({ browser }) => {
+test("hosted Auth, age, account data, SDK memory, social races, restart and revoke", async ({ browser }) => {
   const a = await browser.newContext(), b = await browser.newContext();
   try {
     const one = await a.newPage(), two = await b.newPage();
@@ -60,31 +60,18 @@ test("hosted Auth, age, consent, private data, SDK memory, social races, restart
     const sessionA = await request(a, "GET", "/session"), sessionB = await request(b, "GET", "/session");
     const year = Number(new Intl.DateTimeFormat("en", { timeZone: "Asia/Bangkok", year: "numeric" }).format(new Date(sessionA.serverTime)));
     for (const [page, session, offset] of [[one, sessionA, 18], [two, sessionB, 20]] as const) {
-      if (session.ageBand === "unknown") {
+      if (!session.eligible) {
         expect(Object.values(session.consents).every((c: any) => !c.enabled)).toBe(true);
         await page.getByLabel("Năm sinh", { exact: true }).fill(String(year - offset));
-        await page.getByRole("checkbox", { name: "Tôi xác nhận mình đã đủ 16 tuổi.", exact: true }).check();
+        await page.getByRole("checkbox", { name: "Tôi xác nhận mình đã đủ 18 tuổi.", exact: true }).check();
         await page.getByRole("button", { name: "Xác nhận và tiếp tục", exact: true }).click();
         await expect(page.getByRole("heading", { name: "Chọn một trợ lý" })).toBeVisible();
       }
     }
-    if ((await request(a, "GET", "/session")).ageBand === "teen") {
-      await request(a, "PUT", "/consents/MATCH", { enabled: true, expectedVersion: 1, policyVersion: "v1" }, 403);
-      record("teenSocialDeniedBeforeAdultConfirmation");
-      await one.goto(base + "/#/settings");
-      await one.getByRole("checkbox", { name: /Tôi xác nhận mình đã đủ 18 tuổi/ }).check();
-      await one.getByRole("button", { name: "Xác nhận đủ 18 tuổi", exact: true }).click();
-      await expect(one.getByRole("button", { name: "Xác nhận đủ 18 tuổi", exact: true })).toHaveCount(0);
-    }
     expect((await request(a, "GET", "/session")).ageBand).toBe("adult");
-    record("onboardingPrivate16PlusAndExplicit18Boundary");
-    const tag = randomUUID().slice(0, 8), privateText = `Supabase private ${tag}`, moodText = `Supabase mood ${tag}`, aliasText = `Synthetic owner ${tag}`;
-    const item = await request(a, "POST", "/profiles/private-items", { text: privateText }, 201);
-    await request(b, "PATCH", `/profiles/private-items/${item.id}`, { text: "must not change owner data", expectedVersion: 1 }, 404);
-    expect((await request(b, "GET", "/profiles/private-items")).some((x: any) => x.id === item.id)).toBe(false);
-    record("crossUserPrivateReadAndWriteDenied");
-    await one.goto(base + "/#/profile"); await expect(one.getByText(privateText, { exact: true })).toBeVisible();
-    await one.reload(); await expect(one.getByText(privateText, { exact: true })).toBeVisible();
+    record("onboardingGlobal18PlusAndExplicitBirthdayBoundary");
+    const tag = randomUUID().slice(0, 8), moodText = `Supabase mood ${tag}`, aliasText = `Synthetic owner ${tag}`;
+    await one.goto(base + "/#/profile");
     await one.getByRole("textbox", { name: "Tên hiển thị", exact: true }).fill(aliasText);
     await one.getByRole("button", { name: "Lưu tên hiển thị", exact: true }).click();
     await expect(one.getByText("Đã cập nhật thông tin riêng.", { exact: true })).toBeVisible();
@@ -94,7 +81,7 @@ test("hosted Auth, age, consent, private data, SDK memory, social races, restart
     await one.getByRole("button", { name: /^(Lưu|Cập nhật) tâm trạng$/ }).click();
     await expect(one.getByText(/^Đã (lưu|cập nhật) tâm trạng\.$/)).toBeVisible();
     await one.reload(); await expect(one.locator("article").getByText(moodText, { exact: true })).toBeVisible();
-    record("privateAndMoodPersistenceAcrossReload");
+    record("moodPersistenceAcrossReload");
     await enable(one, "trò chuyện AI"); await enable(one, "ghi nhớ đã duyệt");
     await one.goto(base + "/#/assistants/may");
     await one.getByRole("textbox", { name: "Tin nhắn cho Mây" }).fill("SYNTHETIC_MEMORY_PROPOSAL");
@@ -143,9 +130,8 @@ test("hosted Auth, age, consent, private data, SDK memory, social races, restart
     const restart = JSON.parse(readFileSync(artifacts + "supabase-restart-ack.json", "utf8"));
     expect(restart.oldPid !== restart.newPid).toBe(true);
     await two.reload(); await expect(two.getByRole("log").getByText(chatText, { exact: true })).toBeVisible();
-    expect((await request(a, "GET", "/profiles/private-items")).some((x: any) => x.id === item.id)).toBe(true);
     expect((await request(a, "GET", "/memories")).some((x: any) => x.text === memoryText)).toBe(true);
-    record("backendProcessRestartRetainsSessionsPrivateMemoryAndChat");
+    record("backendProcessRestartRetainsSessionsMemoryAndChat");
     await two.getByRole("button", { name: "Chia sẻ và an toàn" }).click();
     await two.getByRole("button", { name: "Yêu cầu xem tên hiển thị", exact: true }).click();
     await one.reload(); await one.getByRole("button", { name: "Chia sẻ và an toàn" }).click();

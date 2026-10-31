@@ -712,7 +712,7 @@ async def export_conversation(
     conversation_id: UUID, request: Request, actor: Actor = Depends(require_actor)
 ):
     EXPORT_LIMIT.check(str(actor.user_id))
-    async with transaction(request, actor) as (db, user):
+    async with transaction(request, actor, eligible=False) as (db, user):
         c = await owned_conversation(db, conversation_id, user.id)
         if c is None:
             raise DomainError(404, "NOT_FOUND", "Không tìm thấy cuộc trò chuyện.")

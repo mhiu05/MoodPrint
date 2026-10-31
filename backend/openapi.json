@@ -2846,492 +2846,6 @@
         }
       }
     },
-    "/api/v1/profiles/private-items": {
-      "get": {
-        "summary": "List Items",
-        "operationId": "list_items_api_v1_profiles_private_items_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/PrivateItemDTO"
-                  },
-                  "type": "array",
-                  "title": "Response List Items Api V1 Profiles Private Items Get"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Gone",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Service Unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "summary": "Create Item",
-        "operationId": "create_item_api_v1_profiles_private_items_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PrivateItemInput"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PrivateItemDTO"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Gone",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Service Unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/profiles/private-items/{item_id}": {
-      "patch": {
-        "summary": "Edit Item",
-        "operationId": "edit_item_api_v1_profiles_private_items__item_id__patch",
-        "parameters": [
-          {
-            "name": "item_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Item Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PrivateItemEdit"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PrivateItemDTO"
-                }
-              }
-            }
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description": "Unauthorized"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description": "Forbidden"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description": "Conflict"
-          },
-          "410": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description": "Gone"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description": "Too Many Requests"
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description": "Internal Server Error"
-          },
-          "503": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description": "Service Unavailable"
-          }
-        }
-      },
-      "delete": {
-        "summary": "Delete Item",
-        "operationId": "delete_item_api_v1_profiles_private_items__item_id__delete",
-        "parameters": [
-          {
-            "name": "item_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Item Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VersionInput"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ActionReceipt"
-                }
-              }
-            }
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description": "Unauthorized"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description": "Forbidden"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description": "Conflict"
-          },
-          "410": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description": "Gone"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description": "Too Many Requests"
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description": "Internal Server Error"
-          },
-          "503": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description": "Service Unavailable"
-          }
-        }
-      }
-    },
     "/api/v1/moods": {
       "get": {
         "summary": "List Moods",
@@ -16363,7 +15877,6 @@
               "memories",
               "moods",
               "journal",
-              "private_items",
               "all_private",
               "account"
             ],
@@ -16466,6 +15979,16 @@
             "type": "boolean",
             "title": "Strictgoal",
             "default": false
+          },
+          "discovery": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FriendshipDiscovery"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -16522,7 +16045,7 @@
           },
           "policyVersion": {
             "type": "string",
-            "const": "self-declared-age-v1",
+            "const": "self-declared-age-v2-18plus",
             "title": "Policyversion"
           }
         },
@@ -16625,12 +16148,12 @@
               "type": "string",
               "enum": [
                 "account",
-                "private_items",
                 "memories",
                 "moods",
                 "journal",
                 "consents",
-                "social"
+                "social",
+                "conversations"
               ]
             },
             "type": "array",
@@ -17044,6 +16567,61 @@
         "type": "object",
         "title": "FocusOptions"
       },
+      "FriendshipDiscovery": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Version",
+            "default": 1
+          },
+          "intention": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "talk",
+                  "shared-interests",
+                  "study",
+                  "experiences"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intention"
+          },
+          "connectionApproach": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "gradual",
+                  "lively",
+                  "activity-first"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connectionapproach"
+          },
+          "featuredInterests": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Featuredinterests"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "FriendshipDiscovery",
+        "description": "Explicit public display choices, independent of canonical matching facets."
+      },
       "GuestEligibility": {
         "properties": {
           "expectedVersion": {
@@ -17068,7 +16646,7 @@
           },
           "policyVersion": {
             "type": "string",
-            "const": "self-declared-age-v1",
+            "const": "self-declared-age-v2-18plus",
             "title": "Policyversion"
           }
         },
@@ -17081,7 +16659,7 @@
           "policyVersion"
         ],
         "title": "GuestEligibility",
-        "description": "The existing age attestation, parsed leniently so under-16 and a missing confirmation\nanswer GUEST_INELIGIBLE (before any provider call) instead of a generic validation error."
+        "description": "The adult attestation, parsed leniently so under-18 and a missing confirmation\nanswer GUEST_INELIGIBLE (before any provider call) instead of a generic validation error."
       },
       "GuestInput": {
         "properties": {
@@ -18255,88 +17833,6 @@
         ],
         "title": "PreviewView"
       },
-      "PrivateItemDTO": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "text": {
-            "type": "string",
-            "title": "Text"
-          },
-          "version": {
-            "type": "integer",
-            "title": "Version"
-          },
-          "origin": {
-            "type": "string",
-            "enum": [
-              "declared",
-              "ai"
-            ],
-            "title": "Origin"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "confirmed",
-              "edited",
-              "deleted"
-            ],
-            "title": "Status"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "id",
-          "text",
-          "version",
-          "origin",
-          "status"
-        ],
-        "title": "PrivateItemDTO"
-      },
-      "PrivateItemEdit": {
-        "properties": {
-          "expectedVersion": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Expectedversion"
-          },
-          "text": {
-            "type": "string",
-            "maxLength": 120,
-            "minLength": 1,
-            "title": "Text"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "expectedVersion",
-          "text"
-        ],
-        "title": "PrivateItemEdit"
-      },
-      "PrivateItemInput": {
-        "properties": {
-          "text": {
-            "type": "string",
-            "maxLength": 120,
-            "minLength": 1,
-            "title": "Text"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "text"
-        ],
-        "title": "PrivateItemInput"
-      },
       "ProgressView": {
         "properties": {
           "round": {
@@ -18417,10 +17913,6 @@
             "type": "string",
             "title": "Text"
           },
-          "purpose": {
-            "type": "string",
-            "title": "Purpose"
-          },
           "version": {
             "type": "integer",
             "title": "Version"
@@ -18441,7 +17933,6 @@
           "id",
           "botId",
           "text",
-          "purpose",
           "version",
           "status",
           "expiresAt"
@@ -18558,6 +18049,16 @@
             "type": "boolean",
             "title": "Strictgoal",
             "default": false
+          },
+          "discovery": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FriendshipDiscovery"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -19272,13 +18773,17 @@
             "maxLength": 72,
             "minLength": 8,
             "title": "Password"
+          },
+          "eligibility": {
+            "$ref": "#/components/schemas/EligibilityInput"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
           "email",
-          "password"
+          "password",
+          "eligibility"
         ],
         "title": "SignupInput"
       },

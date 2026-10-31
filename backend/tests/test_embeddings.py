@@ -154,10 +154,10 @@ async def test_failed_jobs_back_off_without_holding_provider_transaction(embeddi
 
 
 @pytest.mark.postgres
-async def test_retrieval_filters_tenant_bot_source_and_changed_versions_before_top_k(embedding_env):
+async def test_retrieval_filters_tenant_and_bot_before_top_k(embedding_env):
     from app.ai.embeddings import process_embedding_jobs, retrieve_memories
     from app.ai.models import AiPreference
-    from app.infrastructure.database.models import Consent, Memory, PrivateItem
+    from app.infrastructure.database.models import Consent
 
     database, settings, actor, other_uid = embedding_env
     async with database.sessions.begin() as db:
@@ -180,23 +180,6 @@ async def test_retrieval_filters_tenant_bot_source_and_changed_versions_before_t
     )
     assert result == ["Tôi đọc sách để thư giãn"]
     assert provider.calls == [("đọc sách", "query")]
-    async with database.sessions.begin() as db:
-        source = PrivateItem(user_id=actor.user_id, text="nguồn", status="confirmed", version=2)
-        db.add(source)
-        await db.flush()
-        await db.execute(
-            update(Memory)
-            .where(Memory.id == relevant)
-            .values(source_id=source.id, source_version=1)
-        )
-    assert (
-        await retrieve_memories(
-            database, settings, actor, "may", "đọc sách", 1, provider=SyntheticProvider()
-        )
-        == []
-    )
-
-
 @pytest.mark.postgres
 async def test_no_indexing_before_semantic_optin_or_after_mem_revocation(embedding_env):
     from app.ai.embedding_models import EmbeddingJob

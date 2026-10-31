@@ -144,7 +144,7 @@ async def test_guest_proposal_and_history_expiry_capped(clients):
     actor = Actor(guest.user_id, guest.session_id, 1, "guest")
     async with app.state.database.sessions.begin() as db:
         data_version = (await db.get(User, guest.user_id)).data_version
-        proposal = await create_proposal(db, actor, "may", "Tôi thích đi bộ", "memory", data_version)
+        proposal = await create_proposal(db, actor, "may", "Tôi thích đi bộ", data_version)
         proposed_until = proposal.expires_at
     assert proposed_until <= guest.expires_at, "a 15-minute preview never outlives a 5-minute trial"
 
@@ -166,6 +166,6 @@ async def test_guest_proposal_and_history_expiry_capped(clients):
     async with app.state.database.sessions.begin() as db:
         with pytest.raises(DomainError) as denied:
             await create_proposal(
-                db, Actor(late.user_id, late.session_id, 1, "guest"), "may", "x", "memory", 1
+                db, Actor(late.user_id, late.session_id, 1, "guest"), "may", "x", 1
             )
     assert denied.value.code == "GUEST_EXPIRED"

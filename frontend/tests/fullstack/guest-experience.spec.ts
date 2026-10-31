@@ -30,7 +30,7 @@ test("public disclosure creates independent anonymous guests with fixed deadline
     await page.setViewportSize({ width: 320, height: 900 });
     await page.goto("/#/settings");
     const data = page.getByRole("region", { name: "Tài khoản & hỗ trợ" });
-    await expect(page.getByRole("heading", { name: "Cá nhân", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tài khoản", exact: true })).toBeVisible();
     await expect(page.getByText(/ngày để bạn tiếp tục trên thiết bị khác/)).toHaveCount(0);
     // The UI must use the guest confirmation path, never password reauthentication.
     await expect(page.getByRole("button", { name: "Tải bản sao dữ liệu", exact: true })).toHaveCount(0);
@@ -49,7 +49,7 @@ test("public disclosure creates independent anonymous guests with fixed deadline
     // Ordinary signup goes through production Auth routes; no anonymous identity conversion.
     expect((await guestCall(first, "PUT", `/moods/${day}`, { value: 3, note: "FRESH-GUEST-PRIVATE", timezone: "Asia/Bangkok", expectedVersion: 0 })).status()).toBe(200);
     const credentials = { email: `guest-conversion-${crypto.randomUUID()}@example.invalid`, password: "local-mvp-synthetic" };
-    expect((await guestCall(first, "POST", "/auth/signup", credentials)).status()).toBe(202);
+    expect((await guestCall(first, "POST", "/auth/signup", { ...credentials, eligibility: { birthYear: 2000, confirmedMinimumAge: true, confirmedAdultAge: false, policyVersion: "self-declared-age-v2-18plus", expectedVersion: 0 } })).status()).toBe(202);
     expect((await (await first.request.get(api + "/session")).json()).userId).toBe(fresh.userId);
     expect((await guestCall(first, "POST", "/auth/logout", {})).status()).toBe(204);
     const login = await guestCall(first, "POST", "/auth/login", credentials);
@@ -57,7 +57,7 @@ test("public disclosure creates independent anonymous guests with fixed deadline
     const registered = await login.json();
     expect(registered.accountKind).toBe("registered");
     expect(registered.userId).not.toBe(fresh.userId);
-    expect((await guestCall(first, "PUT", "/users/me/eligibility", { birthYear: 2000, confirmedMinimumAge: true, confirmedAdultAge: false, policyVersion: "self-declared-age-v1", expectedVersion: 0 })).status()).toBe(200);
+    expect((await guestCall(first, "PUT", "/users/me/eligibility", { birthYear: 2000, confirmedMinimumAge: true, confirmedAdultAge: false, policyVersion: "self-declared-age-v2-18plus", expectedVersion: 0 })).status()).toBe(200);
     expect(await (await first.request.get(api + "/moods")).json()).toEqual([]);
   } finally { await first.close(); await second.close(); }
 });

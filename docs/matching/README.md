@@ -1,6 +1,6 @@
 # Matching và kết nối người thật
 
-Matching dùng quy tắc xác định trên **published public profiles**, không dùng embedding, LLM, mood, private profile hay chat history. Tìm được candidate không tự tạo lời mời; người dùng chủ động xem thẻ, gửi/nhận lời mời rồi mới có room nhắn tin.
+Matching dùng quy tắc xác định trên **published public profiles**, không dùng embedding, LLM, mood, AI memories hay chat history. Tìm được candidate không tự tạo lời mời; người dùng chủ động xem thẻ, gửi/nhận lời mời rồi mới có room nhắn tin.
 
 ```text
 Public profile draft

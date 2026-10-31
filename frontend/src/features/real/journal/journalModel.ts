@@ -35,6 +35,53 @@ export function formatJournalDate(day: string): string {
   const [year, month, date] = day.split("-");
   return `${date}/${month}/${year}`;
 }
+
+type TimelineMoment = { id: string; localDate: string; createdAt: string };
+
+function fractionalSeconds(timestamp: string): string {
+  // Pydantic/PostgreSQL retain microseconds that Date.parse rounds down.
+  // Date.parse handles the offset; this breaks ties inside the same millisecond.
+  return (timestamp.match(/\.(\d+)(?:Z|[+-]\d{2}:\d{2})$/i)?.[1] || "").padEnd(
+    6,
+    "0",
+  );
+}
+
+/** Match the API's moment-date order; edits never change creation order. */
+export function mergeTimelineEntries<T extends TimelineMoment>(
+  previous: T[],
+  incoming: T[],
+): T[] {
+  const unique = new Map(previous.map((entry) => [entry.id, entry]));
+  for (const entry of incoming) unique.set(entry.id, entry);
+  return [...unique.values()].sort(
+    (a, b) =>
+      b.localDate.localeCompare(a.localDate) ||
+      Date.parse(b.createdAt) - Date.parse(a.createdAt) ||
+      fractionalSeconds(b.createdAt).localeCompare(
+        fractionalSeconds(a.createdAt),
+      ) ||
+      b.id.localeCompare(a.id),
+  );
+}
+
+export function groupEntriesByMonth<T extends TimelineMoment>(items: T[]) {
+  const groups: { key: string; label: string; items: T[] }[] = [];
+  for (const item of items) {
+    const key = item.localDate.slice(0, 7);
+    const last = groups.at(-1);
+    if (last?.key === key) last.items.push(item);
+    else {
+      const [year, month] = key.split("-");
+      groups.push({
+        key,
+        label: `Tháng ${Number(month)}, ${year}`,
+        items: [item],
+      });
+    }
+  }
+  return groups;
+}
 export function previousJournalDate(day: string): string {
   const date = new Date(`${day}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() - 1);

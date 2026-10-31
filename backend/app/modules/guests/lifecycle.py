@@ -28,7 +28,6 @@ from app.infrastructure.database.models import (
     Memory,
     Mood,
     Outbox,
-    PrivateItem,
     User,
 )
 from app.modules.activities.models import ActivityParticipant, ActivityResponse, ActivitySession
@@ -78,7 +77,6 @@ INVENTORY: dict[str, str] = {
     "age_declarations": "purged",
     "consents": "purged",
     "consent_events": "purged",
-    "private_items": "purged",
     "moods": "purged",
     "journal_entries": "purged",
     "journal_media": "purged",
@@ -284,7 +282,6 @@ async def _delete_owned(db: AsyncSession, uid: UUID) -> None:
         MemoryEmbedding,
         MemoryProposal,
         Memory,
-        PrivateItem,
         Mood,
         IdentityField,
         StaffRole,

@@ -184,7 +184,7 @@ test("flag off keeps a simple four-step inline guide without an overlay", async 
 test("draft start refuses navigation and keeps the real mood draft", async ({ page }) => {
   const mutations = await setup(page);
   await open(page);
-  await page.getByRole("link", { name: "Cảm xúc", exact: true }).click();
+  await page.getByRole("link", { name: "Nhật ký", exact: true }).click();
   const note = page.locator("#journal-text");
   await note.fill("private-draft-stays-here");
   await page.getByRole("button", { name: "Bắt đầu hướng dẫn", exact: true }).click();

@@ -19,10 +19,6 @@ button {
   align-items: center;
   padding: 28px 10px 22px;
 }
-.rail-brand {
-  padding: 0 0 32px;
-  display: block;
-}
 .me-rail nav {
   width: 100%;
   padding: 0;
@@ -100,31 +96,10 @@ button {
 
 /* Ordinary pages: 72rem shell, forms and prose capped by --reading-max. */
 .me-page {
-  padding: 0 var(--gutter) 48px;
+  padding: 24px var(--gutter) 48px;
   max-width: calc(var(--shell-max) + 2 * var(--gutter));
   width: 100%;
   margin: 0 auto;
-}
-.page-app-header {
-  min-height: 88px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-.page-app-header > a {
-  text-decoration: none;
-}
-/* At 200% text a wide fallback font can make the one-word brand wider than the
-   space beside the privacy button; it may then wrap instead of pushing the button off-screen. */
-.page-app-header > a:first-child {
-  min-width: 0;
-}
-.page-app-header span[class*="brand"] {
-  font-size: 1.5rem;
-  letter-spacing: -1px;
-  overflow-wrap: anywhere;
 }
 .me-assistants > div:not([role="status"]) {
   height: 100dvh;
@@ -162,23 +137,6 @@ button {
   overflow-y: auto;
   min-height: 0;
   min-width: 0;
-}
-.roster-brand {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-.roster-brand > a {
-  text-decoration: none;
-}
-.roster-brand span[class*="brand"] {
-  font-size: 1.5rem;
-  letter-spacing: -1px;
-  gap: 8px;
-}
-.roster-brand span[class*="brandDot"] {
-  margin-left: -5px;
 }
 .bot-search {
   background: var(--color-bg);
@@ -850,7 +808,6 @@ button {
     padding: 0;
     border: 0;
   }
-  .rail-brand,
   .rail-bottom {
     display: none;
   }
@@ -879,9 +836,6 @@ button {
   .bot-roster {
     padding-top: calc(20px + env(safe-area-inset-top));
   }
-  .roster-brand {
-    margin-bottom: 20px;
-  }
   .conversation-header {
     padding: calc(8px + env(safe-area-inset-top)) var(--gutter) 8px;
     gap: 8px;
@@ -899,12 +853,7 @@ button {
     max-height: 160px;
   }
   .me-page {
-    padding: 0 var(--gutter) calc(var(--bottom-nav) + 24px + env(safe-area-inset-bottom));
-  }
-  .page-app-header {
-    min-height: 72px;
-    margin-bottom: 12px;
-    padding-top: env(safe-area-inset-top);
+    padding: calc(16px + env(safe-area-inset-top)) var(--gutter) calc(var(--bottom-nav) + 24px + env(safe-area-inset-bottom));
   }
   .me-page h1 {
     font-size: 1.75rem;
@@ -921,9 +870,6 @@ button {
 }
 
 @media (max-height: 760px) and (min-width: 768px) {
-  .roster-brand {
-    margin-bottom: 16px;
-  }
   .bot-search {
     margin-bottom: 14px;
   }
@@ -934,9 +880,6 @@ button {
   max-width: none;
   padding: 0;
   margin: 0;
-}
-.full-chat .page-app-header {
-  display: none;
 }
 .welcome-signature {
   margin-top: 24px;

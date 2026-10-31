@@ -10,9 +10,9 @@ const GUIDES: Record<string, { purpose: string; to: string; action: string }> =
     },
     guong: {
       purpose:
-        "Khám phá sở thích, điều bạn coi trọng và những điều làm bạn là chính mình. Mọi đề xuất đều chờ bạn duyệt.",
-      to: "/profile",
-      action: "Xem hồ sơ riêng",
+        "Khám phá sở thích, điều bạn coi trọng và những điều làm bạn là chính mình. Mọi ghi nhớ đều chờ bạn duyệt.",
+      to: "/memory",
+      action: "Xem ghi nhớ AI",
     },
     nhip: {
       purpose:

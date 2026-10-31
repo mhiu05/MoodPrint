@@ -75,7 +75,7 @@ async def test_guest_grant_has_one_database_deadline(clients):
     assert len(consents) == 4
     assert {c.purpose for c in consents if c.enabled} == {"AI", "MEM", "VOICE"}
     assert not any(c.enabled for c in consents if c.purpose == "MATCH")
-    assert declaration.birth_year == 2000 and user.age_band in ("teen", "adult")
+    assert declaration.birth_year == 2000 and user.age_band == "adult"
     assert job.due_at == user.guest_expires_at and job.state == "pending"
     assert (usage.ai_turns, usage.voice_clips, usage.voice_milliseconds) == (0, 0, 0)
     assert attempt.state == "granted" and attempt.lease_token is None

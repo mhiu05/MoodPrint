@@ -54,6 +54,16 @@ describe("ApiClient idempotency intents", () => {
 describe("error guidance", () => {
   afterEach(() => vi.unstubAllGlobals());
 
+  it("notifies eligibility denial without treating it as logout or transient retry", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: { code: "ELIGIBILITY_REQUIRED", message: "Bạn cần đủ 18 tuổi để sử dụng MoodPrint." } }), { status: 403 })));
+    const client = new ApiClient();
+    let denied = 0;
+    client.onEligibilityDenied = () => { denied += 1; };
+    client.onUnauthorized = () => { throw new Error("must preserve account-management session"); };
+    await expect(client.request("/journal/entries")).rejects.toMatchObject({ code: "ELIGIBILITY_REQUIRED" });
+    expect(denied).toBe(1);
+  });
+
   async function failure(response: Response | Error) {
     vi.stubGlobal("fetch", vi.fn(async () => {
       if (response instanceof Error) throw response;

@@ -8,7 +8,7 @@ SPA dùng React 19, TypeScript 5.9, Vite và React Router; tên package `moodpri
 | --- | --- |
 | `/assistants`, `/assistants/:botId` | Danh sách bot, conversation history, chat, tools/cards, voice |
 | `/self` | Nhật ký và thống kê cảm xúc |
-| `/profile` | Private profile items, khác hồ sơ tìm bạn |
+| `/profile` | Thông tin nhận dạng có thể chia sẻ, tài khoản và hỗ trợ |
 | `/memory` | Memory đã duyệt và proposals |
 | `/connect` | Discovery, matching profile, lời mời; query tab phục vụ điều hướng |
 | `/messages` | Danh sách kết nối và nhắn tin |

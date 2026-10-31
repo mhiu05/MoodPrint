@@ -59,8 +59,6 @@ async function api(page: Page, authenticated = true) {
       return route.fulfill({
         json: { from: "2026-10-17", to: "2026-10-23", count: 0, mean: null, min: null, max: null, insightAvailable: false, buckets: [] },
       });
-    if (path === "/api/v1/profiles/private-items")
-      return route.fulfill({ json: [] });
     if (path === "/api/v1/users/me/identity")
       return route.fulfill({ json: [] });
     return route.fulfill({
@@ -295,7 +293,7 @@ test("year onboarding requires confirmation and server success, retaining input 
   await page.getByLabel("Năm sinh", { exact: true }).fill("2007");
   await page
     .getByRole("checkbox", {
-      name: "Tôi xác nhận mình đã đủ 16 tuổi.",
+      name: "Tôi xác nhận mình đã đủ 18 tuổi.",
       exact: true,
     })
     .check();
@@ -477,7 +475,7 @@ test("personal account actions replace privacy controls on mobile and desktop", 
     await page.setViewportSize({ width, height: 844 });
     await page.goto("/#/settings");
     await expect(page).toHaveURL(/#\/profile$/);
-    await expect(page.getByRole("heading", { name: "Cá nhân", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tài khoản", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Góp ý cho MoodPrint", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Đăng xuất", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Xóa tài khoản", exact: true })).toBeVisible();
@@ -507,7 +505,6 @@ test("personal account deletion requires confirmation and can be cancelled", asy
   await dialog.getByRole("button", { name: "Xóa vĩnh viễn tài khoản", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Tài khoản đang được xóa" })).toBeVisible();
   expect(deletions).toEqual([{ scope: "account", expectedVersion: 1 }]);
-  await expect(page.getByRole("textbox", { name: "Điều bạn muốn ghi lại" })).toHaveCount(0);
 });
 
 test("personal account deletion reauthenticates and asks for confirmation again", async ({ page }) => {
@@ -755,39 +752,6 @@ test("an invalid AI final fails visibly without rendering provider JSON", async 
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(page.locator(".from-bot .chat-bubble")).toHaveCount(0);
   await expect(page.getByText("PROVIDER_JSON_SECRET")).toHaveCount(0);
-});
-
-test("failed private profile writes retain the entry without a success receipt", async ({
-  page,
-}) => {
-  await api(page);
-  await page.route("**/api/v1/profiles/private-items", (route) =>
-    route.fulfill(
-      route.request().method() === "GET"
-        ? { json: [] }
-        : {
-            status: 503,
-            json: {
-              error: {
-                code: "UNAVAILABLE",
-                message: "Chưa lưu được mục này. Vui lòng thử lại.",
-              },
-            },
-          },
-    ),
-  );
-  await page.goto("/#/profile");
-  await page
-    .getByRole("textbox", { name: "Điều bạn muốn ghi lại" })
-    .fill("Mình thích đọc sách");
-  await page
-    .getByRole("button", { name: "Lưu vào hồ sơ riêng", exact: true })
-    .click();
-  await expect(page.getByRole("alert")).toContainText("Chưa lưu được mục này");
-  await expect(
-    page.getByRole("textbox", { name: "Điều bạn muốn ghi lại" }),
-  ).toHaveValue("Mình thích đọc sách");
-  await expect(page.getByRole("button", { name: /Xóa mục/ })).toHaveCount(0);
 });
 
 test("a saved mood reloads from the API while a failed edit keeps its note", async ({

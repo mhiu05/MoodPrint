@@ -1,5 +1,3 @@
-from uuid import uuid4
-
 import pytest
 
 from tests.social_helpers import key
@@ -12,9 +10,6 @@ async def test_deletion_denies_old_data_immediately_and_worker_retry_is_idempote
 
     app, actors = clients
     a, _ = actors[0]
-    await a.post(
-        "/api/v1/profiles/private-items", json={"text": "Private deletion canary"}, headers=key()
-    )
     snapshot = (await a.get("/api/v1/session")).json()
     receipt = await a.post(
         "/api/v1/data-deletions",
@@ -22,12 +17,12 @@ async def test_deletion_denies_old_data_immediately_and_worker_retry_is_idempote
         headers=key(),
     )
     assert receipt.status_code == 202, receipt.text
-    assert (await a.get("/api/v1/profiles/private-items")).status_code == 409
+    assert (await a.get("/api/v1/moods")).status_code == 409
     await process_deletions(app)
     await process_deletions(app)
     status = await a.get(f"/api/v1/data-deletions/{receipt.json()['id']}")
     assert status.json()["status"] == "completed"
-    assert (await a.get("/api/v1/profiles/private-items")).json() == []
+    assert (await a.get("/api/v1/moods")).json() == []
     assert (
         await actors[1][0].get(f"/api/v1/data-deletions/{receipt.json()['id']}")
     ).status_code == 404
@@ -36,17 +31,16 @@ async def test_deletion_denies_old_data_immediately_and_worker_retry_is_idempote
 async def test_export_is_owner_only_current_and_one_use_without_peer_transcripts(clients):
     _, actors = clients
     a, _ = actors[0]
-    await a.post("/api/v1/profiles/private-items", json={"text": "Own export"}, headers=key())
     created = await a.post(
         "/api/v1/exports",
-        json={"scopes": ["account", "private_items", "memories", "moods"]},
+        json={"scopes": ["account", "memories", "moods"]},
         headers=key(),
     )
     assert created.status_code == 201, created.text
     job = created.json()
     assert (await actors[1][0].get(f"/api/v1/exports/{job['id']}/download")).status_code == 404
     result = await a.get(f"/api/v1/exports/{job['id']}/download")
-    assert result.status_code == 200 and result.json()["privateItems"][0]["text"] == "Own export"
+    assert result.status_code == 200 and "memories" in result.json()
     assert "messages" not in result.json()
     assert (await a.get(f"/api/v1/exports/{job['id']}/download")).status_code == 410
 
@@ -123,34 +117,6 @@ async def test_identity_helper_refuses_live_accounts(clients):
         )
     assert removed is False
     assert await _auth_exists(app, uid)
-
-
-async def test_private_item_deletion_keeps_unrelated_memories(clients):
-    from sqlalchemy import select
-
-    from app.infrastructure.database.models import Memory, PrivateItem
-    from app.modules.users.lifecycle import process_deletions
-
-    app, actors = clients
-    a, uid = actors[0]
-    async with app.state.database.sessions.begin() as db:
-        item = PrivateItem(user_id=uid, text="Private source")
-        db.add(item)
-        await db.flush()
-        db.add(Memory(user_id=uid, bot_id="may", text="Derived", proposal_id=uuid4(),
-                      source_id=item.id, source_version=item.version))
-        db.add(Memory(user_id=uid, bot_id="may", text="Unrelated", proposal_id=uuid4()))
-    version = (await a.get("/api/v1/session")).json()["dataVersion"]
-    receipt = await a.post(
-        "/api/v1/data-deletions",
-        json={"scope": "private_items", "expectedVersion": version},
-        headers=key(),
-    )
-    assert receipt.status_code == 202, receipt.text
-    await process_deletions(app)
-    async with app.state.database.sessions() as db:
-        texts = (await db.scalars(select(Memory.text).where(Memory.user_id == uid))).all()
-    assert texts == ["Unrelated"]
 
 
 async def test_exhausted_deletion_job_releases_the_user(clients):

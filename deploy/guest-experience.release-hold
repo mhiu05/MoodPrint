@@ -1,0 +1,11 @@
+MoodPrint 18+ / schema 0020 publication hold
+
+The verified hosted database remains at 0019_journal and the serving backend is
+incompatible with 0020_private_profile_retirement. Keep application verification
+enabled, but do not publish an automatically deployable release for this source.
+
+Remove this marker only in a separately reviewed release change once protected
+hosted backup/restore, the dedicated 0020 operator path, compatible images,
+bounded old-traffic sequencing and post-migration checks are ready and approved.
+
+See docs/release/moodprint-18plus-0020-rollout.md.

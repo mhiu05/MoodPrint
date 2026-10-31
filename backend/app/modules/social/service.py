@@ -13,6 +13,7 @@ from app.contracts import ActionReceipt
 from app.core.errors import DomainError
 from app.core.security import Actor, digest, verify_actor
 from app.infrastructure.database.models import Consent, User, now
+from app.modules.auth.age import is_adult_eligible
 from app.modules.matching import explain, scoring_compat, scoring_v2
 from app.modules.profiles import taxonomy
 from app.modules.social.models import (
@@ -64,8 +65,22 @@ def validate_publishable(profile: dict):
         )
 
 
-def public_payload(body):
-    return PublicProfile.model_validate(body.model_dump(exclude={"expected_version"})).model_dump()
+def public_payload(body, *, previous: dict | None = None):
+    """Full canonical replacement; omitted discovery alone survives older writers.
+
+    Construct a fresh allowlisted value rather than mutating nested JSONB in place.
+    Explicit null clears the extension; explicit invalid subsets fail DTO validation.
+    """
+    payload = body.model_dump(exclude={"expected_version"})
+    if "discovery" not in body.model_fields_set and previous:
+        metadata = PublicProfile.model_validate(previous).discovery
+        if metadata is not None:
+            preserved = metadata.model_dump()
+            preserved["featured_interests"] = [
+                tag for tag in metadata.featured_interests if tag in body.interests
+            ]
+            payload["discovery"] = preserved
+    return PublicProfile.model_validate(payload).model_dump()
 
 
 async def match_consent(db: AsyncSession, user: User) -> Consent:
@@ -81,7 +96,7 @@ async def match_consent(db: AsyncSession, user: User) -> Consent:
     if (
         user.status != "active"
         or user.deletion_pending
-        or user.age_band != "adult"
+        or not await is_adult_eligible(db, user)
         or not consent
         or not consent.enabled
     ):

@@ -3,7 +3,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import event
 
-from app.infrastructure.database.models import Consent, User
+from app.infrastructure.database.models import AgeDeclaration, Consent, User
 from app.modules.social.models import PublishedProfile
 from tests.social_helpers import PROFILE, publish
 
@@ -19,6 +19,7 @@ async def test_matching_scores_all_eligible_profiles_without_per_candidate_sql_q
             db.add(User(id=uid, auth_subject=uid, age_band="adult", profile_version=1))
         await db.flush()
         for uid in identities:
+            db.add(AgeDeclaration(user_id=uid, birth_year=1990, policy_version="self-declared-age-v1"))
             db.add(Consent(user_id=uid, purpose="MATCH", enabled=True, version=1))
             db.add(PublishedProfile(user_id=uid, payload=PROFILE, version=1, consent_version=1))
     queries = []

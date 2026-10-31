@@ -45,9 +45,7 @@ function ProposalReview({
   return (
     <article className="real-item">
       <h3>
-        {proposal.purpose === "memory"
-          ? "Đề xuất ghi nhớ"
-          : "Đề xuất cho hồ sơ riêng"}{" "}
+        Đề xuất ghi nhớ{" "}
         từ {botById(proposal.botId)?.name}
         {status === "pending" ? <span className="memory-state">Chưa lưu</span> : null}
       </h3>
@@ -84,7 +82,7 @@ function ProposalReview({
               <Link to="/assistants">Mở trợ lý</Link>
             </p>
           ) : null}
-          {proposal.purpose === "memory" ? <p>Chọn “Duyệt và lưu” để trợ lý dùng ghi nhớ này trong những lần trò chuyện sau. Bạn có thể sửa hoặc xóa từng ghi nhớ bất cứ lúc nào.</p> : null}
+          <p>Chọn “Duyệt và lưu” để trợ lý dùng ghi nhớ này trong những lần trò chuyện sau. Bạn có thể sửa hoặc xóa từng ghi nhớ bất cứ lúc nào.</p>
           <label htmlFor={`proposal-${proposal.id}`}>
             Nội dung sẽ lưu
           </label>
@@ -263,7 +261,7 @@ export function ApprovedMemories() {
         Mỗi trợ lý chỉ dùng những mục bạn đã duyệt cho trợ lý đó. Hồ sơ tìm bạn
         không dùng các ghi nhớ này để gợi ý.
       </p>
-      <Link to="/profile">Về hồ sơ riêng</Link>
+      <Link to="/profile">Về Tài khoản</Link>
       {notice && <p role="status">{notice}</p>}
       <section className="real-section" aria-labelledby="memory-waiting">
         <h2 id="memory-waiting">Đề xuất chờ duyệt</h2>

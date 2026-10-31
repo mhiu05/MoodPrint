@@ -12,7 +12,7 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy import select, update
 
-from app.infrastructure.database.models import User, now
+from app.infrastructure.database.models import AgeDeclaration, User, now
 from app.modules.social.models import (
     CandidateReference,
     Connection,
@@ -73,30 +73,6 @@ async def republish(client):
     return response.json()
 
 
-async def test_private_item_edits_keep_the_profile_live_and_rooms_open(clients):
-    _, actors, _, room = await open_room(clients)
-    a = actors[0][0]
-    item = (
-        await a.post("/api/v1/profiles/private-items", json={"text": "Riêng tư"}, headers=key())
-    ).json()
-    edited = await a.patch(
-        f"/api/v1/profiles/private-items/{item['id']}",
-        json={"text": "Đã sửa", "expectedVersion": 1},
-        headers=key(),
-    )
-    assert edited.status_code == 200, edited.text
-    deleted = await a.request(
-        "DELETE",
-        f"/api/v1/profiles/private-items/{item['id']}",
-        json={"expectedVersion": 2},
-        headers=key(),
-    )
-    assert deleted.status_code == 200, deleted.text
-    assert (await a.get(f"/api/v1/connections/{room}")).status_code == 200
-    assert (await actors[1][0].get(f"/api/v1/connections/{room}/messages")).status_code == 200
-    assert (await a.get("/api/v1/profiles/published/current")).json()["state"] == "live"
-
-
 async def test_consent_restore_requires_explicit_republish_and_stale_profile_can_be_withdrawn(
     clients,
 ):
@@ -136,6 +112,7 @@ async def test_sending_back_completes_a_match_even_at_invitation_quota(clients):
             peer = uuid4()
             db.add(User(id=peer, auth_subject=peer, age_band="adult"))
             await db.flush()
+            db.add(AgeDeclaration(user_id=peer, birth_year=1990, policy_version="self-declared-age-v1"))
             low, high = sorted((actors[1][1], peer))
             pair = Pair(low_user_id=low, high_user_id=high)
             db.add(pair)

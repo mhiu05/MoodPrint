@@ -378,42 +378,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/profiles/private-items": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Items */
-        get: operations["list_items_api_v1_profiles_private_items_get"];
-        put?: never;
-        /** Create Item */
-        post: operations["create_item_api_v1_profiles_private_items_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/profiles/private-items/{item_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete Item */
-        delete: operations["delete_item_api_v1_profiles_private_items__item_id__delete"];
-        options?: never;
-        head?: never;
-        /** Edit Item */
-        patch: operations["edit_item_api_v1_profiles_private_items__item_id__patch"];
-        trace?: never;
-    };
     "/api/v1/moods": {
         parameters: {
             query?: never;
@@ -2269,7 +2233,7 @@ export interface components {
              * Scope
              * @enum {string}
              */
-            scope: "memories" | "moods" | "journal" | "private_items" | "all_private" | "account";
+            scope: "memories" | "moods" | "journal" | "all_private" | "account";
             /** Guestconfirmation */
             guestConfirmation?: "guest-data-v1" | null;
         };
@@ -2310,6 +2274,7 @@ export interface components {
              * @default false
              */
             strictGoal: boolean;
+            discovery?: components["schemas"]["FriendshipDiscovery"] | null;
         };
         /** DraftView */
         DraftView: {
@@ -2339,7 +2304,7 @@ export interface components {
              * Policyversion
              * @constant
              */
-            policyVersion: "self-declared-age-v1";
+            policyVersion: "self-declared-age-v2-18plus";
         };
         /** EmailInput */
         EmailInput: {
@@ -2374,7 +2339,7 @@ export interface components {
         /** ExportInput */
         ExportInput: {
             /** Scopes */
-            scopes: ("account" | "private_items" | "memories" | "moods" | "journal" | "consents" | "social")[];
+            scopes: ("account" | "memories" | "moods" | "journal" | "consents" | "social" | "conversations")[];
             /** Guestconfirmation */
             guestConfirmation?: "guest-data-v1" | null;
         };
@@ -2528,8 +2493,26 @@ export interface components {
             cycles: number;
         };
         /**
+         * FriendshipDiscovery
+         * @description Explicit public display choices, independent of canonical matching facets.
+         */
+        FriendshipDiscovery: {
+            /**
+             * Version
+             * @default 1
+             * @constant
+             */
+            version: 1;
+            /** Intention */
+            intention?: ("talk" | "shared-interests" | "study" | "experiences") | null;
+            /** Connectionapproach */
+            connectionApproach?: ("gradual" | "lively" | "activity-first") | null;
+            /** Featuredinterests */
+            featuredInterests?: string[];
+        };
+        /**
          * GuestEligibility
-         * @description The existing age attestation, parsed leniently so under-16 and a missing confirmation
+         * @description The adult attestation, parsed leniently so under-18 and a missing confirmation
          *     answer GUEST_INELIGIBLE (before any provider call) instead of a generic validation error.
          */
         GuestEligibility: {
@@ -2548,7 +2531,7 @@ export interface components {
              * Policyversion
              * @constant
              */
-            policyVersion: "self-declared-age-v1";
+            policyVersion: "self-declared-age-v2-18plus";
         };
         /**
          * GuestInput
@@ -3055,40 +3038,6 @@ export interface components {
             /** Previewdigest */
             previewDigest: string;
         };
-        /** PrivateItemDTO */
-        PrivateItemDTO: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Text */
-            text: string;
-            /** Version */
-            version: number;
-            /**
-             * Origin
-             * @enum {string}
-             */
-            origin: "declared" | "ai";
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "confirmed" | "edited" | "deleted";
-        };
-        /** PrivateItemEdit */
-        PrivateItemEdit: {
-            /** Expectedversion */
-            expectedVersion: number;
-            /** Text */
-            text: string;
-        };
-        /** PrivateItemInput */
-        PrivateItemInput: {
-            /** Text */
-            text: string;
-        };
         /** ProgressView */
         ProgressView: {
             /** Round */
@@ -3119,8 +3068,6 @@ export interface components {
             botId: "may" | "guong" | "nhip" | "rure" | "caunoi";
             /** Text */
             text: string;
-            /** Purpose */
-            purpose: string;
             /** Version */
             version: number;
             /** Status */
@@ -3180,6 +3127,7 @@ export interface components {
              * @default false
              */
             strictGoal: boolean;
+            discovery?: components["schemas"]["FriendshipDiscovery"] | null;
         };
         /** PublishInput */
         PublishInput: {
@@ -3455,6 +3403,7 @@ export interface components {
             email: string;
             /** Password */
             password: string;
+            eligibility: components["schemas"]["EligibilityInput"];
         };
         /** SocialSummaryView */
         SocialSummaryView: {
@@ -5866,426 +5815,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaxonomyDTO"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Gone */
-            410: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Too Many Requests */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Service Unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
-    };
-    list_items_api_v1_profiles_private_items_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PrivateItemDTO"][];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Gone */
-            410: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Too Many Requests */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Service Unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
-    };
-    create_item_api_v1_profiles_private_items_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PrivateItemInput"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PrivateItemDTO"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Gone */
-            410: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Too Many Requests */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Service Unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
-    };
-    delete_item_api_v1_profiles_private_items__item_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                item_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VersionInput"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ActionReceipt"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Gone */
-            410: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Too Many Requests */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Service Unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
-    };
-    edit_item_api_v1_profiles_private_items__item_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                item_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PrivateItemEdit"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PrivateItemDTO"];
                 };
             };
             /** @description Unauthorized */

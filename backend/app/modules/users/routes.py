@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import select
 
 from app.ai.schemas import MemoryDTO
-from app.contracts import MoodDTO, PrivateItemDTO
+from app.contracts import MoodDTO
 from app.core.errors import DomainError
 from app.core.security import (
     Actor,
@@ -24,14 +24,13 @@ from app.infrastructure.database.models import (
     AuthSession,
     Memory,
     Mood,
-    PrivateItem,
     now,
 )
 from app.modules.guests.deadlines import guest_deadline
 from app.modules.guests.service import cleared_response, end_guest
 from app.modules.journal.models import JournalEntry
 from app.modules.journal.service import active_dates, entries_dto
-from app.modules.users.export import consent_section, social_section
+from app.modules.users.export import consent_section, conversation_section, social_section
 from app.modules.users.models import DataJob
 from app.modules.users.schemas import DataJobView, DeletionInput, ExportInput
 
@@ -109,7 +108,7 @@ async def export(body: ExportInput, request: Request, actor: Actor = Depends(req
             raise DomainError(
                 403, "REGISTERED_REQUIRED", "Lượt dùng thử không có dữ liệu tìm bạn để xuất."
             )
-    async with transaction(request, actor) as (db, user):
+    async with transaction(request, actor, eligible=False) as (db, user):
         session = await db.get(AuthSession, actor.session_id)
         if not guest and session.reauthenticated_at < now() - timedelta(minutes=5):
             raise DomainError(401, "REAUTH_REQUIRED", "Hãy đăng nhập lại trước khi xuất dữ liệu.")
@@ -135,15 +134,12 @@ async def export(body: ExportInput, request: Request, actor: Actor = Depends(req
                 "declaredAt": declaration.declared_at.isoformat() if declaration else None,
             }
         for scope, model, schema, target in (
-            ("private_items", PrivateItem, PrivateItemDTO, "privateItems"),
             ("memories", Memory, MemoryDTO, "memories"),
             ("moods", Mood, MoodDTO, "moods"),
         ):
             if scope not in body.scopes:
                 continue
             statement = select(model).where(model.user_id == user.id)
-            if model is PrivateItem:
-                statement = statement.where(PrivateItem.status != "deleted")
             if model is Memory:
                 statement = statement.where(Memory.status == "active")
             if model is Mood:
@@ -182,6 +178,8 @@ async def export(body: ExportInput, request: Request, actor: Actor = Depends(req
             ]
         if "consents" in body.scopes:
             result["consents"] = await consent_section(db, user)
+        if "conversations" in body.scopes:
+            result["conversations"] = await conversation_section(db, user)
         if "social" in body.scopes:
             result["social"] = await social_section(db, user)
         if len(json.dumps(result).encode()) > 2 * 1024 * 1024:
@@ -217,7 +215,7 @@ async def export(body: ExportInput, request: Request, actor: Actor = Depends(req
 
 @router.get("/exports/{job_id}", response_model=DataJobView)
 async def export_status(job_id: UUID, request: Request, actor: Actor = Depends(require_actor)):
-    async with transaction(request, actor) as (db, user):
+    async with transaction(request, actor, eligible=False) as (db, user):
         row = await db.get(DataJob, job_id)
         if not row or row.user_id != user.id:
             raise DomainError(404, "NOT_FOUND", "Không tìm thấy bản xuất.")
@@ -226,7 +224,7 @@ async def export_status(job_id: UUID, request: Request, actor: Actor = Depends(r
 
 @router.get("/exports/{job_id}/download")
 async def download(job_id: UUID, request: Request, actor: Actor = Depends(require_actor)):
-    async with transaction(request, actor) as (db, user):
+    async with transaction(request, actor, eligible=False) as (db, user):
         row = await db.get(DataJob, job_id)
         if not row or row.user_id != user.id:
             raise DomainError(404, "NOT_FOUND", "Không tìm thấy bản xuất.")

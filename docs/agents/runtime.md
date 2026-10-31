@@ -36,7 +36,7 @@ Output thường là `AiOutput`: `text` 1–6.000 ký tự, tối đa 3 card thu
 
 ## Tools và hành động được duyệt
 
-`propose_memory`/`propose_private_item` chỉ tạo đề xuất ngắn (tối đa 120 ký tự sau trim), trả status `proposed` và proposal ID/version. Chúng không biến đề xuất thành memory/private item đã duyệt. Người dùng xem/sửa/xác nhận qua API riêng; endpoint confirm kiểm tra quyền/version/current data.
+`propose_memory` chỉ tạo đề xuất ngắn (tối đa 120 ký tự sau trim), trả status `proposed` và proposal ID/version. Đề xuất chưa phải ghi nhớ đã duyệt. Người dùng xem/sửa/xác nhận qua API riêng; endpoint confirm kiểm tra quyền/version/consent hiện tại.
 
 `read_mood_summary` chỉ cấp cho Nhịp khi người dùng chọn phạm vi ngày. Arguments phải là object rỗng; model không chọn owner, ngày hoặc nguồn dữ liệu. Tool trả điểm/thống kê trong scope, không trả ghi chú riêng tư. Runtime ghi source state và evidence; không diễn giải lỗi tool như nguồn dữ liệu hợp lệ.
 
