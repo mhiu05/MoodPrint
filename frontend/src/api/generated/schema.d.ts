@@ -2257,6 +2257,21 @@ export interface components {
             /** Persistent */
             persistent?: boolean | null;
         };
+        /** ConversationReadInput */
+        ConversationReadInput: {
+            /** Lastreadsequence */
+            lastReadSequence: number;
+        };
+        /** ConversationReadView */
+        ConversationReadView: {
+            /**
+             * Conversationid
+             * Format: uuid
+             */
+            conversationId: string;
+            /** Lastreadsequence */
+            lastReadSequence: number;
+        };
         /** ConversationRename */
         ConversationRename: {
             /** Title */
@@ -2745,18 +2760,12 @@ export interface components {
          * @description Counts and navigation only; never message text or a preview.
          */
         InboxView: {
-            /**
-             * Badgesenabled
-             * @default false
-             */
+            /** Badgesenabled */
             badgesEnabled: boolean;
-            /**
-             * Unreadtotal
-             * @default 0
-             */
+            /** Unreadtotal */
             unreadTotal: number;
             /** Bots */
-            bots?: components["schemas"]["InboxBot"][];
+            bots: components["schemas"]["InboxBot"][];
         };
         /** InviteInput */
         InviteInput: {
@@ -3383,6 +3392,16 @@ export interface components {
             /** Profileversion */
             profileVersion: number;
         };
+        /** ReadInput */
+        ReadInput: {
+            /** Seq */
+            seq: string;
+        };
+        /** ReadView */
+        ReadView: {
+            /** Lastreadseq */
+            lastReadSeq: string;
+        };
         /** ReadyInput */
         ReadyInput: {
             /** Expectedversion */
@@ -3800,21 +3819,6 @@ export interface components {
             /** Expectedversion */
             expectedVersion: number;
         };
-        /** ReadInput */
-        app__ai__proactive__schemas__ReadInput: {
-            /** Lastreadsequence */
-            lastReadSequence: number;
-        };
-        /** ReadView */
-        app__ai__proactive__schemas__ReadView: {
-            /**
-             * Conversationid
-             * Format: uuid
-             */
-            conversationId: string;
-            /** Lastreadsequence */
-            lastReadSequence: number;
-        };
         /** FeedbackInput */
         app__modules__activities__schemas__FeedbackInput: {
             /**
@@ -3845,16 +3849,6 @@ export interface components {
              * @constant
              */
             disclosureVersion: "feedback-v1";
-        };
-        /** ReadInput */
-        app__modules__social__schemas__ReadInput: {
-            /** Seq */
-            seq: string;
-        };
-        /** ReadView */
-        app__modules__social__schemas__ReadView: {
-            /** Lastreadseq */
-            lastReadSeq: string;
         };
         /** AIEvent */
         AIEvent: {
@@ -9479,7 +9473,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["app__ai__proactive__schemas__ReadInput"];
+                "application/json": components["schemas"]["ConversationReadInput"];
             };
         };
         responses: {
@@ -9489,7 +9483,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__ai__proactive__schemas__ReadView"];
+                    "application/json": components["schemas"]["ConversationReadView"];
                 };
             };
             /** @description Unauthorized */
@@ -11769,7 +11763,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["app__modules__social__schemas__ReadInput"];
+                "application/json": components["schemas"]["ReadInput"];
             };
         };
         responses: {
@@ -11779,7 +11773,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__modules__social__schemas__ReadView"];
+                    "application/json": components["schemas"]["ReadView"];
                 };
             };
             /** @description Unauthorized */

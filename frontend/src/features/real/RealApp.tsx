@@ -31,10 +31,12 @@ import {
   Info,
   LockKeyhole,
   MessageCircle,
+  Moon,
   NotebookPen,
   Pause,
   Search,
   Sparkles,
+  Sun,
   UserRound,
   Users,
 } from "lucide-react";
@@ -67,6 +69,9 @@ import type {
 } from "../../api/contracts";
 import "./real.css";
 import "./agent-chat.css";
+import "./checkins/proactive.css";
+import type { components } from "../../api/generated/schema";
+import { AIInboxProvider, inboxLabel, otherUnread, unreadFor, useAIInbox } from "./useAIInbox";
 import { Discovery } from "./social/Discovery";
 import { OfflineBanner, useOnline } from "./OfflineBanner";
 import {
@@ -98,6 +103,7 @@ const MessageMarkdown = lazy(() => import("./MessageMarkdown"));
 const FeedbackPage = lazy(() => import("../feedback/FeedbackPage"));
 const FeedbackAdmin = lazy(() => import("./admin/Feedback"));
 const TourController = lazy(() => import("../onboarding/TourController"));
+const CheckInsPage = lazy(() => import("./checkins/CheckInsPage").then(module => ({ default: module.CheckInsPage })));
 const JournalPage = lazy(() => import("./journal/JournalPage").then(module => ({ default: module.JournalPage })));
 const JournalCalendar = lazy(() => import("./journal/JournalCalendar").then(module => ({ default: module.JournalCalendar })));
 const JournalTimeline = lazy(() => import("./journal/JournalTimeline").then(module => ({ default: module.JournalTimeline })));
@@ -658,10 +664,12 @@ function Navigation() {
   const location = useLocation();
   const summary = useSocialSummary(location.pathname);
   const unread = summary.unreadConnections + summary.activityInvites;
+  const { inbox } = useAIInbox();
+  const checkIns = inbox.badgesEnabled ? inbox.unreadTotal : 0;
   return (
     <nav className={cx.navigation} aria-label="Điều hướng chính">
       {[
-        { to: "/assistants", label: "Trợ lý", Icon: Sparkles, count: 0, what: "" },
+        { to: "/assistants", label: "Trợ lý", Icon: Sparkles, count: checkIns, what: "lời nhắn mới" },
         { to: "/self", label: "Nhật ký", Icon: NotebookPen, count: 0, what: "" },
         {
           // Pending invitations open their tab directly (08 section 2).
@@ -725,7 +733,8 @@ function ConnectionBanner() {
 }
 
 function Shell() {
-  const { session } = useSession();
+  const { api, session } = useSession();
+  const checkInsOpen = session.features.proactive && session.accountKind !== "guest";
   const [guideOpen, setGuideOpen] = useState(false);
   const activity = useTourActivity();
   useEffect(() => () => clearTourBlockers(), []);
@@ -754,7 +763,7 @@ function Shell() {
   }, [location.pathname]);
   useRouteFocus(location.pathname);
   return (
-    <>
+    <AIInboxProvider api={api} enabled={checkInsOpen}>
       <a
         className={cx.skipLink}
         href="#main"
@@ -803,11 +812,12 @@ function Shell() {
                 path="/chat/:connectionId"
                 element={session.accountKind === "guest" ? <GuestLocked /> : <HumanChat key={location.pathname} />}
               />
+              <Route path="/check-ins" element={session.accountKind === "guest" ? <GuestLocked /> : <Suspense fallback={<p role="status">Đang tải lịch hỏi thăm…</p>}><CheckInsPage /></Suspense>} />
               <Route path="*" element={<Navigate replace to="/assistants" />} />
           </Routes>
         </main>
       </div>
-    </>
+    </AIInboxProvider>
   );
 }
 
@@ -854,6 +864,9 @@ function Assistants() {
   const [search, setSearch] = useState("");
   const bots = resource.data || [];
   const bot = bots.find((value) => value.botId === botId);
+  const { session } = useSession();
+  const { inbox, markAll } = useAIInbox();
+  const [markingAll, setMarkingAll] = useState(false);
   const filtered = bots.filter((value) =>
     `${value.name} ${value.role}`
       .toLocaleLowerCase("vi-VN")
@@ -877,13 +890,36 @@ function Assistants() {
         </div>
         {resource.loading ? <p role="status">Đang tải trợ lý…</p> : null}
         <ErrorNotice error={resource.error} retry={resource.refresh} />
+        {inbox.unreadTotal > 0 ? (
+          <section className="inbox-section" aria-labelledby="inbox-heading">
+            <h2 id="inbox-heading">Lời nhắn mới</h2>
+            <ul>
+              {inbox.bots.map((item) => {
+                const name = bots.find((value) => value.botId === item.botId)?.name ?? item.botId;
+                return (
+                  <li key={item.botId}>
+                    <Link to={`/assistants/${item.botId}?conversation=${encodeURIComponent(item.latest.conversationId)}`}>
+                      {inboxLabel(item.latest, name, session.timezone)}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+            <Button variant="text" disabled={markingAll} onClick={() => { setMarkingAll(true); void markAll().catch(() => undefined).finally(() => setMarkingAll(false)); }}>
+              Đánh dấu đã đọc tất cả
+            </Button>
+          </section>
+        ) : null}
         <div className="bot-list" data-tour="assistants-list">
-          {filtered.map((value) => (
+          {filtered.map((value) => {
+            const unreadCount = unreadFor(inbox, value.botId);
+            return (
             <Link
               key={value.botId}
               to={`/assistants/${value.botId}`}
               className={`bot-row ${botId === value.botId ? "selected" : ""}`}
               aria-current={botId === value.botId ? "page" : undefined}
+              aria-label={unreadCount ? `${value.name}, AI, ${value.role}, ${unreadCount} lời nhắn mới` : undefined}
             >
               <PublicAvatar bot={value} />
               <div className="bot-row-text">
@@ -893,9 +929,14 @@ function Assistants() {
                 </div>
                 <small>{value.role}</small>
               </div>
-              <ArrowUpRight size={16} className="roster-arrow" />
+              {unreadCount && inbox.badgesEnabled ? (
+                <span className="roster-unread" aria-hidden="true">{badgeText(unreadCount)}</span>
+              ) : (
+                <ArrowUpRight size={16} className="roster-arrow" />
+              )}
             </Link>
-          ))}
+            );
+          })}
         </div>
         {!resource.loading && !resource.error && !bots.length ? (
           <p className="search-empty">Chưa có trợ lý nào sẵn sàng. Bạn hãy thử lại sau.</p>
@@ -1774,15 +1815,56 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             </div>
           </div>
   );
+  const { inbox, markRead, refresh: refreshInbox } = useAIInbox();
+  const elsewhere = otherUnread(inbox, bot.botId);
+  const markedThrough = useRef<{ id: string; sequence: number } | undefined>(undefined);
+  const hasCheckIn = Boolean(conversation?.messages.some((message) => message.origin === "proactive"));
+  useEffect(() => {
+    // Seen = this saved thread is open in a visible tab and scrolled to the newest message.
+    const id = conversation?.persistent ? conversation.conversationId : undefined;
+    const sequence = conversation?.version ?? 0;
+    if (!id || !hasCheckIn || !atBottom || loading) return;
+    const done = markedThrough.current;
+    if (done && done.id === id && done.sequence >= sequence) return;
+    const timer = window.setTimeout(() => {
+      if (document.visibilityState !== "visible") return;
+      markedThrough.current = { id, sequence };
+      void markRead(id, sequence).catch(() => { markedThrough.current = undefined; });
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [conversation?.conversationId, conversation?.persistent, conversation?.version, hasCheckIn, atBottom, loading, markRead]);
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refreshInbox();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [refreshInbox]);
+  useEffect(() => {
+    // A new check-in landed in the thread on screen: show it without a reload while idle.
+    const id = conversation?.conversationId;
+    if (!id || !conversation?.persistent || busy || run || loading) return;
+    const fresh = inbox.bots.some((item) => item.latest.conversationId === id && item.latest.firstSequence > conversation.version);
+    if (!fresh) return;
+    const controller = new AbortController();
+    api.request<SavedConversation>(`/ai/conversations/${encodeURIComponent(id)}`, { signal: controller.signal })
+      .then((value) => {
+        if (!controller.signal.aborted && value.conversationId === current.current?.conversationId && !activeRun.current) update(value);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [inbox, conversation?.conversationId, conversation?.version, conversation?.persistent, busy, run, loading, api, update]);
+
   return (
     <>
       <header className="conversation-header">
         <Link
           to="/assistants"
           className="icon-button mobile-back"
-          aria-label="Về danh sách trợ lý"
+          aria-label={elsewhere ? `Về danh sách trợ lý, có ${elsewhere} lời nhắn mới` : "Về danh sách trợ lý"}
         >
           <ArrowLeft size={21} />
+          {elsewhere && inbox.badgesEnabled ? <span className="back-dot" aria-hidden="true" /> : null}
         </Link>
         <PublicAvatar bot={bot} size={36} />
         <div>
@@ -1839,21 +1921,33 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         {loading ? <p role="status">Đang mở cuộc trò chuyện…</p> : null}
         {conversation?.hasMoreMessages ? <Button variant="secondary" disabled={olderBusy || loading} onClick={() => void olderMessages()}>{olderBusy ? "Đang tải tin nhắn…" : "Tải tin nhắn cũ hơn"}</Button> : null}
         <div className="conversation-messages" aria-live="polite" aria-relevant="additions text">
-        {messageGroupsView.map((group) => group.items.length === 1 ? (
-          <Fragment key={group.key}>
-            {dateSeparator(group.items[0])}
-            {messageRow(group.items[0])}
-          </Fragment>
-        ) : (
-          <Fragment key={group.key}>
-            {dateSeparator(group.items[0])}
-            <div className="message-group" role="group" aria-label={`Tin nhắn từ ${bot.name}, ${group.items.length} phần`}>
-              {group.items.map((item, index) => (
-                <Fragment key={item.message.id}>{messageRow(item, { index, count: group.items.length })}</Fragment>
-              ))}
-            </div>
-          </Fragment>
-        ))}
+        {messageGroupsView.map((group) => {
+          const lead = group.items[0].message;
+          const checkIn = lead.origin === "proactive" && lead.actor === "bot";
+          const label = checkIn ? <ProactiveLabel message={lead} botName={bot.name} timeZone={session.timezone} /> : null;
+          const manage = checkIn ? (
+            <p className="proactive-manage"><Link to={`/check-ins?bot=${bot.botId}`}>Đổi hoặc tắt lời hỏi thăm này</Link></p>
+          ) : null;
+          return group.items.length === 1 ? (
+            <Fragment key={group.key}>
+              {dateSeparator(group.items[0])}
+              {label}
+              {messageRow(group.items[0])}
+              {manage}
+            </Fragment>
+          ) : (
+            <Fragment key={group.key}>
+              {dateSeparator(group.items[0])}
+              {label}
+              <div className="message-group" role="group" aria-label={`Tin nhắn từ ${bot.name}, ${group.items.length} phần`}>
+                {group.items.map((item, index) => (
+                  <Fragment key={item.message.id}>{messageRow(item, { index, count: group.items.length })}</Fragment>
+                ))}
+              </div>
+              {manage}
+            </Fragment>
+          );
+        })}
         </div>
         <AIActivityStatus
           view={activity}
@@ -2001,6 +2095,43 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   );
 }
 
+function ProactiveLabel({ message, botName, timeZone }: { message: { createdAt?: string | null; proactiveSlot?: string | null }; botName: string; timeZone: string }) {
+  const evening = message.proactiveSlot === "evening";
+  const slot = evening ? "buổi tối" : "buổi sáng";
+  const time = message.createdAt
+    ? new Intl.DateTimeFormat("vi-VN", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(message.createdAt))
+    : "";
+  const Icon = evening ? Moon : Sun;
+  return (
+    <p className="proactive-label">
+      <Icon size={14} aria-hidden="true" />
+      <span aria-hidden="true">Lời hỏi thăm {slot}{time ? ` · ${time}` : ""}</span>
+      <span className="proactive-sr">Lời hỏi thăm {slot} từ {botName}{time ? ` lúc ${time}` : ""}</span>
+    </p>
+  );
+}
+
+function CheckInsSummary() {
+  const { session } = useSession();
+  const open = session.features.proactive && session.accountKind !== "guest";
+  const resource = useResource<components["schemas"]["ProactiveView"]>("/ai/proactive", open);
+  if (!open) return null;
+  const enabled = resource.data?.limits.enabledSlots ?? 0;
+  return (
+    <section className="real-section" aria-labelledby="checkins-summary">
+      <h2 id="checkins-summary">Lời hỏi thăm từ trợ lý</h2>
+      <p>
+        {resource.loading
+          ? "Đang tải lịch hỏi thăm…"
+          : enabled
+            ? `${enabled} lời hỏi thăm mỗi ngày, vào giờ bạn chọn.`
+            : "Chưa có trợ lý nào hỏi thăm bạn. Bạn có thể hẹn giờ để trợ lý nhắn vào buổi sáng hoặc buổi tối."}
+      </p>
+      <Link className={`${cx.button} ${cx.secondary}`} to="/check-ins">Chỉnh lịch hỏi thăm</Link>
+    </section>
+  );
+}
+
 function AccountPage({ onGuide }: { onGuide: () => void }) {
   const [accountDeleted, setAccountDeleted] = useState(false);
   if (accountDeleted) return <AccountDeletionComplete />;
@@ -2008,6 +2139,7 @@ function AccountPage({ onGuide }: { onGuide: () => void }) {
     <div className={cx.reading}>
       <h1 tabIndex={-1} data-tour="personal-account">Tài khoản</h1>
       <AdultEligibility />
+      <CheckInsSummary />
       <AccountActions onGuide={onGuide} onDeleted={() => setAccountDeleted(true)} />
     </div>
   );
