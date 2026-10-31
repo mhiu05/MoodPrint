@@ -37,6 +37,16 @@ _MATCH_CLAIM = re.compile(
 )
 
 
+# Folded keywords of kinds whose content is easy to recognise; a label cannot hide a repeat.
+_KIND_HINTS = {
+    "drawing": re.compile(r"\b(?:ve|to mau|to nguech ngoac|net but|phac thao|doodle)\b"),
+    "music": re.compile(r"\b(?:nghe (?:mot |vai )?(?:bai )?nhac|bai hat|ngan nga|huyt sao|nhac cu|hat (?:mot|vai|theo))\b"),
+    "gentle_movement": re.compile(r"\b(?:vuon vai|duoi nguoi|di bo|gian co|xoay vai|tha long vai)\b"),
+    "riddle": re.compile(r"\bcau do\b"),
+    "tiny_skill": re.compile(r"\b(?:gap giay|gap mot|thuyen giay|may bay giay|hac giay)\b"),
+}
+
+
 class ProactiveReply(CompanionReply):
     model_config = ConfigDict(alias_generator=None)
     messages: list[Bubble] = Field(min_length=1, max_length=MAX_PROACTIVE_BUBBLES)
@@ -121,8 +131,13 @@ def validate_proactive(output: ProactiveReply, payload) -> Validated:
     if bot_id == "caunoi" and any(_MATCH_CLAIM.search(text) for text in folded):
         raise InvalidOutput("matching_claim")
     kind = getattr(output, "challenge_kind", None)
-    if bot_id == "rure" and kind in payload.avoid_kinds:
-        raise InvalidOutput("repeated_challenge")
+    if bot_id == "rure":
+        content = " ".join(folded)
+        if kind in payload.avoid_kinds or any(
+            avoided != kind and avoided in _KIND_HINTS and _KIND_HINTS[avoided].search(content)
+            for avoided in payload.avoid_kinds
+        ):
+            raise InvalidOutput("repeated_challenge")
     parts = [AiOutput(text=bubble.text, cards=bubble.cards) for bubble in output.messages]
     if sources:
         digests = {digest.entry_id: digest for digest in payload.digests}

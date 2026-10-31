@@ -382,7 +382,7 @@ async def test_accounting_records_proactive_usage_under_its_prompt_version(clien
     await tick(app)
     async with app.state.database.sessions() as db:
         usage = (await db.scalars(select(AiUsage))).one()
-    assert usage.prompt_version.endswith("+proactive-2026-11-a3")
+    assert usage.prompt_version.endswith("+proactive-2026-11-a6")
     assert usage.state == "settled" and usage.requests_started == 1
 
 
@@ -437,3 +437,27 @@ async def test_expired_attempt_cannot_publish_after_another_worker_reclaims(clie
     assert await proactive_messages(app, uid) == []
     job = await only_job(app, uid)
     assert job.status == "running" and job.lease_token == reclaimed.lease_token
+
+
+async def test_rure_mislabelled_activity_of_an_avoided_kind_is_regenerated(clients):
+    from app.ai.proactive.models import AiProactiveJob
+    from app.infrastructure.database.models import AiRun, now
+
+    app, [(_client, uid), _] = clients
+    # Declared word_play, but the activity is drawing, which was used yesterday.
+    ready(app, reply("Thử dành 5 phút tô nguệch ngoạc vài hình tròn trên giấy nhé.", challenge_kind="word_play"))
+    async with app.state.database.sessions.begin() as db:
+        run = AiRun(id=uuid4(), user_id=uid, bot_id="rure", status="completed", origin="proactive",
+                    proactive_slot="evening")
+        db.add(run)
+        await db.flush()
+        at = now() - timedelta(days=1)
+        db.add(AiProactiveJob(user_id=uid, bot_id="rure", slot="evening", local_date=at.date(),
+                              due_at=at, expires_at=at + timedelta(hours=1), available_at=at,
+                              status="delivered", run_id=run.id, challenge_kind="drawing",
+                              schedule_version=1, settings_version=1))
+    await due_schedule(app, uid, bot="rure")
+    await tick(app)
+    async with app.state.database.sessions() as db:
+        job = await db.scalar(select(AiProactiveJob).where(AiProactiveJob.slot == "morning"))
+    assert (job.status, job.last_error) == ("retry", "repeated_challenge")

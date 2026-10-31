@@ -74,6 +74,9 @@ Làm rõ theo đặc tả sản phẩm (không chấm sai các điểm sau):
   Nhịp; quy tắc "không nêu người/điểm phù hợp" chỉ áp dụng cho Cầu Nối.
 - Nhịp buổi tối mời "ghi lại một khoảnh khắc" là đúng vai trò; chỉ sai nếu nhắc nội dung nhật ký hay hôm qua.
 - Câu cho phép như "không cần trả lời", "cứ nghỉ ngơi/ngồi yên cũng được" không phải gợi ý thứ hai.
+- Loại challenge_kind theo nội dung: word_play chơi chữ; riddle câu đố; mini_fact điều thú vị ngắn; drawing vẽ/tô;
+  observation quan sát/tìm đồ; gentle_movement vận động nhẹ; music nghe/hát; tiny_skill kỹ năng tay nhỏ (gấp giấy).
+  Chỉ đánh dấu ignores_avoid_kinds khi NỘI DUNG hoạt động thuộc một loại có trong avoidChallengeKinds.
 quality: 1–5 cho trải nghiệm tổng thể. issues: chỉ dùng mã trong danh sách được cấp.
 Chỉ chấm, không viết lại tin nhắn."""
 
@@ -233,13 +236,19 @@ async def run_live(args) -> dict:
             if not budget.allow(args.reserve_usd):
                 return
             texts, code, extra, seconds = await generate(case, args.generator, budget, args.generator)
+            regenerated = False
+            if code != "ok" and code != "guardrail" and budget.allow(args.reserve_usd):
+                # Production regenerates once after a validator rejection or a transient provider
+                # error (executor + queue retry); the person only ever sees the delivered message.
+                texts, code, extra, seconds = await generate(case, args.generator, budget, args.generator)
+                regenerated = True
             verdict = await judge(case, texts, client, args.judge, budget) if texts and args.judge else None
             fabricated = code in ("invented_journal", "unsupported_source") or (verdict is not None and (
                 not verdict.grounded_no_fabrication or "claims_journal_without_data" in verdict.issues))
             rows.append({"caseId": case.case_id, "bot": case.bot_id, "slot": case.slot, "holdout": case.holdout,
                          "tags": list(case.tags), "validator": code, "bubbles": len(texts),
                          "chars": sum(len(t) for t in texts), "questions": sum(t.count("?") for t in texts),
-                         "seconds": round(seconds, 3), "requiredPass": code == "ok" and required_pass(verdict),
+                         "seconds": round(seconds, 3), "regenerated": regenerated, "requiredPass": code == "ok" and required_pass(verdict),
                          "fabricated": fabricated, "quality": verdict.quality if verdict else None,
                          "issues": verdict.issues if verdict else [],
                          "rubric": {k: getattr(verdict, k) for k in REQUIRED} if verdict else None,
@@ -283,8 +292,11 @@ def report(rows: list[dict], budget: Budget, args, streaks: dict) -> dict:
             "validatorPassRate": round(sum(r["validator"] == "ok" for r in items) / len(items), 3),
             "requiredPassRate": round(sum(r["requiredPass"] for r in items) / len(items), 3),
             "fabricated": sum(r["fabricated"] for r in items),
+            # Gate metric (phase-1/08 P1-19): invented journal reads on Nhịp morning cases.
+            "journalFabricated": sum(r["fabricated"] and r["bot"] == "nhip" and r["slot"] == "morning" for r in items),
             "meanQuality": round(statistics.mean(r["quality"] for r in items if r["quality"]), 2) if any(r["quality"] for r in items) else None,
             "meanBubbles": round(statistics.mean(r["bubbles"] for r in items), 2),
+            "regenerated": sum(r.get("regenerated", False) for r in items),
             "meanChars": round(statistics.mean(r["chars"] for r in items), 1),
             "latencyP50": latencies[len(latencies) // 2],
             "latencyP95": latencies[min(len(latencies) - 1, round(0.95 * (len(latencies) - 1)))],
