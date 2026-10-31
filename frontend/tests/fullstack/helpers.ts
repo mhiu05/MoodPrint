@@ -94,7 +94,13 @@ export async function fillProfileEditor(page: Page) {
     name: "Chỉnh hồ sơ tìm bạn",
     exact: true,
   });
-  if (await edit.isVisible()) await edit.click();
+  const firstQuestion = page.getByRole("radio", { name: "Có người tâm sự", exact: true });
+  // Loading initially renders a disabled edit button; it disappears when a new
+  // draft auto-opens. Wait for the usable surface before deciding to click it.
+  await expect.poll(async () =>
+    (await firstQuestion.isVisible()) || (await edit.isEnabled({ timeout: 100 }).catch(() => false)),
+  ).toBe(true);
+  if (!(await firstQuestion.isVisible())) await edit.click();
   await page
     .getByRole("radio", { name: "Có người tâm sự", exact: true })
     .check();

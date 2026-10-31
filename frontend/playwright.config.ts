@@ -9,7 +9,9 @@ export default defineConfig({
   testMatch: ["eligibility.spec.ts", "journal.spec.ts", "real.spec.ts", "social.spec.ts", "activities.spec.ts", "admin.spec.ts", "chat-history.spec.ts", "discovery.spec.ts", "states.spec.ts", "auth.spec.ts", "ux-redesign.spec.ts", "motion.spec.ts", "merge-readiness.spec.ts", "landing.spec.ts", "guest.spec.ts", "guest-expiry.spec.ts", "session-reliability.spec.ts", "feedback.spec.ts", "feedback-admin.spec.ts", "onboarding.spec.ts", ...(process.env.MOODPRINT_TOUR_COMPATIBILITY === "1" ? ["onboarding-compatibility.spec.ts"] : [])],
   globalTimeout: 600000,
   fullyParallel: false,
-  workers: 1,
+  // Files use isolated mocked API/page state; keep the full matrix inside the
+  // unchanged suite budget. Real-database fullstack tests stay single-worker.
+  workers: 2,
   timeout: 45000,
   expect: { timeout: 7000 },
   reporter: [
