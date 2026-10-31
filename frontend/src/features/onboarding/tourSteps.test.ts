@@ -34,11 +34,11 @@ describe("approved tour steps", () => {
       "không mở lại được sau khi hết giờ",
     );
   });
-  it("registered teen has four and eligible adult optional fifth only", () => {
+  it("ineligible or teen sessions have no tour and eligible adult has optional fifth", () => {
     expect(getTourSteps(registered)).toHaveLength(4);
     expect(getTourSteps(registered, true)).toHaveLength(5);
     expect(getTourSteps({ ...registered, ageBand: "teen" }, true)).toHaveLength(
-      4,
+      0,
     );
     expect(getTourSteps({ ...registered, eligible: false }, true)).toHaveLength(
       0,

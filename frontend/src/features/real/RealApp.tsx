@@ -213,6 +213,9 @@ function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback
   const dropPrivate = useCallback(() => {
     generation.current += 1;
     probeAbort.current?.abort();
+    // A new generation must never deduplicate against an aborted older probe.
+    // Its finally callback only clears itself, so a replacement can start now.
+    inflight.current = null;
     clearGrace();
     api.reset();
   }, [api, clearGrace]);
@@ -349,6 +352,18 @@ function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback
   };
   useEffect(() => {
     api.onUnauthorized = (failure) => loseRef.current(failure);
+    api.onEligibilityDenied = () => {
+      const current = sessionRef.current;
+      if (!current) return;
+      // Remove every protected view and pending response while preserving the secure
+      // account session for declaration, export and deletion.
+      dropPrivate();
+      api.setCsrf(current.csrfToken);
+      setSession({ ...current, eligible: false });
+      autoUsed.current = false;
+      setLink("ready");
+      void scheduleRef.current("manual");
+    };
     const onAuto = () => {
       if (document.visibilityState === "hidden") return;
       window.clearTimeout(debounce.current);
@@ -369,6 +384,7 @@ function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback
       window.removeEventListener("online", onAuto);
       document.removeEventListener("visibilitychange", onAuto);
       api.setPrivateHold(null);
+      api.onEligibilityDenied = undefined;
     };
   }, [api]);
   const retrySession = useCallback(() => {
@@ -463,7 +479,7 @@ function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback
     return (
       <AuthScreen api={api} receive={receive} callback={callback} initialMode={authMode()} />
     );
-  const content = session.eligible ? (
+  const content = session.eligible && session.ageBand === "adult" ? (
     <AIDataProvider key={session.userId}>
       <Shell />
     </AIDataProvider>

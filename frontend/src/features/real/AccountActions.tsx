@@ -34,17 +34,59 @@ export function AccountDeletionComplete() {
 export function AccountActions({
   onGuide,
   onDeleted,
+  restricted = false,
 }: {
   onGuide: () => void;
   onDeleted: () => void;
+  restricted?: boolean;
 }) {
   const { api, receive, logout, session } = useSession();
   const guest = useGuest();
-  const [busy, setBusy] = useState<"logout" | "delete" | null>(null);
+  const [busy, setBusy] = useState<"logout" | "delete" | "export" | null>(null);
   const [error, setError] = useState<unknown>();
   const [confirm, setConfirm] = useState(false);
+  const [confirmExport, setConfirmExport] = useState(false);
   const [understood, setUnderstood] = useState(false);
-  const [reauth, setReauth] = useState(false);
+  const [reauth, setReauth] = useState<"delete" | "export" | null>(null);
+
+  async function exportData() {
+    if (busy) return;
+    setBusy("export");
+    setError(undefined);
+    try {
+      const job = await api.request<Job>("/exports", {
+        method: "POST",
+        body: {
+          scopes: [
+            "account",
+            "memories",
+            "moods",
+            "journal",
+            "consents",
+            ...(!guest ? ["social"] : []),
+            "conversations",
+          ],
+          ...(guest ? { guestConfirmation: "guest-data-v1" } : {}),
+        },
+      });
+      const data = await api.request<unknown>(`/exports/${job.id}/download`);
+      const url = URL.createObjectURL(
+        new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "moodprint-data.json";
+      link.click();
+      setConfirmExport(false);
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch (reason) {
+      if (!guest && reason instanceof ApiError && reason.code === "REAUTH_REQUIRED")
+        setReauth("export");
+      else setError(reason);
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function signOut() {
     if (busy) return;
@@ -75,7 +117,7 @@ export function AccountActions({
     } catch (reason) {
       setConfirm(false);
       if (reason instanceof ApiError && reason.code === "REAUTH_REQUIRED")
-        setReauth(true);
+        setReauth("delete");
       else setError(reason);
     } finally {
       setBusy(null);
@@ -87,16 +129,35 @@ export function AccountActions({
       <h2 id="account-heading">Tài khoản & hỗ trợ</h2>
       <ErrorNotice error={error} />
       <div className="account-actions">
-        <Link className="account-action" to="/feedback">
-          <MessageSquare size={20} aria-hidden="true" />
-          <span>Góp ý cho MoodPrint</span>
-          <ChevronRight size={18} aria-hidden="true" />
-        </Link>
-        <button type="button" className="account-action" onClick={onGuide}>
-          <CircleHelp size={20} aria-hidden="true" />
-          <span>Xem hướng dẫn</span>
-          <ChevronRight size={18} aria-hidden="true" />
-        </button>
+        {!restricted ? (
+          <>
+            <Link className="account-action" to="/feedback">
+              <MessageSquare size={20} aria-hidden="true" />
+              <span>Góp ý cho MoodPrint</span>
+              <ChevronRight size={18} aria-hidden="true" />
+            </Link>
+            <button type="button" className="account-action" onClick={onGuide}>
+              <CircleHelp size={20} aria-hidden="true" />
+              <span>Xem hướng dẫn</span>
+              <ChevronRight size={18} aria-hidden="true" />
+            </button>
+          </>
+        ) : null}
+        {restricted ? (
+          <button
+            type="button"
+            className="account-action"
+            disabled={Boolean(busy) || Boolean(reauth)}
+            onClick={() => guest ? setConfirmExport(true) : void exportData()}
+          >
+            <span>
+              {busy === "export"
+                ? "Đang chuẩn bị dữ liệu…"
+                : "Tải dữ liệu của tôi"}
+            </span>
+            <ChevronRight size={18} aria-hidden="true" />
+          </button>
+        ) : null}
         {!guest ? (
           <button
             type="button"
@@ -112,7 +173,7 @@ export function AccountActions({
         <button
           type="button"
           className="account-action account-action-danger"
-          disabled={Boolean(busy) || reauth}
+          disabled={Boolean(busy) || Boolean(reauth)}
           onClick={() => {
             if (guest) {
               guest.end();
@@ -130,7 +191,17 @@ export function AccountActions({
           <ChevronRight size={18} aria-hidden="true" />
         </button>
       </div>
-      {session.accountKind !== "guest" && session.staff === "admin" ? (
+      {confirmExport ? <Dialog title="Tải dữ liệu lượt dùng thử?" onClose={() => !busy && setConfirmExport(false)}>
+        <p>Bản sao chứa dữ liệu riêng của lượt dùng thử đang mở. Chỉ lưu trên thiết bị bạn tin tưởng và tải trước khi lượt dùng thử kết thúc.</p>
+        <ErrorNotice error={error} />
+        <div className={cx.actions}>
+          <Button variant="secondary" disabled={Boolean(busy)} onClick={() => setConfirmExport(false)}>Để sau</Button>
+          <Button disabled={Boolean(busy)} onClick={() => void exportData()}>{busy === "export" ? "Đang chuẩn bị dữ liệu…" : "Xác nhận và tải dữ liệu"}</Button>
+        </div>
+      </Dialog> : null}
+      {!restricted &&
+      session.accountKind !== "guest" &&
+      session.staff === "admin" ? (
         <p>
           <Link to="/admin/feedback">Xem và xử lý góp ý</Link>
         </p>
@@ -138,10 +209,12 @@ export function AccountActions({
       {reauth ? (
         <ReauthForm
           api={api}
-          onCancel={() => setReauth(false)}
+          onCancel={() => setReauth(null)}
           onConfirmed={() => {
-            setReauth(false);
-            setConfirm(true);
+            const action = reauth;
+            setReauth(null);
+            if (action === "export") void exportData();
+            else setConfirm(true);
           }}
         />
       ) : null}

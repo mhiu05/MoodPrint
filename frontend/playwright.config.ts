@@ -6,7 +6,7 @@ const baseURL = `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: "tests/e2e",
-  testMatch: ["journal.spec.ts", "real.spec.ts", "social.spec.ts", "activities.spec.ts", "admin.spec.ts", "chat-history.spec.ts", "discovery.spec.ts", "states.spec.ts", "auth.spec.ts", "ux-redesign.spec.ts", "motion.spec.ts", "merge-readiness.spec.ts", "landing.spec.ts", "guest.spec.ts", "guest-expiry.spec.ts", "session-reliability.spec.ts", "feedback.spec.ts", "feedback-admin.spec.ts", "onboarding.spec.ts", ...(process.env.MOODPRINT_TOUR_COMPATIBILITY === "1" ? ["onboarding-compatibility.spec.ts"] : [])],
+  testMatch: ["eligibility.spec.ts", "journal.spec.ts", "real.spec.ts", "social.spec.ts", "activities.spec.ts", "admin.spec.ts", "chat-history.spec.ts", "discovery.spec.ts", "states.spec.ts", "auth.spec.ts", "ux-redesign.spec.ts", "motion.spec.ts", "merge-readiness.spec.ts", "landing.spec.ts", "guest.spec.ts", "guest-expiry.spec.ts", "session-reliability.spec.ts", "feedback.spec.ts", "feedback-admin.spec.ts", "onboarding.spec.ts", ...(process.env.MOODPRINT_TOUR_COMPATIBILITY === "1" ? ["onboarding-compatibility.spec.ts"] : [])],
   globalTimeout: 600000,
   fullyParallel: false,
   workers: 1,
