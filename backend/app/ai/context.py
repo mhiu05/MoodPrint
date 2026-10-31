@@ -71,16 +71,35 @@ def model_messages(
     return list(reversed(result))
 
 
+def turn_messages(messages: Sequence[AIMessage]) -> list[tuple[str, str]]:
+    """(actor, text) per turn: adjacent bubbles of one bot run read as one assistant message."""
+    merged: list[tuple[str, str, UUID | None]] = []
+    for message in messages:
+        previous = merged[-1] if merged else None
+        if (
+            previous is not None
+            and message.actor == "bot"
+            and previous[0] == "bot"
+            and message.run_id is not None
+            and previous[2] == message.run_id
+        ):
+            merged[-1] = ("bot", previous[1] + "\n\n" + message.text, message.run_id)
+        else:
+            merged.append((message.actor, message.text, message.run_id))
+    return [(actor, text) for actor, text, _run in merged]
+
+
 def build_history(messages: Sequence[AIMessage], approved_memories: Sequence[str] = ()) -> list[dict]:
     # Newest input takes priority. Keep a contiguous suffix in chronological order,
-    # never a summary that could turn a guess into an approved personal fact.
+    # never a summary that could turn a guess into an approved personal fact. Bubbles
+    # are merged per run first so the bound counts turns, not bubbles.
     history = []
     remaining = MAX_CONTEXT_BYTES
-    for message in reversed(messages[-MAX_HISTORY_MESSAGES:]):
-        size = len(message.text.encode())
+    for actor, text in reversed(turn_messages(messages)[-MAX_HISTORY_MESSAGES:]):
+        size = len(text.encode())
         if size > remaining:
             break
-        history.append({"role": "user" if message.actor == "self" else "assistant", "content": message.text})
+        history.append({"role": "user" if actor == "self" else "assistant", "content": text})
         remaining -= size
     history.reverse()
     memories: list[str] = []

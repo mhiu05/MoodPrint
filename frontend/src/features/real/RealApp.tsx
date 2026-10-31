@@ -1147,6 +1147,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
                 text: final.text,
                 cards: final.cards,
                 createdAt: new Date().toISOString(),
+                partIndex: 0,
+                partCount: 1,
+                origin: "user",
               },
             ],
           });
@@ -1396,7 +1399,15 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         activeRunVersion: accepted.runVersion,
         messages: [
           ...thread.messages,
-          { id: intent.current!.clientMessageId, actor: "self", text, createdAt: new Date().toISOString() },
+          {
+            id: intent.current!.clientMessageId,
+            actor: "self",
+            text,
+            createdAt: new Date().toISOString(),
+            partIndex: 0,
+            partCount: 1,
+            origin: "user",
+          },
         ],
       });
       const requestKey = intent.current!.clientMessageId;

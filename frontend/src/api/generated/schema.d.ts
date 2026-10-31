@@ -1721,6 +1721,24 @@ export interface components {
             runId?: string | null;
             /** Status */
             status?: string | null;
+            /**
+             * Partindex
+             * @default 0
+             */
+            partIndex: number;
+            /**
+             * Partcount
+             * @default 1
+             */
+            partCount: number;
+            /**
+             * Origin
+             * @default user
+             * @enum {string}
+             */
+            origin: "user" | "proactive";
+            /** Proactiveslot */
+            proactiveSlot?: ("morning" | "evening") | null;
         };
         /** AIRunAccepted */
         AIRunAccepted: {

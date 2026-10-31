@@ -14497,6 +14497,44 @@
               }
             ],
             "title": "Status"
+          },
+          "partIndex": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Partindex",
+            "default": 0
+          },
+          "partCount": {
+            "type": "integer",
+            "maximum": 4.0,
+            "minimum": 1.0,
+            "title": "Partcount",
+            "default": 1
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "user",
+              "proactive"
+            ],
+            "title": "Origin",
+            "default": "user"
+          },
+          "proactiveSlot": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "morning",
+                  "evening"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proactiveslot"
           }
         },
         "additionalProperties": false,

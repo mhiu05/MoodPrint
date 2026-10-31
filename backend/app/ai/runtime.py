@@ -35,7 +35,7 @@ from app.ai.journal import (
 from app.ai.models import AiMessageRecord
 from app.ai.persistence import current_turn, owned_conversation
 from app.ai.prompts import SELECTED_VARIANTS, prompt_version
-from app.ai.schemas import AIEvent, AIMessage, AiOutput, MoodReadScope
+from app.ai.schemas import AIEvent, AIMessage, AiReply, MoodReadScope
 from app.ai.store import ConversationStore
 from app.ai.usage import UsageEvent
 from app.core.errors import DomainError
@@ -661,7 +661,7 @@ class AiRuntime:
                 async def observe(event):
                     await self.record_usage(run, event)
 
-                output = await self.provider.run(
+                reply = await self.provider.run_reply(
                     bot_id=c.bot_id,
                     history=history,
                     tools=self.tools(run, c.bot_id, memory_enabled=True),
@@ -670,14 +670,17 @@ class AiRuntime:
                     model_override=self.model_override,
                     usage_observer=observe,
                 )
-                output = AiOutput.model_validate(output)
+                reply = AiReply.model_validate(reply)
+                parts = reply.parts
                 if run.mood_evidence is not None:
                     run.mood_evidence.assert_current(run)
                 if run.journal_evidence is not None:
                     run.journal_evidence.assert_current(run)
                 await self.check(run)
-                # Include the replay copy and message copy, not only plain text.
-                output_bytes = len(output.model_dump_json().encode()) + len(output.text.encode()) + 1024
+                # Include the replay copy and message copies of every bubble, not only plain text.
+                output_bytes = len(reply.model_dump_json().encode()) + sum(
+                    len(part.text.encode()) for part in parts
+                ) + 1024
                 self.check_capacity(run.conversation_id, output_bytes)
                 async with self.database.require()() as db, db.begin():
                     user = await lock_actor(db, run.actor)
@@ -708,19 +711,35 @@ class AiRuntime:
                     )
                     if completed is None:
                         raise DomainError(410, "RUN_ENDED", "Lượt trò chuyện đã kết thúc.")
+                    # One identity per bubble, shared by the saved row and the published copy.
+                    identities = [uuid4() for _ in parts]
                     if run.persistent:
-                        durable.version += 1
+                        # All bubbles commit with the run's terminal state or not at all;
+                        # each takes the next sequence so version == max(sequence).
+                        base = durable.version
+                        for index, (identity, part) in enumerate(zip(identities, parts, strict=True)):
+                            db.add(AiMessageRecord(
+                                id=identity, conversation_id=c.id, sequence=base + 1 + index, actor="bot",
+                                text=part.text, cards=[card.model_dump(mode="json", by_alias=True) for card in part.cards],
+                                run_id=run.id, part_index=index, part_count=len(parts),
+                            ))
+                        durable.version = base + len(parts)
                         durable.updated_at = now()
-                        db.add(AiMessageRecord(conversation_id=c.id, sequence=durable.version, actor="bot", text=output.text, cards=[card.model_dump(mode="json", by_alias=True) for card in output.cards], run_id=run.id))
                 if run.deadline is not None and run.deadline.remaining() <= 0:
                     # Decided before T but published after it: drop, never append late output.
                     raise guest_expired()
                 # Do not publish tokens/JSON before output and live policy have both passed.
-                c.messages.append(
-                    AIMessage(id=uuid4(), actor="bot", text=output.text, cards=output.cards, created_at=now(), run_id=run.id, status="completed")
+                published = now()
+                c.messages.extend(
+                    AIMessage(
+                        id=identity, actor="bot", text=part.text, cards=part.cards, created_at=published,
+                        run_id=run.id, status="completed", part_index=index, part_count=len(parts),
+                    )
+                    for index, (identity, part) in enumerate(zip(identities, parts, strict=True))
                 )
-                c.version += 1
-                self.event(run, "final", output.model_dump(mode="json", by_alias=True))
+                c.version += len(parts)
+                logging.getLogger("moodprint").info("metric=ai_reply_parts value=%d", len(parts))
+                self.event(run, "final", reply.joined().model_dump(mode="json", by_alias=True))
                 self.event(run, "completed", {})
                 status = "completed"
         except asyncio.CancelledError:

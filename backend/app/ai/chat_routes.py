@@ -717,8 +717,9 @@ async def export_conversation(
         if c is None:
             raise DomainError(404, "NOT_FOUND", "Không tìm thấy cuộc trò chuyện.")
         rows = (
-            await db.scalars(
-                select(AiMessageRecord)
+            await db.execute(
+                select(AiMessageRecord, AiRun.origin, AiRun.proactive_slot)
+                .join(AiRun, AiRun.id == AiMessageRecord.run_id)
                 .where(AiMessageRecord.conversation_id == c.id)
                 .order_by(AiMessageRecord.sequence)
                 .limit(10001)
@@ -729,9 +730,11 @@ async def export_conversation(
         result = conversation_header(c).model_dump(mode="json", by_alias=True)
         result["messages"] = [
             AIMessage(
-                id=m.id, actor=m.actor, text=m.text, cards=m.cards, created_at=m.created_at
+                id=m.id, actor=m.actor, text=m.text, cards=m.cards, created_at=m.created_at,
+                part_index=m.part_index, part_count=m.part_count, origin=origin,
+                proactive_slot=slot,
             ).model_dump(mode="json", by_alias=True)
-            for m in rows
+            for m, origin, slot in rows
         ]
     return JSONResponse(
         result,

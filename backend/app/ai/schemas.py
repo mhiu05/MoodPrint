@@ -115,6 +115,11 @@ class AIMessage(DTO):
     created_at: datetime | None = None
     run_id: UUID | None = None
     status: str | None = None
+    # Bubble position within its run (legacy rows: part 0 of 1).
+    part_index: int = Field(default=0, ge=0, le=MAX_BUBBLES - 1)
+    part_count: int = Field(default=1, ge=1, le=MAX_BUBBLES)
+    origin: Literal["user", "proactive"] = "user"
+    proactive_slot: Literal["morning", "evening"] | None = None
 
 
 class ConversationView(ConversationHeader):

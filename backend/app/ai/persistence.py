@@ -56,9 +56,26 @@ async def owned_conversation(db, identity, user_id, *, lock=False):
     return await db.scalar(statement)
 
 
+def message_view(m, run) -> AIMessage:
+    return AIMessage(
+        id=m.id,
+        actor=m.actor,
+        text=m.text,
+        cards=m.cards,
+        created_at=m.created_at,
+        run_id=m.run_id,
+        status=run.status,
+        part_index=m.part_index,
+        part_count=m.part_count,
+        origin=run.origin,
+        proactive_slot=run.proactive_slot,
+    )
+
+
 async def conversation_view(db, c, limit=50, before=None):
+    run_columns = (AiRun.status, AiRun.origin, AiRun.proactive_slot)
     statement = (
-        select(AiMessageRecord, AiRun.status)
+        select(AiMessageRecord, *run_columns)
         .join(AiRun, AiRun.id == AiMessageRecord.run_id)
         .where(AiMessageRecord.conversation_id == c.id)
     )
@@ -74,18 +91,36 @@ async def conversation_view(db, c, limit=50, before=None):
     records = (
         await db.execute(statement.order_by(AiMessageRecord.sequence.desc()).limit(limit + 1))
     ).all()
-    messages = [
-        AIMessage(
-            id=m.id,
-            actor=m.actor,
-            text=m.text,
-            cards=m.cards,
-            created_at=m.created_at,
-            run_id=m.run_id,
-            status=status,
+    page = list(reversed(records[:limit]))
+    has_more = len(records) > limit
+    if page and page[0][0].part_index > 0:
+        # Never cut a bubble group at the page edge: pull in its earlier parts.
+        oldest = page[0][0]
+        missing = (
+            await db.execute(
+                select(AiMessageRecord, *run_columns)
+                .join(AiRun, AiRun.id == AiMessageRecord.run_id)
+                .where(
+                    AiMessageRecord.conversation_id == c.id,
+                    AiMessageRecord.run_id == oldest.run_id,
+                    AiMessageRecord.actor == oldest.actor,
+                    AiMessageRecord.sequence < oldest.sequence,
+                )
+                .order_by(AiMessageRecord.sequence)
+            )
+        ).all()
+        page = [*missing, *page]
+        has_more = bool(
+            await db.scalar(
+                select(AiMessageRecord.id)
+                .where(
+                    AiMessageRecord.conversation_id == c.id,
+                    AiMessageRecord.sequence < page[0][0].sequence,
+                )
+                .limit(1)
+            )
         )
-        for m, status in reversed(records[:limit])
-    ]
+    messages = [message_view(row[0], row) for row in page]
     active = (
         await db.execute(
             select(AiRun.id, AiRun.version).where(
@@ -98,7 +133,7 @@ async def conversation_view(db, c, limit=50, before=None):
         messages=messages,
         active_run_id=active[0] if active else None,
         active_run_version=active[1] if active else None,
-        has_more_messages=len(records) > limit,
+        has_more_messages=has_more,
     )
 
 
