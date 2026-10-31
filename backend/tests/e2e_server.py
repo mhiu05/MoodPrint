@@ -72,6 +72,8 @@ app = create_app(
         feedback_enabled=True,
         feedback_admin_enabled=True,
         product_tour_enabled=True,
+        # Multi-bubble replies (Gate G1a) on by default here; E2E_MULTI_MESSAGE=0 checks the off path.
+        ai_multi_message_enabled=os.environ.get("E2E_MULTI_MESSAGE", "1") == "1",
     )
 )
 app.state.ai.model_override = MoodE2EModel([])
@@ -158,7 +160,8 @@ async def seed():
         # 21-36 back the activity, matching-v2 and moderation journeys; 37 is staff;
         # 38-39 are the responsive/accessibility pair; 40-41 the v2-only-goal pair.
         # 42-43 cover product experience; 44 the five-assistant review; 47-48 mood evidence.
-        for number in range(1, 51):
+        # 51-55 belong to the proactive companion journeys (51: multi-bubble replies).
+        for number in range(1, 56):
             uid = UUID(f"00000000-0000-4000-8000-{number:012d}")
             provider = UUID(f"00000000-0000-4000-9000-{number:012d}")
             db.add(

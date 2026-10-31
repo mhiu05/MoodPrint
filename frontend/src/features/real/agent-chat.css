@@ -115,6 +115,18 @@
   margin-bottom: 0;
 }
 
+/* Only the last bubble reserves the time/copy row; earlier bubbles reveal theirs on
+   explicit focus or tap (not mouse hover, which would make the turn jitter). */
+.bot-conversation.ai-conversation .message-group .message-row:not(:last-child) .message-actions {
+  display: none;
+}
+
+.bot-conversation.ai-conversation .message-group .message-row.message-details-open:not(:last-child) .message-actions,
+.bot-conversation.ai-conversation .message-group .message-row:not(:last-child) .message-content:focus-visible .message-actions,
+.bot-conversation.ai-conversation .message-group .message-row:not(:last-child) .message-content:has(:focus-visible) .message-actions {
+  display: flex;
+}
+
 .bot-conversation.ai-conversation .from-bot .message-content {
   width: 100%;
   max-width: 72ch;

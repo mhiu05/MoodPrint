@@ -99,6 +99,27 @@ for (const width of [1440, 768, 390]) {
   });
 }
 
+test("bubbles of one reply sit close together and each still reveals its own copy action", async ({ page }) => {
+  await mount(page, { protocol: "v2" });
+  await openAndSend(page);
+  const rows = group(page).locator(".message-row");
+  await expect(rows).toHaveCount(3);
+  const gaps = await rows.evaluateAll((elements) =>
+    elements.slice(1).map((element, index) => {
+      const previous = elements[index].querySelector(".chat-bubble")!.getBoundingClientRect();
+      return Math.round(element.querySelector(".chat-bubble")!.getBoundingClientRect().top - previous.bottom);
+    }),
+  );
+  // One turn, not three: no reserved metadata row between bubbles.
+  for (const gap of gaps) expect(gap).toBeLessThanOrEqual(16);
+  // Keyboard modality first, so focus is :focus-visible as when a person tabs in.
+  await page.keyboard.press("Shift");
+  await rows.nth(0).locator(".message-content").focus();
+  await expect(rows.nth(0).getByRole("button", { name: "Sao chép câu trả lời" })).toBeVisible();
+  await rows.nth(2).locator(".message-content").focus();
+  await expect(rows.nth(2).getByRole("button", { name: "Sao chép câu trả lời" })).toBeVisible();
+});
+
 test("a final without its completed receipt shows no bubble", async ({ page }) => {
   await mount(page, { protocol: "v2", dropBeforeCompleted: true });
   await openAndSend(page);
