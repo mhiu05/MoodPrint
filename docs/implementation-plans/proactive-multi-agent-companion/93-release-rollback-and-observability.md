@@ -118,3 +118,7 @@ Trạng thái: ☑ = đã có bằng chứng trong [evidence/execution.md](evide
 | 12 | Owner ký checklist (G1 trong [phase-1/08 §3](phase-1/08-implementation-plan.md)) | ☐ |
 
 **Rollback nhanh (theo thứ tự tác động tăng dần):** (a) `PROACTIVE_WORKER_ENABLED=false` + `docker compose up -d proactive` → không sinh lời mới; job đang chạy hết lease, không commit dở. (b) `PROACTIVE_ENABLED=false` → API/UI ẩn (GET `available=false`, ghi 503, inbox rỗng). (c) `AI_MULTI_MESSAGE_ENABLED=false` → trả lời một tin. (d) Image R1 → R0 (`release/proactive-r0-compat`, ready ở 0020/0021/0022). Không downgrade schema; bảng mới trống/không dùng không ảnh hưởng R0.
+
+## 10. Phase 2 — phát hành và rollback
+
+Trình tự bật, metric `collaboration_*`, alarm `CollaborationTimeouts`/`CollaborationFailures`, dừng khẩn cấp và rollback R2 → R1 ở [operations](../../backend/operations.md#trợ-lý-phối-hợp-phase-2). Điều kiện thêm cho rollback: image R1 phải chấp nhận cả `0022` và `0023` trước khi `0023` được áp dụng hosted (yêu cầu tích hợp, chưa làm trên nhánh Phase 1). Checklist owner chưa ký.

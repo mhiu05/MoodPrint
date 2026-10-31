@@ -219,8 +219,8 @@ async function consume<T>(
         sequence = next;
         if (event.type === "progress") {
           // v1 progress is always `{}`; v2 may carry the two collaboration activities.
+          // v1 progress data is never read (raw provider deltas must not reach the UI, nor fail it).
           const activity = version === "ai-events-v2" ? progressActivity(event.data) : null;
-          if (version !== "ai-events-v2" && Object.keys(event.data).length) throw invalidStream();
           if (activity) onProgress?.(activity);
           continue;
         }

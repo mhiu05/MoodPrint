@@ -60,3 +60,7 @@ OD-01…OD-07 **đã quyết** ngày 31/10/2026 theo ủy quyền của owner �
 | OD-12 | Model cho proactive/specialist | Dùng `OPENAI_MODEL` hiện tại | Model nhỏ hơn cho specialist (cần cập nhật `RATES`) |
 
 Không có quyết định kiến trúc nào để "TBD": mọi mục trên đã có mặc định có thể triển khai.
+
+## 5. Cập nhật Phase 2 (31/10/2026)
+
+OD-08…OD-10 được triển khai theo mặc định đề xuất (3 cạnh; 10/ngày và 70 % ngân sách; sheet "Vì sao?" chỉ nêu loại dữ liệu) — **owner chưa duyệt**. R-09 và R-10 có test tự động. Rủi ro mới R2-01…R2-05 và lệch đặc tả D-01…D-11 trong [evidence/execution-phase2.md](evidence/execution-phase2.md). Phụ thuộc tích hợp: nhánh `feat/friendship-discovery-18plus` (Codex) thêm `is_adult_eligible()`; Phase 2 dùng kiểm 18+ chặt (`age_band='adult'`) trong một hàm `collaboration/eligibility.py` để đổi một dòng khi rebase.

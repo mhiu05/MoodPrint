@@ -128,3 +128,7 @@ Chi tiết: [phase-1/04 §7](phase-1/04-database-and-migrations.md), [phase-2/05
 | Đọc dữ liệu đúng phạm vi đã cấp | Ghi memory, proposal, mood, nhật ký |
 | Một specialist, độ sâu 1 | Chuỗi trợ lý, trợ lý tự gọi nhau |
 | Card điều hướng (`navigate_bot`, `mood_form`, `discovery`) | Gửi/chấp nhận lời mời, publish hồ sơ, matching tự động |
+
+## Phase 2 — kiểm chứng (31/10/2026)
+
+Đã kiểm bằng test tự động (không có lời gọi model thật): injection qua nhật ký và chat không vượt sang trợ lý yêu cầu (schema loại trường lạ; chỉ enum hoặc một item dữ liệu có nhãn), cross-user, dòng cộng tác giả (không có receipt `completed`+`used_in_reply` → không có dòng dù câu trả lời tự xưng), thu hồi cạnh/consent/session/xóa tài khoản giữa lượt, canary trong 6 bảng metadata, log không nội dung, độ sâu 1 và 1 lần nhờ/lượt, lời từ chối đọc nhật ký trong tin hiện tại. Review đối kháng độc lập (subagent chỉ đọc) tìm 1 High (R1 bỏ qua lời từ chối đọc nhật ký), 1 Medium, các mục Low — đã sửa có test hồi quy. **Chưa làm:** validator lọc tên trợ lý khác trong output primary nêu ở T-11 (D-11; chỉ dựa vào prompt + template backend), red-team live. Chi tiết: [evidence/execution-phase2.md](evidence/execution-phase2.md).

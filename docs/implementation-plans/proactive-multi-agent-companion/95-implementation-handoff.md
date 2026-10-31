@@ -117,3 +117,7 @@ tiến độ; tài liệu mâu thuẫn với mã nguồn theo cách thay đổi 
 
 KHÔNG tuyên bố test đã chạy nếu chưa chạy. Báo cáo cuối liệt kê mọi lệnh và kết quả thật.
 ```
+
+## 7. Trạng thái Phase 2 (31/10/2026)
+
+Đã triển khai P2-00…P2-10 trên `feat/proactive-companion-phase2` (chưa push/merge/deploy, cờ tắt). Điểm vào cho phiên tiếp theo: [evidence/execution-phase2.md](evidence/execution-phase2.md) (kết quả kiểm thử, lệch đặc tả, rủi ro, kế hoạch tích hợp với Codex).

@@ -152,3 +152,7 @@ Khuyến nghị: (1) cài CloudWatch agent (`deploy/aws/cloudwatch-agent.json` �
 ### 10.3 Chi phí model thật
 
 gpt-6-luna (giá chuẩn đã kiểm trên trang pricing chính thức 31/10/2026: 0,10 / 0,01 cached / 0,50 USD mỗi 1M token): trung bình **1.651 input + 160 output token** mỗi lời hỏi thăm (91 lời sinh thật ở vòng eval 1, kể cả reasoning token) ⇒ ≈ **0,00025 USD/lời**. 100 người × 4 lời/ngày ≈ 0,10 USD/ngày (≈ 3 USD/tháng); 1.000 người ≈ 30 USD/tháng. Độ trễ model (thật): p50 2,7 s, p95 4,2 s.
+
+## 11. Số đo Phase 2 (31/10/2026, local, model giả)
+
+Model giả với độ trễ cố định (primary 1,5 s, specialist 1,0 s), pool 5+2 như production, 8 người dùng đồng thời × 5 lượt: một trợ lý p50/p95/p99 2,47/3,11/3,20 s; phối hợp 4,25/5,08/5,14 s (**p95 +1,97 s**, ngưỡng P2-NFR-01 ≤ 4 s); cờ tắt 2,99/3,95/4,11 s; fallback khi specialist trả sai 5,38/6,30/7,09 s. Model call/lượt 1,0 (không phối hợp, cờ tắt) và 2,0 (phối hợp). Pool bão hòa 7/7 ở 8 lượt đồng thời trong mọi kịch bản (đặc tính Phase 1). Sai số giữa kịch bản ±0,5 s (chạy tuần tự). Chi phí ước tính (chưa đo): ~0,00015–0,00017 USD/lần nhờ với gpt-6-luna. Chi tiết: [evidence/execution-phase2.md](evidence/execution-phase2.md).

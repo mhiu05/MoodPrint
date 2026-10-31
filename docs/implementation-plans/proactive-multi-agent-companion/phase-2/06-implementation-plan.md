@@ -218,3 +218,7 @@ flowchart TD
 1. Mọi task P0 xong; [07](07-testing-and-acceptance.md) §5 đạt.
 2. Staging 7 ngày với tài khoản thử nghiệm: 0 dòng cộng tác không có receipt `completed`, 0 rò rỉ canary, tỷ lệ timeout specialist < 5 %.
 3. Owner duyệt OD-08…OD-10.
+
+## 4. Trạng thái triển khai (31/10/2026)
+
+P2-00…P2-10 đã triển khai trên nhánh `feat/proactive-companion-phase2` (worktree `E:\MoodPrint-proactive-phase2`, tách từ Phase 1 `44f4201`), chỉ local, cờ tắt mặc định. Bằng chứng, lệch đặc tả D-01…D-11 và rủi ro còn lại: [evidence/execution-phase2.md](../evidence/execution-phase2.md). Điều kiện G2 chưa thể đạt trong phiên local: staging 7 ngày (mục 3.2), owner duyệt OD-08…OD-10 (mục 3.3), eval live (cần ngân sách owner duyệt).
