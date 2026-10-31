@@ -44,6 +44,8 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 | DELETE | `/api/v1/ai/proactive/schedules/{bot_id}/{slot}` | `delete_schedule_api_v1_ai_proactive_schedules__bot_id___slot__delete` |
 | PUT | `/api/v1/ai/proactive/settings` | `save_settings_api_v1_ai_proactive_settings_put` |
 | GET | `/api/v1/ai/sharing` | `read_sharing_api_v1_ai_sharing_get` |
+| GET | `/api/v1/bots/legacy` | `legacy_bots_api_v1_bots_legacy_get` |
+| POST | `/api/v1/ai/proactive/schedules/{bot_id}/{slot}/migrate` | `migrate_schedule_api_v1_ai_proactive_schedules__bot_id___slot__migrate_post` |
 | PUT | `/api/v1/ai/sharing/{edge}` | `update_sharing_api_v1_ai_sharing__edge__put` |
 | POST | `/api/v1/ai/runs/{run_id}/cancel` | `cancel_api_v1_ai_runs__run_id__cancel_post` |
 | GET | `/api/v1/ai/runs/{run_id}/events` | `events_api_v1_ai_runs__run_id__events_get` |

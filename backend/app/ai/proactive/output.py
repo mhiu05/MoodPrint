@@ -8,6 +8,7 @@ from uuid import UUID
 
 from pydantic import ConfigDict, Field, model_validator
 
+from app.ai.agents import caps
 from app.ai.journal import _JOURNAL_CLAIM, has_journal_link
 from app.ai.proactive.safety import distress_screen
 from app.ai.provider import _DURABLE_CLAIM
@@ -24,7 +25,7 @@ ChallengeKind = Literal[
 MAX_PROACTIVE_BUBBLES = 3
 MAX_PROACTIVE_CHARS = 1200
 # Only these navigation cards fit a check-in; none performs an action.
-ALLOWED_CARDS = {"nhip": {"mood_form"}, "caunoi": {"discovery"}}
+ALLOWED_CARDS = {"nhip": {"mood_form"}, "nhatky": {"mood_form"}, "caunoi": {"discovery"}}
 _LINK = re.compile(r"\]\s*\(|https?://|www\.|javascript:|data:", re.I)
 _YESTERDAY = re.compile(r"\bhom qua\b")
 # Quoting yesterday's entry as if written today ("Sáng nay, bạn đã ghi…") misdates the user's words.
@@ -78,9 +79,9 @@ class NhipProactiveReply(ProactiveReply):
 
 
 def output_type(bot_id: str) -> type[ProactiveReply]:
-    if bot_id == "nhip":
+    if caps(bot_id).journal:
         return NhipProactiveReply
-    if bot_id == "rure":
+    if caps(bot_id).challenges:
         return RureProactiveReply
     return ProactiveReply
 
@@ -126,7 +127,7 @@ def validate_proactive(output: ProactiveReply, payload) -> Validated:
     if len(cards) > 1 or any(card.kind not in ALLOWED_CARDS.get(bot_id, set()) for card in cards):
         raise InvalidOutput("card_not_allowed")
     sources: tuple[UUID, ...] = ()
-    if bot_id == "nhip":
+    if caps(bot_id).journal:
         claimed = list(dict.fromkeys(getattr(output, "source_entry_ids", [])))
         digests = {digest.entry_id: digest for digest in payload.digests}
         if not digests:
@@ -141,10 +142,10 @@ def validate_proactive(output: ProactiveReply, payload) -> Validated:
             if any(_WRONG_DAY.search(text) for text in folded):
                 raise InvalidOutput("wrong_day")
             sources = tuple(claimed)
-    if bot_id == "caunoi" and any(_MATCH_CLAIM.search(text) for text in folded):
+    if caps(bot_id).connection and any(_MATCH_CLAIM.search(text) for text in folded):
         raise InvalidOutput("matching_claim")
     kind = getattr(output, "challenge_kind", None)
-    if bot_id == "rure":
+    if caps(bot_id).challenges:
         content = " ".join(folded)
         if kind in payload.avoid_kinds or any(
             avoided != kind and avoided in _KIND_HINTS and _KIND_HINTS[avoided].search(content)

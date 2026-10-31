@@ -866,8 +866,10 @@ function Assistants() {
   const resource = useResource<BotPublicDTO[]>("/bots");
   const [search, setSearch] = useState("");
   const bots = resource.data || [];
-  const bot = bots.find((value) => value.botId === botId);
   const { session } = useSession();
+  // V3: legacy companions are not in the roster, but their saved chats stay readable.
+  const legacy = useResource<BotPublicDTO[]>("/bots/legacy", session.features.threeAgents);
+  const bot = bots.find((value) => value.botId === botId) ?? legacy.data?.find((value) => value.botId === botId);
   const { inbox, markAll } = useAIInbox();
   const [markingAll, setMarkingAll] = useState(false);
   const filtered = bots.filter((value) =>
@@ -961,7 +963,7 @@ function Assistants() {
           <Conversation key={bot.botId} bot={bot} />
         ) : botId ? (
           <div className="conversation-welcome">
-            {resource.loading ? (
+            {resource.loading || legacy.loading ? (
               <p role="status">Đang mở trợ lý…</p>
             ) : (
               <>
@@ -973,9 +975,9 @@ function Assistants() {
         ) : (
           <div className="conversation-welcome">
             <div className="welcome-orbit">
-              <BotAvatar id="may" size={110} />
-              <BotAvatar id="guong" size={69} />
-              <BotAvatar id="rure" size={64} />
+              <BotAvatar id={session.features.threeAgents ? "dieuphoi" : "may"} size={110} />
+              <BotAvatar id={session.features.threeAgents ? "nhatky" : "guong"} size={69} />
+              <BotAvatar id={session.features.threeAgents ? "hoatdong" : "rure"} size={64} />
               <span className="orbit-spark">
                 <Sparkles size={24} />
               </span>
@@ -1033,7 +1035,10 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const [pendingProposals, setPendingProposals] = useState(0), [proposalRevision, setProposalRevision] = useState(0);
   const allowed = session.features.ai;
   const historyWritable = !conversation?.persistent || !!preferences?.historyAvailable;
-  const canSend = allowed && historyWritable && !!preferences && !preferencesError;
+  // V3: a legacy companion's saved chat is history only; its successor answers new messages.
+  const legacyReadOnly = session.features.threeAgents && !!bot.legacy;
+  const successor = legacyReadOnly && bot.replacedBy ? botById(bot.replacedBy) : undefined;
+  const canSend = allowed && historyWritable && !!preferences && !preferencesError && !legacyReadOnly;
   const [draft, setDraft] = useState(""),
     [error, setError] = useState<unknown>();
   const [loading, setLoading] = useState(true),
@@ -1752,7 +1757,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   }
 
   let readOnlyMessage = "Đang kiểm tra cài đặt trò chuyện AI…";
-  if (!session.features.ai) readOnlyMessage = aiServiceMessage(session.features);
+  if (legacyReadOnly)
+    readOnlyMessage = `Đây là cuộc trò chuyện cũ với ${bot.name}, chỉ để xem lại. ${successor ? `${successor.name} đã tiếp nhận phần việc này. ` : "Tìm bạn giờ là một mục riêng. "}Bạn vẫn có thể đổi tên, tải xuống hoặc xóa.`;
+  else if (!session.features.ai) readOnlyMessage = aiServiceMessage(session.features);
   else if (!preferences && !preferencesLoading)
     readOnlyMessage = "Chưa tải được cài đặt trò chuyện AI. Tải lại trước khi gửi tin nhắn.";
   else if (preferences && !historyWritable)
@@ -2013,7 +2020,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       />
       </div>
       {session.features.aiStatus === "test_provider" ? <p className={cx.footnote} role="note">Môi trường kiểm thử · phản hồi từ model giả, không phải OpenAI.</p> : null}
-      {!canSend ? <div className="chat-readonly" role="status"><p>{readOnlyMessage}</p>{allowed && preferences && !historyWritable ? <div className={cx.actions}><Button variant="secondary" onClick={requestNew}>Mở cuộc trò chuyện mới</Button></div> : null}</div> : <div className="chat-bottom">
+      {!canSend ? <div className="chat-readonly" role="status" data-legacy={legacyReadOnly || undefined}><p>{readOnlyMessage}</p>{legacyReadOnly ? <div className={cx.actions}><Link className={`${cx.button} ${cx.secondary}`} to={successor ? `/assistants/${successor.id}` : "/connect"}>{successor ? `Trò chuyện với ${successor.name}` : "Mở Tìm bạn"}</Link></div> : allowed && preferences && !historyWritable ? <div className={cx.actions}><Button variant="secondary" onClick={requestNew}>Mở cuộc trò chuyện mới</Button></div> : null}</div> : <div className="chat-bottom">
         {bot.botId === "nhip" ? (
           <>
           {lastMoodRange && lastMoodRange.conversationId === conversation?.conversationId && !shareMood ? (

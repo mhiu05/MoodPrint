@@ -1,4 +1,10 @@
-"""Companion collaboration (R2) requires migration 0023 before accepting traffic.
+"""V3 (three agents, orchestration receipts, groups) requires migration 0024 before traffic.
+
+The ORM maps ``ai_conversations.kind``/``active_agent*`` and ``ai_messages.mentions`` on every
+chat select/insert, so an older head fails at the first conversation read. 0024 is expand-only
+(see docs/implementation-plans/three-agent-orchestration-group-chat/11).
+
+Phase 2 note kept for history: companion collaboration (R2) required migration 0023.
 
 The ORM maps ``ai_runs.parent_run_id`` on every run select/insert and account/guest purge
 deletes ``ai_sharing_permissions``/``ai_collaborations`` (0023), so an older head would fail
@@ -9,5 +15,5 @@ head that predates the schema.
 """
 
 READY_REVISIONS: tuple[str, ...] = (
-    "0023_collaboration",
+    "0024_three_agent_groups",
 )

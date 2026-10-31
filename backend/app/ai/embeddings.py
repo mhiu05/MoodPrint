@@ -30,7 +30,8 @@ from app.modules.guests.policy import database_time, lifetime_allows
 if TYPE_CHECKING:
     from app.infrastructure.database.connection import Database
 
-MEMORY_BOTS = ("may", "guong", "nhip", "rure")
+from app.ai.agents import MEMORY_IDS as MEMORY_BOTS  # noqa: E402
+
 # Operational counters only: never memory text, owner IDs or job IDs.
 log = logging.getLogger("moodprint.embeddings")
 

@@ -33,6 +33,8 @@ def preference_view(p, settings):
 
 
 def conversation_header(c):
+    from app.ai.agents import is_legacy
+
     return ConversationHeader(
         conversation_id=c.id,
         bot_id=c.bot_id,
@@ -42,14 +44,18 @@ def conversation_header(c):
         title=c.title,
         created_at=c.created_at,
         updated_at=c.updated_at,
+        legacy=is_legacy(c.bot_id),
+        active_agent=c.active_agent,
     )
 
 
-async def owned_conversation(db, identity, user_id, *, lock=False):
+async def owned_conversation(db, identity, user_id, *, lock=False, kind="direct"):
+    # Direct-chat endpoints never accept a group id (V3); groups use app.ai.groups.
     statement = select(AiConversation).where(
         AiConversation.id == identity,
         AiConversation.user_id == user_id,
         AiConversation.expires_at > now(),
+        AiConversation.kind == kind,
     )
     if lock:
         statement = statement.with_for_update()
@@ -69,6 +75,9 @@ def collaboration_view(edge, rule_id):
 
 
 def message_view(m, run, collaboration=None) -> AIMessage:
+    from app.ai.agents import ALL_IDS
+
+    speaker = getattr(run, "bot_id", None)
     return AIMessage(
         id=m.id,
         actor=m.actor,
@@ -82,11 +91,12 @@ def message_view(m, run, collaboration=None) -> AIMessage:
         origin=run.origin,
         proactive_slot=run.proactive_slot,
         collaboration=collaboration if m.actor == "bot" and m.part_index == 0 else None,
+        speaker=speaker if m.actor == "bot" and speaker in ALL_IDS else None,
     )
 
 
 async def conversation_view(db, c, limit=50, before=None, *, collaboration=False):
-    run_columns = (AiRun.status, AiRun.origin, AiRun.proactive_slot)
+    run_columns = (AiRun.status, AiRun.origin, AiRun.proactive_slot, AiRun.bot_id)
     statement = (
         select(AiMessageRecord, *run_columns)
         .join(AiRun, AiRun.id == AiMessageRecord.run_id)

@@ -21,9 +21,9 @@ async def test_live_works_without_configuration_but_ready_and_auth_fail_closed()
 def test_ready_revisions_cover_the_reviewed_migration_window():
     from app.core.revisions import READY_REVISIONS
 
-    # R2 maps ai_runs.parent_run_id and purges the collaboration tables, so only 0023 is ready.
+    # V3 maps ai_conversations.kind/active_agent and ai_messages.mentions, so only 0024 is ready.
     assert READY_REVISIONS == (
-        "0023_collaboration",
+        "0024_three_agent_groups",
     )
 
 
@@ -43,7 +43,8 @@ def test_ready_revisions_cover_the_reviewed_migration_window():
         ("0020_private_profile_retirement", 503),
         ("0021_multi_message", 503),
         ("0022_proactive_messages", 503),
-        ("0023_collaboration", 200),
+        ("0023_collaboration", 503),
+        ("0024_three_agent_groups", 200),
         ("0017_unreviewed", 503),
     ],
 )

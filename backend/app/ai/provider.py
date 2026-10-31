@@ -28,6 +28,7 @@ from agents.tool import Tool
 from openai import AsyncOpenAI
 from openai.types.shared import Reasoning
 
+from app.ai.agents import caps
 from app.ai.conversation import conversation_intent, requested_presentation
 from app.ai.evidence import MoodAnalysisPlan, render_mood_analysis, source_instructions
 from app.ai.journal import (
@@ -40,8 +41,8 @@ from app.ai.journal import (
     render_journal_reply,
 )
 from app.ai.prompts import (
-    LEGACY_BOTS,
     MULTI_MESSAGE_GUIDANCE,
+    SELECTED_VARIANTS,
     conversation_instructions,
     instructions,
 )
@@ -186,7 +187,7 @@ class SdkProvider:
         extra_input: list[dict] | None = None,
     ) -> AiReply:
         """``extra_*`` carry an approved collaboration brief (Phase 2); empty = Phase 1 bytes."""
-        if bot_id not in LEGACY_BOTS:
+        if bot_id not in SELECTED_VARIANTS:
             raise DomainError(404, "BOT_NOT_FOUND", "Không tìm thấy trợ lý.")
         set_tracing_disabled(True)
         async def observe(event: UsageEvent):
@@ -231,12 +232,12 @@ class SdkProvider:
             from app.ai.guest_model import GuestGuardedModel
 
             model = GuestGuardedModel(model, guard)
-        has_scope = bot_id == "nhip" and getattr(context, "mood_scope", None) is not None
+        has_scope = caps(bot_id).mood_scope and getattr(context, "mood_scope", None) is not None
         runtime_context = hasattr(context, 'sources')
         intent = conversation_intent(bot_id, history, scoped=has_scope) if runtime_context else 'analysis'
         analytical = intent == 'analysis'
         scoped_mood = has_scope and analytical
-        journal_mode = bot_id == "nhip" and runtime_context and not has_scope
+        journal_mode = caps(bot_id).journal and runtime_context and not has_scope
         journal_allowed = journal_mode and not journal_read_refused(history)
         if journal_mode:
             context.journal_read_allowed = journal_allowed
@@ -330,7 +331,7 @@ class SdkProvider:
         ``extra_instructions`` carries an approved R2 energy block (Phase 2); empty = Phase 1."""
         from app.ai.prompts import proactive_instructions
 
-        if bot_id not in LEGACY_BOTS:
+        if bot_id not in SELECTED_VARIANTS:
             raise DomainError(404, "BOT_NOT_FOUND", "Không tìm thấy trợ lý.")
         set_tracing_disabled(True)
         if isinstance(model_override, Model):

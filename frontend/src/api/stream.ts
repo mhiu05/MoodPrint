@@ -30,7 +30,7 @@ type BotName = "may" | "guong" | "nhip" | "rure" | "caunoi";
 /** Real, server-derived progress of a collaborative turn. Never a guessed stage. */
 export type StreamActivity = { activity: "consulting"; companion: BotName } | { activity: "composing" };
 
-const BOTS: readonly string[] = ["may", "guong", "nhip", "rure", "caunoi"];
+const BOTS: readonly string[] = ["may", "guong", "nhip", "rure", "caunoi", "dieuphoi", "nhatky", "hoatdong"];
 /** The only allowed edges and their [specialist, requester] pairs (mirrors collaboration/policy.py). */
 const EDGE_COMPANIONS: Record<string, [BotName, BotName]> = {
   nhip_energy_for_rure: ["nhip", "rure"],
@@ -56,9 +56,7 @@ export function validCards(value: unknown): value is AICard[] {
       if (card.kind === "navigate_bot")
         return (
           Object.keys(card).every((key) => ["kind", "botId"].includes(key)) &&
-          ["may", "guong", "nhip", "rure", "caunoi"].includes(
-            String(card.botId),
-          )
+          BOTS.includes(String(card.botId))
         );
       return (
         ["mood_form", "discovery"].includes(String(card.kind)) &&

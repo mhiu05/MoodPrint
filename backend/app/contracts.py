@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool, StringConstraints
 from pydantic.alias_generators import to_camel
 
 Purpose = Literal["AI", "MEM", "MATCH", "VOICE"]
-BotId = Literal["may", "guong", "nhip", "rure", "caunoi"]
+BotId = Literal["may", "guong", "nhip", "rure", "caunoi", "dieuphoi", "nhatky", "hoatdong"]
 ShortText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
 MessageText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
 
@@ -59,6 +59,12 @@ class FeatureView(DTO):
     proactive: bool = False
     # Companion collaboration (Phase 2): flag/cohort, registered adult, v2 stream, saved history.
     collaboration: bool = False
+    # V3: the three default agents (flag/cohort); legacy companions become read-only history.
+    three_agents: bool = False
+    # V3: Điều phối may consult/hand over (registered adult, saved history, v2 stream).
+    smart_orchestration: bool = False
+    # V3: AI groups (registered adult, saved history, v2 stream).
+    group_chat: bool = False
 
 
 class NoticeView(DTO):
@@ -196,3 +202,6 @@ class BotPublicDTO(DTO):
     description: str
     starters: list[str]
     avatar_key: str
+    # V3: a legacy companion (read-only history) and the agent that took over its purpose.
+    legacy: bool = False
+    replaced_by: BotId | None = None

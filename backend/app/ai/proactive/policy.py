@@ -44,10 +44,25 @@ async def match_enabled(db, user: User) -> bool:
     return bool(consent and consent_enabled("MATCH", consent.enabled))
 
 
+def v3_reason(settings, user: User, bot_id: str) -> str | None:
+    """V3: a legacy companion's schedule is preserved but never runs while the three agents are
+    on; a V3 agent never sends a check-in while they are off (nothing is moved silently)."""
+    from app.ai.agents import is_legacy, is_v3
+
+    v3 = settings.v3_open_for(user.id)
+    if v3 and is_legacy(bot_id):
+        return "legacy_companion"
+    if not v3 and is_v3(bot_id):
+        return "agent_unavailable"
+    return None
+
+
 def eligibility_reason(*, settings, user: User, bot_id: str, match: bool) -> str | None:
     if not settings.chat_history_enabled:
         # Check-ins are delivered into saved conversations; without history there is nowhere.
         return "history_unavailable"
+    if reason := v3_reason(settings, user, bot_id):
+        return reason
     if bot_id == "caunoi":
         # Same rule as assert_purpose(MATCH): adult, social consent, no active restriction.
         if user.age_band != "adult":
@@ -115,6 +130,8 @@ async def authorize_proactive(
         return Decision("skip", "paused")
     if schedule.auto_paused_at:
         return Decision("skip", "auto_paused")
+    if reason := v3_reason(settings, user, job.bot_id):
+        return Decision("skip", reason)
     if job.bot_id == "caunoi":
         match = await match_enabled(db, user)
         if eligibility_reason(settings=settings, user=user, bot_id="caunoi", match=match):

@@ -8,6 +8,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.ai.agents import MEMORY_BOT_CHECK
 from app.infrastructure.database.models import Base, User, now
 
 
@@ -34,7 +35,7 @@ class MemoryProposal(Base):
         Index("ix_memory_proposals_owner_status", "user_id", "status", "created_at"),
         Index("ix_memory_proposals_expires_at", "expires_at"),
         CheckConstraint("status in ('pending','approved','rejected','expired')", name="state"),
-        CheckConstraint("bot_id in ('may','guong','nhip','rure')", name="bot"),
+        CheckConstraint(MEMORY_BOT_CHECK, name="bot"),
         CheckConstraint("version >= 1 and data_version >= 1", name="versions"),
         CheckConstraint("char_length(text) <= 120", name="text_length"),
     )

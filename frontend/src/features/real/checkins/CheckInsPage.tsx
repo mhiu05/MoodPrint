@@ -46,9 +46,11 @@ function zones(): string[] {
 }
 
 export function CheckInsPage() {
-  const { api } = useSession();
+  const { api, session } = useSession();
   const [params] = useSearchParams();
   const bots = useResource<BotPublicDTO[]>("/bots");
+  // V3: names of legacy companions whose kept (paused) schedules are listed below the agents.
+  const legacyBots = useResource<BotPublicDTO[]>("/bots/legacy", session.features.threeAgents);
   const [view, setView] = useState<View>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>();
@@ -119,13 +121,35 @@ export function CheckInsPage() {
         const schedules = value.schedules.map((item) =>
           item.botId === next.botId && item.slot === next.slot ? next : item,
         );
-        return { ...value, schedules, limits: { ...value.limits, enabledSlots: schedules.filter((s) => s.enabled).length } };
+        return { ...value, schedules, limits: { ...value.limits, enabledSlots: schedules.filter((s) => s.enabled && !s.legacy).length } };
       });
       // The first saved schedule also creates the settings row on the server.
       if (before?.settings.version === 0) await load();
       setStatus({ key, text: "Đã lưu" });
     } catch (reason) {
       setView(before);
+      await failure(key, reason);
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  /** V3: explicitly move a kept legacy schedule to the agent that took over its purpose. */
+  async function migrateSchedule(schedule: Schedule) {
+    const key = schedule.botId;
+    if (saving || !schedule.migrateTo) return;
+    setSaving(key);
+    setStatus(undefined);
+    try {
+      await api.request<Schedule>(`/ai/proactive/schedules/${schedule.botId}/${schedule.slot}/migrate`, {
+        method: "POST",
+        body: { expectedVersion: schedule.version },
+      });
+      await load();
+      const target = schedule.migrateTo;
+      setStatus({ key: target, text: "Đã chuyển lịch sang đây" });
+      requestAnimationFrame(() => document.getElementById(`checkin-${target}`)?.focus());
+    } catch (reason) {
       await failure(key, reason);
     } finally {
       setSaving(null);
@@ -195,7 +219,12 @@ export function CheckInsPage() {
     }
   }
 
-  const botInfo = useMemo(() => new Map<string, BotPublicDTO>((bots.data ?? []).map((bot) => [bot.botId, bot])), [bots.data]);
+  const botInfo = useMemo(
+    () => new Map<string, BotPublicDTO>([...(legacyBots.data ?? []), ...(bots.data ?? [])].map((bot) => [bot.botId, bot])),
+    [bots.data, legacyBots.data],
+  );
+  // The server orders the companions: the three agents first, then kept legacy schedules (V3).
+  const order = view ? [...new Set(view.schedules.map((item) => item.botId))] : [...BOT_ORDER];
 
   if (loading) return <div className={cx.reading}><h1 tabIndex={-1}>Lời hỏi thăm từ trợ lý</h1><p role="status">Đang tải lịch hỏi thăm…</p></div>;
   if (!view) {
@@ -236,10 +265,26 @@ export function CheckInsPage() {
         <p className="checkins-empty">Chưa có trợ lý nào hỏi thăm bạn. Bật buổi sáng hoặc buổi tối ở một trợ lý bạn thích.</p>
       ) : null}
       <ErrorNotice error={error} retry={() => void load()} />
-      {BOT_ORDER.map((botId) => {
+      {order.map((botId) => {
         const info = botInfo.get(botId);
         const schedules = SLOTS.map((slot) => view.schedules.find((s) => s.botId === botId && s.slot === slot)!).filter(Boolean);
         if (!schedules.length) return null;
+        if (schedules[0].legacy) {
+          return (
+            <LegacyCard
+              key={botId}
+              botId={botId}
+              name={info?.name ?? botId}
+              successor={schedules[0].migrateTo ? botInfo.get(schedules[0].migrateTo)?.name ?? null : null}
+              schedules={schedules}
+              busy={saving === botId}
+              status={status?.key === botId ? status : undefined}
+              onMigrate={(schedule) => void migrateSchedule(schedule)}
+              onDisable={(schedule) => void saveSchedule(schedule, { enabled: false })}
+              onRemove={() => setRemoveBot(botId)}
+            />
+          );
+        }
         const reason = schedules[0].eligibility.reason;
         const busy = saving === botId;
         const cardStatus = status?.key === botId ? status : undefined;
@@ -269,7 +314,7 @@ export function CheckInsPage() {
                 />
               ))
             )}
-            {botId === "nhip" ? (
+            {botId === "nhip" || botId === "nhatky" ? (
               <div className="checkin-journal">
                 <label className="checkin-check">
                   <input
@@ -281,7 +326,7 @@ export function CheckInsPage() {
                   <span>Dùng khoảnh khắc đã lưu hôm qua</span>
                 </label>
                 <p className="checkin-help">
-                  Mỗi sáng, Nhịp chỉ đọc khoảnh khắc đã lưu của ngày hôm qua để gợi ý một việc nhỏ. Không đọc bản nháp, ảnh, âm thanh.{" "}
+                  Mỗi sáng, {info?.name ?? "Nhịp"} chỉ đọc khoảnh khắc đã lưu của ngày hôm qua để gợi ý một việc nhỏ. Không đọc bản nháp, ảnh, âm thanh.{" "}
                   <Button variant="text" onClick={() => setJournalHelp(true)}>Tìm hiểu thêm</Button>
                 </p>
               </div>
@@ -345,6 +390,59 @@ export function CheckInsPage() {
         </Dialog>
       ) : null}
     </div>
+  );
+}
+
+function LegacyCard({
+  botId, name, successor, schedules, busy, status, onMigrate, onDisable, onRemove,
+}: {
+  botId: string;
+  name: string;
+  successor: string | null;
+  schedules: Schedule[];
+  busy: boolean;
+  status?: CardStatus;
+  onMigrate: (schedule: Schedule) => void;
+  onDisable: (schedule: Schedule) => void;
+  onRemove: () => void;
+}) {
+  const slotName = (slot: string) => (slot === "morning" ? "Buổi sáng" : "Buổi tối");
+  return (
+    <section className="checkin-card checkin-legacy" aria-labelledby={`checkin-${botId}`} aria-busy={busy || undefined}>
+      <div className="checkin-card-head">
+        {botById(botId) ? <BotAvatar id={botById(botId)!.id} size={40} /> : null}
+        <div>
+          <h2 id={`checkin-${botId}`} tabIndex={-1}>{name} <span className="history-legacy">Lịch cũ</span></h2>
+          <p>
+            Lịch này đang tạm dừng và chưa bị xóa.{" "}
+            {successor ? `Bạn có thể chuyển nó sang ${successor} với cùng giờ và ngày.` : "Tìm bạn giờ là một mục riêng, nên lịch này chỉ có thể tắt."}
+          </p>
+        </div>
+      </div>
+      <ul className="checkin-legacy-list">
+        {schedules.map((schedule) => (
+          <li key={schedule.slot}>
+            <span>{slotName(schedule.slot)} · {schedule.localTime} · {schedule.enabled ? "đang tạm dừng" : "đã tắt"}</span>
+            {schedule.enabled ? (
+              <span className="checkin-legacy-actions">
+                {successor ? (
+                  <Button variant="secondary" aria-disabled={busy || undefined} onClick={() => !busy && onMigrate(schedule)}>
+                    Chuyển sang {successor}
+                  </Button>
+                ) : null}
+                <Button variant="text" aria-disabled={busy || undefined} onClick={() => !busy && onDisable(schedule)}>Tắt lịch</Button>
+              </span>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      {schedules.every((s) => !s.enabled) ? (
+        <div className="checkin-card-actions">
+          <Button variant="text" aria-disabled={busy || undefined} onClick={onRemove}>Xóa lịch</Button>
+        </div>
+      ) : null}
+      <p className={`checkin-status ${status?.error ? "is-error" : ""}`} role="status">{status?.text ?? ""}</p>
+    </section>
   );
 }
 

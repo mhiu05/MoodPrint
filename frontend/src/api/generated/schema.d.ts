@@ -558,6 +558,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/bots/legacy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Legacy Bots
+         * @description The five legacy companions, only to label read-only history once V3 is on.
+         */
+        get: operations["legacy_bots_api_v1_bots_legacy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ai/preferences": {
         parameters: {
             query?: never;
@@ -728,6 +748,31 @@ export interface paths {
         post?: never;
         /** Delete Schedule */
         delete: operations["delete_schedule_api_v1_ai_proactive_schedules__bot_id___slot__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/proactive/schedules/{bot_id}/{slot}/migrate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Migrate Schedule
+         * @description Explicitly move a kept legacy schedule to the V3 agent that took over its purpose.
+         *
+         *     Same time, weekdays, pause and on/off state; the legacy row is switched off (kept, never
+         *     deleted). No permission changes: the agent reads the journal only under the existing
+         *     journal-context setting. If the legacy companion already has today's job, the new schedule
+         *     starts tomorrow so no day gets two check-ins.
+         */
+        post: operations["migrate_schedule_api_v1_ai_proactive_schedules__bot_id___slot__migrate_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1877,6 +1922,8 @@ export interface components {
             /** Proactiveslot */
             proactiveSlot?: ("morning" | "evening") | null;
             collaboration?: components["schemas"]["CollaborationSummary"] | null;
+            /** Speaker */
+            speaker?: ("may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong") | null;
         };
         /** AIRunAccepted */
         AIRunAccepted: {
@@ -2130,7 +2177,7 @@ export interface components {
              * Botid
              * @enum {string}
              */
-            botId: "may" | "guong" | "nhip" | "rure" | "caunoi";
+            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
             /** Name */
             name: string;
             /** Role */
@@ -2141,6 +2188,13 @@ export interface components {
             starters: string[];
             /** Avatarkey */
             avatarKey: string;
+            /**
+             * Legacy
+             * @default false
+             */
+            legacy: boolean;
+            /** Replacedby */
+            replacedBy?: ("may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong") | null;
         };
         /** CandidateCardDTO */
         CandidateCardDTO: {
@@ -2205,7 +2259,7 @@ export interface components {
              */
             kind: "nhip_energy_for_rure" | "nhip_habit_for_may" | "rure_activity_for_guong";
             /** Companions */
-            companions: ("may" | "guong" | "nhip" | "rure" | "caunoi")[];
+            companions: ("may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong")[];
             /** Summary */
             summary: string;
         };
@@ -2275,7 +2329,7 @@ export interface components {
              * Botid
              * @enum {string}
              */
-            botId: "may" | "guong" | "nhip" | "rure" | "caunoi";
+            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
             /** Version */
             version: number;
             /**
@@ -2297,6 +2351,13 @@ export interface components {
             createdAt?: string | null;
             /** Updatedat */
             updatedAt?: string | null;
+            /**
+             * Legacy
+             * @default false
+             */
+            legacy: boolean;
+            /** Activeagent */
+            activeAgent?: ("dieuphoi" | "nhatky" | "hoatdong") | null;
         };
         /** ConversationInput */
         ConversationInput: {
@@ -2304,7 +2365,7 @@ export interface components {
              * Botid
              * @enum {string}
              */
-            botId: "may" | "guong" | "nhip" | "rure" | "caunoi";
+            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
             /** Persistent */
             persistent?: boolean | null;
         };
@@ -2339,7 +2400,7 @@ export interface components {
              * Botid
              * @enum {string}
              */
-            botId: "may" | "guong" | "nhip" | "rure" | "caunoi";
+            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
             /** Version */
             version: number;
             /**
@@ -2361,6 +2422,13 @@ export interface components {
             createdAt?: string | null;
             /** Updatedat */
             updatedAt?: string | null;
+            /**
+             * Legacy
+             * @default false
+             */
+            legacy: boolean;
+            /** Activeagent */
+            activeAgent?: ("dieuphoi" | "nhatky" | "hoatdong") | null;
             /** Messages */
             messages: components["schemas"]["AIMessage"][];
             /** Activerunid */
@@ -2478,7 +2546,7 @@ export interface components {
             /** Allowed */
             allowed: boolean;
             /** Reason */
-            reason?: ("teen_social_unavailable" | "social_not_enabled" | "social_restricted" | "history_unavailable" | "ai_unavailable") | null;
+            reason?: ("teen_social_unavailable" | "social_not_enabled" | "social_restricted" | "history_unavailable" | "ai_unavailable" | "legacy_companion" | "agent_unavailable") | null;
         };
         /** EligibilityInput */
         EligibilityInput: {
@@ -2576,6 +2644,21 @@ export interface components {
              * @default false
              */
             collaboration: boolean;
+            /**
+             * Threeagents
+             * @default false
+             */
+            threeAgents: boolean;
+            /**
+             * Smartorchestration
+             * @default false
+             */
+            smartOrchestration: boolean;
+            /**
+             * Groupchat
+             * @default false
+             */
+            groupChat: boolean;
         };
         /** FeedbackAdminView */
         FeedbackAdminView: {
@@ -2781,7 +2864,7 @@ export interface components {
              * Botid
              * @enum {string}
              */
-            botId: "may" | "guong" | "nhip" | "rure" | "caunoi";
+            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
             /** Unread */
             unread: number;
             latest: components["schemas"]["InboxLatest"];
@@ -3037,7 +3120,7 @@ export interface components {
              * Botid
              * @enum {string}
              */
-            botId: "may" | "guong" | "nhip" | "rure" | "caunoi";
+            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
             /** Text */
             text: string;
             /** Version */
@@ -3209,7 +3292,7 @@ export interface components {
              * Botid
              * @enum {string}
              */
-            botId: "may" | "guong" | "nhip" | "rure" | "caunoi";
+            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
         };
         /** NoticeView */
         NoticeView: {
@@ -3357,7 +3440,7 @@ export interface components {
              * Botid
              * @enum {string}
              */
-            botId: "may" | "guong" | "nhip" | "rure" | "caunoi";
+            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
             /** Text */
             text: string;
             /** Version */
@@ -3620,13 +3703,18 @@ export interface components {
             /** Expectedversion */
             expectedVersion: number;
         };
+        /** ScheduleMigrateInput */
+        ScheduleMigrateInput: {
+            /** Expectedversion */
+            expectedVersion: number;
+        };
         /** ScheduleView */
         ScheduleView: {
             /**
              * Botid
              * @enum {string}
              */
-            botId: "may" | "guong" | "nhip" | "rure" | "caunoi";
+            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
             /**
              * Slot
              * @enum {string}
@@ -3650,6 +3738,13 @@ export interface components {
             /** Version */
             version: number;
             eligibility: components["schemas"]["Eligibility"];
+            /**
+             * Legacy
+             * @default false
+             */
+            legacy: boolean;
+            /** Migrateto */
+            migrateTo?: ("may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong") | null;
         };
         /** ScoreView */
         ScoreView: {
@@ -3743,12 +3838,12 @@ export interface components {
              * Requester
              * @enum {string}
              */
-            requester: "may" | "guong" | "nhip" | "rure" | "caunoi";
+            requester: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
             /**
              * Specialist
              * @enum {string}
              */
-            specialist: "may" | "guong" | "nhip" | "rure" | "caunoi";
+            specialist: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
             /** Enabled */
             enabled: boolean;
             /** Version */
@@ -7790,6 +7885,107 @@ export interface operations {
             };
         };
     };
+    legacy_bots_api_v1_bots_legacy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BotPublicDTO"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     preferences_api_v1_ai_preferences_get: {
         parameters: {
             query?: never;
@@ -8001,7 +8197,7 @@ export interface operations {
             query?: {
                 limit?: number;
                 before?: string | null;
-                botId?: ("may" | "guong" | "nhip" | "rure" | "caunoi") | null;
+                botId?: ("may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong") | null;
             };
             header?: never;
             path?: never;
@@ -9148,7 +9344,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                bot_id: "may" | "guong" | "nhip" | "rure" | "caunoi";
+                bot_id: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
                 slot: "morning" | "evening";
             };
             cookie?: never;
@@ -9256,7 +9452,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                bot_id: "may" | "guong" | "nhip" | "rure" | "caunoi";
+                bot_id: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
                 slot: "morning" | "evening";
             };
             cookie?: never;
@@ -9274,6 +9470,114 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ActionReceipt"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    migrate_schedule_api_v1_ai_proactive_schedules__bot_id___slot__migrate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bot_id: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
+                slot: "morning" | "evening";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleMigrateInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleView"];
                 };
             };
             /** @description Unauthorized */

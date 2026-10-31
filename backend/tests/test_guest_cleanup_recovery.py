@@ -424,7 +424,7 @@ async def test_guest_aware_rollback_cannot_resurrect(clients):
     for flag in ("guest_auth_enabled", "guest_paid_enabled", "guest_semantic_enabled",
                  "feedback_enabled", "feedback_admin_enabled", "product_tour_enabled"):
         setattr(app.state.settings, flag, False)
-    assert READY_REVISIONS == ("0023_collaboration",)
+    assert READY_REVISIONS == ("0024_three_agent_groups",)
     guest = await add_guest(app, started_ago=LIFETIME + timedelta(seconds=1))
     assert (await guest.client.get("/api/v1/session")).status_code == 401
     await ensure_cleanup_jobs(app)

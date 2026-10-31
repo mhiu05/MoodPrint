@@ -25,7 +25,8 @@ from app.ai.models import AiConversation
 from app.infrastructure.database.models import AiRun, Base, User, now
 
 POLICY_VERSION = "proactive-v1"
-BOT_CHECK = "bot_id in ('may','guong','nhip','rure','caunoi')"
+from app.ai.agents import BOT_CHECK  # noqa: E402
+
 SLOT_CHECK = "slot in ('morning','evening')"
 
 

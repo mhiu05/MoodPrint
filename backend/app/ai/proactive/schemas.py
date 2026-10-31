@@ -16,6 +16,9 @@ EligibilityReason = Literal[
     "social_restricted",
     "history_unavailable",
     "ai_unavailable",
+    # V3: a legacy companion's schedule is kept but paused; a V3 agent is not open yet.
+    "legacy_companion",
+    "agent_unavailable",
 ]
 
 
@@ -45,6 +48,13 @@ class ScheduleView(DTO):
     next_delivery_at: datetime | None = None
     version: int
     eligibility: Eligibility
+    # V3: kept schedule of a legacy companion and the agent it can be moved to (None: only off).
+    legacy: bool = False
+    migrate_to: BotId | None = None
+
+
+class ScheduleMigrateInput(DTO):
+    expected_version: int = Field(ge=1)
 
 
 class ProactiveLimits(DTO):

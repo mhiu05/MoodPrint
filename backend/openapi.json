@@ -4755,6 +4755,119 @@
         }
       }
     },
+    "/api/v1/bots/legacy": {
+      "get": {
+        "summary": "Legacy Bots",
+        "description": "The five legacy companions, only to label read-only history once V3 is on.",
+        "operationId": "legacy_bots_api_v1_bots_legacy_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BotPublicDTO"
+                  },
+                  "type": "array",
+                  "title": "Response Legacy Bots Api V1 Bots Legacy Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ai/preferences": {
       "get": {
         "summary": "Preferences",
@@ -5025,7 +5138,10 @@
                     "guong",
                     "nhip",
                     "rure",
-                    "caunoi"
+                    "caunoi",
+                    "dieuphoi",
+                    "nhatky",
+                    "hoatdong"
                   ],
                   "type": "string"
                 },
@@ -6397,7 +6513,10 @@
                 "guong",
                 "nhip",
                 "rure",
-                "caunoi"
+                "caunoi",
+                "dieuphoi",
+                "nhatky",
+                "hoatdong"
               ],
               "type": "string",
               "title": "Bot Id"
@@ -6544,7 +6663,10 @@
                 "guong",
                 "nhip",
                 "rure",
-                "caunoi"
+                "caunoi",
+                "dieuphoi",
+                "nhatky",
+                "hoatdong"
               ],
               "type": "string",
               "title": "Bot Id"
@@ -6581,6 +6703,159 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ActionReceipt"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/ai/proactive/schedules/{bot_id}/{slot}/migrate": {
+      "post": {
+        "summary": "Migrate Schedule",
+        "description": "Explicitly move a kept legacy schedule to the V3 agent that took over its purpose.\n\nSame time, weekdays, pause and on/off state; the legacy row is switched off (kept, never\ndeleted). No permission changes: the agent reads the journal only under the existing\njournal-context setting. If the legacy companion already has today's job, the new schedule\nstarts tomorrow so no day gets two check-ins.",
+        "operationId": "migrate_schedule_api_v1_ai_proactive_schedules__bot_id___slot__migrate_post",
+        "parameters": [
+          {
+            "name": "bot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "may",
+                "guong",
+                "nhip",
+                "rure",
+                "caunoi",
+                "dieuphoi",
+                "nhatky",
+                "hoatdong"
+              ],
+              "type": "string",
+              "title": "Bot Id"
+            }
+          },
+          {
+            "name": "slot",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "morning",
+                "evening"
+              ],
+              "type": "string",
+              "title": "Slot"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleMigrateInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleView"
                 }
               }
             }
@@ -15662,6 +15937,27 @@
                 "type": "null"
               }
             ]
+          },
+          "speaker": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "may",
+                  "guong",
+                  "nhip",
+                  "rure",
+                  "caunoi",
+                  "dieuphoi",
+                  "nhatky",
+                  "hoatdong"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speaker"
           }
         },
         "additionalProperties": false,
@@ -16375,7 +16671,10 @@
               "guong",
               "nhip",
               "rure",
-              "caunoi"
+              "caunoi",
+              "dieuphoi",
+              "nhatky",
+              "hoatdong"
             ],
             "title": "Botid"
           },
@@ -16401,6 +16700,32 @@
           "avatarKey": {
             "type": "string",
             "title": "Avatarkey"
+          },
+          "legacy": {
+            "type": "boolean",
+            "title": "Legacy",
+            "default": false
+          },
+          "replacedBy": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "may",
+                  "guong",
+                  "nhip",
+                  "rure",
+                  "caunoi",
+                  "dieuphoi",
+                  "nhatky",
+                  "hoatdong"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replacedby"
           }
         },
         "additionalProperties": false,
@@ -16557,7 +16882,10 @@
                 "guong",
                 "nhip",
                 "rure",
-                "caunoi"
+                "caunoi",
+                "dieuphoi",
+                "nhatky",
+                "hoatdong"
               ]
             },
             "type": "array",
@@ -16753,7 +17081,10 @@
               "guong",
               "nhip",
               "rure",
-              "caunoi"
+              "caunoi",
+              "dieuphoi",
+              "nhatky",
+              "hoatdong"
             ],
             "title": "Botid"
           },
@@ -16799,6 +17130,27 @@
               }
             ],
             "title": "Updatedat"
+          },
+          "legacy": {
+            "type": "boolean",
+            "title": "Legacy",
+            "default": false
+          },
+          "activeAgent": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "dieuphoi",
+                  "nhatky",
+                  "hoatdong"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activeagent"
           }
         },
         "additionalProperties": false,
@@ -16820,7 +17172,10 @@
               "guong",
               "nhip",
               "rure",
-              "caunoi"
+              "caunoi",
+              "dieuphoi",
+              "nhatky",
+              "hoatdong"
             ],
             "title": "Botid"
           },
@@ -16909,7 +17264,10 @@
               "guong",
               "nhip",
               "rure",
-              "caunoi"
+              "caunoi",
+              "dieuphoi",
+              "nhatky",
+              "hoatdong"
             ],
             "title": "Botid"
           },
@@ -16955,6 +17313,27 @@
               }
             ],
             "title": "Updatedat"
+          },
+          "legacy": {
+            "type": "boolean",
+            "title": "Legacy",
+            "default": false
+          },
+          "activeAgent": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "dieuphoi",
+                  "nhatky",
+                  "hoatdong"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activeagent"
           },
           "messages": {
             "items": {
@@ -17271,7 +17650,9 @@
                   "social_not_enabled",
                   "social_restricted",
                   "history_unavailable",
-                  "ai_unavailable"
+                  "ai_unavailable",
+                  "legacy_companion",
+                  "agent_unavailable"
                 ]
               },
               {
@@ -17500,6 +17881,21 @@
           "collaboration": {
             "type": "boolean",
             "title": "Collaboration",
+            "default": false
+          },
+          "threeAgents": {
+            "type": "boolean",
+            "title": "Threeagents",
+            "default": false
+          },
+          "smartOrchestration": {
+            "type": "boolean",
+            "title": "Smartorchestration",
+            "default": false
+          },
+          "groupChat": {
+            "type": "boolean",
+            "title": "Groupchat",
             "default": false
           }
         },
@@ -18027,7 +18423,10 @@
               "guong",
               "nhip",
               "rure",
-              "caunoi"
+              "caunoi",
+              "dieuphoi",
+              "nhatky",
+              "hoatdong"
             ],
             "title": "Botid"
           },
@@ -18604,7 +19003,10 @@
               "guong",
               "nhip",
               "rure",
-              "caunoi"
+              "caunoi",
+              "dieuphoi",
+              "nhatky",
+              "hoatdong"
             ],
             "title": "Botid"
           },
@@ -18977,7 +19379,10 @@
               "guong",
               "nhip",
               "rure",
-              "caunoi"
+              "caunoi",
+              "dieuphoi",
+              "nhatky",
+              "hoatdong"
             ],
             "title": "Botid",
             "type": "string"
@@ -19384,7 +19789,10 @@
               "guong",
               "nhip",
               "rure",
-              "caunoi"
+              "caunoi",
+              "dieuphoi",
+              "nhatky",
+              "hoatdong"
             ],
             "title": "Botid"
           },
@@ -20056,6 +20464,21 @@
         ],
         "title": "ScheduleInput"
       },
+      "ScheduleMigrateInput": {
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expectedversion"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expectedVersion"
+        ],
+        "title": "ScheduleMigrateInput"
+      },
       "ScheduleView": {
         "properties": {
           "botId": {
@@ -20065,7 +20488,10 @@
               "guong",
               "nhip",
               "rure",
-              "caunoi"
+              "caunoi",
+              "dieuphoi",
+              "nhatky",
+              "hoatdong"
             ],
             "title": "Botid"
           },
@@ -20127,6 +20553,32 @@
           },
           "eligibility": {
             "$ref": "#/components/schemas/Eligibility"
+          },
+          "legacy": {
+            "type": "boolean",
+            "title": "Legacy",
+            "default": false
+          },
+          "migrateTo": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "may",
+                  "guong",
+                  "nhip",
+                  "rure",
+                  "caunoi",
+                  "dieuphoi",
+                  "nhatky",
+                  "hoatdong"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Migrateto"
           }
         },
         "additionalProperties": false,
@@ -20380,7 +20832,10 @@
               "guong",
               "nhip",
               "rure",
-              "caunoi"
+              "caunoi",
+              "dieuphoi",
+              "nhatky",
+              "hoatdong"
             ],
             "title": "Requester"
           },
@@ -20391,7 +20846,10 @@
               "guong",
               "nhip",
               "rure",
-              "caunoi"
+              "caunoi",
+              "dieuphoi",
+              "nhatky",
+              "hoatdong"
             ],
             "title": "Specialist"
           },

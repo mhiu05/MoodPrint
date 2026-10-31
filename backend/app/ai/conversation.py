@@ -48,7 +48,10 @@ def conversation_intent(bot_id: str, history: list[dict], *, scoped: bool) -> In
         return 'practical'
     if re.search(r'minh.{0,25}(?:met qua|buon qua|lo qua)|(?:vuot qua|an ui|dong vien)', text):
         return 'support'
-    if bot_id == 'nhip' and scoped:
+    from app.ai.agents import caps
+
+    stance = caps(bot_id).stance
+    if stance == 'journal' and scoped:
         return 'analysis'  # Ambiguity preserves the proven P0 path.
-    defaults: dict[str, Intent] = {'guong':'reflection','rure':'activity','caunoi':'connection'}
-    return defaults.get(bot_id, 'conversation')
+    defaults: dict[str, Intent] = {'reflection': 'reflection', 'activity': 'activity', 'connection': 'connection'}
+    return defaults.get(stance, 'conversation')

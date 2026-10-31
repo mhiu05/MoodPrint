@@ -23,9 +23,15 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.infrastructure.database.models import AiRun, Base, User, now
 
 SHARING_POLICY_VERSION = "sharing-v1"
-EDGE_VALUES = ("nhip_energy_for_rure", "nhip_habit_for_may", "rure_activity_for_guong")
+LEGACY_EDGES = ("nhip_energy_for_rure", "nhip_habit_for_may", "rure_activity_for_guong")
+# V3 (0024): Điều phối may consult or hand over to a specialist only through an enabled edge.
+V3_EDGES = (
+    "dieuphoi_consult_nhatky", "dieuphoi_consult_hoatdong", "dieuphoi_handoff_nhatky",
+    "dieuphoi_handoff_hoatdong",
+)
+EDGE_VALUES = LEGACY_EDGES + V3_EDGES
 STATUSES = ("authorized", "denied", "completed", "failed", "timeout", "cancelled", "discarded")
-_EDGE_IN = "edge in ('nhip_energy_for_rure', 'nhip_habit_for_may', 'rure_activity_for_guong')"
+_EDGE_IN = "edge in (" + ", ".join(f"'{edge}'" for edge in EDGE_VALUES) + ")"
 
 
 class AiSharingPermission(Base):

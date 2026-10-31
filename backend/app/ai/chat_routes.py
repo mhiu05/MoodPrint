@@ -102,11 +102,43 @@ def ephemeral_header(c):
     )
 
 
-@router.get("/bots", response_model=list[BotPublicDTO])
-async def bots():
-    from app.ai.registry import BOTS
+async def optional_actor(request: Request) -> Actor | None:
+    try:
+        return await require_actor(request)
+    except DomainError:
+        return None
 
-    return BOTS
+
+@router.get("/bots", response_model=list[BotPublicDTO])
+async def bots(request: Request, actor: Actor | None = Depends(optional_actor)):
+    from app.ai.registry import AGENTS, BOTS
+
+    # V3: exactly the three default agents for the cohort; otherwise the Phase 1/2 five.
+    return AGENTS if request.app.state.settings.v3_open_for(actor.user_id if actor else None) else BOTS
+
+
+@router.get("/bots/legacy", response_model=list[BotPublicDTO])
+async def legacy_bots(request: Request, actor: Actor = Depends(require_actor)):
+    """The five legacy companions, only to label read-only history once V3 is on."""
+    from app.ai.registry import LEGACY_BOTS
+
+    return LEGACY_BOTS if request.app.state.settings.v3_open_for(actor.user_id) else []
+
+
+def assert_companion_open(settings, user_id, bot_id: str, *, creating: bool) -> None:
+    """V3 gate for direct chats: legacy companions are read-only once the three agents are on;
+    a V3 agent never answers while the experience is off (its history stays readable)."""
+    from app.ai.agents import is_legacy, is_v3
+
+    v3 = settings.v3_open_for(user_id)
+    if v3 and is_legacy(bot_id):
+        if creating:
+            raise DomainError(409, "LEGACY_COMPANION", "Trợ lý này đã được thay bằng ba trợ lý mới.")
+        raise DomainError(
+            409, "LEGACY_CONVERSATION", "Đây là cuộc trò chuyện cũ, chỉ để xem lại. Hãy mở một trợ lý mới để trò chuyện."
+        )
+    if not v3 and is_v3(bot_id):
+        raise DomainError(409, "AGENT_UNAVAILABLE", "Trợ lý này hiện chưa mở.")
 
 
 @router.get("/ai/preferences", response_model=AiPreferenceView)
@@ -186,7 +218,8 @@ async def conversations(
 ):
     async with transaction(request, actor) as (db, user):
         statement = select(AiConversation).where(
-            AiConversation.user_id == user.id, AiConversation.expires_at > now()
+            AiConversation.user_id == user.id, AiConversation.expires_at > now(),
+            AiConversation.kind == "direct",
         )
         if bot_id:
             statement = statement.where(AiConversation.bot_id == bot_id)
@@ -247,6 +280,7 @@ async def create_conversation(
             )
         if not runtime.available_for(actor.user_id):
             raise DomainError(503, "AI_UNAVAILABLE", "Trò chuyện AI chưa sẵn sàng.", True)
+        assert_companion_open(settings, user.id, body.bot_id, creating=True)
         if user.account_kind == "guest" and not guest_paid_available(settings, "ai"):
             raise guest_paid_unavailable()
         persistent = (
@@ -374,6 +408,7 @@ async def send(
                 )
             if not runtime.available_for(actor.user_id):
                 raise DomainError(503, "AI_UNAVAILABLE", "Trò chuyện AI chưa sẵn sàng.", True)
+            assert_companion_open(settings, user.id, c.bot_id, creating=False)
             if user.account_kind == "guest" and not guest_paid_available(settings, "ai"):
                 raise guest_paid_unavailable()
             if persistent:
@@ -384,10 +419,11 @@ async def send(
                         "Lưu lịch sử chưa sẵn sàng.",
                     )
             if body.mood_scope is not None:
+                from app.ai.agents import caps
                 from app.modules.mood.service import validate_scope
 
-                if c.bot_id != "nhip":
-                    raise DomainError(422, "MOOD_SCOPE_BOT", "Khoảng ngày chỉ dùng với Nhịp.")
+                if not caps(c.bot_id).mood_scope:
+                    raise DomainError(422, "MOOD_SCOPE_BOT", "Khoảng ngày chỉ dùng với trợ lý nhật ký.")
                 validate_scope(user, body.mood_scope)
             active = await db.scalar(
                 select(AiRun.id).where(AiRun.conversation_id == c.id, AiRun.status == "running")

@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, select
 
+from app.ai.agents import caps
 from app.ai.proactive.models import AiProactiveJob
 
 WEEKDAYS = ("thứ Hai", "thứ Ba", "thứ Tư", "thứ Năm", "thứ Sáu", "thứ Bảy", "Chủ nhật")
@@ -44,6 +45,15 @@ ANGLES: dict[tuple[str, str], tuple[str, ...]] = {
     ("guong", "evening"): ("một việc đã làm", "một lựa chọn", "một lần kiên nhẫn", "một lời tử tế",
                            "một điều đã học", "một lần dám thử", "một khoảnh khắc là chính mình"),
 }
+
+
+# V3 agents rotate their predecessors' angles (Điều phối: Mây's greetings and Gương's prompts).
+ANGLES[("nhatky", "morning")] = ANGLES[("nhip", "morning")]
+ANGLES[("nhatky", "evening")] = ANGLES[("nhip", "evening")]
+ANGLES[("hoatdong", "morning")] = ANGLES[("rure", "morning")]
+ANGLES[("hoatdong", "evening")] = ANGLES[("rure", "evening")]
+ANGLES[("dieuphoi", "morning")] = ANGLES[("may", "morning")] + ANGLES[("guong", "morning")]
+ANGLES[("dieuphoi", "evening")] = ANGLES[("may", "evening")] + ANGLES[("guong", "evening")]
 
 
 def angle_for(bot_id: str, slot: str, day: date) -> str | None:
@@ -87,7 +97,7 @@ class ProactivePayload:
 
     def data(self) -> dict:
         journal: dict[str, Any] | None = None
-        if self.bot_id == "nhip" and self.slot == "morning":
+        if caps(self.bot_id).journal and self.slot == "morning":
             journal = {"status": self.journal_status}
             if self.journal_status == "entries":
                 journal["entriesTotal"] = self.entries_total
@@ -138,11 +148,11 @@ async def yesterday_entries(db, user, local_today: date) -> tuple[list[JournalDi
     ], int(total)
 
 
-async def recent_challenge_kinds(db, user_id: UUID) -> list[str]:
+async def recent_challenge_kinds(db, user_id: UUID, bot_id: str = "rure") -> list[str]:
     rows = await db.scalars(
         select(AiProactiveJob.challenge_kind)
         .where(
-            AiProactiveJob.user_id == user_id, AiProactiveJob.bot_id == "rure",
+            AiProactiveJob.user_id == user_id, AiProactiveJob.bot_id == bot_id,
             AiProactiveJob.status == "delivered", AiProactiveJob.challenge_kind.is_not(None),
         )
         .order_by(AiProactiveJob.due_at.desc())
@@ -174,12 +184,12 @@ async def build_payload(db, user, prefs, schedule, job) -> ProactivePayload:
         bot_id=job.bot_id, slot=job.slot, local_date=job.local_date,
         local_time=schedule.local_time.strftime("%H:%M"),
     )
-    if job.bot_id == "nhip" and job.slot == "morning":
+    if caps(job.bot_id).journal and job.slot == "morning":
         if prefs.journal_context_enabled:
             payload.digests, payload.entries_total = await yesterday_entries(db, user, job.local_date)
             payload.journal_status = "entries" if payload.digests else "no_entries"
-    elif job.bot_id == "rure":
-        payload.avoid_kinds = await recent_challenge_kinds(db, user.id)
-    elif job.bot_id == "caunoi":
+    elif caps(job.bot_id).challenges:
+        payload.avoid_kinds = await recent_challenge_kinds(db, user.id, job.bot_id)
+    elif caps(job.bot_id).connection:
         payload.social = await social_counts(db, user)
     return payload

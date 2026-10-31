@@ -14,6 +14,7 @@ from agents.strict_schema import ensure_strict_json_schema
 from sqlalchemy import select, update
 
 from app.ai.accounting import UsageSnapshot, persist_snapshot, reserve_accounting
+from app.ai.agents import caps
 from app.ai.availability import AiStatus, public_failure
 from app.ai.context import (
     JOURNAL_TURN_POLICY,
@@ -357,7 +358,7 @@ class AiRuntime:
         if self.settings.ai_accounting_enabled:
             await reserve_accounting(db, run_id, user_id, self.worker_id, self.settings.openai_model,
                                      # Compact journal policy revision fits existing varchar(60).
-                                     prompt_version(SELECTED_VARIANTS[bot_id]) + "+" + EVIDENCE_POLICY + "+" + CONVERSATION_POLICY + ("+j1" if bot_id == "nhip" else ""))
+                                     prompt_version(SELECTED_VARIANTS[bot_id]) + "+" + EVIDENCE_POLICY + "+" + CONVERSATION_POLICY + ("+j1" if caps(bot_id).journal else ""))
 
     async def record_usage(self, run: LiveRun, event: UsageEvent):
         run.usage.observe(event)
@@ -451,7 +452,7 @@ class AiRuntime:
                     await assert_purpose(db, user, "AI")
                     if user.data_version != run.data_version:
                         raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
-                    if bot_id != "nhip" or run.mood_scope is None:
+                    if not caps(bot_id).mood_scope or run.mood_scope is None:
                         raise DomainError(403, "MOOD_SCOPE_REQUIRED", "Hãy chọn khoảng ngày trước.")
                     result = await selected_summary(db, user, run.mood_scope)
                 await self.check(run)
@@ -475,7 +476,7 @@ class AiRuntime:
             state = run.sources.setdefault("journal", SourceState())
             try:
                 await check_tool()
-                if bot_id != "nhip" or run.mood_scope is not None or not run.journal_read_allowed:
+                if not caps(bot_id).journal or run.mood_scope is not None or not run.journal_read_allowed:
                     raise DomainError(403, "JOURNAL_READ_DENIED", "Lượt này không đọc nhật ký.")
                 async with self.database.require()() as db, db.begin():
                     user = await lock_actor(db, run.actor)
@@ -506,9 +507,8 @@ class AiRuntime:
             result["evidence"] = {"policy": JOURNAL_EVIDENCE_POLICY, "reuse": "current_run_only"}
             return json.dumps(result, ensure_ascii=False)
 
-        if bot_id == "guong":
-            return [propose_memory] if memory_enabled else []
-        if bot_id == "nhip" and run.mood_scope is not None:
+        capability = caps(bot_id)
+        if capability.mood_scope and run.mood_scope is not None:
             return [
                 *([propose_memory] if memory_enabled else []),
                 FunctionTool(
@@ -523,7 +523,7 @@ class AiRuntime:
                     on_invoke_tool=read_mood_summary,
                 ),
             ]
-        if bot_id == "nhip":
+        if capability.journal:
             from app.modules.journal.ai import JournalSearchInput
 
             return [
@@ -535,7 +535,7 @@ class AiRuntime:
                     on_invoke_tool=search_journal_entries,
                 ),
             ]
-        if bot_id == "may":
+        if capability.memory:
             return [propose_memory] if memory_enabled else []
         return []
 
@@ -726,9 +726,9 @@ class AiRuntime:
                     previous="previously_authorized" if any(
                         s.policy == MOOD_TURN_POLICY for rid, s in c.context_stamps.items() if rid != run.id
                     ) else "missing_verified_evidence",
-                    evidence="missing_verified_evidence" if c.bot_id == "nhip" and run.mood_scope else "tool_unavailable",
+                    evidence="missing_verified_evidence" if caps(c.bot_id).mood_scope and run.mood_scope else "tool_unavailable",
                 )
-                if c.bot_id == "nhip" and run.mood_scope is None:
+                if caps(c.bot_id).journal and run.mood_scope is None:
                     run.sources["journal"] = SourceState(authorization="authorized")
                 projected = model_messages(
                     c.messages, c.context_stamps, current_run=run.id, data_version=run.data_version,

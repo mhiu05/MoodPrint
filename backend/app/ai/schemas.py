@@ -105,6 +105,10 @@ class ConversationHeader(DTO):
     title: str = "Cuộc trò chuyện mới"
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    # V3: the companion is one of the five legacy companions (history may be read-only).
+    legacy: bool = False
+    # V3 handoff: the specialist currently answering this conversation (None = bot_id).
+    active_agent: Literal["dieuphoi", "nhatky", "hoatdong"] | None = None
 
 
 class CollaborationSummary(DTO):
@@ -131,6 +135,8 @@ class AIMessage(DTO):
     proactive_slot: Literal["morning", "evening"] | None = None
     # Phase 2: backend-rendered line, only on part 0 of a run whose receipt is completed and used.
     collaboration: CollaborationSummary | None = None
+    # V3: the companion whose run produced this bubble (handoff/group); None for the user.
+    speaker: BotId | None = None
 
 
 class ConversationView(ConversationHeader):

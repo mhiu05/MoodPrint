@@ -214,8 +214,9 @@ class AiRun(Base):
             "ix_ai_runs_parent_run_id", "parent_run_id",
             postgresql_where=text("parent_run_id IS NOT NULL"),
         ),
-        CheckConstraint("origin in ('user', 'proactive', 'collaboration')", name="origin"),
-        CheckConstraint("(origin = 'collaboration') = (parent_run_id is not null)", name="parent"),
+        # 'agent' (V3): a planner, consulted specialist, handoff responder or group speaker run.
+        CheckConstraint("origin in ('user', 'proactive', 'collaboration', 'agent')", name="origin"),
+        CheckConstraint("(origin in ('collaboration', 'agent')) = (parent_run_id is not null)", name="parent"),
         CheckConstraint(
             "(origin = 'proactive') = (proactive_slot is not null) "
             "and (proactive_slot is null or proactive_slot in ('morning', 'evening'))",

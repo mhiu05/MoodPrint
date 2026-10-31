@@ -53,6 +53,20 @@ class Settings(EmbeddingSettings, BaseSettings):
     ai_collaboration_budget_share: float = Field(default=0.7, ge=0.1, le=0.9)
     # Non-empty: only these consenting test accounts can enable or use collaboration.
     ai_collaboration_rollout_user_ids: list[UUID] = Field(default_factory=list)
+    # V3 (docs/implementation-plans/three-agent-orchestration-group-chat). All default off; B and
+    # C act only with A. Off: the five Phase 1/2 companions and contracts stay byte-compatible.
+    ai_three_agent_experience_enabled: bool = False
+    ai_smart_orchestration_enabled: bool = False
+    ai_group_chat_enabled: bool = False
+    # Non-empty: only these accounts get the V3 experience (A, B and C share the cohort).
+    ai_v3_rollout_user_ids: list[UUID] = Field(default_factory=list)
+    ai_orchestration_max_specialists: int = Field(default=2, ge=1, le=2)
+    ai_orchestration_daily_cap: int = Field(default=20, ge=1, le=100)
+    ai_orchestration_specialist_timeout_seconds: float = Field(default=10, ge=3, le=15)
+    ai_orchestration_planner_timeout_seconds: float = Field(default=8, ge=2, le=15)
+    # Delegation stops once today's estimated spend reaches this share of AI_DAILY_BUDGET_USD.
+    ai_orchestration_budget_share: float = Field(default=0.7, ge=0.1, le=0.9)
+    ai_group_max_speakers: int = Field(default=3, ge=1, le=3)
     ai_global_concurrency: int = Field(default=50, ge=1, le=100)
     ai_user_concurrency: int = Field(default=2, ge=1, le=5)
     ai_requests_per_minute: int = Field(default=20, ge=1, le=120)
@@ -145,6 +159,19 @@ class Settings(EmbeddingSettings, BaseSettings):
         return self
 
     @model_validator(mode="after")
+    def v3_requires_three_agents(self):
+        if (self.ai_smart_orchestration_enabled or self.ai_group_chat_enabled) and not (
+            self.ai_three_agent_experience_enabled
+        ):
+            raise ValueError(
+                "AI_SMART_ORCHESTRATION_ENABLED and AI_GROUP_CHAT_ENABLED require AI_THREE_AGENT_EXPERIENCE_ENABLED"
+            )
+        # Speaker/step progress and per-speaker bubbles exist only in ai-events-v2.
+        if (self.ai_smart_orchestration_enabled or self.ai_group_chat_enabled) and not self.ai_multi_message_enabled:
+            raise ValueError("V3 orchestration and group chat require AI_MULTI_MESSAGE_ENABLED")
+        return self
+
+    @model_validator(mode="after")
     def local_live_scope(self):
         if self.ai_local_test_user_ids and self.app_env != "development":
             raise ValueError("Local live AI actors are allowed only in development")
@@ -181,6 +208,9 @@ class Settings(EmbeddingSettings, BaseSettings):
             if self.ai_collaboration_enabled and not self.ai_accounting_enabled:
                 # Child runs have no ai_turns lease; crash recovery relies on the ai_usage lease.
                 raise ValueError("AI_COLLABORATION_ENABLED requires AI_ACCOUNTING_ENABLED in production")
+            if (self.ai_smart_orchestration_enabled or self.ai_group_chat_enabled) and not self.ai_accounting_enabled:
+                # Child runs carry their usage leases; recovery fences them through ai_usage.
+                raise ValueError("V3 orchestration and group chat require AI_ACCOUNTING_ENABLED in production")
         return self
 
     def proactive_open_for(self, user_id: UUID) -> bool:
@@ -194,6 +224,18 @@ class Settings(EmbeddingSettings, BaseSettings):
         return self.ai_collaboration_enabled and (
             not self.ai_collaboration_rollout_user_ids or user_id in self.ai_collaboration_rollout_user_ids
         )
+
+    def v3_open_for(self, user_id: UUID | None) -> bool:
+        """The three-agent experience for this account (flag + optional cohort); never a consent."""
+        return self.ai_three_agent_experience_enabled and (
+            not self.ai_v3_rollout_user_ids or (user_id is not None and user_id in self.ai_v3_rollout_user_ids)
+        )
+
+    def orchestration_open_for(self, user_id: UUID | None) -> bool:
+        return self.ai_smart_orchestration_enabled and self.v3_open_for(user_id)
+
+    def groups_open_for(self, user_id: UUID | None) -> bool:
+        return self.ai_group_chat_enabled and self.v3_open_for(user_id)
 
     def ai_available_for(self, user_id: UUID | None) -> bool:
         return self.ai_enabled or bool(

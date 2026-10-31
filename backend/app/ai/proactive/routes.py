@@ -31,6 +31,7 @@ from app.ai.proactive.schemas import (
     ProactiveSettingsView,
     ProactiveView,
     ScheduleInput,
+    ScheduleMigrateInput,
     ScheduleView,
     Slot,
 )
@@ -49,6 +50,7 @@ from app.infrastructure.database.models import AiRun, User, now
 
 router = APIRouter()
 BOT_ORDER = ("nhip", "rure", "may", "guong", "caunoi")
+V3_ORDER = ("nhatky", "hoatdong", "dieuphoi")
 MAX_PAUSE_DAYS = 30
 UNSTARTED = ("pending", "retry")
 
@@ -93,19 +95,25 @@ def settings_view(prefs: AiProactiveSettings | None, user: User) -> ProactiveSet
 def schedule_view(
     row: AiProactiveSchedule | None, bot_id: str, slot: str, user: User, reason: str | None
 ) -> ScheduleView:
+    from app.ai.agents import REPLACED_BY
+
     eligibility = Eligibility(allowed=reason is None, reason=reason)  # type: ignore[arg-type]
+    legacy = reason == "legacy_companion"
+    migrate_to = REPLACED_BY[bot_id] if legacy else None
     if row is None:
         return ScheduleView(
             bot_id=bot_id, slot=slot, enabled=False,  # type: ignore[arg-type]
             local_time=_hhmm(math.default_time(slot, user.age_band)), weekdays=list(range(1, 8)),
-            version=0, eligibility=eligibility,
+            version=0, eligibility=eligibility, legacy=legacy, migrate_to=migrate_to,  # type: ignore[arg-type]
         )
     return ScheduleView(
         bot_id=row.bot_id, slot=row.slot, enabled=row.enabled,  # type: ignore[arg-type]
         local_time=_hhmm(row.local_time), weekdays=math.mask_to_weekdays(row.weekdays),
         paused_until=row.paused_until, auto_paused=row.auto_paused_at is not None,
-        next_delivery_at=row.next_due_at if row.enabled and row.auto_paused_at is None else None,
-        version=row.version, eligibility=eligibility,
+        next_delivery_at=(
+            row.next_due_at if row.enabled and row.auto_paused_at is None and reason is None else None
+        ),
+        version=row.version, eligibility=eligibility, legacy=legacy, migrate_to=migrate_to,  # type: ignore[arg-type]
     )
 
 
@@ -143,13 +151,19 @@ async def _view(request: Request, db, user: User) -> ProactiveView:
     prefs = await db.get(AiProactiveSettings, user.id)
     rows = await _schedules(db, user.id)
     match = await match_enabled(db, user)
+    if settings.v3_open_for(user.id):
+        # The three agents, then any kept legacy schedule (paused, movable, never deleted).
+        pairs = [(bot, slot) for bot in V3_ORDER for slot in math.SLOTS] + [
+            (bot, slot) for bot in BOT_ORDER for slot in math.SLOTS if (bot, slot) in rows
+        ]
+    else:
+        pairs = [(bot, slot) for bot in BOT_ORDER for slot in math.SLOTS]
     schedules = [
         schedule_view(
             rows.get((bot, slot)), bot, slot, user,
             eligibility_reason(settings=settings, user=user, bot_id=bot, match=match),
         )
-        for bot in BOT_ORDER
-        for slot in math.SLOTS
+        for bot, slot in pairs
     ]
     return ProactiveView(
         available=available(settings, request.app.state.ai, user),
@@ -157,7 +171,7 @@ async def _view(request: Request, db, user: User) -> ProactiveView:
         schedules=schedules,
         limits=ProactiveLimits(
             daily_cap=settings.proactive_daily_cap_per_user,
-            enabled_slots=sum(row.enabled for row in rows.values()),
+            enabled_slots=sum(row.enabled and _counts(settings, user, row.bot_id) for row in rows.values()),
             windows={
                 slot: [_hhmm(edge) for edge in math.window_for(slot, user.age_band)]
                 for slot in math.SLOTS
@@ -230,7 +244,9 @@ async def save_schedule(
                     422, "SCHEDULE_IN_QUIET_HOURS",
                     "Giờ này nằm trong giờ yên lặng của bạn. Chọn giờ khác hoặc đổi giờ yên lặng.",
                 )
-            others = sum(r.enabled for pair, r in rows.items() if pair != (bot_id, slot))
+            others = sum(
+                r.enabled and _counts(settings, user, r.bot_id) for pair, r in rows.items() if pair != (bot_id, slot)
+            )
             cap = settings.proactive_daily_cap_per_user
             if not math.within_cap(enabled_after=others + 1, cap=cap):
                 raise DomainError(
@@ -254,6 +270,98 @@ async def save_schedule(
         user.last_seen_at = now()
         save_receipt(db, user, operation, key, payload, {"version": row.version})
         return schedule_view(row, bot_id, slot, user, reason)
+
+
+def _counts(settings, user: User, bot_id: str) -> bool:
+    """A kept-but-paused legacy schedule does not use one of today's check-in slots."""
+    from app.ai.proactive.policy import v3_reason
+
+    return v3_reason(settings, user, bot_id) is None
+
+
+@router.post("/ai/proactive/schedules/{bot_id}/{slot}/migrate", response_model=ScheduleView)
+async def migrate_schedule(
+    bot_id: BotId,
+    slot: Slot,
+    body: ScheduleMigrateInput,
+    request: Request,
+    actor: Actor = Depends(require_registered_actor),
+):
+    """Explicitly move a kept legacy schedule to the V3 agent that took over its purpose.
+
+    Same time, weekdays, pause and on/off state; the legacy row is switched off (kept, never
+    deleted). No permission changes: the agent reads the journal only under the existing
+    journal-context setting. If the legacy companion already has today's job, the new schedule
+    starts tomorrow so no day gets two check-ins.
+    """
+    from app.ai.agents import REPLACED_BY, is_legacy
+
+    settings = request.app.state.settings
+    key, payload = idempotency_key(request), body.model_dump(mode="json")
+    operation = f"proactive:migrate:{bot_id}:{slot}"
+    async with transaction(request, actor) as (db, user):
+        if not available(settings, request.app.state.ai, user) or not settings.v3_open_for(user.id):
+            raise _unavailable()
+        rows = await _schedules(db, user.id)
+        target = REPLACED_BY.get(bot_id) if is_legacy(bot_id) else None
+        old = await previous_receipt(db, user, operation, key, payload)
+        if old and target:
+            return schedule_view(rows.get((target, slot)), target, slot, user, None)
+        source = rows.get((bot_id, slot))
+        if source is None:
+            raise DomainError(404, "NOT_FOUND", "Không tìm thấy lịch hỏi thăm.")
+        if target is None:
+            raise DomainError(409, "NO_SUCCESSOR", "Lịch này không có trợ lý tương ứng; bạn chỉ có thể tắt nó.")
+        if source.version != body.expected_version:
+            raise _stale("Lịch")
+        existing = rows.get((target, slot))
+        if existing is not None and existing.enabled:
+            raise DomainError(409, "SCHEDULE_EXISTS", "Trợ lý mới đã có lịch cho buổi này.")
+        prefs = await db.get(AiProactiveSettings, user.id)
+        if prefs is None:
+            prefs = _default_settings(user)
+            db.add(prefs)
+        if source.enabled:
+            others = sum(
+                r.enabled and _counts(settings, user, r.bot_id) for pair, r in rows.items()
+                if pair not in ((bot_id, slot), (target, slot))
+            )
+            if not math.within_cap(enabled_after=others + 1, cap=settings.proactive_daily_cap_per_user):
+                raise DomainError(409, "PROACTIVE_DAILY_CAP", "Bạn đã đủ số lời hỏi thăm mỗi ngày. Tắt một lời khác trước.")
+        row = existing or AiProactiveSchedule(user_id=user.id, bot_id=target, slot=slot, version=0)
+        if existing is None:
+            db.add(row)
+        row.enabled, row.local_time, row.weekdays = source.enabled, source.local_time, source.weekdays
+        row.paused_until, row.auto_paused_at = source.paused_until, None
+        row.version += 1
+        row.updated_at = now()
+        today = math.local_date(now(), prefs.timezone)
+        delivered_today = await db.scalar(
+            select(func.count()).select_from(AiProactiveJob).where(
+                AiProactiveJob.user_id == user.id, AiProactiveJob.bot_id == bot_id,
+                AiProactiveJob.slot == slot, AiProactiveJob.local_date == today,
+                AiProactiveJob.status.in_(("running", "delivered")),
+            )
+        )
+        after = now()
+        if delivered_today:
+            from datetime import datetime as _datetime
+            from zoneinfo import ZoneInfo
+
+            after = _datetime.combine(today + timedelta(days=1), time(0, 0), ZoneInfo(prefs.timezone))
+        row.next_due_at = math.next_occurrence(
+            local_time=row.local_time, weekdays=row.weekdays, paused_until=row.paused_until,
+            timezone=prefs.timezone, after=after,
+        ) if row.enabled else None
+        source.enabled, source.next_due_at = False, None
+        source.version += 1
+        source.updated_at = now()
+        await db.flush()
+        await cancel_unstarted(db, user.id, schedule_id=source.id)
+        await cancel_unstarted(db, user.id, schedule_id=row.id)
+        user.last_seen_at = now()
+        save_receipt(db, user, operation, key, payload, {"version": row.version})
+        return schedule_view(row, target, slot, user, None)
 
 
 @router.delete("/ai/proactive/schedules/{bot_id}/{slot}", response_model=ActionReceipt)

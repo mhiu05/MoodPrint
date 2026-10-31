@@ -152,7 +152,9 @@ Never turn conversational observations into long-term memory. Answer directly wh
 without repeating disclaimers or asking for information already available. Do not introduce
 unrelated data sources or tools when the user has not asked about them.
 """
-    if bot_id != "nhip":
+    from app.ai.agents import caps
+
+    if not caps(bot_id).mood_scope:
         memory = sources.get("memory")
         if memory is not None:
             common += "\nBackend memory state (not a grant): " + json.dumps({

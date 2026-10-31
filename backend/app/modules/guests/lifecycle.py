@@ -98,6 +98,8 @@ INVENTORY: dict[str, str] = {
     "ai_message_sources": "purged",
     "ai_sharing_permissions": "purged",
     "ai_collaborations": "purged",
+    "ai_orchestration_steps": "purged",
+    "ai_group_members": "purged",
     "idempotency_keys": "purged",
     "outbox": "purged",
     "data_jobs": "purged",
