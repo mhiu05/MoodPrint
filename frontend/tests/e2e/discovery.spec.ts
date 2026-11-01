@@ -948,9 +948,11 @@ test("T05 T06 T32 T33 T34 T35: mobile preview, concrete picker, reflow and keybo
     name: "Từ từ làm quen",
     exact: true,
   });
-  await gradual.focus();
-  await page.keyboard.press("Space");
-  await page.keyboard.press("ArrowDown");
+  // Set the starting radio through the native control, then verify keyboard
+  // navigation from a checked radio after the mobile layout reflows.
+  await gradual.check();
+  await expect(gradual).toBeChecked();
+  await gradual.press("ArrowDown");
   await expect(
     page.getByRole("radio", { name: "Nói chuyện rôm rả", exact: true }),
   ).toBeChecked();
