@@ -34,3 +34,7 @@ Cờ B và C chỉ có tác dụng khi A bật. Khi cả ba tắt, hành vi Phas
 - [10](10-testing-and-acceptance.md) kiểm thử và tiêu chí chấp nhận
 - [11](11-migration-and-rollback.md) migration 0024, rollout và rollback
 - [12](12-execution-evidence.md) sổ thực thi (kết quả lệnh thật)
+
+## Trạng thái (2026-11-01)
+
+Gate A `bc83849`, Gate B `cba3dd0`, Gate C `374aeec`, sửa theo review độc lập + harness eval/tải `8410994`, `7e1f54f`, cổng cuối G3 (commit này). Kết luận G3: **CONDITIONALLY_READY** — chi tiết, số liệu và điều kiện trong [12](12-execution-evidence.md#gate-g3--kết-luận). Chưa push, merge, deploy; chưa áp migration hosted.

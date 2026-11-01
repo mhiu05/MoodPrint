@@ -86,7 +86,7 @@ def _json(payload) -> list:
     return [message_output(json.dumps(payload, ensure_ascii=False))]
 
 
-def _v3(instructions: str, inputs, tools, handoffs) -> list | None:
+def _v3(instructions: str, inputs, tools, handoffs, schema=None) -> list | None:
     """Deterministic stand-ins for every V3 role, chosen from what the backend actually sent."""
     from app.ai.collaboration.policy import fold
     from app.ai.groups.selector import SELECTOR_INSTRUCTIONS
@@ -141,15 +141,21 @@ def _v3(instructions: str, inputs, tools, handoffs) -> list | None:
                                    {"text": "Cuối tuần thử dạo bộ chậm 20 phút nhé.", "cards": []}]})
     if handoffs and not called:
         return [call(handoffs[0].tool_name, {"reason": "journal_reflection"}, "e2e_transfer")]
+    # Nhật ký answers with NhipReply only when it may read the journal; otherwise the closed
+    # CompanionReply schema rejects an extra source_entry_ids field.
+    sources = schema is not None and "source_entry_ids" in json.dumps(schema.json_schema())
     if "Người dùng vừa chọn trò chuyện trực tiếp với bạn" in instructions:
-        return _json({"messages": [{"text": f"{V3_MARKER} Chào bạn, mình là Nhật ký. Tuần này điều gì đọng lại nhiều nhất?",
-                                    "cards": []}], "source_entry_ids": []})
+        payload: dict = {"messages": [{"text": f"{V3_MARKER} Chào bạn, mình là Nhật ký. Tuần này điều gì đọng lại nhiều nhất?",
+                                       "cards": []}]}
+        if sources:
+            payload["source_entry_ids"] = []
+        return _json(payload)
     for persona, text in (("Bạn là Nhật ký", "Mình vẫn ở đây cùng bạn nhìn lại nhé."),
                           ("Bạn là Điều phối", "Điều phối đây, mình nghe bạn nè."),
                           ("Bạn là Hoạt động", "Hoạt động đây, mình gợi ý một việc nhỏ nhé.")):
         if persona in instructions:
-            payload: dict = {"messages": [{"text": text, "cards": []}]}
-            if persona == "Bạn là Nhật ký":
+            payload = {"messages": [{"text": text, "cards": []}]}
+            if sources:
                 payload["source_entry_ids"] = []
             return _json(payload)
     return None
@@ -167,7 +173,7 @@ class MoodE2EModel(ScriptedModel):
         import asyncio
 
         instructions, inputs, tools, schema = args[0], args[1], args[3], args[4]
-        v3 = _v3(instructions or "", inputs, tools, args[5]) if isinstance(inputs, list) else None
+        v3 = _v3(instructions or "", inputs, tools, args[5], schema) if isinstance(inputs, list) else None
         if v3 is not None:
             await asyncio.sleep(self.v3_delay)
             self.responses = [v3]
