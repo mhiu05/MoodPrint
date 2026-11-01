@@ -31,7 +31,7 @@ async def test_consult_turn_streams_each_real_step_then_the_final_with_steps(cli
     entry_id = await entry(app, uid, days_ago=1)
     url = await conversation(client, "dieuphoi")
     roles(app, planner=scripted(plan()),
-          dieuphoi=scripted([call("consult_nhatky", {"task": "find_patterns", "focus": "tuần rồi", "days": 7}, "a"),
+          dieuphoi=scripted([call("consult_nhatky", {"task": "find_patterns", "focus": "general", "days": 7}, "a"),
                              call("consult_hoatdong", {"task": "suggest_activities", "goal": "cuối tuần",
                                                         "time_budget_minutes": 60, "energy": "low", "count": 1}, "b")],
                             reply("Gộp lại: nghỉ ngơi sáng thứ bảy, dạo bộ chiều chủ nhật.")),
@@ -66,7 +66,7 @@ async def test_handoff_turn_streams_the_transfer_and_the_specialist_as_speaker(c
     url = await conversation(client, "dieuphoi")
     roles(app, planner=scripted(plan(workflow="handoff", intent="talk_to_specialist", specialists=[],
                                      handoff_target="nhatky")),
-          dieuphoi=scripted([call("transfer_to_nhatky", {"reason": "journal_reflection", "topic": "tuần này"})]),
+          dieuphoi=scripted([call("transfer_to_nhatky", {"reason": "journal_reflection"})]),
           nhatky=scripted(reply("Chào bạn, mình là Nhật ký. Tuần này có điều gì bạn muốn nhìn lại không?")))
     run = await finish(await start(app, client, url, "Cho mình nói chuyện với Nhật ký nhé"))
     assert run.terminal_status == "completed", run.failure

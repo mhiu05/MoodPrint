@@ -297,16 +297,37 @@ async def close_orphaned_consultations(db) -> None:
     parent = select(AiRun.id).where(AiRun.status == "running").scalar_subquery()
     await db.execute(
         update(AiRun)
-        .where(AiRun.origin == "collaboration", AiRun.status == "running", AiRun.parent_run_id.not_in(parent))
+        .where(AiRun.origin.in_(("collaboration", "agent")), AiRun.status == "running",
+               AiRun.parent_run_id.not_in(parent))
         .values(status="interrupted", version=2)
     )
+    # V3 receipts still open after their workflow run ended (a failed settle, a crash).
+    from app.ai.orchestration.models import AiOrchestrationStep
+
+    stale = (await db.scalars(
+        select(AiOrchestrationStep.id)
+        .join(AiRun, AiRun.id == AiOrchestrationStep.workflow_run_id)
+        .where(AiOrchestrationStep.status == "authorized", AiRun.status != "running")
+        .limit(1000).with_for_update(of=AiOrchestrationStep, skip_locked=True)
+    )).all()
+    if stale:
+        await db.execute(update(AiOrchestrationStep).where(AiOrchestrationStep.id.in_(stale))
+                         .values(status="cancelled", failure_code="interrupted", finished_at=now()))
 
 
 async def interrupt_consultations(db, primary_run_ids) -> None:
-    """A consultation never outlives its primary run (crash recovery, Phase 2)."""
+    """A consultation never outlives its primary run (crash recovery, Phase 2 and V3)."""
     from sqlalchemy import case
 
     from app.ai.collaboration.models import AiCollaboration
+    from app.ai.orchestration.models import AiOrchestrationStep
+
+    # V3: open plan/consult/handoff/group steps of an interrupted run end as cancelled (review M1).
+    await db.execute(
+        update(AiOrchestrationStep)
+        .where(AiOrchestrationStep.workflow_run_id.in_(primary_run_ids), AiOrchestrationStep.status == "authorized")
+        .values(status="cancelled", failure_code="interrupted", finished_at=now())
+    )
 
     await db.execute(
         update(AiRun)

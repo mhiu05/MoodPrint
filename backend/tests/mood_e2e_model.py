@@ -132,7 +132,7 @@ def _v3(instructions: str, inputs, tools, handoffs) -> list | None:
     called = any(isinstance(item, dict) and item.get("type") == "function_call_output" for item in inputs)
     consult = [tool.name for tool in tools if tool.name.startswith("consult_")]
     if consult and not called:
-        args = {"consult_nhatky": {"task": "summarize_recent_entries", "focus": "tuần rồi", "days": 7},
+        args = {"consult_nhatky": {"task": "summarize_recent_entries", "focus": "general", "days": 7},
                 "consult_hoatdong": {"task": "suggest_activities", "goal": "cuối tuần nhẹ nhàng",
                                      "time_budget_minutes": 60, "energy": "low", "count": 1}}
         return [call(name, args[name], f"e2e_{name}") for name in consult]
@@ -140,7 +140,7 @@ def _v3(instructions: str, inputs, tools, handoffs) -> list | None:
         return _json({"messages": [{"text": f"{V3_MARKER} Tuần rồi bạn hay mệt sau những buổi học muộn.", "cards": []},
                                    {"text": "Cuối tuần thử dạo bộ chậm 20 phút nhé.", "cards": []}]})
     if handoffs and not called:
-        return [call(handoffs[0].tool_name, {"reason": "journal_reflection", "topic": "nhìn lại tuần này"}, "e2e_transfer")]
+        return [call(handoffs[0].tool_name, {"reason": "journal_reflection"}, "e2e_transfer")]
     if "Người dùng vừa chọn trò chuyện trực tiếp với bạn" in instructions:
         return _json({"messages": [{"text": f"{V3_MARKER} Chào bạn, mình là Nhật ký. Tuần này điều gì đọng lại nhiều nhất?",
                                     "cards": []}], "source_entry_ids": []})

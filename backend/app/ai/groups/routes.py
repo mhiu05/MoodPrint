@@ -80,6 +80,9 @@ async def _stop_turns(request: Request, db, group_id: UUID) -> list[UUID]:
                          .values(status="cancelled", version=2))
         await db.execute(update(AiRun).where(AiRun.parent_run_id.in_(ids), AiRun.status == "running")
                          .values(status="cancelled", version=2))
+        await db.execute(update(AiOrchestrationStep).where(
+            AiOrchestrationStep.workflow_run_id.in_(ids), AiOrchestrationStep.status == "authorized",
+        ).values(status="cancelled", failure_code="turn_ended", finished_at=now()))
     return list(ids)
 
 
@@ -115,6 +118,10 @@ async def create_group(body: GroupCreate, request: Request, actor: Actor = Depen
             AiConversation.user_id == user.id, AiConversation.expires_at > now()))
         if (saved or 0) >= 500:
             raise DomainError(429, "CONVERSATION_LIMIT", "Hãy xóa bớt hội thoại đã lưu trước khi tạo thêm.")
+        groups = await db.scalar(select(func.count()).select_from(AiConversation).where(
+            AiConversation.user_id == user.id, AiConversation.kind == "group", AiConversation.expires_at > now()))
+        if (groups or 0) >= MAX_GROUPS:
+            raise DomainError(429, "GROUP_LIMIT", f"Bạn đã có {MAX_GROUPS} nhóm. Hãy xóa bớt một nhóm trước nhé.")
         group = AiConversation(user_id=user.id, bot_id="group", kind="group", title=body.name,
                                expires_at=now() + timedelta(days=min(settings.chat_retention_days, 30)))
         db.add(group)

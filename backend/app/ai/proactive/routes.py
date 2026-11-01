@@ -332,7 +332,7 @@ async def migrate_schedule(
         if existing is None:
             db.add(row)
         row.enabled, row.local_time, row.weekdays = source.enabled, source.local_time, source.weekdays
-        row.paused_until, row.auto_paused_at = source.paused_until, None
+        row.paused_until, row.auto_paused_at = source.paused_until, source.auto_paused_at
         row.version += 1
         row.updated_at = now()
         today = math.local_date(now(), prefs.timezone)
@@ -352,7 +352,7 @@ async def migrate_schedule(
         row.next_due_at = math.next_occurrence(
             local_time=row.local_time, weekdays=row.weekdays, paused_until=row.paused_until,
             timezone=prefs.timezone, after=after,
-        ) if row.enabled else None
+        ) if row.enabled and row.auto_paused_at is None else None
         source.enabled, source.next_due_at = False, None
         source.version += 1
         source.updated_at = now()

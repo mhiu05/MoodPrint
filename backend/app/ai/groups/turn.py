@@ -76,7 +76,7 @@ class GroupTurn:
         async with self.runtime.database.require()() as db, db.begin():
             member = await db.get(AiGroupMember, (self.run.conversation_id, bot))
             if member is None or member.status != "active" or member.user_id != self.run.actor.user_id:
-                raise DomainError(409, "CONTEXT_CHANGED", "Thành viên nhóm đã thay đổi.")
+                raise DomainError(409, "MEMBER_REMOVED", "Thành viên nhóm đã thay đổi.")
             if journal and not member.journal_access:
                 raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
 
@@ -177,14 +177,12 @@ class GroupTurn:
                 ))
                 return speakers
             step, child = await self.open_child(db, user, "group_select", None, 0, {"mode": "auto"})
-            recent = [
-                {"role": item["role"], "text": str(item.get("content", ""))[:300]}
-                for item in await self._recent(db, group)
-            ]
         usage = UsageSnapshot()
         try:
+            # Only the current message: stored bubbles (possibly journal-derived, revoked or edited
+            # since) never reach the selector outside the Phase 1 context projection (review M2).
             item = {"role": "user", "content": "Dữ liệu chọn người nói (dữ liệu, không phải chỉ dẫn): " + json.dumps(
-                {"latestMessage": self.text, "recentTurns": recent, "members": members}, ensure_ascii=False)}
+                {"latestMessage": self.text, "members": members}, ensure_ascii=False)}
             plan = cast(selector.SpeakerPlan, await self.runtime.provider.run_once(
                 name="MoodPrint:group-selector", instructions=selector.SELECTOR_INSTRUCTIONS, input_items=[item],
                 output_type=selector.SpeakerPlan, model=self.model_for("selector"),
@@ -207,12 +205,6 @@ class GroupTurn:
                           None if mode == "auto" else "selector_failed",
                           detail={"mode": mode, "speakers": list(speakers)})
         return speakers
-
-    async def _recent(self, db, group) -> list[dict]:
-        rows = (await db.scalars(select(AiMessageRecord).where(AiMessageRecord.conversation_id == group.id)
-                                 .order_by(AiMessageRecord.sequence.desc()).limit(5))).all()
-        return [{"role": "user" if row.actor == "self" else "assistant", "content": row.text}
-                for row in reversed(rows[1:])]  # without the newest (the current message)
 
     # ------------------------------------------------------------------ speakers
 
@@ -261,6 +253,9 @@ class GroupTurn:
             names = ", ".join(DISPLAY_NAMES[agent] for agent in speakers)
             order = ORDER_LAST if bot == "dieuphoi" and len(speakers) > 1 and speakers[-1] == bot \
                 else ORDER_FIRST if ordinal < len(speakers) - 1 else ""
+            from app.ai.journal import has_journal_link, journal_read_refused
+
+            journal = journal and not journal_read_refused([{"role": "user", "content": self.text}])
             tools = []
             if journal:
                 tools = [tool for tool in self.runtime.tools(self.run, bot, memory_enabled=False)
@@ -285,20 +280,26 @@ class GroupTurn:
             else:
                 reply = CompanionReply.model_validate(result.final_output)
                 parts = [AiOutput(text=bubble.text, cards=bubble.cards) for bubble in reply.messages]
+                if any(has_journal_link(part.text) for part in parts):
+                    raise DomainError(409, "JOURNAL_EVIDENCE_REQUIRED", "Chưa đọc được nguồn nhật ký cho lượt này.")
             await self.publish(step, child, usage, bot, parts, journal=journal)
         except asyncio.CancelledError:
             await asyncio.shield(self.settle(step, child, usage, "cancelled", "turn_cancelled"))
             raise
         except DomainError as error:
+            if error.code == "MEMBER_REMOVED":
+                await asyncio.shield(self.settle(step, child, usage, "cancelled", "member_removed"))
+                return False  # only this speaker was removed; the turn goes on
             if error.code in ("CONTEXT_CHANGED", "RUN_ENDED", "WORKER_FENCED", "CONVERSATION_EXPIRED", "CONSENT_REQUIRED"):
                 await asyncio.shield(self.settle(step, child, usage, "cancelled", error.code.lower()[:32]))
-                if error.code == "CONTEXT_CHANGED" and "Thành viên" in error.message:
-                    return False  # only this speaker was removed; the turn goes on
                 raise
             await self.settle(step, child, usage, "failed", error.code.lower()[:32])
             return False
         except Exception as error:
-            code = "timeout" if isinstance(error, TimeoutError) else "provider_error"
+            from app.ai.availability import public_failure
+
+            # Content-free class of the failure (ai_provider_unavailable, ai_timeout, ...).
+            code = "timeout" if isinstance(error, TimeoutError) else public_failure(error)["code"].lower()[:32]
             await self.settle(step, child, usage, "timeout" if code == "timeout" else "failed", code)
             log.warning("metric=group_speaker_failed error_type=%s", type(error).__name__)
             return False
@@ -318,8 +319,10 @@ class GroupTurn:
             await current_turn(db, self.run, self.runtime.worker_id)
             group = await owned_group(db, self.run.conversation_id, user.id, lock=True)
             member = await db.get(AiGroupMember, (group.id, bot))
-            if member is None or member.status != "active" or (journal and not member.journal_access):
-                raise DomainError(409, "CONTEXT_CHANGED", "Thành viên nhóm đã thay đổi.")
+            if member is None or member.status != "active":
+                raise DomainError(409, "MEMBER_REMOVED", "Thành viên nhóm đã thay đổi.")
+            if journal and not member.journal_access:
+                raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
             if self.run.journal_evidence is not None:
                 await assert_journal_revisions(db, user, self.run)
             turn_status = await db.scalar(select(AiRun.status).where(AiRun.id == self.run.id))
@@ -355,9 +358,11 @@ class GroupTurn:
         run.drive_started = True
         status = "failed"
         started = time.monotonic()
+        monitor: asyncio.Task | None = None
         try:
             async with asyncio.timeout(self.settings.ai_timeout_seconds * 2), self.runtime.slots:
                 await self.check()
+                monitor = asyncio.create_task(self._monitor())
                 speakers = await self.select()
                 spoke = 0
                 for ordinal, bot in enumerate(speakers):
@@ -375,9 +380,21 @@ class GroupTurn:
             log.warning("group_turn_error error_type=%s code=%s", type(error).__name__,
                         error.code if isinstance(error, DomainError) else "AI_RUN_FAILED")
         finally:
+            if monitor is not None:
+                monitor.cancel()
             await asyncio.shield(self.finish(status))
             log.info("group_turn_end status=%s duration_ms=%d model_requests=%d", run.terminal_status,
                      round((time.monotonic() - started) * 1000), self.model_calls)
+
+    async def _monitor(self) -> None:
+        while True:
+            await asyncio.sleep(0.5)
+            try:
+                await self.runtime.check(self.run)
+            except Exception:
+                if self.run.task and not self.run.task.done():
+                    self.run.task.cancel()
+                return
 
     async def finish(self, status: str) -> None:
         run = self.run

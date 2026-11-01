@@ -303,7 +303,8 @@ export function GroupChat({ groupId }: { groupId: string }) {
             <p>Nhắn cho cả nhóm, hoặc gõ <kbd>@</kbd> để gọi riêng một trợ lý.</p>
           </div>
         ) : null}
-        <div className="conversation-messages" aria-live="polite" aria-relevant="additions text">
+        {/* Live only after the first load: a reload must not re-announce the whole history. */}
+        <div className="conversation-messages" aria-live={loading ? "off" : "polite"} aria-relevant="additions text">
           {groups.map((group) => {
             const lead = group.items[0];
             if (lead.actor === "self")

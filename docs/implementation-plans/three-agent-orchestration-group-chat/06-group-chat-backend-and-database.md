@@ -43,7 +43,7 @@ Tất cả: `require_registered_actor`, đồng ý AI, 18+, cờ C; chủ sở h
 
 1. **Admission** (1 giao dịch, khóa owner + khóa nhóm): đồng ý AI, phiên bản nhóm, idempotency `(scope_id=group, client_message_id)`, hạn mức Phase 1 (`admission`), không có lượt đang chạy. Ghi tin `self` (+ `mentions` đã phân giải), run lượt (`origin='user'`, `bot_id='group'`), `ai_turns`.
 2. **Chọn người nói** (không giữ kết nối): `mentions` ⇒ đúng các thành viên được nhắc (theo thứ tự nhắc; `@mọi người` ⇒ tất cả). Không nhắc: `triage` ⇒ tin tầm thường: 1 người (Điều phối nếu là thành viên); còn lại: selector LLM (`SpeakerPlan{speakers[1..3]{agent, reason}, summarize}`) trên danh sách thành viên + tin mới + 2 lượt gần nhất. Policy: chỉ thành viên `active`, không trùng, ≤ `AI_GROUP_MAX_SPEAKERS` (3), Điều phối tổng hợp đứng cuối. Lỗi ⇒ 1 người mặc định.
-3. **Ghi lựa chọn** (1 giao dịch): mọi step `group_reply` (`authorized`) trong một lần ⇒ danh sách event ổn định.
+3. **Ghi lựa chọn**: một step `group_select` với `detail = {mode, speakers[]}` (fast path: `completed` ngay, không child run; selector LLM: child run mang usage). Step `group_reply` của từng người nói được tạo **khi người đó bắt đầu** (child run + usage reservation tạo lúc đó để lease usage 45 s không hết hạn trong lúc chờ); người bị bỏ khỏi nhóm giữa lượt được ghi `group_reply` `denied/not_member` để thứ tự event vẫn chỉ tiến.
 4. **Lần lượt từng người nói** (tuần tự để người sau thấy người trước): mở child run (`origin='agent'`, `bot_id=speaker`), gọi model không giữ kết nối (persona nhóm, lịch sử nhìn thấy theo `history_from_sequence`, tin của trợ lý khác có nhãn `[Tên]`), publish (khóa owner + nhóm): thành viên vẫn `active`, quyền nhật ký vẫn bật nếu đã đọc, run lượt vẫn `running` ⇒ ghi bubbles dưới child run, step `completed + used_in_reply`. Người nói lỗi ⇒ step `failed`, **không** có tin giả; lượt tiếp tục với người sau.
 5. **Kết thúc**: run lượt `completed` nếu ≥ 1 người nói thành công, ngược lại `failed`.
 
@@ -67,6 +67,6 @@ Không có token tạm thời hay nội dung chưa kiểm. Tối đa 1 + 3 + 3×
 
 - Ngữ cảnh nhóm chỉ là tin trong nhóm; không gộp lịch sử 1:1 của từng trợ lý.
 - Nhật ký trong nhóm chỉ đọc nhật ký khi `journal_access=true` cho nhóm đó (mặc định tắt, bật riêng). Lượt đọc nhật ký được ký `journal-turn-v1` ⇒ các lượt sau cắt ngữ cảnh trước đó (fail-closed như Phase 1).
-- Thêm thành viên: mặc định chỉ thấy tin **từ lúc tham gia** (`history_from_sequence = version hiện tại`); người dùng có thể chọn chia sẻ lịch sử trước đó.
+- Thêm thành viên: mặc định chỉ thấy tin **từ lúc tham gia** (`history_from_sequence = version hiện tại + 1`, tức chỉ tin có sequence lớn hơn tin cuối hiện có); người dùng có thể chọn chia sẻ lịch sử trước đó.
 - Bỏ thành viên: `status='removed'` ngay; lượt đang chạy bị hủy; publish kiểm lại thành viên; tin cũ giữ nguyên người nói.
 - Xóa nhóm: xóa hội thoại (cascade tin, thành viên); receipts content-free theo vòng đời tài khoản.

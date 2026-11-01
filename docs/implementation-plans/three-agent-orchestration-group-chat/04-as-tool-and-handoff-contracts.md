@@ -96,4 +96,5 @@ Sau handoff thành công, `ai_conversations.active_agent='nhatky'`, `active_agen
 
 - v1: không đổi (≤ 3 event, `final {text,cards}`).
 - v2 + cờ B: event list là hàm thuần của trạng thái DB, chỉ tiến:
-  `progress {}` → với mỗi step consult/handoff đã mở theo `ordinal`: `progress {activity:"consulting", companion}` → khi mọi step đã đóng `progress {activity:"composing"}` → `final {partCount, messages[], speaker, steps:[{kind,companion}]}` → `completed`. Tối đa 1 + 2 + 1 + 2 = 6 event. `steps` chỉ chứa bước `completed ∧ used_in_reply`.
+  `progress {}` → với mỗi step consult/handoff **đã thật sự mở**, theo thời điểm mở: `progress {activity:"consulting"|"transferring", companion}` → `final {partCount, messages[], speaker, steps:[{kind,companion}]}` → `completed`. Tối đa 6 event (cursor > 6 ⇒ 409). `steps` chỉ chứa bước `completed ∧ used_in_reply`.
+  - *Lệch so với bản kế hoạch (đã quyết khi triển khai):* bỏ giai đoạn `composing`. Hai bước consult có thể chạy tuần tự hoặc song song; một event `composing` chèn sau bước 1 sẽ bị bước 2 đẩy chỗ ⇒ danh sách không còn chỉ-tiến, nối lại có thể lệch. UI hiển thị "đang hỏi …" tới khi có `final`.

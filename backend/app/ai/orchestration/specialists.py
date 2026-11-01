@@ -27,7 +27,8 @@ class ConsultNhatKyInput(_Closed):
     """What Điều phối may ask Nhật ký. No entry ids, no dates beyond a bounded window."""
 
     task: Literal["summarize_recent_entries", "find_patterns"]
-    focus: str = Field(max_length=120, description="Chủ đề ngắn, trung tính, không chép chi tiết riêng tư.")
+    # A closed theme, never free text: no conversation content can ride along (review H1).
+    focus: Literal["sleep", "mood", "stress", "study_work", "relationships", "energy", "habits", "general"]
     days: int = Field(ge=1, le=14, description="Số ngày gần nhất cần nhìn lại (1–14).")
 
 
@@ -73,8 +74,9 @@ class ActivityPlan(_Closed):
 class HandoffInput(_Closed):
     """The only transfer context a handoff may carry (04 §3)."""
 
+    # Closed reason only: a free-text topic written by a model that read the whole conversation
+    # would carry exactly the history the handoff must not forward (review H1).
     reason: Literal["journal_reflection", "emotional_checkin", "journal_writing", "activity_planning"]
-    topic: str = Field(max_length=120, description="Chủ đề ngắn, trung tính.")
 
 
 class InvalidSpecialistOutput(Exception):
