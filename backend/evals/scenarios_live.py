@@ -104,13 +104,14 @@ def build_app(engine, settings: Settings, recorder: Recorder):
 
 
 async def make_user(app, alias: str):
-    from app.infrastructure.database.models import AuthSession, Consent, User
+    from app.infrastructure.database.models import AgeDeclaration, AuthSession, Consent, User
 
     uid, sid = uuid4(), uuid4()
     token, csrf = f"live-{uuid4()}", f"csrf-{uuid4()}"
     async with app.state.database.sessions.begin() as db:
         db.add(User(id=uid, auth_subject=uid, alias=alias, age_band="adult"))
         await db.flush()
+        db.add(AgeDeclaration(user_id=uid, birth_year=2000, policy_version="self-declared-age-v1"))
         db.add(
             AuthSession(
                 user_id=uid,

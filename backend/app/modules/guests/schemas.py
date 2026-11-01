@@ -10,13 +10,13 @@ __all__ = ["GuestEligibility", "GuestInput", "GuestQuota", "PublicExperience"]
 
 
 class GuestEligibility(VersionInput):
-    """The existing age attestation, parsed leniently so under-16 and a missing confirmation
+    """The adult attestation, parsed leniently so under-18 and a missing confirmation
     answer GUEST_INELIGIBLE (before any provider call) instead of a generic validation error."""
 
     birth_year: int = Field(ge=1900, le=9999, strict=True)
     confirmed_minimum_age: StrictBool
     confirmed_adult_age: StrictBool = False
-    policy_version: Literal["self-declared-age-v1"]
+    policy_version: Literal["self-declared-age-v2-18plus"]
 
 
 class GuestInput(DTO):
@@ -25,7 +25,7 @@ class GuestInput(DTO):
     eligibility: GuestEligibility
     # Verified upstream by the provider; never persisted, logged or echoed.
     captcha_token: str = Field(min_length=1, max_length=4096, repr=False)
-    disclosure_version: Literal["guest-v1"]
+    disclosure_version: Literal["guest-v2"]
 
     @field_validator("eligibility")
     @classmethod

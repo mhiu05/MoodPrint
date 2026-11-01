@@ -1,0 +1,18 @@
+{
+  "fromRevision": "0019_journal",
+  "toRevision": "0020_private_profile_retirement",
+  "sha256": "2aad54136bba6256557144e8d4137476b884f70a9a4bf58dd79daf40d5648474",
+  "bytes": 2030,
+  "semantics": "OWNER_APPROVED_INTENTIONAL_RETIREMENT",
+  "remoteExecuted": false,
+  "hostedExecutionAllowed": false,
+  "executionMechanism": "Verbatim transactional Alembic offline export; never stamp",
+  "requiredGates": {
+    "targetProjectAndOwner": "NOT_VERIFIED",
+    "hostedBackupRestored": "NOT_VERIFIED",
+    "disposableRehearsal": "NOT_VERIFIED",
+    "compatibleBackend": "NOT_VERIFIED",
+    "oldTrafficDrained": "NOT_VERIFIED",
+    "postMigrationChecksPrepared": "NOT_VERIFIED"
+  }
+}

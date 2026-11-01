@@ -108,8 +108,8 @@ Trạng thái: ☑ = đã có bằng chứng trong [evidence/execution.md](evide
 | 2 | Backend suite, ruff, mypy, frontend unit/typecheck/build, E2E fixture, fullstack proactive xanh (trừ fail có sẵn đã phân loại) | ☑ |
 | 3 | Offline SQL 0020→0022 rehearsal trên chuỗi sạch + role mirror | ☑ (P1-03) |
 | 4 | Rehearsal trên bản sao `pg_dump --schema-only` của hosted (U-04) | ☐ owner cho phép dump |
-| 5 | Hosted áp dụng 0020, rồi 0021+0022 qua `scripts/apply_supabase_review.py` (một transaction, có backup) | ☐ owner (BLK-02) |
-| 6 | Rebase/tích hợp với nhánh friendship-profile của Codex (trùng `models.py`, `e2e_server.py`, `conftest.py`, `openapi.json`, `schema.d.ts`, readiness tests) và chạy lại toàn bộ suite | ☐ |
+| 5 | Hosted đã ở `0020_private_profile_retirement` (đọc ngày 01/11/2026). Áp 0021→0024 qua `scripts/apply_supabase_review.py` (một transaction, có backup) **chỉ cùng lúc** triển khai image có `READY_REVISIONS = 0024`: image main hiện hành chỉ chấp nhận 0020 và trả `503 NOT_READY` ở `/api/v1/health/ready` khi DB đã ở 0021+ | ☐ owner (BLK-02) |
+| 6 | Tích hợp với `origin/main` (friendship-profile, 18+ toàn cục, guest): đã merge `origin/main` `94ef40f` vào nhánh V3 ngày 01/11/2026; `collaboration_eligible` và `authorize_proactive` dùng `is_adult_eligible()`; OpenAPI và `schema.d.ts` sinh lại. Chưa chạy lại toàn bộ suite/CI | ☑ nguồn · ☐ CI đầy đủ |
 | 7 | Supabase S1: `ALTER ROLE moodprint_backend CONNECTION LIMIT 30; ALTER ROLE moodprint_backend SET idle_in_transaction_session_timeout = '60s';` | ☐ owner |
 | 8 | CloudWatch agent bật ≥ 7 ngày, `mem_used_percent` p95 + 384 MiB < 70 % (nếu không: `t3.medium`) | ☐ owner |
 | 9 | Áp dụng metric filter + alarm `Proactive*` từ `deploy/aws/cloudwatch-alarms.json` | ☐ owner |

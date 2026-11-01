@@ -313,12 +313,12 @@ async def test_journal_edit_during_the_turn_blocks_publication(clients):
 
 
 async def test_under_18_account_never_collaborates_even_with_a_stored_opt_in(clients):
+    from app.ai.collaboration.eligibility import collaboration_eligible
     from app.ai.collaboration.models import AiSharingPermission
-    from tests.test_chat_persistence import enable
+    from app.infrastructure.database.models import User
 
     app, _ = clients
     teen, teen_id = await add_actor(app, 9, age_band="teen")
-    await enable(teen)
     app.state.settings.ai_multi_message_enabled = True
     app.state.settings.ai_collaboration_enabled = True
     async with app.state.database.sessions.begin() as db:
@@ -326,9 +326,12 @@ async def test_under_18_account_never_collaborates_even_with_a_stored_opt_in(cli
     spec = specialist_model(HABIT)
     app.state.ai.specialist_model_override = spec
     app.state.ai.model_override = primary("x")
-    url = await conversation(teen, "may")
-    run = await finish(await start(app, teen, url, "Mình mất ngủ", model=primary("Thương ghê.")))
-    assert run.terminal_status == "completed" and spec.calls == [] and await receipts(app) == []
+    # Global 18+: the product refuses the account before any chat starts, and the
+    # collaboration gate independently rejects it, so the stored opt-in is never used.
+    assert (await teen.post("/api/v1/ai/conversations", json={"botId": "may"}, headers=key())).status_code == 403
+    async with app.state.database.sessions.begin() as db:
+        assert not await collaboration_eligible(db, await db.get(User, teen_id))
+    assert spec.calls == [] and await receipts(app) == []
 
 
 async def test_temporary_chat_never_collaborates(clients):

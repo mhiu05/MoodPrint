@@ -34,6 +34,7 @@ export class ApiClient {
   /** Bumped by reset(); callbacks capture it and drop results from an older lifecycle. */
   epoch = 0;
   onUnauthorized?: (error?: ApiError) => void;
+  onEligibilityDenied?: (error: ApiError) => void;
   /** While set, only the session read may reach the network. */
   private holdPrivate: (() => boolean) | null = null;
 
@@ -159,6 +160,9 @@ export class ApiClient {
             detail.code === "GUEST_EXPIRED")
         )
           this.onUnauthorized?.(failure);
+        if (response.status === 403 && path !== "/session" && !path.startsWith("/auth/") &&
+          ["ELIGIBILITY_REQUIRED", "AGE_REQUIRED", "AGE_RESTRICTED", "ADULT_REQUIRED"].includes(failure.code))
+          this.onEligibilityDenied?.(failure);
         throw failure;
       }
       const result =

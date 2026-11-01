@@ -29,7 +29,7 @@ async function audit(page: Page, name: string, width: number, height: number) {
   });
 }
 
-test("MoodPrint identity and short pages stay at the top across all six sizes", async ({
+test("document branding and short pages stay at the top across all six sizes", async ({
   browser,
 }) => {
   test.setTimeout(180_000);
@@ -57,13 +57,13 @@ test("MoodPrint identity and short pages stay at the top across all six sizes", 
       await expect(page).toHaveTitle(/^MoodPrint/);
       await expect(page.getByRole("main")).not.toContainText(/Me2We/i);
       await expect(
-        page.getByRole("main").getByText("MoodPrint", { exact: false }).first(),
-      ).toBeVisible();
+        page.getByRole("main").locator(".brand"),
+      ).toHaveCount(0);
       expect((await heading.boundingBox())!.y).toBeLessThan(180);
       await audit(page, "messages", width, height);
       await page.goto("/#/profile");
       await expect(
-        page.getByRole("heading", { name: "Cá nhân", exact: true }),
+        page.getByRole("heading", { name: "Tài khoản", exact: true }),
       ).toBeVisible();
       await audit(page, "profile", width, height);
     }
@@ -116,7 +116,7 @@ test("all five assistants explain their purpose and link to the related real fea
 test("a conversation starter stays editable and reaches the other account only after Send", async ({
   browser,
 }) => {
-  const { pageA, pageB, two, room, close } = await openRoom(browser, 42, 43);
+  const { pageA, pageB, two, room, close } = await openRoom(browser, 70, 71);
   try {
     await pageA.setViewportSize({ width: 390, height: 480 });
     const starter = pageA.getByRole("button", {
@@ -134,7 +134,7 @@ test("a conversation starter stays editable and reaches the other account only a
     // screen, then check persisted messages instead of mistaking a button for a send.
     await expect(pageB.getByRole("group", { name: "Lời mở đầu" })).toBeVisible();
     await expect(pageB.getByRole("log").locator(".message-row")).toHaveCount(0);
-    const beforeSend = await call(two, 43, "GET", `/connections/${room}/messages`);
+    const beforeSend = await call(two, 71, "GET", `/connections/${room}/messages`);
     expect(beforeSend.status).toBe(200);
     expect(beforeSend.body.messages).toEqual([]);
     await composer.fill("Chào bạn, mình rất vui được làm quen!");

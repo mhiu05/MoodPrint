@@ -6,10 +6,14 @@ report evidence (which quotes the peer) are never exported to the other party.
 """
 
 from datetime import timedelta
+from typing import Literal, cast
 
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.ai.models import AiConversation, AiMessageRecord
+from app.ai.persistence import conversation_header
+from app.ai.schemas import AIMessage
 from app.core.errors import DomainError
 from app.infrastructure.database.models import Consent, ConsentEvent, User, now
 from app.modules.moderation.models import IdentityField, Report, RevealAccess
@@ -25,6 +29,40 @@ from app.modules.social.models import (
 from app.modules.social.service import pair_alias
 
 ROW_LIMIT = 1000
+
+
+async def conversation_section(db: AsyncSession, user: User) -> list[dict]:
+    """Retained owner transcripts, including when product eligibility is denied."""
+    at = now()
+    conversations = await _rows(
+        db,
+        select(AiConversation)
+        .where(AiConversation.user_id == user.id, AiConversation.expires_at > at)
+        .order_by(AiConversation.created_at, AiConversation.id),
+    )
+    messages = (
+        await db.scalars(
+            select(AiMessageRecord)
+            .join(AiConversation, AiConversation.id == AiMessageRecord.conversation_id)
+            .where(AiConversation.user_id == user.id, AiConversation.expires_at > at)
+            .order_by(AiMessageRecord.conversation_id, AiMessageRecord.sequence)
+            .limit(10001)
+        )
+    ).all()
+    if len(messages) > 10000:
+        raise DomainError(503, "EXPORT_TOO_LARGE", "Phạm vi xuất quá lớn.")
+    grouped: dict = {row.id: [] for row in conversations}
+    for message in messages:
+        grouped[message.conversation_id].append(
+            AIMessage(id=message.id, actor=cast(Literal["self", "bot"], message.actor), text=message.text,
+                      cards=message.cards, created_at=message.created_at)
+            .model_dump(mode="json", by_alias=True)
+        )
+    return [
+        {**conversation_header(row).model_dump(mode="json", by_alias=True),
+         "messages": grouped[row.id]}
+        for row in conversations
+    ]
 
 
 async def _rows(db: AsyncSession, statement):

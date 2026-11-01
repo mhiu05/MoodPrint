@@ -45,10 +45,18 @@ from app.ai.memory_models import MemoryProposal
 from app.ai.orchestration import models as orchestration_models  # noqa: F401
 from app.ai.proactive import models as proactive_models  # noqa: F401
 from app.core.config import Settings
-from app.infrastructure.database.models import AuthSession, Base, Consent, Memory, User
+from app.infrastructure.database.models import (
+    AgeDeclaration,
+    AuthSession,
+    Base,
+    Consent,
+    Memory,
+    User,
+)
 from app.main import create_app
 from app.modules.guests import models as guest_models  # noqa: F401 -- register before reset
 from app.modules.moderation.models import StaffRole
+from tests.database_target import verify_test_database
 from tests.e2e_auth import LocalAuth
 from tests.feedback_schema import install_feedback_functions
 from tests.guest_helpers import LIFETIME, add_guest, enable_paid_fixture
@@ -232,6 +240,7 @@ async def run_check_ins(body: dict):
 
 async def seed():
     async with app.state.database.engine.begin() as connection:
+        await verify_test_database(connection)
         await connection.execute(text("create schema if not exists moodprint"))
         await connection.execute(text("create schema if not exists extensions"))
         await connection.execute(text("create extension if not exists vector with schema extensions"))
@@ -249,7 +258,8 @@ async def seed():
         # 51-55 belong to the proactive companion journeys (51: multi-bubble replies).
         # 56-59 belong to the companion-collaboration journeys (Phase 2).
         # 60-69 are the V3 cohort (three agents, orchestration, groups); 60 also has legacy history.
-        for number in range(1, 70):
+        # 70-71 isolate the product-experience conversation starters.
+        for number in range(1, 72):
             uid = UUID(f"00000000-0000-4000-8000-{number:012d}")
             provider = UUID(f"00000000-0000-4000-9000-{number:012d}")
             db.add(
@@ -261,6 +271,8 @@ async def seed():
                 )
             )
             await db.flush()
+            if not 7 <= number <= 9:
+                db.add(AgeDeclaration(user_id=uid, birth_year=2000, policy_version="self-declared-age-v1"))
             for purpose in ("AI", "MEM", "MATCH", "VOICE"):
                 db.add(
                     Consent(

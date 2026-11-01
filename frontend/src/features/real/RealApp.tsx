@@ -190,6 +190,18 @@ function authMode(): "login" | "signup" {
   return /[?&]mode=signup\b/.test(window.location.hash) ? "signup" : "login";
 }
 
+function PublicLoginRedirect({ signup }: { signup: boolean }) {
+  useEffect(() => {
+    window.location.replace(signup ? "/login?mode=signup" : "/login");
+  }, [signup]);
+  return (
+    <main className="real-auth" aria-busy="true">
+      <Brand />
+      <p role="status">Đang mở trang đăng nhập…</p>
+    </main>
+  );
+}
+
 function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback }) {
   const entryLocation = useLocation();
   const [session, setSession] = useState<SessionView | null>();
@@ -226,6 +238,9 @@ function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback
   const dropPrivate = useCallback(() => {
     generation.current += 1;
     probeAbort.current?.abort();
+    // A new generation must never deduplicate against an aborted older probe.
+    // Its finally callback only clears itself, so a replacement can start now.
+    inflight.current = null;
     clearGrace();
     api.reset();
   }, [api, clearGrace]);
@@ -362,6 +377,18 @@ function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback
   };
   useEffect(() => {
     api.onUnauthorized = (failure) => loseRef.current(failure);
+    api.onEligibilityDenied = () => {
+      const current = sessionRef.current;
+      if (!current) return;
+      // Remove every protected view and pending response while preserving the secure
+      // account session for declaration, export and deletion.
+      dropPrivate();
+      api.setCsrf(current.csrfToken);
+      setSession({ ...current, eligible: false });
+      autoUsed.current = false;
+      setLink("ready");
+      void scheduleRef.current("manual");
+    };
     const onAuto = () => {
       if (document.visibilityState === "hidden") return;
       window.clearTimeout(debounce.current);
@@ -382,6 +409,7 @@ function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback
       window.removeEventListener("online", onAuto);
       document.removeEventListener("visibilitychange", onAuto);
       api.setPrivateHold(null);
+      api.onEligibilityDenied = undefined;
     };
   }, [api]);
   const retrySession = useCallback(() => {
@@ -472,11 +500,13 @@ function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback
         <Link to="/login">Đăng nhập / Đăng ký</Link>
       </main>
     );
+  if (session === null && !callback)
+    return <PublicLoginRedirect signup={authMode() === "signup"} />;
   if (session === null || callback?.kind === "recovery")
     return (
       <AuthScreen api={api} receive={receive} callback={callback} initialMode={authMode()} />
     );
-  const content = session.eligible ? (
+  const content = session.eligible && session.ageBand === "adult" ? (
     <AIDataProvider key={session.userId}>
       <Shell />
     </AIDataProvider>
@@ -576,12 +606,16 @@ function GuestHost({
 
 function GuestBanner() {
   const guest = useGuest();
+  const { session } = useSession();
   const { pathname } = useLocation();
   if (!guest) return null;
   // The personal tab already has the trial-ending action.
   return (
     <GuestStatus
       remainingMs={guest.remainingMs}
+      aiAvailable={session.features.ai}
+      aiTurnsRemaining={session.guestQuota?.aiTurnsRemaining}
+      aiTurnsLimit={session.guestQuota?.aiTurnsLimit}
       onEnd={pathname === "/profile" ? undefined : guest.end}
     />
   );
@@ -644,19 +678,9 @@ function SessionNotices() {
 /** Shown only when few AI turns remain today (Asia/Bangkok day). */
 function QuotaHint() {
   const { session } = useSession();
-  const guest = session.accountKind === "guest";
-  const remaining = guest
-    ? (session.guestQuota?.aiTurnsRemaining ?? null)
-    : session.features.aiQuotaRemaining;
+  if (session.accountKind === "guest") return null;
+  const remaining = session.features.aiQuotaRemaining;
   if (remaining == null || remaining > 10) return null;
-  if (guest)
-    return (
-      <p className={cx.footnote} role="status">
-        {remaining === 0
-          ? "Bạn đã dùng hết lượt trò chuyện của lượt dùng thử."
-          : `Lượt dùng thử còn ${remaining} lượt trò chuyện với trợ lý.`}
-      </p>
-    );
   return (
     <p className={cx.footnote} role="status">
       {remaining === 0

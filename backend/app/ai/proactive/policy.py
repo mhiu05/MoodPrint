@@ -22,6 +22,7 @@ from app.ai.proactive.models import (
 from app.core.errors import DomainError
 from app.core.security import assert_purpose
 from app.infrastructure.database.models import AiRun, Consent, User, now
+from app.modules.auth.age import is_adult_eligible
 from app.modules.consent.policy import consent_enabled
 
 log = logging.getLogger("moodprint")
@@ -104,7 +105,8 @@ async def authorize_proactive(
     if user.deletion_pending:
         return Decision("cancel", "deletion_pending")
     at = now()
-    if (user.suspended_until and user.suspended_until > at) or user.age_band not in ("teen", "adult"):
+    if (user.suspended_until and user.suspended_until > at) or not await is_adult_eligible(db, user):
+        # Global 18+: the stored declaration decides, not the legacy age_band label.
         return Decision("skip", "ineligible_account")
     if not settings.proactive_open_for(user.id):
         return Decision("skip", "disabled")

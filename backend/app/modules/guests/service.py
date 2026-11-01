@@ -162,7 +162,7 @@ async def create_guest(request: Request, body: GuestInput, response: Response) -
     if not eligibility.confirmed_minimum_age:
         raise _ineligible()
     now = await _database_time(sessions)
-    if age_band(eligibility.birth_year, eligibility.confirmed_adult_age, current_year=_year(now)) == "under16":
+    if age_band(eligibility.birth_year, eligibility.confirmed_adult_age, current_year=_year(now)) != "adult":
         raise _ineligible()
     # Constructing the client cannot send anything; a missing configuration fails before any state.
     provider_client = SupabaseAuth(request)
@@ -485,7 +485,7 @@ def _ineligible() -> DomainError:
     return DomainError(
         422,
         "GUEST_INELIGIBLE",
-        "Dùng thử dành cho người từ 16 tuổi. Hãy xác nhận độ tuổi của bạn để tiếp tục.",
+        "Bạn cần đủ 18 tuổi để sử dụng MoodPrint.",
     )
 
 

@@ -59,25 +59,25 @@ async def test_trial_quota_survives_rotation_restart_midnight(clients):
     relax(app)
     guest = await add_guest(app)
     first = None
-    for index in range(25):
+    for index in range(50):
         claimed = await claim(app, guest, key=f"turn-{index}")
         first = first or claimed
         await finish(app, guest, "ai", claimed)
-    assert (await usage(app, guest)).ai_turns == 25
+    assert (await usage(app, guest)).ai_turns == 50
     with pytest.raises(DomainError) as exhausted:
         await claim(app, guest)
     assert exhausted.value.status == 429 and exhausted.value.code == "GUEST_QUOTA_EXHAUSTED"
     # The same client message id is a replay: same claim, no increment.
     again = await claim(app, guest, key="turn-0")
     assert again.operation_key_hash == first.operation_key_hash
-    assert (await usage(app, guest)).ai_turns == 25
+    assert (await usage(app, guest)).ai_turns == 50
     # A new credential for the same trial (rotation) and a fresh calendar day change nothing: the
     # counter is a lifetime row keyed only by the user, never by session or by day.
     other_tab = await add_guest(app)
     assert (await usage(app, other_tab)).ai_turns == 0
     with pytest.raises(DomainError):
         await claim(app, guest, key="after-rotation")
-    assert (await usage(app, guest)).ai_turns == 25
+    assert (await usage(app, guest)).ai_turns == 50
 
 
 async def test_replay_with_different_payload_conflicts(clients):
@@ -98,24 +98,20 @@ async def test_voice_exact_milliseconds_and_concurrency(clients):
     app, _ = clients
     relax(app)
     guest = await add_guest(app)
-    # 6 clips and exactly 180000 ms are allowed...
-    for index in range(6):
+    # 20 clips and exactly 600000 ms are allowed...
+    for index in range(20):
         claimed = await claim(app, guest, "voice", f"clip-{index}", ms=30_000)
         await finish(app, guest, "voice", claimed)
     row = await usage(app, guest)
-    assert (row.voice_clips, row.voice_milliseconds) == (6, 180_000)
+    assert (row.voice_clips, row.voice_milliseconds) == (20, 600_000)
     with pytest.raises(DomainError) as seventh:
-        await claim(app, guest, "voice", "clip-6", ms=1)
+        await claim(app, guest, "voice", "clip-20", ms=1)
     assert seventh.value.code == "GUEST_QUOTA_EXHAUSTED"
 
-    # ...but one millisecond more than 180000 is not.
-    precise = await add_guest(app)
-    first = await claim(app, precise, "voice", "a", ms=150_000)
-    await finish(app, precise, "voice", first)
-    second = await claim(app, precise, "voice", "b", ms=30_000)
-    await finish(app, precise, "voice", second)
+    # ...but a 30 second clip cannot fit after using 600 seconds.
+    precise = await add_guest(app, usage={"voice_milliseconds": 599_999})
     with pytest.raises(DomainError):
-        await claim(app, precise, "voice", "c", ms=1)
+        await claim(app, precise, "voice", "c", ms=2)
 
     # A processed clip is never redispatched or charged twice.
     done = await add_guest(app)
@@ -199,8 +195,9 @@ async def test_session_quota_view_reflects_durable_counters(clients):
 
     app, _ = clients
     relax(app)
-    guest = await add_guest(app, usage={"ai_turns": 24, "voice_clips": 5, "voice_milliseconds": 179_999})
+    guest = await add_guest(app, usage={"ai_turns": 49, "voice_clips": 19, "voice_milliseconds": 599_999})
     async with app.state.database.sessions() as db:
         view = await guest_quota_view(db, await db.get(User, guest.user_id), app.state.settings)
     assert (view.ai_turns_remaining, view.voice_clips_remaining) == (1, 1)
+    assert view.ai_turns_limit == 50
     assert view.voice_seconds_remaining == pytest.approx(0.001)

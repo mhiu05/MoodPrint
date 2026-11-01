@@ -40,7 +40,7 @@ from app.ai.collaboration import models as collaboration_models  # noqa: F401
 from app.ai.orchestration import models as orchestration_models  # noqa: F401
 from app.ai.proactive import models as proactive_models  # noqa: F401
 from app.core.config import Settings
-from app.infrastructure.database.models import AuthSession, Base, Consent, User
+from app.infrastructure.database.models import AgeDeclaration, AuthSession, Base, Consent, User
 from app.main import create_app
 from app.modules.guests import models as guest_models  # noqa: F401
 from app.modules.moderation import models as safety_models  # noqa: F401
@@ -121,6 +121,7 @@ async def seed():
             uid, provider = identity("user", number), identity("provider", number)
             db.add(User(id=uid, auth_subject=uid, alias=f"Tải {number}", age_band="adult"))
             await db.flush()
+            db.add(AgeDeclaration(user_id=uid, birth_year=2000, policy_version="self-declared-age-v1"))
             for purpose in ("AI", "MEM", "MATCH", "VOICE"):
                 db.add(Consent(user_id=uid, purpose=purpose, enabled=False, version=1))
             db.add(

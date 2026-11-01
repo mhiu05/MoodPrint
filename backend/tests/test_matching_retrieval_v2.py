@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy import select
 
-from app.infrastructure.database.models import Consent, User, now
+from app.infrastructure.database.models import AgeDeclaration, Consent, User, now
 from app.modules.matching import scoring
 from app.modules.social import retrieval
 from app.modules.social.models import (
@@ -41,6 +41,10 @@ async def seed_peer(app, profile=None, *, age="adult", consent=True, consent_ver
             )
         )
         await db.flush()
+        db.add(AgeDeclaration(
+            user_id=uid, birth_year=1990 if age == "adult" else now().year - 17,
+            policy_version="self-declared-age-v1",
+        ))
         db.add(Consent(user_id=uid, purpose="MATCH", enabled=consent, version=consent_version))
         db.add(
             PublishedProfile(

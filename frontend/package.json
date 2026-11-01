@@ -6,12 +6,17 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --project tsconfig.build.json && vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "vitest run",
+    "test": "vitest run && node --require ./scripts/redocly-minimatch.cjs --test ./scripts/redocly-minimatch.test.cjs",
     "test:e2e": "playwright test",
     "test:e2e:fullstack": "playwright test --config playwright.fullstack.config.ts",
-    "contracts:generate": "openapi-typescript ../backend/openapi.json -o src/api/generated/schema.d.ts"
+    "contracts:generate": "node --require ./scripts/redocly-minimatch.cjs ./node_modules/openapi-typescript/bin/cli.js ../backend/openapi.json -o src/api/generated/schema.d.ts"
+  },
+  "overrides": {
+    "@redocly/openapi-core": {
+      "minimatch": "11.0.1"
+    }
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

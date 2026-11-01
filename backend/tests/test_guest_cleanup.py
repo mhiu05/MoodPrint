@@ -35,7 +35,7 @@ async def seed_owned(app, uid: UUID, *, peer: UUID, guest: bool) -> dict[str, li
 
     soon = now() + timedelta(minutes=10)
     async with app.state.database.sessions.begin() as db:
-        db.add(AgeDeclaration(user_id=uid, birth_year=2000, policy_version="self-declared-age-v1"))
+        assert await db.get(AgeDeclaration, uid) is not None
         db.add(ConsentEvent(user_id=uid, purpose="AI", enabled=True, version=2, policy_version="v1"))
         db.add(Mood(user_id=uid, local_date=date.today(), value=3, timezone="Asia/Bangkok"))
         journal = JournalEntry(user_id=uid, local_date=date.today(), timezone="Asia/Bangkok", mood=4, text="journal canary")

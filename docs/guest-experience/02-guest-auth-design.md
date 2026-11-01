@@ -1,5 +1,7 @@
 # Guest authentication, expiry and deletion design
 
+> Superseded age policy (2026-10-31): MoodPrint now requires self-declared **18+ across all functionality**, including guests. Earlier 16+ design statements are historical; use the [current rollout policy](../release/moodprint-18plus-0020-rollout.md).
+
 **PROPOSED, not implemented.** Baseline and exact evidence: [01](01-current-architecture-audit.md). Verdict: **CONDITIONALLY_READY**. Exact two-hour authorization is a hard requirement; physical cleanup has a separately monitored completion target.
 
 ## 1. Architecture choice
@@ -59,8 +61,8 @@ All API paths below have `/api/v1` prefix. Reuse existing camelCase DTOs, strict
 | Endpoint/contract | Proposed behavior |
 |---|---|
 | `POST /auth/guest-intents` | Public initiation only after CTA; exact Origin, JSON/custom-header requirement, IP/global throttling; returns 204 + 10-minute intent cookie. No Supabase user, no private data |
-| `POST /auth/guest` | Public write bound to intent, idempotency and CAPTCHA; body `{eligibility:{birthYear,confirmedMinimumAge,confirmedAdultAge,policyVersion,expectedVersion:0},captchaToken,disclosureVersion:'guest-v1'}`. Returns 201 `SessionView`; same successful intent/live guest returns 200 same lifecycle. 409 for registered session; 422 age/validation, 429 quota, 503 provider unavailable. No automatic retry with a new key |
-| `SessionView` | Add `accountKind`, `guestStartedAt`, `guestExpiresAt` (null for registered), `serverTime`, `guestQuota:{aiTurnsRemaining,voiceSecondsRemaining}` for guests, capability `feedback`. Set `features.matching=false`; clear staff for guests. Validate these in frontend |
+| `POST /auth/guest` | Public write bound to intent, idempotency and CAPTCHA; body `{eligibility:{birthYear,confirmedMinimumAge,confirmedAdultAge,policyVersion,expectedVersion:0},captchaToken,disclosureVersion:'guest-v2'}`. Returns 201 `SessionView`; same successful intent/live guest returns 200 same lifecycle. 409 for registered session; 422 age/validation, 429 quota, 503 provider unavailable. No automatic retry with a new key |
+| `SessionView` | Add `accountKind`, `guestStartedAt`, `guestExpiresAt` (null for registered), `serverTime`, `guestQuota:{aiTurnsRemaining,aiTurnsLimit,voiceClipsRemaining,voiceSecondsRemaining}` for guests, capability `feedback`. Set `features.matching=false`; clear staff for guests. Validate these in frontend |
 | `GET /session` | Before T returns immutable deadline; at/after T returns 401 code `GUEST_EXPIRED`, clears app cookies where possible. Never renew deadline |
 | `POST /auth/guest/end` | Active guest + CSRF/idempotency; permanently revoke lifecycle now, invalidate AI/exports, queue purge immediately, clear cookies; 204. No password required because it affects only the authenticated disposable identity. Registered request denied |
 | Existing personal routes | Ownership/eligibility/purpose plus guest deadline, including GETs, mutation finalization, exports/download and memory decisions. Use 404 for another owner's resource, no private existence leaks |
@@ -165,11 +167,11 @@ Proposed starting values (configurable, **not measured price guarantees**):
 | Control | Starting value / rationale |
 |---|---|
 | Trial creation | 3 successful trials/IP/hour, 10/day; bounded failed-attempt bucket; challenges and understandable retry for shared NAT. HMAC canonical client IP; trust only configured proxy hops |
-| Guest AI | 25 accepted turns over the entire 2h lifecycle, 6/minute, 1 active run/guest. Enough to sample five assistants; no reset at midnight/restart |
+| Guest AI | 50 accepted turns over the entire 2h lifecycle, 6/minute, 1 active run/guest. Enough to sample five assistants; no reset at midnight/restart |
 | Global capacity | Initially 10 simultaneous guest runs within existing global cap 50; preserve registered capacity. Fifty guests can browse; queued users see retry, no silent unbounded job queue |
-| Voice | 6 clips/trial, max 30 seconds each, max total 180 seconds; 2/minute; 1 active/guest and initially 3 global guest STT calls |
+| Voice | 20 clips/trial, max 30 seconds each, max total 600 seconds; 2/minute; 1 active/guest and initially 3 global guest STT calls |
 | Embeddings | Explicit semantic opt-in only; max 20 approved indexed memories/trial, bounded unique-version jobs, no automatic retry storm; default off pending provider retention gate |
-| Data growth | Max 10 live conversations/guest, max 25 accepted AI turns total, 50 approved memories, 100 pending proposals (existing cap). Keep current text/body limits |
+| Data growth | Max 10 live conversations/guest, max 50 accepted AI turns total, 50 approved memories, 100 pending proposals (existing cap). Keep current text/body limits |
 | Streams | Max 2 AI SSE connections/guest; no guest social SSE. Clamp max stream duration to T |
 | Feedback | One submission/trial, 3 attempts/minute; shared IP abuse gate, independent of comment content |
 | Spend | Nonzero owner-approved daily guest USD budget, usage accounting required, atomic worst-case reservation before AI/STT/embed dispatch, settle actual/uncertain spend. Treat unknown price as unavailable for paid guest operation |
@@ -184,7 +186,7 @@ CAPTCHA/Turnstile should protect upstream anonymous signup as well as the app en
 
 - Entry: **Dùng thử ngay** → explanation **Dùng thử 2 giờ, không cần email** → minimum-age check → automatic anonymous session after explicit continuation. No password or mandatory signup.
 - Disclosure: **Lượt dùng thử kết thúc sau 2 giờ kể từ khi bắt đầu. Khi hết giờ, bạn không thể mở lại dữ liệu của lượt này. MoodPrint sẽ xóa dữ liệu khỏi hệ thống đang hoạt động; xem thời gian xử lý và các giới hạn về bản sao lưu, dịch vụ AI.** Link to exact approved policy; avoid the false claim that every copy disappears at T.
-- Navigation status: **Đang dùng thử · còn 1 giờ 24 phút**; no second-by-second screen-reader announcement. Quiet five-minute warning, not a modal during emotional chat.
+- Navigation status: **Đang dùng thử · còn 1 giờ 24 phút**; no second-by-second screen-reader announcement. Quiet 15-minute warning, not a modal during emotional chat.
 - Locked social: **Tạo tài khoản để tìm bạn và nhắn tin. Tính năng này dành cho người từ 18 tuổi, khi bạn chủ động bật chia sẻ.** Preserve eligibility for registered users too.
 - Expired: **Lượt dùng thử đã kết thúc**; **Bắt đầu lượt dùng thử mới**, **Tạo tài khoản**, link to public page. Explain the old data is unavailable; new trial never recovers it. Clear private drafts/recordings/tour/API caches and close streams. No infinite auto-signup loop.
 - Early end: **Kết thúc và xóa lượt dùng thử** with clear confirmation; no email/password form.

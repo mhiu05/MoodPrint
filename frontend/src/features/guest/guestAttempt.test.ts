@@ -23,11 +23,11 @@ const body = {
     birthYear: 2000,
     confirmedMinimumAge: true,
     confirmedAdultAge: false,
-    policyVersion: "self-declared-age-v1",
+    policyVersion: "self-declared-age-v2-18plus",
     expectedVersion: 0,
   },
   captchaToken: "synthetic",
-  disclosureVersion: "guest-v1",
+  disclosureVersion: "guest-v2",
 } as never;
 
 beforeEach(() => {

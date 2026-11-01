@@ -1,13 +1,11 @@
 """Who may use companion collaboration at all. MoodPrint's minimum age is 18.
 
-INTEGRATION (feat/friendship-discovery-18plus): that branch adds
-``app.modules.auth.age.is_adult_eligible(db, user)``, which also checks the age declaration.
-After rebasing, replace the age test below with ``await is_adult_eligible(db, user)``; the
-account-state checks stay. Until then the strict ``age_band == 'adult'`` test is used — never the
-older 16+ ``('teen', 'adult')`` rule.
+The age test is the global policy, ``is_adult_eligible(db, user)``: it also checks the stored
+age declaration, so a bare ``age_band`` label never grants access.
 """
 
 from app.infrastructure.database.models import User, now
+from app.modules.auth.age import is_adult_eligible
 
 
 async def collaboration_eligible(db, user: User) -> bool:
@@ -15,4 +13,4 @@ async def collaboration_eligible(db, user: User) -> bool:
         return False
     if user.suspended_until and user.suspended_until > now():
         return False
-    return user.age_band == "adult"
+    return await is_adult_eligible(db, user)

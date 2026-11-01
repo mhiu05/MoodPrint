@@ -28,6 +28,7 @@ export function LoginPage({ api }: { api: ApiClient }) {
   const [known, setKnown] = useState<SessionView | null>(null);
   const [entryOpen, setEntryOpen] = useState(false);
   const [offline, setOffline] = useState(() => !navigator.onLine);
+  const initialMode = new URLSearchParams(window.location.search).get("mode") === "signup" ? "signup" : "login";
 
   useEffect(() => {
     const controller = new AbortController();
@@ -35,10 +36,12 @@ export function LoginPage({ api }: { api: ApiClient }) {
       .request<Experience>("/public/experience", { signal: controller.signal })
       .then((value) => !controller.signal.aborted && setExperience(value))
       .catch(() => !controller.signal.aborted && setExperience(null));
-    api
-      .request<SessionView>("/session", { signal: controller.signal })
-      .then((value) => !controller.signal.aborted && setKnown(value))
-      .catch(() => undefined);
+    if (initialMode !== "signup") {
+      api
+        .request<SessionView>("/session", { signal: controller.signal })
+        .then((value) => !controller.signal.aborted && setKnown(value))
+        .catch(() => undefined);
+    }
     const toggle = () => setOffline(!navigator.onLine);
     window.addEventListener("online", toggle);
     window.addEventListener("offline", toggle);
@@ -47,10 +50,9 @@ export function LoginPage({ api }: { api: ApiClient }) {
       window.removeEventListener("online", toggle);
       window.removeEventListener("offline", toggle);
     };
-  }, [api]);
+  }, [api, initialMode]);
 
   const ready = Boolean(experience?.guestAvailable && experience.captchaSiteKey);
-  const initialMode = new URLSearchParams(window.location.search).get("mode") === "signup" ? "signup" : "login";
   const trialNote = offline
     ? "Bạn đang ngoại tuyến."
     : experience === undefined

@@ -1,5 +1,7 @@
 # Guest Experience Implementation Plan
 
+> Superseded age policy (2026-10-31): MoodPrint now requires self-declared **18+ across all functionality**, including guests. Earlier 16+ design statements are historical; use the [current rollout policy](../../release/moodprint-18plus-0020-rollout.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended when authorized and available) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. The owner selected a future Claude Sonnet implementation session; this Codex session only writes plans.
 
 **Goal:** Deliver an isolated 7200-second guest trial, public Vietnamese landing, optional onboarding, and unlinked ratings with protected administration.
@@ -16,7 +18,7 @@
 - Keep 16+ personal eligibility, 18+ registered-only social eligibility, explicit AI/MEM/VOICE consent and approved memory. No implicit MATCH/history/semantic-memory consent.
 - Existing FastAPI BFF, opaque HttpOnly cookie, CSRF, ownership and provider-session checks remain the security boundary. No browser Supabase SDK or direct private-table access.
 - Default false: `GUEST_AUTH_ENABLED`, `GUEST_PAID_ENABLED`, `GUEST_SEMANTIC_ENABLED`, `FEEDBACK_ENABLED`, `FEEDBACK_ADMIN_ENABLED`, `PRODUCT_TOUR_ENABLED`. Never flag off expiry, cleanup or reconciliation.
-- Initial limits: 25 AI turns/trial, 6/minute, 1 active/guest, 10 active guest AI globally; 6 voice clips/180 seconds per trial, 2/minute, 1 active/guest, 3 global. Keep existing registered/global capacity checks too.
+- Initial limits: 50 AI turns/trial, 6/minute, 1 active/guest, 10 active guest AI globally; 20 voice clips/600 seconds per trial, 2/minute, 1 active/guest, 3 global. Keep existing registered/global capacity checks too.
 - Numerical daily guest budget is **unset/unapproved**. Paid guest dispatch fails closed until configured and approved; synthetic providers are only allowed in explicit test fixtures.
 - Guest conversion, standalone structured solo activities, Redis, router migration, new AWS resources and analytics platforms are out of scope.
 - Preserve all user work and `.gitignore`. Only implementation plans are changed by this planning session. Future implementation uses an isolated feature branch and focused commits; no merge or deployment.
@@ -89,14 +91,14 @@ Execute in the exact total order in plan 08. GE-01.2 is a deliberately deferred 
 
 ## Open owner decisions and release gates
 
-| Decision (all unresolved)         | Safe implementation default                                                                                                                                  | Work that proceeds                                         | Exact hold                                                                                             |
+| Decision                         | Approved value / current state                                                                                                                               | Work completed or proceeding                               | Remaining operational gate                                                                            |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| D01 deletion/retention disclosure | Exact cutoff; proposed healthy cleanup start ≤60s, completion ≤5min; security HMAC ≤24h; detached daily cost totals proposed 30d; disclose backups/providers | All local lifecycle/privacy tests with flags off           | Public guest entry/copy approval and G3                                                                |
-| D02 operating budget              | `GUEST_DAILY_BUDGET_USD` unset; `GUEST_PAID_ENABLED=false`; no guessed dollar cap                                                                            | Synthetic quota/accounting/UI tests, personal journal work | Any paid guest AI/STT/embed dispatch and G4; real-model tests also need separate budget                |
-| D03 feedback retention            | 180d proposed, `FEEDBACK_ENABLED=false`                                                                                                                      | Synthetic collection/admin/retention                       | Public feedback collection/disclosure and G3/G5                                                        |
-| D04 hosted test target            | No approved non-production target assumed                                                                                                                    | Local provider/SQL/HTTP fixtures                           | GE-01.2 hosted proof and G1; production SQL/settings/deployment need a later separate release decision |
+| D01 deletion/retention disclosure | Owner approved 2-hour sessions and active-store cleanup; UI discloses its schedule and provider/backup limits.                                                | Guest lifecycle, isolation, cleanup, and privacy tests     | Matching Turnstile Auth secret and public site key are absent from staging                             |
+| D02 operating budget              | Owner approved USD 15/day, 50 AI turns, and 600 voice seconds; accounting is estimate-based, not a hard provider-charge cap.                                  | Durable backend quotas, reservation/accounting, and UI     | Guest paid work remains closed pending safe runtime pricing and Turnstile configuration                |
+| D03 feedback retention            | Owner approved 180 days; scheduled cleanup and user-facing disclosure are implemented.                                                                       | Retention and authorization tests                          | Staging feedback runtime flag/key before hosted submission                                             |
+| D04 hosted test target            | Owner approved shared hosted project `roznanxbiyqybjpvtilq`; use controlled identities and avoid unrelated user data.                                        | Hosted read-only checks and release verification           | Guest signup still needs the matching Turnstile Auth secret and public site key                          |
 
-Existing external-provider/backup/log review and upstream ≥60 signup burst/CAPTCHA proof are technical gates under D01/D04, not invented approvals. If literal all-copy erasure at T is required, that requirement remains blocked. Unexpected peer safety evidence during cleanup is an incident requiring a retention decision; do not erase registered counterpart evidence to achieve a row-count pass.
+The owner waived backup/restore prerequisites and approved the exact 0020 retirement impact. Do not promise instant deletion from providers or backups. Keep guest signup closed until the staging Turnstile key pair is configured.
 
 ## Skills and implementation method
 

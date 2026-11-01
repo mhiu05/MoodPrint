@@ -76,6 +76,7 @@ class GuestQuota(DTO):
     """Durable remaining allowance for one trial (never per day, never reset by a new tab)."""
 
     ai_turns_remaining: int = Field(ge=0)
+    ai_turns_limit: int = Field(ge=1)
     voice_clips_remaining: int = Field(ge=0)
     voice_seconds_remaining: float = Field(ge=0)
 
@@ -107,7 +108,7 @@ class EligibilityInput(VersionInput):
     birth_year: int = Field(ge=1900, le=9999, strict=True)
     confirmed_minimum_age: StrictBool
     confirmed_adult_age: StrictBool = False
-    policy_version: Literal["self-declared-age-v1"]
+    policy_version: Literal["self-declared-age-v2-18plus"]
 
     @field_validator("confirmed_minimum_age")
     @classmethod
@@ -129,6 +130,14 @@ class EmailInput(DTO):
 class SignupInput(EmailInput):
     # Supabase hashes with bcrypt, which ignores bytes beyond 72.
     password: str = Field(min_length=8, max_length=72, repr=False)
+    eligibility: EligibilityInput
+
+    @field_validator("eligibility")
+    @classmethod
+    def first_declaration(cls, value: EligibilityInput) -> EligibilityInput:
+        if value.expected_version != 0:
+            raise ValueError("A signup age declaration starts at version 0")
+        return value
 
 
 class PasswordResetInput(DTO):

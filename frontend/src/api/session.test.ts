@@ -28,7 +28,7 @@ const guest = {
   accountKind: "guest",
   guestStartedAt: "2026-10-28T00:00:00Z",
   guestExpiresAt: "2026-10-28T02:00:00Z",
-  guestQuota: { aiTurnsRemaining: 25, voiceClipsRemaining: 6, voiceSecondsRemaining: 180 },
+  guestQuota: { aiTurnsRemaining: 50, aiTurnsLimit: 50, voiceClipsRemaining: 20, voiceSecondsRemaining: 600 },
   features: { ai: false, matching: false, voice: false, feedback: false },
 } as unknown as SessionView;
 
@@ -58,6 +58,7 @@ describe("validateSession", () => {
     wrong({ staff: "admin" }); // forged staff claim
     wrong({ features: { ...guest.features, matching: true } }); // forged social capability
     wrong({ guestQuota: null });
+    wrong({ guestQuota: { ...guest.guestQuota, aiTurnsRemaining: 51 } });
     wrong({ serverTime: "NaN" });
     wrong({ accountKind: "visitor" });
     expect(() =>

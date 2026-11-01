@@ -215,5 +215,7 @@ Mỗi ADR có trạng thái **Đề xuất (mặc định đã chọn)** trừ k
 
 **Hệ quả.** Không cần migration mới; mọi giá trị là hằng/cấu hình đã có trong [phase-1/05 §8](phase-1/05-backend-api-and-agent-runtime.md). Không quyết định nào mở rộng quyền đọc dữ liệu nhạy cảm. OD-08…OD-12 giữ nguyên trạng thái (Phase 2 hoặc không cần quyết thêm).
 
+> **Cập nhật 01/11/2026:** OD-03 (cho phép 16–17 tuổi) bị thay thế bởi chính sách 18+ toàn cục của `origin/main`: tài khoản chưa đủ điều kiện không có lịch, lời hỏi thăm hay cộng tác nào (`authorize_proactive` kiểm bằng `is_adult_eligible()`).
+
 **Rollback.** Đổi hằng/cấu hình; cap và khung giờ hẹp hơn chỉ cần một migration CHECK nhỏ.
 

@@ -10,6 +10,7 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "backend"))
 
 
 def run(
@@ -19,8 +20,16 @@ def run(
     playwright_config="playwright.fullstack.config.ts",
     extra_environment=None,
 ):
-    if not os.environ.get("TEST_DATABASE_URL", "").split("?")[0].endswith("_test"):
-        raise RuntimeError("Set TEST_DATABASE_URL to a disposable local *_test database")
+    import psycopg
+
+    from tests.database_target import (
+        require_local_test_database,
+        verify_test_database_sync,
+    )
+
+    target = require_local_test_database(os.environ.get("TEST_DATABASE_URL", ""))
+    with psycopg.connect(target.set(drivername="postgresql").render_as_string(hide_password=False)) as db:
+        verify_test_database_sync(db)
     for port in (8002, 5174):
         with socket.socket() as connection:
             try:

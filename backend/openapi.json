@@ -19314,6 +19314,16 @@
             "type": "boolean",
             "title": "Strictgoal",
             "default": false
+          },
+          "discovery": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FriendshipDiscovery"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -19404,7 +19414,7 @@
           },
           "policyVersion": {
             "type": "string",
-            "const": "self-declared-age-v1",
+            "const": "self-declared-age-v2-18plus",
             "title": "Policyversion"
           }
         },
@@ -19511,11 +19521,12 @@
                 "moods",
                 "journal",
                 "consents",
-                "social"
+                "social",
+                "conversations"
               ]
             },
             "type": "array",
-            "maxItems": 6,
+            "maxItems": 7,
             "minItems": 1,
             "title": "Scopes"
           },
@@ -19950,6 +19961,61 @@
         "type": "object",
         "title": "FocusOptions"
       },
+      "FriendshipDiscovery": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Version",
+            "default": 1
+          },
+          "intention": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "talk",
+                  "shared-interests",
+                  "study",
+                  "experiences"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intention"
+          },
+          "connectionApproach": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "gradual",
+                  "lively",
+                  "activity-first"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connectionapproach"
+          },
+          "featuredInterests": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Featuredinterests"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "FriendshipDiscovery",
+        "description": "Explicit public display choices, independent of canonical matching facets."
+      },
       "GroupCreate": {
         "properties": {
           "name": {
@@ -20353,7 +20419,7 @@
           },
           "policyVersion": {
             "type": "string",
-            "const": "self-declared-age-v1",
+            "const": "self-declared-age-v2-18plus",
             "title": "Policyversion"
           }
         },
@@ -20366,7 +20432,7 @@
           "policyVersion"
         ],
         "title": "GuestEligibility",
-        "description": "The existing age attestation, parsed leniently so under-16 and a missing confirmation\nanswer GUEST_INELIGIBLE (before any provider call) instead of a generic validation error."
+        "description": "The adult attestation, parsed leniently so under-18 and a missing confirmation\nanswer GUEST_INELIGIBLE (before any provider call) instead of a generic validation error."
       },
       "GuestInput": {
         "properties": {
@@ -20381,7 +20447,7 @@
           },
           "disclosureVersion": {
             "type": "string",
-            "const": "guest-v1",
+            "const": "guest-v2",
             "title": "Disclosureversion"
           }
         },
@@ -20402,6 +20468,11 @@
             "minimum": 0.0,
             "title": "Aiturnsremaining"
           },
+          "aiTurnsLimit": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Aiturnslimit"
+          },
           "voiceClipsRemaining": {
             "type": "integer",
             "minimum": 0.0,
@@ -20417,6 +20488,7 @@
         "type": "object",
         "required": [
           "aiTurnsRemaining",
+          "aiTurnsLimit",
           "voiceClipsRemaining",
           "voiceSecondsRemaining"
         ],
@@ -22026,6 +22098,16 @@
             "type": "boolean",
             "title": "Strictgoal",
             "default": false
+          },
+          "discovery": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FriendshipDiscovery"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -23106,13 +23188,17 @@
             "maxLength": 72,
             "minLength": 8,
             "title": "Password"
+          },
+          "eligibility": {
+            "$ref": "#/components/schemas/EligibilityInput"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
           "email",
-          "password"
+          "password",
+          "eligibility"
         ],
         "title": "SignupInput"
       },

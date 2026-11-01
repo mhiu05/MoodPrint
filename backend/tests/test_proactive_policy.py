@@ -187,8 +187,9 @@ async def test_caunoi_social_eligibility_is_rechecked(clients):
         await db.execute(update(Consent).where(Consent.user_id == uid, Consent.purpose == "MATCH")
                          .values(enabled=True))
     assert isinstance(await decide(app, job), Authorized)
+    # Global 18+: losing adult eligibility ends every check-in, social or not.
     await set_user(app, uid, age_band="teen")
-    assert (await decide(app, job)).reason == "ineligible_social"
+    assert (await decide(app, job)).reason == "ineligible_account"
 
 
 # --- quota separation ---------------------------------------------------------------------
@@ -351,10 +352,10 @@ async def test_one_opened_check_in_keeps_the_companion_active(clients):
     assert isinstance(await decide(app, job), Authorized)
 
 
-async def test_teen_matrix_allows_non_social_companions(clients):
-    from app.ai.proactive.policy import Authorized
-
+async def test_under_18_accounts_get_no_check_ins_from_any_companion(clients):
     app, _ = clients
     ready(app)
     _client, uid = await add_actor(app, 9, age_band="teen")
-    assert isinstance(await decide(app, await seed(app, uid, bot="may")), Authorized)
+    for bot in ("may", "nhip", "caunoi"):
+        decision = await decide(app, await seed(app, uid, bot=bot))
+        assert decision.outcome == "skip" and decision.reason == "ineligible_account"

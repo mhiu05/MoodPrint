@@ -24,8 +24,11 @@ test("Next Back Skip Finish Escape and replay are keyboard accessible and mutati
   await open(page);
   await page.getByRole("button", { name: "Bắt đầu hướng dẫn", exact: true }).click();
   await expect(page.getByText("Bước 1/4", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Chọn trợ lý", exact: true })).toBeFocused();
   await expect(page.getByRole("button", { name: "Tiếp", exact: true })).toBeEnabled();
-  await page.getByRole("button", { name: "Tiếp", exact: true }).focus();
+  const next = page.getByRole("button", { name: "Tiếp", exact: true });
+  await next.focus();
+  await expect(next).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.getByText("Bước 2/4", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Quay lại", exact: true }).click();

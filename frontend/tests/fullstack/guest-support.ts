@@ -16,8 +16,8 @@ export async function createGuest(context: BrowserContext) {
   expect(intent.status()).toBe(204);
   const response = await context.request.post(api + "/auth/guest", {
     data: { eligibility: { birthYear: 2000, confirmedMinimumAge: true, confirmedAdultAge: false,
-      policyVersion: "self-declared-age-v1", expectedVersion: 0 },
-      captchaToken: "synthetic-captcha-token", disclosureVersion: "guest-v1" },
+      policyVersion: "self-declared-age-v2-18plus", expectedVersion: 0 },
+      captchaToken: "synthetic-captcha-token", disclosureVersion: "guest-v2" },
     headers: { Origin: origin, "X-Guest-Intent": "1", "Idempotency-Key": randomUUID() },
   });
   expect(response.status(), await response.text()).toBe(201);
@@ -28,7 +28,7 @@ export async function publicEntry(page: Page) {
   await page.goto("/");
   await page.getByRole("button", { name: "Dùng thử 2 giờ", exact: true }).first().click();
   await page.getByLabel("Năm sinh", { exact: true }).fill("2000");
-  await page.getByRole("checkbox", { name: "Tôi xác nhận mình từ 16 tuổi trở lên." }).check();
+  await page.getByRole("checkbox", { name: "Tôi xác nhận mình đã đủ 18 tuổi." }).check();
   const granted = page.waitForResponse(r => r.url().endsWith("/auth/guest") && r.request().method() === "POST");
   await page.getByRole("button", { name: "Bắt đầu dùng thử", exact: true }).click();
   const response = await granted;

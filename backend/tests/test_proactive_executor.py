@@ -127,16 +127,17 @@ async def test_model_input_is_one_data_item_without_transcript_or_tools(clients)
     assert "16–17 tuổi" not in call["instructions"]
 
 
-async def test_teen_instructions_add_the_age_layer(clients):
+async def test_under_18_account_never_reaches_the_model(clients):
     from tests.conftest import add_actor
 
     app, _ = clients
-    model = reply("Chào buổi sáng nha.")
+    model = reply("Chao buoi sang nha.")
     ready(app, model)
     _client, uid = await add_actor(app, 5, age_band="teen")
     await due_schedule(app, uid)
     await tick(app)
-    assert "16–17 tuổi" in model.calls[0]["instructions"]
+    # Global 18+: the 16-17 age layer is gone because no such account is ever served.
+    assert model.calls == []
 
 
 async def test_check_in_joins_the_latest_saved_conversation(clients):

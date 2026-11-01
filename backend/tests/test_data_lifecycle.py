@@ -1,4 +1,3 @@
-
 import pytest
 
 from tests.social_helpers import key

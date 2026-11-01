@@ -13,7 +13,7 @@ ELIGIBILITY = {
     "birthYear": 2000,
     "confirmedMinimumAge": True,
     "confirmedAdultAge": False,
-    "policyVersion": "self-declared-age-v1",
+    "policyVersion": "self-declared-age-v2-18plus",
     "expectedVersion": 0,
 }
 
@@ -56,9 +56,10 @@ async def test_registered_and_guest_session_contracts(clients):
     assert guest.expires_at - guest.started_at == timedelta(seconds=7200)
     assert guest.started_at < datetime.fromisoformat(body["serverTime"]) < guest.expires_at
     assert body["guestQuota"] == {
-        "aiTurnsRemaining": 22,
-        "voiceClipsRemaining": 5,
-        "voiceSecondsRemaining": 167.5,
+        "aiTurnsRemaining": 47,
+        "aiTurnsLimit": 50,
+        "voiceClipsRemaining": 19,
+        "voiceSecondsRemaining": 587.5,
     }
     assert body["features"]["matching"] is False
     assert body["features"]["ai"] is False and body["features"]["voice"] is False
@@ -129,11 +130,11 @@ def test_guest_input_and_settings_defaults_fail_closed():
     from app.core.config import Settings
     from app.modules.guests.schemas import GuestInput
 
-    valid = {"eligibility": ELIGIBILITY, "captchaToken": "x" * 20, "disclosureVersion": "guest-v1"}
+    valid = {"eligibility": ELIGIBILITY, "captchaToken": "x" * 20, "disclosureVersion": "guest-v2"}
     parsed = GuestInput.model_validate(valid)
     assert "x" * 20 not in repr(parsed), "the CAPTCHA token must never reach a repr or log"
     for broken in (
-        {**valid, "disclosureVersion": "guest-v2"},
+        {**valid, "disclosureVersion": "guest-v1"},
         {**valid, "captchaToken": ""},
         {**valid, "captchaToken": "y" * 4097},
         {**valid, "eligibility": {**ELIGIBILITY, "expectedVersion": 1}},
@@ -158,14 +159,14 @@ def test_guest_input_and_settings_defaults_fail_closed():
         settings.guest_ai_per_minute,
         settings.guest_ai_concurrency,
         settings.guest_ai_global_concurrency,
-    ) == (25, 6, 1, 10)
+    ) == (50, 6, 1, 10)
     assert (
         settings.guest_voice_clips,
         settings.guest_voice_seconds,
         settings.guest_voice_per_minute,
         settings.guest_voice_concurrency,
         settings.guest_voice_global_concurrency,
-    ) == (6, 180, 2, 1, 3)
+    ) == (20, 600, 2, 1, 3)
     assert "h" * 40 not in repr(Settings(_env_file=None, guest_abuse_hmac_key=SecretStr("h" * 40)))
 
     with pytest.raises(ValidationError):

@@ -2720,6 +2720,7 @@ export interface components {
              * @default false
              */
             strictGoal: boolean;
+            discovery?: components["schemas"]["FriendshipDiscovery"] | null;
         };
         /** DraftView */
         DraftView: {
@@ -2756,7 +2757,7 @@ export interface components {
              * Policyversion
              * @constant
              */
-            policyVersion: "self-declared-age-v1";
+            policyVersion: "self-declared-age-v2-18plus";
         };
         /** EmailInput */
         EmailInput: {
@@ -2791,7 +2792,7 @@ export interface components {
         /** ExportInput */
         ExportInput: {
             /** Scopes */
-            scopes: ("account" | "memories" | "moods" | "journal" | "consents" | "social")[];
+            scopes: ("account" | "memories" | "moods" | "journal" | "consents" | "social" | "conversations")[];
             /** Guestconfirmation */
             guestConfirmation?: "guest-data-v1" | null;
         };
@@ -2969,6 +2970,24 @@ export interface components {
              */
             cycles: number;
         };
+        /**
+         * FriendshipDiscovery
+         * @description Explicit public display choices, independent of canonical matching facets.
+         */
+        FriendshipDiscovery: {
+            /**
+             * Version
+             * @default 1
+             * @constant
+             */
+            version: 1;
+            /** Intention */
+            intention?: ("talk" | "shared-interests" | "study" | "experiences") | null;
+            /** Connectionapproach */
+            connectionApproach?: ("gradual" | "lively" | "activity-first") | null;
+            /** Featuredinterests */
+            featuredInterests?: string[];
+        };
         /** GroupCreate */
         GroupCreate: {
             /** Name */
@@ -3142,7 +3161,7 @@ export interface components {
         };
         /**
          * GuestEligibility
-         * @description The existing age attestation, parsed leniently so under-16 and a missing confirmation
+         * @description The adult attestation, parsed leniently so under-18 and a missing confirmation
          *     answer GUEST_INELIGIBLE (before any provider call) instead of a generic validation error.
          */
         GuestEligibility: {
@@ -3161,7 +3180,7 @@ export interface components {
              * Policyversion
              * @constant
              */
-            policyVersion: "self-declared-age-v1";
+            policyVersion: "self-declared-age-v2-18plus";
         };
         /**
          * GuestInput
@@ -3175,7 +3194,7 @@ export interface components {
              * Disclosureversion
              * @constant
              */
-            disclosureVersion: "guest-v1";
+            disclosureVersion: "guest-v2";
         };
         /**
          * GuestQuota
@@ -3184,6 +3203,8 @@ export interface components {
         GuestQuota: {
             /** Aiturnsremaining */
             aiTurnsRemaining: number;
+            /** Aiturnslimit */
+            aiTurnsLimit: number;
             /** Voiceclipsremaining */
             voiceClipsRemaining: number;
             /** Voicesecondsremaining */
@@ -3864,6 +3885,7 @@ export interface components {
              * @default false
              */
             strictGoal: boolean;
+            discovery?: components["schemas"]["FriendshipDiscovery"] | null;
         };
         /** PublishInput */
         PublishInput: {
@@ -4261,6 +4283,7 @@ export interface components {
             email: string;
             /** Password */
             password: string;
+            eligibility: components["schemas"]["EligibilityInput"];
         };
         /** SocialSummaryView */
         SocialSummaryView: {

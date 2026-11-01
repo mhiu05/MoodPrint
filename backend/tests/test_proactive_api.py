@@ -129,20 +129,14 @@ async def test_schedule_window_and_step(clients, value):
         assert response.json()["error"]["code"] == "SCHEDULE_WINDOW"
 
 
-async def test_teen_evening_limited_and_caunoi_unavailable(clients):
+async def test_under_18_account_cannot_use_proactive_schedules(clients):
     app, _ = clients
     enable(app)
     client, _uid = await add_actor(app, 7, age_band="teen")
-    late = await put_schedule(client, bot="may", slot="evening", localTime="21:15")
-    assert late.status_code == 422 and late.json()["error"]["code"] == "SCHEDULE_WINDOW"
-    view = (await client.get(BASE)).json()
-    assert view["limits"]["windows"]["evening"] == ["17:00", "21:00"]
-    assert view["settings"]["quietStart"] == "21:30"
-    assert find(view, "caunoi", "morning")["eligibility"]["reason"] == "teen_social_unavailable"
-    denied = await put_schedule(client, bot="caunoi")
-    assert denied.status_code == 403 and denied.json()["error"]["code"] == "PROACTIVE_INELIGIBLE"
-    ok = await put_schedule(client, bot="may", slot="evening", localTime="21:00")
-    assert ok.status_code == 200
+    # Global 18+: the whole surface is refused before any schedule rule is evaluated.
+    assert (await client.get(BASE)).status_code == 403
+    denied = await put_schedule(client, bot="may", slot="evening", localTime="20:00")
+    assert denied.status_code == 403 and denied.json()["error"]["code"] == "ELIGIBILITY_REQUIRED"
 
 
 async def test_schedule_inside_quiet_hours_is_rejected(clients):

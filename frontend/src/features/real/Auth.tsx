@@ -6,6 +6,8 @@ import type { LoginInput, SessionView } from "../../api/contracts";
 import { BrandMark } from "../../companions/Avatar";
 import { Brand, Button, cx } from "../../components/UI";
 import { ErrorNotice } from "../../components/ErrorNotice";
+import { AgeFields } from "../auth/AgeFields";
+import { ageDeclaration, bangkokYear } from "../auth/ageDeclaration";
 import type { AuthCallback } from "../auth/callback";
 
 type Schema = components["schemas"];
@@ -66,6 +68,8 @@ export function AuthScreen({
   const [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
     [confirm, setConfirm] = useState("");
+  const [birthYear, setBirthYear] = useState("");
+  const [adultConfirmed, setAdultConfirmed] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>(),
@@ -122,7 +126,7 @@ export function AuthScreen({
       } else if (mode === "signup") {
         await api.request<Schema["AuthNotice"]>("/auth/signup", {
           method: "POST",
-          body: { email, password } satisfies Schema["SignupInput"],
+          body: { email, password, eligibility: ageDeclaration(birthYear, adultConfirmed, bangkokYear()) } satisfies Schema["SignupInput"],
           publicWrite: true,
         });
         switchTo("login");
@@ -185,12 +189,13 @@ export function AuthScreen({
       ) : <Brand />}
       <h1 tabIndex={-1}>{landing && mode === "login" ? "Bắt đầu với MoodPrint" : titles[mode][0]}</h1>
       {landing && mode === "login" ? (
-        <p className="landing-auth-lede">Đăng nhập để tiếp tục hành trình khám phá bản thân và lưu giữ những cảm xúc ý nghĩa.</p>
+        <p className="landing-auth-lede">MoodPrint là nơi ghi lại cảm xúc, trò chuyện với trợ lý AI và kết nối với người khác qua những điểm chung bạn chọn chia sẻ.</p>
       ) : null}
       {!landing && (mode === "login" || mode === "signup") ? (
         <p>MoodPrint là nơi ghi lại cảm xúc, trò chuyện với trợ lý AI và kết nối với người khác qua những điểm chung bạn chọn chia sẻ.</p>
       ) : null}
       {(!landing || mode !== "login") && <p className={cx.lede}>{titles[mode][1]}</p>}
+      {(mode === "login" || mode === "signup") && <p>MoodPrint dành cho người từ đủ 18 tuổi.</p>}
       {notice && <p role="status">{notice}</p>}
       <ErrorNotice error={error} />
       {unconfirmed && (
@@ -252,6 +257,8 @@ export function AuthScreen({
             onChange={(event) => setConfirm(event.target.value)}
           />
         )}
+        {mode === "signup" && <AgeFields prefix="signup" year={birthYear} confirmed={adultConfirmed}
+          currentYear={bangkokYear()} onYear={setBirthYear} onConfirmed={setAdultConfirmed} />}
         {landing && mode === "login" && (
           <div className="landing-auth-tools">
             <Button variant="text" onClick={() => switchTo("recover")}>
