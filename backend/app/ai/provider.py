@@ -42,7 +42,7 @@ from app.ai.journal import (
 )
 from app.ai.prompts import (
     MULTI_MESSAGE_GUIDANCE,
-    SELECTED_VARIANTS,
+    RUNTIME_VARIANTS,
     conversation_instructions,
     instructions,
 )
@@ -187,7 +187,7 @@ class SdkProvider:
         extra_input: list[dict] | None = None,
     ) -> AiReply:
         """``extra_*`` carry an approved collaboration brief (Phase 2); empty = Phase 1 bytes."""
-        if bot_id not in SELECTED_VARIANTS:
+        if bot_id not in RUNTIME_VARIANTS:
             raise DomainError(404, "BOT_NOT_FOUND", "Không tìm thấy trợ lý.")
         set_tracing_disabled(True)
         async def observe(event: UsageEvent):
@@ -331,7 +331,7 @@ class SdkProvider:
         ``extra_instructions`` carries an approved R2 energy block (Phase 2); empty = Phase 1."""
         from app.ai.prompts import proactive_instructions
 
-        if bot_id not in SELECTED_VARIANTS:
+        if bot_id not in RUNTIME_VARIANTS:
             raise DomainError(404, "BOT_NOT_FOUND", "Không tìm thấy trợ lý.")
         set_tracing_disabled(True)
         if isinstance(model_override, Model):

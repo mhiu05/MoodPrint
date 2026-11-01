@@ -35,7 +35,7 @@ from app.ai.journal import (
 )
 from app.ai.models import AiMessageRecord
 from app.ai.persistence import current_turn, owned_conversation
-from app.ai.prompts import SELECTED_VARIANTS, prompt_version
+from app.ai.prompts import RUNTIME_VARIANTS, prompt_version
 from app.ai.schemas import AIEvent, AIMessage, AiReply, MoodReadScope, final_v2
 from app.ai.store import ConversationStore
 from app.ai.usage import UsageEvent
@@ -368,7 +368,7 @@ class AiRuntime:
         if self.settings.ai_accounting_enabled:
             await reserve_accounting(db, run_id, user_id, self.worker_id, self.settings.openai_model,
                                      # Compact journal policy revision fits existing varchar(60).
-                                     prompt_version(SELECTED_VARIANTS[bot_id]) + "+" + EVIDENCE_POLICY + "+" + CONVERSATION_POLICY + ("+j1" if caps(bot_id).journal else ""))
+                                     prompt_version(RUNTIME_VARIANTS[bot_id]) + "+" + EVIDENCE_POLICY + "+" + CONVERSATION_POLICY + ("+j1" if caps(bot_id).journal else ""))
 
     async def record_usage(self, run: LiveRun, event: UsageEvent):
         run.usage.observe(event)

@@ -40,7 +40,7 @@ from app.ai.proactive.output import (
 from app.ai.proactive.policy import Decision, admit_proactive, authorize_proactive
 from app.ai.proactive.provenance import source_policy
 from app.ai.proactive.safety import SAFETY_TEMPLATE, distress_screen
-from app.ai.prompts import PROACTIVE_PROMPT_VERSION, SELECTED_VARIANTS, prompt_version
+from app.ai.prompts import PROACTIVE_PROMPT_VERSION, RUNTIME_VARIANTS, prompt_version
 from app.ai.schemas import AiOutput
 from app.ai.usage import UsageEvent
 from app.core.errors import DomainError
@@ -146,7 +146,7 @@ async def _open(runtime, claimed: Claimed) -> Attempt | None:
         if settings.ai_accounting_enabled:
             await reserve_accounting(
                 db, run_id, user.id, runtime.worker_id, settings.openai_model,
-                prompt_version(SELECTED_VARIANTS[job.bot_id]) + "+" + PROACTIVE_PROMPT_VERSION,
+                prompt_version(RUNTIME_VARIANTS[job.bot_id]) + "+" + PROACTIVE_PROMPT_VERSION,
             )
         opened = None
         if settings.ai_collaboration_enabled and job.bot_id == "rure" and job.slot == "morning":

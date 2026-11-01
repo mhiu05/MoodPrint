@@ -21,11 +21,10 @@ LEGACY_SHARED = (
 )
 
 DEFAULT_VARIANT = "baseline"
-SELECTED_VARIANTS = {
-    "may": "baseline", "guong": "A", "nhip": "B", "rure": "B", "caunoi": "A",
-    # V3 agents: their own consolidated personas (never a renamed legacy text).
-    "dieuphoi": "V3", "nhatky": "V3", "hoatdong": "V3",
-}
+# Frozen evaluation contract of the five legacy companions (P0 datasets pin these keys).
+SELECTED_VARIANTS = {"may": "baseline", "guong": "A", "nhip": "B", "rure": "B", "caunoi": "A"}
+# Every companion the runtime can run: the legacy five plus the V3 agents' own personas.
+RUNTIME_VARIANTS = {**SELECTED_VARIANTS, "dieuphoi": "V3", "nhatky": "V3", "hoatdong": "V3"}
 VERSIONS = {"baseline": "legacy-v1", "A": "2026-10-30-a1", "B": "2026-10-24-b1", "V3": "three-agent-v1"}
 
 SHARED = """
@@ -154,7 +153,7 @@ Xong thử đặt cho nó một cái tên thật vô lý.'""",
 
 
 def instructions(bot_id: str, variant: str | None = None) -> str:
-    variant = variant or SELECTED_VARIANTS[bot_id]
+    variant = variant or RUNTIME_VARIANTS[bot_id]
     if variant == "V3" or bot_id in V3_PERSONAS:
         if bot_id not in V3_PERSONAS or variant != "V3":
             raise ValueError("Unknown prompt variant or bot")
