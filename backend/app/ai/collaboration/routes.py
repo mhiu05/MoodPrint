@@ -79,7 +79,9 @@ async def sharing_view(db, settings, user) -> SharingView:
 
 @router.get("/ai/sharing", response_model=SharingView)
 async def read_sharing(request: Request, actor: Actor = Depends(require_registered_actor)):
-    async with transaction(request, actor, lock=False) as (db, user):
+    # Ineligible adults can still read why collaboration is unavailable; the view owns
+    # that eligibility decision and returns a stable SharingView for every account.
+    async with transaction(request, actor, eligible=False, lock=False) as (db, user):
         return await sharing_view(db, request.app.state.settings, user)
 
 
@@ -97,7 +99,9 @@ async def update_sharing(
     reads_journal = bool(managed.get(edge, (None,) * 5)[4])
     key, payload = idempotency_key(request), {"edge": edge, **body.model_dump(mode="json")}
     revoked = False
-    async with transaction(request, actor) as (db, user):
+    # This endpoint maps ineligibility to ADULT_REQUIRED when enabling, and still permits
+    # revocation. Do not let the generic transaction gate preempt those endpoint semantics.
+    async with transaction(request, actor, eligible=False) as (db, user):
         if await previous_receipt(db, user, "ai:sharing", key, payload):
             return await sharing_view(db, settings, user)
         row = await db.scalar(
