@@ -33,6 +33,9 @@ PERSONAL = {
     ("PUT", "/consents/{purpose}"),
     ("GET", "/ai/preferences"),
     ("PUT", "/ai/preferences"),
+    # Read markers act only on the caller's own conversations; read-all is empty for a guest.
+    ("PUT", "/ai/conversations/{conversation_id}/read"),
+    ("POST", "/ai/inbox/read-all"),
     ("GET", "/ai/conversations"),
     ("POST", "/ai/conversations"),
     ("GET", "/ai/conversations/{conversation_id}"),
@@ -41,6 +44,9 @@ PERSONAL = {
     ("GET", "/ai/conversations/{conversation_id}/export"),
     ("POST", "/ai/conversations/{conversation_id}/end"),
     ("POST", "/ai/conversations/{conversation_id}/messages"),
+    # V3: legacy labels (empty unless the three agents are on) and ending a handoff continuation.
+    ("GET", "/bots/legacy"),
+    ("POST", "/ai/conversations/{conversation_id}/agent"),
     ("GET", "/ai/runs/{run_id}/events"),
     ("POST", "/ai/runs/{run_id}/cancel"),
     ("GET", "/memories"),
@@ -72,6 +78,28 @@ PERSONAL = {
     ("GET", "/data-deletions/{job_id}"),
 }
 REGISTERED_ONLY = {
+    # Scheduled check-ins are for permanent accounts only (P1-10).
+    ("GET", "/ai/proactive"),
+    ("PUT", "/ai/proactive/settings"),
+    ("PUT", "/ai/proactive/schedules/{bot_id}/{slot}"),
+    ("POST", "/ai/proactive/schedules/{bot_id}/{slot}/migrate"),
+    # V3 AI groups: registered adults only (checked before the feature flag).
+    ("GET", "/ai/groups"),
+    ("POST", "/ai/groups"),
+    ("GET", "/ai/groups/{group_id}"),
+    ("PATCH", "/ai/groups/{group_id}"),
+    ("DELETE", "/ai/groups/{group_id}"),
+    ("POST", "/ai/groups/{group_id}/members"),
+    ("DELETE", "/ai/groups/{group_id}/members/{bot_id}"),
+    ("PUT", "/ai/groups/{group_id}/members/{bot_id}/journal-access"),
+    ("POST", "/ai/groups/{group_id}/messages"),
+    ("GET", "/ai/groups/{group_id}/turns/{turn_id}/events"),
+    ("POST", "/ai/groups/{group_id}/turns/{turn_id}/cancel"),
+    ("POST", "/ai/groups/{group_id}/read"),
+    ("DELETE", "/ai/proactive/schedules/{bot_id}/{slot}"),
+    # Companion collaboration opt-in is for permanent adult accounts only (P2-02).
+    ("GET", "/ai/sharing"),
+    ("PUT", "/ai/sharing/{edge}"),
     ("GET", "/admin/feedback"),
     ("GET", "/admin/feedback/summary"),
     ("PATCH", "/admin/feedback/{id}"),
@@ -129,7 +157,7 @@ REGISTERED_ONLY = {
     ("POST", "/admin/users/{ref}/lift"),
 }
 # Deliberate zero projection: no social SQL for a guest, no 403 for the badge poll.
-SUMMARY_ZERO = {("GET", "/social/summary")}
+SUMMARY_ZERO = {("GET", "/social/summary"), ("GET", "/ai/inbox")}
 # Guest lifecycle entry points added by this feature; each has its own guards (plan 01).
 GUEST_ENTRY = {
     ("POST", "/auth/guest-intents"),

@@ -20,7 +20,7 @@ export function createMessageDateFormatter(timeZone: string, now: Date) {
     const dayKey = dateFormat.format(date);
     return {
       dayKey,
-      dayLabel: dayKey === today ? "Today" : dayKey === yesterday ? "Yesterday" : dayKey,
+      dayLabel: dayKey === today ? "Hôm nay" : dayKey === yesterday ? "Hôm qua" : dayKey,
       time: timeFormat.format(date),
     };
   };

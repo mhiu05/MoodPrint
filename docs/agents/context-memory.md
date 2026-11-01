@@ -45,6 +45,10 @@ Capability `SEMANTIC_MEMORY_ENABLED`, Voyage key và preference `semanticMemoryE
 
 Mặc định embedding model `voyage-4-lite`, dimensions 1024; các giá trị cấu hình khác ở [configuration](../backend/configuration.md). Dữ liệu gửi đến provider là xử lý ngoài hệ thống; tắt tracing hoặc `store=False` không chứng minh đã xóa dữ liệu khỏi provider/backup.
 
+## Lời hỏi thăm trong context
+
+Tin chủ động có stamp riêng: `proactive-text-v1` vào context như câu trả lời thường; `proactive-journal-v1` (Nhịp dùng khoảnh khắc hôm qua) chỉ vào context của lượt kế tiếp nếu trong 36 h **và** `revalidate_sources` dưới owner lock xác nhận: consent vẫn bật đúng `journal_context_version` (ghi trong `ai_message_sources.policy`), mỗi entry nguồn vẫn `saved`, đúng revision, trong 90 ngày. Khi đó lượt hiện tại được stamp `journal-turn-v1` **trước** khi prose tới model, nên các lượt sau tự cắt nó. Sửa/xóa entry, tắt (kể cả tắt rồi bật lại) consent hoặc `data_version` đổi đều làm tin đó và mọi tin cũ hơn bị cắt (fail closed). Payload lời hỏi thăm chỉ chứa tối đa 3 entry `saved` của hôm qua theo múi giờ lịch, của chính chủ, ngoài nháp/media/mood note cũ; không có approved memory.
+
 ## Kiểm thử bảo vệ boundary
 
 `test_context_selection.py`, `test_context_privacy_migration.py`, `test_privacy_lifecycle.py`, `test_memory.py`, `test_embeddings.py`, `test_scoped_mood_tool.py` và `test_mood_evidence_runtime.py` kiểm tra projection, revoke, ownership, jobs, nguồn và evidence. Kiểm thử fake provider xác minh logic ứng dụng; live provider cần gate riêng trong [evaluation](evaluation.md).

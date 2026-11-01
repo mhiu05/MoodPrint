@@ -188,7 +188,10 @@ export function ConversationHistory({ onSelect }: { onSelect?: () => void }) {
       ) : null}
       {groups.map(([botId, group]) => (
         <div className="history-group" key={botId}>
-          <h3 id={`${groupId}-${botId}`}>{botById(botId)?.name || botId}</h3>
+          <h3 id={`${groupId}-${botId}`}>
+            {botById(botId)?.name || botId}
+            {session.features.threeAgents && group[0]?.legacy ? <span className="history-legacy">Cuộc trò chuyện cũ</span> : null}
+          </h3>
           <ul aria-labelledby={`${groupId}-${botId}`}>
             {group.map((item) => (
               <li key={item.conversationId}>

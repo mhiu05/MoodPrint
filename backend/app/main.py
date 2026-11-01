@@ -14,7 +14,7 @@ from sqlalchemy import select, text, update
 from app.ai.models import AiTurn
 from app.ai.persistence import recover_turns
 from app.ai.runtime import AiRuntime
-from app.ai.schemas import AIEvent, AiOutput
+from app.ai.schemas import AIEvent, AIFinalV2, AiOutput
 from app.contracts import ApiError
 from app.core.body_limit import BodyLimitMiddleware
 from app.core.config import Settings
@@ -366,7 +366,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"status": "ready"}
 
     from app.ai.chat_routes import router as ai
+    from app.ai.collaboration.routes import router as sharing
+    from app.ai.groups.routes import router as groups
     from app.ai.memory import router as memory
+    from app.ai.proactive.routes import router as proactive
     from app.modules.activities.routes import router as activities
     from app.modules.auth.routes import router as auth
     from app.modules.consent.routes import router as consent
@@ -396,6 +399,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         journal,
         journal_media,
         ai,
+        proactive,
+        sharing,
+        groups,
         memory,
         social,
         social_summary,
@@ -418,6 +424,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         schema["components"]["schemas"].update(output.pop("$defs", {}))
         schema["components"]["schemas"]["AiOutput"] = output
+        final = AIFinalV2.model_json_schema(by_alias=True, ref_template="#/components/schemas/{model}")
+        schema["components"]["schemas"].update(final.pop("$defs", {}))
+        schema["components"]["schemas"]["AIFinalV2"] = final
         app.openapi_schema = schema
         return schema
 

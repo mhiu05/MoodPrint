@@ -42,6 +42,61 @@ Mặc định database pool 8 + overflow 4, pool timeout 10 giây; đây là c�
 
 `scripts/check_config.py`, `inspect_database.py`, `verify_runtime_role.py` hỗ trợ kiểm tra theo mục tiêu của script. Chúng có thể dùng cấu hình thật: đọc script trước khi chạy, không coi tên “check” là bảo đảm offline.
 
+## Lời hỏi thăm (service `proactive`)
+
+Service Compose riêng `proactive` (cùng image API, lệnh `python -m app.jobs.proactive`) chạy cả vòng materialize lịch → job và executor; process API **không bao giờ** sinh lời hỏi thăm. Mọi phối hợp qua PostgreSQL (`ai_proactive_jobs`: unique `(user, bot, slot, local_date)`, claim `SKIP LOCKED`, lease 90 s có `lease_token`). Không giữ transaction trong lúc gọi model; mọi transaction worker đặt `lock_timeout 2s`, `statement_timeout 5s`, `idle_in_transaction_session_timeout 15s`.
+
+**Thứ tự bật (mỗi bước quan sát ≥ 24 h trên staging trước bước sau):**
+
+1. Hosted đã ở `0022_proactive_messages` qua quy trình review SQL; image R1 (`READY_REVISIONS = 0022`) ready. R0 (`release/proactive-r0-compat`) sẵn sàng làm rollback.
+2. (Owner duyệt) `ALTER ROLE moodprint_backend CONNECTION LIMIT 30` và `SET idle_in_transaction_session_timeout = '60s'` — xem [96 §5](../implementation-plans/proactive-multi-agent-companion/96-architecture-hardening-review.md#5-khuyến-nghị-dung-lượng-supabase).
+3. `AI_MULTI_MESSAGE_ENABLED=true` (Gate G1a).
+4. `AI_ACCOUNTING_ENABLED=true`, `AI_DAILY_BUDGET_USD > 0` (bắt buộc trước bước 6; validator production từ chối worker nếu thiếu).
+5. `PROACTIVE_ENABLED=true` với `PROACTIVE_ROLLOUT_USER_IDS=[…]` (chỉ tài khoản thử nghiệm đã đồng ý): người dùng thấy trang lịch, chưa có lời hỏi thăm nào được gửi.
+6. `PROACTIVE_WORKER_ENABLED=true` cho service `proactive` (biến trong env file; compose truyền `PROACTIVE_WORKER_ENABLED`). Concurrency mặc định 1; tăng lên 2 chỉ sau khi đã tăng connection limit (bước 2).
+7. Mở rộng cohort, cuối cùng để `PROACTIVE_ROLLOUT_USER_IDS=[]`.
+
+**Health.** Container healthcheck `python -m app.jobs.proactive --health` kiểm heartbeat (file trong `/tmp` tmpfs, cập nhật sau mỗi tick, hết hạn 120 s). Khi khởi động, worker đợi tới khi `alembic_version ∈ READY_REVISIONS` (log `proactive_worker_waiting reason=schema_revision`) — không bao giờ chạm bảng khi schema chưa đúng. `deploy.sh` không gate release theo worker (worker có thể tắt độc lập).
+
+**Log/metric (không nội dung, không `user_id`):** `proactive_job_state job_id state reason bot slot attempt`, `metric=proactive_tick_ms`, `metric=proactive_queue_due` (mỗi 60 s), `metric=proactive_lag_seconds`, `metric=proactive_budget_skip`, `metric=proactive_safety_template`, `metric=proactive_job_failed`, `metric=proactive_job_expired`, `metric=proactive_tick_error`, `metric=proactive_provider_configuration`, `proactive_execution_end … duration_ms input_tokens output_tokens`. Alarm: `ProactiveFailedJobs`, `ProactiveExpiredJobs`, `ProactiveTickErrors`, `ProactiveProviderConfiguration`, `ProactiveBudgetSkip` trong [cloudwatch-alarms.json](../../deploy/aws/cloudwatch-alarms.json) (cấu hình, chưa áp dụng).
+
+| Triệu chứng | Kiểm tra theo thứ tự |
+| --- | --- |
+| Không ai nhận lời hỏi thăm | `PROACTIVE_WORKER_ENABLED` trong env service `proactive`? container healthy? log `proactive_worker_waiting`? `metric=proactive_queue_due` tăng? cohort rollout? |
+| Nhiều `expired`/`missed_window` | Worker dừng/chậm: CPU/RAM container, `metric=proactive_tick_ms`, model timeout; sau sự cố dài mỗi lịch chỉ có **một** `missed_window` rồi nhảy tới lần kế tiếp (không backlog) |
+| `skipped(budget)` | Chi tiêu ngày ≥ `PROACTIVE_BUDGET_SHARE × AI_DAILY_BUDGET_USD`; chat người dùng vẫn còn phần còn lại |
+| `failed(provider_configuration)` | Key/model; không retry tự động |
+| `failed(invalid_output)` nhiều | Prompt/model đổi hành vi; chạy `python -m evals.proactive --live …` có trần ngân sách |
+| Lời hỏi thăm bị hoãn liên tục (`retry active_chat`) | Người dùng đang chat cùng trợ lý; hết hạn → `skipped(active_chat)`; đúng thiết kế |
+| Nghi giao trùng | Không thể với unique `(user,bot,slot,local_date)`; kiểm `ai_proactive_jobs` theo `run_id`, mỗi job `delivered` có đúng một run `completed` |
+| Pool timeout ở worker | Concurrency > pool: giữ `DATABASE_POOL_SIZE ≥ PROACTIVE_WORKER_CONCURRENCY` (đo: mỗi job chỉ giữ 1 kết nối tại một thời điểm) |
+
+**Dừng khẩn cấp / rollback:** `PROACTIVE_WORKER_ENABLED=false` rồi `docker compose up -d proactive` (dừng sinh mới; job đang chạy để lease hết hạn, không commit dở). `PROACTIVE_ENABLED=false` ẩn API/UI (GET trả `available=false`, ghi `503`). Tin đã giao vẫn hợp lệ trong lịch sử. Rollback image R1 → R0 an toàn ở 0022 (R0 bỏ qua bảng mới; nhiều bubble hiển thị thành nhiều tin). Không downgrade schema.
+
+## Trợ lý phối hợp (Phase 2)
+
+Không có service mới: coordinator chạy trong process đang phục vụ lượt (API cho chat R1/R3/R4, service `proactive` cho R2). Mỗi lần nhờ là một run con `origin='collaboration'` (`parent_run_id`, `conversation_id` NULL) có `ai_usage` riêng, tính vào `AI_GLOBAL_CONCURRENCY` và ngân sách ngày nhưng không vào lượt chat của người dùng. Specialist không có tool, 1 model call, timeout `AI_COLLABORATION_TIMEOUT_SECONDS`; không giữ transaction trong lúc gọi model.
+
+**Thứ tự bật (sau khi Phase 1 đã ổn định trên staging):**
+
+1. Hosted ở `0023_collaboration` qua quy trình review SQL ([offline SQL ứng viên](../implementation-plans/proactive-multi-agent-companion/evidence/sql/0022-0023-offline.candidate.sql)); image R2 (`READY_REVISIONS = 0023`) ready. Rollback image R1 phải chấp nhận cả 0022 và 0023 trước khi áp dụng 0023 (xem sổ Phase 2).
+2. `AI_MULTI_MESSAGE_ENABLED=true`, `AI_ACCOUNTING_ENABLED=true`, `AI_DAILY_BUDGET_USD > 0` (validator production từ chối cờ phối hợp nếu thiếu accounting).
+3. `AI_COLLABORATION_ENABLED=true` với `AI_COLLABORATION_ROLLOUT_USER_IDS=[…]` (tài khoản thử nghiệm đã đồng ý). Mọi cạnh vẫn tắt cho tới khi chính người dùng bật ở `/companion-sharing`.
+4. Quan sát 7 ngày (Gate G2): 0 dòng cộng tác không có receipt `completed`+`used_in_reply`, timeout < 5 % (`CollaborationTimeout / CollaborationConsulted`), chi phí trong ±50 % ước tính.
+5. Mở rộng cohort, cuối cùng `AI_COLLABORATION_ROLLOUT_USER_IDS=[]`.
+
+**Log/metric (không nội dung, không `user_id`, không entry id):** `metric=collaboration_state edge rule status reason duration_ms` (mọi chuyển trạng thái), `metric=collaboration_consulted`, `metric=collaboration_timeout`, `metric=collaboration_failed reason`. Alarm `CollaborationTimeouts`, `CollaborationFailures` trong [cloudwatch-alarms.json](../../deploy/aws/cloudwatch-alarms.json) (cấu hình, chưa áp dụng). Receipt `ai_collaborations` giữ 90 ngày.
+
+| Triệu chứng | Kiểm tra theo thứ tự |
+| --- | --- |
+| Không bao giờ thấy dòng cộng tác | Cờ + cohort? `features.collaboration` trong `/session`? người dùng đã bật cạnh? tin có khớp luật R1–R4? `metric=collaboration_state … status=denied reason=…` |
+| Nhiều `timeout` | Độ trễ provider; specialist có 1 call nên timeout là trần cứng — người dùng vẫn nhận câu trả lời đơn; tạm `AI_COLLABORATION_ENABLED=false` nếu kéo dài |
+| Nhiều `failed reason=unsafe_*`/`invalid_output` | Model/prompt đổi hành vi; chạy `python -m evals.collaboration --offline`, live chỉ khi owner duyệt ngân sách |
+| `denied reason=budget` | Chi tiêu ngày ≥ `AI_COLLABORATION_BUDGET_SHARE × AI_DAILY_BUDGET_USD` |
+| Receipt kẹt `authorized` | Worker chết giữa chừng: `recover_turns` đóng run con và receipt (`failure_code=interrupted`) khi lease lượt cha hết hạn |
+
+**Dừng khẩn cấp / rollback:** `AI_COLLABORATION_ENABLED=false` (không cần redeploy schema): không còn specialist call, không receipt mới, không progress `consulting`, DTO không còn dòng cộng tác; người dùng vẫn tắt được cạnh. Rollback image R2 → R1 an toàn ở 0023 khi R1 chấp nhận 0023 (bảng/cột mới bị bỏ qua). Không downgrade schema.
+
 ## Rollback
 
 App rollback dùng image trước trên expanded schema tương thích và phải đáp ứng readiness thực tế. Ứng dụng journal chỉ chấp nhận `0019_journal`. Image tương thích ngay trước đó chấp nhận `0018_app_feedback` và `0019_journal`, nên nó vẫn ready sau upgrade cộng thêm và là rollback target. Không downgrade schema để rollback. Alembic destructive downgrade bị từ chối trong migrations. Hosted schema change và restore cần review riêng; xem [migrations](../supabase/migrations.md).

@@ -31,10 +31,12 @@ import {
   Info,
   LockKeyhole,
   MessageCircle,
+  Moon,
   NotebookPen,
   Pause,
   Search,
   Sparkles,
+  Sun,
   UserRound,
   Users,
 } from "lucide-react";
@@ -48,7 +50,7 @@ import {
 import { BotAvatar } from "../../companions/Avatar";
 import { botById, type BotId } from "../../companions/registry";
 import { ApiClient, ApiError, errorMessage } from "../../api/client";
-import { consumeAIEvents, validCards } from "../../api/stream";
+import { consumeAIReply, validCards } from "../../api/stream";
 import { AdultEligibility, EligibilityGate } from "./Eligibility";
 import { AuthScreen } from "./Auth";
 import type { AuthCallback } from "../auth/callback";
@@ -67,6 +69,9 @@ import type {
 } from "../../api/contracts";
 import "./real.css";
 import "./agent-chat.css";
+import "./checkins/proactive.css";
+import type { components } from "../../api/generated/schema";
+import { AIInboxProvider, inboxLabel, otherUnread, unreadFor, useAIInbox } from "./useAIInbox";
 import { Discovery } from "./social/Discovery";
 import { OfflineBanner, useOnline } from "./OfflineBanner";
 import {
@@ -87,9 +92,12 @@ import { VoiceRecorder } from "./Voice";
 import { AccountActions, AccountDeletionComplete } from "./AccountActions";
 import { focusRouteHeading, useRouteFocus } from "./useRouteFocus";
 import { AIActivityStatus } from "./AIActivityStatus";
+import { CollaborationLine } from "./collaboration/CollaborationLine";
+import { AgentStepsLine, HandoffBanner, SpeakerTag } from "./orchestration/AgentLines";
 import { ConversationInfo, useInfoPanelMounted } from "./ConversationInfo";
 import { insertAtSelection } from "./draftInsert";
 import { createMessageDateFormatter } from "./messageDates";
+import { groupMessages } from "./messageGroups";
 import { deriveAIActivity, type AIActivityPhase } from "./aiActivityView";
 import { AIDataProvider, ConversationHistory, useAIData, type SavedConversation, type SavedConversationHeader } from "./AIData";
 
@@ -97,6 +105,11 @@ const MessageMarkdown = lazy(() => import("./MessageMarkdown"));
 const FeedbackPage = lazy(() => import("../feedback/FeedbackPage"));
 const FeedbackAdmin = lazy(() => import("./admin/Feedback"));
 const TourController = lazy(() => import("../onboarding/TourController"));
+const CheckInsPage = lazy(() => import("./checkins/CheckInsPage").then(module => ({ default: module.CheckInsPage })));
+const SharingPage = lazy(() => import("./collaboration/SharingPage").then(module => ({ default: module.SharingPage })));
+const GroupChat = lazy(() => import("./groups/GroupChat").then(module => ({ default: module.GroupChat })));
+const GroupCreate = lazy(() => import("./groups/GroupCreate").then(module => ({ default: module.GroupCreate })));
+const GroupsSection = lazy(() => import("./groups/GroupsSection").then(module => ({ default: module.GroupsSection })));
 const JournalPage = lazy(() => import("./journal/JournalPage").then(module => ({ default: module.JournalPage })));
 const JournalCalendar = lazy(() => import("./journal/JournalCalendar").then(module => ({ default: module.JournalCalendar })));
 const JournalTimeline = lazy(() => import("./journal/JournalTimeline").then(module => ({ default: module.JournalTimeline })));
@@ -681,10 +694,12 @@ function Navigation() {
   const location = useLocation();
   const summary = useSocialSummary(location.pathname);
   const unread = summary.unreadConnections + summary.activityInvites;
+  const { inbox } = useAIInbox();
+  const checkIns = inbox.badgesEnabled ? inbox.unreadTotal : 0;
   return (
     <nav className={cx.navigation} aria-label="Điều hướng chính">
       {[
-        { to: "/assistants", label: "Trợ lý", Icon: Sparkles, count: 0, what: "" },
+        { to: "/assistants", label: "Trợ lý", Icon: Sparkles, count: checkIns, what: "lời nhắn mới" },
         { to: "/self", label: "Nhật ký", Icon: NotebookPen, count: 0, what: "" },
         {
           // Pending invitations open their tab directly (08 section 2).
@@ -748,7 +763,8 @@ function ConnectionBanner() {
 }
 
 function Shell() {
-  const { session } = useSession();
+  const { api, session } = useSession();
+  const checkInsOpen = session.features.proactive && session.accountKind !== "guest";
   const [guideOpen, setGuideOpen] = useState(false);
   const activity = useTourActivity();
   useEffect(() => () => clearTourBlockers(), []);
@@ -777,7 +793,7 @@ function Shell() {
   }, [location.pathname]);
   useRouteFocus(location.pathname);
   return (
-    <>
+    <AIInboxProvider api={api} enabled={checkInsOpen}>
       <a
         className={cx.skipLink}
         href="#main"
@@ -812,6 +828,8 @@ function Shell() {
               )}
               <Route path="/assistants" element={<Assistants />} />
               <Route path="/assistants/:botId" element={<Assistants />} />
+              <Route path="/assistants/groups/new" element={<Assistants group="new" />} />
+              <Route path="/assistants/groups/:groupId" element={<Assistants group="chat" />} />
               <Route path="/settings" element={<Navigate replace to="/profile" />} />
               <Route path="/self" element={<Suspense fallback={<p role="status">Đang mở nhật ký…</p>}><JournalPage /></Suspense>} />
               <Route path="/self/calendar" element={<Suspense fallback={<p role="status">Đang mở lịch nhật ký…</p>}><JournalCalendar /></Suspense>} />
@@ -826,11 +844,13 @@ function Shell() {
                 path="/chat/:connectionId"
                 element={session.accountKind === "guest" ? <GuestLocked /> : <HumanChat key={location.pathname} />}
               />
+              <Route path="/check-ins" element={session.accountKind === "guest" ? <GuestLocked /> : <Suspense fallback={<p role="status">Đang tải lịch hỏi thăm…</p>}><CheckInsPage /></Suspense>} />
+              <Route path="/companion-sharing" element={session.accountKind === "guest" ? <GuestLocked /> : <Suspense fallback={<p role="status">Đang tải cài đặt phối hợp…</p>}><SharingPage /></Suspense>} />
               <Route path="*" element={<Navigate replace to="/assistants" />} />
           </Routes>
         </main>
       </div>
-    </>
+    </AIInboxProvider>
   );
 }
 
@@ -871,19 +891,24 @@ function PublicAvatar({ bot, size }: { bot: BotPublicDTO; size?: number }) {
   );
 }
 
-function Assistants() {
-  const { botId } = useParams();
+function Assistants({ group }: { group?: "new" | "chat" }) {
+  const { botId, groupId } = useParams();
   const resource = useResource<BotPublicDTO[]>("/bots");
   const [search, setSearch] = useState("");
   const bots = resource.data || [];
-  const bot = bots.find((value) => value.botId === botId);
+  const { session } = useSession();
+  // V3: legacy companions are not in the roster, but their saved chats stay readable.
+  const legacy = useResource<BotPublicDTO[]>("/bots/legacy", session.features.threeAgents);
+  const bot = bots.find((value) => value.botId === botId) ?? legacy.data?.find((value) => value.botId === botId);
+  const { inbox, markAll } = useAIInbox();
+  const [markingAll, setMarkingAll] = useState(false);
   const filtered = bots.filter((value) =>
     `${value.name} ${value.role}`
       .toLocaleLowerCase("vi-VN")
       .includes(search.toLocaleLowerCase("vi-VN")),
   );
   return (
-    <div className={`companion-layout ${botId ? "has-conversation" : ""}`}>
+    <div className={`companion-layout ${botId || group ? "has-conversation" : ""}`}>
       <section className="bot-roster" aria-label="Danh sách trợ lý">
         <label className="bot-search">
           <Search size={18} />
@@ -900,13 +925,36 @@ function Assistants() {
         </div>
         {resource.loading ? <p role="status">Đang tải trợ lý…</p> : null}
         <ErrorNotice error={resource.error} retry={resource.refresh} />
+        {inbox.unreadTotal > 0 ? (
+          <section className="inbox-section" aria-labelledby="inbox-heading">
+            <h2 id="inbox-heading">Lời nhắn mới</h2>
+            <ul>
+              {inbox.bots.map((item) => {
+                const name = bots.find((value) => value.botId === item.botId)?.name ?? item.botId;
+                return (
+                  <li key={item.botId}>
+                    <Link to={`/assistants/${item.botId}?conversation=${encodeURIComponent(item.latest.conversationId)}`}>
+                      {inboxLabel(item.latest, name, session.timezone)}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+            <Button variant="text" disabled={markingAll} onClick={() => { setMarkingAll(true); void markAll().catch(() => undefined).finally(() => setMarkingAll(false)); }}>
+              Đánh dấu đã đọc tất cả
+            </Button>
+          </section>
+        ) : null}
         <div className="bot-list" data-tour="assistants-list">
-          {filtered.map((value) => (
+          {filtered.map((value) => {
+            const unreadCount = unreadFor(inbox, value.botId);
+            return (
             <Link
               key={value.botId}
               to={`/assistants/${value.botId}`}
               className={`bot-row ${botId === value.botId ? "selected" : ""}`}
               aria-current={botId === value.botId ? "page" : undefined}
+              aria-label={unreadCount ? `${value.name}, AI, ${value.role}, ${unreadCount} lời nhắn mới` : undefined}
             >
               <PublicAvatar bot={value} />
               <div className="bot-row-text">
@@ -916,9 +964,14 @@ function Assistants() {
                 </div>
                 <small>{value.role}</small>
               </div>
-              <ArrowUpRight size={16} className="roster-arrow" />
+              {unreadCount && inbox.badgesEnabled ? (
+                <span className="roster-unread" aria-hidden="true">{badgeText(unreadCount)}</span>
+              ) : (
+                <ArrowUpRight size={16} className="roster-arrow" />
+              )}
             </Link>
-          ))}
+            );
+          })}
         </div>
         {!resource.loading && !resource.error && !bots.length ? (
           <p className="search-empty">Chưa có trợ lý nào sẵn sàng. Bạn hãy thử lại sau.</p>
@@ -928,19 +981,28 @@ function Assistants() {
             <Button variant="text" onClick={() => setSearch("")}>Xóa tìm kiếm</Button>
           </div>
         ) : null}
+        {session.features.groupChat ? (
+          <Suspense fallback={<p role="status">Đang tải nhóm…</p>}><GroupsSection selected={groupId} /></Suspense>
+        ) : null}
         <ConversationHistory />
       </section>
       <section
         className="conversation-pane"
         aria-label={
-          bot ? `Trò chuyện với ${bot.name}` : "Cuộc trò chuyện"
+          group ? "Nhóm trợ lý" : bot ? `Trò chuyện với ${bot.name}` : "Cuộc trò chuyện"
         }
       >
-        {bot ? (
+        {group === "new" && session.features.groupChat ? (
+          <Suspense fallback={<p role="status">Đang mở…</p>}><GroupCreate /></Suspense>
+        ) : group === "chat" && groupId && session.features.groupChat ? (
+          <Suspense fallback={<p role="status">Đang mở nhóm…</p>}><GroupChat key={groupId} groupId={groupId} /></Suspense>
+        ) : group ? (
+          <div className="conversation-welcome"><h2>Nhóm trợ lý chưa mở cho tài khoản của bạn</h2><Link to="/assistants">Về danh sách trợ lý</Link></div>
+        ) : bot ? (
           <Conversation key={bot.botId} bot={bot} />
         ) : botId ? (
           <div className="conversation-welcome">
-            {resource.loading ? (
+            {resource.loading || legacy.loading ? (
               <p role="status">Đang mở trợ lý…</p>
             ) : (
               <>
@@ -952,9 +1014,9 @@ function Assistants() {
         ) : (
           <div className="conversation-welcome">
             <div className="welcome-orbit">
-              <BotAvatar id="may" size={110} />
-              <BotAvatar id="guong" size={69} />
-              <BotAvatar id="rure" size={64} />
+              <BotAvatar id={session.features.threeAgents ? "dieuphoi" : "may"} size={110} />
+              <BotAvatar id={session.features.threeAgents ? "nhatky" : "guong"} size={69} />
+              <BotAvatar id={session.features.threeAgents ? "hoatdong" : "rure"} size={64} />
               <span className="orbit-spark">
                 <Sparkles size={24} />
               </span>
@@ -1012,7 +1074,10 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const [pendingProposals, setPendingProposals] = useState(0), [proposalRevision, setProposalRevision] = useState(0);
   const allowed = session.features.ai;
   const historyWritable = !conversation?.persistent || !!preferences?.historyAvailable;
-  const canSend = allowed && historyWritable && !!preferences && !preferencesError;
+  // V3: a legacy companion's saved chat is history only; its successor answers new messages.
+  const legacyReadOnly = session.features.threeAgents && !!bot.legacy;
+  const successor = legacyReadOnly && bot.replacedBy ? botById(bot.replacedBy) : undefined;
+  const canSend = allowed && historyWritable && !!preferences && !preferencesError && !legacyReadOnly;
   const [draft, setDraft] = useState(""),
     [error, setError] = useState<unknown>();
   const [loading, setLoading] = useState(true),
@@ -1025,6 +1090,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const [stopRequested, setStopRequested] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [stopped, setStopped] = useState(false);
+  // Companion currently consulted, set only by a server `consulting` progress event of this run.
+  const [consulting, setConsulting] = useState<{ companion: string; transfer: boolean } | null>(null);
+  const [returning, setReturning] = useState(false);
   const activeRun = useRef<string | undefined>(undefined);
   const [revision, setRevision] = useState(0);
   const loadedRevision = useRef(0);
@@ -1087,6 +1155,10 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       return { message, date, showDate };
     });
   }, [conversation?.messages, session.timezone, messageClock]);
+  const messageGroupsView = useMemo(
+    () => groupMessages(datedMessages ?? [], (row) => row.message),
+    [datedMessages],
+  );
   const [unseen, setUnseen] = useState(false);
   const [manageError, setManageError] = useState<unknown>();
   const [deleteError, setDeleteError] = useState<unknown>();
@@ -1128,7 +1200,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const moodInvalid = moodSelected && (!moodFrom || !moodTo || moodFrom > moodTo ||
     moodFrom < moodWindow.earliest || moodTo > moodWindow.today);
   const hasUserMessages = conversation?.messages.some((message) => message.actor === "self") ?? false;
-  const showStarters = !loading && !busy && !hasUserMessages;
+  // A check-in is answered in the person's own words: starters do not come back under it (06 §4).
+  const showStarters = !loading && !busy && !hasUserMessages && !conversation?.messages.some((message) => message.origin === "proactive");
   const update = useCallback((value: SavedConversation) => {
     current.current = value;
     setConversation(value);
@@ -1156,22 +1229,41 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       let outcome: RunOutcome = "unknown";
       const ownerId = current.current?.conversationId;
       try {
-        const final = await consumeAIEvents(eventsUrl, signal);
+        const reply = await consumeAIReply(eventsUrl, signal, (activity) => {
+          if (!signal.aborted)
+            setConsulting(
+              activity.activity === "consulting" || activity.activity === "transferring"
+                ? { companion: activity.companion, transfer: activity.activity === "transferring" }
+                : null,
+            );
+        });
+        setConsulting(null);
         if (!signal.aborted && current.current) {
           const before = current.current;
+          const publishedAt = new Date().toISOString();
+          // Every validated bubble enters in one update, so the live region reads the turn once.
           update({
             ...before,
             activeRunId: null,
             activeRunVersion: null,
             messages: [
               ...before.messages,
-              {
-                id: `${id}-final`,
-                actor: "bot",
-                text: final.text,
-                cards: final.cards,
-                createdAt: new Date().toISOString(),
-              },
+              ...reply.messages.map((bubble) => ({
+                id: bubble.messageId ?? `${id}-final-${bubble.partIndex}`,
+                actor: "bot" as const,
+                text: bubble.text,
+                cards: bubble.cards,
+                createdAt: publishedAt,
+                runId: id,
+                partIndex: bubble.partIndex,
+                partCount: reply.messages.length,
+                origin: "user" as const,
+                // Backend template from a completed, used receipt; reconciled from history below.
+                collaboration: bubble.partIndex === 0 ? reply.collaboration ?? null : null,
+                // V3: who answered (a handoff changes it) and the receipt-backed steps.
+                speaker: reply.speaker ?? null,
+                steps: bubble.partIndex === 0 ? reply.steps ?? null : null,
+              })),
             ],
           });
           // The validated reply is already on screen; only reconciliation remains.
@@ -1223,6 +1315,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           if (ownerId) settled.current = { runId: id, conversationId: ownerId, outcome };
           activeRun.current = undefined; cancelRequested.current = undefined;
           setRun(undefined);
+          setConsulting(null);
           setBusy(false);
           setStopRequested(false);
           setSyncing(false);
@@ -1372,6 +1465,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     setBusy(true);
     setStopped(false);
     setError(undefined);
+    setNotice("");
     const moodScope = moodSelected ? { fromDate: moodFrom, toDate: moodTo } : undefined;
     const scopeKey = moodScope ? `${moodScope.fromDate}/${moodScope.toDate}` : "";
     if (intent.current?.text !== text || intent.current?.scopeKey !== scopeKey)
@@ -1420,7 +1514,15 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         activeRunVersion: accepted.runVersion,
         messages: [
           ...thread.messages,
-          { id: intent.current!.clientMessageId, actor: "self", text, createdAt: new Date().toISOString() },
+          {
+            id: intent.current!.clientMessageId,
+            actor: "self",
+            text,
+            createdAt: new Date().toISOString(),
+            partIndex: 0,
+            partCount: 1,
+            origin: "user",
+          },
         ],
       });
       const requestKey = intent.current!.clientMessageId;
@@ -1441,7 +1543,20 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         requestKey,
       );
     } catch (reason) {
-      if (!signal.aborted) setError(reason);
+      if (signal.aborted) return;
+      const thread = current.current;
+      if (reason instanceof ApiError && reason.code === "STALE_VERSION" && thread) {
+        // A newer message (for example a check-in) arrived first. The server accepted
+        // nothing, so the draft and its clientMessageId stay for an explicit resend.
+        try {
+          const stored = await api.request<SavedConversation>(`/ai/conversations/${thread.conversationId}`, { signal });
+          if (signal.aborted) return;
+          update(withOlder(stored));
+          setNotice(`Có tin mới từ ${bot.name}. Tin của bạn vẫn còn trong ô nhập — gửi lại khi bạn sẵn sàng.`);
+        } catch (readError) {
+          if (!signal.aborted) setError(readError);
+        }
+      } else setError(reason);
     } finally {
       if (!signal.aborted) setBusy(false);
     }
@@ -1659,7 +1774,32 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     // The transcript turn status already says a reconciled turn stopped.
     : stopped && lastSelf?.status !== "cancelled" ? "cancelled"
     : "idle";
-  const activity = deriveAIActivity({ phase, requestKey: run?.key ?? intent.current?.clientMessageId, runId: run?.id });
+  const consultedName = consulting && (session.features.collaboration || session.features.smartOrchestration)
+    ? botById(consulting.companion)?.name : undefined;
+  const activity = deriveAIActivity({
+    phase, requestKey: run?.key ?? intent.current?.clientMessageId, runId: run?.id,
+    consulting: consultedName ? { requester: bot.name, specialist: consultedName, transfer: consulting?.transfer } : null,
+  });
+  // V3: a specialist keeps answering here after a handoff until the user returns.
+  const activeAgent = conversation?.activeAgent && conversation.activeAgent !== bot.botId ? conversation.activeAgent : null;
+  async function returnToOwner() {
+    const thread = current.current;
+    if (!thread || returning) return;
+    setReturning(true);
+    setError(undefined);
+    try {
+      const header = await api.request<SavedConversationHeader>(`/ai/conversations/${thread.conversationId}/agent`, {
+        method: "POST",
+        body: { agent: bot.botId, expectedVersion: thread.version },
+      });
+      update({ ...thread, ...header });
+      requestAnimationFrame(() => composer.current?.focus());
+    } catch (reason) {
+      setError(reason);
+    } finally {
+      setReturning(false);
+    }
+  }
   const canStop = Boolean(run && !syncing);
   const stopDisabled = stopRequested || awaitingNew;
   const actionLabel = canStop ? (stopRequested ? "Đang yêu cầu dừng" : "Dừng phản hồi") : "Gửi tin cho AI";
@@ -1686,7 +1826,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   }
 
   let readOnlyMessage = "Đang kiểm tra cài đặt trò chuyện AI…";
-  if (!session.features.ai) readOnlyMessage = aiServiceMessage(session.features);
+  if (legacyReadOnly)
+    readOnlyMessage = `Đây là cuộc trò chuyện cũ với ${bot.name}, chỉ để xem lại. ${successor ? `${successor.name} đã tiếp nhận phần việc này. ` : "Tìm bạn giờ là một mục riêng. "}Bạn vẫn có thể đổi tên, tải xuống hoặc xóa.`;
+  else if (!session.features.ai) readOnlyMessage = aiServiceMessage(session.features);
   else if (!preferences && !preferencesLoading)
     readOnlyMessage = "Chưa tải được cài đặt trò chuyện AI. Tải lại trước khi gửi tin nhắn.";
   else if (preferences && !historyWritable)
@@ -1696,15 +1838,125 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       : awaitingNew ? "Đang chờ phản hồi hiện tại dừng lại…"
         : undefined;
   const infoTitle = conversation?.title?.trim() || "Cuộc trò chuyện mới";
+  type DatedRow = NonNullable<typeof datedMessages>[number];
+  const dateSeparator = ({ message, date, showDate }: DatedRow) =>
+    showDate && date ? <div className="message-date-separator"><time dateTime={message.createdAt!}>{date.dayLabel}</time></div> : null;
+  /** One message; inside a bubble group `part` names its position for screen readers. */
+  const messageRow = ({ message, date }: DatedRow, part?: { index: number; count: number }) => (
+          <div
+            className={`message-row ai-message-row ${message.actor === "self" ? "from-self" : "from-bot"}${part ? " in-group" : ""} ${revealedMessage === message.id ? "message-details-open" : ""}`}
+          >
+            <div
+              className="message-content"
+              role="group"
+              aria-label={part ? `Phần ${part.index + 1} trên ${part.count}` : message.actor === "self" ? "Tin nhắn của bạn" : `Tin nhắn từ ${(message.speaker && botById(message.speaker)?.name) || bot.name}`}
+              tabIndex={date || message.actor === "bot" ? 0 : undefined}
+              onFocus={(event) => {
+                if (event.target.matches(":focus-visible")) setRevealedMessage(message.id);
+              }}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  setRevealedMessage(value => value === message.id ? undefined : value);
+                }
+              }}
+              onPointerUp={(event) => {
+                if (event.pointerType === "mouse" || !(event.target instanceof Element) ||
+                  event.target.closest("a, button") || !window.getSelection()?.isCollapsed) return;
+                setRevealedMessage(value => value === message.id ? undefined : message.id);
+              }}
+            >
+              <div className="chat-bubble">
+                {message.actor === "bot" ? (
+                  <Suspense fallback={<p>{message.text}</p>}>
+                    <MessageMarkdown text={message.text} />
+                  </Suspense>
+                ) : <p>{message.text}</p>}
+              </div>
+              {validCards(message.cards) &&
+                message.cards.map((card, index) => (
+                  <div className="inline-card" key={`${message.id}-${index}`}>
+                    {card.kind === "mood_form" ? (
+                      <Link to="/self">Ghi lại cảm xúc <ArrowUpRight size={15} aria-hidden="true" /></Link>
+                    ) : card.kind === "navigate_bot" ? (
+                      <Link to={`/assistants/${card.botId}`}>
+                        Trò chuyện với {botById(card.botId)?.name} <ArrowUpRight size={15} aria-hidden="true" />
+                      </Link>
+                    ) : (
+                      <Link to="/connect">Tìm bạn đồng điệu <ArrowUpRight size={15} aria-hidden="true" /></Link>
+                    )}
+                  </div>
+                ))}
+              {date || message.actor === "bot" ? (
+                <div className="message-actions">
+                  {date ? <time dateTime={message.createdAt!}>{date.time}</time> : null}
+                  {message.actor === "bot" ? <>
+                  <button
+                    type="button"
+                    className="message-action"
+                    aria-label="Sao chép câu trả lời"
+                    title="Sao chép câu trả lời"
+                    onClick={(event) => void copyReply(message.id, event.currentTarget.closest(".message-content")?.querySelector(".chat-bubble"))}
+                  >
+                    <Copy size={15} aria-hidden="true" />
+                  </button>
+                  {copyStatus?.id === message.id ? <span role="status">{copyStatus.ok ? "Đã sao chép câu trả lời." : "Chưa sao chép được. Bạn có thể chọn và sao chép nội dung."}</span> : null}
+                  </> : null}
+                </div>
+              ) : null}
+              {message.actor === "self" && message.status && ["failed", "interrupted", "cancelled"].includes(message.status) ? <small className="message-turn-status" role="status">{message.status === "interrupted" ? "Phản hồi bị gián đoạn; lượt này không tự chạy lại." : message.status === "cancelled" ? "Đã dừng phản hồi." : "Phản hồi chưa hoàn tất."}</small> : null}
+            </div>
+          </div>
+  );
+  const { inbox, markRead, refresh: refreshInbox } = useAIInbox();
+  const elsewhere = otherUnread(inbox, bot.botId);
+  const markedThrough = useRef<{ id: string; sequence: number } | undefined>(undefined);
+  const hasCheckIn = Boolean(conversation?.messages.some((message) => message.origin === "proactive"));
+  useEffect(() => {
+    // Seen = this saved thread is open in a visible tab and scrolled to the newest message.
+    const id = conversation?.persistent ? conversation.conversationId : undefined;
+    const sequence = conversation?.version ?? 0;
+    if (!id || !hasCheckIn || !atBottom || loading) return;
+    const done = markedThrough.current;
+    if (done && done.id === id && done.sequence >= sequence) return;
+    const timer = window.setTimeout(() => {
+      if (document.visibilityState !== "visible") return;
+      markedThrough.current = { id, sequence };
+      void markRead(id, sequence).catch(() => { markedThrough.current = undefined; });
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [conversation?.conversationId, conversation?.persistent, conversation?.version, hasCheckIn, atBottom, loading, markRead]);
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refreshInbox();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [refreshInbox]);
+  useEffect(() => {
+    // A new check-in landed in the thread on screen: show it without a reload while idle.
+    const id = conversation?.conversationId;
+    if (!id || !conversation?.persistent || busy || run || loading) return;
+    const fresh = inbox.bots.some((item) => item.latest.conversationId === id && item.latest.firstSequence > conversation.version);
+    if (!fresh) return;
+    const controller = new AbortController();
+    api.request<SavedConversation>(`/ai/conversations/${encodeURIComponent(id)}`, { signal: controller.signal })
+      .then((value) => {
+        if (!controller.signal.aborted && value.conversationId === current.current?.conversationId && !activeRun.current) update(value);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [inbox, conversation?.conversationId, conversation?.version, conversation?.persistent, busy, run, loading, api, update]);
+
   return (
     <>
       <header className="conversation-header">
         <Link
           to="/assistants"
           className="icon-button mobile-back"
-          aria-label="Về danh sách trợ lý"
+          aria-label={elsewhere ? `Về danh sách trợ lý, có ${elsewhere} lời nhắn mới` : "Về danh sách trợ lý"}
         >
           <ArrowLeft size={21} />
+          {elsewhere && inbox.badgesEnabled ? <span className="back-dot" aria-hidden="true" /> : null}
         </Link>
         <PublicAvatar bot={bot} size={36} />
         <div>
@@ -1761,74 +2013,45 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         {loading ? <p role="status">Đang mở cuộc trò chuyện…</p> : null}
         {conversation?.hasMoreMessages ? <Button variant="secondary" disabled={olderBusy || loading} onClick={() => void olderMessages()}>{olderBusy ? "Đang tải tin nhắn…" : "Tải tin nhắn cũ hơn"}</Button> : null}
         <div className="conversation-messages" aria-live="polite" aria-relevant="additions text">
-        {datedMessages?.map(({ message, date, showDate }) => (
-          <Fragment key={message.id}>
-            {showDate && date ? <div className="message-date-separator"><time dateTime={message.createdAt!}>{date.dayLabel}</time></div> : null}
-            <div
-              className={`message-row ai-message-row ${message.actor === "self" ? "from-self" : "from-bot"} ${revealedMessage === message.id ? "message-details-open" : ""}`}
-            >
-              <div
-                className="message-content"
-                role="group"
-                aria-label={message.actor === "self" ? "Tin nhắn của bạn" : `Tin nhắn từ ${bot.name}`}
-                tabIndex={date || message.actor === "bot" ? 0 : undefined}
-                onFocus={(event) => {
-                  if (event.target.matches(":focus-visible")) setRevealedMessage(message.id);
-                }}
-                onBlur={(event) => {
-                  if (!event.currentTarget.contains(event.relatedTarget)) {
-                    setRevealedMessage(value => value === message.id ? undefined : value);
-                  }
-                }}
-                onPointerUp={(event) => {
-                  if (event.pointerType === "mouse" || !(event.target instanceof Element) ||
-                    event.target.closest("a, button") || !window.getSelection()?.isCollapsed) return;
-                  setRevealedMessage(value => value === message.id ? undefined : message.id);
-                }}
-              >
-                <div className="chat-bubble">
-                  {message.actor === "bot" ? (
-                    <Suspense fallback={<p>{message.text}</p>}>
-                      <MessageMarkdown text={message.text} />
-                    </Suspense>
-                  ) : <p>{message.text}</p>}
-                </div>
-                {validCards(message.cards) &&
-                  message.cards.map((card, index) => (
-                    <div className="inline-card" key={`${message.id}-${index}`}>
-                      {card.kind === "mood_form" ? (
-                        <Link to="/self">Ghi lại cảm xúc <ArrowUpRight size={15} aria-hidden="true" /></Link>
-                      ) : card.kind === "navigate_bot" ? (
-                        <Link to={`/assistants/${card.botId}`}>
-                          Trò chuyện với {botById(card.botId)?.name} <ArrowUpRight size={15} aria-hidden="true" />
-                        </Link>
-                      ) : (
-                        <Link to="/connect">Tìm bạn đồng điệu <ArrowUpRight size={15} aria-hidden="true" /></Link>
-                      )}
-                    </div>
-                  ))}
-                {date || message.actor === "bot" ? (
-                  <div className="message-actions">
-                    {date ? <time dateTime={message.createdAt!}>{date.time}</time> : null}
-                    {message.actor === "bot" ? <>
-                    <button
-                      type="button"
-                      className="message-action"
-                      aria-label="Sao chép câu trả lời"
-                      title="Sao chép câu trả lời"
-                      onClick={(event) => void copyReply(message.id, event.currentTarget.closest(".message-content")?.querySelector(".chat-bubble"))}
-                    >
-                      <Copy size={15} aria-hidden="true" />
-                    </button>
-                    {copyStatus?.id === message.id ? <span role="status">{copyStatus.ok ? "Đã sao chép câu trả lời." : "Chưa sao chép được. Bạn có thể chọn và sao chép nội dung."}</span> : null}
-                    </> : null}
-                  </div>
-                ) : null}
-                {message.actor === "self" && message.status && ["failed", "interrupted", "cancelled"].includes(message.status) ? <small className="message-turn-status" role="status">{message.status === "interrupted" ? "Phản hồi bị gián đoạn; lượt này không tự chạy lại." : message.status === "cancelled" ? "Đã dừng phản hồi." : "Phản hồi chưa hoàn tất."}</small> : null}
+        {messageGroupsView.map((group) => {
+          const lead = group.items[0].message;
+          const checkIn = lead.origin === "proactive" && lead.actor === "bot";
+          const label = checkIn ? <ProactiveLabel message={lead} botName={bot.name} timeZone={session.timezone} /> : null;
+          const manage = checkIn ? (
+            <p className="proactive-manage"><Link to={`/check-ins?bot=${bot.botId}`}>Đổi hoặc tắt lời hỏi thăm này</Link></p>
+          ) : null;
+          // Shown only from the server's receipt-backed line (never inferred client-side).
+          const line = lead.actor === "bot" && lead.collaboration && session.features.collaboration
+            ? <CollaborationLine line={lead.collaboration} />
+            : lead.actor === "bot" && lead.steps?.length
+              ? <AgentStepsLine requester={bot.botId} steps={lead.steps} /> : null;
+          // V3: the real speaker of this reply when it is not the conversation's own agent.
+          const speaker = lead.actor === "bot" && lead.speaker && lead.speaker !== bot.botId ? lead.speaker : null;
+          const speakerName = speaker ? botById(speaker)?.name ?? bot.name : bot.name;
+          return group.items.length === 1 ? (
+            <Fragment key={group.key}>
+              {dateSeparator(group.items[0])}
+              {label}
+              {line}
+              {speaker ? <SpeakerTag id={speaker} /> : null}
+              {messageRow(group.items[0])}
+              {manage}
+            </Fragment>
+          ) : (
+            <Fragment key={group.key}>
+              {dateSeparator(group.items[0])}
+              {label}
+              <div className="message-group" role="group" aria-label={`Tin nhắn từ ${speakerName}, ${group.items.length} phần`}>
+                {line}
+                {speaker ? <SpeakerTag id={speaker} /> : null}
+                {group.items.map((item, index) => (
+                  <Fragment key={item.message.id}>{messageRow(item, { index, count: group.items.length })}</Fragment>
+                ))}
               </div>
-            </div>
-          </Fragment>
-        ))}
+              {manage}
+            </Fragment>
+          );
+        })}
         </div>
         <AIActivityStatus
           view={activity}
@@ -1873,8 +2096,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       />
       </div>
       {session.features.aiStatus === "test_provider" ? <p className={cx.footnote} role="note">Môi trường kiểm thử · phản hồi từ model giả, không phải OpenAI.</p> : null}
-      {!canSend ? <div className="chat-readonly" role="status"><p>{readOnlyMessage}</p>{allowed && preferences && !historyWritable ? <div className={cx.actions}><Button variant="secondary" onClick={requestNew}>Mở cuộc trò chuyện mới</Button></div> : null}</div> : <div className="chat-bottom">
-        {bot.botId === "nhip" ? (
+      {!canSend ? <div className="chat-readonly" role="status" data-legacy={legacyReadOnly || undefined}><p>{readOnlyMessage}</p>{legacyReadOnly ? <div className={cx.actions}><Link className={`${cx.button} ${cx.secondary}`} to={successor ? `/assistants/${successor.id}` : "/connect"}>{successor ? `Trò chuyện với ${successor.name}` : "Mở Tìm bạn"}</Link></div> : allowed && preferences && !historyWritable ? <div className={cx.actions}><Button variant="secondary" onClick={requestNew}>Mở cuộc trò chuyện mới</Button></div> : null}</div> : <div className="chat-bottom">
+        {activeAgent ? <HandoffBanner agent={activeAgent} owner={bot.name} busy={returning || busy} onReturn={() => void returnToOwner()} /> : null}
+        {bot.botId === "nhip" || (bot.botId === "nhatky" && !activeAgent) ? (
           <>
           {lastMoodRange && lastMoodRange.conversationId === conversation?.conversationId && !shareMood ? (
             <Button variant="secondary" disabled={busy || loading || !ready}
@@ -1976,6 +2200,55 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   );
 }
 
+function ProactiveLabel({ message, botName, timeZone }: { message: { createdAt?: string | null; proactiveSlot?: string | null }; botName: string; timeZone: string }) {
+  const evening = message.proactiveSlot === "evening";
+  const slot = evening ? "buổi tối" : "buổi sáng";
+  const time = message.createdAt
+    ? new Intl.DateTimeFormat("vi-VN", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(message.createdAt))
+    : "";
+  const Icon = evening ? Moon : Sun;
+  return (
+    <p className="proactive-label">
+      <Icon size={14} aria-hidden="true" />
+      <span aria-hidden="true">Lời hỏi thăm {slot}{time ? ` · ${time}` : ""}</span>
+      <span className="proactive-sr">Lời hỏi thăm {slot} từ {botName}{time ? ` lúc ${time}` : ""}</span>
+    </p>
+  );
+}
+
+function CheckInsSummary() {
+  const { session } = useSession();
+  const open = session.features.proactive && session.accountKind !== "guest";
+  const resource = useResource<components["schemas"]["ProactiveView"]>("/ai/proactive", open);
+  if (!open) return null;
+  const enabled = resource.data?.limits.enabledSlots ?? 0;
+  return (
+    <section className="real-section" aria-labelledby="checkins-summary">
+      <h2 id="checkins-summary">Lời hỏi thăm từ trợ lý</h2>
+      <p>
+        {resource.loading
+          ? "Đang tải lịch hỏi thăm…"
+          : enabled
+            ? `${enabled} lời hỏi thăm mỗi ngày, vào giờ bạn chọn.`
+            : "Chưa có trợ lý nào hỏi thăm bạn. Bạn có thể hẹn giờ để trợ lý nhắn vào buổi sáng hoặc buổi tối."}
+      </p>
+      <Link className={`${cx.button} ${cx.secondary}`} to="/check-ins">Chỉnh lịch hỏi thăm</Link>
+    </section>
+  );
+}
+
+function CollaborationSummaryCard() {
+  const { session } = useSession();
+  if (!session.features.collaboration || session.accountKind === "guest") return null;
+  return (
+    <section className="real-section" aria-labelledby="collaboration-summary">
+      <h2 id="collaboration-summary">Trợ lý phối hợp với nhau</h2>
+      <p>Cho phép một trợ lý nhờ trợ lý khác một việc nhỏ. Bạn chọn chính xác điều gì được chia sẻ; mặc định đều tắt.</p>
+      <Link className={`${cx.button} ${cx.secondary}`} to="/companion-sharing">Cài đặt phối hợp</Link>
+    </section>
+  );
+}
+
 function AccountPage({ onGuide }: { onGuide: () => void }) {
   const [accountDeleted, setAccountDeleted] = useState(false);
   if (accountDeleted) return <AccountDeletionComplete />;
@@ -1983,6 +2256,8 @@ function AccountPage({ onGuide }: { onGuide: () => void }) {
     <div className={cx.reading}>
       <h1 tabIndex={-1} data-tour="personal-account">Tài khoản</h1>
       <AdultEligibility />
+      <CheckInsSummary />
+      <CollaborationSummaryCard />
       <AccountActions onGuide={onGuide} onDeleted={() => setAccountDeleted(true)} />
     </div>
   );

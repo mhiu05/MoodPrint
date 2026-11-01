@@ -170,7 +170,7 @@ Baseline trực quan bằng agent-browser: [92-visual-qa-and-agent-browser.md](9
 ## 12. Phát hiện cần lưu ý (không phải lỗi của tính năng mới)
 
 1. **Hosted 0019 vs nhánh 0020**: triển khai bất kỳ image nào từ nhánh này đều cần áp dụng 0020 trước (hoặc bản compat).
-2. **Ba kết nối *idle in transaction* ~8 phút** và `idle_in_transaction_session_timeout=0`: rủi ro giữ lock lâu; worker mới nên đặt `SET LOCAL lock_timeout`/`statement_timeout` và không giữ transaction quanh model call. Chưa xác định nguồn (có thể là môi trường dev local trỏ vào hosted — `backend/.env` trỏ hosted theo memory dự án).
+2. *(Cập nhật 31/10/2026: không tái hiện; mã ứng dụng không giữ transaction quanh I/O mạng — [96 F-01, F-02](96-architecture-hardening-review.md#1-phát-hiện-kỹ-thuật-quan-trọng).)* **Ba kết nối *idle in transaction* ~8 phút** và `idle_in_transaction_session_timeout=0`: rủi ro giữ lock lâu; worker mới nên đặt `SET LOCAL lock_timeout`/`statement_timeout` và không giữ transaction quanh model call. Chưa xác định nguồn (có thể là môi trường dev local trỏ vào hosted — `backend/.env` trỏ hosted theo memory dự án).
 3. **Nhãn ngày tiếng Anh** trong UI tiếng Việt (`Today`/`Yesterday`).
 4. **Timezone không chỉnh được**: lịch theo giờ địa phương cần nguồn timezone riêng.
 5. **`STALE_VERSION` không tự hồi phục** ở frontend: tin chủ động chèn vào hội thoại đang mở sẽ khiến lần gửi tiếp theo thất bại nếu không xử lý.

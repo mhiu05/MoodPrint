@@ -15,7 +15,7 @@ from tests.social_helpers import PROFILE
 
 pytestmark = pytest.mark.postgres
 BACKEND = Path(__file__).resolve().parents[1]
-HEAD = "0020_private_profile_retirement"
+HEAD = "0024_three_agent_groups"  # 0020 is exercised through the chain that now ends here
 
 
 def test_0020_preserves_journal_auth_matching_and_approved_memories():

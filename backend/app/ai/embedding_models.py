@@ -8,6 +8,7 @@ from sqlalchemy.dialects.postgresql.base import ischema_names
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import UserDefinedType
 
+from app.ai.agents import MEMORY_BOT_CHECK
 from app.infrastructure.database.models import Base, Memory, User, now
 
 
@@ -77,7 +78,7 @@ class EmbeddingJob(Base):
         ),
         CheckConstraint("attempts between 0 and 8", name="attempts"),
         CheckConstraint("dimensions in (256,512,1024,2048)", name="dimensions"),
-        CheckConstraint("bot_id in ('may','guong','nhip','rure')", name="bot"),
+        CheckConstraint(MEMORY_BOT_CHECK, name="bot"),
     )
 
 
@@ -103,5 +104,5 @@ class MemoryEmbedding(Base):
             "dimensions in (256,512,1024,2048) and extensions.vector_dims(embedding) = dimensions",
             name="dimensions",
         ),
-        CheckConstraint("bot_id in ('may','guong','nhip','rure')", name="bot"),
+        CheckConstraint(MEMORY_BOT_CHECK, name="bot"),
     )

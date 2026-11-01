@@ -1,0 +1,181 @@
+# Sổ tiến độ triển khai Phase 1
+
+Nhánh `feat/proactive-companion-phase1`, worktree `E:\MoodPrint-proactive-phase1`, tách từ `test/local-2026-10-30@d6eaf71`. Kế hoạch: [phase-1/08](../phase-1/08-implementation-plan.md); gia cố: [96](../96-architecture-hardening-review.md).
+
+Hạ tầng test (chỉ local, không hosted):
+
+| Hạng mục | Giá trị |
+| --- | --- |
+| PostgreSQL disposable | Container `moodprint-proactive-p1-db` (`pgvector/pgvector:0.8.2-pg17`, tmpfs, `127.0.0.1:36432`), mật khẩu chỉ nằm trong scratchpad phiên, không trong repo |
+| DB | `moodprint_p1_{unit,dev,migration,fullstack,load,baseline}_test` |
+| Python | `backend/.venv` riêng của worktree, `uv sync --locked` (không đổi lockfile); `openai-agents==0.24.0` |
+| Frontend | `npm ci` trong worktree |
+| Cách ly Codex | Worktree gốc `E:\MoodPrint` không bị sửa; snapshot `git status` trước/sau khớp, trừ `.gitignore` (+`.tmp/`) do Codex tự sửa lúc 08:06 |
+
+Quy ước: số pass/fail/skip là **kết quả thật** của lệnh đã chạy. "Chưa chạy" được ghi rõ.
+
+## P1-00 — Baseline
+
+| Lệnh (cwd) | Kết quả thật |
+| --- | --- |
+| `pytest -q` (backend, DB `moodprint_p1_baseline_test`, worktree) | **1099 passed, 6 failed, 1 skipped**, 1436 s. Lưu ý: chạy song song với lúc sửa P1-01/02 nên các test chạy Alembic bằng subprocess có thể bị ảnh hưởng → 4 fail không phải readiness được **chạy lại trên worktree sạch `d6eaf71`** (detached, scratchpad) |
+| Chạy lại trên `d6eaf71` sạch: `test_guest_cleanup_recovery::test_guest_aware_rollback_cannot_resurrect`, `test_guest_embeddings::test_guest_proposal_and_history_expiry_capped`, `test_guest_schema::test_upgrade_from_0015_preserves_registered_rows_and_matches_models` | **3 failed** ⇒ fail **có sẵn** |
+| `ruff check app tests evals alembic` trên blob của `d6eaf71` (`git show … \| ruff --stdin`) | **2 lỗi F401 có sẵn** (`models.py: Text`, `test_data_lifecycle.py: uuid4`) |
+| `mypy app` | Success |
+| Frontend `npm run typecheck` / `npm test` / `npm run build` | exit 0 / **118 passed (23 files)** / build OK |
+| `python scripts/check_docs.py` | PASS |
+
+Fail có sẵn (phân loại):
+
+| Test | Nguyên nhân | Xử lý |
+| --- | --- | --- |
+| `test_foundation::test_ready_revisions_cover_the_reviewed_migration_window`, `[0019_journal-200]`, `test_readiness::[0019_journal-200]`, `test_guest_cleanup_recovery::test_guest_aware_rollback_cannot_resurrect`, `test_guest_schema::test_upgrade_from_0015…` | Kỳ vọng cũ `0019_journal`, `READY_REVISIONS` đã là 0020 | Cập nhật theo head mới ở P1-03 (R1 = 0022; R0 = 0020/0021/0022). **Codex cũng đang sửa các file này** trong worktree gốc → dự kiến conflict khi tích hợp |
+| `test_guest_embeddings::test_guest_proposal_and_history_expiry_capped` | `TypeError: create_proposal() takes 5 positional arguments but 6 were given` — lỗi test có sẵn, không liên quan | **Không sửa** (ngoài phạm vi); không chặn G1a |
+| Ruff F401 ×2 | Import thừa | Sửa riêng ở commit `b5484c9` |
+
+## P1-01 — M-P1-A `0021_multi_message`
+
+- Commit `32e8bfa` (+ lint có sẵn `b5484c9`). File: `alembic/versions/0021_multi_message.py`, `app/ai/models.py`, `app/infrastructure/database/models.py`, `tests/test_multi_message_migration.py`.
+- RED: thiếu file migration. GREEN: `test_multi_message_migration.py` 1 passed.
+- **Lỗi bắt được khi review offline SQL:** `create_check_constraint("ck_…")` bị naming convention của `env.py` áp hai lần (`ck_ai_messages_ck_ai_messages_part`). Sửa bằng `op.f()`; test được nâng cấp dùng cùng `target_metadata` như `env.py` và khẳng định tên chính xác (RED → GREEN đã quan sát).
+- `alembic upgrade head` trên `moodprint_p1_migration_test`: `0021_multi_message (head)`; `alembic check`: *No new upgrade operations detected*.
+- Hồi quy: `test_chat_persistence`, `test_context_privacy`, `test_context_privacy_migration`, `test_sdk_adapter` + migration → **49 passed**. ruff/mypy sạch.
+
+## P1-02 — M-P1-B `0022_proactive_messages` + lifecycle
+
+- Commit `8e2a3d4`. File mới: `alembic/versions/0022_proactive_messages.py`, `app/ai/proactive/{__init__,models,lifecycle}.py`, `tests/proactive_helpers.py`, `tests/test_proactive_{migration,lifecycle}.py`. Sửa: `users/lifecycle.py` (xóa tường minh trong scope `account`/`all_private`), `guests/lifecycle.py` (`INVENTORY` + `_delete_owned`), `jobs/retention.py` (job kết thúc > 30 ngày), đăng ký model ở `alembic/env.py`, `tests/conftest.py`, `tests/e2e_server.py`, `tests/social_load_server.py`, `evals/scenarios_live.py`; docs `supabase/schema.md`, `backend/data-lifecycle.md`.
+- RED: thiếu migration. GREEN: `test_proactive_migration`, `test_proactive_lifecycle` (4), `test_guest_cleanup` (seed thêm 5 bảng), `test_data_lifecycle` → **21 passed**.
+- Kiểm chứng test xóa thật sự có sức bắt lỗi: tạm bỏ `purge_proactive` ở `process_deletions` → 2 test fail (account, all_private); khôi phục → xanh.
+- Chuỗi Alembic sạch: `0022_proactive_messages (head)`, `alembic check` không drift.
+
+## P1-03 — R0 tương thích và diễn tập migration
+
+- R1 (nhánh này): `READY_REVISIONS = ("0022_proactive_messages",)` vì ORM ghi `part_index`/`origin` ở mọi insert — **khác kế hoạch gốc** (kế hoạch gộp R0 vào nhánh). R0 được tách thành nhánh riêng `release/proactive-r0-compat` (commit `e4fd51c`, từ `d6eaf71`, chỉ đổi `revisions.py` + test readiness).
+- R0: readiness/foundation/guest rollback/guest schema **40 passed** (trong worktree tạm, đã gỡ). Smoke `r0_on_0022_smoke.py` (scratchpad): ORM R0 ghi/đọc trên schema 0022, đọc được run 2 bubble của R1, `scalar()` không lỗi → **PASS**.
+- R1: test readiness/foundation **38 passed**; `test_guest_aware_rollback_cannot_resurrect` + `test_upgrade_from_0015…matches_models` **2 passed**.
+- Offline SQL `0020→0022` (258 dòng, không `%%`): [sql/0020-0022-offline.candidate.sql](sql/0020-0022-offline.candidate.sql), sha256 `14097febf574fe3a19950759e61a879157c0619ad72f9c5561b33d131acddf52` — **ứng viên chưa duyệt**, không nằm trong `reviewed-sql/`.
+- Diễn tập (DB `moodprint_p1_rehearsal_test`, role tạm `moodprint_runtime`, `moodprint_app ∈ moodprint_runtime`, `anon`, `authenticated`, `service_role`): `alembic upgrade 0020` → seed dữ liệu cũ tổng hợp → `psql -v ON_ERROR_STOP=1 < offline.sql` (một transaction) → exit 0; version `0022`; tin cũ `part 0/1`; run cũ `origin=user`; 5 policy `backend_access`; client roles 0 quyền; `moodprint_app` có DML trên 5 bảng. Đã xóa DB và **cả 5 role** (đếm lại = 0).
+- **Chưa làm (cần owner):** rehearsal trên bản khôi phục `pg_dump --schema-only` của hosted (U-04); áp dụng 0020 hosted (BLK-02).
+
+## P1-04 — Hợp đồng output nhiều bubble
+
+- Commit `637fdc3`. File: `app/ai/schemas.py` (`Bubble`, `CompanionReply`, `AiReply`), `app/ai/journal.py` (`NhipReply`, renderer chung), `app/ai/provider.py` (`run_reply()`, guardrail mọi bubble), `app/core/config.py` (`AI_MULTI_MESSAGE_ENABLED=false`), docs cấu hình, `.env.example`.
+- RED: thiếu `AiReply`. GREEN: `test_multi_message_contract.py` **19 passed**.
+- Điều kiện chấp nhận "không sửa kỳ vọng khi cờ tắt": `test_sdk_adapter`, `test_journal_ai`, `test_mood_evidence_runtime`, `test_mood_evidence`, `test_live_observability`, `test_ai`, `test_ai_availability`, `test_context_selection` + test mới → **138 passed**, không sửa test cũ nào.
+- **Chênh lệch tài liệu:** `run()` giữ API cũ và trả bản ghép v1 (`AiReply.joined()`); runtime dùng `run_reply()`.
+
+## P1-05 — Lưu N bubble, phân trang, context, export
+
+- Commit `d97e99f`. File: `runtime.py` (publish mọi phần trong transaction kết thúc run, id dùng chung DB/RAM, metric `ai_reply_parts`), `persistence.py` (`message_view`, hoàn thiện nhóm ở mép trang, `hasMoreMessages` tính lại), `context.py` (`turn_messages` gộp bubble trước giới hạn 24), `chat_routes.py` (export), `AIMessage` thêm `partIndex/partCount/origin/proactiveSlot`, OpenAPI + `schema.d.ts`, 2 tin lạc quan ở `RealApp.tsx`.
+- RED → GREEN: `test_multi_message_persistence.py` **9 passed** (2 lỗi kỳ vọng sequence trong chính test mới được sửa: hội thoại mới bắt đầu ở version 1).
+- Hồi quy AI rộng: **214 passed**. `test_ai_availability` đổi điểm monkeypatch `provider.run` → `provider.run_reply` (cùng khẳng định).
+
+## P1-06 — SSE v2
+
+- Commit `0bf35af` (+ docs `eda5df0`). `?protocol=2` (1–2, khác → 422); persistent dựng final từ mọi bubble đã lưu theo `part_index`; RAM giữ event v1 và `LiveRun.final_v2` cho v2; OpenAPI `AIFinalV2`, `AIReplyBubble`; metric `ai_events_protocol`.
+- RED → GREEN: `test_ai_events_v2.py` **14 passed** (v1 byte-for-byte 1 bubble persistent + temporary, v1 ghép, v2 thứ tự/id, `afterSeq` 0..3, `Last-Event-ID`, `CURSOR_GAP`, protocol=3 → 422, OpenAPI).
+- Lần đầu lưu event final dạng v2 làm 9 test hiện có (đọc `run.events` nội bộ) fail → **đổi thiết kế** thay vì sửa test: event lưu dạng v1, v2 đọc `final_v2`. Sau sửa: hồi quy **193 passed**.
+
+## P1-07 — Frontend
+
+- File: `src/api/stream.ts` (`consumeAIReply`, lõi parser chung, v1 fallback), `messageGroups.ts`, `RealApp.tsx` (chèn N bubble một lần, render nhóm `role=group` "Tin nhắn từ X, N phần", mỗi bubble "Phần i trên N", STALE_VERSION giữ nháp + tải lại + thông báo), `agent-chat.css` (khoảng cách nhóm), `messageDates.ts` ("Hôm nay"/"Hôm qua").
+- Unit: RED (thiếu module) → GREEN **136 passed / 25 files** (118 cũ + 18 mới). Typecheck, build OK.
+- **Chênh lệch tài liệu 02 §4.3:** giới hạn client mỗi bubble 6.000 (không phải 1.500) vì lượt cờ tắt hoặc bubble cuối có dòng trích dẫn hợp lệ dài hơn 1.500; client kiểm tổng ghép ≤ 6.000 và ≤ 3 card. Không có hiệu ứng vào (render ngay) — đáp ứng "animation must never delay content", reduced motion hiển nhiên.
+- E2E fixture: 11 test cũ fail do glob stub `**/runs/*/events` không khớp `?protocol=2` → **đã chứng minh trên `d6eaf71` sạch các test đó pass** → sửa glob thành `events*` (giữ body v1 → kiểm luôn đường fallback). `ux-redesign:744` cập nhật kỳ vọng "Hôm qua"/"Hôm nay".
+- Fail E2E có sẵn (giống hệt trên `d6eaf71` sạch): `real.spec:471`; `ux-redesign` :186, :901, :1128 ×2, :1180, :1196, :1273.
+- Spec mới `multi-message.spec.ts` (đăng ký trong `playwright.config.ts`): **7 passed** (1440/768/390, không bubble trước `completed`, fallback v1, STALE_VERSION, bàn phím + reduced motion). Viết sau code → kiểm bằng mutation: tắt nhánh STALE_VERSION → test fail; khôi phục → xanh.
+
+## P1-08 — Hướng dẫn tách bubble và eval
+
+- Commit `703c084`. `MULTI_MESSAGE_GUIDANCE` (lớp runtime, chỉ khi cờ bật); `evals/multi_message/` 20 case tổng hợp, rubric content-free, CLI offline + live có cổng ngân sách.
+- Test prompt: RED (thiếu hằng) → GREEN. `test_multi_message_eval.py` **8 passed** (viết sau code — ghi nhận). 
+- **Eval live: CHƯA CHẠY** (cần owner duyệt ngân sách). Không có số liệu chất lượng tách bubble thật.
+
+## Gate G1a — kiểm chứng (31/10/2026)
+
+| Hạng mục | Lệnh / cách chạy | Kết quả thật |
+| --- | --- | --- |
+| Backend toàn bộ | `pytest -q` trên DB mới `moodprint_p1_unit_test` (không sửa file backend trong lúc chạy) | **1167 passed, 1 failed, 1 skipped** (1321 s). Fail duy nhất `test_guest_embeddings::test_guest_proposal_and_history_expiry_capped` — **có sẵn** (fail y hệt trên `d6eaf71`) |
+| Ruff / mypy | `ruff check app tests evals alembic`, `mypy app` | sạch / Success (129 files) |
+| Migration | `alembic upgrade head` (chuỗi sạch) + `alembic check`; rehearsal offline SQL 0020→0022 với role mirror + dữ liệu cũ | `0022_proactive_messages (head)`, không drift; rehearsal PASS (xem P1-03) |
+| Frontend unit / type / build | `npx vitest run`, `npm run typecheck`, `npm run build` | **136 passed (25 files)** / 0 lỗi / OK |
+| E2E fixture toàn bộ | `npx playwright test` | 295 passed, 7 failed, 23 không chạy do `globalTimeout` 600 s (CPU tranh với backend suite). `ux-redesign.spec.ts` chạy riêng: 62 passed, 7 failed. **Mọi fail đều có sẵn**, giống hệt trên `d6eaf71` sạch: `auth` :141/:166/:188, `discovery` :76/:148, `real` :471, `ux-redesign` :186/:901/:1128×2/:1180/:1196/:1273 |
+| E2E nhiều bubble (fixture) | `multi-message.spec.ts` | **8 passed** (1440/768/390, khoảng cách nhóm ≤ 16 px, sao chép từng bubble, không bubble trước `completed`, fallback v1, STALE_VERSION, bàn phím, reduced motion) |
+| Fullstack backend thật + fake SDK model, cờ **bật** | `scripts/test_fullstack.py` (`E2E_MULTI_MESSAGE=1`) ×2 | Lần 1: 27 passed / 7 failed; lần 2: **28 passed / 6 failed**. 6 fail = đúng tập fail của `d6eaf71` sạch (27/6). Fail thêm ở lần 1 `journeys:421` (strict mode, 2 nút xóa ghi nhớ) không tái hiện: 2/2 pass khi chạy riêng, pass ở lần 2 ⇒ flake phụ thuộc thứ tự, không liên quan chat |
+| Fullstack cờ **tắt** | `E2E_MULTI_MESSAGE=0` | **27 passed, 1 skipped (spec nhiều bubble), 6 failed** = tập có sẵn |
+| Spec fullstack mới | `tests/fullstack/multi-message.spec.ts` (user 51) | pass: 3 row cùng run, `partIndex` 0..2, `version == số tin + 1`, v1 nhận bản ghép, reload giữ nhóm, 768/390 không tràn ngang, 0 console error |
+| agent-browser (trình duyệt thật, backend thật, cờ bật) | session `p1-g1a-multi`, cookie tổng hợp user 51, `set media light reduced-motion` | Nhóm "Tin nhắn từ Mây, 3 phần" với "Phần 1/2/3 trên 3"; nhãn ngày "Hôm nay"; 1440/768/390 không tràn ngang; 0 page error, 0 console error. **Phát hiện và sửa:** mỗi bubble giữ chỗ 44 px cho hàng giờ/sao chép nên 3 bubble trông như 3 lượt → commit `abdb454` (chỉ bubble cuối giữ chỗ; bubble trước hiện khi focus bàn phím/chạm). Ảnh chụp lưu ngoài git (scratchpad phiên) |
+| `check_docs.py` | | PASS |
+| Eval tách bubble live | | **Chưa chạy** (cần owner duyệt ngân sách) |
+
+Cách ly Codex: HEAD worktree gốc vẫn `d6eaf71`; trong phiên Codex đã tự stage/sửa nhiều file (kể cả `database/models.py`, `test_data_lifecycle.py`, `test_guest_embeddings.py`, các test readiness, `e2e_server.py`, `conftest.py`, `openapi.json`, `schema.d.ts`) — **trùng file với nhánh này ⇒ dự kiến conflict khi tích hợp**, cần rebase có kiểm soát. Nhánh này không ghi vào working tree/index của worktree gốc.
+
+Artifact chưa track do harness sinh trong worktree (`frontend/evidence/**`, `docs/mvp-validation|plans|productization/`) không được commit.
+
+## Phiên tiếp nối 31/10/2026 — P1-09…P1-20
+
+Khởi đầu: HEAD `b02a2da`, worktree sạch (chỉ artifact harness chưa track). Worktree Codex `E:\MoodPrint` ở `d6eaf71`; snapshot `git status --porcelain` + sha256 của `git diff` lưu ở scratchpad phiên để so sánh cuối phiên. DB test `moodprint-proactive-p1-db` còn chạy. Sổ này là ledger duy nhất (không dùng thư mục `.superpowers/sdd`).
+
+- **OD-01…OD-07** — commit `250154f`: [ADR-13](../03-architecture-decisions.md#adr-13--quyết-định-od-01od-07-owner-ủy-quyền-31102026); giữ mặc định sau khi so sánh phương án, không đổi schema, không mở rộng quyền dữ liệu.
+- **AWS** — `aws login --profile moodprint` thành công (role `AccountFullAccessRole`; chỉ dùng lệnh Describe/Get/List). AWS MCP vẫn lỗi `-32602`. Số liệu ở mục P1-20.
+- **P1-09** — commit `2149733`: `app/ai/proactive/schedule.py`, `tests/test_proactive_schedule.py`. RED: `ImportError` (module chưa có). GREEN **53 passed** (HCM, New York gap 02:30→03:30 và overlap fold=0 chỉ giao một lần, giờ yên lặng qua nửa đêm, weekday mask, pause bao gồm ngày cuối, không ngày hợp lệ trong 15 ngày → `None`, teen tối ≤ 21:00, downtime 2 ngày nhảy tới tương lai). Không có `pytest-cov` trong lockfile (không thêm dependency) → độ phủ nhánh rà thủ công: mọi nhánh có test.
+- **P1-10** — commit `aba316b`: `config.py` (9 biến `PROACTIVE_*` + validator production cho worker + `proactive_open_for`), `proactive/{schemas,policy,routes}.py`, router mount, `features.proactive`, OpenAPI + `schema.d.ts`, `api-reference.md`, `configuration.md`, `.env.example`. RED: 404. GREEN `test_proactive_api.py` **23 passed** (cờ tắt, 10 cặp mặc định, tạo lịch + settings + `last_seen_at`, stale/idempotent, khung/bước/teen, giờ yên lặng, cap 4, Cầu Nối adult+MATCH/restricted, history tắt, guest 403/under16 403, rollout, sửa/xóa hủy job, pause ≤ 30 ngày + gỡ auto-pause, settings tz/giờ yên lặng/xung đột, đổi tz tính lại + hủy job, tắt journal tăng `journal_context_version`/`data_version` chỉ hủy job Nhịp, validator production). Hồi quy auth/session/foundation/contract/proactive **168 passed**; ruff/mypy sạch; `check_docs.py` PASS.
+  - Ruling: `available` = cờ + cohort + AI khả dụng (matrix 09 §4 "AI tắt → available=false"); lý do `ai_unavailable` vẫn trong enum nhưng không hiện khi `available=true` — chi phí nếu sai: chỉ đổi thông điệp UI.
+  - Ruling: quyền AI là mục đích cá nhân luôn bật (`consent_enabled`), nên chỉ Cầu Nối cần kiểm consent (MATCH) — chi phí nếu sai: thêm một lý do eligibility.
+  - Ruling: tạo settings lần đầu qua `PUT /settings` có `version 0 → 1`; `PUT /settings` trả `409 SCHEDULE_IN_QUIET_HOURS` (lịch dùng 422) như đặc tả §2.2/§2.3.
+- **P1-11** — `persistence.py` (`daily_turns`, `admission` own/recent lọc `origin='user'`; global đếm mọi origin), `proactive/policy.py` (`authorize_proactive`, `admit_proactive`, `Decision`/`Authorized`). RED **21 failed / 1 passed** (ca pass: trần global vốn đã đếm mọi run). GREEN `test_proactive_policy.py` **22 passed** (ma trận: deleted/under16/unknown/guest/suspended → `skipped(ineligible_account)`, `deletion_pending` → `cancel`, inactive 15 ngày, cờ/cohort → `disabled`, AI tắt, history tắt, paused/auto_paused/disabled/version lệch → cancel, job mồ côi, Cầu Nối MATCH/teen; quota: run proactive không trừ `daily_turns`/rate/per-user concurrency, `aiQuotaRemaining` không đổi, global vẫn chặn; E1: budget share 50 % → `skip(budget)`, cap ngày, chat đang chạy cùng trợ lý → `defer(active_chat)`, hết capacity → `defer(capacity)`, 3 lời chưa mở → auto-pause + ghi `auto_paused_at`, 1 lời đã mở → không pause). Hồi quy AI/chat/multi-message **108 passed**; proactive API+policy 45 passed; ruff/mypy sạch.
+  - Ruling: kiểm tra `inactive_user` đặt **sau** kiểm tra lịch tồn tại/bật (job mồ côi → `disabled`, không phải `inactive_user`) — chi phí nếu sai: chỉ khác `skip_reason`.
+  - Ruling: "đã mở" = `last_read_sequence ≥ sequence đầu của lời hỏi thăm` **hoặc** người dùng đã trả lời sau đó trong hội thoại; hội thoại đã xóa không bị tính là chưa mở — tránh auto-pause oan.
+- **P1-12** — `app/jobs/proactive.py` (`transaction` với HD-03, `materialize_due`, `expire_stale`, `claim_job`, `finish`/`retry`/`defer` có rào `lease_token`, `proactive_tick`, `serve`/`main`, heartbeat `--health`), `budget.py` (+2 kết nối worker → headroom 4), service Compose `proactive` trong `deploy/compose.staging.yml` (cùng image, `python -m app.jobs.proactive`, pool 2+0, `mem_limit 384m`, `cpus 0.5`, `stop_grace_period 100s`, healthcheck heartbeat, mặc định `PROACTIVE_WORKER_ENABLED=false`; `docker compose config --services` hợp lệ). `test_proactive_worker.py` **22 passed** + `test_session_reliability.py` (tổng 29 passed).
+  - **Ghi nhận TDD:** module được viết trước khi chạy test (không quan sát RED riêng). Bù bằng mutation: bỏ rào `lease_token` / bỏ loại trừ "1 job running mỗi user" / bỏ nhảy tới tương lai sau downtime / bỏ hoàn attempt khi hoãn → **mỗi đột biến làm đúng 1 test fail**; khôi phục → 21/21.
+  - Test thời gian song song (`< 0.55 s`) fail dưới tải CPU (0,70 s) → đổi sang đo `peak` đồng thời thực tế = 2 (không nới assertion, đổi thước đo đúng bản chất).
+  - Ruling: materialize mỗi tick 5 s (không phải 30 s) — truy vấn dùng partial index `ix_ai_proactive_schedules_due`, giảm độ trễ giao tối đa từ ~30 s xuống ~5 s; chi phí nếu sai: vài truy vấn index rẻ mỗi phút.
+  - Ruling: job `cancelled` (do người dùng sửa lịch) được **hồi sinh** khi giờ mới đến hạn cùng ngày (`ON CONFLICT … DO UPDATE WHERE status='cancelled' AND run_id IS NULL`) — tránh mất lời hỏi thăm hôm nay vì một lần chỉnh giờ; unique vẫn bảo đảm tối đa một lần giao/ngày.
+  - Ruling: lịch đang auto-pause vẫn được dời `next_due_at` nhưng không tạo job (không sinh hàng loạt `skipped(auto_paused)`).
+  - Ruling: "1 job running/user" là best-effort ở claim (hai claim đồng thời có thể cùng thấy không có job running); tuần tự hóa thật nằm ở khóa hàng `users` tại E1/E5.
+- **P1-13** — commit `4b2f56a`: `proactive/{executor,context,output,safety,provenance}.py`, lớp prompt `PROACTIVE_*` (`proactive-2026-11-a1`, không đổi `instructions()` đã đóng băng), `SdkProvider.run_proactive` (không tool, không transcript, tracing tắt, `store=False`, `max_turns=2`, timeout 30 s, guardrail claim), `Decision` thêm `retry`. `test_proactive_executor.py` **20 passed**, `test_proactive_journal.py` **12 passed**.
+  - Phủ: giao 2 bubble không có tin `self`/session, input là **một** item dữ liệu (canary transcript không lọt), lớp teen, OD-01 ghép hội thoại gần nhất / bỏ hội thoại sắp hết hạn, hoãn khi người dùng vừa nhắn (hoàn attempt), chat đang chạy → hoãn **trước** model, guardrail claim → `skipped(guardrail)`, output sai → retry 1 lần rồi `failed(invalid_output)`, timeout → backoff, Rủ Rê `avoidChallengeKinds` + lưu `challenge_kind` + lặp loại bị né → sinh lại, Cầu Nối chỉ số đếm của chính mình + chặn "92%", **không giữ kết nối pool trong lúc model chạy** (`checkedout()==0`), đổi lịch giữa chừng → `cancelled`, crash khi publish → giao đúng 1 lần (run cũ `failed`), accounting `+proactive-2026-11-a1`, không trừ quota, hiện trong `GET conversation`, SSE run proactive → 404.
+  - Nhịp: chỉ entry `saved` hôm qua của chính chủ (canary draft/hôm kia/hôm nay/người khác không lọt), trích dẫn bubble cuối + `ai_message_sources(policy=proactive-journal-v1@0)`, consent tắt → `not_enabled`, không entry mà nói "hôm qua" → `invented_journal`, ID lạ → `unsupported_source`, sửa entry khi model chạy → `retry(source_changed)`, tắt consent khi model chạy → `cancelled`, mẫu an toàn không gọi model và không ghi provenance, >3 entry → `entriesTotal 5/entriesIncluded 3`, tối không đọc nhật ký, canary/`user_id` không vào log; screen an toàn 6 dương/6 âm tính (gồm "từ từ", "mệt chết đi được", "tự làm hài lòng").
+  - **Ghi nhận TDD:** code viết trước khi chạy test. Mutation: bỏ tái ủy quyền E5 / bỏ hoãn khi vừa nhắn / bỏ validator / cho draft / bỏ lọc chủ sở hữu / bỏ cổng consent / bỏ kiểm revision / bỏ screen an toàn / bỏ luật "hôm qua" → **đều bị bắt**. Đột biến "bỏ kiểm lease ở đầu publish" **sống sót** → thêm test chiếm lại lease; vẫn sống vì `finish()` có rào token ⇒ đột biến tương đương (kiểm tra đầu publish là phòng thủ chiều sâu), ghi nhận.
+  - Ruling: proactive dùng `Runner.run_streamed` (như chat) thay vì `Runner.run` — một đường SDK đã kiểm chứng, fake model chỉ hỗ trợ streaming; không nội dung nào phát ra trước khi validate.
+  - Ruling: `max_tokens=1200` (không phải 700) vì giới hạn này gồm cả reasoning token của model; output vẫn bị chặn ≤ 1.200 ký tự bởi schema.
+  - Ruling: distress screen chỉ dùng dạng có dấu cho cụm mơ hồ khi bỏ dấu ("tự tử"/"từ từ"); "tu lam hai" bỏ dấu bị loại vì trùng "tự làm hài lòng".
+  - Ruling: validator thêm luật ngoài đặc tả: ≤ 1 card và đúng loại theo trợ lý (Nhịp `mood_form`, Cầu Nối `discovery`), cấm link/URL trong text mọi trợ lý.
+- **P1-14** — commit `57cd04f`: `context.py` (`proactive-text-v1` như text; `proactive-journal-v1` chỉ khi có trong `revalidated`), `runtime.revalidate_check_ins` (trong transaction owner lock của `drive()`, cửa sổ 36 h, thành công → lượt hiện tại stamp `journal-turn-v1` trước khi prose tới model), `durable_run` 404 cho run không phải `origin='user'`. `test_proactive_context.py` **7 passed** (unit projection, revalidate → vào context, sửa/xóa entry → cắt, tắt rồi bật consent → không khôi phục, text check-in vào context, không có run `running` sau publish). Mutation "không bao giờ revalidate" và "tin không kiểm" đều bị bắt.
+- **P1-15** — `proactive/routes.py` (`GET /ai/inbox`, `PUT /ai/conversations/{id}/read`, `POST /ai/inbox/read-all`), `schemas.py` (`InboxView`…), OpenAPI + `schema.d.ts`, `api-reference.md`. RED **10 failed**. GREEN `test_ai_inbox.py` **10 passed** (3 bubble = 1 unread, không preview; marker đơn điệu + cắt về version; đọc một phần; hết hạn/ >30 ngày không đếm; trả lời sau lời hỏi thăm = đã đọc; trả lời chat thường không bao giờ unread; hội thoại người khác 404; read-all; `badgesEnabled`; guest/cờ tắt rỗng).
+  - Hiệu năng (500 hội thoại, 500 lời hỏi thăm, 5 trợ lý): bản đầu trả 500 dòng, p95 **122 ms** → EXPLAIN cho thấy thiếu thống kê (ước lượng rows=1) khiến planner nested-loop qua index owner (lọc 124.750 dòng). Sửa: gộp theo trợ lý bằng window function trong SQL (≤ 5 dòng), join hội thoại theo cột owner; test chạy `ANALYZE` sau khi seed như autovacuum trên DB thật → **p50 9,7 ms / p95 15,7 ms** (đo khi full suite chạy song song trên cùng PostgreSQL). Có thống kê: execution 6,6 ms.
+  - Ruling: "đã đọc" = marker ≥ sequence đầu **hoặc** có tin `self` sau đó (nhất quán với auto-pause) — người dùng trả lời từ máy khác không bị báo chưa đọc.
+- **P1-16 / P1-17** — commits `2d18f90` (đổi tên schema `ConversationReadInput/View`: tên `ReadInput` trùng schema social làm hỏng `HumanChat` typecheck — phát hiện nhờ `npm run typecheck`), `d0c20ed`, `7ee2117`. Mới: `checkins/{CheckInsPage.tsx, checkinsModel.ts(+test), checkins.css, proactive.css}`, `useAIInbox.tsx(+test)`; sửa `RealApp.tsx` (route lazy `/check-ins`, `AIInboxProvider`, badge tab "Trợ lý", mục "Lời nhắn mới" + "Đánh dấu đã đọc tất cả", badge từng trợ lý, chấm nút quay lại mobile, nhãn "Lời hỏi thăm buổi sáng · 07:31" + nhãn đọc màn hình, link "Đổi hoặc tắt lời hỏi thăm này", đánh dấu đọc khi ở cuối log + tab visible (debounce 1 s), tự tải lại hội thoại khi idle có lời hỏi thăm mới, mục tài khoản).
+  - Unit: `checkinsModel.test.ts` RED (thiếu module) → **9 passed**; `useAIInbox.test.ts` 3 passed (viết cùng lúc với code — ghi nhận). Frontend tổng **148 passed (27 files)**, typecheck 0 lỗi, build OK.
+  - E2E fixture `proactive.spec.ts` **14 passed**: trang lịch ở 1440/768/390/360 (không tràn ngang, switch ≥ 44 px, **axe wcag2a/aa 0 vi phạm**), bật lưu ngay + "Đã lưu" + body chính xác, giờ trong giờ yên lặng không được đề xuất, cap 4/4 `aria-disabled` + lý do, STALE_VERSION tải lại + switch về trạng thái server, opt-in nhật ký + dialog giải thích + Escape, tính năng đóng / guest, badge + mục "Lời nhắn mới" không preview + read-all, nhãn trong chat + link lịch + PUT read `lastReadSequence=3`, chấm nút quay lại 390 px, mục tài khoản. Hồi quy `multi-message`, `chat-history`, `states` **24 passed**.
+  - **Lỗi thật bắt được ở fullstack:** lưu lịch đầu tiên tạo settings phía server (version 0→1) nhưng trang giữ version 0 → bật nhật ký bị `STALE_VERSION`. Sửa: tải lại sau lần lưu lịch đầu + thử lại một lần khi settings stale (patch chỉ chứa đúng điều khiển vừa đổi). Test fixture mới **RED khi gỡ bản sửa → GREEN**; fixture server được làm trung thực (409 khi version lệch).
+  - **Lỗi UX thứ hai:** inbox chỉ làm mới theo poll 30 s/focus → badge không hiện khi chuyển màn hình. Sửa: làm mới khi đổi route (như `useSocialSummary`).
+  - Ruling: điều khiển lưu **lạc quan** (đúng 06 §3.2) và hoàn tác khi lỗi; `check()` của Playwright đổi sang `click()` + kiểm trạng thái.
+  - Ruling: neo trợ lý dùng `/check-ins?bot=nhip` thay vì `#nhip` (ứng dụng dùng HashRouter nên fragment đã bị route chiếm).
+  - Ruling: "Xóa lịch" ở cấp thẻ trợ lý (xóa mọi khung đã lưu của trợ lý đó); tạm dừng ở từng khung. Không thêm dòng tóm tắt lịch vào `ConversationInfo` (đã có link dưới mỗi lời hỏi thăm + mục Tài khoản) — giảm màn hình/điều khiển thừa.
+- **P1-18 (một phần)** — `tests/e2e_server.py` (`PROACTIVE_ENABLED` theo `E2E_PROACTIVE`, endpoint chỉ-test `/__test/proactive/run` làm lịch đến hạn rồi chạy `proactive_tick`), `tests/mood_e2e_model.py` (trả lời payload lời hỏi thăm), `frontend/tests/fullstack/proactive.spec.ts` (user 52): **2 passed** với backend thật — bật lịch qua UI, reload giữ trạng thái, giao `may:delivered`/`nhip:delivered`, chạy lại cùng ngày **không giao trùng**, badge "Trợ lý, 2 lời nhắn mới", mục "Lời nhắn mới", nhóm 2 bubble có link nguồn `/self/entry/…`, row DB `bot:proactive:0/1` không có tin `self`, trả lời trong cùng hội thoại, 390 px chấm quay lại + không tràn, tab thứ hai nhận read-all qua BroadcastChannel, tắt nhật ký lưu được, 0 console error; guest/không session → 401.
+  - Full backend (trước khi phân loại guest): **1334 passed, 3 failed, 1 skipped**. `test_guest_permissions::test_every_operation_has_guest_policy` fail vì 7 route mới chưa phân loại → đã phân loại (4 registered-only, `/ai/inbox` summary-zero, read/read-all personal) → **66 passed**. `test_guest_embeddings::test_late_embedding_cannot_recreate_deleted_memory` fail khi CPU bị chiếm bởi fullstack song song, **pass khi chạy riêng** (test dựa vào hạn guest 3 s) → flake do tải, không liên quan. `test_guest_proposal_and_history_expiry_capped` = fail có sẵn.
+- **P1-18 (tiếp)** — `scripts/load_proactive.py` + `tests/proactive_load_worker.py` (worker process riêng, pool 2+0/4+0, model giả 1,5 s, 20 người chat song song): 8 cấu hình 20/100/400 lịch × concurrency 1/2/4 — **mọi job `delivered`, 0 lỗi chat, transaction dài nhất 1,15 s, RSS worker 145–154 MiB, pool 2+0 đủ cho concurrency 4**, 400 lời cùng lúc giao xong trong ~3 phút (lag p95 173 s); chat p95 tăng 2,4–24 % (6/8 lần ≤ 10 %, tranh CPU trên một laptop). Bảng đầy đủ: [91 §10](../91-performance-cost-and-capacity.md#10-số-đo-phase-1-31102026-local--awssupabase-chỉ-đọc). Lần đo đầu (+36 %) là sai số khởi động → thêm vòng làm nóng. Fake model của harness có race (chia sẻ `responses` qua await) gây 4 `invalid_output` giả → sửa fake, không phải lỗi ứng dụng. `test_proactive_privacy.py` **2 passed** (xóa tài khoản khi model đang chạy → `cancelled(deletion_pending)`, canary không có trong 8 bảng metadata).
+  - agent-browser (Chrome thật, stack local thật, user 53): trang lịch 1440/768/390/360 không tràn ngang, 0 console/page error; bật lịch → `__test/proactive/run` → badge "Trợ lý, 2 lời nhắn mới", mục "Lời nhắn mới", nhóm 2 phần + nguồn `30/10/2026` + link đổi lịch, chấm nút quay lại 390 px, đọc xong badge còn 1. **Phát hiện và sửa:** (1) switch bị `disabled` khi đang lưu làm mất focus bàn phím (focus về `<body>`) → dùng `aria-disabled` + chặn bằng cờ `saving`; test E2E mới RED (không sửa) → GREEN. (2) Starter chips vẫn hiện dưới lời hỏi thăm (trái 06 §4) → ẩn; test RED → GREEN. Ảnh lưu ở scratchpad phiên (ngoài git).
+- **P1-19** — `backend/evals/proactive/` (70 case: 62 tuning + 8 held-out, 3 chuỗi 7 ngày), `tests/test_proactive_eval.py` 3 passed (offline). Chi tiết và chi phí: [eval-proactive.md](eval-proactive.md). Kết quả cuối (prompt `proactive-2026-11-a8`, gpt-6-luna effort `low`): validator 70/70, 0 câu đệm, 0 bịa, Claude Code chấm 70/70 đạt rubric bắt buộc, trùng 4-gram 7 ngày ≤ 0,011; trước đó a6 đạt 100 %/100 % (judge gpt-6-astra, 2 lần) và 98,6 % (judge gpt-6.1-sol). gpt-6.1-terra kém hơn (85,7 %) với chi phí sinh ×10 ⇒ giữ gpt-6-luna. **Tổng chi tiêu API 11,06 USD** (sau chỉ đạo mới của owner: 0,04/3 USD; chỉ gpt-6-luna sinh, Claude Code tự chấm).
+  - Ruling: hiệu chỉnh rubric judge bám đúng câu mẫu trong đặc tả 07 (ví dụ câu của Mây) — chi phí nếu sai: điểm judge lạc quan; giảm thiểu bằng held-out, judge độc lập gpt-6.1-sol, và Claude Code đọc toàn bộ output.
+  - Ruling: eval tính "đạt" theo thông điệp **được giao** (sinh lại tối đa 1 lần sau validator/timeout như executor) — đúng trải nghiệm người dùng; số lần sinh lại được báo cáo riêng.
+  - Ruling (owner): bỏ quy tắc đặc tả "luôn nói rõ có thể không trả lời"; validator chặn câu đệm và sinh lại.
+- **R-15 (mới)**: chat có sẵn giới hạn 1200 token gồm reasoning → 2/80 yêu cầu liệt kê `incomplete`; không sửa trong Phase 1 vì gắn với dự phòng chi phí guest — xem [94](../94-dependencies-risks-and-open-decisions.md).
+- **P1-20** — `docs/backend/operations.md` (service `proactive`, thứ tự bật 7 bước, health, metric, bảng xử lý sự cố, dừng khẩn cấp/rollback), `docs/agents/runtime.md`, `docs/agents/context-memory.md`, `ARCHITECTURE.md`, `deploy/aws/cloudwatch-alarms.json` (+5 filter, +5 alarm `Proactive*`, các dòng `metric=` tương ứng trong code; `test_ops_config` xanh), [91 §10](../91-performance-cost-and-capacity.md) (tải, AWS, Supabase, chi phí thật), [93 §9](../93-release-rollback-and-observability.md#9-checklist-sẵn-sàng-staging-gate-g1-cập-nhật-31102026) (checklist staging + rollback). `check_docs.py` PASS.
+
+## Gate G1 — kiểm chứng cuối (31/10/2026)
+
+| Hạng mục | Kết quả thật |
+| --- | --- |
+| Backend toàn bộ (`pytest -q`, DB `moodprint_p1_unit_test`) | **1348 passed, 1 failed, 1 skipped** — fail duy nhất `test_guest_embeddings::test_guest_proposal_and_history_expiry_capped` (có sẵn từ `d6eaf71`) |
+| Ruff / mypy / `check_docs.py` | sạch / Success (139 files) / PASS; export OpenAPI không drift |
+| Frontend unit / typecheck / build | **148 passed (27 files)** / 0 lỗi / OK |
+| E2E fixture proactive | **15 passed** (axe 0 vi phạm ở 4 viewport) |
+| Fullstack proactive (backend thật) | **2 passed** |
+| E2E fixture toàn bộ (`npx playwright test --global-timeout=1600000`) | **326 passed, 15 failed**. 13 fail = đúng tập có sẵn (`auth` :141/:166/:188, `discovery` :76/:148, `real` :471, `ux-redesign` :186/:901/:1128×2/:1180/:1196/:1273). 2 fail thêm (`activities:284`, `feedback:81`) **pass 4/4 khi chạy riêng** (`--repeat-each=2`) ⇒ flake do tải (dock là flake đã ghi trong memory dự án) |
+| Fullstack toàn bộ (`scripts/test_fullstack.py`, cờ proactive + multi-message bật) | **30 passed, 6 failed**; tên 6 fail **trùng khớp từng dòng** với log `d6eaf71` sạch (diff rỗng). Lần chạy đầu không lên server (startup timeout sau đợt E2E nặng) → chạy lại |
+| Live eval | xem P1-19 |
+| Final review | **Tự review** (subagent review độc lập bị dừng do giới hạn API của tài khoản) — không phát hiện lỗi Critical/Important; xem mục Deferred minors trong báo cáo cuối |
+| Cách ly Codex | Phiên này chỉ đọc ở `E:\MoodPrint` (`git status/diff/rev-parse/reflog/ls-tree/show`, đọc `OPENAI_API_KEY` trong `backend/.env` trong process, không in ra). Worktree đó đã có 16 commit mới **của Codex** (18:07–18:15, branch `feat/friendship-discovery-18plus`, gồm 18+ toàn cục) — không có migration mới (head vẫn 0020) ⇒ 0021/0022 vẫn nối đúng; cần rebase có kiểm soát trước staging |
+| Sự cố hạ tầng test | Container `moodprint-proactive-p1-db` tự dừng giữa phiên → khởi động lại, tạo lại DB `*_test`; không ảnh hưởng dữ liệu thật |

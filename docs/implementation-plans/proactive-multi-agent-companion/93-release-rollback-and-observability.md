@@ -97,3 +97,28 @@ Không có secret mới. Biến mới ([phase-1/05 §8](phase-1/05-backend-api-a
 ## 8. Tài liệu vận hành cần cập nhật khi triển khai
 
 [docs/backend/operations.md](../../backend/operations.md), [docs/backend/data-lifecycle.md](../../backend/data-lifecycle.md), [docs/agents/runtime.md](../../agents/runtime.md), [docs/agents/context-memory.md](../../agents/context-memory.md), [ARCHITECTURE.md](../../../ARCHITECTURE.md) (§5, §8: thêm worker proactive và topology).
+
+## 9. Checklist sẵn sàng staging (Gate G1, cập nhật 31/10/2026)
+
+Trạng thái: ☑ = đã có bằng chứng trong [evidence/execution.md](evidence/execution.md); ☐ = việc của owner/triển khai (không làm trong phiên code).
+
+| # | Hạng mục | Trạng thái |
+| --- | --- | --- |
+| 1 | Mã P1-00…P1-20 trên `feat/proactive-companion-phase1`, mọi cờ mặc định tắt | ☑ |
+| 2 | Backend suite, ruff, mypy, frontend unit/typecheck/build, E2E fixture, fullstack proactive xanh (trừ fail có sẵn đã phân loại) | ☑ |
+| 3 | Offline SQL 0020→0022 rehearsal trên chuỗi sạch + role mirror | ☑ (P1-03) |
+| 4 | Rehearsal trên bản sao `pg_dump --schema-only` của hosted (U-04) | ☐ owner cho phép dump |
+| 5 | Hosted đã ở `0020_private_profile_retirement` (đọc ngày 01/11/2026). Áp 0021→0024 qua `scripts/apply_supabase_review.py` (một transaction, có backup) **chỉ cùng lúc** triển khai image có `READY_REVISIONS = 0024`: image main hiện hành chỉ chấp nhận 0020 và trả `503 NOT_READY` ở `/api/v1/health/ready` khi DB đã ở 0021+ | ☐ owner (BLK-02) |
+| 6 | Tích hợp với `origin/main` (friendship-profile, 18+ toàn cục, guest): đã merge `origin/main` `94ef40f` vào nhánh V3 ngày 01/11/2026; `collaboration_eligible` và `authorize_proactive` dùng `is_adult_eligible()`; OpenAPI và `schema.d.ts` sinh lại. Chưa chạy lại toàn bộ suite/CI | ☑ nguồn · ☐ CI đầy đủ |
+| 7 | Supabase S1: `ALTER ROLE moodprint_backend CONNECTION LIMIT 30; ALTER ROLE moodprint_backend SET idle_in_transaction_session_timeout = '60s';` | ☐ owner |
+| 8 | CloudWatch agent bật ≥ 7 ngày, `mem_used_percent` p95 + 384 MiB < 70 % (nếu không: `t3.medium`) | ☐ owner |
+| 9 | Áp dụng metric filter + alarm `Proactive*` từ `deploy/aws/cloudwatch-alarms.json` | ☐ owner |
+| 10 | Env staging: `AI_ACCOUNTING_ENABLED=true`, `AI_DAILY_BUDGET_USD>0`, `PROACTIVE_ENABLED=true`, `PROACTIVE_ROLLOUT_USER_IDS=[≤5 tài khoản thử nghiệm đã đồng ý]`, service `proactive` `PROACTIVE_WORKER_ENABLED=true`, `PROACTIVE_WORKER_CONCURRENCY=2` | ☐ |
+| 11 | 7 ngày staging: 0 giao trùng (`ai_proactive_jobs` delivered ↔ đúng 1 run), 0 giao trong giờ yên lặng, 0 rò rỉ (canary), lag p95 < 5 phút | ☐ |
+| 12 | Owner ký checklist (G1 trong [phase-1/08 §3](phase-1/08-implementation-plan.md)) | ☐ |
+
+**Rollback nhanh (theo thứ tự tác động tăng dần):** (a) `PROACTIVE_WORKER_ENABLED=false` + `docker compose up -d proactive` → không sinh lời mới; job đang chạy hết lease, không commit dở. (b) `PROACTIVE_ENABLED=false` → API/UI ẩn (GET `available=false`, ghi 503, inbox rỗng). (c) `AI_MULTI_MESSAGE_ENABLED=false` → trả lời một tin. (d) Image R1 → R0 (`release/proactive-r0-compat`, ready ở 0020/0021/0022). Không downgrade schema; bảng mới trống/không dùng không ảnh hưởng R0.
+
+## 10. Phase 2 — phát hành và rollback
+
+Trình tự bật, metric `collaboration_*`, alarm `CollaborationTimeouts`/`CollaborationFailures`, dừng khẩn cấp và rollback R2 → R1 ở [operations](../../backend/operations.md#trợ-lý-phối-hợp-phase-2). Điều kiện thêm cho rollback: image R1 phải chấp nhận cả `0022` và `0023` trước khi `0023` được áp dụng hosted (yêu cầu tích hợp, chưa làm trên nhánh Phase 1). Checklist owner chưa ký.

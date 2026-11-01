@@ -87,6 +87,9 @@ async def seed_owned(app, uid: UUID, *, peer: UUID, guest: bool) -> dict[str, li
             )
         )
         await db.flush()
+        from tests.proactive_helpers import seed_proactive
+
+        await seed_proactive(db, uid, conversation_id=conversation.id, run_id=run.id)
         return {
             "conversation": [conversation.id],
             "run": [run.id],

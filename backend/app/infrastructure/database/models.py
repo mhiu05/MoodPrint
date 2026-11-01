@@ -190,11 +190,18 @@ class AiRun(Base):
     __tablename__ = "ai_runs"
     id: Mapped[UUID] = mapped_column(PGUUID, primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(ForeignKey(User.id), index=True)
-    conversation_id: Mapped[UUID] = mapped_column(PGUUID, index=True)
+    # NULL only while a proactive run has not yet been published into a conversation.
+    conversation_id: Mapped[UUID | None] = mapped_column(PGUUID, index=True)
     bot_id: Mapped[str] = mapped_column(String(16))
     status: Mapped[str] = mapped_column(String(16), default="running")
     version: Mapped[int] = mapped_column(default=1)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    origin: Mapped[str] = mapped_column(String(16), default="user", server_default=text("'user'"))
+    proactive_slot: Mapped[str | None] = mapped_column(String(16))
+    # A bounded specialist consultation (origin='collaboration') is a child of exactly one run.
+    parent_run_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("moodprint.ai_runs.id", ondelete="CASCADE"), nullable=True
+    )
     __table_args__ = (
         Index(
             "uq_ai_active_conversation",
@@ -202,6 +209,20 @@ class AiRun(Base):
             unique=True,
             postgresql_where=(status == "running"),
         ),
+        Index("ix_ai_runs_user_origin_created", "user_id", "origin", "created_at"),
+        Index(
+            "ix_ai_runs_parent_run_id", "parent_run_id",
+            postgresql_where=text("parent_run_id IS NOT NULL"),
+        ),
+        # 'agent' (V3): a planner, consulted specialist, handoff responder or group speaker run.
+        CheckConstraint("origin in ('user', 'proactive', 'collaboration', 'agent')", name="origin"),
+        CheckConstraint("(origin in ('collaboration', 'agent')) = (parent_run_id is not null)", name="parent"),
+        CheckConstraint(
+            "(origin = 'proactive') = (proactive_slot is not null) "
+            "and (proactive_slot is null or proactive_slot in ('morning', 'evening'))",
+            name="slot",
+        ),
+        CheckConstraint("origin <> 'user' or conversation_id is not null", name="conversation"),
     )
 
 

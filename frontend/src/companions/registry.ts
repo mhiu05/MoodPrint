@@ -1,4 +1,10 @@
-export type BotId = "may" | "guong" | "nhip" | "rure" | "caunoi";
+export type LegacyBotId = "may" | "guong" | "nhip" | "rure" | "caunoi";
+/** V3 default agents (AI_THREE_AGENT_EXPERIENCE_ENABLED). */
+export type AgentId = "dieuphoi" | "nhatky" | "hoatdong";
+export type BotId = LegacyBotId | AgentId;
+export const AGENT_IDS: readonly AgentId[] = ["dieuphoi", "nhatky", "hoatdong"];
+export const isAgentId = (id: unknown): id is AgentId =>
+  typeof id === "string" && (AGENT_IDS as readonly string[]).includes(id);
 export type InlineCard =
   | { kind: "mood"; value?: number }
   | { kind: "insight" }
@@ -85,10 +91,41 @@ export const bots: BotProfile[] = [
     ],
   },
 ];
-export const botById = (id?: string) => bots.find((b) => b.id === id);
+/** V3 agents. Only their own descriptions; legacy companions above stay for history labels. */
+export const agents: BotProfile[] = [
+  {
+    id: "dieuphoi",
+    name: "Điều phối",
+    role: "Trò chuyện & lên hướng đi",
+    description: "Hiểu điều bạn cần, cùng bạn gỡ rối và gọi đúng người giúp.",
+    color: "#d9ebe3",
+    intro: "Hôm nay bạn muốn trò chuyện, gỡ rối một việc hay sắp xếp kế hoạch? Cứ kể mình nghe.",
+    starters: ["Hôm nay mình hơi rối", "Giúp mình sắp xếp tuần này", "Mình muốn hiểu bản thân hơn"],
+  },
+  {
+    id: "nhatky",
+    name: "Nhật ký",
+    role: "Nhật ký & cảm xúc",
+    description: "Nhìn lại những gì bạn đã ghi, nhận ra điều lặp lại.",
+    color: "#f8e6bf",
+    intro: "Muốn nhìn lại vài ngày qua, hay viết thêm vài dòng cho hôm nay?",
+    starters: ["Nhìn lại tuần này", "Giúp mình viết vài dòng", "Một thói quen nhỏ"],
+  },
+  {
+    id: "hoatdong",
+    name: "Hoạt động",
+    role: "Hoạt động & học hỏi",
+    description: "Biến ý định thành một việc nhỏ làm được ngay.",
+    color: "#fbdccf",
+    intro: "Có chút thời gian rảnh không? Mình gợi ý một việc nhỏ làm được ngay nhé.",
+    starters: ["Gợi ý việc nhẹ cho tối nay", "Mình muốn học điều mới", "Chia nhỏ mục tiêu giúp mình"],
+  },
+];
+const allProfiles = [...bots, ...agents];
+export const botById = (id?: string) => allProfiles.find((b) => b.id === id);
 export function initialThreads(): Record<BotId, BotThread> {
   return Object.fromEntries(
-    bots.map((b) => [
+    allProfiles.map((b) => [
       b.id,
       {
         messages: [

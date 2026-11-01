@@ -14,6 +14,7 @@ from agents.strict_schema import ensure_strict_json_schema
 from sqlalchemy import select, update
 
 from app.ai.accounting import UsageSnapshot, persist_snapshot, reserve_accounting
+from app.ai.agents import caps
 from app.ai.availability import AiStatus, public_failure
 from app.ai.context import (
     JOURNAL_TURN_POLICY,
@@ -34,8 +35,8 @@ from app.ai.journal import (
 )
 from app.ai.models import AiMessageRecord
 from app.ai.persistence import current_turn, owned_conversation
-from app.ai.prompts import SELECTED_VARIANTS, prompt_version
-from app.ai.schemas import AIEvent, AIMessage, AiOutput, MoodReadScope
+from app.ai.prompts import RUNTIME_VARIANTS, prompt_version
+from app.ai.schemas import AIEvent, AIMessage, AiReply, MoodReadScope, final_v2
 from app.ai.store import ConversationStore
 from app.ai.usage import UsageEvent
 from app.core.errors import DomainError
@@ -55,6 +56,8 @@ class LiveRun:
     id: UUID
     mood_scope: MoodReadScope | None = None
     events: list[AIEvent] = field(default_factory=list)
+    # ai-events-v2 final data (ordered bubbles with ids); None until the run completes.
+    final_v2: dict | None = None
     wake: asyncio.Event = field(default_factory=asyncio.Event)
     task: asyncio.Task | None = None
     terminal: bool = False
@@ -82,6 +85,16 @@ class LiveRun:
     reservation: Any = None
     dispatched: bool = False
     before_dispatch: Callable[[], Awaitable[None]] | None = None
+    # Phase 2: at most one bounded consultation per turn (coordinator.Consultation).
+    collaboration: Any = None
+    # V3: the orchestrated workflow of a Điều phối turn (orchestration.workflow.Workflow).
+    workflow: Any = None
+    # V3 handoff continuation: the agent answering this turn when it is not the conversation's bot.
+    responder: str | None = None
+    # Sequence of this turn's user message (start of a handoff segment).
+    user_sequence: int | None = None
+    # 'group' for a V3 group turn (its conversation is an ai_conversations row of kind 'group').
+    kind: str = "direct"
 
 
 @dataclass
@@ -104,6 +117,13 @@ class AiRuntime:
         self.settings, self.database = settings, database
         self.worker_id = uuid4()
         self.provider = SdkProvider(settings)
+        from app.ai.collaboration.coordinator import CollaborationCoordinator
+
+        self.coordinator = CollaborationCoordinator(self)
+        # Tests only: a separate synthetic model for specialist consultations.
+        self.specialist_model_override = None
+        # Tests only (V3): synthetic models per workflow role ('planner', 'nhatky:consult', ...).
+        self.agent_model_overrides: dict = {}
         self.store = ConversationStore()
         self.runs: dict[UUID, LiveRun] = {}
         self.proposals: dict[UUID, Proposal] = {}
@@ -145,6 +165,7 @@ class AiRuntime:
             if run.conversation_id not in self.store.conversations:
                 self.request_cancel(run)
                 run.events.clear()
+                run.final_v2 = None
                 del self.runs[identity]
         for identity, proposal in list(self.proposals.items()):
             if proposal.expires_at <= time.monotonic():
@@ -300,7 +321,7 @@ class AiRuntime:
             if user.data_version != run.data_version:
                 raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
             await current_turn(db, run, self.worker_id)
-            if run.persistent and not await owned_conversation(db, run.conversation_id, user.id):
+            if run.persistent and not await owned_conversation(db, run.conversation_id, user.id, kind=run.kind):
                 raise DomainError(410, "CONVERSATION_EXPIRED", "Cuộc trò chuyện đã kết thúc.")
             status = await db.scalar(
                 select(AiRun.status).where(
@@ -316,11 +337,38 @@ class AiRuntime:
                 if usage is None or usage.worker_id != self.worker_id or usage.lease_until <= now():
                     raise DomainError(410, "WORKER_FENCED", "Lượt trò chuyện đã kết thúc.")
 
+    async def revalidate_check_ins(self, db, user, run: LiveRun, c) -> frozenset[UUID]:
+        """ADR-08: recent journal-derived check-ins join context only after revalidation.
+
+        Runs under the caller's owner lock. On success this turn is stamped journal-turn-v1
+        *before* any check-in prose reaches the model, so later turns cut it (fail closed).
+        """
+        from app.ai.context import PROACTIVE_JOURNAL_POLICY, TEXT_POLICY
+        from app.ai.proactive.provenance import REVALIDATION_WINDOW, revalidate_sources
+
+        since = now() - REVALIDATION_WINDOW
+        candidates = {
+            m.run_id for m in c.messages
+            if m.run_id and m.origin == "proactive" and m.created_at > since
+            and (stamp := c.context_stamps.get(m.run_id)) is not None
+            and stamp.policy == PROACTIVE_JOURNAL_POLICY
+        }
+        if not candidates:
+            return frozenset()
+        revalidated = await revalidate_sources(db, user, candidates)
+        current = c.context_stamps.get(run.id)
+        if revalidated and (current is None or current.policy == TEXT_POLICY):
+            turn = await current_turn(db, run, self.worker_id)
+            if turn is not None:
+                turn.context_policy = JOURNAL_TURN_POLICY
+            c.context_stamps[run.id] = ContextStamp(run.data_version, JOURNAL_TURN_POLICY)
+        return revalidated
+
     async def reserve_usage(self, db, run_id: UUID, user_id: UUID, bot_id: str):
         if self.settings.ai_accounting_enabled:
             await reserve_accounting(db, run_id, user_id, self.worker_id, self.settings.openai_model,
                                      # Compact journal policy revision fits existing varchar(60).
-                                     prompt_version(SELECTED_VARIANTS[bot_id]) + "+" + EVIDENCE_POLICY + "+" + CONVERSATION_POLICY + ("+j1" if bot_id == "nhip" else ""))
+                                     prompt_version(RUNTIME_VARIANTS[bot_id]) + "+" + EVIDENCE_POLICY + "+" + CONVERSATION_POLICY + ("+j1" if caps(bot_id).journal else ""))
 
     async def record_usage(self, run: LiveRun, event: UsageEvent):
         run.usage.observe(event)
@@ -357,6 +405,7 @@ class AiRuntime:
             await asyncio.gather(*self.finalizers, return_exceptions=True)
         for run in (*self.runs.values(), *self.pending_terminal.values()):
             run.events.clear()
+            run.final_v2 = None
         self.runs.clear()
         self.store.clear()
         self.proposals.clear()
@@ -413,7 +462,7 @@ class AiRuntime:
                     await assert_purpose(db, user, "AI")
                     if user.data_version != run.data_version:
                         raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
-                    if bot_id != "nhip" or run.mood_scope is None:
+                    if not caps(bot_id).mood_scope or run.mood_scope is None:
                         raise DomainError(403, "MOOD_SCOPE_REQUIRED", "Hãy chọn khoảng ngày trước.")
                     result = await selected_summary(db, user, run.mood_scope)
                 await self.check(run)
@@ -437,7 +486,7 @@ class AiRuntime:
             state = run.sources.setdefault("journal", SourceState())
             try:
                 await check_tool()
-                if bot_id != "nhip" or run.mood_scope is not None or not run.journal_read_allowed:
+                if not caps(bot_id).journal or run.mood_scope is not None or not run.journal_read_allowed:
                     raise DomainError(403, "JOURNAL_READ_DENIED", "Lượt này không đọc nhật ký.")
                 async with self.database.require()() as db, db.begin():
                     user = await lock_actor(db, run.actor)
@@ -468,9 +517,8 @@ class AiRuntime:
             result["evidence"] = {"policy": JOURNAL_EVIDENCE_POLICY, "reuse": "current_run_only"}
             return json.dumps(result, ensure_ascii=False)
 
-        if bot_id == "guong":
-            return [propose_memory] if memory_enabled else []
-        if bot_id == "nhip" and run.mood_scope is not None:
+        capability = caps(bot_id)
+        if capability.mood_scope and run.mood_scope is not None:
             return [
                 *([propose_memory] if memory_enabled else []),
                 FunctionTool(
@@ -485,7 +533,7 @@ class AiRuntime:
                     on_invoke_tool=read_mood_summary,
                 ),
             ]
-        if bot_id == "nhip":
+        if capability.journal:
             from app.modules.journal.ai import JournalSearchInput
 
             return [
@@ -497,9 +545,86 @@ class AiRuntime:
                     on_invoke_tool=search_journal_entries,
                 ),
             ]
-        if bot_id == "may":
+        if capability.memory:
             return [propose_memory] if memory_enabled else []
         return []
+
+    async def consult(self, run: LiveRun, c, history: list[dict]):
+        """Phase 2: maybe one bounded specialist consultation before the primary reply.
+
+        No database access and no extra model call unless a deterministic rule matches. Returns
+        the consultation (with or without a usable brief) or None.
+        """
+        if not (
+            self.settings.ai_collaboration_enabled and run.persistent and run.mood_scope is None
+            and run.actor.account_kind == "registered" and run.collaboration is None
+        ):
+            return None
+        from app.ai.collaboration import policy
+        from app.ai.collaboration.coordinator import still_authorized
+        from app.ai.conversation import conversation_intent
+
+        latest = history[-1].get("content") if history and history[-1].get("role") == "user" else ""
+        signals = policy.Signals(
+            origin="chat", bot_id=c.bot_id, text=latest if isinstance(latest, str) else "",
+            intent=conversation_intent(c.bot_id, history, scoped=False),
+            journal_refused=journal_read_refused(history),
+        )
+        if policy.match_rule(signals) is None:
+            return None
+
+        async def stamp_journal_turn(db) -> None:
+            turn = await current_turn(db, run, self.worker_id)
+            if turn is not None:
+                turn.context_policy = JOURNAL_TURN_POLICY
+
+        async with self.database.require()() as db, db.begin():
+            user = await lock_actor(db, run.actor)
+            await assert_purpose(db, user, "AI")
+            if user.data_version != run.data_version:
+                raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
+            await current_turn(db, run, self.worker_id)
+            try:
+                # The consultation is optional: an unexpected failure while opening it rolls back
+                # only its own savepoint and the turn continues as a single reply.
+                async with db.begin_nested():
+                    opened = await self.coordinator.open(
+                        db, user, primary_run_id=run.id, signals=signals, data_version=run.data_version,
+                        seconds_remaining=self.settings.ai_timeout_seconds - (time.monotonic() - run.started),
+                        worker_id=self.worker_id, on_journal_read=stamp_journal_turn,
+                    )
+            except DomainError:
+                raise
+            except Exception as error:
+                logging.getLogger("moodprint").warning(
+                    "metric=collaboration_open_error error_type=%s", type(error).__name__
+                )
+                opened = None
+        if opened is None:
+            return None
+        run.collaboration = opened.consultation
+        if opened.consultation.sources:
+            c.context_stamps[run.id] = ContextStamp(run.data_version, JOURNAL_TURN_POLICY)
+
+        async def check() -> None:
+            # Authorization #2: before the specialist's only model request.
+            await self.check(run)
+            async with self.database.require()() as db, db.begin():
+                user = await lock_actor(db, run.actor, lock=False)
+                if not await still_authorized(db, self.settings, user, opened.consultation):
+                    raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
+
+        return await self.coordinator.execute(
+            opened, user_id=run.actor.user_id, check=check, worker_id=self.worker_id
+        )
+
+    def orchestrates(self, run: LiveRun, c) -> bool:
+        """V3 smart orchestration: Điều phối's own turns in a saved chat of an eligible account."""
+        return bool(
+            self.settings.orchestration_open_for(run.actor.user_id) and self.settings.ai_multi_message_enabled
+            and run.persistent and run.mood_scope is None and run.actor.account_kind == "registered"
+            and run.deadline is None and c.bot_id == "dieuphoi" and run.responder in (None, "dieuphoi")
+        )
 
     def guest_dispatch_guard(self, run: LiveRun) -> Callable[[], Awaitable[None]]:
         """Last awaited authorization before each provider request of a guest run."""
@@ -566,6 +691,7 @@ class AiRuntime:
         for identity, run in list(self.runs.items()):
             if str(run.actor.user_id) == uid:
                 run.events.clear()
+                run.final_v2 = None
                 run.mood_evidence = None
                 run.journal_evidence = None
                 run.sources.clear()
@@ -594,6 +720,8 @@ class AiRuntime:
                 c = self.store.get(
                     run.conversation_id, str(run.actor.user_id), str(run.actor.session_id)
                 )
+                # V3 handoff continuation: the specialist answers in Điều phối's conversation.
+                bot = run.responder or c.bot_id
                 from app.ai.embeddings import MEMORY_BOTS, retrieve_memories
 
                 # Check live durable policy before projecting either transcript or
@@ -609,26 +737,31 @@ class AiRuntime:
                         memory_state.authorization = "authorized"
                     elif mem and mem.version > 1:
                         memory_state.authorization = "revoked"
-                    if c.bot_id not in MEMORY_BOTS:
+                    if bot not in MEMORY_BOTS:
                         memory_state.evidence = "tool_unavailable"
                     run.sources["memory"] = memory_state
+                    revalidated = await self.revalidate_check_ins(db, user, run, c)
                 run.sources["mood"] = SourceState(
                     authorization="authorized" if run.mood_scope else "no_current_authorization",
                     previous="previously_authorized" if any(
                         s.policy == MOOD_TURN_POLICY for rid, s in c.context_stamps.items() if rid != run.id
                     ) else "missing_verified_evidence",
-                    evidence="missing_verified_evidence" if c.bot_id == "nhip" and run.mood_scope else "tool_unavailable",
+                    evidence="missing_verified_evidence" if caps(bot).mood_scope and run.mood_scope else "tool_unavailable",
                 )
-                if c.bot_id == "nhip" and run.mood_scope is None:
+                if caps(bot).journal and run.mood_scope is None:
                     run.sources["journal"] = SourceState(authorization="authorized")
                 projected = model_messages(
-                    c.messages, c.context_stamps, current_run=run.id, data_version=run.data_version
+                    c.messages, c.context_stamps, current_run=run.id, data_version=run.data_version,
+                    revalidated=revalidated,
                 )
+                if bot != c.bot_id:
+                    # The specialist sees only its own segment (from the handoff on), never the rest.
+                    projected = [m for m in projected if m.id in c.segment_ids]
                 memories = []
                 if memory_state.authorization == "authorized" and memory_state.evidence != "tool_unavailable":
                     try:
                         memories = await retrieve_memories(
-                            self.database, self.settings, run.actor, c.bot_id,
+                            self.database, self.settings, run.actor, bot,
                             projected[-1].text if projected else "", run.data_version,
                             operation_key=f"embed-query:{run.id}",
                         )
@@ -651,6 +784,13 @@ class AiRuntime:
                             return
 
                 monitor = asyncio.create_task(monitor_policy())
+                consultation = await self.consult(run, c, history)
+                brief = consultation.brief if consultation is not None else None
+                if self.orchestrates(run, c):
+                    from app.ai.orchestration.workflow import Workflow
+
+                    run.workflow = Workflow(self, run, c)
+                    await run.workflow.decide(history)
 
                 async def progress():
                     await self.check(run)
@@ -661,23 +801,31 @@ class AiRuntime:
                 async def observe(event):
                     await self.record_usage(run, event)
 
-                output = await self.provider.run(
-                    bot_id=c.bot_id,
-                    history=history,
-                    tools=self.tools(run, c.bot_id, memory_enabled=True),
-                    context=run,
-                    on_progress=progress,
-                    model_override=self.model_override,
-                    usage_observer=observe,
-                )
-                output = AiOutput.model_validate(output)
+                if run.workflow is not None and run.workflow.decision.delegates:
+                    reply = await run.workflow.respond(history, on_progress=progress, observer=observe)
+                else:
+                    reply = await self.provider.run_reply(
+                        bot_id=bot,
+                        history=history,
+                        tools=self.tools(run, bot, memory_enabled=True),
+                        context=run,
+                        on_progress=progress,
+                        model_override=self.agent_model_overrides.get(bot, self.model_override),
+                        usage_observer=observe,
+                        extra_instructions=brief.instructions if brief else "",
+                        extra_input=[brief.data_item] if brief and brief.data_item else [],
+                    )
+                reply = AiReply.model_validate(reply)
+                parts = reply.parts
                 if run.mood_evidence is not None:
                     run.mood_evidence.assert_current(run)
                 if run.journal_evidence is not None:
                     run.journal_evidence.assert_current(run)
                 await self.check(run)
-                # Include the replay copy and message copy, not only plain text.
-                output_bytes = len(output.model_dump_json().encode()) + len(output.text.encode()) + 1024
+                # Include the replay copy and message copies of every bubble, not only plain text.
+                output_bytes = len(reply.model_dump_json().encode()) + sum(
+                    len(part.text.encode()) for part in parts
+                ) + 1024
                 self.check_capacity(run.conversation_id, output_bytes)
                 async with self.database.require()() as db, db.begin():
                     user = await lock_actor(db, run.actor)
@@ -686,6 +834,13 @@ class AiRuntime:
                         raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
                     await current_turn(db, run, self.worker_id)
                     await assert_journal_revisions(db, user, run)
+                    if run.collaboration is not None:
+                        # Authorization #3 and provenance, in the same transaction as the bubbles.
+                        await self.coordinator.confirm(db, user, run.collaboration, run.id, policy_name="chat")
+                    # V3: the run of whoever actually answered carries the bubbles (speaker = its bot).
+                    speaker_run = run.id
+                    if run.workflow is not None:
+                        speaker_run = await run.workflow.confirm(db, user)
                     if run.deadline is not None:
                         await final_guest_authorization(db, user)
                     if run.persistent:
@@ -708,19 +863,48 @@ class AiRuntime:
                     )
                     if completed is None:
                         raise DomainError(410, "RUN_ENDED", "Lượt trò chuyện đã kết thúc.")
+                    # One identity per bubble, shared by the saved row and the published copy.
+                    identities = [uuid4() for _ in parts]
                     if run.persistent:
-                        durable.version += 1
+                        # All bubbles commit with the run's terminal state or not at all;
+                        # each takes the next sequence so version == max(sequence).
+                        base = durable.version
+                        for index, (identity, part) in enumerate(zip(identities, parts, strict=True)):
+                            db.add(AiMessageRecord(
+                                id=identity, conversation_id=c.id, sequence=base + 1 + index, actor="bot",
+                                text=part.text, cards=[card.model_dump(mode="json", by_alias=True) for card in part.cards],
+                                run_id=speaker_run, part_index=index, part_count=len(parts),
+                            ))
+                        durable.version = base + len(parts)
                         durable.updated_at = now()
-                        db.add(AiMessageRecord(conversation_id=c.id, sequence=durable.version, actor="bot", text=output.text, cards=[card.model_dump(mode="json", by_alias=True) for card in output.cards], run_id=run.id))
+                        if speaker_run != run.id and run.workflow is not None:
+                            # A completed handoff: the specialist keeps answering until the user returns.
+                            durable.active_agent = run.workflow.speaker
+                            durable.active_agent_since = run.user_sequence
                 if run.deadline is not None and run.deadline.remaining() <= 0:
                     # Decided before T but published after it: drop, never append late output.
                     raise guest_expired()
                 # Do not publish tokens/JSON before output and live policy have both passed.
-                c.messages.append(
-                    AIMessage(id=uuid4(), actor="bot", text=output.text, cards=output.cards, created_at=now(), run_id=run.id, status="completed")
+                published = now()
+                if speaker_run != run.id:
+                    c.context_stamps[speaker_run] = c.context_stamps.get(run.id, ContextStamp(run.data_version, None))
+                speaker = run.workflow.speaker if run.workflow is not None else bot
+                c.messages.extend(
+                    AIMessage(
+                        id=identity, actor="bot", text=part.text, cards=part.cards, created_at=published,
+                        run_id=speaker_run, status="completed", part_index=index, part_count=len(parts),
+                        speaker=speaker,  # type: ignore[arg-type]
+                    )
+                    for index, (identity, part) in enumerate(zip(identities, parts, strict=True))
                 )
-                c.version += 1
-                self.event(run, "final", output.model_dump(mode="json", by_alias=True))
+                c.version += len(parts)
+                logging.getLogger("moodprint").info("metric=ai_reply_parts value=%d", len(parts))
+                # The stored event keeps the v1 shape (joined); v2 streams read the ordered bubbles.
+                run.final_v2 = final_v2([
+                    (identity, part.text, [card.model_dump(mode="json", by_alias=True) for card in part.cards])
+                    for identity, part in zip(identities, parts, strict=True)
+                ])
+                self.event(run, "final", reply.joined().model_dump(mode="json", by_alias=True))
                 self.event(run, "completed", {})
                 status = "completed"
         except asyncio.CancelledError:
@@ -743,6 +927,10 @@ class AiRuntime:
             async def finish_terminal():
                 await asyncio.gather(*(task for task in (monitor, expiry) if task), return_exceptions=True)
                 run.reserved_output_bytes = 0
+                if status != "completed":
+                    await self.coordinator.discard(run.collaboration, status)
+                    if run.workflow is not None:
+                        await run.workflow.discard(status)
                 await self.settle_guest(run, status)
                 await self.finalize(run, status)
 

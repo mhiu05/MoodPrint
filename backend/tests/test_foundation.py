@@ -21,8 +21,9 @@ async def test_live_works_without_configuration_but_ready_and_auth_fail_closed()
 def test_ready_revision_requires_the_destructive_retirement_head():
     from app.core.revisions import READY_REVISIONS
 
+    # V3 maps ai_conversations.kind/active_agent and ai_messages.mentions, so only 0024 is ready.
     assert READY_REVISIONS == (
-        "0020_private_profile_retirement",
+        "0024_three_agent_groups",
     )
 
 
@@ -39,7 +40,11 @@ def test_ready_revision_requires_the_destructive_retirement_head():
         ("0017_guest_security", 503),
         ("0018_app_feedback", 503),
         ("0019_journal", 503),
-        ("0020_private_profile_retirement", 200),
+        ("0020_private_profile_retirement", 503),
+        ("0021_multi_message", 503),
+        ("0022_proactive_messages", 503),
+        ("0023_collaboration", 503),
+        ("0024_three_agent_groups", 200),
         ("0017_unreviewed", 503),
         ("9999_unknown", 503),
     ],

@@ -26,8 +26,10 @@ Nguồn: [backend/alembic/versions](../../backend/alembic/versions/). Revision I
 | `0018_app_feedback` | Feedback không gắn danh tính (`app_feedback`, receipt tạm, audit review), hai hàm validator private, thêm scope `feedback_attempt` cho bucket HMAC; RLS + chỉ `moodprint_runtime` |
 | `0019_journal` | Ba bảng journal cộng thêm (`journal_entries`, `journal_media`, `journal_storage_deletions`), RLS và grant chỉ cho `moodprint_runtime`; không sửa dòng Mood cũ |
 | `0020_private_profile_retirement` | Xóa dữ liệu `private_items` và đề xuất riêng tư; giữ ghi nhớ AI đã duyệt, bỏ liên kết nguồn đã nghỉ |
+| `0021_multi_message` | `ai_messages.part_index/part_count` + unique `uq_ai_messages_run_part` (thay `uq_ai_messages_run_id`); `ai_runs.origin/proactive_slot`, `conversation_id` nullable chỉ cho run proactive; `ai_turns.origin`, `session_id` nullable chỉ cho run proactive. Expand-only, server default, không backfill |
+| `0022_proactive_messages` | 5 bảng lời hỏi thăm (`ai_proactive_settings`, `ai_proactive_schedules`, `ai_proactive_jobs`, `ai_conversation_reads`, `ai_message_sources`), RLS + grant chỉ cho `moodprint_runtime` |
 
-[READY_REVISIONS](../../backend/app/core/revisions.py) hiện chỉ gồm **`0020_private_profile_retirement`**. Image trước revision này không còn được xem là tương thích vì source/purpose fields và bảng private items đã bị xóa. Mọi head trước 0020 bị từ chối. Không thay revision bằng stamp khi DDL chưa chạy.
+[READY_REVISIONS](../../backend/app/core/revisions.py) trên nhánh tính năng lời hỏi thăm (R1) chỉ gồm **`0022_proactive_messages`** vì ORM ghi các cột mới ở mọi lượt chat. Image tương thích để rollback là **R0** (nhánh `release/proactive-r0-compat`: mã trước tính năng, chấp nhận 0020/0021/0022). Trình tự hosted: duyệt + áp dụng 0020 → phát hành R0 → áp dụng 0021/0022 bằng offline SQL đã review → phát hành R1 với mọi cờ tắt ([kế hoạch 93 §2](../implementation-plans/proactive-multi-agent-companion/93-release-rollback-and-observability.md)). Ứng viên SQL chưa duyệt: [0020-0022-offline.candidate.sql](../implementation-plans/proactive-multi-agent-companion/evidence/sql/0020-0022-offline.candidate.sql) — **không** phải bản đã duyệt và không được đưa vào `reviewed-sql/` khi chưa có review. Không thay revision bằng stamp khi DDL chưa chạy.
 
 ## Local disposable verification
 

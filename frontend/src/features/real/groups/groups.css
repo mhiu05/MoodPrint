@@ -1,0 +1,408 @@
+/* V3 AI groups. The chat itself inherits the "Natural agent chat" world (agent-chat.css);
+   only what a multi-speaker room adds is styled here. */
+
+.avatar-stack {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+.avatar-stack .bot-avatar + .bot-avatar {
+  margin-left: -8px;
+}
+.avatar-stack .bot-avatar {
+  box-shadow: 0 0 0 2px var(--color-surface, #fff);
+}
+
+/* Roster: "Nhóm" between the three agents and the history. */
+.group-roster {
+  margin: 18px 0 6px;
+}
+.group-roster-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.group-roster-head h2 {
+  margin: 0;
+  font-size: var(--text-meta);
+  font-weight: 700;
+  color: var(--color-muted);
+}
+.group-new {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--color-primary);
+  font-size: var(--text-support);
+  font-weight: 600;
+  text-decoration: none;
+}
+.group-new:hover {
+  background: var(--color-surface-soft);
+}
+.group-new:focus-visible,
+.group-row:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.group-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.group-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  color: inherit;
+  text-decoration: none;
+}
+.group-row:hover,
+.group-row.selected {
+  background: var(--color-surface-soft);
+}
+.group-row-text {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+}
+.group-row-text strong,
+.group-row-text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.group-row-text small,
+.group-hint {
+  color: var(--color-muted);
+  font-size: var(--text-meta);
+}
+.group-hint {
+  margin: 4px 2px;
+}
+
+/* The room. */
+.group-conversation {
+  position: relative;
+}
+.bot-conversation.ai-conversation .conversation-header .avatar-stack .bot-avatar {
+  border-radius: 10px;
+}
+.group-turn {
+  margin-bottom: 14px;
+}
+.group-speaker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+  font-size: var(--text-support);
+}
+.group-speaker .bot-avatar {
+  border-radius: 8px;
+}
+.group-speaker strong {
+  font-weight: 600;
+}
+.group-turn .message-row {
+  margin-bottom: 4px;
+}
+.group-typing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  color: var(--color-muted);
+  font-size: var(--text-support);
+}
+.group-typing .bot-avatar {
+  border-radius: 6px;
+}
+.group-typing.is-shown span {
+  animation: group-typing 1.6s ease-in-out infinite;
+}
+@keyframes group-typing {
+  50% {
+    opacity: 0.55;
+  }
+}
+.group-empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: clamp(24px, 8vh, 72px) 16px 24px;
+  color: var(--color-muted);
+  text-align: center;
+}
+.group-empty-state kbd {
+  padding: 0 6px;
+  border: 1px solid var(--color-divider);
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+/* Composer with the @ picker. */
+.group-composer {
+  position: relative;
+}
+.bot-conversation.ai-conversation .group-composer .mention-button {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+}
+.mention-picker {
+  position: absolute;
+  left: 8px;
+  bottom: calc(100% + 8px);
+  z-index: 5;
+  min-width: min(280px, calc(100% - 16px));
+  padding: 6px;
+  border: 1px solid var(--color-divider);
+  border-radius: 16px;
+  background: var(--color-surface, #fff);
+  box-shadow: 0 10px 28px rgb(37 38 41 / 14%), 0 2px 6px rgb(37 38 41 / 8%);
+}
+.mention-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.mention-option .bot-avatar {
+  border-radius: 7px;
+}
+.mention-option[aria-selected="true"],
+.mention-option:hover {
+  background: var(--color-selected-bg, #ededf0);
+}
+
+/* Information panel: a side sheet over the room, not a modal. */
+.group-info {
+  position: absolute;
+  inset: 68px 0 0 auto;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(380px, 100%);
+  padding: 16px 20px 24px;
+  overflow-y: auto;
+  border-left: 1px solid var(--color-divider);
+  background: var(--color-surface, #fff);
+  box-shadow: -12px 0 32px rgb(37 38 41 / 10%);
+}
+.group-info:focus {
+  outline: none;
+}
+.group-info-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.group-info h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.group-info h3 {
+  margin: 8px 0 0;
+  font-size: var(--text-meta);
+  font-weight: 700;
+  color: var(--color-muted);
+}
+.group-rename label,
+.group-create-form > label,
+.group-create-form legend {
+  font-size: var(--text-support);
+  font-weight: 600;
+}
+.group-rename > div {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.group-rename input,
+.group-create-form input[type="text"],
+.group-create-form #new-group-name {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  font: inherit;
+  color: var(--color-ink);
+  background: var(--color-surface, #fff);
+}
+.group-members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.group-members li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 4px 10px;
+}
+.group-members .bot-avatar {
+  border-radius: 10px;
+}
+.group-member-text {
+  display: grid;
+  min-width: 0;
+}
+.group-member-text small {
+  color: var(--color-muted);
+  font-size: var(--text-meta);
+}
+.group-journal,
+.group-share {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: var(--text-support);
+  line-height: 1.45;
+}
+.group-journal {
+  grid-column: 2 / -1;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--color-surface-soft);
+}
+.group-journal input,
+.group-share input,
+.group-pick input {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+}
+.group-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.group-add h3,
+.group-add .group-share {
+  flex-basis: 100%;
+}
+.group-privacy {
+  margin: 4px 0;
+  color: var(--color-muted);
+  font-size: var(--text-support);
+  line-height: 1.5;
+}
+.group-status:empty {
+  display: none;
+}
+
+/* Create. */
+.group-create-form {
+  display: grid;
+  gap: 12px;
+  width: min(640px, 100%);
+  margin: 0 auto;
+  padding: 24px clamp(16px, 4vw, 32px) 40px;
+  overflow-y: auto;
+}
+.group-create-form fieldset {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  border: 0;
+}
+.group-pick {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-divider);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: border-color var(--duration-feedback, 120ms) ease-out, background-color var(--duration-feedback, 120ms) ease-out;
+}
+.group-pick.is-checked {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 6%, #fff);
+}
+.group-pick:focus-within {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.group-pick .bot-avatar {
+  border-radius: 12px;
+}
+.group-pick > span {
+  display: grid;
+  min-width: 0;
+}
+.group-pick small {
+  color: var(--color-muted);
+  font-size: var(--text-support);
+}
+.group-error {
+  margin: 0;
+  color: var(--color-danger, #a33a2b);
+  font-size: var(--text-support);
+}
+
+@media (max-width: 767px) {
+  .group-info {
+    inset: 60px 0 0 0;
+    width: 100%;
+    border-left: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .group-typing.is-shown span {
+    animation: none;
+  }
+  .group-pick {
+    transition: none;
+  }
+}
+
+/* One-line member list under the group name; the full list is in the info panel. */
+.group-conversation .conversation-header > div {
+  min-width: 0;
+  flex: 1;
+}
+.group-conversation .conversation-header p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.group-journal span,
+.group-share span {
+  font-weight: 400;
+}
+.group-rename > div {
+  align-items: stretch;
+}
+.group-rename input {
+  min-height: 44px;
+}
+.group-rename button {
+  min-height: 44px;
+  white-space: nowrap;
+}

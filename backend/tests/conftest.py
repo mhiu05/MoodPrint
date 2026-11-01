@@ -61,6 +61,9 @@ async def database():
         memory_models,  # noqa: F401
     )
     from app.ai import models as chat_models  # noqa: F401
+    from app.ai.collaboration import models as collaboration_models  # noqa: F401
+    from app.ai.orchestration import models as orchestration_models  # noqa: F401
+    from app.ai.proactive import models as proactive_models  # noqa: F401
     from app.infrastructure.database.models import Base
     from app.modules.activities import models as activity_models  # noqa: F401
     from app.modules.feedback import models as feedback_models  # noqa: F401

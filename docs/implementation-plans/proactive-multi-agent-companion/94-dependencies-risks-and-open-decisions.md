@@ -4,7 +4,7 @@
 
 | ID | Blocker | Ảnh hưởng | Cần gì |
 | --- | --- | --- | --- |
-| BLK-01 | **AWS MCP không kết nối** (`aws-mcp`, lỗi `-32602 Invalid request parameters`) | Không kiểm được EC2 (loại instance, CPU/RAM thực tế), CloudWatch log/metric, systemd timer, compose đang chạy | Owner sửa cấu hình/đăng nhập AWS MCP (ví dụ: chạy lại xác thực của server `aws-mcp` trong Claude Code và cấp quyền **chỉ đọc** EC2 `Describe*`, CloudWatch `GetMetricData`/`FilterLogEvents`, SSM `DescribeInstanceInformation`), rồi chạy lại phần kiểm tra ở [91 §9](91-performance-cost-and-capacity.md) |
+| BLK-01 | **AWS MCP không kết nối** (`aws-mcp`, lỗi `-32602 Invalid request parameters`; tái hiện 31/10/2026 trong phiên triển khai). AWS CLI cục bộ profile `moodprint`: phiên đăng nhập **hết hạn** (`aws login`) — xem [96 §6](96-architecture-hardening-review.md#6-khuyến-nghị-dung-lượng-aws) | Không kiểm được EC2 (loại instance, CPU/RAM thực tế), CloudWatch log/metric, systemd timer, compose đang chạy | Owner sửa cấu hình/đăng nhập AWS MCP (ví dụ: chạy lại xác thực của server `aws-mcp` trong Claude Code và cấp quyền **chỉ đọc** EC2 `Describe*`, CloudWatch `GetMetricData`/`FilterLogEvents`, SSM `DescribeInstanceInformation`), rồi chạy lại phần kiểm tra ở [91 §9](91-performance-cost-and-capacity.md) |
 | BLK-02 | Hosted đang ở `0019_journal`; nhánh yêu cầu `0020` | Image từ nhánh này không ready trên hosted | Owner duyệt và áp dụng 0020 qua quy trình review hiện có |
 | BLK-03 | Không có tài khoản thử nghiệm tổng hợp trên production/staging | Không kiểm được chat đã đăng nhập bằng agent-browser | Owner cấp tài khoản **tổng hợp** (không dữ liệu thật) — không dán mật khẩu vào Markdown |
 | BLK-04 | Release hold trên `main` (theo ghi chú dự án) | Không publish staging | Owner gỡ bằng PR khi đủ điều kiện |
@@ -38,8 +38,11 @@
 | R-12 | Tin nguy cơ nghiêm trọng bị bỏ sót bởi sàng lọc từ vựng | Trung bình | An toàn | Không tuyên bố là bộ phân loại toàn diện; guardrail output; owner review danh sách mẫu |
 | R-13 | Số migration bị chiếm bởi nhánh khác | Trung bình | Conflict | Dùng ký hiệu M-P1-A…; gán số khi rebase |
 | R-14 | Hosted bảng mới chưa có trong `docs/supabase/schema.md` → CI fail | Cao nếu quên | CI | Task P1-02 bắt buộc cập nhật |
+| R-15 | Chat (có sẵn, không phải lời hỏi thăm) giới hạn `max_tokens=1200` gồm cả reasoning token của gpt-6-luna: 2/80 yêu cầu dạng liệt kê trả `response.incomplete` trong eval 31/10/2026 | Thấp–TB | Người dùng thấy lỗi phải gửi lại | Ngoài phạm vi Phase 1 vì 1200 gắn với dự phòng chi phí guest (`guests/pricing.py AI_OUTPUT_TOKENS`). Đề xuất: đặt `reasoning.effort="low"` cho chat hoặc nâng cả hai lên 2000 trong một thay đổi riêng có review chi phí guest; lời hỏi thăm đã dùng effort `low` (0 incomplete trong 420 lời ở vòng a3–a6) |
 
-## 4. Quyết định mở (đã có mặc định, cần owner xác nhận)
+## 4. Quyết định mở
+
+OD-01…OD-07 **đã quyết** ngày 31/10/2026 theo ủy quyền của owner — xem [ADR-13](03-architecture-decisions.md#adr-13--quyết-định-od-01od-07-owner-ủy-quyền-31102026). Các mặc định dưới đây được giữ sau khi so sánh phương án.
 
 | ID | Câu hỏi | Mặc định đề xuất | Nếu khác |
 | --- | --- | --- | --- |
@@ -57,3 +60,7 @@
 | OD-12 | Model cho proactive/specialist | Dùng `OPENAI_MODEL` hiện tại | Model nhỏ hơn cho specialist (cần cập nhật `RATES`) |
 
 Không có quyết định kiến trúc nào để "TBD": mọi mục trên đã có mặc định có thể triển khai.
+
+## 5. Cập nhật Phase 2 (31/10/2026)
+
+OD-08…OD-10 được triển khai theo mặc định đề xuất (3 cạnh; 10/ngày và 70 % ngân sách; sheet "Vì sao?" chỉ nêu loại dữ liệu) — **owner chưa duyệt**. R-09 và R-10 có test tự động. Rủi ro mới R2-01…R2-05 và lệch đặc tả D-01…D-11 trong [evidence/execution-phase2.md](evidence/execution-phase2.md). Phụ thuộc tích hợp: nhánh `feat/friendship-discovery-18plus` (Codex) thêm `is_adult_eligible()`; Phase 2 dùng kiểm 18+ chặt (`age_band='adult'`) trong một hàm `collaboration/eligibility.py` để đổi một dòng khi rebase.

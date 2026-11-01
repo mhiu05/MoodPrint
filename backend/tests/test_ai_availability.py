@@ -124,7 +124,8 @@ async def test_provider_failure_stream_is_classified_without_leaking_details(cli
             body={"secret": "PRIVATE-PROVIDER-DETAIL"},
         )
 
-    app.state.ai.provider.run = broken
+    # The runtime's provider entry point (bubbles); run() is only the joined legacy view.
+    app.state.ai.provider.run_reply = broken
     created = await client.post(
         "/api/v1/ai/conversations", json={"botId": "may"}, headers={"Idempotency-Key": str(uuid4())}
     )

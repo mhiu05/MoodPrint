@@ -8,28 +8,414 @@
   "logGroupName": "/moodprint/staging/containers",
   "namespace": "MoodPrint/Staging",
   "metricFilters": [
-    {"filterName": "http-5xx", "filterPattern": "\"metric=http_5xx\"", "metricTransformations": [{"metricName": "Http5xx", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
-    {"filterName": "readiness-failed", "filterPattern": "\"metric=readiness_failed\"", "metricTransformations": [{"metricName": "ReadinessFailed", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
-    {"filterName": "ai-run-ended", "filterPattern": "\"metric=ai_run_ended\"", "metricTransformations": [{"metricName": "AiRunEnded", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
-    {"filterName": "ai-run-failed", "filterPattern": "\"metric=ai_run_ended status=failed\"", "metricTransformations": [{"metricName": "AiRunFailed", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
-    {"filterName": "ai-budget-ratio", "filterPattern": "\"metric=ai_budget_ratio\"", "metricTransformations": [{"metricName": "AiBudgetHigh", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
-    {"filterName": "ai-budget-denied", "filterPattern": "\"metric=ai_budget_denied\"", "metricTransformations": [{"metricName": "AiBudgetDenied", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
-    {"filterName": "ai-quota-denied", "filterPattern": "\"metric=ai_quota_denied\"", "metricTransformations": [{"metricName": "AiQuotaDenied", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
-    {"filterName": "activity-started", "filterPattern": "\"metric=activity_started\"", "metricTransformations": [{"metricName": "ActivityStarted", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
-    {"filterName": "activity-completed", "filterPattern": "\"metric=activity_completed\"", "metricTransformations": [{"metricName": "ActivityCompleted", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
-    {"filterName": "activity-aborted", "filterPattern": "\"metric=activity_aborted\"", "metricTransformations": [{"metricName": "ActivityAborted", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
-    {"filterName": "report-created", "filterPattern": "\"metric=report_created\"", "metricTransformations": [{"metricName": "ReportCreated", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]},
-    {"filterName": "moderation-action", "filterPattern": "\"metric=moderation_action\"", "metricTransformations": [{"metricName": "ModerationAction", "metricNamespace": "MoodPrint/Staging", "metricValue": "1", "defaultValue": 0}]}
+    {
+      "filterName": "http-5xx",
+      "filterPattern": "\"metric=http_5xx\"",
+      "metricTransformations": [
+        {
+          "metricName": "Http5xx",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "readiness-failed",
+      "filterPattern": "\"metric=readiness_failed\"",
+      "metricTransformations": [
+        {
+          "metricName": "ReadinessFailed",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "ai-run-ended",
+      "filterPattern": "\"metric=ai_run_ended\"",
+      "metricTransformations": [
+        {
+          "metricName": "AiRunEnded",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "ai-run-failed",
+      "filterPattern": "\"metric=ai_run_ended status=failed\"",
+      "metricTransformations": [
+        {
+          "metricName": "AiRunFailed",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "ai-budget-ratio",
+      "filterPattern": "\"metric=ai_budget_ratio\"",
+      "metricTransformations": [
+        {
+          "metricName": "AiBudgetHigh",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "ai-budget-denied",
+      "filterPattern": "\"metric=ai_budget_denied\"",
+      "metricTransformations": [
+        {
+          "metricName": "AiBudgetDenied",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "ai-quota-denied",
+      "filterPattern": "\"metric=ai_quota_denied\"",
+      "metricTransformations": [
+        {
+          "metricName": "AiQuotaDenied",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "activity-started",
+      "filterPattern": "\"metric=activity_started\"",
+      "metricTransformations": [
+        {
+          "metricName": "ActivityStarted",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "activity-completed",
+      "filterPattern": "\"metric=activity_completed\"",
+      "metricTransformations": [
+        {
+          "metricName": "ActivityCompleted",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "activity-aborted",
+      "filterPattern": "\"metric=activity_aborted\"",
+      "metricTransformations": [
+        {
+          "metricName": "ActivityAborted",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "report-created",
+      "filterPattern": "\"metric=report_created\"",
+      "metricTransformations": [
+        {
+          "metricName": "ReportCreated",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "moderation-action",
+      "filterPattern": "\"metric=moderation_action\"",
+      "metricTransformations": [
+        {
+          "metricName": "ModerationAction",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "proactive-failed",
+      "filterPattern": "\"metric=proactive_job_failed\"",
+      "metricTransformations": [
+        {
+          "metricName": "ProactiveFailed",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "proactive-expired",
+      "filterPattern": "\"metric=proactive_job_expired\"",
+      "metricTransformations": [
+        {
+          "metricName": "ProactiveExpired",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "proactive-tick-error",
+      "filterPattern": "\"metric=proactive_tick_error\"",
+      "metricTransformations": [
+        {
+          "metricName": "ProactiveTickError",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "proactive-provider-configuration",
+      "filterPattern": "\"metric=proactive_provider_configuration\"",
+      "metricTransformations": [
+        {
+          "metricName": "ProactiveProviderConfiguration",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "proactive-budget-skip",
+      "filterPattern": "\"metric=proactive_budget_skip\"",
+      "metricTransformations": [
+        {
+          "metricName": "ProactiveBudgetSkip",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "collaboration-consulted",
+      "filterPattern": "\"metric=collaboration_consulted\"",
+      "metricTransformations": [
+        {
+          "metricName": "CollaborationConsulted",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "collaboration-timeout",
+      "filterPattern": "\"metric=collaboration_timeout\"",
+      "metricTransformations": [
+        {
+          "metricName": "CollaborationTimeout",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "collaboration-failed",
+      "filterPattern": "\"metric=collaboration_failed\"",
+      "metricTransformations": [
+        {
+          "metricName": "CollaborationFailed",
+          "metricNamespace": "MoodPrint/Staging",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    }
   ],
   "alarms": [
-    {"alarmName": "Http5xxCount", "description": "Five or more 5xx API responses in 5 minutes.", "namespace": "MoodPrint/Staging", "metricName": "Http5xx", "statistic": "Sum", "period": 300, "evaluationPeriods": 1, "threshold": 5, "comparisonOperator": "GreaterThanOrEqualToThreshold", "treatMissingData": "notBreaching"},
-    {"alarmName": "ReadinessFailing", "description": "Readiness failed at least twice in one minute (compose health check every 20 s).", "namespace": "MoodPrint/Staging", "metricName": "ReadinessFailed", "statistic": "Sum", "period": 60, "evaluationPeriods": 1, "threshold": 2, "comparisonOperator": "GreaterThanOrEqualToThreshold", "treatMissingData": "notBreaching"},
-    {"alarmName": "AiRunFailedRate", "description": "More than 20 % of AI runs failed over 15 minutes (with at least 5 runs).", "metrics": [
-      {"id": "failed", "namespace": "MoodPrint/Staging", "metricName": "AiRunFailed", "statistic": "Sum", "period": 900, "returnData": false},
-      {"id": "ended", "namespace": "MoodPrint/Staging", "metricName": "AiRunEnded", "statistic": "Sum", "period": 900, "returnData": false},
-      {"id": "rate", "expression": "IF(ended >= 5, 100 * failed / ended, 0)", "label": "AI run failure %", "returnData": true}
-    ], "evaluationPeriods": 1, "threshold": 20, "comparisonOperator": "GreaterThanThreshold", "treatMissingData": "notBreaching"},
-    {"alarmName": "AiBudget80", "description": "Estimated AI spend reached 80 % of AI_DAILY_BUDGET_USD.", "namespace": "MoodPrint/Staging", "metricName": "AiBudgetHigh", "statistic": "Sum", "period": 300, "evaluationPeriods": 1, "threshold": 1, "comparisonOperator": "GreaterThanOrEqualToThreshold", "treatMissingData": "notBreaching"},
-    {"alarmName": "DiskUsed80", "description": "Root volume above 80 % used.", "namespace": "MoodPrint/Staging", "metricName": "disk_used_percent", "dimensions": {"path": "/"}, "statistic": "Maximum", "period": 300, "evaluationPeriods": 2, "threshold": 80, "comparisonOperator": "GreaterThanThreshold", "treatMissingData": "missing"}
+    {
+      "alarmName": "Http5xxCount",
+      "description": "Five or more 5xx API responses in 5 minutes.",
+      "namespace": "MoodPrint/Staging",
+      "metricName": "Http5xx",
+      "statistic": "Sum",
+      "period": 300,
+      "evaluationPeriods": 1,
+      "threshold": 5,
+      "comparisonOperator": "GreaterThanOrEqualToThreshold",
+      "treatMissingData": "notBreaching"
+    },
+    {
+      "alarmName": "ReadinessFailing",
+      "description": "Readiness failed at least twice in one minute (compose health check every 20 s).",
+      "namespace": "MoodPrint/Staging",
+      "metricName": "ReadinessFailed",
+      "statistic": "Sum",
+      "period": 60,
+      "evaluationPeriods": 1,
+      "threshold": 2,
+      "comparisonOperator": "GreaterThanOrEqualToThreshold",
+      "treatMissingData": "notBreaching"
+    },
+    {
+      "alarmName": "AiRunFailedRate",
+      "description": "More than 20 % of AI runs failed over 15 minutes (with at least 5 runs).",
+      "metrics": [
+        {
+          "id": "failed",
+          "namespace": "MoodPrint/Staging",
+          "metricName": "AiRunFailed",
+          "statistic": "Sum",
+          "period": 900,
+          "returnData": false
+        },
+        {
+          "id": "ended",
+          "namespace": "MoodPrint/Staging",
+          "metricName": "AiRunEnded",
+          "statistic": "Sum",
+          "period": 900,
+          "returnData": false
+        },
+        {
+          "id": "rate",
+          "expression": "IF(ended >= 5, 100 * failed / ended, 0)",
+          "label": "AI run failure %",
+          "returnData": true
+        }
+      ],
+      "evaluationPeriods": 1,
+      "threshold": 20,
+      "comparisonOperator": "GreaterThanThreshold",
+      "treatMissingData": "notBreaching"
+    },
+    {
+      "alarmName": "AiBudget80",
+      "description": "Estimated AI spend reached 80 % of AI_DAILY_BUDGET_USD.",
+      "namespace": "MoodPrint/Staging",
+      "metricName": "AiBudgetHigh",
+      "statistic": "Sum",
+      "period": 300,
+      "evaluationPeriods": 1,
+      "threshold": 1,
+      "comparisonOperator": "GreaterThanOrEqualToThreshold",
+      "treatMissingData": "notBreaching"
+    },
+    {
+      "alarmName": "DiskUsed80",
+      "description": "Root volume above 80 % used.",
+      "namespace": "MoodPrint/Staging",
+      "metricName": "disk_used_percent",
+      "dimensions": {
+        "path": "/"
+      },
+      "statistic": "Maximum",
+      "period": 300,
+      "evaluationPeriods": 2,
+      "threshold": 80,
+      "comparisonOperator": "GreaterThanThreshold",
+      "treatMissingData": "missing"
+    },
+    {
+      "alarmName": "ProactiveFailedJobs",
+      "description": "Three or more check-in jobs ended failed in 15 minutes (invalid output, provider configuration or attempts exhausted).",
+      "namespace": "MoodPrint/Staging",
+      "metricName": "ProactiveFailed",
+      "statistic": "Sum",
+      "period": 900,
+      "evaluationPeriods": 1,
+      "threshold": 3,
+      "comparisonOperator": "GreaterThanOrEqualToThreshold",
+      "treatMissingData": "notBreaching"
+    },
+    {
+      "alarmName": "ProactiveExpiredJobs",
+      "description": "Five or more due check-ins expired undelivered in 30 minutes: the worker is down, stalled or saturated.",
+      "namespace": "MoodPrint/Staging",
+      "metricName": "ProactiveExpired",
+      "statistic": "Sum",
+      "period": 1800,
+      "evaluationPeriods": 1,
+      "threshold": 5,
+      "comparisonOperator": "GreaterThanOrEqualToThreshold",
+      "treatMissingData": "notBreaching"
+    },
+    {
+      "alarmName": "ProactiveTickErrors",
+      "description": "Three or more worker loop errors in 5 minutes (database or schema problems).",
+      "namespace": "MoodPrint/Staging",
+      "metricName": "ProactiveTickError",
+      "statistic": "Sum",
+      "period": 300,
+      "evaluationPeriods": 1,
+      "threshold": 3,
+      "comparisonOperator": "GreaterThanOrEqualToThreshold",
+      "treatMissingData": "notBreaching"
+    },
+    {
+      "alarmName": "ProactiveProviderConfiguration",
+      "description": "The provider rejected check-in credentials or model configuration.",
+      "namespace": "MoodPrint/Staging",
+      "metricName": "ProactiveProviderConfiguration",
+      "statistic": "Sum",
+      "period": 300,
+      "evaluationPeriods": 1,
+      "threshold": 1,
+      "comparisonOperator": "GreaterThanOrEqualToThreshold",
+      "treatMissingData": "notBreaching"
+    },
+    {
+      "alarmName": "ProactiveBudgetSkip",
+      "description": "Check-ins stopped because spend reached PROACTIVE_BUDGET_SHARE of the daily AI budget.",
+      "namespace": "MoodPrint/Staging",
+      "metricName": "ProactiveBudgetSkip",
+      "statistic": "Sum",
+      "period": 3600,
+      "evaluationPeriods": 1,
+      "threshold": 1,
+      "comparisonOperator": "GreaterThanOrEqualToThreshold",
+      "treatMissingData": "notBreaching"
+    },
+    {
+      "alarmName": "CollaborationTimeouts",
+      "description": "Five or more specialist consultations timed out in 15 minutes (Phase 2 gate: timeout rate < 5 % of CollaborationConsulted). Users still get a single reply; check provider latency, then AI_COLLABORATION_ENABLED=false.",
+      "namespace": "MoodPrint/Staging",
+      "metricName": "CollaborationTimeout",
+      "statistic": "Sum",
+      "period": 900,
+      "evaluationPeriods": 1,
+      "threshold": 5,
+      "comparisonOperator": "GreaterThanOrEqualToThreshold",
+      "treatMissingData": "notBreaching"
+    },
+    {
+      "alarmName": "CollaborationFailures",
+      "description": "Five or more consultations failed (invalid/unsafe output or provider error) in 15 minutes. Replies fall back to a single companion; inspect reason codes, then consider AI_COLLABORATION_ENABLED=false.",
+      "namespace": "MoodPrint/Staging",
+      "metricName": "CollaborationFailed",
+      "statistic": "Sum",
+      "period": 900,
+      "evaluationPeriods": 1,
+      "threshold": 5,
+      "comparisonOperator": "GreaterThanOrEqualToThreshold",
+      "treatMissingData": "notBreaching"
+    }
   ]
 }

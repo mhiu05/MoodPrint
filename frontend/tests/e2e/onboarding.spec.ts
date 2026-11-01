@@ -217,7 +217,7 @@ test("active AI request refuses guidance without changing route or cancelling th
     accepted++;
     return route.fulfill({ status: 202, json: { runId: "77777777-7777-4777-8777-777777777777", version: 2, runVersion: 1, eventsUrl: "/api/v1/ai/runs/77777777-7777-4777-8777-777777777777/events" } });
   });
-  await page.route("**/api/v1/ai/runs/*/events", async (route) => { await held; await route.fulfill({ contentType: "text/event-stream", body: "" }).catch(() => {}); });
+  await page.route("**/api/v1/ai/runs/*/events*", async (route) => { await held; await route.fulfill({ contentType: "text/event-stream", body: "" }).catch(() => {}); });
   await chatWithGuide(page);
   await page.getByRole("textbox", { name: "Tin nhắn cho Mây", exact: true }).fill("Một lượt tổng hợp đang chờ");
   await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();

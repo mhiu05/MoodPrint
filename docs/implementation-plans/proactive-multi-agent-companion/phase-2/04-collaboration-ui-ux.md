@@ -39,7 +39,7 @@ Không có trạng thái "Nhịp đang suy nghĩ…", không có tiến độ ph
 
 | Cạnh | Ngữ cảnh | Câu |
 | --- | --- | --- |
-| `nhip_energy_for_rure` | Lời hỏi thăm sáng (R2) | "Nhịp đã gợi ý một hoạt động nhẹ nhàng. Rủ Rê đã dựa vào đó để chuẩn bị thử thách hôm nay." |
+| `nhip_energy_for_rure` | Lời hỏi thăm sáng (R2) | "Nhịp đã gợi ý mức năng lượng phù hợp với bạn. Rủ Rê đã dựa vào đó để chuẩn bị thử thách hôm nay." |
 | `nhip_energy_for_rure` | Chat (R1) | "Nhịp đã gợi ý mức năng lượng phù hợp với bạn. Rủ Rê đã dựa vào đó để chọn hoạt động này." |
 | `nhip_habit_for_may` | Chat (R3) | "Nhịp đã gợi ý một thói quen nhỏ. Mây đã dựa vào đó để trả lời bạn." |
 | `rure_activity_for_guong` | Chat (R4) | "Rủ Rê đã gợi ý một hoạt động. Gương đã dựa vào đó để trả lời bạn." |
@@ -105,3 +105,9 @@ Hành vi như trang lịch: lưu từng công tắc, `role="status"` xác nhận
 - Không hiển thị "agent", "tool", "handoff", "delegation", "run", tên model.
 - Không hiển thị chuỗi suy luận, input/output của specialist, digest.
 - Không tạo cảm giác các trợ lý "nói chuyện riêng" về người dùng (không dùng "Nhịp và Rủ Rê đã bàn về bạn").
+
+## 9. Ghi chú triển khai
+
+- Template R2 đổi thành "Nhịp đã gợi ý mức năng lượng phù hợp với bạn. Rủ Rê đã dựa vào đó để chuẩn bị thử thách hôm nay." (review độc lập: câu cũ sai khi mức năng lượng cao).
+- Dòng trạng thái "A đang hỏi B một chút…" chỉ có chữ, không có avatar chồng (D-08); avatar có ở dòng cộng tác.
+- Nút "Vì sao?": hộp ôm chữ để viền focus không đè dòng trên; vùng chạm 44 px bằng `::before` (lỗi tìm thấy bằng agent-browser ở 360 px).

@@ -33,9 +33,33 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 | DELETE | `/api/v1/ai/conversations/{conversation_id}` | `delete_conversation_api_v1_ai_conversations__conversation_id__delete` |
 | POST | `/api/v1/ai/conversations/{conversation_id}/end` | `end_api_v1_ai_conversations__conversation_id__end_post` |
 | GET | `/api/v1/ai/conversations/{conversation_id}/export` | `export_conversation_api_v1_ai_conversations__conversation_id__export_get` |
+| PUT | `/api/v1/ai/conversations/{conversation_id}/read` | `mark_read_api_v1_ai_conversations__conversation_id__read_put` |
 | POST | `/api/v1/ai/conversations/{conversation_id}/messages` | `send_api_v1_ai_conversations__conversation_id__messages_post` |
 | GET | `/api/v1/ai/preferences` | `preferences_api_v1_ai_preferences_get` |
+| GET | `/api/v1/ai/inbox` | `inbox_api_v1_ai_inbox_get` |
+| POST | `/api/v1/ai/inbox/read-all` | `read_all_api_v1_ai_inbox_read_all_post` |
 | PUT | `/api/v1/ai/preferences` | `update_preferences_api_v1_ai_preferences_put` |
+| GET | `/api/v1/ai/proactive` | `proactive_api_v1_ai_proactive_get` |
+| PUT | `/api/v1/ai/proactive/schedules/{bot_id}/{slot}` | `save_schedule_api_v1_ai_proactive_schedules__bot_id___slot__put` |
+| DELETE | `/api/v1/ai/proactive/schedules/{bot_id}/{slot}` | `delete_schedule_api_v1_ai_proactive_schedules__bot_id___slot__delete` |
+| PUT | `/api/v1/ai/proactive/settings` | `save_settings_api_v1_ai_proactive_settings_put` |
+| GET | `/api/v1/ai/sharing` | `read_sharing_api_v1_ai_sharing_get` |
+| POST | `/api/v1/ai/conversations/{conversation_id}/agent` | `return_to_agent_api_v1_ai_conversations__conversation_id__agent_post` |
+| GET | `/api/v1/ai/groups` | `list_groups_api_v1_ai_groups_get` |
+| POST | `/api/v1/ai/groups` | `create_group_api_v1_ai_groups_post` |
+| GET | `/api/v1/ai/groups/{group_id}` | `read_group_api_v1_ai_groups__group_id__get` |
+| PATCH | `/api/v1/ai/groups/{group_id}` | `rename_group_api_v1_ai_groups__group_id__patch` |
+| DELETE | `/api/v1/ai/groups/{group_id}` | `delete_group_api_v1_ai_groups__group_id__delete` |
+| POST | `/api/v1/ai/groups/{group_id}/members` | `add_member_api_v1_ai_groups__group_id__members_post` |
+| DELETE | `/api/v1/ai/groups/{group_id}/members/{bot_id}` | `remove_member_api_v1_ai_groups__group_id__members__bot_id__delete` |
+| PUT | `/api/v1/ai/groups/{group_id}/members/{bot_id}/journal-access` | `journal_access_api_v1_ai_groups__group_id__members__bot_id__journal_access_put` |
+| POST | `/api/v1/ai/groups/{group_id}/read` | `read_group_messages_api_v1_ai_groups__group_id__read_post` |
+| POST | `/api/v1/ai/groups/{group_id}/messages` | `send_group_message_api_v1_ai_groups__group_id__messages_post` |
+| GET | `/api/v1/ai/groups/{group_id}/turns/{turn_id}/events` | `group_turn_events_api_v1_ai_groups__group_id__turns__turn_id__events_get` |
+| POST | `/api/v1/ai/groups/{group_id}/turns/{turn_id}/cancel` | `cancel_group_turn_api_v1_ai_groups__group_id__turns__turn_id__cancel_post` |
+| GET | `/api/v1/bots/legacy` | `legacy_bots_api_v1_bots_legacy_get` |
+| POST | `/api/v1/ai/proactive/schedules/{bot_id}/{slot}/migrate` | `migrate_schedule_api_v1_ai_proactive_schedules__bot_id___slot__migrate_post` |
+| PUT | `/api/v1/ai/sharing/{edge}` | `update_sharing_api_v1_ai_sharing__edge__put` |
 | POST | `/api/v1/ai/runs/{run_id}/cancel` | `cancel_api_v1_ai_runs__run_id__cancel_post` |
 | GET | `/api/v1/ai/runs/{run_id}/events` | `events_api_v1_ai_runs__run_id__events_get` |
 | POST | `/api/v1/auth/confirmation` | `resend_confirmation_api_v1_auth_confirmation_post` |
@@ -129,3 +153,46 @@ Admin feedback cần tài khoản đã đăng ký, role admin hiện hành, xác
 | POST | `/api/v1/journal/entries/{entry_id}/media/{media_id}/complete` | `complete_media_api_v1_journal_entries__entry_id__media__media_id__complete_post` |
 | GET | `/api/v1/journal/entries/{entry_id}/media/{media_id}/access` | `access_media_api_v1_journal_entries__entry_id__media__media_id__access_get` |
 | DELETE | `/api/v1/journal/entries/{entry_id}/media/{media_id}` | `delete_media_api_v1_journal_entries__entry_id__media__media_id__delete` |
+
+## Lời hỏi thăm (proactive)
+
+Chỉ tài khoản đã đăng ký (`require_registered_actor`, guest → `403 REGISTERED_REQUIRED`; `age_band` ngoài teen/adult → `403 ELIGIBILITY_REQUIRED`). `GET /ai/proactive` luôn trả đủ 10 cặp trợ lý × buổi (`version: 0` = chưa lưu) cùng `available`, `settings`, `limits` (cap, số khung đang bật, khung giờ theo tuổi, bước 15 phút) và `eligibility.reason` cho từng cặp. Ghi yêu cầu `Idempotency-Key` và `expectedVersion` (0 = tạo mới). `available=false` (cờ `PROACTIVE_ENABLED`, nhóm `PROACTIVE_ROLLOUT_USER_IDS` hoặc AI tắt) → ghi trả `503 PROACTIVE_UNAVAILABLE`.
+
+| Lỗi | HTTP | Khi |
+| --- | --- | --- |
+| `STALE_VERSION` | 409 | `expectedVersion` lệch |
+| `SCHEDULE_WINDOW` | 422 | Ngoài khung sáng 05:00–11:30 / tối 17:00–22:30 (teen ≤ 21:00) hoặc lệch bước 15 phút |
+| `SCHEDULE_IN_QUIET_HOURS` | 422 (lịch) / 409 (settings) | Lịch đang bật nằm trong giờ yên lặng |
+| `PROACTIVE_DAILY_CAP` | 409 | Bật quá `PROACTIVE_DAILY_CAP_PER_USER` khung |
+| `PROACTIVE_INELIGIBLE` | 403 | Cầu Nối khi chưa đủ điều kiện kết nối (adult + MATCH + không hạn chế) hoặc lịch sử trò chuyện không khả dụng |
+| `SCHEDULE_PAUSE` | 422 | `pausedUntil` quá 30 ngày |
+| `INVALID_TIMEZONE`, `QUIET_HOURS_INVALID` | 422 | Múi giờ IANA không hợp lệ; giờ yên lặng ngoài 4–12 giờ |
+
+Mọi lần lưu hủy job chưa chạy của lịch liên quan; đổi múi giờ/giờ yên lặng tính lại `nextDeliveryAt` cho mọi lịch; tắt `journalContextEnabled` tăng `journal_context_version` và `users.data_version`, hủy job Nhịp chưa chạy và lượt chat đang chạy.
+
+**Lời nhắn mới (inbox).** `GET /ai/inbox` (không khóa hàng tài khoản, poll 30 s) trả `badgesEnabled`, `unreadTotal` và mỗi trợ lý một dòng `{botId, unread, latest:{conversationId, runId, slot, deliveredAt, firstSequence}}` — **không** có nội dung hay preview. Đếm theo lượt giao (3 bubble = 1), chỉ hội thoại còn hạn, run trong 30 ngày; trả lời sau lời hỏi thăm được tính là đã đọc. Guest, cờ tắt hoặc ngoài nhóm rollout → `{badgesEnabled:false, unreadTotal:0, bots:[]}`. `PUT /ai/conversations/{id}/read` `{lastReadSequence}` upsert đơn điệu (`GREATEST`), cắt về `conversation.version`, hội thoại người khác → 404. `POST /ai/inbox/read-all` đánh dấu mọi hội thoại có lời nhắn mới và trả lại inbox.
+
+## Trợ lý phối hợp (Phase 2)
+
+Chỉ tài khoản đã đăng ký (`require_registered_actor`, guest → `403 REGISTERED_REQUIRED`). `GET /ai/sharing` trả `{available, edges:[{edge, requester, specialist, enabled, version, requires, available, reason}]}` cho đúng ba cạnh `nhip_energy_for_rure`, `nhip_habit_for_may`, `rure_activity_for_guong` (Cầu Nối không có cạnh). Tài khoản mới: mọi cạnh `enabled:false, version:0`. `reason ∈ {feature_unavailable, ineligible_account, journal_context_off}`; văn bản "chia sẻ gì / không chia sẻ gì" là hằng frontend theo `edge`.
+
+`PUT /ai/sharing/{edge}` `{enabled, expectedVersion, policyVersion:"sharing-v1"}` (bắt buộc `Idempotency-Key`). Bật: version +1. **Tắt luôn được phép** (kể cả khi cờ tắt): version +1, `users.data_version` +1, mọi run `running` của tài khoản → `cancelled`, `runtime.invalidate()` — lượt đang chạy không dùng hay lưu được kết quả phối hợp.
+
+| Lỗi | HTTP | Khi |
+| --- | --- | --- |
+| `NOT_FOUND` | 404 | Cạnh ngoài allowlist (mọi cạnh có Cầu Nối, mọi cặp không khai báo) |
+| `STALE_VERSION` | 409 | `expectedVersion` lệch |
+| `SHARING_REQUIRES_JOURNAL_CONTEXT` | 409 | Bật `nhip_energy_for_rure` khi chưa bật "Dùng khoảnh khắc đã lưu hôm qua" |
+| `COLLABORATION_UNAVAILABLE` | 503 | Bật khi `AI_COLLABORATION_ENABLED=false`, ngoài nhóm rollout hoặc chưa bật `AI_MULTI_MESSAGE_ENABLED` |
+| `ADULT_REQUIRED` | 403 | Bật khi tài khoản chưa đủ 18 tuổi, bị tạm khóa hoặc đang chờ xóa |
+
+
+### V3 — ba trợ lý, điều phối, handoff
+
+Cờ `AI_THREE_AGENT_EXPERIENCE_ENABLED`: `GET /bots` trả đúng ba trợ lý `dieuphoi`, `nhatky`, `hoatdong`; `GET /bots/legacy` trả năm trợ lý cũ (`legacy:true`, `replacedBy`) chỉ để gắn nhãn lịch sử. Hội thoại của trợ lý cũ đọc/đổi tên/tải xuống/xóa được nhưng gửi tin → `409 LEGACY_CONVERSATION`; tạo mới → `409 LEGACY_COMPANION`. Khi cờ tắt, hội thoại của trợ lý mới chỉ đọc (`409 AGENT_UNAVAILABLE`).
+
+Cờ `AI_SMART_ORCHESTRATION_ENABLED`: lượt của Điều phối có thể hỏi ý (`Agent.as_tool`) hoặc chuyển lượt (handoff) trên cạnh người dùng đã bật ở `/ai/sharing` (bốn cạnh `dieuphoi_*`). SSE `?protocol=2`: `progress {activity:"consulting"|"transferring", companion}` cho mỗi bước thật, `final` thêm `speaker` và `steps:[{kind, companion}]` (chỉ bước `completed ∧ used_in_reply`); tối đa 6 event. v1 không đổi. `ConversationHeader.activeAgent` ≠ null khi chuyên gia đang trả lời tiếp; `POST /ai/conversations/{id}/agent {agent:"dieuphoi", expectedVersion}` quay lại Điều phối (`Idempotency-Key`). `AIMessage.speaker` = trợ lý của run sinh bubble; `AIMessage.steps` trên phần 0 của câu trả lời.
+
+### V3 — nhóm AI (`AI_GROUP_CHAT_ENABLED`)
+
+Chỉ tài khoản đã đăng ký, đủ 18+, đồng ý AI; cờ/cohort tắt → `404`. Một nhóm là một người dùng + 2–3 trợ lý V3. `POST /ai/groups {name, members}` → `201 GroupView`; `PATCH` đổi tên; `POST …/members {botId, shareHistory, expectedVersion}` (mặc định chỉ thấy tin từ lúc tham gia); `DELETE …/members/{botId}?expectedVersion=` (không xuống dưới 2, hủy lượt đang chạy); `PUT …/members/nhatky/journal-access` (mặc định tắt); `DELETE` xóa nhóm. `POST …/messages {text, clientMessageId, expectedVersion, mentions[]}` → `202 {turnId, eventsUrl}`; nhắc tên không phải thành viên qua picker → `422 MENTION_NOT_MEMBER`. SSE `GET …/turns/{turnId}/events?afterSeq=` phiên bản `ai-group-events-v1`: `turn_started`, `agent_selected`, `agent_started`, `agent_message {messages[]}`, `agent_failed`, `turn_completed|turn_failed|turn_cancelled` — hàm thuần của trạng thái DB, nối lại không trùng; cursor > 11 → `409 CURSOR_GAP`. `AIMessage.speaker` của mỗi tin AI = trợ lý của run sinh ra nó.

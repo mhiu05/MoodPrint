@@ -34,6 +34,9 @@ class Conversation:
     # Guest trials: a monotonic hard stop at the trial deadline (never extended by touch).
     hard_deadline: float | None = None
     hard_expires_at: datetime | None = None
+    # V3 handoff continuation: the specialist answering, and the ids of its segment's messages.
+    active_agent: str | None = None
+    segment_ids: frozenset[UUID] = frozenset()
 
 
 class ConversationStore:

@@ -48,7 +48,9 @@ async def create_proposal(
     """Create only a preview, in the caller's short transaction; never approve it."""
     user = await lock_actor(db, actor)
     await assert_purpose(db, user, "AI")
-    if bot_id not in ("may", "guong", "nhip", "rure"):
+    from app.ai.agents import caps
+
+    if not caps(bot_id).memory and bot_id != "rure":
         raise DomainError(422, "MEMORY_BOT_FORBIDDEN", "Trợ lý này không được đề xuất ghi nhớ.")
     if not 1 <= len(text.strip()) <= 120:
         raise DomainError(422, "INVALID_PROPOSAL", "Nội dung đề xuất chưa hợp lệ.")

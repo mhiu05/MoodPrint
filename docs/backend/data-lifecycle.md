@@ -25,6 +25,7 @@ Không đồng nhất xóa trong active database với xóa backup, provider log
 | Mood | Cửa sổ 90 ngày local theo timezone owner | `jobs/retention.py`, mood routes |
 | Human messages | 90 ngày | `jobs/retention.py`, social routes |
 | Terminal usage/run metadata | Dọn sau 90 ngày khi đủ điều kiện | `jobs/retention.py` |
+| Job lời hỏi thăm (content-free) | Xóa 30 ngày sau `finished_at`; job chưa kết thúc không bị xóa. Cài đặt/lịch sống tới khi người dùng xóa; xóa tài khoản/dữ liệu riêng tư xóa tường minh cả 5 bảng proactive | `jobs/retention.py`, `ai/proactive/lifecycle.py` |
 | Candidate ref | Hết hạn dùng sau 15 phút; cleanup sau expiry + 24 giờ | social routes, retention |
 | Idempotency receipts | Dọn bản ghi quá 24 giờ | `jobs/retention.py` |
 | Activity responses/terminal sessions | 90 ngày, mốc response submit/session end | `jobs/retention.py` |

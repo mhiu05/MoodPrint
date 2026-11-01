@@ -70,6 +70,8 @@ async def prepare_database(url: str):
     require_local_test_database(url)
     from app.ai import embedding_models, memory_models  # noqa: F401
     from app.ai import models as chat_models  # noqa: F401
+    from app.ai.collaboration import models as collaboration_models  # noqa: F401
+    from app.ai.proactive import models as proactive_models  # noqa: F401
     from app.infrastructure.database.models import Base
     from app.modules.moderation import models as safety_models  # noqa: F401
     from app.modules.social import models  # noqa: F401

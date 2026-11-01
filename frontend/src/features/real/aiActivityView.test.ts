@@ -50,3 +50,29 @@ describe("deriveAIActivity", () => {
     expect(labels.join(" ")).not.toMatch(/tìm|suy nghĩ|phân tích|đang đọc|%/i);
   });
 });
+
+describe("deriveAIActivity with a real consultation", () => {
+  const base = { phase: "accepted" as const, requestKey: "k", runId: "r" };
+
+  it("names both companions only while the server reports consulting", () => {
+    expect(deriveAIActivity({ ...base, consulting: { requester: "Rủ Rê", specialist: "Nhịp" } })).toEqual({
+      label: "Rủ Rê đang hỏi Nhịp một chút…",
+      busy: true,
+      orbState: "working",
+      consulting: { requester: "Rủ Rê", specialist: "Nhịp" },
+    });
+  });
+
+  it("returns to the ordinary label once composing starts or without a consultation", () => {
+    expect(deriveAIActivity(base).label).toBe("Đang trả lời…");
+    expect(deriveAIActivity({ ...base, consulting: null }).label).toBe("Đang trả lời…");
+  });
+
+  it("never shows a consultation outside an accepted run", () => {
+    for (const phase of ["submitting", "cancelling", "reconciling", "cancelled", "completed"] as const) {
+      const view = deriveAIActivity({ phase, requestKey: "k", runId: "r", consulting: { requester: "Mây", specialist: "Nhịp" } });
+      expect(view.label ?? "").not.toContain("đang hỏi");
+      expect(view.consulting).toBeUndefined();
+    }
+  });
+});

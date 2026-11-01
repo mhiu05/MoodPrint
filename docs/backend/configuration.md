@@ -24,6 +24,31 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 | `STT_MODEL` | `str` | `''` |
 | `SANDBOX_ENABLED` | `bool` | `False` |
 | `CHAT_HISTORY_ENABLED` | `bool` | `True` |
+| `AI_MULTI_MESSAGE_ENABLED` | `bool` | `False` |
+| `PROACTIVE_ENABLED` | `bool` | `False` |
+| `PROACTIVE_WORKER_ENABLED` | `bool` | `False` |
+| `PROACTIVE_WORKER_CONCURRENCY` | `int` | `1` |
+| `PROACTIVE_DAILY_CAP_PER_USER` | `int` | `4` |
+| `PROACTIVE_BUDGET_SHARE` | `float` | `0.5` |
+| `PROACTIVE_GRACE_MINUTES` | `int` | `90` |
+| `PROACTIVE_MAX_ATTEMPTS` | `int` | `3` |
+| `PROACTIVE_INACTIVE_DAYS` | `int` | `14` |
+| `PROACTIVE_ROLLOUT_USER_IDS` | `list[UUID]` | `[]` |
+| `AI_COLLABORATION_ENABLED` | `bool` | `False` |
+| `AI_COLLABORATION_DAILY_CAP` | `int` | `10` |
+| `AI_COLLABORATION_TIMEOUT_SECONDS` | `float` | `8` |
+| `AI_COLLABORATION_BUDGET_SHARE` | `float` | `0.7` |
+| `AI_COLLABORATION_ROLLOUT_USER_IDS` | `list[UUID]` | `[]` |
+| `AI_THREE_AGENT_EXPERIENCE_ENABLED` | `bool` | `False` |
+| `AI_SMART_ORCHESTRATION_ENABLED` | `bool` | `False` |
+| `AI_GROUP_CHAT_ENABLED` | `bool` | `False` |
+| `AI_V3_ROLLOUT_USER_IDS` | `list[UUID]` | `[]` |
+| `AI_ORCHESTRATION_MAX_SPECIALISTS` | `int` | `2` |
+| `AI_ORCHESTRATION_DAILY_CAP` | `int` | `20` |
+| `AI_ORCHESTRATION_SPECIALIST_TIMEOUT_SECONDS` | `float` | `10` |
+| `AI_ORCHESTRATION_PLANNER_TIMEOUT_SECONDS` | `float` | `8` |
+| `AI_ORCHESTRATION_BUDGET_SHARE` | `float` | `0.7` |
+| `AI_GROUP_MAX_SPEAKERS` | `int` | `3` |
 | `CHAT_RETENTION_DAYS` | `int` | `30` |
 | `AI_GLOBAL_CONCURRENCY` | `int` | `50` |
 | `AI_USER_CONCURRENCY` | `int` | `2` |
@@ -83,6 +108,10 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 - **Journal media:** `JOURNAL_STORAGE_KEY` là credential phía server cho bucket riêng tư `journal-media`; không dùng biến `VITE_`, không đưa vào session hoặc log. Thiếu key vẫn lưu nhật ký chữ/bản nháp được; media trả lỗi có thể thử lại. Xem [Storage nhật ký](../supabase/journal-storage.md).
 - **AI:** `AI_ENABLED`, model/key, concurrency/rate/timeout; daily USD budget cần accounting. `AI_LOCAL_TEST_USER_IDS` chỉ được phép ở development, không phải production bypass.
 - **History:** `CHAT_HISTORY_ENABLED` và retention là capability global; preference mặc định của user vẫn tắt.
+- **Lời hỏi thăm (chủ động):** `PROACTIVE_ENABLED` mở API/UI lịch hỏi thăm (`GET/PUT /ai/proactive…`, `features.proactive`); `PROACTIVE_WORKER_ENABLED` bật vòng scheduler/executor **chỉ** trong service Compose `proactive` (`python -m app.jobs.proactive`), không bao giờ trong process API. Production bật worker bắt buộc `PROACTIVE_ENABLED`, `AI_ENABLED`, `AI_ACCOUNTING_ENABLED=true` và `AI_DAILY_BUDGET_USD > 0`. Lời hỏi thăm không trừ lượt chat của người dùng nhưng dừng khi chi tiêu ngày đạt `PROACTIVE_BUDGET_SHARE × AI_DAILY_BUDGET_USD`. `PROACTIVE_ROLLOUT_USER_IDS` khác rỗng giới hạn tính năng cho nhóm thử nghiệm đã đồng ý. Thứ tự bật: [operations](operations.md).
+- **Ba trợ lý, điều phối thông minh, nhóm AI (V3):** `AI_THREE_AGENT_EXPERIENCE_ENABLED` (mặc định tắt) thay 5 trợ lý mặc định bằng Điều phối, Nhật ký, Hoạt động; hội thoại của 5 trợ lý cũ chỉ còn đọc, lịch hỏi thăm cũ được giữ nhưng tạm dừng và chỉ chuyển khi người dùng chọn. `AI_SMART_ORCHESTRATION_ENABLED` (planner + `Agent.as_tool()` + handoff, chỉ trên cạnh người dùng đã bật) và `AI_GROUP_CHAT_ENABLED` (nhóm AI) chỉ có tác dụng khi cờ ba trợ lý bật và bắt buộc `AI_MULTI_MESSAGE_ENABLED=true`; production còn cần `AI_ACCOUNTING_ENABLED=true`. `AI_V3_ROLLOUT_USER_IDS` khác rỗng giới hạn cả ba cho nhóm thử nghiệm. Giới hạn: ≤ `AI_ORCHESTRATION_MAX_SPECIALISTS` chuyên gia/lượt, `AI_ORCHESTRATION_DAILY_CAP` bước chuyên gia/ngày Asia/Bangkok, timeout chuyên gia/planner, dừng ủy quyền khi chi tiêu ngày đạt `AI_ORCHESTRATION_BUDGET_SHARE × AI_DAILY_BUDGET_USD`; nhóm tối đa `AI_GROUP_MAX_SPEAKERS` người nói/lượt. Xem `docs/implementation-plans/three-agent-orchestration-group-chat/`.
+- **Trợ lý phối hợp (Phase 2):** `AI_COLLABORATION_ENABLED` (mặc định tắt) cho phép một trợ lý nhờ trợ lý khác **một** việc nhỏ theo luật xác định R1–R4, chỉ trên các cạnh người dùng đã bật ở `/ai/sharing` (mặc định tắt từng cạnh). Bắt buộc `AI_MULTI_MESSAGE_ENABLED=true` (mọi môi trường) và, ở production, `AI_ACCOUNTING_ENABLED=true` vì run con không có lease `ai_turns`. Mỗi người dùng tối đa `AI_COLLABORATION_DAILY_CAP` lần/ngày Asia/Bangkok; specialist có timeout `AI_COLLABORATION_TIMEOUT_SECONDS` (3–10 s); dừng phối hợp khi chi tiêu ngày đạt `AI_COLLABORATION_BUDGET_SHARE × AI_DAILY_BUDGET_USD`. `AI_COLLABORATION_ROLLOUT_USER_IDS` khác rỗng giới hạn cho nhóm thử nghiệm. Tắt cờ: không có specialist call, không có receipt mới, không có dòng cộng tác; người dùng vẫn luôn tắt được cạnh đã bật.
+- **Nhiều bubble:** `AI_MULTI_MESSAGE_ENABLED=true` cho model trả 1–4 tin đã validate trong một lượt (lưu mỗi tin một dòng, SSE v2 qua `?protocol=2`; client cũ nhận bản ghép v1). Tắt là kill switch: trả lời một tin như trước, lịch sử nhiều bubble cũ vẫn hiển thị.
 - **Embedding:** Voyage credentials + semantic capability + user opt-in/MEM. `PROVIDER_FORCE_IPV4` chỉ dùng xử lý network khi cần, không thay authorization.
 - **Social:** scorer mặc định v1; activities và moderation admin mặc định tắt. `ACTIVITY_KINDS` là rollout subset.
 - **Sandbox:** hiện không có model tool thực thi code/file; không cần bật để chạy các bot hiện tại.

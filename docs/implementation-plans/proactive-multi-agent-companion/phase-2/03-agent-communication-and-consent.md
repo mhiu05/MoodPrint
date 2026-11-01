@@ -171,7 +171,7 @@ Chọn một thử thách nhẹ, ngồi một chỗ cũng làm được. Không 
 
 ```json
 {"kind": "nhip_energy_for_rure", "companions": ["nhip", "rure"],
- "summary": "Nhịp đã gợi ý một hoạt động nhẹ nhàng. Rủ Rê đã dựa vào đó để chuẩn bị thử thách hôm nay."}
+ "summary": "Nhịp đã gợi ý mức năng lượng phù hợp với bạn. Rủ Rê đã dựa vào đó để chuẩn bị thử thách hôm nay."}
 ```
 
 ## 5. Validate và tối thiểu hóa
