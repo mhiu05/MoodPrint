@@ -2239,7 +2239,7 @@ function CheckInsSummary() {
 
 function CollaborationSummaryCard() {
   const { session } = useSession();
-  if (!session.features.collaboration || session.accountKind === "guest") return null;
+  if (!(session.features.collaboration || session.features.smartOrchestration) || session.accountKind === "guest") return null;
   return (
     <section className="real-section" aria-labelledby="collaboration-summary">
       <h2 id="collaboration-summary">Trợ lý phối hợp với nhau</h2>
