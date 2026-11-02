@@ -20,6 +20,31 @@ Nguồn helper được review ở [provider_session.sql](../../backend/app/infr
 
 ## Recovery, reauthentication và eligibility
 
+Khi bật CAPTCHA trong Supabase Auth, bật `AUTH_CAPTCHA_ENABLED=true` trong runtime
+và đặt `GUEST_CAPTCHA_SITE_KEY` thành public site key của cùng widget Turnstile.
+Site key này dùng chung cho auth và guest; không phải secret key. Secret CAPTCHA
+chỉ cấu hình tại provider. Production từ chối khởi động nếu bật cờ auth mà thiếu
+site key. `/public/experience` trả `authCaptchaRequired` và `captchaSiteKey` ngay
+cả khi guest entry tắt, để đăng nhập thông thường vẫn dùng được widget.
+
+Login, signup, password-recovery, confirmation resend và password step-up nhận
+`captchaToken` tùy chọn trong contract; khi cờ bật phải có token mới cho mỗi lần
+gửi. Backend chuyển token thành `gotrue_meta_security.captcha_token`, không lưu
+token vào app session hay receipt và không ghi token/body provider vào log.
+Thiếu token trả `422 CAPTCHA_REQUIRED`; provider từ chối token hết hạn/không hợp
+lệ trả `422 CAPTCHA_FAILED`, không giả thành sai mật khẩu hay gửi mail thành công.
+Rate limits, origin, CSRF và live provider-session validation vẫn giữ nguyên.
+Đổi cờ runtime cần recreate API; đổi CAPTCHA tại provider phải phối hợp với bản
+frontend/backend hỗ trợ token để không khóa đăng nhập.
+
+Theo [Supabase CAPTCHA guide](https://supabase.com/docs/guides/auth/auth-captcha)
+và [GoTrue route registration](https://github.com/supabase/auth/blob/master/internal/api/api.go),
+`/resend` cũng có CAPTCHA middleware. Password reset bằng recovery bearer gọi
+`PUT /user`, không tạo password grant nên không yêu cầu widget lần nữa.
+[GoTrue middleware](https://github.com/supabase/auth/blob/master/internal/api/middleware.go)
+miễn CAPTCHA cho refresh-token/PKCE grants; không thêm CAPTCHA vào việc đọc hoặc
+refresh app session đang hợp lệ. Các nguồn này được kiểm tra ngày 2026-11-02.
+
 Signup/confirmation/password-recovery trả thông báo theo route, tránh suy ra tồn tại email từ nội dung UI. Callback password-reset được frontend xử lý và bỏ token khỏi URL. Step-up `/auth/reauthenticate` khác đăng nhập lại toàn bộ; export/deletion/staff có yêu cầu thời gian reauth tương ứng.
 
 Toàn bộ MoodPrint yêu cầu từ đủ 18 tuổi, gồm guest và session đã phát hành trước đây. `verify_actor` kiểm tra `AgeDeclaration` do backend lưu: band adult, policy được hỗ trợ, năm sinh hợp lệ, timestamp hợp lệ và xác nhận adult trong năm tròn 18. Band/JWT metadata riêng lẻ không cấp quyền. Khai báo mới dùng `self-declared-age-v2-18plus`; khai báo v1 của adult hợp lệ vẫn dùng được. Session, logout, khai báo tuổi, reauthentication, rút MATCH và xuất/xóa dữ liệu có ngoại lệ bảo mật cụ thể. Đây là tự khai báo, không phải xác minh giấy tờ. [Chi tiết policy và release](../release/moodprint-18plus-0020-rollout.md).

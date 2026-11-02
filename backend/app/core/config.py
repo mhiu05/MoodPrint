@@ -21,6 +21,8 @@ class Settings(EmbeddingSettings, BaseSettings):
     journal_storage_key: SecretStr = SecretStr("")
     frontend_origin: str = "http://127.0.0.1:5173"
     cookie_secure: bool = False
+    # Match the Supabase Auth CAPTCHA setting; shares the public Turnstile site key with guests.
+    auth_captcha_enabled: bool = False
     openai_api_key: SecretStr = SecretStr("")
     openai_model: str = ""
     ai_enabled: bool = False
@@ -176,6 +178,8 @@ class Settings(EmbeddingSettings, BaseSettings):
         if self.ai_local_test_user_ids and self.app_env != "development":
             raise ValueError("Local live AI actors are allowed only in development")
         if self.app_env == "production":
+            if self.auth_captcha_enabled and not self.guest_captcha_site_key.strip():
+                raise ValueError("AUTH_CAPTCHA_ENABLED requires GUEST_CAPTCHA_SITE_KEY")
             # Fail closed instead of serving production with development defaults.
             if not self.frontend_origin.startswith("https://"):
                 raise ValueError("FRONTEND_ORIGIN must be https in production")

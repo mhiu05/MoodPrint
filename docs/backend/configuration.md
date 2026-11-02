@@ -15,6 +15,7 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 | `JOURNAL_STORAGE_KEY` | `SecretStr` | `SecretStr('')` |
 | `FRONTEND_ORIGIN` | `str` | `'http://127.0.0.1:5173'` |
 | `COOKIE_SECURE` | `bool` | `False` |
+| `AUTH_CAPTCHA_ENABLED` | `bool` | `False` |
 | `OPENAI_API_KEY` | `SecretStr` | `SecretStr('')` |
 | `OPENAI_MODEL` | `str` | `''` |
 | `AI_ENABLED` | `bool` | `False` |
