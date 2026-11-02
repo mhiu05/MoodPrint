@@ -4,6 +4,7 @@ import json
 from datetime import date, timedelta
 from uuid import UUID, uuid4
 
+from openai.types.responses.response_usage import ResponseUsage
 from sqlalchemy import select
 
 from tests.fakes import ScriptedModel, message_output
@@ -16,8 +17,22 @@ def key():
     return {"Idempotency-Key": str(uuid4())}
 
 
-def specialist_model(payload, **kwargs) -> ScriptedModel:
-    return ScriptedModel([[message_output(json.dumps(payload, ensure_ascii=False))]], **kwargs)
+class PricedSpecialistModel(ScriptedModel):
+    """A completed synthetic call with explicit, financially known usage."""
+
+    async def stream_response(self, *args, **kwargs):
+        async for event in super().stream_response(*args, **kwargs):
+            if event.type == "response.completed":
+                event.response.usage = ResponseUsage(
+                    input_tokens=100, input_tokens_details={"cached_tokens": 0, "cache_write_tokens": 0},
+                    output_tokens=10, output_tokens_details={"reasoning_tokens": 0}, total_tokens=110,
+                )
+            yield event
+
+
+def specialist_model(payload, *, known_usage=False, **kwargs) -> ScriptedModel:
+    model = PricedSpecialistModel if known_usage else ScriptedModel
+    return model([[message_output(json.dumps(payload, ensure_ascii=False))]], **kwargs)
 
 
 def primary(*texts, **kwargs) -> ScriptedModel:

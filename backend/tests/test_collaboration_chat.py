@@ -50,7 +50,7 @@ async def test_r1_rure_gets_only_the_energy_enum_never_the_journal(clients):
     app, [(client, uid), _] = clients
     await setup(app, client)
     entry_id = await entry(app, uid)
-    spec = specialist_model(energy([entry_id]))
+    spec = specialist_model(energy([entry_id]), known_usage=True)
     app.state.ai.specialist_model_override = spec
     main = primary("Sáng nay thử một thử thách nhỏ: nhắm mắt đếm âm thanh trong 2 phút nhé.", "Kể mình nghe nhé!")
     url = await conversation(client, "rure")
