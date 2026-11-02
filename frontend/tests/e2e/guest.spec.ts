@@ -206,7 +206,10 @@ test("a failed attempt retries with the same key and creates no second intent", 
   expect(attempts).toHaveLength(2);
   expect(attempts[0].headers["idempotency-key"]).toBeTruthy();
   expect(attempts[1].headers["idempotency-key"]).toBe(attempts[0].headers["idempotency-key"]);
-  expect(attempts[1].body).toEqual(attempts[0].body);
+  const first = attempts[0].body as Record<string, unknown>;
+  const second = attempts[1].body as Record<string, unknown>;
+  expect(second).toEqual({ ...first, captchaToken: second.captchaToken });
+  expect(second.captchaToken).not.toBe(first.captchaToken);
 });
 
 test("an unknown outcome is explained and resumed with the same request, never a new identity", async ({ page }) => {

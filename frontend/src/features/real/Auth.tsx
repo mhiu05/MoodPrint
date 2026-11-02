@@ -9,6 +9,8 @@ import { ErrorNotice } from "../../components/ErrorNotice";
 import { AgeFields } from "../auth/AgeFields";
 import { ageDeclaration, bangkokYear } from "../auth/ageDeclaration";
 import type { AuthCallback } from "../auth/callback";
+import { CaptchaChallenge } from "../auth/CaptchaChallenge";
+import { useAuthCaptcha } from "../auth/useAuthCaptcha";
 
 type Schema = components["schemas"];
 type Mode = "login" | "signup" | "recover" | "reset";
@@ -83,6 +85,7 @@ export function AuthScreen({
           : "",
     ),
     [unconfirmed, setUnconfirmed] = useState(false);
+  const captcha = useAuthCaptcha(api, mode !== "reset");
 
   function switchTo(next: Mode) {
     setMode(next);
@@ -91,17 +94,18 @@ export function AuthScreen({
     setUnconfirmed(false);
     setPassword("");
     setConfirm("");
+    captcha.challenge.reset();
   }
 
-  async function run(action: () => Promise<void>) {
+  async function run(action: (captchaFields: { captchaToken?: string }) => Promise<void>) {
     if (busy) return;
     setBusy(true);
     setError(undefined);
     setNotice("");
     try {
-      await action();
+      await action(captcha.fields());
     } catch (reason) {
-      setUnconfirmed(reason instanceof ApiError && reason.code === "EMAIL_NOT_CONFIRMED");
+      if (reason instanceof ApiError && reason.code === "EMAIL_NOT_CONFIRMED") setUnconfirmed(true);
       setError(reason);
     } finally {
       setBusy(false);
@@ -114,19 +118,19 @@ export function AuthScreen({
       setError(new ApiError(422, "PASSWORD_MISMATCH", "Mật khẩu nhập lại chưa khớp. Hãy kiểm tra hai ô mật khẩu."));
       return;
     }
-    void run(async () => {
+    void run(async (captchaFields) => {
       if (mode === "login") {
         receive(
           await api.request<SessionView>("/auth/login", {
             method: "POST",
-            body: { email, password } satisfies LoginInput,
+            body: { email, password, ...captchaFields } satisfies LoginInput,
             publicWrite: true,
           }),
         );
       } else if (mode === "signup") {
         await api.request<Schema["AuthNotice"]>("/auth/signup", {
           method: "POST",
-          body: { email, password, eligibility: ageDeclaration(birthYear, adultConfirmed, bangkokYear()) } satisfies Schema["SignupInput"],
+          body: { email, password, eligibility: ageDeclaration(birthYear, adultConfirmed, bangkokYear()), ...captchaFields } satisfies Schema["SignupInput"],
           publicWrite: true,
         });
         switchTo("login");
@@ -136,7 +140,7 @@ export function AuthScreen({
       } else if (mode === "recover") {
         await api.request<Schema["AuthNotice"]>("/auth/password-recovery", {
           method: "POST",
-          body: { email } satisfies Schema["EmailInput"],
+          body: { email, ...captchaFields } satisfies Schema["EmailInput"],
           publicWrite: true,
         });
         switchTo("login");
@@ -154,10 +158,10 @@ export function AuthScreen({
   }
 
   function resend() {
-    void run(async () => {
+    void run(async (captchaFields) => {
       await api.request<Schema["AuthNotice"]>("/auth/confirmation", {
         method: "POST",
-        body: { email } satisfies Schema["EmailInput"],
+        body: { email, ...captchaFields } satisfies Schema["EmailInput"],
         publicWrite: true,
       });
       setUnconfirmed(false);
@@ -259,6 +263,9 @@ export function AuthScreen({
         )}
         {mode === "signup" && <AgeFields prefix="signup" year={birthYear} confirmed={adultConfirmed}
           currentYear={bangkokYear()} onYear={setBirthYear} onConfirmed={setAdultConfirmed} />}
+        {captcha.loading ? <p role="status">Đang kiểm tra bước an toàn…</p> : null}
+        <ErrorNotice error={captcha.error} retry={captcha.retry} />
+        {captcha.required ? <CaptchaChallenge challenge={captcha.challenge} /> : null}
         {landing && mode === "login" && (
           <div className="landing-auth-tools">
             <Button variant="text" onClick={() => switchTo("recover")}>
@@ -320,15 +327,19 @@ export function ReauthForm({
     [password, setPassword] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>();
+  const captcha = useAuthCaptcha(api);
   function submit(event: FormEvent) {
     event.preventDefault();
     if (busy) return;
+    let captchaFields: { captchaToken?: string };
+    try { captchaFields = captcha.fields(); }
+    catch (reason) { setError(reason); return; }
     setBusy(true);
     setError(undefined);
     api
       .request<Schema["AuthNotice"]>("/auth/reauthenticate", {
         method: "POST",
-        body: { email, password } satisfies LoginInput,
+        body: { email, password, ...captchaFields } satisfies LoginInput,
       })
       .then(() => {
         setPassword("");
@@ -360,6 +371,9 @@ export function ReauthForm({
         value={password}
         onChange={(event) => setPassword(event.target.value)}
       />
+      {captcha.loading ? <p role="status">Đang kiểm tra bước an toàn…</p> : null}
+      <ErrorNotice error={captcha.error} retry={captcha.retry} />
+      {captcha.required ? <CaptchaChallenge challenge={captcha.challenge} /> : null}
       <div className="real-actions">
         <Button type="submit" disabled={busy}>
           {busy ? "Đang xác nhận…" : "Xác nhận"}

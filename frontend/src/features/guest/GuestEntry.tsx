@@ -8,39 +8,7 @@ import { ErrorNotice } from "../../components/ErrorNotice";
 import { AgeFields } from "../auth/AgeFields";
 import { ageDeclaration, bangkokYear } from "../auth/ageDeclaration";
 import { beginAttempt, beginOrResumeGuest, clearAttempt } from "./guestAttempt";
-
-declare global {
-  interface Window {
-    turnstile?: {
-      render: (el: HTMLElement, options: Record<string, unknown>) => string;
-      reset: (id?: string) => void;
-      remove: (id?: string) => void;
-    };
-  }
-}
-
-const TURNSTILE = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-let challengePromise: Promise<void> | null = null;
-
-function loadChallenge(): Promise<void> {
-  if (window.turnstile) return Promise.resolve();
-  if (challengePromise) return challengePromise;
-  challengePromise = new Promise<void>((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = TURNSTILE;
-    script.async = true;
-    script.onload = () => {
-      if (window.turnstile) resolve();
-      else { script.remove(); reject(new Error("challenge unavailable")); }
-    };
-    script.onerror = () => { script.remove(); reject(new Error("challenge unavailable")); };
-    document.head.appendChild(script);
-  }).catch((reason) => {
-    challengePromise = null;
-    throw reason;
-  });
-  return challengePromise;
-}
+import { CaptchaChallenge, useCaptcha } from "../auth/CaptchaChallenge";
 
 /** Explicit-only trial entry: disclosure, the existing age attestation and one CAPTCHA. */
 export function GuestEntry({
@@ -56,35 +24,15 @@ export function GuestEntry({
 }) {
   const [year, setYear] = useState("");
   const [minimum, setMinimum] = useState(false);
-  const [token, setToken] = useState("");
+  const captcha = useCaptcha(siteKey);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>();
   const [ineligible, setIneligible] = useState(false);
   const [waiting, setWaiting] = useState(false);
-  const challenge = useRef<HTMLDivElement>(null);
-  const widget = useRef<string | undefined>(undefined);
   const controller = useRef<AbortController | undefined>(undefined);
   const thisYear = bangkokYear();
 
-  useEffect(() => {
-    let active = true;
-    loadChallenge()
-      .then(() => {
-        if (!active || !challenge.current || !window.turnstile) return;
-        widget.current = window.turnstile.render(challenge.current, {
-          sitekey: siteKey,
-          callback: (value: string) => setToken(value),
-          "expired-callback": () => setToken(""),
-          "error-callback": () => setToken(""),
-        });
-      })
-      .catch(() => active && setError(new ApiError(503, "CAPTCHA_UNAVAILABLE", "Chưa tải được bước kiểm tra an toàn. Vui lòng thử lại sau.")));
-    return () => {
-      active = false;
-      controller.current?.abort();
-      if (widget.current) window.turnstile?.remove(widget.current);
-    };
-  }, [siteKey]);
+  useEffect(() => () => controller.current?.abort(), []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -95,10 +43,9 @@ export function GuestEntry({
       setIneligible(true);
       return;
     }
-    if (!token) {
-      setError(new ApiError(422, "CAPTCHA_REQUIRED", "Hãy hoàn tất bước kiểm tra an toàn trước khi bắt đầu."));
-      return;
-    }
+    let token: string;
+    try { token = captcha.take(); }
+    catch (reason) { setError(reason); return; }
     setIneligible(false);
     setError(undefined);
     setWaiting(false);
@@ -128,8 +75,6 @@ export function GuestEntry({
         setError(reason);
         if (reason instanceof ApiError && reason.status < 500 && reason.code !== "GUEST_ATTEMPT_PENDING") {
           // A definitive rejection (e.g. CAPTCHA) needs a fresh one-shot token and a fresh attempt.
-          setToken("");
-          if (widget.current) window.turnstile?.reset(widget.current);
           if (reason.code !== "GUEST_CREATION_LIMIT") clearAttempt();
         }
       }
@@ -157,7 +102,7 @@ export function GuestEntry({
         </p>
         <AgeFields prefix="guest" year={year} confirmed={minimum} currentYear={thisYear}
           onYear={setYear} onConfirmed={setMinimum} />
-        <div ref={challenge} aria-label="Bước kiểm tra an toàn" />
+        <CaptchaChallenge challenge={captcha} />
         {ineligible ? (
           <p role="alert" className={cx.error}>
             Bạn cần đủ 18 tuổi để sử dụng MoodPrint.

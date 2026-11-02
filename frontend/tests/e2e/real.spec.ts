@@ -37,6 +37,7 @@ const conversation = {
 async function api(page: Page, authenticated = true) {
   await page.route("**/api/v1/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
+    if (path === "/api/v1/public/experience") return route.fulfill({ json: { guestAvailable: false, captchaSiteKey: null, authCaptchaRequired: false } });
     if (path === "/api/v1/session")
       return route.fulfill({
         status: authenticated ? 200 : 401,
