@@ -31,6 +31,6 @@ Entry/media deletion gỡ quyền qua API ngay và queue remote deletion. Worker
 
 ## Kiểm chứng thực tế
 
-[Kết quả smoke](../implementation-plans/diary/evidence/hosted-storage-smoke.json) ghi4tệp tổng hợp: PNG, WAV, WebM và PNG>7MiB qua signed TUS. Đã đối chiếu metadata thật từ info-v2, byte download và public-read denial; xóa đúng4object thử nghiệm và xác nhận không còn. Không đọc hoặc xóa media người dùng.
+[Kết quả smoke (bản lưu)](https://github.com/mhiu05/MoodPrint/blob/732ec9219ccdde0b24994ae80c761d28d4135d25/docs/implementation-plans/diary/evidence/hosted-storage-smoke.json) ghi4tệp tổng hợp: PNG, WAV, WebM và PNG>7MiB qua signed TUS. Đã đối chiếu metadata thật từ info-v2, byte download và public-read denial; xóa đúng4object thử nghiệm và xác nhận không còn. Không đọc hoặc xóa media người dùng.
 
 Owner/cross-owner, stale writes, receipt replay, upload mismatch và cleanup retry được kiểm thử bằng HTTP/database local. Smoke hosted Storage không thay thế kiểm chứng hosted Auth/BFF/application migration. Migration `0019_journal` chưa được áp dụng lên hosted database; không merge/deploy.
