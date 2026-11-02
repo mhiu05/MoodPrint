@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { lazy, Suspense, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowUp, AtSign, Info, Pause, X } from "lucide-react";
 import type { components } from "../../../api/generated/schema";
@@ -48,11 +48,22 @@ export function GroupChat({ groupId }: { groupId: string }) {
   const [notice, setNotice] = useState("");
   const [infoOpen, setInfoOpen] = useState(false);
   const composer = useRef<HTMLTextAreaElement>(null);
+  const pendingCaret = useRef<number | null>(null);
   const infoTrigger = useRef<HTMLButtonElement>(null);
   const lifetime = useRef<AbortController | null>(null);
   const attempt = useRef<{ text: string; id: string } | null>(null);
   const pickerId = useId();
   const allowed = session.features.groupChat && session.features.ai;
+
+  // Restore selection in the value's commit. A later animation frame could move
+  // the caret behind a character the user has already typed after the mention.
+  useLayoutEffect(() => {
+    const caret = pendingCaret.current;
+    if (caret === null) return;
+    pendingCaret.current = null;
+    composer.current?.focus();
+    composer.current?.setSelectionRange(caret, caret);
+  });
 
   const load = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -165,13 +176,10 @@ export function GroupChat({ groupId }: { groupId: string }) {
   function choose(target: MentionTarget) {
     if (!picker) return;
     const next = insertMention(draft, picker.start, picker.caret, target);
+    pendingCaret.current = next.caret;
     setDraft(next.text);
     setPicked((current) => (current.some((item) => item.id === target.id) ? current : [...current, target]));
     setPicker(null);
-    requestAnimationFrame(() => {
-      composer.current?.focus();
-      composer.current?.setSelectionRange(next.caret, next.caret);
-    });
   }
 
   function openPicker() {
@@ -180,12 +188,9 @@ export function GroupChat({ groupId }: { groupId: string }) {
     const needsSpace = caret > 0 && !/\s/.test(draft[caret - 1]);
     const text = draft.slice(0, caret) + (needsSpace ? " @" : "@") + draft.slice(caret);
     const position = caret + (needsSpace ? 2 : 1);
+    pendingCaret.current = position;
     setDraft(text);
     setPicker({ start: position - 1, caret: position, options: targets, active: 0 });
-    requestAnimationFrame(() => {
-      field?.focus();
-      field?.setSelectionRange(position, position);
-    });
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
