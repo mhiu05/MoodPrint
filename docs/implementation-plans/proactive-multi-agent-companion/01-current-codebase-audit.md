@@ -85,7 +85,7 @@ sequenceDiagram
 | Quy tắc | Nguồn |
 | --- | --- |
 | Chỉ chủ sở hữu, `status='saved'`, cửa sổ 90 ngày theo `user.timezone`, không ngày tương lai | [journal/ai.py:32-46](../../../backend/app/modules/journal/ai.py#L32), [journal/service.py:15-25](../../../backend/app/modules/journal/service.py#L15) |
-| Trả về đúng các khóa `id, version, localDate, mood, emotions, factors, snippet, snippetTruncated`; snippet ≤1.000 ký tự, tổng ≤24.000 byte; không media | [journal/ai.py:60-77](../../../backend/app/modules/journal/ai.py#L60), [20-nhip-text-only-contract.md](../diary/20-nhip-text-only-contract.md) |
+| Trả về đúng các khóa `id, version, localDate, mood, emotions, factors, snippet, snippetTruncated`; snippet ≤1.000 ký tự, tổng ≤24.000 byte; không media | [journal/ai.py:60-77](../../../backend/app/modules/journal/ai.py#L60), [20-nhip-text-only-contract.md (bản lưu)](https://github.com/mhiu05/MoodPrint/blob/732ec9219ccdde0b24994ae80c761d28d4135d25/docs/implementation-plans/diary/20-nhip-text-only-contract.md) |
 | Evidence chỉ sống trong run hiện tại (`JournalEvidence.assert_current`), revisions được kiểm lại dưới owner lock trước khi publish | [ai/journal.py:33-52,147-172](../../../backend/app/ai/journal.py#L147) |
 | Backend tự tạo link `/self/entry/{id}`; model không được viết link; output phải trích dẫn khi có entry | [ai/journal.py:115-144](../../../backend/app/ai/journal.py#L115) |
 | Từ chối đọc nhật ký bằng lời trong lượt hiện tại → tool bị gỡ | [ai/journal.py:62-66](../../../backend/app/ai/journal.py#L62), [provider.py:201-205](../../../backend/app/ai/provider.py#L201) |

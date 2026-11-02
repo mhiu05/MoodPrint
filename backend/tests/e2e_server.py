@@ -215,12 +215,20 @@ async def run_check_ins(body: dict):
 
     from sqlalchemy import func, select, update
 
-    from app.ai.proactive.models import AiProactiveJob, AiProactiveSchedule
+    from app.ai.proactive.models import AiProactiveJob, AiProactiveSchedule, AiProactiveSettings
     from app.jobs.proactive import proactive_tick
     from app.modules.journal.models import JournalEntry
+    from tests.proactive_helpers import quiet_hours_for_due_now
 
     uid = UUID(body["userId"])
     async with app.state.database.sessions.begin() as db:
+        # This endpoint deliberately forces synthetic schedules due at the wall
+        # clock rather than waiting until their saved time. Keep that artificial
+        # delivery out of quiet hours; actual quiet-hour behavior has frozen-clock
+        # authorization and executor regressions. Production has no such endpoint.
+        prefs = await db.get(AiProactiveSettings, uid)
+        if prefs is not None:
+            prefs.quiet_start, prefs.quiet_end = quiet_hours_for_due_now()
         if body.get("journalYesterday"):
             db.add(JournalEntry(user_id=uid, local_date=date.fromisoformat(body["journalYesterday"]),
                                 timezone="Asia/Bangkok", mood=3, text="Khoảnh khắc tổng hợp cho E2E",

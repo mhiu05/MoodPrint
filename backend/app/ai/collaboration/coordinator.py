@@ -371,7 +371,7 @@ class CollaborationCoordinator:
         ))
         if settings.ai_accounting_enabled:
             await reserve_accounting(db, child_id, user.id, worker_id, settings.openai_model,
-                                     f"specialist-{match.edge}+{policy.POLICY_VERSION}")
+                                     f"specialist-{match.edge}+{policy.POLICY_VERSION}", settings=settings)
         await db.flush()
         if on_journal_read is not None and excerpts:
             # Stamp provenance before any value derived from the journal can reach a model.

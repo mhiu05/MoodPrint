@@ -27,12 +27,15 @@ def ready(app, model, **overrides):
 async def due_schedule(app, uid, *, bot="may", slot="morning", local_time=None, journal=False):
     from app.ai.proactive.models import AiProactiveSchedule, AiProactiveSettings
     from app.infrastructure.database.models import now
+    from tests.proactive_helpers import quiet_hours_for_due_now
 
     async with app.state.database.sessions.begin() as db:
         prefs = await db.get(AiProactiveSettings, uid)
         if prefs is None:
+            quiet_start, quiet_end = quiet_hours_for_due_now()
             db.add(AiProactiveSettings(user_id=uid, timezone="Asia/Ho_Chi_Minh",
-                                       journal_context_enabled=journal))
+                                       journal_context_enabled=journal,
+                                       quiet_start=quiet_start, quiet_end=quiet_end))
         db.add(AiProactiveSchedule(
             user_id=uid, bot_id=bot, slot=slot, enabled=True,
             local_time=local_time or (time(7, 30) if slot == "morning" else time(20, 0)),
@@ -375,16 +378,32 @@ async def test_crash_during_publish_redelivers_exactly_once(clients, monkeypatch
 
 
 async def test_accounting_records_proactive_usage_under_its_prompt_version(clients):
+    from openai.types.responses.response_usage import ResponseUsage
+
     from app.infrastructure.database.models import AiUsage
 
     app, [(_client, uid), _] = clients
-    ready(app, reply("Một lời chào nhỏ."), ai_accounting_enabled=True)
+
+    class PricedReply(ScriptedModel):
+        async def stream_response(self, *args, **kwargs):
+            async for event in super().stream_response(*args, **kwargs):
+                if event.type == "response.completed":
+                    event.response.usage = ResponseUsage.model_validate({
+                        "input_tokens": 100, "input_tokens_details": {"cached_tokens": 0, "cache_write_tokens": 0},
+                        "output_tokens": 10, "output_tokens_details": {"reasoning_tokens": 0},
+                        "total_tokens": 110,
+                    })
+                yield event
+
+    model = PricedReply(reply("Một lời chào nhỏ.").responses)
+    ready(app, model, ai_accounting_enabled=True)
     await due_schedule(app, uid)
     await tick(app)
     async with app.state.database.sessions() as db:
         usage = (await db.scalars(select(AiUsage))).one()
     assert usage.prompt_version.endswith("+proactive-2026-11-a8")
     assert usage.state == "settled" and usage.requests_started == 1
+    assert usage.input_tokens == 100 and usage.output_tokens == 10
 
 
 async def test_no_user_turn_or_quota_is_consumed(clients):

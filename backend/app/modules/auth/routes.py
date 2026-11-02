@@ -232,7 +232,7 @@ async def login(body: LoginInput, request: Request, response: Response):
     IP_LIMIT.check(_client_key(request))
     LOGIN_LIMIT.check("email:" + email)
     # Password verification, hashing and account recovery remain Supabase's responsibility.
-    provider = await SupabaseAuth(request).password_session(email, body.password)
+    provider = await SupabaseAuth(request).password_session(email, body.password, captcha_token=body.captcha_token)
     if provider.expires_at <= now():
         raise DomainError(503, "AUTH_UNAVAILABLE", "Chưa kết nối được dịch vụ đăng nhập.", True)
     if provider.is_anonymous:
@@ -304,7 +304,7 @@ async def signup(body: SignupInput, request: Request):
     email = body.email.strip().lower()
     IP_LIMIT.check(_client_key(request))
     EMAIL_LIMIT.check("signup:" + email)
-    await SupabaseAuth(request).sign_up(email, body.password)
+    await SupabaseAuth(request).sign_up(email, body.password, captcha_token=body.captcha_token)
     return AuthNotice(status="sent")
 
 
@@ -314,7 +314,7 @@ async def resend_confirmation(body: EmailInput, request: Request):
     email = body.email.strip().lower()
     IP_LIMIT.check(_client_key(request))
     EMAIL_LIMIT.check("confirm:" + email)
-    await SupabaseAuth(request).resend_confirmation(email)
+    await SupabaseAuth(request).resend_confirmation(email, captcha_token=body.captcha_token)
     return AuthNotice(status="sent")
 
 
@@ -324,7 +324,7 @@ async def request_password_recovery(body: EmailInput, request: Request):
     email = body.email.strip().lower()
     IP_LIMIT.check(_client_key(request))
     EMAIL_LIMIT.check("recover:" + email)
-    await SupabaseAuth(request).request_recovery(email)
+    await SupabaseAuth(request).request_recovery(email, captcha_token=body.captcha_token)
     return AuthNotice(status="sent")
 
 
@@ -354,7 +354,7 @@ async def reauthenticate(
 ):
     LOGIN_LIMIT.check("reauth:" + str(actor.user_id))
     provider = SupabaseAuth(request)
-    checked = await provider.password_session(body.email.strip().lower(), body.password)
+    checked = await provider.password_session(body.email.strip().lower(), body.password, captcha_token=body.captcha_token)
     await provider.sign_out(checked.access_token)
     async with transaction(request, actor, eligible=False) as (db, user):
         if checked.user_id != user.auth_subject:

@@ -46,3 +46,4 @@ class PublicExperience(DTO):
     feedback_available: bool
     product_tour_available: bool
     captcha_site_key: str | None
+    auth_captcha_required: bool = False

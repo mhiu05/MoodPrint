@@ -118,12 +118,16 @@ class EligibilityInput(VersionInput):
         return value
 
 
-class LoginInput(DTO):
+class CaptchaInput(DTO):
+    captcha_token: str | None = Field(default=None, max_length=4096, repr=False)
+
+
+class LoginInput(CaptchaInput):
     email: str = Field(min_length=3, max_length=254)
     password: str = Field(min_length=1, max_length=1024, repr=False)
 
 
-class EmailInput(DTO):
+class EmailInput(CaptchaInput):
     email: str = Field(min_length=3, max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 

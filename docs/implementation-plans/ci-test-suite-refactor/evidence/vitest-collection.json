@@ -1,0 +1,870 @@
+[
+  {
+    "name": "validated multi-bubble AI stream (ai-events-v2) > requests protocol 2 and returns ordered bubbles with their saved ids",
+    "file": "E:/MoodPrint/frontend/src/api/streamReply.test.ts"
+  },
+  {
+    "name": "validated multi-bubble AI stream (ai-events-v2) > accepts a v1 stream from an older server as one bubble without an id",
+    "file": "E:/MoodPrint/frontend/src/api/streamReply.test.ts"
+  },
+  {
+    "name": "validated multi-bubble AI stream (ai-events-v2) > rejects an unsafe v2 final: unknown bubble key",
+    "file": "E:/MoodPrint/frontend/src/api/streamReply.test.ts"
+  },
+  {
+    "name": "validated multi-bubble AI stream (ai-events-v2) > rejects an unsafe v2 final: unknown final key",
+    "file": "E:/MoodPrint/frontend/src/api/streamReply.test.ts"
+  },
+  {
+    "name": "validated multi-bubble AI stream (ai-events-v2) > rejects an unsafe v2 final: count mismatch",
+    "file": "E:/MoodPrint/frontend/src/api/streamReply.test.ts"
+  },
+  {
+    "name": "validated multi-bubble AI stream (ai-events-v2) > rejects an unsafe v2 final: gap in part order",
+    "file": "E:/MoodPrint/frontend/src/api/streamReply.test.ts"
+  },
+  {
+    "name": "validated multi-bubble AI stream (ai-events-v2) > rejects an unsafe v2 final: empty bubble",
+    "file": "E:/MoodPrint/frontend/src/api/streamReply.test.ts"
+  },
+  {
+    "name": "validated multi-bubble AI stream (ai-events-v2) > rejects an unsafe v2 final: five bubbles",
+    "file": "E:/MoodPrint/frontend/src/api/streamReply.test.ts"
+  },
+  {
+    "name": "validated multi-bubble AI stream (ai-events-v2) > rejects an unsafe v2 final: too many cards",
+    "file": "E:/MoodPrint/frontend/src/api/streamReply.test.ts"
+  },
+  {
+    "name": "validated multi-bubble AI stream (ai-events-v2) > rejects an unsafe v2 final: forged card",
+    "file": "E:/MoodPrint/frontend/src/api/streamReply.test.ts"
+  },
+  {
+    "name": "validated multi-bubble AI stream (ai-events-v2) > rejects an unsafe v2 final: joined text too long",
+    "file": "E:/MoodPrint/frontend/src/api/streamReply.test.ts"
+  },
+  {
+    "name": "validated multi-bubble AI stream (ai-events-v2) > rejects an unsafe v2 final: missing id",
+    "file": "E:/MoodPrint/frontend/src/api/streamReply.test.ts"
+  },
+  {
+    "name": "validated multi-bubble AI stream (ai-events-v2) > rejects a stream that mixes protocol versions",
+    "file": "E:/MoodPrint/frontend/src/api/streamReply.test.ts"
+  },
+  {
+    "name": "validated multi-bubble AI stream (ai-events-v2) > never returns bubbles before the completed event",
+    "file": "E:/MoodPrint/frontend/src/api/streamReply.test.ts"
+  },
+  {
+    "name": "validated multi-bubble AI stream (ai-events-v2) > rejects an events URL that is not a run stream",
+    "file": "E:/MoodPrint/frontend/src/api/streamReply.test.ts"
+  },
+  {
+    "name": "ApiClient idempotency intents > retries an ambiguous 5xx with the same key so the server can deduplicate",
+    "file": "E:/MoodPrint/frontend/src/api/client.test.ts"
+  },
+  {
+    "name": "ApiClient idempotency intents > uses a fresh key after a definite 4xx rejection, which the server rolled back",
+    "file": "E:/MoodPrint/frontend/src/api/client.test.ts"
+  },
+  {
+    "name": "ApiClient idempotency intents > never accumulates rejected intents into the pending-writes limit",
+    "file": "E:/MoodPrint/frontend/src/api/client.test.ts"
+  },
+  {
+    "name": "error guidance > notifies eligibility denial without treating it as logout or transient retry",
+    "file": "E:/MoodPrint/frontend/src/api/client.test.ts"
+  },
+  {
+    "name": "error guidance > asks to retry a non-JSON server failure without blaming the input",
+    "file": "E:/MoodPrint/frontend/src/api/client.test.ts"
+  },
+  {
+    "name": "error guidance > keeps the server's own message for a validation error",
+    "file": "E:/MoodPrint/frontend/src/api/client.test.ts"
+  },
+  {
+    "name": "error guidance > explains an unreachable service without promising that input survived",
+    "file": "E:/MoodPrint/frontend/src/api/client.test.ts"
+  },
+  {
+    "name": "error guidance > keeps retry metadata from a database outage and does not replay login",
+    "file": "E:/MoodPrint/frontend/src/api/client.test.ts"
+  },
+  {
+    "name": "error guidance > blocks private writes while a session is unconfirmed and still allows the session read",
+    "file": "E:/MoodPrint/frontend/src/api/client.test.ts"
+  },
+  {
+    "name": "V3 orchestration over ai-events-v2 > reports each real consultation and returns the speaker and receipt-backed steps",
+    "file": "E:/MoodPrint/frontend/src/api/streamOrchestration.test.ts"
+  },
+  {
+    "name": "V3 orchestration over ai-events-v2 > accepts a real handoff: the transfer progress and the specialist as speaker",
+    "file": "E:/MoodPrint/frontend/src/api/streamOrchestration.test.ts"
+  },
+  {
+    "name": "V3 orchestration over ai-events-v2 > rejects an invented step, speaker or transfer [{\"activity\":\"transferring\",\"companion\":\"may\"}] {}",
+    "file": "E:/MoodPrint/frontend/src/api/streamOrchestration.test.ts"
+  },
+  {
+    "name": "V3 orchestration over ai-events-v2 > rejects an invented step, speaker or transfer [{\"activity\":\"transferring\"}] {}",
+    "file": "E:/MoodPrint/frontend/src/api/streamOrchestration.test.ts"
+  },
+  {
+    "name": "V3 orchestration over ai-events-v2 > rejects an invented step, speaker or transfer [] {\"speaker\":\"robot\"}",
+    "file": "E:/MoodPrint/frontend/src/api/streamOrchestration.test.ts"
+  },
+  {
+    "name": "V3 orchestration over ai-events-v2 > rejects an invented step, speaker or transfer [] {\"steps\":[{\"kind\":\"consult\",\"companion\":\"dieuphoi\"}]}",
+    "file": "E:/MoodPrint/frontend/src/api/streamOrchestration.test.ts"
+  },
+  {
+    "name": "V3 orchestration over ai-events-v2 > rejects an invented step, speaker or transfer [] {\"steps\":[{\"kind\":\"teleport\",\"companion\":\"nhatky\"}]}",
+    "file": "E:/MoodPrint/frontend/src/api/streamOrchestration.test.ts"
+  },
+  {
+    "name": "V3 orchestration over ai-events-v2 > rejects an invented step, speaker or transfer [] {\"steps\":[{\"kind\":\"consult\",\"companion\":\"nhatky\",\"note\":\"x\"}]}",
+    "file": "E:/MoodPrint/frontend/src/api/streamOrchestration.test.ts"
+  },
+  {
+    "name": "V3 orchestration over ai-events-v2 > rejects an invented step, speaker or transfer [] {\"steps\":[1,2,3]}",
+    "file": "E:/MoodPrint/frontend/src/api/streamOrchestration.test.ts"
+  },
+  {
+    "name": "V3 orchestration over ai-events-v2 > names a real consultation and a real transfer in plain words",
+    "file": "E:/MoodPrint/frontend/src/api/streamOrchestration.test.ts"
+  },
+  {
+    "name": "validated AI stream > reports safe classified failure AI_PROVIDER_CONFIGURATION",
+    "file": "E:/MoodPrint/frontend/src/api/stream.test.ts"
+  },
+  {
+    "name": "validated AI stream > reports safe classified failure AI_PROVIDER_RATE_LIMIT",
+    "file": "E:/MoodPrint/frontend/src/api/stream.test.ts"
+  },
+  {
+    "name": "validated AI stream > reports safe classified failure AI_PROVIDER_UNAVAILABLE",
+    "file": "E:/MoodPrint/frontend/src/api/stream.test.ts"
+  },
+  {
+    "name": "validated AI stream > reports safe classified failure AI_TIMEOUT",
+    "file": "E:/MoodPrint/frontend/src/api/stream.test.ts"
+  },
+  {
+    "name": "validated AI stream > reports safe classified failure AI_STORAGE_UNAVAILABLE",
+    "file": "E:/MoodPrint/frontend/src/api/stream.test.ts"
+  },
+  {
+    "name": "validated AI stream > accepts only typed navigation cards after completion",
+    "file": "E:/MoodPrint/frontend/src/api/stream.test.ts"
+  },
+  {
+    "name": "validated AI stream > rejects untrusted final output 0",
+    "file": "E:/MoodPrint/frontend/src/api/stream.test.ts"
+  },
+  {
+    "name": "validated AI stream > rejects untrusted final output 1",
+    "file": "E:/MoodPrint/frontend/src/api/stream.test.ts"
+  },
+  {
+    "name": "validated AI stream > rejects untrusted final output 2",
+    "file": "E:/MoodPrint/frontend/src/api/stream.test.ts"
+  },
+  {
+    "name": "validated AI stream > rejects untrusted final output 3",
+    "file": "E:/MoodPrint/frontend/src/api/stream.test.ts"
+  },
+  {
+    "name": "validated AI stream > rejects a missing event instead of displaying an incomplete result",
+    "file": "E:/MoodPrint/frontend/src/api/stream.test.ts"
+  },
+  {
+    "name": "validated AI stream > distinguishes an interrupted durable turn from a retryable provider failure",
+    "file": "E:/MoodPrint/frontend/src/api/stream.test.ts"
+  },
+  {
+    "name": "collaboration over ai-events-v2 > reports real consulting/composing progress and returns the backend line",
+    "file": "E:/MoodPrint/frontend/src/api/streamCollaboration.test.ts"
+  },
+  {
+    "name": "collaboration over ai-events-v2 > accepts a null line and leaves it absent when the server never sends the key",
+    "file": "E:/MoodPrint/frontend/src/api/streamCollaboration.test.ts"
+  },
+  {
+    "name": "collaboration over ai-events-v2 > rejects an invented or malformed progress event {\"activity\":\"consulting\",\"companion\":\"someone\"}",
+    "file": "E:/MoodPrint/frontend/src/api/streamCollaboration.test.ts"
+  },
+  {
+    "name": "collaboration over ai-events-v2 > rejects an invented or malformed progress event {\"activity\":\"consulting\"}",
+    "file": "E:/MoodPrint/frontend/src/api/streamCollaboration.test.ts"
+  },
+  {
+    "name": "collaboration over ai-events-v2 > rejects an invented or malformed progress event {\"activity\":\"thinking\"}",
+    "file": "E:/MoodPrint/frontend/src/api/streamCollaboration.test.ts"
+  },
+  {
+    "name": "collaboration over ai-events-v2 > rejects an invented or malformed progress event {\"activity\":\"composing\",\"companion\":\"nhip\"}",
+    "file": "E:/MoodPrint/frontend/src/api/streamCollaboration.test.ts"
+  },
+  {
+    "name": "collaboration over ai-events-v2 > rejects an invented or malformed progress event {\"activity\":\"consulting\",\"companion\":\"nhip\",\"detail\":\"x\"}",
+    "file": "E:/MoodPrint/frontend/src/api/streamCollaboration.test.ts"
+  },
+  {
+    "name": "collaboration over ai-events-v2 > rejects a malformed collaboration line {\"kind\":\"nhip_energy_for_rure\",\"companions\":[\"nhip\",\"rure\"],\"summary\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+    "file": "E:/MoodPrint/frontend/src/api/streamCollaboration.test.ts"
+  },
+  {
+    "name": "collaboration over ai-events-v2 > rejects a malformed collaboration line {\"kind\":\"nhip_energy_for_rure\",\"companions\":[\"nhip\"],\"summary\":\"Nhịp đã gợi ý mức năng lượng phù hợp với bạn. Rủ Rê đã dựa vào đó để chọn hoạt động này.\"}",
+    "file": "E:/MoodPrint/frontend/src/api/streamCollaboration.test.ts"
+  },
+  {
+    "name": "collaboration over ai-events-v2 > rejects a malformed collaboration line {\"kind\":\"nhip_energy_for_rure\",\"companions\":[\"nhip\",\"robot\"],\"summary\":\"Nhịp đã gợi ý mức năng lượng phù hợp với bạn. Rủ Rê đã dựa vào đó để chọn hoạt động này.\"}",
+    "file": "E:/MoodPrint/frontend/src/api/streamCollaboration.test.ts"
+  },
+  {
+    "name": "collaboration over ai-events-v2 > rejects a malformed collaboration line {\"kind\":\"caunoi_social_for_may\",\"companions\":[\"nhip\",\"rure\"],\"summary\":\"Nhịp đã gợi ý mức năng lượng phù hợp với bạn. Rủ Rê đã dựa vào đó để chọn hoạt động này.\"}",
+    "file": "E:/MoodPrint/frontend/src/api/streamCollaboration.test.ts"
+  },
+  {
+    "name": "collaboration over ai-events-v2 > rejects a malformed collaboration line {\"kind\":\"nhip_energy_for_rure\",\"companions\":[\"nhip\",\"rure\"],\"summary\":\"Nhịp đã gợi ý mức năng lượng phù hợp với bạn. Rủ Rê đã dựa vào đó để chọn hoạt động này.\",\"extra\":true}",
+    "file": "E:/MoodPrint/frontend/src/api/streamCollaboration.test.ts"
+  },
+  {
+    "name": "collaboration over ai-events-v2 > rejects a malformed collaboration line \"Nhịp đã giúp\"",
+    "file": "E:/MoodPrint/frontend/src/api/streamCollaboration.test.ts"
+  },
+  {
+    "name": "server revocation frame > is a confirmed stop, never an invalid stream",
+    "file": "E:/MoodPrint/frontend/src/api/streamCollaboration.test.ts"
+  },
+  {
+    "name": "validator binds companions to the declared edge > rejects a consulted companion that is never a specialist {\"activity\":\"consulting\",\"companion\":\"caunoi\"}",
+    "file": "E:/MoodPrint/frontend/src/api/streamCollaboration.test.ts"
+  },
+  {
+    "name": "validator binds companions to the declared edge > rejects a consulted companion that is never a specialist {\"activity\":\"consulting\",\"companion\":\"may\"}",
+    "file": "E:/MoodPrint/frontend/src/api/streamCollaboration.test.ts"
+  },
+  {
+    "name": "validator binds companions to the declared edge > rejects companions that do not match the edge",
+    "file": "E:/MoodPrint/frontend/src/api/streamCollaboration.test.ts"
+  },
+  {
+    "name": "production guard > has no legacy prototype entry",
+    "file": "E:/MoodPrint/frontend/src/productionGuard.test.ts"
+  },
+  {
+    "name": "production guard > imports no mocks, demo state, domain oracle, pages or scripted companions",
+    "file": "E:/MoodPrint/frontend/src/productionGuard.test.ts"
+  },
+  {
+    "name": "production guard > is packaged as the product, without legacy prototype scripts",
+    "file": "E:/MoodPrint/frontend/src/productionGuard.test.ts"
+  },
+  {
+    "name": "production guard > exports only shared UI that production features use",
+    "file": "E:/MoodPrint/frontend/src/productionGuard.test.ts"
+  },
+  {
+    "name": "assistant inbox helpers > counts unread per companion and for the others",
+    "file": "E:/MoodPrint/frontend/src/features/real/useAIInbox.test.ts"
+  },
+  {
+    "name": "assistant inbox helpers > optimistically clears a conversation that was just read",
+    "file": "E:/MoodPrint/frontend/src/features/real/useAIInbox.test.ts"
+  },
+  {
+    "name": "assistant inbox helpers > labels a delivery without any message content",
+    "file": "E:/MoodPrint/frontend/src/features/real/useAIInbox.test.ts"
+  },
+  {
+    "name": "ai-group-events-v1 > delivers real speaker events in order and ends at the terminal event",
+    "file": "E:/MoodPrint/frontend/src/features/real/groups/groupEvents.test.ts"
+  },
+  {
+    "name": "ai-group-events-v1 > resumes after a cursor without repeating events",
+    "file": "E:/MoodPrint/frontend/src/features/real/groups/groupEvents.test.ts"
+  },
+  {
+    "name": "ai-group-events-v1 > rejects invented speakers, empty or out-of-order events {\"seq\":\"2\",\"type\":\"agent_selected\",\"data\":{\"agent\":\"may\",\"ordinal\":0}}",
+    "file": "E:/MoodPrint/frontend/src/features/real/groups/groupEvents.test.ts"
+  },
+  {
+    "name": "ai-group-events-v1 > rejects invented speakers, empty or out-of-order events {\"seq\":\"2\",\"type\":\"agent_message\",\"data\":{\"agent\":\"nhatky\",\"ordinal\":0,\"messages\":[]}}",
+    "file": "E:/MoodPrint/frontend/src/features/real/groups/groupEvents.test.ts"
+  },
+  {
+    "name": "ai-group-events-v1 > rejects invented speakers, empty or out-of-order events {\"seq\":\"2\",\"type\":\"agent_started\",\"data\":{\"agent\":\"nhatky\",\"ordinal\":7}}",
+    "file": "E:/MoodPrint/frontend/src/features/real/groups/groupEvents.test.ts"
+  },
+  {
+    "name": "ai-group-events-v1 > rejects invented speakers, empty or out-of-order events {\"seq\":\"3\",\"type\":\"turn_completed\",\"data\":{}}",
+    "file": "E:/MoodPrint/frontend/src/features/real/groups/groupEvents.test.ts"
+  },
+  {
+    "name": "ai-group-events-v1 > rejects invented speakers, empty or out-of-order events {\"seq\":\"2\",\"type\":\"token\",\"data\":{\"text\":\"x\"}}",
+    "file": "E:/MoodPrint/frontend/src/features/real/groups/groupEvents.test.ts"
+  },
+  {
+    "name": "AI message calendar labels > uses calendar dates in the account timezone across the UTC date boundary",
+    "file": "E:/MoodPrint/frontend/src/features/real/messageDates.test.ts"
+  },
+  {
+    "name": "AI message calendar labels > recognizes yesterday across a year boundary",
+    "file": "E:/MoodPrint/frontend/src/features/real/messageDates.test.ts"
+  },
+  {
+    "name": "AI message calendar labels > recognizes yesterday across a 25-hour daylight-saving day",
+    "file": "E:/MoodPrint/frontend/src/features/real/messageDates.test.ts"
+  },
+  {
+    "name": "AI message calendar labels > omits missing or invalid legacy timestamps",
+    "file": "E:/MoodPrint/frontend/src/features/real/messageDates.test.ts"
+  },
+  {
+    "name": "adult self declaration > does not submit birth year 2010 without an adult attestation",
+    "file": "E:/MoodPrint/frontend/src/features/auth/ageDeclaration.test.ts"
+  },
+  {
+    "name": "adult self declaration > does not submit birth year 2009 without an adult attestation",
+    "file": "E:/MoodPrint/frontend/src/features/auth/ageDeclaration.test.ts"
+  },
+  {
+    "name": "adult self declaration > does not submit birth year 2008 without an adult attestation",
+    "file": "E:/MoodPrint/frontend/src/features/auth/ageDeclaration.test.ts"
+  },
+  {
+    "name": "adult self declaration > rejects an attested minor born in 2010",
+    "file": "E:/MoodPrint/frontend/src/features/auth/ageDeclaration.test.ts"
+  },
+  {
+    "name": "adult self declaration > rejects an attested minor born in 2009",
+    "file": "E:/MoodPrint/frontend/src/features/auth/ageDeclaration.test.ts"
+  },
+  {
+    "name": "adult self declaration > uses explicit adult confirmation for the ambiguous eighteenth year",
+    "file": "E:/MoodPrint/frontend/src/features/auth/ageDeclaration.test.ts"
+  },
+  {
+    "name": "adult self declaration > accepts an older adult and preserves optimistic version",
+    "file": "E:/MoodPrint/frontend/src/features/auth/ageDeclaration.test.ts"
+  },
+  {
+    "name": "adult self declaration > rejects invalid year ",
+    "file": "E:/MoodPrint/frontend/src/features/auth/ageDeclaration.test.ts"
+  },
+  {
+    "name": "adult self declaration > rejects invalid year invalid",
+    "file": "E:/MoodPrint/frontend/src/features/auth/ageDeclaration.test.ts"
+  },
+  {
+    "name": "adult self declaration > rejects invalid year 2000.5",
+    "file": "E:/MoodPrint/frontend/src/features/auth/ageDeclaration.test.ts"
+  },
+  {
+    "name": "adult self declaration > rejects invalid year 1800",
+    "file": "E:/MoodPrint/frontend/src/features/auth/ageDeclaration.test.ts"
+  },
+  {
+    "name": "adult self declaration > rejects invalid year 2027",
+    "file": "E:/MoodPrint/frontend/src/features/auth/ageDeclaration.test.ts"
+  },
+  {
+    "name": "adult self declaration > uses Bangkok's year across the UTC New Year boundary",
+    "file": "E:/MoodPrint/frontend/src/features/auth/ageDeclaration.test.ts"
+  },
+  {
+    "name": "check-in schedule model > treats quiet hours as [start, end) across midnight",
+    "file": "E:/MoodPrint/frontend/src/features/real/checkins/checkinsModel.test.ts"
+  },
+  {
+    "name": "check-in schedule model > offers only in-window 15-minute times outside quiet hours",
+    "file": "E:/MoodPrint/frontend/src/features/real/checkins/checkinsModel.test.ts"
+  },
+  {
+    "name": "check-in schedule model > keeps a saved value visible even when it is no longer offered",
+    "file": "E:/MoodPrint/frontend/src/features/real/checkins/checkinsModel.test.ts"
+  },
+  {
+    "name": "check-in schedule model > lists quiet-hour boundaries every 15 minutes",
+    "file": "E:/MoodPrint/frontend/src/features/real/checkins/checkinsModel.test.ts"
+  },
+  {
+    "name": "check-in schedule model > maps weekday sets to repeat presets",
+    "file": "E:/MoodPrint/frontend/src/features/real/checkins/checkinsModel.test.ts"
+  },
+  {
+    "name": "check-in schedule model > describes the next delivery in the schedule's time zone",
+    "file": "E:/MoodPrint/frontend/src/features/real/checkins/checkinsModel.test.ts"
+  },
+  {
+    "name": "check-in schedule model > computes the last paused day inclusively in the schedule zone",
+    "file": "E:/MoodPrint/frontend/src/features/real/checkins/checkinsModel.test.ts"
+  },
+  {
+    "name": "check-in schedule model > names time zones in plain Vietnamese with their offset",
+    "file": "E:/MoodPrint/frontend/src/features/real/checkins/checkinsModel.test.ts"
+  },
+  {
+    "name": "check-in schedule model > uses natural Vietnamese for every documented error",
+    "file": "E:/MoodPrint/frontend/src/features/real/checkins/checkinsModel.test.ts"
+  },
+  {
+    "name": "journal dates and browsing > preserves PostgreSQL microseconds before falling back to IDs",
+    "file": "E:/MoodPrint/frontend/src/features/real/journal/journalModel.test.ts"
+  },
+  {
+    "name": "journal dates and browsing > orders actual moment days then creation instants and IDs, never edit times",
+    "file": "E:/MoodPrint/frontend/src/features/real/journal/journalModel.test.ts"
+  },
+  {
+    "name": "journal dates and browsing > deduplicates overlapping pages, keeping the latest fetched version and grouping months once",
+    "file": "E:/MoodPrint/frontend/src/features/real/journal/journalModel.test.ts"
+  },
+  {
+    "name": "journal dates and browsing > places October 2026 on a Monday-first calendar without inventing days",
+    "file": "E:/MoodPrint/frontend/src/features/real/journal/journalModel.test.ts"
+  },
+  {
+    "name": "journal dates and browsing > keeps leap day and encodes only active server filters",
+    "file": "E:/MoodPrint/frontend/src/features/real/journal/journalModel.test.ts"
+  },
+  {
+    "name": "journal dates and browsing > toggles selections without replacing the other emotions",
+    "file": "E:/MoodPrint/frontend/src/features/real/journal/journalModel.test.ts"
+  },
+  {
+    "name": "journal dates and browsing > limits entries and calendar requests to the account's active 90 days",
+    "file": "E:/MoodPrint/frontend/src/features/real/journal/journalModel.test.ts"
+  },
+  {
+    "name": "journal dates and browsing > groups a personal timeline by account-local day without inventing missing days",
+    "file": "E:/MoodPrint/frontend/src/features/real/journal/journalModel.test.ts"
+  },
+  {
+    "name": "MoodPrint identity > uses the current name and favicon in browser metadata",
+    "file": "E:/MoodPrint/frontend/src/branding.test.ts"
+  },
+  {
+    "name": "MoodPrint identity > keeps retired branding out of active screen text and accessible names",
+    "file": "E:/MoodPrint/frontend/src/branding.test.ts"
+  },
+  {
+    "name": "journal evidence links > renders only an internal UUID entry link as navigable",
+    "file": "E:/MoodPrint/frontend/src/features/real/MessageMarkdown.test.ts"
+  },
+  {
+    "name": "journal evidence links > keeps unsupported target https://example.com inert",
+    "file": "E:/MoodPrint/frontend/src/features/real/MessageMarkdown.test.ts"
+  },
+  {
+    "name": "journal evidence links > keeps unsupported target //example.com inert",
+    "file": "E:/MoodPrint/frontend/src/features/real/MessageMarkdown.test.ts"
+  },
+  {
+    "name": "journal evidence links > keeps unsupported target /self/entry/not-an-id inert",
+    "file": "E:/MoodPrint/frontend/src/features/real/MessageMarkdown.test.ts"
+  },
+  {
+    "name": "journal evidence links > keeps unsupported target /self/entry/7ceaa454-e73a-4dd6-aaaf-145914c8a416?token=secret inert",
+    "file": "E:/MoodPrint/frontend/src/features/real/MessageMarkdown.test.ts"
+  },
+  {
+    "name": "journal evidence links > keeps unsupported target javascript:alert(1) inert",
+    "file": "E:/MoodPrint/frontend/src/features/real/MessageMarkdown.test.ts"
+  },
+  {
+    "name": "journal evidence links > keeps unsupported target /privacy inert",
+    "file": "E:/MoodPrint/frontend/src/features/real/MessageMarkdown.test.ts"
+  },
+  {
+    "name": "classifySessionFailure > keeps authorization failures terminal and retries only transient session reads",
+    "file": "E:/MoodPrint/frontend/src/api/sessionPolicy.test.ts"
+  },
+  {
+    "name": "classifySessionFailure > honors a Retry-After date and ignores a malformed header",
+    "file": "E:/MoodPrint/frontend/src/api/sessionPolicy.test.ts"
+  },
+  {
+    "name": "session retry budget > uses full jitter and stops when the delay no longer fits",
+    "file": "E:/MoodPrint/frontend/src/api/sessionPolicy.test.ts"
+  },
+  {
+    "name": "session retry budget > stops after three transient attempts and does not move the grace anchor",
+    "file": "E:/MoodPrint/frontend/src/api/sessionPolicy.test.ts"
+  },
+  {
+    "name": "session retry budget > does not retry a revoked session or a caller abort",
+    "file": "E:/MoodPrint/frontend/src/api/sessionPolicy.test.ts"
+  },
+  {
+    "name": "session retry budget > retries a session read at most once per cycle when Retry-After exceeds the budget",
+    "file": "E:/MoodPrint/frontend/src/api/sessionPolicy.test.ts"
+  },
+  {
+    "name": "lossless discovery editing (T02–T09/T20) > projects only featured interests; opening legacy profile is clean and preserves all facets",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/discoveryProfile.test.ts"
+  },
+  {
+    "name": "lossless discovery editing (T02–T09/T20) > follows intention only before first save or explicit canonical override",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/discoveryProfile.test.ts"
+  },
+  {
+    "name": "lossless discovery editing (T02–T09/T20) > rejects a fourth feature and retains focus-independent data and order",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/discoveryProfile.test.ts"
+  },
+  {
+    "name": "lossless discovery editing (T02–T09/T20) > de-features tentative additions but keeps saved interests; explicit delete removes both",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/discoveryProfile.test.ts"
+  },
+  {
+    "name": "lossless discovery editing (T02–T09/T20) > never replaces a retained interest at full max",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/discoveryProfile.test.ts"
+  },
+  {
+    "name": "lossless discovery editing (T02–T09/T20) > requires new questions and canonical minimums, never inventing values/languages",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/discoveryProfile.test.ts"
+  },
+  {
+    "name": "lossless discovery editing (T02–T09/T20) > invalidates a server review on edits while preserving style/activity",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/discoveryProfile.test.ts"
+  },
+  {
+    "name": "lossless discovery editing (T02–T09/T20) > blocks incompatible taxonomy instead of dropping unknown saved fields",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/discoveryProfile.test.ts"
+  },
+  {
+    "name": "lossless discovery editing (T02–T09/T20) > saving no featured interests does not silently re-feature retained data",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/discoveryProfile.test.ts"
+  },
+  {
+    "name": "lossless discovery editing (T02–T09/T20) > a failed draft save keeps the builder rather than bypassing the required questions",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/discoveryProfile.test.ts"
+  },
+  {
+    "name": "approved tour steps > guest has four steps and never matching even with optional opt-in",
+    "file": "E:/MoodPrint/frontend/src/features/onboarding/tourSteps.test.ts"
+  },
+  {
+    "name": "approved tour steps > ineligible or teen sessions have no tour and eligible adult has optional fifth",
+    "file": "E:/MoodPrint/frontend/src/features/onboarding/tourSteps.test.ts"
+  },
+  {
+    "name": "approved tour steps > selectors/routes are stable teaching targets, never private values",
+    "file": "E:/MoodPrint/frontend/src/features/onboarding/tourSteps.test.ts"
+  },
+  {
+    "name": "tour state > skip/finish/replay/version reset never auto-starts restored work",
+    "file": "E:/MoodPrint/frontend/src/features/onboarding/tourSteps.test.ts"
+  },
+  {
+    "name": "tour state > content-free blocker registry aggregates and clears all owners",
+    "file": "E:/MoodPrint/frontend/src/features/onboarding/tourSteps.test.ts"
+  },
+  {
+    "name": "deriveAIActivity > shows sending text before acceptance, without an orb",
+    "file": "E:/MoodPrint/frontend/src/features/real/aiActivityView.test.ts"
+  },
+  {
+    "name": "deriveAIActivity > runs the working orb only for an accepted run with current identity",
+    "file": "E:/MoodPrint/frontend/src/features/real/aiActivityView.test.ts"
+  },
+  {
+    "name": "deriveAIActivity > never animates an accepted phase that is missing its request or run identity",
+    "file": "E:/MoodPrint/frontend/src/features/real/aiActivityView.test.ts"
+  },
+  {
+    "name": "deriveAIActivity > uses static text while a stop is requested or the conversation is reconciled",
+    "file": "E:/MoodPrint/frontend/src/features/real/aiActivityView.test.ts"
+  },
+  {
+    "name": "deriveAIActivity > stops every visual and busy state at terminal phases",
+    "file": "E:/MoodPrint/frontend/src/features/real/aiActivityView.test.ts"
+  },
+  {
+    "name": "deriveAIActivity > never names an invented stage such as searching or thinking",
+    "file": "E:/MoodPrint/frontend/src/features/real/aiActivityView.test.ts"
+  },
+  {
+    "name": "deriveAIActivity with a real consultation > names both companions only while the server reports consulting",
+    "file": "E:/MoodPrint/frontend/src/features/real/aiActivityView.test.ts"
+  },
+  {
+    "name": "deriveAIActivity with a real consultation > returns to the ordinary label once composing starts or without a consultation",
+    "file": "E:/MoodPrint/frontend/src/features/real/aiActivityView.test.ts"
+  },
+  {
+    "name": "deriveAIActivity with a real consultation > never shows a consultation outside an accepted run",
+    "file": "E:/MoodPrint/frontend/src/features/real/aiActivityView.test.ts"
+  },
+  {
+    "name": "guest entry attempt > publicGuestWriteKeepsExplicitKey",
+    "file": "E:/MoodPrint/frontend/src/features/guest/guestAttempt.test.ts"
+  },
+  {
+    "name": "guest entry attempt > works without storage and expires after ten minutes",
+    "file": "E:/MoodPrint/frontend/src/features/guest/guestAttempt.test.ts"
+  },
+  {
+    "name": "guest entry attempt > never stores age, captcha or tokens",
+    "file": "E:/MoodPrint/frontend/src/features/guest/guestAttempt.test.ts"
+  },
+  {
+    "name": "contact-detail advisory > flags số mình 0912345678 nè",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/pii.test.ts"
+  },
+  {
+    "name": "contact-detail advisory > flags gọi 0912 345 678 nhé",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/pii.test.ts"
+  },
+  {
+    "name": "contact-detail advisory > flags zalo 0912.345.678",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/pii.test.ts"
+  },
+  {
+    "name": "contact-detail advisory > flags +84912345678",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/pii.test.ts"
+  },
+  {
+    "name": "contact-detail advisory > flags mail mình là an.nguyen@gmail.com",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/pii.test.ts"
+  },
+  {
+    "name": "contact-detail advisory > flags xem https://example.org/profile",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/pii.test.ts"
+  },
+  {
+    "name": "contact-detail advisory > flags www.facebook.com/an",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/pii.test.ts"
+  },
+  {
+    "name": "contact-detail advisory > flags vào trang an-portfolio.vn",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/pii.test.ts"
+  },
+  {
+    "name": "contact-detail advisory > does not flag hẹn 25/10/2026 nhé",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/pii.test.ts"
+  },
+  {
+    "name": "contact-detail advisory > does not flag ngày 2026-10-25",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/pii.test.ts"
+  },
+  {
+    "name": "contact-detail advisory > does not flag giá 150.000đ thôi",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/pii.test.ts"
+  },
+  {
+    "name": "contact-detail advisory > does not flag khoảng 1.500.000 VND",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/pii.test.ts"
+  },
+  {
+    "name": "contact-detail advisory > does not flag mình 23 tuổi, học năm 3",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/pii.test.ts"
+  },
+  {
+    "name": "contact-detail advisory > does not flag 3.14 là số pi",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/pii.test.ts"
+  },
+  {
+    "name": "contact-detail advisory > does not flag chạy 10 km mỗi sáng",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/pii.test.ts"
+  },
+  {
+    "name": "contact-detail advisory > does not flag hôm nay vui ghê",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/pii.test.ts"
+  },
+  {
+    "name": "group mention picker model > opens on @ at a word start and follows the typed name",
+    "file": "E:/MoodPrint/frontend/src/features/real/groups/mentions.test.ts"
+  },
+  {
+    "name": "group mention picker model > never opens inside an e-mail address, a quote or after a long run",
+    "file": "E:/MoodPrint/frontend/src/features/real/groups/mentions.test.ts"
+  },
+  {
+    "name": "group mention picker model > filters with and without accents, by any word",
+    "file": "E:/MoodPrint/frontend/src/features/real/groups/mentions.test.ts"
+  },
+  {
+    "name": "group mention picker model > inserts the display name and keeps the stable id only while the token remains",
+    "file": "E:/MoodPrint/frontend/src/features/real/groups/mentions.test.ts"
+  },
+  {
+    "name": "server-anchored clock > follows the server when it is ahead of the device",
+    "file": "E:/MoodPrint/frontend/src/features/real/activities/clock.test.ts"
+  },
+  {
+    "name": "server-anchored clock > follows the server when it is behind and never goes below zero",
+    "file": "E:/MoodPrint/frontend/src/features/real/activities/clock.test.ts"
+  },
+  {
+    "name": "server-anchored clock > formats minutes and seconds",
+    "file": "E:/MoodPrint/frontend/src/features/real/activities/clock.test.ts"
+  },
+  {
+    "name": "validateSession > accepts registered and guest projections",
+    "file": "E:/MoodPrint/frontend/src/api/session.test.ts"
+  },
+  {
+    "name": "validateSession > legacy sessions without account fields stay registered",
+    "file": "E:/MoodPrint/frontend/src/api/session.test.ts"
+  },
+  {
+    "name": "validateSession > rejects inconsistent or forged guest projections",
+    "file": "E:/MoodPrint/frontend/src/api/session.test.ts"
+  },
+  {
+    "name": "activity view helpers > knows whose turn it is",
+    "file": "E:/MoodPrint/frontend/src/features/real/activities/activityView.test.ts"
+  },
+  {
+    "name": "activity view helpers > explains what we are waiting for",
+    "file": "E:/MoodPrint/frontend/src/features/real/activities/activityView.test.ts"
+  },
+  {
+    "name": "activity view helpers > summarizes progress for the collapsed bar",
+    "file": "E:/MoodPrint/frontend/src/features/real/activities/activityView.test.ts"
+  },
+  {
+    "name": "activity view helpers > allows an invite only without an open session or a decline cooldown",
+    "file": "E:/MoodPrint/frontend/src/features/real/activities/activityView.test.ts"
+  },
+  {
+    "name": "activity view helpers > describes endings relative to the viewer",
+    "file": "E:/MoodPrint/frontend/src/features/real/activities/activityView.test.ts"
+  },
+  {
+    "name": "profile editor rules > requires three interests before continuing",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/profileRules.test.ts"
+  },
+  {
+    "name": "profile editor rules > checks values, languages and the optional facets per step",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/profileRules.test.ts"
+  },
+  {
+    "name": "profile editor rules > counts towards minimums and caps selections at the maximum",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/profileRules.test.ts"
+  },
+  {
+    "name": "profile editor rules > falls back to the documented limits when the taxonomy has none",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/profileRules.test.ts"
+  },
+  {
+    "name": "insertAtSelection > fills an empty draft",
+    "file": "E:/MoodPrint/frontend/src/features/real/draftInsert.test.ts"
+  },
+  {
+    "name": "insertAtSelection > keeps existing text and separates the suggestion with one space",
+    "file": "E:/MoodPrint/frontend/src/features/real/draftInsert.test.ts"
+  },
+  {
+    "name": "insertAtSelection > does not double an existing separator",
+    "file": "E:/MoodPrint/frontend/src/features/real/draftInsert.test.ts"
+  },
+  {
+    "name": "insertAtSelection > replaces only the selected range and preserves the unselected text",
+    "file": "E:/MoodPrint/frontend/src/features/real/draftInsert.test.ts"
+  },
+  {
+    "name": "insertAtSelection > separates a suggestion inserted before trailing text",
+    "file": "E:/MoodPrint/frontend/src/features/real/draftInsert.test.ts"
+  },
+  {
+    "name": "insertAtSelection > rejects an insertion that would pass the limit without touching the draft",
+    "file": "E:/MoodPrint/frontend/src/features/real/draftInsert.test.ts"
+  },
+  {
+    "name": "insertAtSelection > accepts an insertion that lands exactly on the limit",
+    "file": "E:/MoodPrint/frontend/src/features/real/draftInsert.test.ts"
+  },
+  {
+    "name": "owned test artifact root > routes every legacy destination into the explicit root",
+    "file": "E:/MoodPrint/frontend/tests/artifacts.test.ts"
+  },
+  {
+    "name": "owned test artifact root > rejects destinations that escape the configured root",
+    "file": "E:/MoodPrint/frontend/tests/artifacts.test.ts"
+  },
+  {
+    "name": "assistant bubble groups > groups adjacent bubbles of one bot run and keeps everything else single",
+    "file": "E:/MoodPrint/frontend/src/features/real/messageGroups.test.ts"
+  },
+  {
+    "name": "assistant bubble groups > never merges bot messages of different runs or without a run",
+    "file": "E:/MoodPrint/frontend/src/features/real/messageGroups.test.ts"
+  },
+  {
+    "name": "assistant bubble groups > can group wrapped rows through a selector",
+    "file": "E:/MoodPrint/frontend/src/features/real/messageGroups.test.ts"
+  },
+  {
+    "name": "encodes clipping-safe mono PCM with independently readable sample count",
+    "file": "E:/MoodPrint/frontend/src/features/real/audio.test.ts"
+  },
+  {
+    "name": "rejects silence-sized empty and recordings over thirty seconds",
+    "file": "E:/MoodPrint/frontend/src/features/real/audio.test.ts"
+  },
+  {
+    "name": "grounded deterministic starters (T25/T26) > requires the exact server reason and the peer interest",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/conversationStarters.test.ts"
+  },
+  {
+    "name": "grounded deterministic starters (T25/T26) > keeps priority independent of reason ordering and ignores expiring reference",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/conversationStarters.test.ts"
+  },
+  {
+    "name": "grounded deterministic starters (T25/T26) > reaches both safe variants from public seeds and versions",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/conversationStarters.test.ts"
+  },
+  {
+    "name": "guest clock > warns when fifteen minutes remain",
+    "file": "E:/MoodPrint/frontend/src/features/guest/guestClock.test.ts"
+  },
+  {
+    "name": "guest clock > guestClockDoesNotExtendOnRefreshOrWallClockChange",
+    "file": "E:/MoodPrint/frontend/src/features/guest/guestClock.test.ts"
+  },
+  {
+    "name": "guest clock > fails closed on unparseable times",
+    "file": "E:/MoodPrint/frontend/src/features/guest/guestClock.test.ts"
+  },
+  {
+    "name": "guest clock > labels in whole minutes, rounded up",
+    "file": "E:/MoodPrint/frontend/src/features/guest/guestClock.test.ts"
+  },
+  {
+    "name": "classifyEntry > classifiesLegacyHashesAndCallback",
+    "file": "E:/MoodPrint/frontend/src/appEntryRoute.test.ts"
+  },
+  {
+    "name": "classifyEntry > keeps unknown real paths public and never an app or identity route",
+    "file": "E:/MoodPrint/frontend/src/appEntryRoute.test.ts"
+  },
+  {
+    "name": "resolveMotionPolicy > animates only when motion is allowed and the page is visible",
+    "file": "E:/MoodPrint/frontend/src/components/motion/useMotionPolicy.test.ts"
+  },
+  {
+    "name": "resolveMotionPolicy > never animates under reduced motion",
+    "file": "E:/MoodPrint/frontend/src/components/motion/useMotionPolicy.test.ts"
+  },
+  {
+    "name": "resolveMotionPolicy > never animates a hidden page",
+    "file": "E:/MoodPrint/frontend/src/components/motion/useMotionPolicy.test.ts"
+  },
+  {
+    "name": "message list formatting > describes recent times relatively and old ones by date",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/format.test.ts"
+  },
+  {
+    "name": "message list formatting > prefixes own previews and explains an empty conversation",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/format.test.ts"
+  },
+  {
+    "name": "message list formatting > caps badge numbers at 9+",
+    "file": "E:/MoodPrint/frontend/src/features/real/social/format.test.ts"
+  }
+]

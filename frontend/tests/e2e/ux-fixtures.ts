@@ -70,6 +70,7 @@ export async function app(page: Page, session: unknown, routes: Routes = {}) {
         ? route.fulfill({ status: custom.status ?? 200, body: custom.body, contentType: custom.contentType ?? "text/plain" })
         : route.fulfill({ status: custom.status ?? 200, json: custom.json });
     const fixed: Record<string, unknown> = {
+      "/public/experience": { guestAvailable: false, captchaSiteKey: null, authCaptchaRequired: false },
       "/session": session,
       "/bots": bots,
       "/ai/preferences": { historyEnabled: false, semanticMemoryEnabled: false, version: 1, policyVersion: "ai-data-v1", retentionDays: 30, historyAvailable: true, semanticMemoryAvailable: true },

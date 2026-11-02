@@ -89,6 +89,7 @@ def auth_for(fake: FakeProvider):
     from app.modules.auth.provider import SupabaseAuth
 
     settings = SimpleNamespace(
+        auth_captcha_enabled=False,
         supabase_url=SUPABASE,
         supabase_publishable_key=SecretStr("publishable-test"),
         frontend_origin="http://127.0.0.1:5173",

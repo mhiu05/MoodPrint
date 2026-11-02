@@ -34,5 +34,7 @@ def experience_view(request: Request) -> PublicExperience:
         guest_unavailable_reason=reason,
         feedback_available=feedback_open(settings) and database_ready,
         product_tour_available=settings.product_tour_enabled,
-        captcha_site_key=settings.guest_captcha_site_key if available else None,
+        captcha_site_key=(settings.guest_captcha_site_key or None)
+        if available or settings.auth_captcha_enabled else None,
+        auth_captcha_required=settings.auth_captcha_enabled,
     )

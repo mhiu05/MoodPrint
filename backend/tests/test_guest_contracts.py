@@ -99,6 +99,7 @@ async def test_public_experience_is_identity_free_and_flag_driven(clients):
         "feedbackAvailable": False,
         "productTourAvailable": False,
         "captchaSiteKey": None,
+        "authCaptchaRequired": False,
     }
     settings = app.state.settings
     settings.guest_auth_enabled = True
@@ -120,6 +121,7 @@ async def test_public_experience_is_identity_free_and_flag_driven(clients):
         "feedbackAvailable": True,
         "productTourAvailable": True,
         "captchaSiteKey": "public-site-key",
+        "authCaptchaRequired": False,
     }
     assert "secret" not in str(ready).lower() and "budget" not in str(ready).lower()
     assert await counts() == before, "a public read must not create any identity or attempt"

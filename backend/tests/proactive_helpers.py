@@ -4,6 +4,19 @@ from datetime import date, datetime, time, timedelta
 from uuid import UUID, uuid4
 
 
+def quiet_hours_for_due_now():
+    """Synthetic forced-due jobs need a valid quiet interval away from the real clock.
+
+    Both 07:30 and 20:00 schedule defaults remain outside these intervals. Keep
+    at least two hours from a boundary so integration tests do not race midnight.
+    Dedicated quiet-hour regressions explicitly set their own clock and interval.
+    """
+    from zoneinfo import ZoneInfo
+
+    hour = datetime.now(ZoneInfo("Asia/Ho_Chi_Minh")).hour
+    return (time(22), time(7)) if 10 <= hour < 20 else (time(12), time(16))
+
+
 async def seed_proactive(db, uid: UUID, *, conversation_id: UUID, run_id: UUID, finished_days_ago: int | None = None):
     """One row in each of the five proactive stores; returns the job id."""
     from app.ai.proactive.models import (

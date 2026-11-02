@@ -308,7 +308,7 @@ async def send_group_message(group_id: UUID, body: GroupMessageInput, request: R
         ))
         if settings.ai_accounting_enabled:
             await reserve_accounting(db, run_id, user.id, runtime.worker_id, settings.openai_model,
-                                     f"group-turn+{GROUP_PROMPT_VERSION}")
+                                     f"group-turn+{GROUP_PROMPT_VERSION}", settings=settings)
         group.version += 1
         group.updated_at = now()
         db.add(AiMessageRecord(id=message_id, conversation_id=group.id, sequence=group.version, actor="self",

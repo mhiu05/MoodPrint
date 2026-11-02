@@ -128,6 +128,13 @@ class SupabaseAuth:
         self.headers = {"apikey": settings.supabase_publishable_key.get_secret_value()}
         self.transport = getattr(request.app.state, "auth_transport", None)
         self.redirect = settings.frontend_origin.rstrip("/") + "/auth/callback"
+        self.captcha_required = settings.auth_captcha_enabled
+
+    def _captcha_security(self, token: str | None) -> dict:
+        token = token.strip() if token else ""
+        if self.captcha_required and not token:
+            raise DomainError(422, "CAPTCHA_REQUIRED", "Vui lòng hoàn tất bước kiểm tra an toàn.", True)
+        return {"gotrue_meta_security": {"captcha_token": token}} if token else {}
 
     def client(self) -> httpx.AsyncClient:
         return httpx.AsyncClient(timeout=10, follow_redirects=False, transport=self.transport)
@@ -146,13 +153,18 @@ class SupabaseAuth:
             raise _unavailable() from None
         if response.status_code == 429:
             raise _rate_limited()
+        if response.status_code >= 400 and _error_code(response) == "captcha_failed":
+            raise DomainError(
+                422, "CAPTCHA_FAILED", "Chưa xác minh được bước kiểm tra an toàn. Vui lòng thử lại.", True
+            )
         if response.status_code >= 500:
             raise _unavailable()
         return response
 
-    async def password_session(self, email: str, password: str) -> ProviderSession:
+    async def password_session(self, email: str, password: str, *, captcha_token: str | None = None) -> ProviderSession:
         auth = await self._call(
-            "POST", "/token?grant_type=password", json={"email": email, "password": password}
+            "POST", "/token?grant_type=password",
+            json={"email": email, "password": password, **self._captcha_security(captcha_token)}
         )
         if auth.status_code != 200:
             if _error_code(auth) == "email_not_confirmed":
@@ -239,12 +251,12 @@ class SupabaseAuth:
         except DomainError:
             pass
 
-    async def sign_up(self, email: str, password: str) -> None:
+    async def sign_up(self, email: str, password: str, *, captcha_token: str | None = None) -> None:
         response = await self._call(
             "POST",
             "/signup",
             params={"redirect_to": self.redirect},
-            json={"email": email, "password": password},
+            json={"email": email, "password": password, **self._captcha_security(captcha_token)},
         )
         if response.status_code in (200, 201):
             return
@@ -260,19 +272,20 @@ class SupabaseAuth:
             return
         raise _unavailable()
 
-    async def resend_confirmation(self, email: str) -> None:
+    async def resend_confirmation(self, email: str, *, captcha_token: str | None = None) -> None:
         response = await self._call(
             "POST",
             "/resend",
             params={"redirect_to": self.redirect},
-            json={"type": "signup", "email": email},
+            json={"type": "signup", "email": email, **self._captcha_security(captcha_token)},
         )
         if response.status_code not in (200, 400, 422):
             raise _unavailable()
 
-    async def request_recovery(self, email: str) -> None:
+    async def request_recovery(self, email: str, *, captcha_token: str | None = None) -> None:
         response = await self._call(
-            "POST", "/recover", params={"redirect_to": self.redirect}, json={"email": email}
+            "POST", "/recover", params={"redirect_to": self.redirect},
+            json={"email": email, **self._captcha_security(captcha_token)}
         )
         # Unknown addresses look identical to known ones.
         if response.status_code not in (200, 400, 404, 422):

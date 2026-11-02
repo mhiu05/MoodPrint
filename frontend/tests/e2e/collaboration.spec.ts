@@ -263,6 +263,22 @@ test("guests never reach the sharing page", async ({ page }) => {
   await expect(page.getByRole("switch")).toHaveCount(0);
 });
 
+test("V3 accounts can open sharing settings while legacy collaboration is disabled", async ({ page }) => {
+  await mount(page, {
+    sess: { ...baseSession, features: { ...baseSession.features, collaboration: false, threeAgents: true, smartOrchestration: true } },
+    sharing: { available: true, edges: [
+      { edge: "dieuphoi_consult_hoatdong", requester: "dieuphoi", specialist: "hoatdong", enabled: false, version: 0, requires: [], available: true, reason: null },
+    ] },
+  });
+  await page.goto("/#/profile");
+  const link = page.getByRole("link", { name: "Cài đặt phối hợp", exact: true });
+  await expect(link).toBeVisible();
+  await link.click();
+  await expect(page.getByRole("heading", { level: 1, name: "Trợ lý phối hợp với nhau" })).toBeVisible();
+  await expect(page.getByRole("switch")).toHaveCount(1);
+  await expect(page.getByRole("switch")).not.toBeChecked();
+});
+
 test("reduced motion renders the line statically", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await mount(page);

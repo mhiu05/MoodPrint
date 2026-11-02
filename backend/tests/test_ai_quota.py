@@ -67,7 +67,7 @@ async def seed_usage(app, uid, nano):
                 "insert into moodprint.ai_usage (run_id, user_id, worker_id, model, prompt_version,"
                 " pricing_version, estimated_nano_usd, state, sequence, requests_started,"
                 " responses_received, input_tokens, cached_input_tokens, output_tokens,"
-                " tool_calls, lease_until, created_at) values (:run, :uid, :worker, 'm', 'p',"
+                " tool_calls, lease_until, created_at) values (:run, :uid, :worker, 'gpt-6-luna', 'p',"
                 " 'v', :nano, 'settled', 0, 1, 1, 10, 0, 10, 0, now(), now())"
             ),
             {"run": run, "uid": uid, "worker": uuid4(), "nano": nano},
@@ -86,7 +86,9 @@ async def test_global_budget_ceiling_and_its_off_switches(clients, caplog):
         await admit(app, uid, ai_daily_budget_usd=1.0, ai_accounting_enabled=True)
     assert (error.value.status, error.value.code) == (503, "AI_BUDGET_EXHAUSTED")
     await admit(app, uid, ai_daily_budget_usd=0.0, ai_accounting_enabled=True)  # 0 = off
-    await admit(app, uid, ai_daily_budget_usd=1.0, ai_accounting_enabled=False)
+    with pytest.raises(DomainError) as disabled_accounting:
+        await admit(app, uid, ai_daily_budget_usd=1.0, ai_accounting_enabled=False)
+    assert disabled_accounting.value.code == "AI_BUDGET_UNAVAILABLE"
 
 
 def test_budget_without_accounting_logs_a_startup_warning(caplog):

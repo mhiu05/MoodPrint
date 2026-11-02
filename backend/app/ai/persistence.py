@@ -1,7 +1,7 @@
 """Short transactions for transcript persistence and worker-fenced AI turns."""
 
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import delete, func, select, update
@@ -406,22 +406,12 @@ async def daily_turns(db, user_id, at: datetime) -> int:
 
 
 async def spent_today_nano(db, at: datetime) -> int:
-    """Estimated spend since UTC midnight from content-free usage rows (0 if absent)."""
-    from sqlalchemy import text
+    """Conservative shared liability, including reservations and midnight carryover."""
+    from app.ai.accounting import budget_liability, budget_unavailable
 
     if not await db.scalar(select(func.to_regclass("moodprint.ai_usage"))):
-        return 0
-    midnight = at.astimezone(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
-    return int(
-        await db.scalar(
-            text(
-                "select coalesce(sum(estimated_nano_usd), 0) from moodprint.ai_usage "
-                "where created_at >= :since"
-            ),
-            {"since": midnight},
-        )
-        or 0
-    )
+        raise budget_unavailable()
+    return await budget_liability(db, at)
 
 
 async def admission(db, user, settings):
@@ -465,7 +455,11 @@ async def admission(db, user, settings):
             "Hôm nay bạn đã dùng hết lượt trò chuyện với trợ lý. Hẹn bạn ngày mai nhé.",
             True,
         )
-    if settings.ai_daily_budget_usd > 0 and settings.ai_accounting_enabled:
+    if settings.ai_daily_budget_usd > 0:
+        if not settings.ai_accounting_enabled:
+            from app.ai.accounting import budget_unavailable
+
+            raise budget_unavailable()
         ceiling = int(settings.ai_daily_budget_usd * 1_000_000_000)
         spent = await spent_today_nano(db, at)
         if spent >= ceiling:

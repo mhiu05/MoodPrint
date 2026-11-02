@@ -454,6 +454,7 @@ async def send(
                     operation_key=key,
                     payload_digest=message_digest,
                     limit_nano_usd=budget_nano(settings.guest_daily_budget_usd) or 0,
+                    settings=settings,
                 )
             run_id, message_id = uuid4(), uuid4()
             # V3 handoff continuation: the specialist keeps answering while its edge is enabled.
@@ -482,7 +483,8 @@ async def send(
                     lease_until=now() + timedelta(seconds=settings.ai_timeout_seconds + 15),
                 )
             )
-            await runtime.reserve_usage(db, run_id, user.id, responder)
+            await runtime.reserve_usage(db, run_id, user.id, responder,
+                                        guest_reservation_id=reservation.id if reservation else None)
             data_version = user.data_version
             if persistent:
                 persistent.version += 1

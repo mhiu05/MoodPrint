@@ -69,6 +69,7 @@ async def test_hosted_anonymous_signup_is_verified_and_cleaned_up():
     from app.modules.auth.provider import AnonymousSignupError, SupabaseAuth
 
     settings = SimpleNamespace(
+        auth_captcha_enabled=False,
         supabase_url=target.url,
         supabase_publishable_key=SecretStr(target.publishable_key),
         frontend_origin="https://approved-staging.invalid",

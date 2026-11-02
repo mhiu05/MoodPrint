@@ -380,7 +380,9 @@ async def serve(settings, *, stop: asyncio.Event, heartbeat: Path = HEARTBEAT,
     log.info("proactive_worker_start enabled=%s concurrency=%d", settings.proactive_worker_enabled,
              settings.proactive_worker_concurrency)
     try:
-        beat(heartbeat)
+        # A restarted process must not inherit a prior process's healthy stamp.
+        # Startup becomes healthy only after schema readiness and a successful tick.
+        await asyncio.to_thread(heartbeat.unlink, missing_ok=True)
         if not await wait_ready(database, stop):
             return
         while not stop.is_set():
@@ -389,7 +391,8 @@ async def serve(settings, *, stop: asyncio.Event, heartbeat: Path = HEARTBEAT,
                 claimed = (await proactive_tick(runtime)).get("claimed", 0)
             except Exception as error:
                 log.error("metric=proactive_tick_error error_type=%s", type(error).__name__)
-            beat(heartbeat)
+            else:
+                beat(heartbeat)
             if claimed:
                 continue  # drain due work without waiting
             with suppress(TimeoutError):

@@ -344,7 +344,7 @@ async def test_permanent_login_rejects_anonymous_identities_and_guest_mappings(c
     expires = datetime.now(UTC) + timedelta(hours=1)
 
     def verified(anonymous, subject):
-        async def password_session(self, email, password):
+        async def password_session(self, email, password, *, captcha_token=None):
             return ProviderSession(subject, uuid4(), "synthetic-token", expires, anonymous)
 
         return password_session

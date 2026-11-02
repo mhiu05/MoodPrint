@@ -2761,6 +2761,8 @@ export interface components {
         };
         /** EmailInput */
         EmailInput: {
+            /** Captchatoken */
+            captchaToken?: string | null;
             /** Email */
             email: string;
         };
@@ -3446,6 +3448,8 @@ export interface components {
         };
         /** LoginInput */
         LoginInput: {
+            /** Captchatoken */
+            captchaToken?: string | null;
             /** Email */
             email: string;
             /** Password */
@@ -3851,6 +3855,11 @@ export interface components {
             productTourAvailable: boolean;
             /** Captchasitekey */
             captchaSiteKey: string | null;
+            /**
+             * Authcaptcharequired
+             * @default false
+             */
+            authCaptchaRequired: boolean;
         };
         /**
          * PublicProfile
@@ -4279,6 +4288,8 @@ export interface components {
         };
         /** SignupInput */
         SignupInput: {
+            /** Captchatoken */
+            captchaToken?: string | null;
             /** Email */
             email: string;
             /** Password */

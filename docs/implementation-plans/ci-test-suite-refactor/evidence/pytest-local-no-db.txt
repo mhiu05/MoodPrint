@@ -1,0 +1,29 @@
+..................................................ssssssssss.s.......... [  8%]
+........................................................................ [ 17%]
+.............................s.......................................... [ 25%]
+..s.sssssssssssssssssssssssss........................................... [ 34%]
+........................................................................ [ 42%]
+.............................................ssss....................... [ 51%]
+........................................................................ [ 59%]
+................................................ssssssssssssssssssssss.. [ 68%]
+ssssss...ssssssssssssssssssssss.sssssssssss.ssssssssssssssssssssssssss.. [ 76%]
+...................................................sssssssssssssss...... [ 85%]
+.......................................................................s [ 93%]
+ssssssssss.............................................                  [100%]
+============================ slowest 15 durations =============================
+9.18s call     tests/test_reviewed_artifacts.py::test_every_upgrade_approval_matches_the_current_alembic_offline_export
+2.32s call     tests/test_reviewed_artifacts.py::test_initialization_approvals_match_the_alembic_0001_0005_export
+1.16s call     tests/test_private_profile_retirement_review.py::test_real_package_exports_exact_0019_to_0020_and_keeps_hosted_execution_closed
+1.14s call     tests/test_private_profile_retirement_review.py::test_never_overwrites_a_package_or_its_metadata
+1.11s call     tests/test_private_profile_retirement_review.py::test_offline_export_does_not_inherit_hosted_database_or_provider_configuration
+1.10s call     tests/test_private_profile_retirement_review.py::test_tracked_pending_package_is_exact_export_with_matching_hash
+1.00s call     tests/test_journal_contract.py::test_journal_crud_contract_is_registered
+0.93s call     tests/test_foundation.py::test_openapi_contains_safe_typed_contracts_and_unified_errors
+0.92s call     tests/test_ai_events_v2.py::test_openapi_documents_both_final_shapes
+0.87s call     tests/test_matching_eval.py::test_benchmark_reports_every_metric_on_a_small_fixture
+0.81s call     tests/test_proactive_eval.py::test_offline_harness_builds_runs_and_validates_every_case
+0.76s call     tests/test_public_headers.py::test_public_shell_headers_widen_csp_only_for_the_configured_challenge
+0.71s call     tests/test_session_reliability.py::test_pool_timeout_and_unknown_errors_stay_distinct
+0.47s call     tests/test_session_reliability.py::test_auth_errors_are_not_relabelled_as_database_outages
+0.46s call     tests/test_session_reliability.py::test_connection_limit_is_retryable_503_without_leaking_the_driver_text
+692 passed, 155 skipped, 868 deselected in 37.41s

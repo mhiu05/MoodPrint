@@ -19430,6 +19430,18 @@
       },
       "EmailInput": {
         "properties": {
+          "captchaToken": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4096
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captchatoken"
+          },
           "email": {
             "type": "string",
             "maxLength": 254,
@@ -21027,6 +21039,18 @@
       },
       "LoginInput": {
         "properties": {
+          "captchaToken": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4096
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captchatoken"
+          },
           "email": {
             "type": "string",
             "maxLength": 254,
@@ -22028,6 +22052,11 @@
               }
             ],
             "title": "Captchasitekey"
+          },
+          "authCaptchaRequired": {
+            "type": "boolean",
+            "title": "Authcaptcharequired",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -23176,6 +23205,18 @@
       },
       "SignupInput": {
         "properties": {
+          "captchaToken": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4096
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captchatoken"
+          },
           "email": {
             "type": "string",
             "maxLength": 254,

@@ -272,7 +272,7 @@ async def retention_tick(app: FastAPI) -> dict[str, int]:
         reservations = await db.execute(
             delete(GuestCostReservation)
             .where(
-                GuestCostReservation.state.in_(("settled", "uncertain", "cancelled")),
+                GuestCostReservation.state.in_(("settled", "cancelled")),
                 GuestCostReservation.lease_until < now - timedelta(hours=24),
                 ~select(GuestOperationLink.reservation_id)
                 .where(GuestOperationLink.reservation_id == GuestCostReservation.id)

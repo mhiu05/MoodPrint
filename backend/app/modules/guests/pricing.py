@@ -109,7 +109,22 @@ def kind_available(settings, kind: str) -> bool:
     """Paid guest work of this kind is open only with the flag, a positive budget and its prices."""
     if not settings.guest_paid_enabled or budget_nano(settings.guest_daily_budget_usd) is None:
         return False
+    if getattr(settings, "app_env", None) == "production" and getattr(settings, "ai_daily_budget_usd", 0) <= 0:
+        return False
     pricing = settings.guest_pricing_json
+    if getattr(settings, "ai_daily_budget_usd", 0) > 0:
+        from app.ai.accounting import CAPPED_PRICING_VERSION, CAPPED_RATES
+
+        values = _section(pricing.get("ai"), "input_nano_per_token", "cached_nano_per_token",
+                          "output_nano_per_token", "max_input_tokens")
+        if (kind != "ai" or not settings.ai_accounting_enabled or settings.openai_model not in CAPPED_RATES
+                or settings.guest_daily_budget_usd > Decimal(5) or values is None
+                or pricing["ai"]["pricing_version"] != CAPPED_PRICING_VERSION
+                or values["max_input_tokens"] < 922_000
+                or any(values[key] < rate for key, rate in zip(
+                    ("input_nano_per_token", "cached_nano_per_token", "output_nano_per_token"),
+                    CAPPED_RATES[settings.openai_model], strict=True))):
+            return False
     if kind == "ai":
         return ai_upper(pricing) is not None
     if kind == "voice":

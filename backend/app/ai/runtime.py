@@ -364,11 +364,11 @@ class AiRuntime:
             c.context_stamps[run.id] = ContextStamp(run.data_version, JOURNAL_TURN_POLICY)
         return revalidated
 
-    async def reserve_usage(self, db, run_id: UUID, user_id: UUID, bot_id: str):
+    async def reserve_usage(self, db, run_id: UUID, user_id: UUID, bot_id: str, *, guest_reservation_id=None):
         if self.settings.ai_accounting_enabled:
             await reserve_accounting(db, run_id, user_id, self.worker_id, self.settings.openai_model,
                                      # Compact journal policy revision fits existing varchar(60).
-                                     prompt_version(RUNTIME_VARIANTS[bot_id]) + "+" + EVIDENCE_POLICY + "+" + CONVERSATION_POLICY + ("+j1" if caps(bot_id).journal else ""))
+                                     prompt_version(RUNTIME_VARIANTS[bot_id]) + "+" + EVIDENCE_POLICY + "+" + CONVERSATION_POLICY + ("+j1" if caps(bot_id).journal else ""), settings=self.settings, guest_reservation_id=guest_reservation_id)
 
     async def record_usage(self, run: LiveRun, event: UsageEvent):
         run.usage.observe(event)
@@ -653,6 +653,7 @@ class AiRuntime:
             status == "completed"
             and run.dispatched
             and run.usage.responses_received > 0
+            and run.usage.requests_started == run.usage.responses_received
             and (run.usage.input_tokens or run.usage.output_tokens)
         ):
             actual = pricing.actual_ai_cost(
