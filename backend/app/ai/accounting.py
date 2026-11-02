@@ -9,7 +9,7 @@ from sqlalchemy import and_, case, func, or_, select, text, update
 
 from app.ai.usage import UsageEvent
 from app.core.errors import DomainError
-from app.infrastructure.database.models import AiRun, AiUsage, now
+from app.infrastructure.database.models import AiRun, AiUsage, User, now
 
 PRICING_VERSION = "openai-standard-2026-10-24"
 # Integer nano-USD/token, short context. Source recorded in live-ai/README.md.
@@ -42,8 +42,10 @@ async def budget_liability(db, at: datetime) -> int:
     """Known conservative cost + reservations. Unknown relevant history fails closed."""
     relevant = liability_scope(at)
     legacy = AiUsage.pricing_version != CAPPED_PRICING_VERSION
+    guest_owner = select(User.id).where(User.id == AiUsage.user_id, User.account_kind == "guest").exists()
     unknown = or_(
         AiUsage.estimated_nano_usd.is_(None), AiUsage.model.not_in(tuple(CAPPED_RATES)),
+        and_(guest_owner, legacy, AiUsage.requests_started > 0),
         and_(legacy, or_(AiUsage.state != "settled",
                          AiUsage.requests_started != AiUsage.responses_received,
                          and_(AiUsage.requests_started > 0, AiUsage.input_tokens == 0))),
@@ -56,7 +58,13 @@ async def budget_liability(db, at: datetime) -> int:
         AiUsage.estimated_nano_usd,
         AiUsage.input_tokens * 550 + AiUsage.output_tokens * 1650,
     )), else_=AiUsage.estimated_nano_usd)
-    return int(await db.scalar(select(func.coalesce(func.sum(cost), 0)).where(relevant)) or 0)
+    # Guest usage is diagnostic metadata. Its detached reservation/totals are the
+    # financial authority and survive deleting every guest identity and usage row.
+    registered = select(User.id).where(User.id == AiUsage.user_id, User.account_kind != "guest").exists()
+    total = int(await db.scalar(select(func.coalesce(func.sum(cost), 0)).where(relevant, registered)) or 0)
+    from app.modules.guests.accounting import detached_liability
+
+    return total + await detached_liability(db, at)
 
 
 @dataclass
@@ -83,7 +91,7 @@ class UsageSnapshot:
         self.tool_calls += event.kind == "tool_started"
 
 
-async def reserve_accounting(db, run_id: UUID, user_id: UUID, worker_id: UUID, model: str, prompt_version: str, *, settings=None):
+async def reserve_accounting(db, run_id: UUID, user_id: UUID, worker_id: UUID, model: str, prompt_version: str, *, settings=None, guest_reservation_id=None):
     capped = settings is not None and settings.ai_daily_budget_usd > 0
     estimate, pricing_version = None, PRICING_VERSION
     rates = RATES.get(model)
@@ -94,6 +102,8 @@ async def reserve_accounting(db, run_id: UUID, user_id: UUID, worker_id: UUID, m
         # provider I/O. Concurrent processes cannot reserve the same remaining money.
         await db.execute(text("select pg_advisory_xact_lock(664201, 1)"))
         at = await db.scalar(select(func.clock_timestamp()))
+        owner = await db.get(User, user_id)
+        guest = owner is not None and owner.account_kind == "guest"
         liability = await budget_liability(db, at)
         ceiling = int(min(Decimal(str(settings.ai_daily_budget_usd)), Decimal(20)) * 1_000_000_000)
         # Proactive descendants must also leave the interactive share untouched.
@@ -103,9 +113,22 @@ async def reserve_accounting(db, run_id: UUID, user_id: UUID, worker_id: UUID, m
             ancestor = await db.get(AiRun, ancestor.parent_run_id)
         if ancestor is not None and ancestor.origin == "proactive":
             ceiling = int(Decimal(ceiling) * Decimal(str(settings.proactive_budget_share)))
-        if liability + RUN_RESERVATION_NANO > ceiling:
+        guest_upper = None
+        if guest:
+            from app.modules.guests.models import GuestCostReservation, GuestOperationLink
+            from app.modules.guests.pricing import ai_upper, kind_available
+
+            guest_upper = await db.scalar(select(GuestCostReservation.upper_nano_usd).join(
+                GuestOperationLink, GuestOperationLink.reservation_id == GuestCostReservation.id).where(
+                    GuestCostReservation.id == guest_reservation_id, GuestCostReservation.state == "reserved",
+                    GuestOperationLink.user_id == user_id, GuestCostReservation.kind == "ai"))
+            required = ai_upper(settings.guest_pricing_json)
+            if (not kind_available(settings, "ai") or required is None or guest_upper is None
+                    or guest_upper < required[1]):
+                raise budget_unavailable()
+        if liability + (0 if guest else RUN_RESERVATION_NANO) > ceiling:
             raise DomainError(503, "AI_BUDGET_EXHAUSTED", "AI đã đạt giới hạn sử dụng. Vui lòng thử lại sau.", True)
-        rates, estimate, pricing_version = CAPPED_RATES[model], RUN_RESERVATION_NANO, CAPPED_PRICING_VERSION
+        rates, estimate, pricing_version = CAPPED_RATES[model], guest_upper if guest else RUN_RESERVATION_NANO, CAPPED_PRICING_VERSION
     db.add(AiUsage(run_id=run_id, user_id=user_id, worker_id=worker_id,
                    model=model, prompt_version=prompt_version, pricing_version=pricing_version,
                    estimated_nano_usd=estimate,

@@ -10,10 +10,11 @@ relevant historical cost records deny admission.
 
 This is a conservative **application liability cap**, not an exact provider
 invoice guarantee. It covers these accounted model calls with the documented
-prices and request limits, not taxes, other applications, STT, embeddings or
-separately funded guest calls. Keep `GUEST_PAID_ENABLED=false`,
-`GUEST_SEMANTIC_ENABLED=false`, STT and semantic embedding dispatch off for this
-demo. Publishing the change does not authorize broad rollout or worker enablement.
+prices and request limits, not taxes, other applications, STT or embeddings.
+Owner-approved guest AI now shares this $20 ceiling with a guest subset of at
+most $5; it is not an additional $5 budget. Keep `GUEST_SEMANTIC_ENABLED=false`,
+STT and semantic embedding dispatch off. Publishing the change does not
+authorize broad rollout or worker enablement.
 
 The supported model is exactly `gpt-6-luna`. Its published maximum input is
 922,000 tokens. Every ledger row is bounded to at most three provider requests,
@@ -60,3 +61,42 @@ Validation includes independent PostgreSQL sessions competing for a $20 cap,
 child/proactive admissions, unknown history/models, partial and terminal snapshots,
 crash recovery, midnight carryover and account deletion. Schema head remains 0024;
 no migration or production data rewrite is required.
+
+## Guest AI subset
+
+After hosted CAPTCHA/anonymous-auth and cleanup prerequisites pass, configure
+`GUEST_AUTH_ENABLED=true`, `GUEST_PAID_ENABLED=true`, `GUEST_DAILY_BUDGET_USD=5`,
+`GUEST_AI_TURNS=50`, `GUEST_AI_CONCURRENCY=1` and
+`GUEST_AI_GLOBAL_CONCURRENCY=2`, alongside the global $20/accounting settings.
+Use this server-only price mapping; there is deliberately no voice/embed price:
+
+```json
+{"ai":{"pricing_version":"openai-conservative-2026-11-02-v1","input_nano_per_token":550,"cached_nano_per_token":550,"output_nano_per_token":1650,"max_input_tokens":922000}}
+```
+
+Each guest turn reserves `1,527,240,000` nano-USD in the existing detached guest
+ledger. Global liability is registered usage plus detached guest spent/reserved
+totals. Guest `ai_usage` rows are diagnostic metadata and are excluded from the
+global sum, so they do not count twice. A guest usage row requires its live,
+owner-linked detached reservation before it can be inserted. The guest subset
+also uses conservative carryover across the UTC day boundary. Existing Bangkok
+civil-day rows remain unchanged; any Bangkok day overlapping the global window
+is included. Three simultaneous full guest envelopes fit the $5 subset; a
+fourth is refused before provider dispatch. Known final usage releases the
+difference, while missing/partial usage retains the full envelope.
+
+Guest financial admission takes the same global advisory lock before any guest
+day/reservation lock. Purging a guest removes user-linked metadata but retains
+detached totals. Uncertain detached reservations are retained rather than aged
+out after 24 hours; they keep their day and liability until operator review.
+Any halted guest day blocks global paid admissions too. Legacy unpriced guest
+usage denies admission; purge records a detached halted marker before removing
+its identity, so cleanup cannot make unknown charges disappear. The verified
+hosted first-enable preflight had zero guest financial rows; no price/ledger
+reconciliation write was performed or inferred.
+
+Guest paid readiness rejects unknown models, insufficient model input/rate bounds,
+unapproved pricing versions and a guest budget above $5. In capped mode guest
+voice/embed are unavailable even if somebody adds prices; production guest paid
+work also requires a positive global cap. These checks do not replace provider
+authentication/CAPTCHA readiness or the immutable two-hour guest lifetime.

@@ -12,16 +12,16 @@ marker and the network) are charged at the reserved upper bound exactly once and
 
 import logging
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import UTC, date, timedelta
 from uuid import UUID, uuid4
 
-from sqlalchemy import select, update
+from sqlalchemy import func, or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import DomainError
 from app.core.security import digest
-from app.infrastructure.database.models import User
+from app.infrastructure.database.models import AiUsage, User
 from app.modules.guests.limits import BANGKOK
 from app.modules.guests.models import GuestBudgetDay, GuestCostReservation, GuestOperationLink
 from app.modules.guests.policy import database_time
@@ -56,6 +56,22 @@ async def _today(db: AsyncSession) -> date:
     return (await database_time(db)).astimezone(BANGKOK).date()
 
 
+async def detached_liability(db, at) -> int:
+    """Guest totals survive purge; include days overlapping the global UTC window."""
+    since = at.astimezone(UTC).date() - timedelta(days=1)
+    unresolved = select(GuestCostReservation.id).where(
+        GuestCostReservation.day == GuestBudgetDay.day,
+        GuestCostReservation.state.in_(("reserved", "dispatched", "uncertain")),
+    ).exists()
+    if await db.scalar(select(GuestBudgetDay.day).where(GuestBudgetDay.halted_at.is_not(None)).limit(1)):
+        from app.ai.accounting import budget_unavailable
+
+        raise budget_unavailable()
+    return int(await db.scalar(select(func.coalesce(func.sum(
+        GuestBudgetDay.spent_nano_usd + GuestBudgetDay.reserved_nano_usd), 0)).where(
+            or_(GuestBudgetDay.day >= since, GuestBudgetDay.reserved_nano_usd > 0, unresolved))) or 0)
+
+
 async def reserve_guest_operation(
     db: AsyncSession,
     user: User,
@@ -66,10 +82,25 @@ async def reserve_guest_operation(
     payload_digest: str,
     limit_nano_usd: int,
     lease_seconds: int = 120,
+    settings=None,
 ) -> Reservation:
     """Reserve the worst case before any paid dispatch; idempotent for one operation key."""
     if upper_cost <= 0 or limit_nano_usd <= 0:
         raise unavailable()
+    capped = settings is not None and settings.ai_daily_budget_usd > 0
+    if capped:
+        from decimal import Decimal
+
+        from app.ai.accounting import budget_liability
+        from app.modules.guests.pricing import ai_upper, budget_nano, kind_available
+
+        upper = ai_upper(settings.guest_pricing_json)
+        if not kind_available(settings, kind) or upper is None or upper[1] != upper_cost:
+            raise unavailable()
+        limit_nano_usd = min(limit_nano_usd, budget_nano(settings.guest_daily_budget_usd) or 0, 5_000_000_000)
+        # Every financial admission takes the same global lock BEFORE day/reservation
+        # locks. Registered and guest transactions cannot spend the same headroom.
+        await db.execute(text("select pg_advisory_xact_lock(664201, 1)"))
     key_hash = digest(operation_key)
     link = await db.get(GuestOperationLink, (user.id, kind, key_hash))
     if link is not None and link.reservation_id is not None:
@@ -77,7 +108,16 @@ async def reserve_guest_operation(
             raise DomainError(409, "IDEMPOTENCY_CONFLICT", "Mã thao tác đã được dùng với nội dung khác.")
         existing = await db.get(GuestCostReservation, link.reservation_id)
         if existing is not None:
+            if capped and existing.upper_nano_usd < upper_cost:
+                raise unavailable()
             return Reservation(existing.id, existing.upper_nano_usd)
+    if capped:
+        at = await database_time(db)
+        ceiling = int(min(Decimal(str(settings.ai_daily_budget_usd)), Decimal(20)) * 1_000_000_000)
+        if await budget_liability(db, at) + upper_cost > ceiling:
+            raise DomainError(503, "AI_BUDGET_EXHAUSTED", "AI đã đạt giới hạn sử dụng. Vui lòng thử lại sau.", True)
+        if await detached_liability(db, at) + upper_cost > limit_nano_usd:
+            raise exhausted()
     # A halted (overrun) day blocks paid admissions on every later day until an operator reviews it.
     if await db.scalar(select(GuestBudgetDay.day).where(GuestBudgetDay.halted_at.is_not(None)).limit(1)):
         raise unavailable()
@@ -192,6 +232,22 @@ async def settle_guest_operation(
 
 async def settle_open_for_user(db: AsyncSession, user_id: UUID) -> int:
     """Purge hook: conservatively settle every unsettled reservation linked to this guest."""
+    from app.ai.accounting import CAPPED_PRICING_VERSION, CAPPED_RATES
+
+    # Preserve an unknown historical liability after its owner/usage is purged.
+    # This flag contains no identity and only an explicit operator reconciliation
+    # can clear it; deleting guests must never turn unpriced paid work into zero.
+    await db.execute(text("select pg_advisory_xact_lock(664201, 1)"))
+    legacy_paid = await db.scalar(select(AiUsage.run_id).where(
+        AiUsage.user_id == user_id, AiUsage.requests_started > 0,
+        or_(AiUsage.pricing_version != CAPPED_PRICING_VERSION,
+            AiUsage.estimated_nano_usd.is_(None), AiUsage.model.not_in(tuple(CAPPED_RATES))),
+    ).limit(1))
+    if legacy_paid is not None:
+        at = await database_time(db)
+        await db.execute(insert(GuestBudgetDay).values(
+            day=at.astimezone(BANGKOK).date(), limit_nano_usd=5_000_000_000, halted_at=at,
+        ).on_conflict_do_update(index_elements=[GuestBudgetDay.day], set_={"halted_at": at}))
     ids = (
         await db.scalars(
             select(GuestOperationLink.reservation_id).where(
