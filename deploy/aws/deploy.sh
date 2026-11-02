@@ -66,8 +66,35 @@ if [[ $(grep -c '^APP_ENV=' "$runtime_file") -ne 1 ]] ||
 fi
 chmod 600 "$runtime_file"
 
-printf 'API_IMAGE=%s\nWEB_IMAGE=%s\nAPP_DOMAIN=%s\nAPI_ENV_FILE=%s\nRELEASE_SHA=%s\n' \
-  "$api_ref" "$web_ref" "$APP_DOMAIN" "$runtime_file" "$release_sha" > "$candidate"
+captcha_origin() {
+  # Match dotenv's quoted values, inline comments and last-assignment semantics.
+  python3 - "$1" <<'PY'
+import re
+import sys
+
+flags = {}
+for line in open(sys.argv[1], encoding="utf-8"):
+    match = re.match(r"^\s*(?:export\s+)?(AUTH_CAPTCHA_ENABLED|GUEST_AUTH_ENABLED)\s*=\s*(.*)$", line)
+    if not match:
+        continue
+    key, value = match.groups()
+    value = value.strip()
+    if value.startswith(("'", '"')):
+        quoted = re.fullmatch(r"(['\"])(.*?)\1\s*(?:#.*)?", value)
+        if quoted is None:
+            raise SystemExit("Invalid CAPTCHA flag quoting")
+        value = quoted.group(2)
+    else:
+        value = re.split(r"\s+#", value, maxsplit=1)[0].strip()
+    flags[key] = value.lower()
+if any(value in ("true", "1", "yes", "on", "t", "y") for value in flags.values()):
+    print("https://challenges.cloudflare.com", end="")
+PY
+}
+captcha_origin_value=$(captcha_origin "$runtime_file")
+# Only this fixed public origin reaches the web container; runtime secrets remain API-only.
+printf 'API_IMAGE=%s\nWEB_IMAGE=%s\nAPP_DOMAIN=%s\nAPI_ENV_FILE=%s\nRELEASE_SHA=%s\nGUEST_CAPTCHA_ORIGIN=%s\n' \
+  "$api_ref" "$web_ref" "$APP_DOMAIN" "$runtime_file" "$release_sha" "$captcha_origin_value" > "$candidate"
 chmod 600 "$candidate"
 
 compose=(docker compose --project-directory "$base" -f "$base/compose.staging.yml")

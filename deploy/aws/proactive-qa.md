@@ -1,7 +1,7 @@
 # Bounded proactive demo verification
 
 The owner-approved demo budget is $20/day, with proactive admission yielding at
-10% of the shared budget and at most two deliveries per account/day. Use one
+20% of the shared budget and at most two deliveries per account/day. Use one
 worker with concurrency one. The budget admission/settlement checks must pass
 before paid hosted testing; a spend estimate alone is not an invoice guarantee.
 

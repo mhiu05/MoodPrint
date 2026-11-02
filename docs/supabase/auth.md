@@ -20,6 +20,12 @@ Nguồn helper được review ở [provider_session.sql](../../backend/app/infr
 
 ## Recovery, reauthentication và eligibility
 
+Trong Supabase Authentication → URL Configuration, cho phép chính xác
+`https://moodprint.duckdns.org/auth/callback` trong Redirect URLs. Provider adapter
+gửi email redirect tới đường dẫn này; frontend đọc fragment một lần và xóa token
+khỏi URL trước khi render. Giữ các callback khác khi cập nhật allowlist. Xem
+[Supabase redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls).
+
 Khi bật CAPTCHA trong Supabase Auth, bật `AUTH_CAPTCHA_ENABLED=true` trong runtime
 và đặt `GUEST_CAPTCHA_SITE_KEY` thành public site key của cùng widget Turnstile.
 Site key này dùng chung cho auth và guest; không phải secret key. Secret CAPTCHA
