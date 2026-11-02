@@ -39,7 +39,7 @@ services:
       # HD-02: 2 + 0 keeps API (5+2)x2 + worker 2 = 16 of moodprint_backend's 20 connections.
       DATABASE_POOL_SIZE: ${PROACTIVE_DATABASE_POOL_SIZE:-2}
       DATABASE_POOL_OVERFLOW: '0'
-      PROACTIVE_WORKER_ENABLED: ${PROACTIVE_WORKER_ENABLED:-false}
+      # Worker enablement comes only from API_ENV_FILE (Settings defaults to false).
     restart: unless-stopped
     init: true
     read_only: true

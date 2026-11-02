@@ -81,10 +81,17 @@ fi
 install -o root -g root -m 600 "$candidate" "$active"
 
 check_health() {
-  local id state attempt
+  local id state attempt service configured
+  local -a health_services=(api web)
+  configured=$("${compose[@]}" --env-file "$active" config --services) || return 1
+  # Older installed Compose files have only API/web. New releases must also prove
+  # the dedicated worker is alive, including when its runtime flag leaves it idle.
+  if grep -qx proactive <<< "$configured"; then
+    health_services+=(proactive)
+  fi
   for ((attempt=0; attempt<30; attempt++)); do
     state=healthy
-    for service in api web; do
+    for service in "${health_services[@]}"; do
       id=$("${compose[@]}" --env-file "$active" ps -q "$service")
       if [[ -z "$id" || $(docker inspect -f '{{.State.Health.Status}}' "$id" 2>/dev/null) != healthy ]]; then
         state=waiting

@@ -8,6 +8,7 @@ import logging
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Literal
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, select, text
 
@@ -19,6 +20,7 @@ from app.ai.proactive.models import (
     AiProactiveSchedule,
     AiProactiveSettings,
 )
+from app.ai.proactive.schedule import in_quiet_hours
 from app.core.errors import DomainError
 from app.core.security import assert_purpose
 from app.infrastructure.database.models import AiRun, Consent, User, now
@@ -132,6 +134,11 @@ async def authorize_proactive(
         return Decision("skip", "paused")
     if schedule.auto_paused_at:
         return Decision("skip", "auto_paused")
+    # The schedule was legal when saved, but retries or a slow model can cross
+    # into quiet hours. This authorization runs before dispatch and at publish.
+    local_time = at.astimezone(ZoneInfo(prefs.timezone)).time()
+    if in_quiet_hours(local_time, prefs.quiet_start, prefs.quiet_end):
+        return Decision("skip", "quiet_hours")
     if reason := v3_reason(settings, user, job.bot_id):
         return Decision("skip", reason)
     if job.bot_id == "caunoi":

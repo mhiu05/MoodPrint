@@ -21,10 +21,13 @@ async def seed(app, uid, *, bot="nhip", slot="morning", local_date=None, schedul
     """Settings + schedule + one pending job for ``uid``; returns the job id."""
     from app.ai.proactive.models import AiProactiveJob, AiProactiveSchedule, AiProactiveSettings
     from app.infrastructure.database.models import now
+    from tests.proactive_helpers import quiet_hours_for_due_now
 
     async with app.state.database.sessions.begin() as db:
         if await db.get(AiProactiveSettings, uid) is None:
-            db.add(AiProactiveSettings(user_id=uid, timezone="Asia/Ho_Chi_Minh"))
+            quiet_start, quiet_end = quiet_hours_for_due_now()
+            db.add(AiProactiveSettings(user_id=uid, timezone="Asia/Ho_Chi_Minh",
+                                       quiet_start=quiet_start, quiet_end=quiet_end))
         row = None
         if schedule:
             row = await db.scalar(select(AiProactiveSchedule).where(
@@ -271,7 +274,7 @@ async def test_budget_share_skips_proactive_before_user_chat_budget(clients):
     async with app.state.database.sessions.begin() as db:
         from app.infrastructure.database.models import now
 
-        db.add(AiUsage(run_id=run, user_id=uid, worker_id=uuid4(), model="m", prompt_version="p",
+        db.add(AiUsage(run_id=run, user_id=uid, worker_id=uuid4(), model="gpt-6-luna", prompt_version="p",
                        pricing_version="v", estimated_nano_usd=600_000_000, state="settled",
                        lease_until=now()))
     result = await admit(app, await seed(app, uid))

@@ -15,6 +15,9 @@ The GHCR packages begin private. Public packages can be pulled without an AWS or
 
 ## Operations
 
+For proactive worker enablement, isolated hosted QA and the immediate kill switch,
+follow [Bounded proactive demo verification](proactive-qa.md).
+
 ```bash
 sudo systemctl status moodprint-release-poll.timer
 sudo systemctl start moodprint-release-poll.service
