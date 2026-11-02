@@ -14,6 +14,9 @@ from tests.guest_helpers import add_guest, db_now
 
 pytestmark = pytest.mark.postgres
 LIFETIME = timedelta(seconds=7200)
+# Setup/admission headroom, not a security tolerance: every expiry assertion below
+# still uses the original immutable grant deadline rather than a shortened clock.
+SETUP_SECONDS = 20
 
 
 @pytest.mark.parametrize("branch", ["existing", "recovery", "new"])
@@ -109,7 +112,7 @@ async def test_waiting_mutation_rolls_back_at_deadline(clients, monkeypatch):
     from app.modules.mood import routes
 
     app, _ = clients
-    guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=3))
+    guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=SETUP_SECONDS))
     before = await mood_rows(app)
     real = security.transaction
     reached_end = asyncio.Event()
@@ -145,7 +148,7 @@ async def test_waiting_mutation_rolls_back_at_deadline(clients, monkeypatch):
 async def test_predeadline_decision_then_commit_is_unreadable_after(clients):
     """A write fully decided before T is not undone, but nothing can read it once T passes."""
     app, _ = clients
-    guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=3))
+    guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=SETUP_SECONDS))
     today = date.today().isoformat()
     saved = await guest.client.put(
         f"/api/v1/moods/{today}",
@@ -295,16 +298,18 @@ async def test_real_app_withholds_private_bytes_when_the_handler_outlives_the_tr
     from app.core.security import Actor, require_actor
 
     app, _ = clients
-    guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=2))
+    guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=SETUP_SECONDS))
     gate = asyncio.Event()
+    entered = asyncio.Event()
 
     async def slow(actor: Actor = Depends(require_actor)):
+        entered.set()
         await gate.wait()
         return {"secret": "private-canary"}
 
     app.add_api_route("/api/v1/_test/slow", slow, methods=["GET"])
     pending = asyncio.create_task(guest.client.get("/api/v1/_test/slow"))
-    await asyncio.sleep(0.3)
+    await asyncio.wait_for(entered.wait(), 5)
     await asyncio.sleep(max(0.0, (guest.expires_at - await db_now(app)).total_seconds()) + 0.3)
     gate.set()
     response = await asyncio.wait_for(pending, 5)
@@ -400,37 +405,49 @@ async def start_guest_run(app, guest, model):
     return conversation, await accept_guest_message(guest, conversation)
 
 
-async def test_idle_sse_closes_at_deadline_and_the_late_result_is_discarded(clients):
+async def test_idle_sse_closes_at_deadline_and_the_late_result_is_discarded(clients, monkeypatch):
     from app.ai.runtime import LiveRun
     from tests.fakes import ScriptedModel, message_output
 
     app, _ = clients
-    # Leave setup outside the short expiry window: slow consent/conversation I/O
-    # must not expire the fixture before the SSE behavior can be exercised.
-    guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=20), consents=False)
+    # Admit while live; setup and the message HTTP request must not be squeezed
+    # into the final seconds. The stream still crosses this guest's exact T.
+    guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=SETUP_SECONDS), consents=False)
     model = ScriptedModel(
         [[message_output(json.dumps({"text": "PRIVATE-FINAL-CANARY", "cards": []}))]], hold=True
     )
-    conversation = await prepare_guest_conversation(app, guest, model)
-    left = (guest.expires_at - await db_now(app)).total_seconds()
-    await asyncio.sleep(max(0.0, left - 3.0))
-    run = await accept_guest_message(guest, conversation)
-    await asyncio.wait_for(model.started.wait(), 5)
-    run_id = run["runId"] if "runId" in run else run["run_id"]
+    # Isolate an idle stream crossing T from the separate terminal-event race:
+    # the run's conservative dispatch bound can cancel before the stream's bound.
+    # Cancellation is tested below; settlement may not end this stream first.
+    release_settlement = asyncio.Event()
+    original_settle = app.state.ai.settle_guest
 
-    stream = asyncio.create_task(guest.client.get(run["eventsUrl"]))
-    await asyncio.sleep(max(0.0, (guest.expires_at - await db_now(app)).total_seconds()) + 0.2)
-    # The model only now answers: this is late output and must never be published or sent.
-    model.release.set()
-    response = await asyncio.wait_for(stream, 8)
-    body = response.text
-    assert "PRIVATE-FINAL-CANARY" not in body and "PRIVATE-INPUT-CANARY" not in body
-    assert "event: final" not in body
-    assert response.status_code == 401 or "event: revoked" in body, body[-600:]
-    await asyncio.sleep(0.5)
-    live: LiveRun | None = app.state.ai.runs.get(__import__("uuid").UUID(run_id))
-    assert live is None or not any(event.type == "final" for event in live.events)
-    assert len(model.calls) == 1, "no second model dispatch after the deadline"
+    async def held_settle(*args):
+        await release_settlement.wait()
+        return await original_settle(*args)
+
+    monkeypatch.setattr(app.state.ai, "settle_guest", held_settle)
+    try:
+        conversation = await prepare_guest_conversation(app, guest, model)
+        run = await accept_guest_message(guest, conversation)
+        await asyncio.wait_for(model.started.wait(), 5)
+        run_id = run["runId"] if "runId" in run else run["run_id"]
+
+        stream = asyncio.create_task(guest.client.get(run["eventsUrl"]))
+        await asyncio.sleep(max(0.0, (guest.expires_at - await db_now(app)).total_seconds()) + 0.2)
+        # The model only now answers: this is late output and must never be published or sent.
+        model.release.set()
+        response = await asyncio.wait_for(stream, 8)
+        body = response.text
+        assert "PRIVATE-FINAL-CANARY" not in body and "PRIVATE-INPUT-CANARY" not in body
+        assert "event: final" not in body
+        assert response.status_code == 401 or "event: revoked" in body, body[-600:]
+        await asyncio.sleep(0.5)
+        live: LiveRun | None = app.state.ai.runs.get(__import__("uuid").UUID(run_id))
+        assert live is None or not any(event.type == "final" for event in live.events)
+        assert len(model.calls) == 1, "no second model dispatch after the deadline"
+    finally:
+        release_settlement.set()
 
 
 @pytest.mark.parametrize("replay", [False, True])
@@ -458,7 +475,7 @@ async def test_queued_sse_final_is_dropped_at_expiry(clients, replay):
 
     index = next(i for i, entry in enumerate(app.user_middleware) if entry.cls is GuestOutputMiddleware)
     app.user_middleware.insert(index + 1, Middleware(HoldFinal))
-    guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=4))
+    guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=SETUP_SECONDS))
     model = ScriptedModel([[message_output(json.dumps({"text": "QUEUED-FINAL-PRIVATE", "cards": []}))]])
     _, run = await start_guest_run(app, guest, model)
     # Wait for real validated output so the test exercises replay/queue, not a late model.
@@ -489,10 +506,9 @@ async def test_ai_run_is_cancelled_at_the_deadline_without_waiting_for_the_monit
         return await original_settle(*args)
 
     monkeypatch.setattr(app.state.ai, 'settle_guest', delayed_settle)
-    # Consent and the empty conversation need more than the final two seconds on a
-    # busy CI runner. The 7200s grant is unchanged; the message is sent only once
-    # about two seconds remain, which is what the cancellation oracle measures.
-    guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=20))
+    # Accept immediately after setup, before waiting for the original T. The
+    # setup bound below is separate from the unchanged T+150ms cancellation oracle.
+    guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=SETUP_SECONDS))
     model = ScriptedModel([[message_output(json.dumps({"text": "late", "cards": []}))]], hold=True)
     cancelled_at: list[float] = []
     original_stream = model.stream_response
@@ -507,12 +523,10 @@ async def test_ai_run_is_cancelled_at_the_deadline_without_waiting_for_the_monit
 
     model.stream_response = observed_stream
     conversation = await prepare_guest_conversation(app, guest, model)
-    left = (guest.expires_at - await db_now(app)).total_seconds()
-    await asyncio.sleep(max(0.0, left - 2.2))
     await accept_guest_message(guest, conversation)
     await asyncio.wait_for(model.started.wait(), 5)
     live = next(iter(app.state.ai.runs.values()))
-    assert live.deadline is not None and 0 < live.deadline.remaining() <= 2.5
+    assert live.deadline is not None and 0 < live.deadline.remaining() <= SETUP_SECONDS
     try:
         await asyncio.sleep(max(0.0, live.deadline.remaining()) + 0.15)
         # Deadline cancellation precedes financial settlement, within the original
