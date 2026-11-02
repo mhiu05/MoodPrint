@@ -405,11 +405,16 @@ async def test_idle_sse_closes_at_deadline_and_the_late_result_is_discarded(clie
     from tests.fakes import ScriptedModel, message_output
 
     app, _ = clients
-    guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=3), consents=False)
+    # Leave setup outside the short expiry window: slow consent/conversation I/O
+    # must not expire the fixture before the SSE behavior can be exercised.
+    guest = await add_guest(app, started_ago=LIFETIME - timedelta(seconds=20), consents=False)
     model = ScriptedModel(
         [[message_output(json.dumps({"text": "PRIVATE-FINAL-CANARY", "cards": []}))]], hold=True
     )
-    _, run = await start_guest_run(app, guest, model)
+    conversation = await prepare_guest_conversation(app, guest, model)
+    left = (guest.expires_at - await db_now(app)).total_seconds()
+    await asyncio.sleep(max(0.0, left - 3.0))
+    run = await accept_guest_message(guest, conversation)
     await asyncio.wait_for(model.started.wait(), 5)
     run_id = run["runId"] if "runId" in run else run["run_id"]
 
