@@ -1,0 +1,4 @@
+Checked 147 Markdown files, 1040 local links, 138 API operations, 95 settings, 59 tables.
+FAIL: docs\implementation-plans\proactive-multi-agent-companion\01-current-codebase-audit.md:88: missing ../diary/20-nhip-text-only-contract.md
+FAIL: docs\supabase\journal-storage.md:34: missing ../implementation-plans/diary/evidence/hosted-storage-smoke.json
+FAIL
