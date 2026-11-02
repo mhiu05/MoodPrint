@@ -164,6 +164,19 @@ class SdkProvider:
             )
         return self._client
 
+    def _check_capped_model(self, override: Model | str | None) -> None:
+        if self.settings.ai_daily_budget_usd <= 0:
+            return
+        from app.ai.accounting import CAPPED_RATES, budget_unavailable
+
+        if not self.settings.ai_accounting_enabled or self.settings.openai_model not in CAPPED_RATES:
+            raise budget_unavailable()
+        if isinstance(override, Model):
+            if self.settings.app_env != "test":
+                raise budget_unavailable()
+        elif override is not None and override != self.settings.openai_model:
+            raise budget_unavailable()
+
     async def aclose(self) -> None:
         if self._client is not None:
             client, self._client = self._client, None
@@ -189,6 +202,7 @@ class SdkProvider:
         """``extra_*`` carry an approved collaboration brief (Phase 2); empty = Phase 1 bytes."""
         if bot_id not in RUNTIME_VARIANTS:
             raise DomainError(404, "BOT_NOT_FOUND", "Không tìm thấy trợ lý.")
+        self._check_capped_model(model_override)
         set_tracing_disabled(True)
         async def observe(event: UsageEvent):
             if usage_observer:
@@ -331,6 +345,7 @@ class SdkProvider:
         ``extra_instructions`` carries an approved R2 energy block (Phase 2); empty = Phase 1."""
         from app.ai.prompts import proactive_instructions
 
+        self._check_capped_model(model_override)
         if bot_id not in RUNTIME_VARIANTS:
             raise DomainError(404, "BOT_NOT_FOUND", "Không tìm thấy trợ lý.")
         set_tracing_disabled(True)
@@ -383,6 +398,7 @@ class SdkProvider:
 
     def model(self, override: Model | str | None, user_id: Any) -> Model:
         """The SDK model of one agent in a V3 workflow (tests pass a synthetic Model)."""
+        self._check_capped_model(override)
         if isinstance(override, Model):
             return override
         key = self.settings.openai_api_key.get_secret_value()
@@ -466,6 +482,7 @@ class SdkProvider:
     ) -> Any:
         """One bounded consultation (phase-2/05 §6): purpose-only instructions, no persona, no
         tools, no transcript, one model call, no tracing, no retries, a hard timeout."""
+        self._check_capped_model(model_override)
         set_tracing_disabled(True)
         if isinstance(model_override, Model):
             model: Model = model_override

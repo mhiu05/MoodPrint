@@ -134,7 +134,7 @@ class GroupTurn:
         ))
         if self.settings.ai_accounting_enabled:
             await reserve_accounting(db, child, user.id, self.runtime.worker_id, self.settings.openai_model,
-                                     f"{kind}-{target or 'selector'}+{GROUP_PROMPT_VERSION}")
+                                     f"{kind}-{target or 'selector'}+{GROUP_PROMPT_VERSION}", settings=self.settings)
         await db.flush()
         return step_id, child
 

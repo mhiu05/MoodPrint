@@ -151,8 +151,32 @@ async def process_deletions(app):
         if job.scope == "account":
             # The retained voluntary rating has no owner; remove only its temporary owner link.
             await db.execute(delete(FeedbackSubmissionReceipt).where(FeedbackSubmissionReceipt.user_id == uid))
+            retained_runs = set()
             if await db.scalar(select(func.to_regclass("moodprint.ai_usage"))):
-                await db.execute(delete(AiUsage).where(AiUsage.user_id == uid))
+                from app.ai.accounting import CAPPED_PRICING_VERSION, liability_scope
+
+                # The user remains a tombstone. Keep only financial metadata needed
+                # by the active cap; deleting it would refund already dispatched work.
+                # Usage -> run lock order matches terminal settlement and recovery.
+                retained_runs = set((await db.scalars(select(AiUsage.run_id).where(
+                    AiUsage.user_id == uid, liability_scope(now()),
+                    or_(AiUsage.pricing_version == CAPPED_PRICING_VERSION,
+                        app.state.settings.ai_daily_budget_usd > 0),
+                ).order_by(AiUsage.run_id).with_for_update())).all())
+                if retained_runs:
+                    parents = dict((await db.execute(select(AiRun.id, AiRun.parent_run_id)
+                                   .where(AiRun.user_id == uid))).all())
+                    pending = list(retained_runs)
+                    while pending:
+                        parent = parents.get(pending.pop())
+                        if parent is not None and parent not in retained_runs:
+                            retained_runs.add(parent)
+                            pending.append(parent)
+                await db.execute(delete(AiUsage).where(AiUsage.user_id == uid,
+                                                       AiUsage.run_id.not_in(retained_runs)))
+                await db.execute(update(AiRun).where(AiRun.id.in_(retained_runs),
+                                                    AiRun.status == "running")
+                                 .values(status="cancelled", version=2))
             await db.execute(delete(AgeDeclaration).where(AgeDeclaration.user_id == uid))
             await db.execute(
                 update(HumanMessage).where(HumanMessage.sender_id == uid).values(text="[Đã xóa]")
@@ -160,8 +184,10 @@ async def process_deletions(app):
             await db.execute(
                 update(AuthSession).where(AuthSession.user_id == uid).values(revoked=True)
             )
-            # Content-free run metadata; ai_usage, ai_messages and ai_turns cascade.
-            await db.execute(delete(AiRun).where(AiRun.user_id == uid))
+            # Financial anchors and their ancestors must survive cascades. The
+            # existing bounded metadata retention removes old completed anchors.
+            await db.execute(delete(AiRun).where(AiRun.user_id == uid,
+                                                AiRun.id.not_in(retained_runs)))
             user.status = "deleted"
             user.alias = "Đã xóa"
             await db.flush()

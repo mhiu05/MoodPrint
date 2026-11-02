@@ -415,7 +415,7 @@ class Workflow:
         ))
         if status != "denied" and self.settings.ai_accounting_enabled:
             await reserve_accounting(db, child_id, user.id, self.runtime.worker_id, self.settings.openai_model,
-                                     f"{kind}-{target or 'planner'}+{policy.POLICY_VERSION}")
+                                     f"{kind}-{target or 'planner'}+{policy.POLICY_VERSION}", settings=self.settings)
         await db.flush()
         step = Step(id=step_id, kind=kind, target=target or "", edge=edge or "", ordinal=ordinal,
                     child_run_id=child_id, permission_version=version)

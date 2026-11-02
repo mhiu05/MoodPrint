@@ -146,7 +146,7 @@ async def _open(runtime, claimed: Claimed) -> Attempt | None:
         if settings.ai_accounting_enabled:
             await reserve_accounting(
                 db, run_id, user.id, runtime.worker_id, settings.openai_model,
-                prompt_version(RUNTIME_VARIANTS[job.bot_id]) + "+" + PROACTIVE_PROMPT_VERSION,
+                prompt_version(RUNTIME_VARIANTS[job.bot_id]) + "+" + PROACTIVE_PROMPT_VERSION, settings=settings,
             )
         opened = None
         if settings.ai_collaboration_enabled and job.bot_id == "rure" and job.slot == "morning":
