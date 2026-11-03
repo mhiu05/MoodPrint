@@ -72,20 +72,35 @@ Keep model changes behind a new pricing/bounds review.
 With share `0.2`, proactive reservation is refused when total AI liability plus
 that new reservation would exceed $4. Interactive chat can continue up to $20.
 This is deliberately conservative and may stop proactive delivery early; it
-cannot reserve the interactive share. Keep guest paid calls, voice and embeddings
-off because they use separate accounting paths. A shared provider key used by
+cannot reserve the interactive share. Guest paid chat uses a detached liability
+ledger under that same financial admission lock. Its maximum $5/day allocation
+is included within the global $20/day ceiling; it is not an additional budget.
+Open and uncertain guest reservations survive cleanup and continue to count
+toward both caps. Keep voice and embeddings off for this demo. A shared provider key used by
 other applications is outside this ledger. This application limit is not a
 claim about taxes, changing provider prices or unrelated provider-account usage.
 
 ## Guest prerequisites
 
-Guest entry stays disabled while the CAPTCHA site key/provider configuration is
-missing. Do not substitute a test CAPTCHA key or bypass verification for the demo.
-Registered adult accounts remain the supported demo route. Before enabling guest
-entry later, verify the actual anonymous provider flow, CAPTCHA origin/CSP,
-expiry/cleanup and the desired guest journal policy. Existing authenticated guest
-trials historically permit their own journal data; they must not be mistaken for
-registered-account login when evaluating a stricter guest privacy requirement.
+The owner configured Cloudflare Turnstile and enabled Supabase CAPTCHA and
+anonymous sign-ins. The public site key for `moodprint.duckdns.org` is
+`0x4AAAAAAFwi8Fwa_Gv_O6n3`. Set `AUTH_CAPTCHA_ENABLED=true`,
+`GUEST_AUTH_ENABLED=true`, and `GUEST_CAPTCHA_SITE_KEY` to that value only with
+the compatible release. Keep the Supabase CAPTCHA secret and the guest HMAC key
+in their existing secret stores; never put them in Git or logs.
+
+After hosted verification, enable `GUEST_PAID_ENABLED=true` with
+`GUEST_DAILY_BUDGET_USD=5`, `GUEST_AI_TURNS=50`, `GUEST_AI_PER_MINUTE=6`,
+`GUEST_AI_CONCURRENCY=1`, and `GUEST_AI_GLOBAL_CONCURRENCY=2`. Use the reviewed
+model/pricing configuration documented in [the runtime template](../runtime.env.example).
+Unknown pricing or insufficient global/guest headroom must refuse dispatch.
+
+Verify real CAPTCHA signup, registered login/signup/recovery/reauthentication,
+guest AI and quota, fixed 7,200-second expiry, and provider/session cleanup before
+opening the public demo. Human verification may be necessary: a rejected
+automated browser is not a successful smoke test. Never substitute test keys or
+bypass CAPTCHA. Guest trials may access their own temporary journal entries;
+matching, registered users' journals, group chat and proactive remain denied.
 
 ## End the demo or stop delivery
 
