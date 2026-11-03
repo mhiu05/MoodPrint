@@ -256,6 +256,8 @@ async def test_shadow_serves_v1_and_logs_only_aggregates(clients, caplog):
 
 
 async def test_fifty_peers_rank_quickly_with_bounded_queries(clients):
+    import gc
+    import json
     import time
 
     from sqlalchemy import event
@@ -265,22 +267,60 @@ async def test_fifty_peers_rank_quickly_with_bounded_queries(clients):
         await seed_peer(app)
     timings = []
     query_counts = []
+    cpu_timings = []
+    sql_timings = []
+    gc_pauses = []
+    collecting = {}
+    slowest_sql = None
 
-    def count_query(*_):
+    def count_query(conn, cursor, statement, parameters, context, many):
         query_counts[-1] += 1
+        context.matching_started = time.perf_counter()
+
+    def query_finished(conn, cursor, statement, parameters, context, many):
+        nonlocal slowest_sql
+        elapsed = time.perf_counter() - context.matching_started
+        sql_timings[-1].append(elapsed)
+        if statement.lstrip().upper().startswith("SELECT") and (slowest_sql is None or elapsed > slowest_sql[0]):
+            slowest_sql = (elapsed, statement, parameters)
+
+    def gc_finished(phase, info):
+        generation = info["generation"]
+        if phase == "start":
+            collecting[generation] = time.perf_counter()
+        else:
+            start = collecting.pop(generation, time.perf_counter())
+            gc_pauses.append({"generation": generation, "elapsed": time.perf_counter() - start})
 
     engine = app.state.database.engine.sync_engine
     event.listen(engine, "before_cursor_execute", count_query)
+    event.listen(engine, "after_cursor_execute", query_finished)
+    gc.callbacks.append(gc_finished)
     try:
         for _ in range(5):
             query_counts.append(0)
+            sql_timings.append([])
             start = time.perf_counter()
+            cpu_start = time.process_time()
             assert len(await candidate_aliases(client)) == 5
             timings.append(time.perf_counter() - start)
+            cpu_timings.append(time.process_time() - cpu_start)
     finally:
         event.remove(engine, "before_cursor_execute", count_query)
+        event.remove(engine, "after_cursor_execute", query_finished)
+        gc.callbacks.remove(gc_finished)
     assert max(query_counts) <= 16
-    assert sorted(timings)[-1] < 0.6
+    diagnostic = {"wall": timings, "cpu": cpu_timings, "queries": query_counts,
+                  "sqlTotal": [sum(values) for values in sql_timings], "gc": gc_pauses}
+    if max(timings) >= 0.6 and slowest_sql is not None:
+        # Synthetic fixture only: attribute a failing SLO to SQL planning/JIT,
+        # process CPU/GC or waiting without logging identifiers or SQL parameters.
+        elapsed, statement, parameters = slowest_sql
+        async with app.state.database.engine.connect() as db:
+            plan = (await db.exec_driver_sql("EXPLAIN (ANALYZE, BUFFERS, SETTINGS, FORMAT JSON) " + statement, parameters)).scalar()[0]
+        diagnostic["slowestSql"] = {"elapsed": elapsed, "cost": plan["Plan"]["Total Cost"],
+                                    "executionMs": plan["Execution Time"], "jit": plan.get("JIT")}
+    assert max(timings) < 0.6, json.dumps(diagnostic)
 
 
 @pytest.mark.parametrize("rule", ["block_by_viewer", "cooldown", "open_room", "pending_request"])
