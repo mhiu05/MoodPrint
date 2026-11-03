@@ -14,8 +14,16 @@ function yesterday() {
   return new Date(Date.UTC(y, m - 1, d - 1)).toISOString().slice(0, 10);
 }
 
-async function toggle(page: Page, bot: string, slot: RegExp) {
-  const card = page.getByRole("region", { name: bot });
+async function openSettings(page: Page, botId: string, name: string) {
+  await page.goto(`/#/assistants/${botId}?panel=info&section=check-ins`);
+  const card = page.getByRole("region", { name: `Lời hỏi thăm của ${name}`, exact: true });
+  await expect(card).toBeVisible();
+  await expect(card.getByRole("switch")).toHaveCount(2);
+  return card;
+}
+
+async function toggle(page: Page, botId: string, name: string, slot: RegExp) {
+  const card = await openSettings(page, botId, name);
   await card.getByRole("switch", { name: slot }).click();
   await expect(card.getByRole("status")).toHaveText("Đã lưu");
 }
@@ -28,18 +36,21 @@ test("schedule, delivery, unread, provenance and read state work end to end", as
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
 
-  await page.goto("/#/check-ins");
-  await expect(page.getByRole("heading", { level: 1, name: "Lời hỏi thăm từ trợ lý" })).toBeVisible();
-  await toggle(page, "Mây", /Buổi tối/);
-  await toggle(page, "Nhịp", /Buổi sáng/);
+  // User 52 keeps the legacy companion roster, including when the V3 cohort is enabled.
+  // Each route owns its schedules; the former account-wide editor now redirects here.
+  await toggle(page, "may", "Mây", /Buổi tối/);
+  await toggle(page, "nhip", "Nhịp", /Buổi sáng/);
   const optIn = page.getByRole("checkbox", { name: "Dùng khoảnh khắc đã lưu hôm qua" });
+  const consentSaved = page.waitForResponse(response => response.url().endsWith("/ai/proactive/settings") && response.request().method() === "PUT");
   await optIn.click();
+  expect((await consentSaved).ok()).toBe(true);
   await expect(optIn).toBeChecked();
-  await expect(page.getByText("Đang dùng 2/4")).toBeVisible();
+  await expect(page.getByText("Đang dùng 2/4 trên toàn tài khoản", { exact: true })).toBeVisible();
 
   // Reload: the saved state comes back from PostgreSQL.
+  await openSettings(page, "may", "Mây");
   await page.reload();
-  await expect(page.getByRole("region", { name: "Mây" }).getByRole("switch", { name: /Buổi tối/ })).toBeChecked();
+  await expect(page.getByRole("region", { name: "Lời hỏi thăm của Mây", exact: true }).getByRole("switch", { name: /Buổi tối/ })).toBeChecked();
 
   const run = await page.request.post("http://127.0.0.1:5174/__test/proactive/run", { data: { userId: USER_ID, journalYesterday: yesterday() } });
   expect(run.ok()).toBe(true);
@@ -88,9 +99,9 @@ test("schedule, delivery, unread, provenance and read state work end to end", as
   await expect(other.getByRole("region", { name: "Lời nhắn mới" })).toBeHidden();
 
   // Turning journal use off takes effect at once.
-  await page.goto("/#/check-ins");
-  await page.getByRole("checkbox", { name: "Dùng khoảnh khắc đã lưu hôm qua" }).click();
-  await expect(page.getByRole("region", { name: "Nhịp" }).getByRole("status")).toHaveText("Đã lưu");
+  const journalSettings = await openSettings(page, "nhip", "Nhịp");
+  await journalSettings.getByRole("checkbox", { name: "Dùng khoảnh khắc đã lưu hôm qua" }).click();
+  await expect(journalSettings.getByRole("status")).toHaveText("Đã lưu");
   expect(errors).toEqual([]);
   await context.close();
 });
