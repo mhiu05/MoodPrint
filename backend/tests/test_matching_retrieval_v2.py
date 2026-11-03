@@ -265,6 +265,12 @@ async def test_fifty_peers_rank_quickly_with_bounded_queries(clients):
     app, client, me = await viewer(clients)
     for _ in range(50):
         await seed_peer(app)
+    # Previous integration cases create independent FastAPI/ORM object graphs.
+    # CI diagnostics measured their generation-2 collection at 4.22s inside the
+    # first request (SQL14ms; remaining requests26-28ms). Finish that fixture
+    # cleanup before benchmarking this app; normal GC stays enabled throughout
+    # all five measured requests, including their own allocations/collections.
+    gc.collect()
     timings = []
     query_counts = []
     cpu_timings = []
