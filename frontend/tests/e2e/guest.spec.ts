@@ -99,6 +99,13 @@ async function fillEligible(page: Page, year = THIS_YEAR - 25) {
 
 const submit = (page: Page) => page.getByRole("button", { name: /Bắt đầu dùng thử|Thử lại/ });
 
+/** Creation lands in chat; countdown and quota live in the account tab. */
+async function openTrialAccount(page: Page) {
+  await expect(page).toHaveURL(/#\/assistants$/);
+  await page.getByRole("link", { name: "Tài khoản", exact: true }).click();
+  await expect(page.getByTestId("guest-status")).toBeVisible();
+}
+
 test("under 16 is stopped on the device: no intent, no identity request", async ({ page }) => {
   const calls = await entry(page, ["ok"]);
   await openEntry(page);
@@ -137,7 +144,7 @@ test("the eighteenth-year guest explicitly attests actual birthday before creati
   expect(posts(calls, "/auth/guest")).toEqual([]);
   await page.getByRole("checkbox", { name: "Tôi xác nhận mình đã đủ 18 tuổi.", exact: true }).check();
   await submit(page).click();
-  await expect(page.getByTestId("guest-status")).toBeVisible();
+  await openTrialAccount(page);
   expect(posts(calls, "/auth/guest")[0].body).toMatchObject({ eligibility: { confirmedAdultAge: true, policyVersion: "self-declared-age-v2-18plus" } });
 });
 
@@ -146,8 +153,8 @@ test("a started trial opens the app with the countdown and stores no secret", as
   await openEntry(page);
   await fillEligible(page);
   await submit(page).click();
+  await openTrialAccount(page);
   await expect(page.getByTestId("guest-status")).toContainText("Đang dùng thử · còn 2 giờ");
-  await expect(page).toHaveURL(/#\/assistants$/);
 
   expect(posts(calls, "/auth/guest-intents")).toHaveLength(1);
   const [guest] = posts(calls, "/auth/guest");
@@ -171,6 +178,7 @@ test("guest AI usage warning shows used turns against the session limit", async 
   await openEntry(page);
   await fillEligible(page);
   await submit(page).click();
+  await openTrialAccount(page);
   await expect(page.getByText("Bạn đã sử dụng 40/50 lượt trò chuyện trong phiên dùng thử.")).toBeVisible();
   expect(posts(calls, "/auth/guest")).toHaveLength(1);
 });
@@ -180,7 +188,7 @@ test("guest AI quota warning stays hidden while AI is unavailable", async ({ pag
   await openEntry(page);
   await fillEligible(page);
   await submit(page).click();
-  await expect(page.getByTestId("guest-status")).toBeVisible();
+  await openTrialAccount(page);
   await expect(page.getByText("Bạn đã sử dụng 40/50 lượt trò chuyện trong phiên dùng thử.")).toHaveCount(0);
 });
 
@@ -199,7 +207,7 @@ test("a failed attempt retries with the same key and creates no second intent", 
   await submit(page).click();
   await expect(page.getByRole("button", { name: "Bắt đầu dùng thử" })).toBeEnabled();
   await submit(page).click();
-  await expect(page.getByTestId("guest-status")).toBeVisible();
+  await openTrialAccount(page);
 
   expect(posts(calls, "/auth/guest-intents")).toHaveLength(1);
   const attempts = posts(calls, "/auth/guest");
@@ -222,7 +230,7 @@ test("an unknown outcome is explained and resumed with the same request, never a
   await submit(page).click();
   await expect(page.getByText("Đang xử lý lượt dùng thử của bạn.")).toBeVisible();
   await page.getByRole("button", { name: "Thử lại" }).click();
-  await expect(page.getByTestId("guest-status")).toBeVisible();
+  await openTrialAccount(page);
 
   expect(posts(calls, "/auth/guest-intents")).toHaveLength(1);
   const attempts = posts(calls, "/auth/guest");
@@ -239,7 +247,7 @@ test("a definitive rejection needs a fresh challenge token, a fresh key and a fr
   await expect(page.getByText("Bước kiểm tra chưa hợp lệ.")).toBeVisible();
   await expect(page.locator("[data-solves='2']")).toBeAttached();
   await submit(page).click();
-  await expect(page.getByTestId("guest-status")).toBeVisible();
+  await openTrialAccount(page);
 
   const attempts = posts(calls, "/auth/guest");
   expect(attempts).toHaveLength(2);
@@ -255,7 +263,7 @@ test("a double click makes exactly one intent and one creation request", async (
   await openEntry(page);
   await fillEligible(page);
   await submit(page).dblclick();
-  await expect(page.getByTestId("guest-status")).toBeVisible();
+  await openTrialAccount(page);
   expect(posts(calls, "/auth/guest-intents")).toHaveLength(1);
   expect(posts(calls, "/auth/guest")).toHaveLength(1);
 });
@@ -288,8 +296,8 @@ test("failed end is reported and never claims deletion was accepted", async ({ p
   await app(page, guestSession(7_000_000), {
     "/auth/guest/end": () => ended ? { status: 204 } : failure(503, "GUEST_END_UNAVAILABLE", "Chưa thể kết thúc lượt dùng thử."),
   });
-  await page.goto("/#/assistants");
-  await page.getByTestId("guest-status").getByRole("button", { name: "Kết thúc và xóa lượt dùng thử" }).click();
+  await page.goto("/#/profile");
+  await page.getByRole("region", { name: "Tài khoản & hỗ trợ" }).getByRole("button", { name: "Kết thúc và xóa lượt dùng thử", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Kết thúc và xóa", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText("Chưa thể kết thúc lượt dùng thử.");
   await expect(page.getByRole("heading", { name: "Lượt dùng thử đã kết thúc" })).toHaveCount(0);
@@ -354,7 +362,7 @@ test("end and register cancellation keeps the private view and restores focus", 
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(trigger).toBeFocused();
-  await expect(page.getByTestId("guest-status")).toBeVisible();
+  await expect(page.getByText("Tạo tài khoản để tìm bạn và nhắn tin.")).toBeVisible();
   expect(ends).toBe(0);
 });
 
@@ -376,7 +384,7 @@ for (const failureKind of ["503", "network"]) {
     const dialog = page.getByRole("dialog");
     await dialog.getByRole("button", { name: "Kết thúc và tạo tài khoản" }).click();
     await expect(dialog.getByRole("alert")).toBeVisible();
-    await expect(page.getByTestId("guest-status")).toBeVisible();
+    await expect(page.getByText("Tạo tài khoản để tìm bạn và nhắn tin.")).toBeVisible();
     await expect(page.getByLabel("Nhập lại mật khẩu", { exact: true })).toHaveCount(0);
     expect(ends).toBe(1);
     await page.screenshot({ path: artifactPath(`ux1-error-${failureKind}.png`) });
@@ -421,7 +429,7 @@ test.describe("inside a trial", () => {
   });
 
   test("ending the trial asks first, then clears the private tree", async ({ page }) => {
-    const calls = await inTrial(page, "/#/assistants");
+    const calls = await inTrial(page, "/#/profile");
     await page.getByRole("button", { name: "Kết thúc và xóa lượt dùng thử" }).click();
     const dialog = page.getByRole("dialog", { name: "Kết thúc và xóa lượt dùng thử?" });
     await dialog.getByRole("button", { name: "Giữ lượt dùng thử" }).click();

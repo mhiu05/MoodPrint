@@ -827,7 +827,8 @@ test.describe("aria-controls relationships (MR11)", () => {
     const field = page.getByRole("dialog", { name: "Đổi tên cuộc trò chuyện" }).getByRole("textbox", { name: "Tên cuộc trò chuyện" });
     await expect(field).toBeVisible();
     await expect(field).toBeFocused();
-    await expect(trigger(page)).toHaveAttribute("aria-controls", /.+/);
+    // A child editor suspends the stable parent host at every viewport size.
+    await expect(trigger(page)).not.toHaveAttribute("aria-controls", /.+/);
     expect(await danglingControls(page)).toEqual([]);
     await page.setViewportSize({ width: 900, height: 900 });
     await expect(trigger(page)).not.toHaveAttribute("aria-controls", /.+/);
@@ -835,6 +836,10 @@ test.describe("aria-controls relationships (MR11)", () => {
     await expect(field).toBeFocused();
     expect(await danglingControls(page)).toEqual([]);
     await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(trigger(page)).not.toHaveAttribute("aria-controls", /.+/);
+    await expect(field).toBeFocused();
+    expect(await danglingControls(page)).toEqual([]);
+    await page.keyboard.press("Escape");
     await expect(trigger(page)).toHaveAttribute("aria-controls", /.+/);
     expect(await danglingControls(page)).toEqual([]);
   });

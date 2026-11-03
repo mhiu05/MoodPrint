@@ -171,7 +171,13 @@ test("native app dialog suspends guidance before taking focus", async ({ page })
   await open(page);
   await page.getByRole("button", { name: "Bắt đầu hướng dẫn", exact: true }).click();
   await expect(page.getByText("Bước 1/4", { exact: true })).toBeVisible();
-  await page.getByTestId("guest-status").getByRole("button", { name: "Kết thúc và xóa lượt dùng thử", exact: true }).click();
+  // The trial-ending action lives in Account. Reach it through the tour itself,
+  // keeping guidance active until the real native dialog takes focus.
+  for (let step = 0; step < 3; step++) {
+    await page.getByRole("button", { name: "Tiếp", exact: true }).click();
+    await expect(page.getByText(`Bước ${step + 2}/4`, { exact: true })).toBeVisible();
+  }
+  await page.getByRole("button", { name: "Kết thúc và xóa lượt dùng thử", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Kết thúc và xóa lượt dùng thử?", exact: true })).toBeVisible();
   await expect(page.locator(".onboarding-target")).toHaveCount(0);
 });

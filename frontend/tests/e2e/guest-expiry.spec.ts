@@ -40,8 +40,10 @@ test("the deadline replaces the private tree and drops answers that arrive after
       })
       .catch(() => undefined); // the page aborted the request: nothing is left to answer
   });
-  await page.goto("/#/assistants");
+  await page.goto("/#/profile");
   await expect(page.getByTestId("guest-status")).toContainText("còn 10 phút");
+  await page.getByRole("link", { name: "Trợ lý", exact: true }).click();
+  await expect.poll(() => held).toBeGreaterThan(0);
 
   await page.clock.fastForward(11 * MINUTE);
   await expect(endedHeading(page)).toBeFocused();
@@ -59,7 +61,7 @@ test("the deadline replaces the private tree and drops answers that arrive after
 test("rewinding the device clock cannot extend a trial", async ({ page }) => {
   await page.clock.install();
   await trial(page, 10 * MINUTE);
-  await page.goto("/#/assistants");
+  await page.goto("/#/profile");
   await expect(page.getByTestId("guest-status")).toContainText("còn 10 phút");
   await page.clock.setSystemTime(new Date(Date.now() - 3 * 60 * MINUTE));
   await page.clock.fastForward(11 * MINUTE);
@@ -69,7 +71,7 @@ test("rewinding the device clock cannot extend a trial", async ({ page }) => {
 test("a pending focus refresh cannot extend the original monotonic deadline", async ({ page }) => {
   await page.clock.install();
   await trial(page, 10 * MINUTE);
-  await page.goto("/#/assistants");
+  await page.goto("/#/profile");
   await expect(page.getByTestId("guest-status")).toContainText("còn 10 phút");
   await page.clock.fastForward(9 * MINUTE);
   let release!: () => void;
@@ -124,7 +126,7 @@ test("a late SSE final cannot repopulate the private tree after expiry", async (
 test("moving the device clock forward only reads the server's verdict, it does not end a live trial", async ({ page }) => {
   await page.clock.install();
   const calls = await trial(page, 60 * MINUTE);
-  await page.goto("/#/assistants");
+  await page.goto("/#/profile");
   await expect(page.getByTestId("guest-status")).toContainText("còn 1 giờ");
   await page.clock.setSystemTime(new Date(Date.now() + 3 * 60 * MINUTE));
   await page.clock.fastForward(MINUTE);
@@ -155,7 +157,7 @@ test("coming back to the tab re-reads the session and notices an expiry the serv
   await trial(page, 60 * MINUTE, {
     "/session": () => (expired ? failure(401, "GUEST_EXPIRED", "Lượt dùng thử đã kết thúc.") : undefined),
   });
-  await page.goto("/#/assistants");
+  await page.goto("/#/profile");
   await expect(page.getByTestId("guest-status")).toBeVisible();
   expired = true;
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
@@ -166,8 +168,8 @@ test("multiple tabs: ending the trial in one tab ends it in the others, with no 
   await trial(page, 60 * MINUTE);
   const other = await page.context().newPage();
   await trial(other, 60 * MINUTE);
-  await page.goto("/#/assistants");
-  await other.goto("/#/assistants");
+  await page.goto("/#/profile");
+  await other.goto("/#/profile");
   await expect(page.getByTestId("guest-status")).toBeVisible();
   await expect(other.getByTestId("guest-status")).toBeVisible();
 

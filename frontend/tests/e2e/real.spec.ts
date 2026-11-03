@@ -77,7 +77,7 @@ async function api(page: Page, authenticated = true) {
 test("AI starters edit the draft without sending and stay hidden after the first accepted user message", async ({ page }) => {
   await api(page);
   const sent: unknown[] = [];
-  await page.route(`**/api/v1/ai/conversations/${conversation.conversationId}`, (route) => route.fulfill({
+  await page.route(url => url.pathname === `/api/v1/ai/conversations/${conversation.conversationId}`, (route) => route.fulfill({
     json: {
       ...conversation, version: sent.length ? 3 : 1,
       messages: sent.length ? [
@@ -117,7 +117,7 @@ async function scopedNhip(page: Page, submitted: any[], fail = false) {
   await page.route("**/api/v1/bots", route => route.fulfill({ json: [{ ...bot, botId: "nhip", name: "Nhịp", avatarKey: "nhip" }] }));
   await page.route("**/api/v1/ai/conversations", route => route.fulfill({ json: route.request().method() === "GET" ? [] : { ...conversation, botId: "nhip" } }));
   let version = 1;
-  await page.route(`**/api/v1/ai/conversations/${conversation.conversationId}`, route => route.fulfill({ json: { ...conversation, botId: "nhip", version } }));
+  await page.route(url => url.pathname === `/api/v1/ai/conversations/${conversation.conversationId}`, route => route.fulfill({ json: { ...conversation, botId: "nhip", version } }));
   await page.route(`**/api/v1/ai/conversations/${conversation.conversationId}/messages`, route => {
     submitted.push(route.request().postDataJSON());
     if (fail) return route.fulfill({ status: 503, json: { error: { code: "UNAVAILABLE", message: "Chưa gửi được. Thử lại nhé." } } });
@@ -566,7 +566,7 @@ test("AI presents the validated final and rejects raw stream deltas", async ({
 }) => {
   await api(page);
   await page.route(
-    `**/api/v1/ai/conversations/${conversation.conversationId}`,
+    url => url.pathname === `/api/v1/ai/conversations/${conversation.conversationId}`,
     (route) =>
       route.fulfill({
         json: {
@@ -637,7 +637,7 @@ test("bot Markdown renders emphasis and lists without HTML, active links or remo
   await api(page);
   const text = "**Một bước nhỏ**\n\n- Mở sổ\n- Vẽ một nét\n\n[Liên kết](https://example.test)\n\n![Ảnh](https://example.test/pixel.png)\n\n<script>window.syntheticLeak = true</script>";
   await page.route("**/api/v1/ai/conversations", route => route.fulfill({ json: [conversation] }));
-  await page.route(`**/api/v1/ai/conversations/${conversation.conversationId}`, route => route.fulfill({ json: { ...conversation, messages: [{ id: "synthetic-markdown", actor: "bot", text, cards: [] }] } }));
+  await page.route(url => url.pathname === `/api/v1/ai/conversations/${conversation.conversationId}`, route => route.fulfill({ json: { ...conversation, messages: [{ id: "synthetic-markdown", actor: "bot", text, cards: [] }] } }));
   await page.goto(`/#/assistants/may?conversation=${conversation.conversationId}`);
   const bubble = page.locator(".from-bot .chat-bubble");
   await expect(bubble.locator("strong")).toHaveText("Một bước nhỏ");
@@ -652,7 +652,7 @@ test("the next AI send uses the version persisted after final completion", async
   await api(page);
   const versions: number[] = [];
   await page.route(
-    `**/api/v1/ai/conversations/${conversation.conversationId}`,
+    url => url.pathname === `/api/v1/ai/conversations/${conversation.conversationId}`,
     (route) =>
       route.fulfill({
         json: {
@@ -801,7 +801,7 @@ test("validated AI cards navigate to existing tools without claiming a saved act
 }) => {
   await api(page);
   await page.route(
-    `**/api/v1/ai/conversations/${conversation.conversationId}`,
+    url => url.pathname === `/api/v1/ai/conversations/${conversation.conversationId}`,
     (route) =>
       route.fulfill({
         json: {
