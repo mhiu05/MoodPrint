@@ -309,7 +309,7 @@ class AiRuntime:
         run.events.append(event)
         run.wake.set()
 
-    async def check(self, run: LiveRun) -> None:
+    async def check(self, run: LiveRun, *, completed_ok: bool = False) -> None:
         if run.deadline is not None and run.deadline.remaining() <= 0:
             raise guest_expired()
         if run.terminal or time.monotonic() - run.started > self.settings.ai_timeout_seconds:
@@ -330,7 +330,7 @@ class AiRuntime:
                     AiRun.conversation_id == run.conversation_id,
                 )
             )
-            if status != "running":
+            if status != "running" and not (completed_ok and status == "completed"):
                 raise DomainError(410, "RUN_ENDED", "Lượt trò chuyện đã kết thúc.")
             if self.settings.ai_accounting_enabled:
                 usage = await db.get(AiUsage, run.id)
@@ -648,25 +648,36 @@ class AiRuntime:
             return
         from app.modules.guests import accounting, limits, pricing
 
-        actual: int | None = None
-        if (
-            status == "completed"
-            and run.dispatched
-            and run.usage.responses_received > 0
-            and run.usage.requests_started == run.usage.responses_received
-            and (run.usage.input_tokens or run.usage.output_tokens)
-        ):
-            actual = pricing.actual_ai_cost(
-                self.settings.guest_pricing_json,
-                run.usage.input_tokens,
-                run.usage.cached_input_tokens,
-                run.usage.output_tokens,
-            )
         try:
             async with self.database.require()() as db, db.begin():
                 if not run.dispatched:
                     await accounting.release_guest_operation(db, run.reservation.id)
                 else:
+                    # Cancellation can arrive after publication COMMIT but before
+                    # drive records its local completed status. Bill the immutable
+                    # durable outcome; this does not authorize any output publication.
+                    durable_status = await db.scalar(select(AiRun.status).where(
+                        AiRun.id == run.id, AiRun.user_id == run.actor.user_id,
+                        AiRun.conversation_id == run.conversation_id,
+                    ))
+                    durable_usage = await db.get(AiUsage, run.id) if self.settings.ai_accounting_enabled else None
+                    usage = durable_usage if self.settings.ai_accounting_enabled else run.usage
+                    actual: int | None = None
+                    if (
+                        durable_status == "completed"
+                        and usage is not None
+                        and (not self.settings.ai_accounting_enabled or (
+                            durable_usage is not None and durable_usage.state == "settled"
+                            and durable_usage.worker_id == self.worker_id
+                        ))
+                        and usage.responses_received > 0
+                        and usage.requests_started == usage.responses_received
+                        and (usage.input_tokens or usage.output_tokens)
+                    ):
+                        actual = pricing.actual_ai_cost(
+                            self.settings.guest_pricing_json,
+                            usage.input_tokens, usage.cached_input_tokens, usage.output_tokens,
+                        )
                     await accounting.settle_guest_operation(db, run.reservation, actual)
             if run.quota is not None:
                 async with self.database.require()() as db, db.begin():
@@ -778,7 +789,10 @@ class AiRuntime:
                     while True:
                         await asyncio.sleep(0.5)
                         try:
-                            await self.check(run)
+                            # Our publication may have committed while its return
+                            # is still queued. Fresh policy/lease checks still run,
+                            # but our own completion must not cancel the publisher.
+                            await self.check(run, completed_ok=True)
                         except Exception:
                             if run.task and not run.task.done():
                                 run.task.cancel()
