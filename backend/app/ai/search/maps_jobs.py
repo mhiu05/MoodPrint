@@ -115,27 +115,35 @@ async def start_search(runtime, run, intent):
 
 
 async def read_view(database, provider, identity, actor, *, scope_id=None):
-    async with database.require()() as db, db.begin():
-        row = await db.get(AiMapsSearch, identity)
-        if row is None:
-            raise DomainError(404, "MAPS_NOT_FOUND", "Không tìm thấy kết quả còn hiệu lực.")
-        await authorized(db, row, actor, scope_id=scope_id)
-        status = row.status
-        view = MapsSearchView(search_id=row.id, status=status, version=row.version, expires_at=row.expires_at)
-        ref = ProviderRunRef(**row.provider_ref) if row.provider_ref else None
-    places = _results.get(identity, ([], now()))[0]
-    if status == "ready" and not places and ref and provider is not None:
-        places = await provider.results(ref)
-        cache(identity, places, view.expires_at)
-    # Authorization is checked again after provider I/O (GET never starts an actor/model).
-    async with database.require()() as db, db.begin():
-        current = await db.get(AiMapsSearch, identity)
-        await authorized(db, current, actor, scope_id=scope_id)
-        if current.status != status:
-            view.status, view.version = current.status, current.version
-    if view.status == "ready":
-        view.places = places
-    return view
+    # A worker can finish between the two authorization snapshots. Re-read that
+    # ready transition so the terminal response contains its places before the
+    # browser stops polling. Only one transition into ready is possible per job.
+    for _ in range(2):
+        async with database.require()() as db, db.begin():
+            row = await db.get(AiMapsSearch, identity)
+            if row is None:
+                raise DomainError(404, "MAPS_NOT_FOUND", "Không tìm thấy kết quả còn hiệu lực.")
+            await authorized(db, row, actor, scope_id=scope_id)
+            status = row.status
+            view = MapsSearchView(search_id=row.id, status=status, version=row.version, expires_at=row.expires_at)
+            ref = ProviderRunRef(**row.provider_ref) if row.provider_ref else None
+        places = _results.get(identity, ([], now()))[0]
+        if status == "ready" and not places and ref and provider is not None:
+            places = await provider.results(ref)
+            cache(identity, places, view.expires_at)
+        # Authorization is checked again after provider I/O (GET never starts an actor/model).
+        async with database.require()() as db, db.begin():
+            current = await db.get(AiMapsSearch, identity)
+            await authorized(db, current, actor, scope_id=scope_id)
+            became_ready = status != "ready" and current.status == "ready"
+            if current.status != status:
+                view.status, view.version = current.status, current.version
+        if became_ready:
+            continue
+        if view.status == "ready":
+            view.places = places
+        return view
+    raise DomainError(409, "MAPS_VIEW_CHANGED", "Kết quả vừa thay đổi. Hãy tải lại thẻ.")
 
 
 async def maps_for_turn(runtime, run, intent):

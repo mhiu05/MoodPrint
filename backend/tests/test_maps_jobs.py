@@ -56,6 +56,58 @@ class FakeMaps:
 
 
 @pytest.mark.postgres
+@pytest.mark.parametrize("cancel_during_results", [False, True])
+async def test_ready_during_read_revalidation_includes_places_before_polling_stops(clients, monkeypatch, cancel_during_results):
+    from app.ai.search import maps_jobs
+    from app.ai.search.models import AiMapsSearch
+    from app.infrastructure.database.models import User
+    from tests.test_chat_persistence import enable
+
+    app, actors = clients
+    client, uid = actors[0]
+    await enable(client)
+    identity = await seed(app, uid)
+    async with app.state.database.sessions.begin() as db:
+        job = await db.get(AiMapsSearch, identity)
+        job.data_version = (await db.get(User, uid)).data_version
+    maps_jobs._results.pop(identity, None)  # API and worker have separate process caches.
+    original = maps_jobs.authorized
+    checks = 0
+
+    async def complete_between_snapshots(db, job, actor, **kwargs):
+        nonlocal checks
+        await original(db, job, actor, **kwargs)
+        checks += 1
+        if checks == 2:
+            # The worker commits ready after the initial pending read, before
+            # the API's post-I/O authorization snapshot is observed.
+            job.status = "ready"
+            job.version += 1
+
+    monkeypatch.setattr(maps_jobs, "authorized", complete_between_snapshots)
+    class CompletingMaps(FakeMaps):
+        async def results(self, ref):
+            if cancel_during_results:
+                async with app.state.database.sessions.begin() as db:
+                    job = await db.get(AiMapsSearch, identity)
+                    job.cancel_requested = True
+            return await super().results(ref)
+
+    app.state.ai.maps_provider = CompletingMaps()
+    response = await client.get(f"/api/v1/ai/maps-searches/{identity}")
+    if cancel_during_results:
+        assert response.status_code == 404
+        assert "mapsUrl" not in response.text
+        return
+    assert response.status_code == 200
+    view = response.json()
+    assert view["status"] == "ready"
+    assert len(view["places"]) == 1, "a terminal response must include results before the UI stops polling"
+    assert view["places"][0]["mapsUrl"].startswith("https://www.google.com/maps/")
+    assert app.state.ai.maps_provider.starts == 0
+
+
+@pytest.mark.postgres
 async def test_worker_claim_releases_job_before_waiting_for_owner_cancel(clients, monkeypatch):
     import asyncio
 
