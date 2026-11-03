@@ -62,9 +62,9 @@ async def budget_liability(db, at: datetime) -> int:
     # financial authority and survive deleting every guest identity and usage row.
     registered = select(User.id).where(User.id == AiUsage.user_id, User.account_kind != "guest").exists()
     total = int(await db.scalar(select(func.coalesce(func.sum(cost), 0)).where(relevant, registered)) or 0)
+    from app.ai.search.accounting import external_liability
     from app.modules.guests.accounting import detached_liability
-
-    return total + await detached_liability(db, at)
+    return total + await detached_liability(db, at) + await external_liability(db, at)
 
 
 @dataclass

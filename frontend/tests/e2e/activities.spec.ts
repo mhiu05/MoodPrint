@@ -477,12 +477,14 @@ async function dockSamples(page: Page) {
 test("the dock enters with at most 16px of travel and fully readable text", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 390, height: 844 });
-  await chat(page, { current: null, posts: [] });
+  const state: ChatState = { current: null, posts: [] };
+  await chat(page, state);
   await page.goto("/#/chat/room-1");
   await expect(page.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" })).toBeEnabled();
   await dockSamples(page);
-  await page.unroute("**/api/v1/**");
-  await chat(page, { current: running(), posts: [] });
+  // Keep interception installed: removing it lets concurrent history/session reads
+  // escape to the dev proxy and can redirect this synthetic session to /login.
+  state.current = running();
   await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
   await expect(page.getByRole("region", { name: /Hoạt động chung/ })).toBeVisible();
   await page.waitForTimeout(400);
@@ -500,12 +502,12 @@ test("the dock enters with at most 16px of travel and fully readable text", asyn
 test("with reduced motion the dock appears in place", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 390, height: 844 });
-  await chat(page, { current: null, posts: [] });
+  const state: ChatState = { current: null, posts: [] };
+  await chat(page, state);
   await page.goto("/#/chat/room-1");
   await expect(page.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" })).toBeEnabled();
   await dockSamples(page);
-  await page.unroute("**/api/v1/**");
-  await chat(page, { current: running(), posts: [] });
+  state.current = running();
   await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
   await expect(page.getByRole("region", { name: /Hoạt động chung/ })).toBeVisible();
   await page.waitForTimeout(300);

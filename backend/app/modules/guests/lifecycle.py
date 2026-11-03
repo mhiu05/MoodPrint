@@ -131,6 +131,10 @@ INVENTORY: dict[str, str] = {
     "matching_stats_daily": "detached",
     "app_feedback": "detached",
     "feedback_review_events": "detached",
+    # Search is registered-only, so guests never own these; user/run FKs are SET NULL and the
+    # content-free fee ledger/job metadata outlive any identity until settlement and cleanup.
+    "ai_search_usage": "detached",
+    "ai_maps_searches": "detached",
 }
 
 

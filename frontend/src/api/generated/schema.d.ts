@@ -866,6 +866,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/maps-searches/{search_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Maps */
+        get: operations["get_maps_api_v1_ai_maps_searches__search_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/maps-searches/{search_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Maps */
+        post: operations["cancel_maps_api_v1_ai_maps_searches__search_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/prompt-capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Prompt Capabilities */
+        get: operations["prompt_capabilities_api_v1_ai_prompt_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ai/sharing": {
         parameters: {
             query?: never;
@@ -2072,7 +2123,14 @@ export interface components {
             /** Text */
             text: string;
             /** Cards */
-            cards?: (components["schemas"]["NavigateCard"] | components["schemas"]["MoodCard"] | components["schemas"]["DiscoveryCard"])[];
+            cards?: (components["schemas"]["NavigateCard"] | components["schemas"]["MoodCard"] | components["schemas"]["DiscoveryCard"] | components["schemas"]["MapsSearchCard"] | components["schemas"]["PlacesCard"])[];
+            /** Citations */
+            citations?: components["schemas"]["Citation"][];
+            /**
+             * Sourcebacked
+             * @default false
+             */
+            sourceBacked: boolean;
             /** Createdat */
             createdAt?: string | null;
             /** Runid */
@@ -2432,6 +2490,32 @@ export interface components {
         CandidateListDTO: {
             /** Candidates */
             candidates: components["schemas"]["CandidateCardDTO"][];
+        };
+        /** Capability */
+        Capability: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** Citation */
+        Citation: {
+            /** Sourceid */
+            sourceId: string;
+            /** Title */
+            title: string;
+            /** Url */
+            url: string;
+            /** Start */
+            start: number;
+            /** End */
+            end: number;
         };
         /** ClaimInput */
         ClaimInput: {
@@ -2853,6 +2937,21 @@ export interface components {
              * @default false
              */
             groupChat: boolean;
+            /**
+             * Websearch
+             * @default false
+             */
+            webSearch: boolean;
+            /**
+             * Mapssearch
+             * @default false
+             */
+            mapsSearch: boolean;
+            /**
+             * Agentskills
+             * @default false
+             */
+            agentSkills: boolean;
         };
         /** FeedbackAdminView */
         FeedbackAdminView: {
@@ -3455,6 +3554,48 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** MapsSearchCard */
+        MapsSearchCard: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "maps_search";
+            /**
+             * Searchid
+             * Format: uuid
+             */
+            searchId: string;
+        };
+        /** MapsSearchView */
+        MapsSearchView: {
+            /**
+             * Searchid
+             * Format: uuid
+             */
+            searchId: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "starting" | "pending" | "ready" | "empty" | "failed" | "timed_out" | "cancelled" | "expired";
+            /** Version */
+            version: number;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+            /**
+             * Retryafterseconds
+             * @default 2
+             */
+            retryAfterSeconds: number;
+            /** Places */
+            places?: components["schemas"]["PlaceResult"][];
+            /** Errorcode */
+            errorCode?: string | null;
+        };
         /** MediaAccess */
         MediaAccess: {
             /** Url */
@@ -3733,6 +3874,61 @@ export interface components {
             /** Joined */
             joined?: boolean | null;
         };
+        /** PlaceResult */
+        PlaceResult: {
+            /**
+             * Placeid
+             * @default null
+             */
+            placeId: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Category
+             * @default null
+             */
+            category: string | null;
+            /** Address */
+            address: string;
+            /**
+             * Rating
+             * @default null
+             */
+            rating: number | null;
+            /**
+             * Ratingcount
+             * @default null
+             */
+            ratingCount: number | null;
+            /**
+             * Openinghours
+             * @default null
+             */
+            openingHours: string[] | null;
+            /** Mapsurl */
+            mapsUrl: string;
+            /**
+             * Fetchedat
+             * Format: date-time
+             */
+            fetchedAt: string;
+            /**
+             * Provider
+             * @default apify
+             * @constant
+             */
+            provider: "apify";
+        };
+        /** PlacesCard */
+        PlacesCard: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "places";
+            /** Places */
+            places: components["schemas"]["PlaceResult"][];
+        };
         /** PreviewView */
         PreviewView: {
             profile: components["schemas"]["PublicProfile"];
@@ -3808,6 +4004,32 @@ export interface components {
             totalRounds?: number | null;
             /** Phase */
             phase: string;
+        };
+        /** PromptCapabilities */
+        PromptCapabilities: {
+            /** Skills */
+            skills: components["schemas"]["Capability"][];
+            /** Tools */
+            tools: components["schemas"]["Capability"][];
+            /**
+             * Responseprotocols
+             * @default [
+             *       2,
+             *       3
+             *     ]
+             */
+            responseProtocols: (2 | 3)[];
+        };
+        /** PromptOptions */
+        PromptOptions: {
+            /** Skillid */
+            skillId?: ("hangout" | "learn-new-thing") | null;
+            /** Tools */
+            tools?: ("web_search" | "maps_search")[];
+            /** Area */
+            area?: string | null;
+            /** Mapssearchid */
+            mapsSearchId?: string | null;
         };
         /** ProposalConfirm */
         ProposalConfirm: {
@@ -4285,6 +4507,17 @@ export interface components {
             available: boolean;
             /** Edges */
             edges: components["schemas"]["SharingEdgeView"][];
+            /**
+             * Policymode
+             * @default sharing-v1
+             * @enum {string}
+             */
+            policyMode: "sharing-v1" | "collaboration-defaults-v1";
+            /**
+             * Policyepoch
+             * @default 0
+             */
+            policyEpoch: number;
         };
         /** SignupInput */
         SignupInput: {
@@ -4326,6 +4559,13 @@ export interface components {
             /** Expectedconversationversion */
             expectedConversationVersion: number;
             moodScope?: components["schemas"]["MoodReadScope"] | null;
+            promptOptions?: components["schemas"]["PromptOptions"];
+            /**
+             * Responseprotocol
+             * @default 2
+             * @enum {integer}
+             */
+            responseProtocol: 2 | 3;
         };
         /** SummaryView */
         SummaryView: {
@@ -4470,7 +4710,7 @@ export interface components {
              * @default ai-events-v1
              * @enum {string}
              */
-            version: "ai-events-v1" | "ai-events-v2";
+            version: "ai-events-v1" | "ai-events-v2" | "ai-events-v3";
             /** Seq */
             seq: string;
             /**
@@ -4488,7 +4728,9 @@ export interface components {
             /** Text */
             text: string;
             /** Cards */
-            cards?: (components["schemas"]["NavigateCard"] | components["schemas"]["MoodCard"] | components["schemas"]["DiscoveryCard"])[];
+            cards?: (components["schemas"]["NavigateCard"] | components["schemas"]["MoodCard"] | components["schemas"]["DiscoveryCard"] | components["schemas"]["MapsSearchCard"] | components["schemas"]["PlacesCard"])[];
+            /** Citations */
+            citations?: components["schemas"]["Citation"][];
         };
         /**
          * AIReplyBubble
@@ -4505,7 +4747,7 @@ export interface components {
             /** Text */
             text: string;
             /** Cards */
-            cards?: (components["schemas"]["NavigateCard"] | components["schemas"]["MoodCard"] | components["schemas"]["DiscoveryCard"])[];
+            cards?: (components["schemas"]["NavigateCard"] | components["schemas"]["MoodCard"] | components["schemas"]["DiscoveryCard"] | components["schemas"]["MapsSearchCard"] | components["schemas"]["PlacesCard"])[];
         };
         /**
          * AIFinalV2
@@ -8822,6 +9064,7 @@ export interface operations {
             query?: {
                 limit?: number;
                 before?: string | null;
+                responseProtocol?: number;
             };
             header?: never;
             path: {
@@ -10514,6 +10757,319 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InboxView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    get_maps_api_v1_ai_maps_searches__search_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                search_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapsSearchView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    cancel_maps_api_v1_ai_maps_searches__search_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                search_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VersionInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MapsSearchView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Gone */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    prompt_capabilities_api_v1_ai_prompt_capabilities_get: {
+        parameters: {
+            query: {
+                botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromptCapabilities"];
                 };
             };
             /** @description Unauthorized */

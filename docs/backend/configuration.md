@@ -4,6 +4,24 @@ Nguồn: [Settings](../../backend/app/core/config.py) và [EmbeddingSettings](..
 
 Global flag chỉ mở capability; người dùng vẫn cần eligibility, consent và preference tương ứng. `backend/local-mvp.env.example` có thể bật giá trị khác mặc định. Production validation yêu cầu HTTPS origin/Auth, publishable key, database và các provider settings khi feature bật.
 
+Search/Skills require V3, accounting, a positive global budget, verified pricing,
+and the corresponding runtime flag. Empty Search cohort means all eligible accounts.
+Web uses the existing OpenAI key, one hosted call and a twelve-second deadline.
+Maps uses the pinned Apify actor, five results, sixty actor seconds, ninety seconds
+wall time, and a USD 0.50 reservation/cap (provider minimum verified 03/11/2026).
+The shared USD 5 Search budget is part of the global budget, not extra spending.
+
+With `AI_COLLABORATION_DEFAULTS_ENABLED=true`, all existing and new eligible accounts
+receive effective collaboration grants, including stored false/missing rows. The
+stored rows remain unchanged for rollback. `AI_COLLABORATION_POLICY_EPOCH` fences
+in-flight receipts; journal-context consent remains separate. The old settings UI
+is retired and its write API returns 410 while defaults are active. When the flag
+is false, the historical per-edge preference rules below apply.
+
+Check-in management now lives in each agent's information panel, gated by the
+existing proactive availability. Moving the UI does not enable any schedule or
+change shared timezone, quiet hours, daily caps, pause state or journal consent.
+
 | Biến | Kiểu Python | Mặc định trong mã |
 | --- | --- | --- |
 | `APP_ENV` | `Literal['development', 'test', 'production']` | `'development'` |
@@ -26,6 +44,21 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 | `SANDBOX_ENABLED` | `bool` | `False` |
 | `CHAT_HISTORY_ENABLED` | `bool` | `True` |
 | `AI_MULTI_MESSAGE_ENABLED` | `bool` | `False` |
+| `AI_WEB_SEARCH_ENABLED` | `bool` | `False` |
+| `AI_MAPS_SEARCH_ENABLED` | `bool` | `False` |
+| `AI_AGENT_SKILLS_ENABLED` | `bool` | `False` |
+| `AI_SEARCH_ROLLOUT_USER_IDS` | `list[UUID]` | `[]` |
+| `AI_SEARCH_DAILY_CAP_PER_USER` | `int` | `5` |
+| `AI_SEARCH_USER_CONCURRENCY` | `int` | `1` |
+| `AI_SEARCH_GLOBAL_CONCURRENCY` | `int` | `2` |
+| `AI_SEARCH_DAILY_BUDGET_USD` | `float` | `5` |
+| `AI_WEB_SEARCH_PRICING_VERSION` | `str` | `''` |
+| `AI_WEB_SEARCH_TOKEN_BOUND_VERIFIED` | `bool` | `False` |
+| `MAPS_SEARCH_WORKER_ENABLED` | `bool` | `False` |
+| `APIFY_API_TOKEN` | `SecretStr` | `SecretStr('')` |
+| `APIFY_MAPS_ACTOR_BUILD` | `str` | `''` |
+| `APIFY_MAPS_PRICING_VERSION` | `str` | `''` |
+| `APIFY_MAPS_CHARGE_BOUND_VERIFIED` | `bool` | `False` |
 | `PROACTIVE_ENABLED` | `bool` | `False` |
 | `PROACTIVE_WORKER_ENABLED` | `bool` | `False` |
 | `PROACTIVE_WORKER_CONCURRENCY` | `int` | `1` |
@@ -36,6 +69,8 @@ Global flag chỉ mở capability; người dùng vẫn cần eligibility, conse
 | `PROACTIVE_INACTIVE_DAYS` | `int` | `14` |
 | `PROACTIVE_ROLLOUT_USER_IDS` | `list[UUID]` | `[]` |
 | `AI_COLLABORATION_ENABLED` | `bool` | `False` |
+| `AI_COLLABORATION_DEFAULTS_ENABLED` | `bool` | `False` |
+| `AI_COLLABORATION_POLICY_EPOCH` | `int` | `2` |
 | `AI_COLLABORATION_DAILY_CAP` | `int` | `10` |
 | `AI_COLLABORATION_TIMEOUT_SECONDS` | `float` | `8` |
 | `AI_COLLABORATION_BUDGET_SHARE` | `float` | `0.7` |

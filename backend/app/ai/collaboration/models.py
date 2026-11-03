@@ -72,6 +72,9 @@ class AiCollaboration(Base):
     # Content-free outcome code of an unsuccessful consultation (timeout, invalid_output, ...).
     failure_code: Mapped[str | None] = mapped_column(String(32))
     permission_version: Mapped[int]
+    permission_policy: Mapped[str] = mapped_column(
+        String(32), default=SHARING_POLICY_VERSION, server_default=text("'sharing-v1'")
+    )
     data_version: Mapped[int]
     input_schema: Mapped[str] = mapped_column(String(32))
     input_digest: Mapped[str] = mapped_column(String(64))

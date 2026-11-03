@@ -162,7 +162,7 @@ test("the why sheet opens and closes with the keyboard and explains only kinds o
   // Never the shared values themselves (OD-10) and never technical vocabulary.
   expect(await dialog.innerText()).not.toMatch(/thấp, 5 phút|energy=|low/);
   expect(await dialog.innerText()).not.toMatch(TECH);
-  await expect(dialog.getByRole("link", { name: "Đổi cài đặt phối hợp" })).toHaveAttribute("href", "#/companion-sharing");
+  await expect(dialog.getByRole("link", { name: "Xem quyền dùng khoảnh khắc trong Nhật ký" })).toHaveAttribute("href", "#/assistants/nhatky?panel=info&section=check-ins");
   expect((await new AxeBuilder({ page }).include("dialog").withTags(["wcag2a", "wcag2aa"]).analyze()).violations).toEqual([]);
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
@@ -202,81 +202,25 @@ test("a failed consultation shows the ordinary reply without any collaboration h
 });
 
 for (const width of [1440, 768, 390, 360]) {
-  test(`sharing settings: three default-off switches, plain words, accessible at ${width}px`, async ({ page }) => {
+  test(`retired settings redirect without any hidden writes at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
-    await mount(page);
+    const seen = await mount(page);
     await page.goto("/#/companion-sharing");
-    await expect(page.getByRole("heading", { level: 1, name: "Trợ lý phối hợp với nhau" })).toBeVisible();
-    const switches = page.getByRole("switch");
-    await expect(switches).toHaveCount(3);
-    for (const index of [0, 1, 2]) await expect(switches.nth(index)).not.toBeChecked();
-    await expect(page.getByText("Cầu Nối không nhận thông tin từ trợ lý khác.")).toBeVisible();
-    const energy = page.getByRole("switch", { name: "Nhịp gợi ý mức năng lượng cho Rủ Rê" });
-    await expect(energy).toHaveAttribute("aria-disabled", "true");
-    await expect(page.getByRole("link", { name: "Mở Lịch hỏi thăm" })).toBeVisible();
-    expect(await page.locator("main").innerText()).not.toMatch(TECH);
-    await noHorizontalOverflow(page);
-    expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze()).violations).toEqual([]);
+    await expect(page).toHaveURL(/#\/assistants$/);
+    await expect(page.getByRole("switch")).toHaveCount(0);
+    expect(seen.writes).toEqual([]);
+    await page.goto("/#/profile");
+    await expect(page.getByRole("heading", { level: 1, name: "Tài khoản" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Cài đặt phối hợp" })).toHaveCount(0);
+    await expect(page.getByText("Trợ lý phối hợp với nhau", { exact: true })).toHaveCount(0);
   });
 }
 
-test("turning an edge on saves just that edge and keeps keyboard focus", async ({ page }) => {
-  const seen = await mount(page);
+test("V3 also has no collaboration settings while receipt runtime stays available", async ({ page }) => {
+  await mount(page, { sess: { ...baseSession, features: { ...baseSession.features, threeAgents: true, smartOrchestration: true } } });
   await page.goto("/#/companion-sharing");
-  const habit = page.getByRole("switch", { name: "Nhịp gợi ý thói quen nhỏ cho Mây" });
-  await habit.focus();
-  await page.keyboard.press("Space");
-  await expect(habit).toBeChecked();
-  await expect(page.getByRole("status").filter({ hasText: "Đã bật." })).toBeVisible();
-  await expect(habit).toBeFocused();
-  expect(seen.writes).toEqual([{ path: "/ai/sharing/nhip_habit_for_may", body: { enabled: true, expectedVersion: 0, policyVersion: "sharing-v1" } }]);
-  const energy = page.getByRole("switch", { name: "Nhịp gợi ý mức năng lượng cho Rủ Rê" });
-  await energy.click({ force: true });
-  await expect(energy).not.toBeChecked();
-  expect(seen.writes).toHaveLength(1);
-});
-
-test("a stale save reloads and explains, and the switch matches the server", async ({ page }) => {
-  await mount(page, { sharingError: "STALE_VERSION" });
-  await page.goto("/#/companion-sharing");
-  const habit = page.getByRole("switch", { name: "Nhịp gợi ý thói quen nhỏ cho Mây" });
-  await habit.click();
-  await expect(page.getByText("Cài đặt vừa thay đổi ở nơi khác.", { exact: false })).toBeVisible();
-  await expect(habit).not.toBeChecked();
-});
-
-test("account page links to the sharing settings only when the feature is open", async ({ page }) => {
-  await mount(page);
-  await page.goto("/#/profile");
-  await expect(page.getByRole("link", { name: "Cài đặt phối hợp" })).toHaveAttribute("href", "#/companion-sharing");
-  await page.unrouteAll({ behavior: "ignoreErrors" });
-  await mount(page, { sess: baseSession });
-  await page.goto("/#/profile");
-  await page.reload();
-  await expect(page.getByRole("heading", { level: 1, name: "Tài khoản" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Cài đặt phối hợp" })).toHaveCount(0);
-});
-
-test("guests never reach the sharing page", async ({ page }) => {
-  await mount(page, { sess: guestSession(3_600_000) });
-  await page.goto("/#/companion-sharing");
+  await expect(page).toHaveURL(/#\/assistants$/);
   await expect(page.getByRole("switch")).toHaveCount(0);
-});
-
-test("V3 accounts can open sharing settings while legacy collaboration is disabled", async ({ page }) => {
-  await mount(page, {
-    sess: { ...baseSession, features: { ...baseSession.features, collaboration: false, threeAgents: true, smartOrchestration: true } },
-    sharing: { available: true, edges: [
-      { edge: "dieuphoi_consult_hoatdong", requester: "dieuphoi", specialist: "hoatdong", enabled: false, version: 0, requires: [], available: true, reason: null },
-    ] },
-  });
-  await page.goto("/#/profile");
-  const link = page.getByRole("link", { name: "Cài đặt phối hợp", exact: true });
-  await expect(link).toBeVisible();
-  await link.click();
-  await expect(page.getByRole("heading", { level: 1, name: "Trợ lý phối hợp với nhau" })).toBeVisible();
-  await expect(page.getByRole("switch")).toHaveCount(1);
-  await expect(page.getByRole("switch")).not.toBeChecked();
 });
 
 test("reduced motion renders the line statically", async ({ page }) => {

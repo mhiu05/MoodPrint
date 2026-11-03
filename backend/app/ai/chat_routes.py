@@ -32,6 +32,8 @@ from app.ai.schemas import (
     ConversationRename,
     ConversationView,
     StartRunInput,
+    history_protocol,
+    idempotency_input,
 )
 from app.contracts import BotId, BotPublicDTO, VersionInput
 from app.core.errors import DomainError
@@ -343,6 +345,7 @@ async def conversation(
     request: Request,
     limit: int = Query(50, ge=1, le=100),
     before: UUID | None = None,
+    response_protocol: int = Query(2, alias="responseProtocol", ge=2, le=3),
     actor: Actor = Depends(require_actor),
 ):
     runtime = request.app.state.ai
@@ -350,9 +353,10 @@ async def conversation(
         await recover_turns(db)
         c = await owned_conversation(db, conversation_id, user.id)
         if c:
-            return await conversation_view(
+            view = await conversation_view(
                 db, c, limit, before, collaboration=request.app.state.settings.ai_collaboration_enabled
             )
+            return view.model_copy(update={"messages": history_protocol(view.messages, response_protocol)})
         if await db.scalar(select(AiConversation.id).where(AiConversation.id == conversation_id)):
             raise DomainError(404, "NOT_FOUND", "Không tìm thấy cuộc trò chuyện.")
         c = await live_ephemeral(db, runtime, user.id, conversation_id, actor.session_id)
@@ -360,7 +364,7 @@ async def conversation(
     run = runtime.runs.get(c.active_run_id)
     return ConversationView(
         **ephemeral_header(c).model_dump(),
-        messages=c.messages,
+        messages=history_protocol(c.messages, response_protocol),
         active_run_id=c.active_run_id,
         active_run_version=run.version if run else None,
     )
@@ -386,7 +390,7 @@ async def send(
                 if persistent
                 else await live_ephemeral(db, runtime, user.id, conversation_id, actor.session_id)
             )
-            raw_input = body.model_dump_json(include={"text", "mood_scope"})
+            raw_input = idempotency_input(body)
             # Saved text is stored anyway; a temporary chat's digest is salted in RAM.
             message_digest = digest(raw_input if persistent else c.salt + raw_input)
             previous = await db.scalar(
@@ -426,6 +430,8 @@ async def send(
                 if not caps(c.bot_id).mood_scope:
                     raise DomainError(422, "MOOD_SCOPE_BOT", "Khoảng ngày chỉ dùng với trợ lý nhật ký.")
                 validate_scope(user, body.mood_scope)
+            from app.ai.search.turn import validate_options
+            await validate_options(db, settings, user, c.active_agent or c.bot_id, body)
             active = await db.scalar(
                 select(AiRun.id).where(AiRun.conversation_id == c.id, AiRun.status == "running")
             )
@@ -462,7 +468,7 @@ async def send(
             if persistent is not None and persistent.active_agent:
                 from app.ai.orchestration.workflow import handoff_allowed
 
-                if await handoff_allowed(db, settings, user, persistent.active_agent):
+                if await handoff_allowed(db, settings, user, persistent.active_agent, conversation_id=persistent.id):
                     responder = persistent.active_agent
                 else:
                     persistent.active_agent = persistent.active_agent_since = None
@@ -539,6 +545,8 @@ async def send(
             data_version,
             run_id,
             mood_scope=body.mood_scope,
+            prompt_options=body.prompt_options,
+            response_protocol=body.response_protocol,
             persistent=bool(persistent),
             deadline=getattr(request.state, "guest_output", None),
             quota=quota,
@@ -571,9 +579,9 @@ def persistent_events(row, answers, receipt, *, protocol: int, collaboration_ena
     from app.ai.persistence import collaboration_view
     from app.ai.schemas import AIEvent, final_v2
 
-    v2 = protocol == 2 and (collaboration_enabled or orchestration)
+    v2 = protocol >= 2 and (collaboration_enabled or orchestration)
     data = [AIEvent(seq="1", type="progress", data={})]
-    v3 = protocol == 2 and orchestration
+    v3 = protocol >= 2 and orchestration
     if v3:
         # V3: one event per specialist step actually opened (receipts only ever get added, so the
         # list is forward-only); no "composing" stage, which would not be prefix-stable here.
@@ -588,7 +596,9 @@ def persistent_events(row, answers, receipt, *, protocol: int, collaboration_ena
         if receipt.status != "authorized":
             data.append(AIEvent(seq=str(len(data) + 1), type="progress", data={"activity": "composing"}))
     if row.status == "completed" and answers:
-        final = final_v2([(m.id, m.text, m.cards) for m in answers])
+        final = final_v2([(m.id, m.text, m.cards) for m in answers],
+                         [getattr(m, "citations", None) or [] for m in answers],
+                         source_marked=any(getattr(m, "source_backed", False) for m in answers))
         if v3:
             final["speaker"] = getattr(answers[0], "speaker", None)
             final["steps"] = [
@@ -601,6 +611,9 @@ def persistent_events(row, answers, receipt, *, protocol: int, collaboration_ena
                 if receipt is not None and receipt.status == "completed" and receipt.used_in_reply else None
             )
             final["collaboration"] = line.model_dump(mode="json", by_alias=True) if line else None
+        if protocol >= 3:
+            final.setdefault("speaker", getattr(answers[0], "speaker", None) or row.bot_id)
+            final.setdefault("steps", [])
         data += [
             AIEvent(seq=str(len(data) + 1), type="final", data=final),
             AIEvent(seq=str(len(data) + 2), type="completed", data={}),
@@ -705,14 +718,14 @@ async def events(
     run_id: UUID,
     request: Request,
     after_seq: int = Query(0, alias="afterSeq", ge=0),
-    protocol: int = Query(1, ge=1, le=2),
+    protocol: int = Query(1, ge=1, le=3),
     actor: Actor = Depends(require_actor),
 ):
     from app.ai.schemas import as_protocol
 
     runtime = request.app.state.ai
-    collaboration = protocol == 2 and request.app.state.settings.ai_collaboration_enabled
-    orchestration = protocol == 2 and request.app.state.settings.ai_smart_orchestration_enabled
+    collaboration = protocol >= 2 and request.app.state.settings.ai_collaboration_enabled
+    orchestration = protocol >= 2 and request.app.state.settings.ai_smart_orchestration_enabled
     release = runtime.streams.reserve(actor.user_id)
     try:
         local = runtime.runs.get(run_id)
@@ -897,7 +910,7 @@ async def export_conversation(
         result = conversation_header(c).model_dump(mode="json", by_alias=True)
         result["messages"] = [
             AIMessage(
-                id=m.id, actor=m.actor, text=m.text, cards=m.cards, created_at=m.created_at,
+                id=m.id, actor=m.actor, text=m.text, cards=m.cards, citations=m.citations, source_backed=m.source_backed, created_at=m.created_at,
                 part_index=m.part_index, part_count=m.part_count, origin="proactive" if origin == "proactive" else "user",
                 proactive_slot=slot,
             ).model_dump(mode="json", by_alias=True)

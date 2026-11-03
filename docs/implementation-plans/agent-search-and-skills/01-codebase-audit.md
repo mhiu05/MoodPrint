@@ -1,0 +1,54 @@
+# Audit codebase và điểm nối triển khai
+
+Khảo sát tĩnh ngày 03/11/2026. Đường dẫn trong bảng là file đã có; đường dẫn mới dự kiến được ghi riêng trong từng subplan. Không đọc secret hoặc kiểm tra trạng thái hosted.
+
+## Agent, provider và thời gian chạy
+
+| Nguồn thực tế | Hành vi hiện tại và hệ quả |
+| --- | --- |
+| [agents.py](../../../backend/app/ai/agents.py), [registry.py](../../../backend/app/ai/registry.py), [prompts.py](../../../backend/app/ai/prompts.py) | 3 V3: `dieuphoi/nhatky/hoatdong`; 5 legacy giữ identity/data riêng. Capabilities điều khiển journal, mood scope, memory, challenges. Chưa có registry agent skills hoặc search tool. |
+| [provider.py](../../../backend/app/ai/provider.py) | `OpenAIResponsesModel`, Agents SDK; buffer stream đến khi output hợp lệ. `run_reply/_stream` dùng structured `AiOutput/CompanionReply/NhipReply`; `store=False`, tracing off, SDK retries 0. `RUN_TIMEOUT_SECONDS=30`, mỗi model attempt timeout 30, `max_turns=3`; `_BudgetHooks` giới hạn 3 model/2 tool. Chưa giữ raw Responses annotations. |
+| [runtime.py](../../../backend/app/ai/runtime.py) | `LiveRun`, `AiRuntime.tools/drive/check`; timeout `ai_timeout_seconds` mặc định 30 còn bao ngoài provider. Tool tự tăng `run.tool_calls` và check quyền; không chỉ có SDK hooks. Tool hiện có `propose_memory`, `read_mood_summary`, `search_journal_entries`. |
+| [workflow.py](../../../backend/app/ai/orchestration/workflow.py), [policy.py](../../../backend/app/ai/orchestration/policy.py) | Smart path của Điều phối persistent; planner → backend policy → SDK `as_tool`/handoff. Consult child hiện `tools=[]`; main tạo tool list riêng, handoff lọc journal tool riêng. Cắm search chỉ vào `AiRuntime.tools` sẽ bỏ sót hoặc phá các đường này. Tổng workflow model calls tối đa 7; child ledger riêng. |
+| [groups/turn.py](../../../backend/app/ai/groups/turn.py), [groups/routes.py](../../../backend/app/ai/groups/routes.py) | Group selector và speaker runs riêng, member/history boundaries, journal-access riêng. Không dùng per-edge sharing preference để cấp member journal access. Giữ group nguyên trạng trong phase search/skill đầu. |
+| [outbound.py](../../../backend/app/core/outbound.py) | Transport có tối đa 2 connect-establishment retries; không retry request đã có thể tới provider. Không mô tả toàn bộ stack là tuyệt đối không retry. Adapter Apify phải ngăn duplicate paid dispatch. |
+
+Dependency nguồn: [pyproject.toml](../../../backend/pyproject.toml) pin `openai-agents==0.24.0`, Python 3.12, FastAPI/Pydantic/SQLAlchemy/httpx. Đọc tĩnh SDK đã cài thấy `WebSearchTool`, `search_context_size`, `external_web_access`, converter sang `type=web_search`, `ModelSettings.response_include/extra_args`. Việc có class SDK **không chứng minh** API/account thật dùng được hoặc structured output còn giữ đúng citation. Không cần nâng dependency chỉ để lập plan; adapter contract test phải xác minh ở phiên triển khai.
+
+## Message, SSE, persistence và tiền
+
+- [schemas.py](../../../backend/app/ai/schemas.py): `StartRunInput` mới có text, client ID, conversation version và mood scope; `AiReply` 1–4 bubble, tổng 5.900 ký tự, tối đa 3 cards. Card hiện chỉ `navigate_bot/mood_form/discovery`; chưa có citations/place/job.
+- [chat_routes.py](../../../backend/app/ai/chat_routes.py): message admission, digest chỉ chọn `text/mood_scope`, SSE query `protocol=1|2`, `persistent_events`, replay, conversation export. Thay options mà không đổi digest sẽ replay nhầm search/skill.
+- [models.py](../../../backend/app/ai/models.py), [persistence.py](../../../backend/app/ai/persistence.py), [store.py](../../../backend/app/ai/store.py): saved messages chứa text/cards; temporary chat ở RAM. Cần nối cả live final, reload, pagination, export và byte limits; không chỉ thay DTO.
+- [usage.py](../../../backend/app/ai/usage.py), [accounting.py](../../../backend/app/ai/accounting.py), [database/models.py](../../../backend/app/infrastructure/database/models.py): metadata token/request/tool; `AiUsage` CHECK tối đa 3 requests/2 tools mỗi ledger. Hiện không có web fee hay Apify fee. Model capped đã định giá trong source là `gpt-6-luna`, conservative reservation **2 USD/ledger**; global liability giữ khoản uncertain. Không thêm tiền tool vào token rate một cách ngầm định.
+- [persistence.py](../../../backend/app/ai/persistence.py) có admission, `spent_today_nano`, daily turn limit theo Bangkok; accounting liability dùng UTC và carry ngày trước. Search phải tham gia mọi budget reader, không chỉ dashboard. [limits.py](../../../backend/app/core/limits.py) là rate limiter trong process; quota tài chính/search async phải có DB authority qua restart/worker.
+- [context.py](../../../backend/app/ai/context.py), [modules/journal/ai.py](../../../backend/app/modules/journal/ai.py): projection/evidence/privacy riêng; citations không được trở thành quyền đọc URL hoặc journal mới.
+- [users/export.py](../../../backend/app/modules/users/export.py), [users/lifecycle.py](../../../backend/app/modules/users/lifecycle.py), [jobs/retention.py](../../../backend/app/jobs/retention.py): export, xóa all-private/account, retention/recovery. User row có tombstone, nên không được chỉ trông chờ FK CASCADE vào user.
+
+## UI và lịch hỏi thăm
+
+| File | Điểm nối |
+| --- | --- |
+| [RealApp.tsx](../../../frontend/src/features/real/RealApp.tsx) | `BotConversation` chứa draft/send/retry và composer; textarea 500 ký tự, voice, gửi/dừng bên phải, chưa có `+`. `send` giữ client ID khi retry, chỉ xóa snapshot draft sau accepted. `AccountPage` gọi `CheckInsSummary` và `CollaborationSummaryCard`. Routes `/check-ins`, `/companion-sharing` đều ở đây. |
+| [MessageMarkdown.tsx](../../../frontend/src/features/real/MessageMarkdown.tsx) | Chỉ link `/self/entry/<uuid>` trở thành anchor. Link ngoài thành span, raw HTML bị chặn. Chỉ thêm markdown URL từ backend sẽ chưa có citation bấm được. |
+| [stream.ts](../../../frontend/src/api/stream.ts), [contracts.ts](../../../frontend/src/api/contracts.ts) | Validators từ chối extra keys của v1/v2/final/cards; client thêm `?protocol=2`. Contract generated không thay thế validator viết tay. |
+| [ConversationInfo.tsx](../../../frontend/src/features/real/ConversationInfo.tsx), [agent-chat.css](../../../frontend/src/features/real/agent-chat.css) | Panel thông tin cuộc trò chuyện: ≥1100px modeless overlay; tablet 768–1099 native dialog rộng 420px; phone full width. Heading focus, Escape, restore trigger; tab loop hiện chỉ query button/a/input, chưa bao gồm select/textarea cần cho lịch. |
+| [CheckInsPage.tsx](../../../frontend/src/features/real/checkins/CheckInsPage.tsx), [checkinsModel.ts](../../../frontend/src/features/real/checkins/checkinsModel.ts) | Đã có SlotRow, weekday/custom repeat, pause/resume, quiet hours, timezone dialog, journal-context control, badges, legacy migrate/remove và lỗi stale/cap. `/check-ins` **là trang quản lý lịch**, không phải inbox lịch sử. |
+| [proactive/routes.py](../../../backend/app/ai/proactive/routes.py), [schemas.py](../../../backend/app/ai/proactive/schemas.py), [models.py](../../../backend/app/ai/proactive/models.py) | `GET /ai/proactive`; PUT settings; PUT/DELETE schedule theo bot/slot; POST migrate; resume qua PUT schedule. Global settings có timezone/quiet/badges/journal consent version; schedule có version riêng. Inbox qua `/ai/inbox` và read marker, không phụ thuộc trang quản lý. |
+| [proactive/policy.py](../../../backend/app/ai/proactive/policy.py), [schedule.py](../../../backend/app/ai/proactive/schedule.py), [jobs/proactive.py](../../../backend/app/jobs/proactive.py) | Registered/adult/AI/history + cohort; sáng/tối, 15 phút, daily cap mặc định 4; pause tối đa 30 ngày; auto-pause/inactivity; API không chạy scheduler. V3 giữ lịch legacy nhưng không thực thi/chuyển âm thầm. |
+
+## Phối hợp và cấu hình cần phân biệt
+
+`AiSharingPermission` trong [collaboration/models.py](../../../backend/app/ai/collaboration/models.py) có 7 cạnh, default/server-default `false`, policy `sharing-v1`, version≥1. Hàng thiếu cũng được xem là tắt. [collaboration/routes.py](../../../backend/app/ai/collaboration/routes.py) cấp API `/ai/sharing`, kiểm journal-context, idempotency/version; disable tăng `data_version` và hủy run. Có **hai** grant readers: [coordinator.py](../../../backend/app/ai/collaboration/coordinator.py) cho legacy chat/proactive và `workflow.live_grants` cho V3/continuation. Đổi UI/default DB đơn lẻ không bật được tài khoản cũ.
+
+[config.py](../../../backend/app/core/config.py) mặc định các cờ collaboration, three-agent, smart orchestration, group, proactive đều false; validators yêu cầu multi-message và accounting production. [auth/routes.py](../../../backend/app/modules/auth/routes.py) còn gắn feature view vào registered/eligibility/history/provider. Không tự bật AI consent hoặc history preference để vượt gate này.
+
+[deploy/runtime.env.example](../../../deploy/runtime.env.example) có AI/accounting/history/budget nhưng **chưa liệt kê** các cờ collaboration/V3/proactive. [backend/.env.example](../../../backend/.env.example) đã có các nhóm này. [deploy/aws/README.md](../../../deploy/aws/README.md), [instance-policy.json](../../../deploy/aws/instance-policy.json), [deploy.sh](../../../deploy/aws/deploy.sh) xác nhận runtime SecureString cùng parameter, instance chỉ `ssm:GetParameter`, deploy tải file 0600 và Compose dùng `API_ENV_FILE`. Không có bằng chứng quyền IAM thực đang attach, KMS key hiện tại hoặc flags runtime.
+
+README AWS còn nói tới release hold; file marker `deploy/guest-experience.release-hold` không có tại working tree khảo sát. Không coi đoạn docs đó là bằng chứng có/không có quyền release hiện thời; phiên triển khai phải kiểm gate thực của commit được chọn.
+
+## Tái sử dụng activity và tests
+
+[activities/definitions.py](../../../backend/app/modules/activities/definitions.py), [focus.py](../../../backend/app/modules/activities/focus.py), [proactive/output.py](../../../backend/app/ai/proactive/output.py): activities có `icebreaker`, `coop_quiz`, `focus`; challenge/proactive riêng. Skill gợi ý không tự tạo shared session/lời mời hay ghi challenge receipt.
+
+Tests đã xác định: backend `test_sdk_adapter.py`, `test_scoped_mood_tool.py`, `test_usage_accounting.py`, `test_budget_reservations.py`, `test_sharing_api.py`, `test_collaboration_{policy,chat,proactive,privacy,review_fixes}.py`, `test_orchestration_{policy,sdk,sse}.py`, `test_v3_review_fixes.py`, `test_v3_proactive.py`, `test_proactive_{api,schedule,quiet_hours,lifecycle,privacy,worker}.py`, `test_multi_message_{contract,persistence}.py`, `test_groups_{api,turn}.py`. Frontend: `streamReply/streamCollaboration/streamOrchestration.test.ts`, `MessageMarkdown.test.ts`, `checkinsModel.test.ts`; E2E `proactive`, `collaboration`, `chat-history`, `activities`, `multi-message`, `group-mentions`. Các subplan ghi rõ tests sửa/thêm và assertion, không coi các test hiện tại là đã chạy trong phiên này.

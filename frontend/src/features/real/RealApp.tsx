@@ -50,7 +50,12 @@ import {
 import { BotAvatar } from "../../companions/Avatar";
 import { botById, type BotId } from "../../companions/registry";
 import { ApiClient, ApiError, errorMessage } from "../../api/client";
-import { consumeAIReply, validCards } from "../../api/stream";
+import { consumeAISearchReply, validCards } from "../../api/stream";
+import type { PromptOptions } from "../../api/contracts";
+import { ComposerOptions, PromptChips } from "./composer/ComposerOptions";
+import { acceptSelection, normalizePromptOptions, selectionKey, type SelectionState } from "./composer/promptOptions";
+import { CitationText } from "./search/CitationText";
+import { MapsSearchCard, PlacesCard } from "./search/MapsSearchCard";
 import { AdultEligibility, EligibilityGate } from "./Eligibility";
 import { AuthScreen } from "./Auth";
 import type { AuthCallback } from "../auth/callback";
@@ -101,12 +106,11 @@ import { groupMessages } from "./messageGroups";
 import { deriveAIActivity, type AIActivityPhase } from "./aiActivityView";
 import { AIDataProvider, ConversationHistory, useAIData, type SavedConversation, type SavedConversationHeader } from "./AIData";
 
-const MessageMarkdown = lazy(() => import("./MessageMarkdown"));
 const FeedbackPage = lazy(() => import("../feedback/FeedbackPage"));
 const FeedbackAdmin = lazy(() => import("./admin/Feedback"));
 const TourController = lazy(() => import("../onboarding/TourController"));
 const CheckInsPage = lazy(() => import("./checkins/CheckInsPage").then(module => ({ default: module.CheckInsPage })));
-const SharingPage = lazy(() => import("./collaboration/SharingPage").then(module => ({ default: module.SharingPage })));
+const AgentCheckInSettings = lazy(() => import("./checkins/AgentCheckInSettings").then(module => ({ default: module.AgentCheckInSettings })));
 const GroupChat = lazy(() => import("./groups/GroupChat").then(module => ({ default: module.GroupChat })));
 const GroupCreate = lazy(() => import("./groups/GroupCreate").then(module => ({ default: module.GroupCreate })));
 const GroupsSection = lazy(() => import("./groups/GroupsSection").then(module => ({ default: module.GroupsSection })));
@@ -608,15 +612,14 @@ function GuestBanner() {
   const guest = useGuest();
   const { session } = useSession();
   const { pathname } = useLocation();
-  if (!guest) return null;
-  // The personal tab already has the trial-ending action.
+  if (!guest || pathname !== "/profile") return null;
+  // The personal tab has the trial-ending action in AccountActions.
   return (
     <GuestStatus
       remainingMs={guest.remainingMs}
       aiAvailable={session.features.ai}
       aiTurnsRemaining={session.guestQuota?.aiTurnsRemaining}
       aiTurnsLimit={session.guestQuota?.aiTurnsLimit}
-      onEnd={pathname === "/profile" ? undefined : guest.end}
     />
   );
 }
@@ -844,8 +847,8 @@ function Shell() {
                 path="/chat/:connectionId"
                 element={session.accountKind === "guest" ? <GuestLocked /> : <HumanChat key={location.pathname} />}
               />
-              <Route path="/check-ins" element={session.accountKind === "guest" ? <GuestLocked /> : <Suspense fallback={<p role="status">Đang tải lịch hỏi thăm…</p>}><CheckInsPage /></Suspense>} />
-              <Route path="/companion-sharing" element={session.accountKind === "guest" ? <GuestLocked /> : <Suspense fallback={<p role="status">Đang tải cài đặt phối hợp…</p>}><SharingPage /></Suspense>} />
+              <Route path="/check-ins" element={session.accountKind === "guest" ? <GuestLocked /> : <Suspense fallback={<p role="status">Đang mở lịch hỏi thăm…</p>}><CheckInsPage /></Suspense>} />
+              <Route path="/companion-sharing" element={<Navigate to="/assistants" replace />} />
               <Route path="*" element={<Navigate replace to="/assistants" />} />
           </Routes>
         </main>
@@ -892,6 +895,7 @@ function PublicAvatar({ bot, size }: { bot: BotPublicDTO; size?: number }) {
 }
 
 function Assistants({ group }: { group?: "new" | "chat" }) {
+  const [rosterParams] = useSearchParams();
   const { botId, groupId } = useParams();
   const resource = useResource<BotPublicDTO[]>("/bots");
   const [search, setSearch] = useState("");
@@ -925,6 +929,7 @@ function Assistants({ group }: { group?: "new" | "chat" }) {
         </div>
         {resource.loading ? <p role="status">Đang tải trợ lý…</p> : null}
         <ErrorNotice error={resource.error} retry={resource.refresh} />
+        {rosterParams.has("manageCheckIns") ? <section aria-label="Quản lý lời hỏi thăm"><p>Mở thông tin của trợ lý để chỉnh lịch hỏi thăm.</p>{bots.map(agent => <Link key={agent.botId} to={`/assistants/${agent.botId}?panel=info&section=check-ins`}>Lịch của {agent.name} </Link>)}</section> : null}
         {inbox.unreadTotal > 0 ? (
           <section className="inbox-section" aria-labelledby="inbox-heading">
             <h2 id="inbox-heading">Lời nhắn mới</h2>
@@ -1101,18 +1106,39 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const [atBottom, setAtBottom] = useState(true);
   const log = useRef<HTMLDivElement>(null),
     lifetime = useRef<AbortController | null>(null);
-  const intent = useRef<{ text: string; scopeKey: string; clientMessageId: string } | null>(null);
+  const intent = useRef<{ text: string; scopeKey: string; clientMessageId: string; options: PromptOptions; selectionRevision: number } | null>(null);
+  const [selection, setSelection] = useState<SelectionState>({ revision: 0, options: {} });
+  const selectionRef = useRef(selection);
+  const changeOptions = useCallback((options: PromptOptions) => {
+    const next = { revision: selectionRef.current.revision + 1, options };
+    selectionRef.current = next; setSelection(next);
+  }, []);
   const composer = useRef<HTMLTextAreaElement>(null);
   const composerAction = useRef<HTMLButtonElement>(null);
   const restoreActionFocus = useRef(false);
   const [draftNotice, setDraftNotice] = useState("");
-  const [infoOpen, setInfoOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(searchParams.get("panel") === "info");
+  const [checkInModalOpen, setCheckInModalOpen] = useState(false);
+  useEffect(() => {
+    if (searchParams.get("panel") !== "info") return;
+    setInfoOpen(true);
+    if (searchParams.get("section") !== "check-ins") return;
+    const focus = () => {
+      const section = document.getElementById(`agent-check-ins-${bot.botId}`);
+      if (!section) return false;
+      section.focus(); section.scrollIntoView({ block: "start" }); return true;
+    };
+    if (focus()) return;
+    const observer = new MutationObserver(() => { if (focus()) observer.disconnect(); });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [searchParams.get("panel"), searchParams.get("section"), bot.botId]);
   const infoTrigger = useRef<HTMLButtonElement>(null);
   const infoId = useId();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [newConfirmOpen, setNewConfirmOpen] = useState(false);
   // The trigger may only reference a panel that is actually mounted.
-  const infoMounted = useInfoPanelMounted(infoOpen, historyOpen || renameOpen || deleteOpen || newConfirmOpen);
+  const infoMounted = useInfoPanelMounted(infoOpen, historyOpen || renameOpen || deleteOpen || newConfirmOpen || checkInModalOpen);
   // "Dừng và mở mới" waits for the run's real terminal outcome before switching.
   const pendingNew = useRef(false);
   const [awaitingNew, setAwaitingNew] = useState(false);
@@ -1229,7 +1255,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       let outcome: RunOutcome = "unknown";
       const ownerId = current.current?.conversationId;
       try {
-        const reply = await consumeAIReply(eventsUrl, signal, (activity) => {
+        const reply = await consumeAISearchReply(eventsUrl, signal, (activity) => {
           if (!signal.aborted)
             setConsulting(
               activity.activity === "consulting" || activity.activity === "transferring"
@@ -1241,6 +1267,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         if (!signal.aborted && current.current) {
           const before = current.current;
           const publishedAt = new Date().toISOString();
+          const sourceBackedTurn = reply.messages.some(
+            (bubble) => (bubble.citations?.length ?? 0) > 0 || bubble.cards.some((card) => card.kind === "maps_search" || card.kind === "places"),
+          );
           // Every validated bubble enters in one update, so the live region reads the turn once.
           update({
             ...before,
@@ -1253,6 +1282,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
                 actor: "bot" as const,
                 text: bubble.text,
                 cards: bubble.cards,
+                citations: bubble.citations ?? [],
+                // Turn-level, like the stored marker; history reconciliation below is authoritative.
+                sourceBacked: sourceBackedTurn,
                 createdAt: publishedAt,
                 runId: id,
                 partIndex: bubble.partIndex,
@@ -1269,7 +1301,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           // The validated reply is already on screen; only reconciliation remains.
           setSyncing(true);
           const stored = await api.request<SavedConversation>(
-            `/ai/conversations/${before.conversationId}`,
+            `/ai/conversations/${before.conversationId}?responseProtocol=3`,
             { signal },
           );
           if (!signal.aborted) {
@@ -1288,7 +1320,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           try {
             const thread = current.current;
             if (thread) {
-              const stored = await api.request<SavedConversation>(`/ai/conversations/${thread.conversationId}`, { signal });
+              const stored = await api.request<SavedConversation>(`/ai/conversations/${thread.conversationId}?responseProtocol=3`, { signal });
               if (!signal.aborted) { update(withOlder(stored)); refreshHistory(); outcome = "cancelled"; setReady(true); }
             }
           } catch (readError) {
@@ -1371,7 +1403,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     const selection = `${bot.botId}/${selectedId || searchParams.get("new") || "latest"}`;
     // A different thread chosen in this conversation (not first open, not a new chat) moves focus to its heading once loaded.
     const switched = Boolean(selectedId) && loadedSelection.current !== undefined && loadedSelection.current !== selection;
-    if (loadedSelection.current !== selection) { intent.current = null; editDraft(""); setDraftNotice(""); setManageError(undefined); setShareMood(false); }
+    if (loadedSelection.current !== selection) { intent.current = null; changeOptions({}); editDraft(""); setDraftNotice(""); setManageError(undefined); setShareMood(false); }
     loadedSelection.current = selection;
     async function open() {
       // Explicit selection is authoritative; otherwise resume the latest temporary
@@ -1385,7 +1417,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       if (!id) {
         setReady(true); return;
       }
-      const value = await api.request<SavedConversation>(`/ai/conversations/${encodeURIComponent(id)}`, { signal: controller.signal });
+      const value = await api.request<SavedConversation>(`/ai/conversations/${encodeURIComponent(id)}?responseProtocol=3`, { signal: controller.signal });
       if (controller.signal.aborted) return;
       if (value.botId !== bot.botId) throw new ApiError(409, "CONVERSATION_BOT_MISMATCH", "Cuộc trò chuyện thuộc trợ lý khác. Chọn lại trong lịch sử.");
       update(value); setReady(true); setAtBottom(true);
@@ -1467,9 +1499,11 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     setError(undefined);
     setNotice("");
     const moodScope = moodSelected ? { fromDate: moodFrom, toDate: moodTo } : undefined;
-    const scopeKey = moodScope ? `${moodScope.fromDate}/${moodScope.toDate}` : "";
+    const options = normalizePromptOptions(selectionRef.current.options);
+    const submittedSelectionRevision = selectionRef.current.revision;
+    const scopeKey = (moodScope ? `${moodScope.fromDate}/${moodScope.toDate}` : "") + selectionKey(options);
     if (intent.current?.text !== text || intent.current?.scopeKey !== scopeKey)
-      intent.current = { text, scopeKey, clientMessageId: crypto.randomUUID() };
+      intent.current = { text, scopeKey, clientMessageId: crypto.randomUUID(), options, selectionRevision: submittedSelectionRevision };
     try {
       let thread = current.current;
       if (!thread) {
@@ -1502,6 +1536,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             clientMessageId: intent.current!.clientMessageId,
             expectedConversationVersion: thread.version,
             ...(moodScope ? { moodScope } : {}),
+            responseProtocol: 3,
+            promptOptions: intent.current!.options,
           } satisfies StartRunInput,
           signal,
         },
@@ -1518,6 +1554,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             id: intent.current!.clientMessageId,
             actor: "self",
             text,
+            sourceBacked: false,
             createdAt: new Date().toISOString(),
             partIndex: 0,
             partCount: 1,
@@ -1526,6 +1563,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         ],
       });
       const requestKey = intent.current!.clientMessageId;
+      const nextSelection = acceptSelection(selectionRef.current, intent.current!.selectionRevision);
+      selectionRef.current = nextSelection; setSelection(nextSelection);
       intent.current = null;
       if (moodScope) setLastMoodRange({ conversationId: thread.conversationId, ...moodScope });
       setShareMood(false);
@@ -1549,7 +1588,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         // A newer message (for example a check-in) arrived first. The server accepted
         // nothing, so the draft and its clientMessageId stay for an explicit resend.
         try {
-          const stored = await api.request<SavedConversation>(`/ai/conversations/${thread.conversationId}`, { signal });
+          const stored = await api.request<SavedConversation>(`/ai/conversations/${thread.conversationId}?responseProtocol=3`, { signal });
           if (signal.aborted) return;
           update(withOlder(stored));
           setNotice(`Có tin mới từ ${bot.name}. Tin của bạn vẫn còn trong ô nhập — gửi lại khi bạn sẵn sàng.`);
@@ -1612,7 +1651,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     lifetime.current = new AbortController();
     viewGeneration.current += 1; recovery.current = undefined; settled.current = undefined; confirmTarget.current = undefined;
     current.current = undefined; setConversation(undefined); editDraft(""); setDraftNotice(""); setManageError(undefined); setError(undefined); setNotice("");
-    setReady(true); setLoading(false); setBusy(false); setRun(undefined); intent.current = null; setShareMood(false); setLastMoodRange(undefined);
+    setReady(true); setLoading(false); setBusy(false); setRun(undefined); intent.current = null; changeOptions({}); setShareMood(false); setLastMoodRange(undefined);
     activeRun.current = undefined; cancelRequested.current = undefined; setStopRequested(false); setSyncing(false); setStopped(false);
     pendingNew.current = false; setAwaitingNew(false); setPreviousConversation(undefined); setCopyStatus(undefined);
     // An explicit new marker prevents latest-thread auto-resume. This view is
@@ -1631,7 +1670,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     const beforeHeight = log.current?.scrollHeight || 0;
     const beforeTop = log.current?.scrollTop || 0;
     try {
-      const page = await api.request<SavedConversation>(`/ai/conversations/${thread.conversationId}?limit=50&before=${encodeURIComponent(thread.messages[0].id)}`, { signal });
+      const page = await api.request<SavedConversation>(`/ai/conversations/${thread.conversationId}?responseProtocol=3&limit=50&before=${encodeURIComponent(thread.messages[0].id)}`, { signal });
       if (signal?.aborted || current.current?.conversationId !== thread.conversationId) return;
       const latest = current.current;
       update({ ...latest, hasMoreMessages: page.hasMoreMessages, messages: [...page.messages.filter(item => !latest.messages.some(old => old.id === item.id)), ...latest.messages] });
@@ -1868,14 +1907,18 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
               <div className="chat-bubble">
                 {message.actor === "bot" ? (
                   <Suspense fallback={<p>{message.text}</p>}>
-                    <MessageMarkdown text={message.text} />
+                    <CitationText text={message.text} citations={message.citations} />
                   </Suspense>
                 ) : <p>{message.text}</p>}
               </div>
-              {validCards(message.cards) &&
+              {validCards(message.cards, 3) &&
                 message.cards.map((card, index) => (
                   <div className="inline-card" key={`${message.id}-${index}`}>
-                    {card.kind === "mood_form" ? (
+                    {card.kind === "places" ? <PlacesCard places={card.places} /> : card.kind === "maps_search" ? <MapsSearchCard api={api} searchId={card.searchId} onReuse={(id) => {
+                      changeOptions({ ...selectionRef.current.options, mapsSearchId: id });
+                      editDraft("Gợi ý giúp mình từ các địa điểm vừa tìm.");
+                      requestAnimationFrame(() => composer.current?.focus());
+                    }} /> : card.kind === "mood_form" ? (
                       <Link to="/self">Ghi lại cảm xúc <ArrowUpRight size={15} aria-hidden="true" /></Link>
                     ) : card.kind === "navigate_bot" ? (
                       <Link to={`/assistants/${card.botId}`}>
@@ -1939,7 +1982,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     const fresh = inbox.bots.some((item) => item.latest.conversationId === id && item.latest.firstSequence > conversation.version);
     if (!fresh) return;
     const controller = new AbortController();
-    api.request<SavedConversation>(`/ai/conversations/${encodeURIComponent(id)}`, { signal: controller.signal })
+    api.request<SavedConversation>(`/ai/conversations/${encodeURIComponent(id)}?responseProtocol=3`, { signal: controller.signal })
       .then((value) => {
         if (!controller.signal.aborted && value.conversationId === current.current?.conversationId && !activeRun.current) update(value);
       })
@@ -2018,7 +2061,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           const checkIn = lead.origin === "proactive" && lead.actor === "bot";
           const label = checkIn ? <ProactiveLabel message={lead} botName={bot.name} timeZone={session.timezone} /> : null;
           const manage = checkIn ? (
-            <p className="proactive-manage"><Link to={`/check-ins?bot=${bot.botId}`}>Đổi hoặc tắt lời hỏi thăm này</Link></p>
+            <p className="proactive-manage"><Link to={`/assistants/${bot.botId}?${conversation?.conversationId ? `conversation=${conversation.conversationId}&` : ""}panel=info&section=check-ins`}>Đổi hoặc tắt lời hỏi thăm này</Link></p>
           ) : null;
           // Shown only from the server's receipt-backed line (never inferred client-side).
           const line = lead.actor === "bot" && lead.collaboration && session.features.collaboration
@@ -2075,7 +2118,10 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       {unseen && !atBottom ? <button type="button" className="jump-latest" onClick={jumpToLatest}>Về tin mới</button> : null}
       <ConversationInfo
         open={infoOpen}
-        suspended={historyOpen || renameOpen || deleteOpen || newConfirmOpen}
+        suspended={historyOpen || renameOpen || deleteOpen || newConfirmOpen || checkInModalOpen}
+        botId={bot.botId}
+        botDescription={bot.description}
+        agentSettings={session.accountKind !== "guest" && session.features.proactive ? <Suspense fallback={<p role="status">Đang tải lịch hỏi thăm…</p>}><AgentCheckInSettings api={api} session={session} botId={bot.botId} botName={bot.name} onChildModalChange={setCheckInModalOpen} /></Suspense> : undefined}
         onClose={closeInfo}
         triggerRef={infoTrigger}
         panelId={infoId}
@@ -2133,7 +2179,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           </>
         ) : null}
         {showStarters ? (
-          <div className="quick-replies" aria-label="Gợi ý trò chuyện">
+          <div className="quick-replies" role="group" aria-label="Gợi ý trò chuyện">
             {bot.starters.map((text) => (
               <button
                 type="button"
@@ -2148,6 +2194,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         ) : null}
         {draftNotice ? <p className={cx.footnote} role="status">{draftNotice}</p> : null}
         <QuotaHint />
+        <PromptChips options={selection.options} onChange={changeOptions} onFocusComposer={() => requestAnimationFrame(() => composer.current?.focus())} />
         <form
           className="bot-composer"
           onSubmit={(event) => {
@@ -2156,6 +2203,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             void send();
           }}
         >
+          <ComposerOptions api={api} botId={conversation?.activeAgent ?? bot.botId}
+            enabled={!!(session.features.agentSkills || session.features.webSearch || session.features.mapsSearch) && !legacyReadOnly}
+            options={selection.options} onChange={changeOptions} onFocusComposer={() => requestAnimationFrame(() => composer.current?.focus())} />
           <textarea
             aria-label={`Tin nhắn cho ${bot.name}`}
             ref={composer}
@@ -2216,38 +2266,6 @@ function ProactiveLabel({ message, botName, timeZone }: { message: { createdAt?:
   );
 }
 
-function CheckInsSummary() {
-  const { session } = useSession();
-  const open = session.features.proactive && session.accountKind !== "guest";
-  const resource = useResource<components["schemas"]["ProactiveView"]>("/ai/proactive", open);
-  if (!open) return null;
-  const enabled = resource.data?.limits.enabledSlots ?? 0;
-  return (
-    <section className="real-section" aria-labelledby="checkins-summary">
-      <h2 id="checkins-summary">Lời hỏi thăm từ trợ lý</h2>
-      <p>
-        {resource.loading
-          ? "Đang tải lịch hỏi thăm…"
-          : enabled
-            ? `${enabled} lời hỏi thăm mỗi ngày, vào giờ bạn chọn.`
-            : "Chưa có trợ lý nào hỏi thăm bạn. Bạn có thể hẹn giờ để trợ lý nhắn vào buổi sáng hoặc buổi tối."}
-      </p>
-      <Link className={`${cx.button} ${cx.secondary}`} to="/check-ins">Chỉnh lịch hỏi thăm</Link>
-    </section>
-  );
-}
-
-function CollaborationSummaryCard() {
-  const { session } = useSession();
-  if (!(session.features.collaboration || session.features.smartOrchestration) || session.accountKind === "guest") return null;
-  return (
-    <section className="real-section" aria-labelledby="collaboration-summary">
-      <h2 id="collaboration-summary">Trợ lý phối hợp với nhau</h2>
-      <p>Cho phép một trợ lý nhờ trợ lý khác một việc nhỏ. Bạn chọn chính xác điều gì được chia sẻ; mặc định đều tắt.</p>
-      <Link className={`${cx.button} ${cx.secondary}`} to="/companion-sharing">Cài đặt phối hợp</Link>
-    </section>
-  );
-}
 
 function AccountPage({ onGuide }: { onGuide: () => void }) {
   const [accountDeleted, setAccountDeleted] = useState(false);
@@ -2256,8 +2274,6 @@ function AccountPage({ onGuide }: { onGuide: () => void }) {
     <div className={cx.reading}>
       <h1 tabIndex={-1} data-tour="personal-account">Tài khoản</h1>
       <AdultEligibility />
-      <CheckInsSummary />
-      <CollaborationSummaryCard />
       <AccountActions onGuide={onGuide} onDeleted={() => setAccountDeleted(true)} />
     </div>
   );

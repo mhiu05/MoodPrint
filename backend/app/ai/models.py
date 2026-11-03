@@ -73,6 +73,8 @@ class AiMessageRecord(Base):
     actor: Mapped[str] = mapped_column(String(8))
     text: Mapped[str] = mapped_column(String(6000))
     cards: Mapped[list] = mapped_column(JSONB, default=list)
+    citations: Mapped[list] = mapped_column(JSONB, default=list, server_default=sql_text("'[]'::jsonb"))
+    source_backed: Mapped[bool] = mapped_column(default=False, server_default=sql_text("false"))
     run_id: Mapped[UUID] = mapped_column(ForeignKey(AiRun.id, ondelete="CASCADE"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     # One row per bubble of a run; legacy rows are part 0 of 1 (server defaults).
@@ -86,6 +88,7 @@ class AiMessageRecord(Base):
         UniqueConstraint("run_id", "actor", "part_index", name="uq_ai_messages_run_part"),
         CheckConstraint("actor in ('self','bot')", name="actor"),
         CheckConstraint("sequence >= 1", name="sequence"),
+        CheckConstraint("jsonb_typeof(citations) = 'array' and jsonb_array_length(citations) <= 8 and octet_length(citations::text) <= 24000", name="citations"),
         CheckConstraint(
             "part_index >= 0 and part_count between 1 and 4 and part_index < part_count", name="part"
         ),

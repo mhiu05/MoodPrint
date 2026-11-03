@@ -1,4 +1,10 @@
-"""V3 (three agents, orchestration receipts, groups) requires migration 0024 before traffic.
+"""Agent search/skills require migration 0028 before traffic.
+
+The ORM maps ``ai_messages.citations/source_backed`` (0025), ``ai_search_usage`` (0026),
+``ai_maps_searches`` (0027) and receipt ``permission_policy`` (0028). All four are additive;
+0025-0027 are forward-only and 0028 only drops its column without non-legacy receipts.
+
+V3 note kept for history: three agents, orchestration receipts and groups required 0024.
 
 The ORM maps ``ai_conversations.kind``/``active_agent*`` and ``ai_messages.mentions`` on every
 chat select/insert, so an older head fails at the first conversation read. 0024 is expand-only
@@ -15,5 +21,5 @@ head that predates the schema.
 """
 
 READY_REVISIONS: tuple[str, ...] = (
-    "0024_three_agent_groups",
+    "0028_collaboration_defaults",
 )

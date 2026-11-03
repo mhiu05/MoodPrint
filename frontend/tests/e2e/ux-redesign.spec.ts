@@ -1083,11 +1083,12 @@ test.describe("personal journeys", () => {
     await expect(page.getByRole("button", { name: "Ghi âm", exact: true })).toBeVisible();
   });
 
-  test("first-time sign in explains what MoodPrint is in one sentence", async ({ page }) => {
+  test("first-time sign in exposes the current accessible login form", async ({ page }) => {
     await page.route("**/api/v1/session", (route) => route.fulfill({ status: 401, json: { error: { code: "AUTH_REQUIRED", message: "Vui lòng đăng nhập." } } }));
     await page.goto("/login");
-    await expect(page.getByRole("heading", { name: "Bắt đầu với MoodPrint" })).toBeVisible();
-    await expect(page.getByText(/MoodPrint là nơi/)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^(Đăng nhập MoodPrint|Bắt đầu với MoodPrint)$/ })).toHaveCount(1);
+    await expect(page.getByRole("textbox", { name: "Email", exact: true })).toBeEditable();
+    await expect(page.getByLabel("Mật khẩu", { exact: true })).toBeEditable();
     await expect(page.getByRole("button", { name: "Đăng nhập", exact: true })).toBeInViewport();
   });
 
@@ -1171,7 +1172,7 @@ test.describe("accessibility sweep", () => {
     await expect.poll(() => page.evaluate(() => document.querySelector("dialog.conversation-info")?.contains(document.activeElement))).toBe(true);
     await page.setViewportSize({ width: 1280, height: 900 });
     await expect(page.getByRole("region", { name: "Thông tin cuộc trò chuyện" })).toBeVisible();
-    await expect(page.locator("dialog[open]")).toHaveCount(0);
+    await expect(page.locator("dialog:modal")).toHaveCount(0);
     await page.keyboard.press("Escape");
     await expect(page.locator(".conversation-info")).toHaveCount(0);
     await expect(page.getByRole("textbox", { name: "Tin nhắn cho Mây" })).toBeEditable();

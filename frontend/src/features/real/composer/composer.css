@@ -1,0 +1,24 @@
+.composer-option-control { position: relative; align-self: flex-end; }
+.composer-options { position: absolute; bottom: calc(100% + 12px); left: 0; z-index: 12; width: min(310px, calc(100vw - 48px)); padding: 8px; background: var(--chat-bg, #fff); color: var(--chat-ink, #252629); border: 1px solid var(--chat-border, #c5c7ca); border-radius: 12px; max-height: min(360px, 50dvh); overflow-y: auto; }
+.composer-options button { display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left; padding: 10px 12px; min-height: 44px; background: transparent; border: 0; border-radius: 6px; color: inherit; cursor: pointer; }
+.composer-options button:hover, .composer-options button:focus-visible { background: var(--chat-surface-soft, #f5f5f6); }
+.composer-options button:disabled { color: var(--chat-muted, #64666b); cursor: default; }
+.composer-options small { font-size: .8125rem; line-height: 1.5; }
+.prompt-options-selection:empty, .prompt-chips:empty { display: none; }
+.prompt-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0 8px; }
+.prompt-chips > span { display: inline-flex; align-items: center; min-height: 44px; padding-left: 12px; border: 1px solid var(--chat-border, #c5c7ca); border-radius: 22px; font-size: .875rem; }
+.prompt-chips button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; background: transparent; color: inherit; cursor: pointer; }
+.maps-area { display: grid; gap: 5px; padding: 0 4px 10px; font-size: .875rem; }
+.maps-area input { width: 100%; min-height: 44px; border: 1px solid var(--chat-border, #c5c7ca); border-radius: 8px; padding: 8px 10px; font: inherit; }
+.maps-area small { color: var(--chat-muted, #64666b); }
+.ai-cited-text > p { white-space: pre-wrap; line-height: 1.65; overflow-wrap: anywhere; }
+.citation-marker { padding-inline: 3px; font-size: .8125rem; vertical-align: super; text-decoration: underline; text-underline-offset: 2px; }
+.ai-sources { margin-top: 10px; font-size: .875rem; }
+.ai-sources summary { cursor: pointer; min-height: 44px; padding-block: 10px; }
+.ai-sources a { display: inline-flex; flex-direction: column; padding-block: 6px; }
+.ai-sources small { color: var(--chat-muted, #64666b); }
+.maps-search-card { margin-top: 12px; padding-block: 10px; border-top: 1px solid var(--chat-border, #c5c7ca); }
+.maps-search-card li { margin-block: 14px; }
+.maps-search-card p { margin-block: 4px; }
+.maps-search-card small { color: var(--chat-muted, #64666b); }
+.maps-search-card button, .maps-search-card a { min-height: 44px; display: inline-flex; align-items: center; }

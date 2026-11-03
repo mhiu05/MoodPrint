@@ -1,5 +1,5 @@
 import { ApiError } from "./client";
-import type { AICard, AiOutput } from "./contracts";
+import type { AICard, AiOutput, Citation } from "./contracts";
 
 // Never render arbitrary provider error bodies from a stream.
 const aiFailureMessages: Record<string, string> = {
@@ -18,6 +18,7 @@ export type ValidatedBubble = {
   partIndex: number;
   text: string;
   cards: AICard[];
+  citations?: Citation[];
 };
 /** Backend-rendered collaboration line (Phase 2); present only when the server sent the key. */
 export type CollaborationLine = {
@@ -59,12 +60,14 @@ function object(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export function validCards(value: unknown): value is AICard[] {
+export function validCards(value: unknown, protocol = 2): value is AICard[] {
   return (
     Array.isArray(value) &&
     value.length <= 3 &&
     value.every((card) => {
       if (!object(card)) return false;
+      if (protocol >= 3 && card.kind === "maps_search") return Object.keys(card).every(key => ["kind", "searchId"].includes(key)) && typeof card.searchId === "string" && /^[0-9a-f-]{36}$/i.test(card.searchId);
+      if (protocol >= 3 && card.kind === "places") return Object.keys(card).every(key => ["kind", "places"].includes(key)) && Array.isArray(card.places) && card.places.length >= 1 && card.places.length <= 5 && card.places.every(p => object(p) && typeof p.name === "string" && p.name.length > 0 && typeof p.address === "string" && typeof p.fetchedAt === "string" && safeSourceUrl(p.mapsUrl) && new URL(p.mapsUrl).hostname === "www.google.com" && new URL(p.mapsUrl).pathname.startsWith("/maps/"));
       if (card.kind === "navigate_bot")
         return (
           Object.keys(card).every((key) => ["kind", "botId"].includes(key)) &&
@@ -138,7 +141,26 @@ export function validSteps(value: unknown): value is ReplyStep[] {
   );
 }
 
-function v2Final(data: Record<string, unknown>): ValidatedReply {
+export function safeSourceUrl(value: unknown): value is string {
+  if (typeof value !== "string" || value.length > 2048 || /[\s\\]/.test(value)) return false;
+  try {
+    const url = new URL(value), host = url.hostname.toLowerCase().replace(/\.$/, "");
+    return url.protocol === "https:" && !url.username && !url.password && !url.port &&
+      host.includes(".") && !/^[\d.]+$/.test(host) && !host.includes(":") &&
+      !/(^|\.)(localhost|local|internal)$/.test(host);
+  } catch { return false; }
+}
+
+export function validCitations(value: unknown, text: string): value is Citation[] {
+  return Array.isArray(value) && value.length <= 8 && value.every(c => object(c) &&
+    Object.keys(c).every(k => ["sourceId", "title", "url", "start", "end"].includes(k)) &&
+    typeof c.sourceId === "string" && /^[a-zA-Z0-9_-]{1,64}$/.test(c.sourceId) &&
+    typeof c.title === "string" && c.title.length > 0 && Array.from(c.title).length <= 200 &&
+    safeSourceUrl(c.url) && Number.isInteger(c.start) && Number.isInteger(c.end) &&
+    Number(c.start) >= 0 && Number(c.end) > Number(c.start) && Number(c.end) <= Array.from(text).length);
+}
+
+function v2Final(data: Record<string, unknown>, protocol = 2): ValidatedReply {
   const messages = data.messages;
   if (
     Object.keys(data).some((key) => !["partCount", "messages", "collaboration", "speaker", "steps"].includes(key)) ||
@@ -154,21 +176,24 @@ function v2Final(data: Record<string, unknown>): ValidatedReply {
   const bubbles = messages.map((message: unknown, index): ValidatedBubble => {
     if (
       !object(message) ||
-      Object.keys(message).some((key) => !["messageId", "partIndex", "text", "cards"].includes(key)) ||
+      Object.keys(message).some((key) => !["messageId", "partIndex", "text", "cards", ...(protocol >= 3 ? ["citations"] : [])].includes(key)) ||
       typeof message.messageId !== "string" ||
       !/^[a-zA-Z0-9-]{1,64}$/.test(message.messageId) ||
       message.partIndex !== index ||
       typeof message.text !== "string" ||
       !message.text.trim() ||
-      !validCards(message.cards)
+      !validCards(message.cards, protocol) ||
+      (protocol >= 3 && !validCitations(message.citations, message.text))
     )
       throw invalidStream();
-    return { messageId: message.messageId, partIndex: index, text: message.text, cards: message.cards };
+    return { messageId: message.messageId, partIndex: index, text: message.text, cards: message.cards,
+      ...(protocol >= 3 ? { citations: message.citations as Citation[] } : {}) };
   });
   // The same bounds an old client enforces on the joined v1 text and its cards.
   const joined = bubbles.map((bubble) => bubble.text).join("\n\n");
   if (Array.from(joined).length > MAX_JOINED || bubbles.flatMap((bubble) => bubble.cards).length > 3)
     throw invalidStream();
+  if (bubbles.flatMap(b => b.citations ?? []).length > 12 || new Set(bubbles.flatMap(b => b.citations ?? []).map(c => c.url)).size > 8) throw invalidStream();
   const reply: ValidatedReply = { messages: bubbles };
   if ("collaboration" in data) reply.collaboration = data.collaboration as CollaborationLine | null;
   if ("speaker" in data) reply.speaker = data.speaker as BotName | null;
@@ -250,7 +275,7 @@ async function consume<T>(
         if (event.type === "progress") {
           // v1 progress is always `{}`; v2 may carry the two collaboration activities.
           // v1 progress data is never read (raw provider deltas must not reach the UI, nor fail it).
-          const activity = version === "ai-events-v2" ? progressActivity(event.data) : null;
+          const activity = version !== "ai-events-v1" ? progressActivity(event.data) : null;
           if (activity) onProgress?.(activity);
           continue;
         }
@@ -321,4 +346,17 @@ export async function consumeAIReply(
     },
     onProgress,
   );
+}
+
+/** Direct-chat v3; old servers can safely fall back to their unchanged v1/v2 payload. */
+export async function consumeAISearchReply(eventsUrl: string, signal: AbortSignal,
+  onProgress?: (activity: StreamActivity) => void): Promise<ValidatedReply> {
+  if (!RUN_EVENTS.test(eventsUrl)) throw invalidStream();
+  return consume(`${eventsUrl}?protocol=3`, signal,
+    version => ["ai-events-v1", "ai-events-v2", "ai-events-v3"].includes(String(version)),
+    (version, data) => {
+      if (version !== "ai-events-v1") return v2Final(data, version === "ai-events-v3" ? 3 : 2);
+      const single = v1Final(data);
+      return { messages: [{ messageId: null, partIndex: 0, text: single.text, cards: single.cards }] };
+    }, onProgress);
 }

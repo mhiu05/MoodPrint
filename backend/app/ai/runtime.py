@@ -36,7 +36,7 @@ from app.ai.journal import (
 from app.ai.models import AiMessageRecord
 from app.ai.persistence import current_turn, owned_conversation
 from app.ai.prompts import RUNTIME_VARIANTS, prompt_version
-from app.ai.schemas import AIEvent, AIMessage, AiReply, MoodReadScope, final_v2
+from app.ai.schemas import AIEvent, AIMessage, AiReply, MoodReadScope, PromptOptions, final_v2
 from app.ai.store import ConversationStore
 from app.ai.usage import UsageEvent
 from app.core.errors import DomainError
@@ -95,6 +95,15 @@ class LiveRun:
     user_sequence: int | None = None
     # 'group' for a V3 group turn (its conversation is an ai_conversations row of kind 'group').
     kind: str = "direct"
+    prompt_options: PromptOptions = field(default_factory=PromptOptions)
+    response_protocol: int = 2
+    public_search: bool = False
+    public_sources: dict = field(default_factory=dict)
+    public_cards: list = field(default_factory=list)
+    turn_instructions: str = ""
+    skill_id: str | None = None
+    skip_delegation: bool = False
+    maps_clarification_key: tuple | None = None
 
 
 @dataclass
@@ -120,6 +129,8 @@ class AiRuntime:
         from app.ai.collaboration.coordinator import CollaborationCoordinator
 
         self.coordinator = CollaborationCoordinator(self)
+        from app.ai.skills.registry import SkillRegistry
+        self.skills = SkillRegistry()
         # Tests only: a separate synthetic model for specialist consultations.
         self.specialist_model_override = None
         # Tests only (V3): synthetic models per workflow role ('planner', 'nhatky:consult', ...).
@@ -132,6 +143,8 @@ class AiRuntime:
         self.finalizers: set[asyncio.Task] = set()
         self.pending_terminal: dict[UUID, LiveRun] = {}
         self.pending_inputs: dict[UUID, tuple[UUID, int]] = {}
+        # One immediate area clarification, containing only a closed public query label.
+        self.maps_clarifications: dict[tuple, tuple[str, float]] = {}
         # Per-user SSE slots, reserved before any await (see app.core.streams).
         self.streams = StreamSlots(6)
 
@@ -263,7 +276,9 @@ class AiRuntime:
     def check_capacity(self, conversation_id: UUID, extra_bytes: int) -> None:
         def size(identity):
             c = self.store.conversations[identity]
-            return sum(len(m.text.encode()) for m in c.messages) + sum(
+            # Text bytes as before, plus RAM held by cards/citations (search URLs) when present.
+            return sum(len(m.text.encode()) + (len(m.model_dump_json(include={"cards", "citations"}).encode())
+                                               if m.cards or m.citations else 0) for m in c.messages) + sum(
                 len(event.model_dump_json().encode())
                 for run in self.runs.values()
                 if run.conversation_id == identity
@@ -314,13 +329,19 @@ class AiRuntime:
             raise guest_expired()
         if run.terminal or time.monotonic() - run.started > self.settings.ai_timeout_seconds:
             raise DomainError(410, "RUN_ENDED", "Lượt trò chuyện đã kết thúc.")
-        self.store.get(run.conversation_id, str(run.actor.user_id), str(run.actor.session_id))
+        conversation = self.store.get(run.conversation_id, str(run.actor.user_id), str(run.actor.session_id))
         async with self.database.require()() as db, db.begin():
             user = await lock_actor(db, run.actor)
             await assert_purpose(db, user, "AI")
             if user.data_version != run.data_version:
                 raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
             await current_turn(db, run, self.worker_id)
+            if run.responder and run.responder != conversation.bot_id:
+                from app.ai.orchestration.workflow import handoff_allowed
+
+                if not await handoff_allowed(db, self.settings, user, run.responder,
+                                             conversation_id=run.conversation_id):
+                    raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
             if run.persistent and not await owned_conversation(db, run.conversation_id, user.id, kind=run.kind):
                 raise DomainError(410, "CONVERSATION_EXPIRED", "Cuộc trò chuyện đã kết thúc.")
             status = await db.scalar(
@@ -378,6 +399,9 @@ class AiRuntime:
                     raise DomainError(410, "WORKER_FENCED", "Lượt trò chuyện đã kết thúc.")
 
     def invalidate(self, user_id: str, session_id: str | None = None) -> None:
+        for key in list(self.maps_clarifications):
+            if str(key[0]) == user_id and (session_id is None or str(key[1]) == session_id):
+                del self.maps_clarifications[key]
         for run in self.runs.values():
             if str(run.actor.user_id) == user_id and (
                 session_id is None or str(run.actor.session_id) == session_id
@@ -410,6 +434,7 @@ class AiRuntime:
         self.store.clear()
         self.proposals.clear()
         self.pending_inputs.clear()
+        self.maps_clarifications.clear()
         closer = getattr(self.provider, "aclose", None)
         if closer:
             await closer()
@@ -734,6 +759,9 @@ class AiRuntime:
                 )
                 # V3 handoff continuation: the specialist answers in Điều phối's conversation.
                 bot = run.responder or c.bot_id
+                from app.ai.search.turn import prepare_turn
+                current_prompt = next((m.text for m in reversed(c.messages) if m.run_id == run.id and m.actor == "self"), "")
+                turn_input = await prepare_turn(self, run, bot, current_prompt)
                 from app.ai.embeddings import MEMORY_BOTS, retrieve_memories
 
                 # Check live durable policy before projecting either transcript or
@@ -745,14 +773,14 @@ class AiRuntime:
                         raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
                     mem: Consent | None = consents.get("MEM")
                     memory_state = SourceState()
-                    if mem and consent_enabled("MEM", mem.enabled) and mem.policy_version == "v1":
+                    if not run.public_search and mem and consent_enabled("MEM", mem.enabled) and mem.policy_version == "v1":
                         memory_state.authorization = "authorized"
                     elif mem and mem.version > 1:
                         memory_state.authorization = "revoked"
                     if bot not in MEMORY_BOTS:
                         memory_state.evidence = "tool_unavailable"
                     run.sources["memory"] = memory_state
-                    revalidated = await self.revalidate_check_ins(db, user, run, c)
+                    revalidated = await self.revalidate_check_ins(db, user, run, c) if not run.public_search else frozenset()
                 run.sources["mood"] = SourceState(
                     authorization="authorized" if run.mood_scope else "no_current_authorization",
                     previous="previously_authorized" if any(
@@ -760,12 +788,14 @@ class AiRuntime:
                     ) else "missing_verified_evidence",
                     evidence="missing_verified_evidence" if caps(bot).mood_scope and run.mood_scope else "tool_unavailable",
                 )
-                if caps(bot).journal and run.mood_scope is None:
+                if caps(bot).journal and run.mood_scope is None and not run.public_search:
                     run.sources["journal"] = SourceState(authorization="authorized")
                 projected = model_messages(
                     c.messages, c.context_stamps, current_run=run.id, data_version=run.data_version,
                     revalidated=revalidated,
                 )
+                if run.public_search:
+                    projected = [m for m in c.messages if m.run_id == run.id and m.actor == "self"]
                 if bot != c.bot_id:
                     # The specialist sees only its own segment (from the handoff on), never the rest.
                     projected = [m for m in projected if m.id in c.segment_ids]
@@ -799,9 +829,9 @@ class AiRuntime:
                             return
 
                 monitor = asyncio.create_task(monitor_policy())
-                consultation = await self.consult(run, c, history)
+                consultation = await self.consult(run, c, history) if not run.skip_delegation else None
                 brief = consultation.brief if consultation is not None else None
-                if self.orchestrates(run, c):
+                if self.orchestrates(run, c) and not run.skip_delegation:
                     from app.ai.orchestration.workflow import Workflow
 
                     run.workflow = Workflow(self, run, c)
@@ -822,16 +852,23 @@ class AiRuntime:
                     reply = await self.provider.run_reply(
                         bot_id=bot,
                         history=history,
-                        tools=self.tools(run, bot, memory_enabled=True),
+                        tools=[] if run.public_search else self.tools(run, bot, memory_enabled=True),
                         context=run,
                         on_progress=progress,
                         model_override=self.agent_model_overrides.get(bot, self.model_override),
                         usage_observer=observe,
-                        extra_instructions=brief.instructions if brief else "",
-                        extra_input=[brief.data_item] if brief and brief.data_item else [],
+                        extra_instructions=(brief.instructions if brief else "") + run.turn_instructions,
+                        extra_input=([brief.data_item] if brief and brief.data_item else []) + turn_input,
                     )
                 reply = AiReply.model_validate(reply)
+                if not run.public_search:
+                    from app.ai.provider import search_free_reply
+                    search_free_reply(reply.parts)
+                if run.public_cards:
+                    reply.parts[-1].cards.extend(run.public_cards)
+                    reply = AiReply.model_validate(reply.model_dump())
                 parts = reply.parts
+                backed = run.public_search or any(p.citations or any(c.kind in ("maps_search", "places") for c in p.cards) for p in parts)
                 if run.mood_evidence is not None:
                     run.mood_evidence.assert_current(run)
                 if run.journal_evidence is not None:
@@ -849,6 +886,12 @@ class AiRuntime:
                         raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
                     await current_turn(db, run, self.worker_id)
                     await assert_journal_revisions(db, user, run)
+                    if run.responder and run.responder != c.bot_id:
+                        from app.ai.orchestration.workflow import handoff_allowed
+
+                        if not await handoff_allowed(db, self.settings, user, run.responder,
+                                                     conversation_id=run.conversation_id):
+                            raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
                     if run.collaboration is not None:
                         # Authorization #3 and provenance, in the same transaction as the bubbles.
                         await self.coordinator.confirm(db, user, run.collaboration, run.id, policy_name="chat")
@@ -888,6 +931,8 @@ class AiRuntime:
                             db.add(AiMessageRecord(
                                 id=identity, conversation_id=c.id, sequence=base + 1 + index, actor="bot",
                                 text=part.text, cards=[card.model_dump(mode="json", by_alias=True) for card in part.cards],
+                                citations=[citation.model_dump(mode="json", by_alias=True) for citation in part.citations],
+                                source_backed=backed,
                                 run_id=speaker_run, part_index=index, part_count=len(parts),
                             ))
                         durable.version = base + len(parts)
@@ -906,7 +951,7 @@ class AiRuntime:
                 speaker = run.workflow.speaker if run.workflow is not None else bot
                 c.messages.extend(
                     AIMessage(
-                        id=identity, actor="bot", text=part.text, cards=part.cards, created_at=published,
+                        id=identity, actor="bot", text=part.text, cards=part.cards, citations=part.citations, source_backed=backed, created_at=published,
                         run_id=speaker_run, status="completed", part_index=index, part_count=len(parts),
                         speaker=speaker,  # type: ignore[arg-type]
                     )
@@ -918,8 +963,10 @@ class AiRuntime:
                 run.final_v2 = final_v2([
                     (identity, part.text, [card.model_dump(mode="json", by_alias=True) for card in part.cards])
                     for identity, part in zip(identities, parts, strict=True)
-                ])
-                self.event(run, "final", reply.joined().model_dump(mode="json", by_alias=True))
+                ], [[citation.model_dump(mode="json", by_alias=True) for citation in part.citations] for part in parts], source_marked=backed)
+                if run.response_protocol >= 3:
+                    run.final_v2["speaker"], run.final_v2["steps"] = speaker, []
+                self.event(run, "final", reply.joined().model_dump(mode="json", by_alias=True, exclude={"citations"}))
                 self.event(run, "completed", {})
                 status = "completed"
         except asyncio.CancelledError:
@@ -929,6 +976,8 @@ class AiRuntime:
             run.failure = public_failure(error)
             logging.getLogger("moodprint").warning("ai_execution_error" + identity_field + " error_type=%s code=%s", *identity_args, type(error).__name__, error.code if isinstance(error, DomainError) else "AI_RUN_FAILED")
         finally:
+            if status != "completed" and run.maps_clarification_key is not None:
+                self.maps_clarifications.pop(run.maps_clarification_key, None)
             # No snapshot survives a terminal run, saved-chat reload or worker restart.
             run.mood_evidence = None
             run.journal_evidence = None

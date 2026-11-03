@@ -38,8 +38,7 @@ from pydantic import BaseModel, ValidationError
 from sqlalchemy import func, select, update
 
 from app.ai.accounting import UsageSnapshot, persist_snapshot, reserve_accounting
-from app.ai.collaboration.eligibility import collaboration_eligible
-from app.ai.collaboration.models import V3_EDGES, AiSharingPermission
+from app.ai.collaboration.grants import effective_grants
 from app.ai.context import JOURNAL_TURN_POLICY, ContextStamp
 from app.ai.orchestration import policy
 from app.ai.orchestration.models import AiOrchestrationStep
@@ -101,6 +100,7 @@ class Step:
     ordinal: int
     child_run_id: UUID
     permission_version: int
+    permission_policy: str = "sharing-v1"
     usage: UsageSnapshot = field(default_factory=UsageSnapshot)
     status: str = "authorized"
     sources: tuple[tuple[UUID, int, Any], ...] = ()
@@ -131,25 +131,33 @@ def _digest(value: Any) -> str:
 
 
 async def live_grants(db, settings, user: User) -> policy.Grants:
-    from app.ai.proactive.models import AiProactiveSettings
-
-    rows = (await db.scalars(select(AiSharingPermission).where(
-        AiSharingPermission.user_id == user.id, AiSharingPermission.enabled.is_(True),
-        AiSharingPermission.edge.in_(V3_EDGES),
-    ))).all()
-    prefs = await db.get(AiProactiveSettings, user.id)
+    grants = await effective_grants(db, settings, user, family="v3")
     return policy.Grants(
-        feature=settings.orchestration_open_for(user.id) and settings.ai_multi_message_enabled,
-        eligible=await collaboration_eligible(db, user),
-        edges={row.edge: row.version for row in rows},
-        journal_context=bool(prefs and prefs.journal_context_enabled),
+        feature=grants.feature_open, eligible=grants.eligible,
+        edges={edge: token.version for edge, token in grants.edges.items()},
+        journal_context=grants.journal_context, permission_policy=grants.policy_mode,
     )
 
 
-async def handoff_allowed(db, settings, user: User, agent: str) -> bool:
-    """A handoff continuation stays only while its edge is still enabled (checked per turn)."""
+async def handoff_allowed(db, settings, user: User, agent: str, *, conversation_id: UUID) -> bool:
+    """A continuation requires its original receipt token and a matching live edge."""
     grants = await live_grants(db, settings, user)
-    return grants.feature and grants.eligible and policy.EDGES[("handoff", agent)] in grants.edges
+    edge = policy.EDGES[("handoff", agent)]
+    if not (grants.feature and grants.eligible and edge in grants.edges):
+        return False
+    receipt = await db.scalar(select(AiOrchestrationStep).join(
+        AiRun, AiRun.id == AiOrchestrationStep.workflow_run_id,
+    ).where(
+        AiRun.conversation_id == conversation_id, AiOrchestrationStep.user_id == user.id,
+        AiOrchestrationStep.kind == "handoff", AiOrchestrationStep.status == "completed",
+        AiOrchestrationStep.used_in_reply.is_(True),
+    ).order_by(AiOrchestrationStep.started_at.desc(), AiOrchestrationStep.id.desc()).limit(1))
+    valid = bool(receipt and receipt.edge == edge
+                 and receipt.permission_policy == grants.permission_policy
+                 and receipt.permission_version == grants.edges[edge])
+    if not valid:
+        log.info("metric=collaboration_token_mismatch family=v3 edge=%s", edge)
+    return valid
 
 
 async def journal_excerpts(db, user: User, days: int) -> list[dict]:
@@ -226,7 +234,9 @@ class Workflow:
         if not step.edge:
             # The planner reads no private data: the feature and eligibility gate suffice.
             return True
-        if grants.edges.get(step.edge) != step.permission_version:
+        if (grants.permission_policy != step.permission_policy
+                or grants.edges.get(step.edge) != step.permission_version):
+            log.info("metric=collaboration_token_mismatch family=v3 edge=%s", step.edge)
             return False
         return not (step.edge in policy.READS_JOURNAL and not grants.journal_context)
 
@@ -399,7 +409,7 @@ class Workflow:
     # ---------------------------------------------------------------- receipts
 
     async def _insert_step(self, db, user, kind, target, edge, version, detail, *, status="authorized",
-                           deny_reason=None) -> Step:
+                           deny_reason=None, permission_policy="sharing-v1") -> Step:
         ordinal = self._ordinal(kind)
         step_id, child_id = uuid4(), uuid4()
         if status != "denied":
@@ -411,6 +421,7 @@ class Workflow:
             child_run_id=child_id if status != "denied" else None, kind=kind, requester_bot="dieuphoi",
             target_bot=target, edge=edge, ordinal=ordinal, status=status, deny_reason=deny_reason,
             permission_version=version, data_version=self.run.data_version, detail=detail,
+            permission_policy=permission_policy,
             finished_at=now() if status == "denied" else None,
         ))
         if status != "denied" and self.settings.ai_accounting_enabled:
@@ -418,7 +429,7 @@ class Workflow:
                                      f"{kind}-{target or 'planner'}+{policy.POLICY_VERSION}", settings=self.settings)
         await db.flush()
         step = Step(id=step_id, kind=kind, target=target or "", edge=edge or "", ordinal=ordinal,
-                    child_run_id=child_id, permission_version=version)
+                    child_run_id=child_id, permission_version=version, permission_policy=permission_policy)
         if status != "denied":
             self.steps.append(step)
         return step
@@ -436,7 +447,8 @@ class Workflow:
                 raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
             await current_turn(db, self.run, self.runtime.worker_id)
             grants = await live_grants(db, self.settings, user)
-            probe = Step(uuid4(), kind, target, edge, 0, uuid4(), version or -1)
+            probe = Step(uuid4(), kind, target, edge, 0, uuid4(), version or -1,
+                         permission_policy=self.decision.permission_policy)
             if version is None or not self._grant_holds(grants, probe):
                 raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
             excerpts: list[dict] = []
@@ -446,7 +458,8 @@ class Workflow:
                     # Never forwarded, never recorded: Điều phối answers alone.
                     return None
                 detail = {**detail, "entries": len(excerpts)}
-            step = await self._insert_step(db, user, kind, target, edge, version, detail)
+            step = await self._insert_step(db, user, kind, target, edge, version, detail,
+                                           permission_policy=self.decision.permission_policy)
             step.sources = tuple((item["id"], item["revision"], item["localDate"]) for item in excerpts)
             if excerpts:
                 # Provenance before any value derived from the journal can reach a model.
@@ -485,8 +498,12 @@ class Workflow:
                     user = await db.get(User, self.run.actor.user_id)
                     for target, reason in denied.items():
                         kind = "handoff" if self.plan is not None and self.plan.workflow == "handoff" else "consult"
-                        await self._insert_step(db, user, kind, target, policy.EDGES[(kind, target)], 0, {},
-                                                status="denied", deny_reason=reason)
+                        edge = policy.EDGES[(kind, target)]
+                        version = self.grants.edges.get(edge, 0) if self.grants else 0
+                        permission_policy = self.grants.permission_policy if self.grants else "sharing-v1"
+                        await self._insert_step(db, user, kind, target, edge, version, {},
+                                                status="denied", deny_reason=reason,
+                                                permission_policy=permission_policy)
         except Exception as error:
             # Recovery closes it later; never invent a success.
             log.error("orchestration_settle_deferred error_type=%s", type(error).__name__)

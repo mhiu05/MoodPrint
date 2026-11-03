@@ -1,6 +1,7 @@
 import { BotAvatar } from "../../../companions/Avatar";
 import { botById, type BotId } from "../../../companions/registry";
 import { Button } from "../../../components/UI";
+import { Link } from "react-router-dom";
 import "./orchestration.css";
 
 export type AgentStep = { kind: "consult" | "handoff"; companion: "nhatky" | "hoatdong" };
@@ -50,6 +51,7 @@ export function HandoffBanner({
     <div className="handoff-banner" role="status">
       <BotAvatar id={agent as BotId} size={28} />
       <p>Bạn đang trò chuyện trực tiếp với <strong>{nameOf(agent)}</strong> trong cuộc này.</p>
+      <Link to={`/assistants/${agent}?panel=info&section=check-ins`}>Thông tin {nameOf(agent)}</Link>
       <Button variant="secondary" disabled={busy} onClick={onReturn}>Quay lại {owner}</Button>
     </div>
   );

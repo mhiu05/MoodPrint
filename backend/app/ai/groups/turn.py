@@ -282,6 +282,8 @@ class GroupTurn:
                 parts = [AiOutput(text=bubble.text, cards=bubble.cards) for bubble in reply.messages]
                 if any(has_journal_link(part.text) for part in parts):
                     raise DomainError(409, "JOURNAL_EVIDENCE_REQUIRED", "Chưa đọc được nguồn nhật ký cho lượt này.")
+            from app.ai.provider import search_free_reply
+            search_free_reply(parts)
             await self.publish(step, child, usage, bot, parts, journal=journal)
         except asyncio.CancelledError:
             await asyncio.shield(self.settle(step, child, usage, "cancelled", "turn_cancelled"))

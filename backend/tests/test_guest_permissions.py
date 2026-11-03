@@ -100,6 +100,9 @@ REGISTERED_ONLY = {
     # Companion collaboration opt-in is for permanent adult accounts only (P2-02).
     ("GET", "/ai/sharing"),
     ("PUT", "/ai/sharing/{edge}"),
+    # Maps search jobs: registered direct V3 only; never a guest-owned paid job.
+    ("GET", "/ai/maps-searches/{search_id}"),
+    ("POST", "/ai/maps-searches/{search_id}/cancel"),
     ("GET", "/admin/feedback"),
     ("GET", "/admin/feedback/summary"),
     ("PATCH", "/admin/feedback/{id}"),
@@ -157,7 +160,8 @@ REGISTERED_ONLY = {
     ("POST", "/admin/users/{ref}/lift"),
 }
 # Deliberate zero projection: no social SQL for a guest, no 403 for the badge poll.
-SUMMARY_ZERO = {("GET", "/social/summary"), ("GET", "/ai/inbox")}
+# The composer capability view answers every guest with all skills/tools unavailable.
+SUMMARY_ZERO = {("GET", "/social/summary"), ("GET", "/ai/inbox"), ("GET", "/ai/prompt-capabilities")}
 # Guest lifecycle entry points added by this feature; each has its own guards (plan 01).
 GUEST_ENTRY = {
     ("POST", "/auth/guest-intents"),
@@ -416,3 +420,15 @@ async def test_activity_worker_aborts_a_forged_guest_session(clients):
     async with app.state.database.sessions() as db:
         row = await db.get(ActivitySession, session_id)
     assert row.state == "aborted" and row.end_reason == "guest_participant"
+
+
+async def test_guest_prompt_capabilities_are_a_zero_projection(clients):
+    app, _ = clients
+    settings = app.state.settings
+    settings.ai_agent_skills_enabled = settings.ai_three_agent_experience_enabled = True
+    guest = await add_guest(app, consents=True)
+    response = await guest.client.get("/api/v1/ai/prompt-capabilities?botId=dieuphoi")
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert {item["id"] for item in body["skills"]} == {"hangout", "learn-new-thing"}
+    assert not any(item["available"] for item in body["skills"] + body["tools"])

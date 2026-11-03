@@ -148,7 +148,7 @@ async def test_unknown_protocol_is_rejected(chat):
     app, client = chat
     url = await conversation(client)
     run = await turn(app, client, url, "Chào", make_test_model("Một"))
-    assert (await stream(client, run.id, "?protocol=3")).status_code == 422
+    assert (await stream(client, run.id, "?protocol=4")).status_code == 422
 
 
 def test_openapi_documents_both_final_shapes():
@@ -156,7 +156,7 @@ def test_openapi_documents_both_final_shapes():
     from app.main import create_app
 
     schemas = create_app(Settings(_env_file=None)).openapi()["components"]["schemas"]
-    assert schemas["AIEvent"]["properties"]["version"]["enum"] == ["ai-events-v1", "ai-events-v2"]
+    assert schemas["AIEvent"]["properties"]["version"]["enum"] == ["ai-events-v1", "ai-events-v2", "ai-events-v3"]
     final = schemas["AIFinalV2"]
     assert set(final["properties"]) == {"partCount", "messages"}
     assert set(schemas["AIReplyBubble"]["properties"]) == {"messageId", "partIndex", "text", "cards"}

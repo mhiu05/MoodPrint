@@ -27,6 +27,9 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 | POST | `/api/v1/admin/reports/{report_id}/resolve` | `resolve_api_v1_admin_reports__report_id__resolve_post` |
 | POST | `/api/v1/admin/users/{ref}/lift` | `lift_api_v1_admin_users__ref__lift_post` |
 | GET | `/api/v1/ai/conversations` | `conversations_api_v1_ai_conversations_get` |
+| GET | `/api/v1/ai/prompt-capabilities` | `prompt_capabilities_api_v1_ai_prompt_capabilities_get` |
+| GET | `/api/v1/ai/maps-searches/{search_id}` | `get_maps_api_v1_ai_maps_searches__search_id__get` |
+| POST | `/api/v1/ai/maps-searches/{search_id}/cancel` | `cancel_maps_api_v1_ai_maps_searches__search_id__cancel_post` |
 | POST | `/api/v1/ai/conversations` | `create_conversation_api_v1_ai_conversations_post` |
 | GET | `/api/v1/ai/conversations/{conversation_id}` | `conversation_api_v1_ai_conversations__conversation_id__get` |
 | PATCH | `/api/v1/ai/conversations/{conversation_id}` | `rename_conversation_api_v1_ai_conversations__conversation_id__patch` |

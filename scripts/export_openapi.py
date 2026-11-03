@@ -25,9 +25,10 @@ os.environ.update(
     }
 )
 from app.main import create_app  # noqa: E402
+from app.core.config import Settings  # noqa: E402
 
 target = root / "backend" / "openapi.json"
 target.write_text(
-    json.dumps(create_app().openapi(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    json.dumps(create_app(Settings(_env_file=None)).openapi(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
 )
 print(target.relative_to(root))

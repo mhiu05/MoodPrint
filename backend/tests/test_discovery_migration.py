@@ -15,7 +15,7 @@ from tests.social_helpers import PROFILE
 
 pytestmark = pytest.mark.postgres
 BACKEND = Path(__file__).resolve().parents[1]
-HEAD = "0024_three_agent_groups"  # 0020 is exercised through the chain that now ends here
+HEAD = "0028_collaboration_defaults"  # 0020 is exercised through the chain that now ends here
 
 
 def test_0020_preserves_journal_auth_matching_and_approved_memories():
@@ -178,5 +178,6 @@ def test_0020_preserves_journal_auth_matching_and_approved_memories():
             db.rollback()  # Browser roles above are cluster-wide; leave no persistent roles.
         rollback = alembic("downgrade", "0019_journal", check=False)
         assert rollback.returncode != 0
-        assert "Destructive rollback disabled" in rollback.stderr
+        # The forward-only search/maps migrations above 0020 refuse first, in one transaction.
+        assert "Forward-only" in rollback.stderr
         assert HEAD in alembic("current").stdout

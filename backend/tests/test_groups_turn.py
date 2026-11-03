@@ -214,3 +214,20 @@ async def test_another_account_cannot_reach_the_group_or_its_events(clients):
     assert (await other.get(url)).status_code in (403, 404)
     assert (await other.post(f"/api/v1/ai/groups/{group['groupId']}/turns/{accepted['turnId']}/cancel",
                              headers=key())).status_code in (403, 404)
+
+
+async def test_a_member_cannot_publish_fabricated_search_cards_in_a_group(clients):
+    app, [(client, _uid), _] = clients
+    await groups_setup(app, client)
+    group = await create_group(client, ("nhatky", "hoatdong"))
+    invented = {"messages": [{"text": "Quán này 4.9 sao nhé.", "cards": [{"kind": "places", "places": [{
+        "name": "Quán bịa", "address": "Quận 3", "mapsUrl": "https://www.google.com/maps/search/?api=1&query=x",
+        "fetchedAt": "2026-11-03T00:00:00Z"}]}]}]}
+    roles(app, nhatky=scripted(reply("Mình nghe đây.")), hoatdong=scripted(invented))
+    run, accepted = await say(app, client, group["groupId"], "@mọi người ơi")
+    assert run.terminal_status == "completed", run.failure
+    # Groups have no search; an unsourced place card is never published as sourced data.
+    assert await bot_messages(client, group["groupId"]) == [("nhatky", "Mình nghe đây.")]
+    full = events((await client.get(f"/api/v1/ai/groups/{group['groupId']}/turns/{accepted['turnId']}/events")).text)
+    assert ("agent_failed", "hoatdong") in [(e["type"], e["data"].get("agent")) for e in full]
+    assert "Quán bịa" not in json.dumps(full, ensure_ascii=False)

@@ -44,8 +44,8 @@ from app.ai.collaboration.contracts import (
     TinyHabit,
     output_digest,
 )
-from app.ai.collaboration.eligibility import collaboration_eligible
-from app.ai.collaboration.models import AiCollaboration, AiSharingPermission
+from app.ai.collaboration.grants import effective_grants
+from app.ai.collaboration.models import AiCollaboration
 from app.ai.collaboration.specialist import InvalidSpecialistOutput, run_specialist
 from app.ai.persistence import quota_day_start, spent_today_nano
 from app.ai.proactive.models import AiMessageSource, AiProactiveSettings
@@ -77,6 +77,7 @@ class Consultation:
     rule_id: str
     permission_version: int
     data_version: int
+    permission_policy: str = "sharing-v1"
     sources: tuple[tuple[UUID, int, object], ...] = ()  # (entry id, revision, local date)
     brief: PrimaryBrief | None = None
     status: str = "authorized"
@@ -180,22 +181,11 @@ async def sources_current(db, user: User, sources) -> bool:
 
 
 async def live_grants(db, settings, user: User) -> policy.Grants:
-    enabled = {
-        row.edge: row.version
-        for row in (
-            await db.scalars(
-                select(AiSharingPermission).where(
-                    AiSharingPermission.user_id == user.id, AiSharingPermission.enabled.is_(True)
-                )
-            )
-        ).all()
-    }
-    prefs = await db.get(AiProactiveSettings, user.id)
+    grants = await effective_grants(db, settings, user, family="legacy")
     return policy.Grants(
-        feature_enabled=settings.collaboration_open_for(user.id) and settings.ai_multi_message_enabled,
-        eligible=await collaboration_eligible(db, user),
-        enabled_edges=enabled,
-        journal_context_enabled=bool(prefs and prefs.journal_context_enabled),
+        feature_enabled=grants.feature_open, eligible=grants.eligible,
+        enabled_edges={edge: token.version for edge, token in grants.edges.items()},
+        journal_context_enabled=grants.journal_context, permission_policy=grants.policy_mode,
     )
 
 
@@ -209,7 +199,9 @@ async def still_authorized(db, settings, user: User, consultation: Consultation,
     grants = await live_grants(db, settings, user)
     if not (grants.feature_enabled and grants.eligible):
         return False
-    if grants.enabled_edges.get(consultation.edge) != consultation.permission_version:
+    if (grants.permission_policy != consultation.permission_policy
+            or grants.enabled_edges.get(consultation.edge) != consultation.permission_version):
+        log.info("metric=collaboration_token_mismatch family=legacy edge=%s", consultation.edge)
         return False
     if policy.EDGES[consultation.edge].reads_journal and not grants.journal_context_enabled:  # type: ignore[index]
         return False
@@ -342,6 +334,7 @@ class CollaborationCoordinator:
                     id=uuid4(), user_id=user.id, primary_run_id=primary_run_id, edge=match.edge,
                     rule_id=match.rule_id, requester_bot=spec.requester, specialist_bot=spec.specialist,
                     status="denied", deny_reason=decision.reason, permission_version=decision.permission_version,
+                    permission_policy=grants.permission_policy,
                     data_version=data_version, input_schema=spec.input_schema,
                     input_digest=_denied_digest(spec.input_schema, decision.reason), finished_at=at,
                 ))
@@ -367,6 +360,7 @@ class CollaborationCoordinator:
             id=collaboration_id, user_id=user.id, primary_run_id=primary_run_id, specialist_run_id=child_id,
             edge=match.edge, rule_id=match.rule_id, requester_bot=spec.requester,
             specialist_bot=spec.specialist, status="authorized", permission_version=decision.permission_version,
+            permission_policy=grants.permission_policy,
             data_version=data_version, input_schema=spec.input_schema, input_digest=allowed.digest(),
         ))
         if settings.ai_accounting_enabled:
@@ -379,6 +373,7 @@ class CollaborationCoordinator:
         consultation = Consultation(
             collaboration_id=collaboration_id, specialist_run_id=child_id, edge=match.edge,
             rule_id=match.rule_id, permission_version=decision.permission_version, data_version=data_version,
+            permission_policy=grants.permission_policy,
             sources=tuple((item.entry_id, item.revision, item.local_date) for item in excerpts),
         )
         request = DelegationRequest(

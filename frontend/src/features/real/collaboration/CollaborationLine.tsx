@@ -35,8 +35,8 @@ export function CollaborationLine({ line }: { line: Collaboration }) {
         <Dialog title={copy.whyTitle} onClose={() => setOpen(false)} returnFocus={trigger}>
           <div className="collaboration-why-body">
             <p>{copy.why}</p>
-            <p className="collaboration-why-note">Chỉ những gì bạn đã bật ở cài đặt phối hợp mới được chia sẻ.</p>
-            <Link to="/companion-sharing" onClick={() => setOpen(false)}>Đổi cài đặt phối hợp</Link>
+            <p className="collaboration-why-note">Trợ lý có thể phối hợp trong giới hạn dữ liệu của từng tác vụ. Quyền dùng khoảnh khắc đã lưu vẫn được quản lý riêng.</p>
+            <Link to="/assistants/nhatky?panel=info&section=check-ins" onClick={() => setOpen(false)}>Xem quyền dùng khoảnh khắc trong Nhật ký</Link>
           </div>
         </Dialog>
       ) : null}

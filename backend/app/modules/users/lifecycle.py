@@ -94,6 +94,8 @@ async def process_deletions(app):
 
             # Schedules reveal daily routines; provenance names journal entries.
             await purge_proactive(db, uid)
+            from app.ai.search.maps_jobs import detach_searches
+            await detach_searches(db, uid)
             await db.execute(delete(AiConversation).where(AiConversation.user_id == uid))
             await db.execute(delete(AiPreference).where(AiPreference.user_id == uid))
             # Temporary-chat turn digests have no conversation row to cascade from.

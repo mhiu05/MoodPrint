@@ -30,6 +30,8 @@ class SharingEdgeView(DTO):
 class SharingView(DTO):
     available: bool
     edges: list[SharingEdgeView]
+    policy_mode: Literal["sharing-v1", "collaboration-defaults-v1"] = "sharing-v1"
+    policy_epoch: int = Field(default=0, ge=0)
 
 
 class SharingInput(DTO):

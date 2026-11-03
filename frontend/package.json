@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc --project tsconfig.build.json && vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "vitest run && node --require ./scripts/redocly-minimatch.cjs --test ./scripts/redocly-minimatch.test.cjs",
+    "test": "vitest run && node --require ./scripts/redocly-minimatch.cjs --test ./scripts/redocly-minimatch.test.cjs ./scripts/mock-api-guard.test.mjs",
     "test:e2e": "playwright test",
     "test:e2e:fullstack": "playwright test --config playwright.fullstack.config.ts",
     "contracts:generate": "node --require ./scripts/redocly-minimatch.cjs ./node_modules/openapi-typescript/bin/cli.js ../backend/openapi.json -o src/api/generated/schema.d.ts"

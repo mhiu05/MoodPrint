@@ -83,6 +83,8 @@ def message_view(m, run, collaboration=None, steps=None) -> AIMessage:
         actor=m.actor,
         text=m.text,
         cards=m.cards,
+        citations=getattr(m, "citations", None) or [],
+        source_backed=getattr(m, "source_backed", False),
         created_at=m.created_at,
         run_id=m.run_id,
         status=run.status,

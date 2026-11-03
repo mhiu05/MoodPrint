@@ -203,6 +203,7 @@ class Grants:
     eligible: bool
     enabled_edges: dict[str, int] = field(default_factory=dict)  # edge -> permission version
     journal_context_enabled: bool = False
+    permission_policy: str = SHARING_POLICY_VERSION
 
 
 @dataclass(frozen=True)

@@ -15,6 +15,7 @@ from app.ai.models import AiTurn
 from app.ai.persistence import recover_turns
 from app.ai.runtime import AiRuntime
 from app.ai.schemas import AIEvent, AIFinalV2, AiOutput
+from app.ai.search import models as search_models  # noqa: F401
 from app.contracts import ApiError
 from app.core.body_limit import BodyLimitMiddleware
 from app.core.config import Settings
@@ -79,6 +80,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         .values(status="interrupted", version=AiRun.version + 1)
                     )
                 await recover_turns(db)
+                from app.ai.search.accounting import recover_searches
+                await recover_searches(db)
 
         sweep_clock = {"retention": 0.0, "sample": 0.0}
         guest_clock = {"metrics": 0.0, "retention": 0.0, "first": True}
@@ -370,6 +373,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from app.ai.groups.routes import router as groups
     from app.ai.memory import router as memory
     from app.ai.proactive.routes import router as proactive
+    from app.ai.search.maps_routes import router as maps_search
+    from app.ai.skills.routes import router as prompt_skills
     from app.modules.activities.routes import router as activities
     from app.modules.auth.routes import router as auth
     from app.modules.consent.routes import router as consent
@@ -400,6 +405,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         journal_media,
         ai,
         proactive,
+        maps_search,
+        prompt_skills,
         sharing,
         groups,
         memory,

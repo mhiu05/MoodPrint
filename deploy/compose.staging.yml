@@ -6,6 +6,9 @@ services:
       - ${API_ENV_FILE:?Set the path to the root-owned runtime env file}
     environment:
       RELEASE_SHA: ${RELEASE_SHA:-unknown}
+      # API overlap10 + proactive overlap4 + Maps overlap2 =16; retain4 connection headroom.
+      DATABASE_POOL_SIZE: ${API_DATABASE_POOL_SIZE:-4}
+      DATABASE_POOL_OVERFLOW: ${API_DATABASE_POOL_OVERFLOW:-1}
     restart: unless-stopped
     init: true
     read_only: true
@@ -53,6 +56,36 @@ services:
     stop_grace_period: 100s
     healthcheck:
       test: [CMD, /srv/moodprint/.venv/bin/python, -m, app.jobs.proactive, --health]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+    networks: [internal]
+
+  maps:
+    image: ${API_IMAGE:?Set an immutable API image digest}
+    command: [/srv/moodprint/.venv/bin/python, -m, app.jobs.maps_search]
+    env_file:
+      - ${API_ENV_FILE:?Set the path to the root-owned runtime env file}
+    environment:
+      RELEASE_SHA: ${RELEASE_SHA:-unknown}
+      DATABASE_POOL_SIZE: '1'
+      DATABASE_POOL_OVERFLOW: '0'
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    cpus: 0.5
+    stop_grace_period: 30s
+    healthcheck:
+      test: [CMD, /srv/moodprint/.venv/bin/python, -m, app.jobs.maps_search, --health]
       interval: 30s
       timeout: 10s
       retries: 3

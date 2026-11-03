@@ -51,6 +51,9 @@ class AiOrchestrationStep(Base):
     deny_reason: Mapped[str | None] = mapped_column(String(32))
     failure_code: Mapped[str | None] = mapped_column(String(32))
     permission_version: Mapped[int] = mapped_column(default=0, server_default=text("0"))
+    permission_policy: Mapped[str] = mapped_column(
+        String(32), default="sharing-v1", server_default=text("'sharing-v1'")
+    )
     data_version: Mapped[int]
     # Closed values only (intent/workflow/task enums, counts); validated before every write.
     detail: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"))

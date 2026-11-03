@@ -116,7 +116,8 @@ async def test_sdk_uses_private_plan_then_returns_compatible_public_output():
     model = ScriptedModel([[message_output(json.dumps(PLAN))]])
     provider = SdkProvider(Settings(_env_file=None))
     output = await provider.run(bot_id="nhip", history=[{"role": "user", "content": "Bạn cứ nhận xét đi, không khuyên nhé"}], tools=[], context=run, on_progress=no_progress, model_override=model)
-    assert set(output.model_dump()) == {"text", "cards"}
+    # Public shape only; journal/mood replies never carry web citations.
+    assert set(output.model_dump()) == {"text", "cards", "citations"} and output.citations == []
     assert "2,5/5" in output.text and "Bạn có thể" not in output.text
     assert "mood-evidence-v1" in model.calls[0]["instructions"]
     assert "previously_authorized means" in model.calls[0]["instructions"]

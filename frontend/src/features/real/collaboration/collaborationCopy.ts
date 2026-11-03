@@ -29,7 +29,7 @@ export const EDGE_COPY: Record<Edge, EdgeCopy> = {
     notShared: "Không chia sẻ: nguyên văn nhật ký, ngày cụ thể, ảnh, âm thanh, bản nháp.",
     whyTitle: "Vì sao Điều phối biết điều này?",
     why:
-      "Bạn đã cho phép Điều phối hỏi ý Nhật ký. Lần này Nhật ký đọc vài khoảnh khắc bạn đã lưu gần đây và chỉ gửi " +
+      "Lần này Điều phối đã hỏi ý Nhật ký trong giới hạn dữ liệu của tác vụ. Nhật ký đọc vài khoảnh khắc bạn đã lưu gần đây và chỉ gửi " +
       "cho Điều phối một tóm tắt ngắn, không có nguyên văn hay ngày cụ thể.",
     requiresJournal: true,
   },
@@ -38,21 +38,21 @@ export const EDGE_COPY: Record<Edge, EdgeCopy> = {
     shared: "Chia sẻ: mục tiêu ngắn bạn vừa nói, thời lượng và mức năng lượng mong muốn.",
     notShared: "Không chia sẻ: nhật ký, ghi nhớ, các tin nhắn khác của bạn.",
     whyTitle: "Vì sao có những gợi ý này?",
-    why: "Bạn đã cho phép Điều phối hỏi ý Hoạt động. Hoạt động chỉ nhận mục tiêu ngắn, thời lượng và mức năng lượng.",
+    why: "Lần này Điều phối đã hỏi ý Hoạt động. Hoạt động chỉ nhận mục tiêu ngắn, thời lượng và mức năng lượng.",
   },
   dieuphoi_handoff_nhatky: {
     title: "Điều phối được mời Nhật ký trò chuyện trực tiếp",
-    shared: "Chia sẻ: tin nhắn bạn vừa gửi và một dòng chủ đề ngắn.",
+    shared: "Chia sẻ: tin nhắn bạn vừa gửi và loại lý do chuyển lượt.",
     notShared: "Không chia sẻ: phần trò chuyện trước đó với Điều phối, ghi nhớ.",
     whyTitle: "Vì sao Nhật ký trả lời?",
-    why: "Bạn muốn nói chuyện trực tiếp với Nhật ký. Nhật ký chỉ nhận tin nhắn vừa gửi và một dòng chủ đề ngắn.",
+    why: "Bạn muốn nói chuyện trực tiếp với Nhật ký. Nhật ký chỉ nhận tin nhắn vừa gửi và loại lý do chuyển lượt, không có các tin trước đó.",
   },
   dieuphoi_handoff_hoatdong: {
     title: "Điều phối được mời Hoạt động trò chuyện trực tiếp",
-    shared: "Chia sẻ: tin nhắn bạn vừa gửi và một dòng chủ đề ngắn.",
+    shared: "Chia sẻ: tin nhắn bạn vừa gửi và loại lý do chuyển lượt.",
     notShared: "Không chia sẻ: phần trò chuyện trước đó với Điều phối, nhật ký, ghi nhớ.",
     whyTitle: "Vì sao Hoạt động trả lời?",
-    why: "Bạn muốn nói chuyện trực tiếp với Hoạt động. Hoạt động chỉ nhận tin nhắn vừa gửi và một dòng chủ đề ngắn.",
+    why: "Bạn muốn nói chuyện trực tiếp với Hoạt động. Hoạt động chỉ nhận tin nhắn vừa gửi và loại lý do chuyển lượt, không có các tin trước đó.",
   },
   nhip_energy_for_rure: {
     title: "Nhịp gợi ý mức năng lượng cho Rủ Rê",
@@ -60,7 +60,7 @@ export const EDGE_COPY: Record<Edge, EdgeCopy> = {
     notShared: "Không chia sẻ: nhật ký, cảm xúc, yếu tố, tin nhắn của bạn.",
     whyTitle: "Vì sao Rủ Rê chọn hoạt động này?",
     why:
-      "Bạn đã cho phép Nhịp chia sẻ mức năng lượng (thấp / vừa / cao) với Rủ Rê. Lần này Nhịp đọc khoảnh khắc " +
+      "Lần này Nhịp chia sẻ mức năng lượng (thấp / vừa / cao) với Rủ Rê. Nhịp đọc khoảnh khắc " +
       "bạn đã lưu gần đây và chỉ gửi cho Rủ Rê mức năng lượng và thời lượng gợi ý. Rủ Rê không thấy nhật ký, " +
       "cảm xúc, yếu tố hay câu chữ của bạn.",
     requiresJournal: true,
@@ -71,7 +71,7 @@ export const EDGE_COPY: Record<Edge, EdgeCopy> = {
     notShared: "Không chia sẻ: câu chữ của bạn, nhật ký, ghi nhớ.",
     whyTitle: "Vì sao Mây gợi ý thói quen này?",
     why:
-      "Bạn đã cho phép Mây nhờ Nhịp gợi ý một thói quen nhỏ. Mây chỉ cho Nhịp biết loại nhu cầu bạn vừa kể và " +
+      "Lần này Mây nhờ Nhịp gợi ý một thói quen nhỏ. Mây chỉ cho Nhịp biết loại nhu cầu bạn vừa kể và " +
       "buổi trong ngày. Nhịp không thấy câu chữ của bạn, nhật ký hay ghi nhớ.",
   },
   rure_activity_for_guong: {
@@ -80,7 +80,7 @@ export const EDGE_COPY: Record<Edge, EdgeCopy> = {
     notShared: "Không chia sẻ: câu chữ của bạn, ghi nhớ.",
     whyTitle: "Vì sao Gương gợi ý hoạt động này?",
     why:
-      "Bạn đã cho phép Gương nhờ Rủ Rê gợi ý một hoạt động nhỏ. Gương chỉ cho Rủ Rê biết một chủ đề sở thích " +
+      "Lần này Gương nhờ Rủ Rê gợi ý một hoạt động nhỏ. Gương chỉ cho Rủ Rê biết một chủ đề sở thích " +
       "và thời lượng. Rủ Rê không thấy câu chữ của bạn hay ghi nhớ.",
   },
 };

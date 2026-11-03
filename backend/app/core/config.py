@@ -34,6 +34,21 @@ class Settings(EmbeddingSettings, BaseSettings):
     chat_history_enabled: bool = True
     # 1–4 validated bubbles per reply (SSE v2); off keeps the single-message contract.
     ai_multi_message_enabled: bool = False
+    ai_web_search_enabled: bool = False
+    ai_maps_search_enabled: bool = False
+    ai_agent_skills_enabled: bool = False
+    ai_search_rollout_user_ids: list[UUID] = Field(default_factory=list)
+    ai_search_daily_cap_per_user: int = Field(default=5, ge=1, le=5)
+    ai_search_user_concurrency: int = Field(default=1, ge=1, le=1)
+    ai_search_global_concurrency: int = Field(default=2, ge=1, le=2)
+    ai_search_daily_budget_usd: float = Field(default=5, gt=0, le=5)
+    ai_web_search_pricing_version: str = Field(default="", max_length=100)
+    ai_web_search_token_bound_verified: bool = False
+    maps_search_worker_enabled: bool = False
+    apify_api_token: SecretStr = SecretStr("")
+    apify_maps_actor_build: str = Field(default="", max_length=64, pattern=r"^[a-zA-Z0-9._-]*$")
+    apify_maps_pricing_version: str = Field(default="", max_length=100)
+    apify_maps_charge_bound_verified: bool = False
     chat_retention_days: int = Field(default=30, ge=1, le=90)
     # Scheduled check-ins (phase-1/05 §8). API/UI flag, then the dedicated worker service.
     proactive_enabled: bool = False
@@ -49,6 +64,8 @@ class Settings(EmbeddingSettings, BaseSettings):
     proactive_rollout_user_ids: list[UUID] = Field(default_factory=list)
     # Companion collaboration (phase-2/05 §7). Off: no specialist call, no receipt, no UI line.
     ai_collaboration_enabled: bool = False
+    ai_collaboration_defaults_enabled: bool = False
+    ai_collaboration_policy_epoch: int = Field(default=2, ge=1)
     ai_collaboration_daily_cap: int = Field(default=10, ge=1, le=50)
     ai_collaboration_timeout_seconds: float = Field(default=8, ge=3, le=10)
     # Collaboration stops once today's estimated spend reaches this share of AI_DAILY_BUDGET_USD.

@@ -75,6 +75,20 @@ Service Compose riêng `proactive` (cùng image API, lệnh `python -m app.jobs.
 
 ## Trợ lý phối hợp (Phase 2)
 
+For the current Search/Skills/defaults release, follow the
+[live release record](../implementation-plans/agent-search-and-skills/11-live-release.md).
+Its migration floor is 0028; use `AI_COLLABORATION_DEFAULTS_ENABLED=true` and a
+policy epoch for effective grants without changing legacy preference rows.
+Remove UI opt-in steps from the active rollout. The instructions below describe
+the older opt-in mode and apply only when defaults are disabled intentionally.
+
+Search rollback first disables Web/Maps admission and Skills as needed, recreates
+the processes from the verified runtime configuration, and retains the Maps
+worker for cleanup and uncertain-liability accounting. Do not downgrade schema
+or roll back to the pre-0028 image after Search liabilities exist. The verified
+0028 image with feature flags off is the application rollback target for this
+release; the initial pre-release image is not a readiness-compatible 0028 target.
+
 Không có service mới: coordinator chạy trong process đang phục vụ lượt (API cho chat R1/R3/R4, service `proactive` cho R2). Mỗi lần nhờ là một run con `origin='collaboration'` (`parent_run_id`, `conversation_id` NULL) có `ai_usage` riêng, tính vào `AI_GLOBAL_CONCURRENCY` và ngân sách ngày nhưng không vào lượt chat của người dùng. Specialist không có tool, 1 model call, timeout `AI_COLLABORATION_TIMEOUT_SECONDS`; không giữ transaction trong lúc gọi model.
 
 **Thứ tự bật (sau khi Phase 1 đã ổn định trên staging):**

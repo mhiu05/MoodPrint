@@ -89,7 +89,7 @@ for (const width of [1440, 768, 390]) {
     await expect(group(page)).toBeVisible();
     await expect(group(page).locator(".message-content")).toHaveCount(3);
     await expect(group(page).locator(".chat-bubble")).toHaveText(BUBBLES);
-    expect(seen.eventUrls).toEqual([`/api/v1/ai/runs/${RUN}/events?protocol=2`]);
+    expect(seen.eventUrls).toEqual([`/api/v1/ai/runs/${RUN}/events?protocol=3`]);
     // The card belongs to the last bubble only.
     await expect(group(page).locator(".message-row").nth(2).getByRole("link", { name: /Ghi lại cảm xúc/ })).toBeVisible();
     await expect(group(page).locator(".message-row").nth(0).locator(".inline-card")).toHaveCount(0);

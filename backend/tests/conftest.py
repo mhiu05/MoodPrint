@@ -36,12 +36,23 @@ def pytest_configure(config):
             "OPENAI_API_KEY": "",
             "OPENAI_MODEL": "",
             "AI_ENABLED": "false",
+            "AI_WEB_SEARCH_ENABLED": "false",
+            "AI_MAPS_SEARCH_ENABLED": "false",
+            "AI_AGENT_SKILLS_ENABLED": "false",
+            "AI_COLLABORATION_DEFAULTS_ENABLED": "false",
+            "MAPS_SEARCH_WORKER_ENABLED": "false",
+            "APIFY_API_TOKEN": "",
+            "APIFY_MAPS_ACTOR_BUILD": "",
+            "AI_WEB_SEARCH_TOKEN_BOUND_VERIFIED": "false",
+            "APIFY_MAPS_CHARGE_BOUND_VERIFIED": "false",
             "STT_ENABLED": "false",
             "VOYAGE_API_KEY": "",
             "SEMANTIC_MEMORY_ENABLED": "false",
             "VOYAGE_DIMENSIONS": "1024",
         }
     )
+    from app.core.config import Settings
+    Settings.model_config["env_file"] = None
 
 
 def pytest_asyncio_loop_factories(config, item):
@@ -64,6 +75,7 @@ async def database():
     from app.ai.collaboration import models as collaboration_models  # noqa: F401
     from app.ai.orchestration import models as orchestration_models  # noqa: F401
     from app.ai.proactive import models as proactive_models  # noqa: F401
+    from app.ai.search import models as search_models  # noqa: F401
     from app.infrastructure.database.models import Base
     from app.modules.activities import models as activity_models  # noqa: F401
     from app.modules.feedback import models as feedback_models  # noqa: F401

@@ -5420,6 +5420,18 @@
               ],
               "title": "Before"
             }
+          },
+          {
+            "name": "responseProtocol",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 3,
+              "minimum": 2,
+              "default": 2,
+              "title": "Responseprotocol"
+            }
           }
         ],
         "responses": {
@@ -5927,7 +5939,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "maximum": 2,
+              "maximum": 3,
               "minimum": 1,
               "default": 1,
               "title": "Protocol"
@@ -7544,6 +7556,385 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/maps-searches/{search_id}": {
+      "get": {
+        "summary": "Get Maps",
+        "operationId": "get_maps_api_v1_ai_maps_searches__search_id__get",
+        "parameters": [
+          {
+            "name": "search_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Search Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MapsSearchView"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/ai/maps-searches/{search_id}/cancel": {
+      "post": {
+        "summary": "Cancel Maps",
+        "operationId": "cancel_maps_api_v1_ai_maps_searches__search_id__cancel_post",
+        "parameters": [
+          {
+            "name": "search_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Search Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MapsSearchView"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/ai/prompt-capabilities": {
+      "get": {
+        "summary": "Prompt Capabilities",
+        "operationId": "prompt_capabilities_api_v1_ai_prompt_capabilities_get",
+        "parameters": [
+          {
+            "name": "botId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "enum": [
+                "may",
+                "guong",
+                "nhip",
+                "rure",
+                "caunoi",
+                "dieuphoi",
+                "nhatky",
+                "hoatdong"
+              ],
+              "type": "string",
+              "title": "Botid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptCapabilities"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         }
       }
@@ -17515,20 +17906,41 @@
                 },
                 {
                   "$ref": "#/components/schemas/DiscoveryCard"
+                },
+                {
+                  "$ref": "#/components/schemas/MapsSearchCard"
+                },
+                {
+                  "$ref": "#/components/schemas/PlacesCard"
                 }
               ],
               "discriminator": {
                 "propertyName": "kind",
                 "mapping": {
                   "discovery": "#/components/schemas/DiscoveryCard",
+                  "maps_search": "#/components/schemas/MapsSearchCard",
                   "mood_form": "#/components/schemas/MoodCard",
-                  "navigate_bot": "#/components/schemas/NavigateCard"
+                  "navigate_bot": "#/components/schemas/NavigateCard",
+                  "places": "#/components/schemas/PlacesCard"
                 }
               }
             },
             "type": "array",
             "maxItems": 3,
             "title": "Cards"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "type": "array",
+            "maxItems": 8,
+            "title": "Citations"
+          },
+          "sourceBacked": {
+            "type": "boolean",
+            "title": "Sourcebacked",
+            "default": false
           },
           "createdAt": {
             "anyOf": [
@@ -18558,6 +18970,88 @@
           "candidates"
         ],
         "title": "CandidateListDTO"
+      },
+      "Capability": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "available"
+        ],
+        "title": "Capability"
+      },
+      "Citation": {
+        "additionalProperties": false,
+        "properties": {
+          "sourceId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "title": "Sourceid",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "maxLength": 2048,
+            "title": "Url",
+            "type": "string"
+          },
+          "start": {
+            "minimum": 0,
+            "title": "Start",
+            "type": "integer"
+          },
+          "end": {
+            "exclusiveMinimum": 0,
+            "title": "End",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sourceId",
+          "title",
+          "url",
+          "start",
+          "end"
+        ],
+        "title": "Citation",
+        "type": "object"
       },
       "ClaimInput": {
         "properties": {
@@ -19630,6 +20124,21 @@
           "groupChat": {
             "type": "boolean",
             "title": "Groupchat",
+            "default": false
+          },
+          "webSearch": {
+            "type": "boolean",
+            "title": "Websearch",
+            "default": false
+          },
+          "mapsSearch": {
+            "type": "boolean",
+            "title": "Mapssearch",
+            "default": false
+          },
+          "agentSkills": {
+            "type": "boolean",
+            "title": "Agentskills",
             "default": false
           }
         },
@@ -21072,6 +21581,92 @@
         ],
         "title": "LoginInput"
       },
+      "MapsSearchCard": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "maps_search",
+            "title": "Kind",
+            "type": "string"
+          },
+          "searchId": {
+            "format": "uuid",
+            "title": "Searchid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "searchId"
+        ],
+        "title": "MapsSearchCard",
+        "type": "object"
+      },
+      "MapsSearchView": {
+        "properties": {
+          "searchId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Searchid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "starting",
+              "pending",
+              "ready",
+              "empty",
+              "failed",
+              "timed_out",
+              "cancelled",
+              "expired"
+            ],
+            "title": "Status"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expiresat"
+          },
+          "retryAfterSeconds": {
+            "type": "integer",
+            "title": "Retryafterseconds",
+            "default": 2
+          },
+          "places": {
+            "items": {
+              "$ref": "#/components/schemas/PlaceResult"
+            },
+            "type": "array",
+            "maxItems": 5,
+            "title": "Places"
+          },
+          "errorCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errorcode"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "searchId",
+          "status",
+          "version",
+          "expiresAt"
+        ],
+        "title": "MapsSearchView"
+      },
       "MediaAccess": {
         "properties": {
           "url": {
@@ -21721,6 +22316,140 @@
         ],
         "title": "PeerView"
       },
+      "PlaceResult": {
+        "additionalProperties": false,
+        "properties": {
+          "placeId": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Placeid"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Category"
+          },
+          "address": {
+            "maxLength": 300,
+            "title": "Address",
+            "type": "string"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "maximum": 5,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Rating"
+          },
+          "ratingCount": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Ratingcount"
+          },
+          "openingHours": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 7,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Openinghours"
+          },
+          "mapsUrl": {
+            "maxLength": 2048,
+            "title": "Mapsurl",
+            "type": "string"
+          },
+          "fetchedAt": {
+            "format": "date-time",
+            "title": "Fetchedat",
+            "type": "string"
+          },
+          "provider": {
+            "const": "apify",
+            "default": "apify",
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "address",
+          "mapsUrl",
+          "fetchedAt"
+        ],
+        "title": "PlaceResult",
+        "type": "object"
+      },
+      "PlacesCard": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "places",
+            "title": "Kind",
+            "type": "string"
+          },
+          "places": {
+            "items": {
+              "$ref": "#/components/schemas/PlaceResult"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Places",
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "places"
+        ],
+        "title": "PlacesCard",
+        "type": "object"
+      },
       "PreviewView": {
         "properties": {
           "profile": {
@@ -21932,6 +22661,105 @@
           "phase"
         ],
         "title": "ProgressView"
+      },
+      "PromptCapabilities": {
+        "properties": {
+          "skills": {
+            "items": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "type": "array",
+            "title": "Skills"
+          },
+          "tools": {
+            "items": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "type": "array",
+            "title": "Tools"
+          },
+          "responseProtocols": {
+            "items": {
+              "type": "integer",
+              "enum": [
+                2,
+                3
+              ]
+            },
+            "type": "array",
+            "title": "Responseprotocols",
+            "default": [
+              2,
+              3
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "skills",
+          "tools"
+        ],
+        "title": "PromptCapabilities"
+      },
+      "PromptOptions": {
+        "properties": {
+          "skillId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "hangout",
+                  "learn-new-thing"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skillid"
+          },
+          "tools": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "web_search",
+                "maps_search"
+              ]
+            },
+            "type": "array",
+            "maxItems": 8,
+            "title": "Tools"
+          },
+          "area": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area"
+          },
+          "mapsSearchId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mapssearchid"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PromptOptions"
       },
       "ProposalConfirm": {
         "properties": {
@@ -23193,6 +24021,21 @@
             },
             "type": "array",
             "title": "Edges"
+          },
+          "policyMode": {
+            "type": "string",
+            "enum": [
+              "sharing-v1",
+              "collaboration-defaults-v1"
+            ],
+            "title": "Policymode",
+            "default": "sharing-v1"
+          },
+          "policyEpoch": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Policyepoch",
+            "default": 0
           }
         },
         "additionalProperties": false,
@@ -23292,6 +24135,18 @@
                 "type": "null"
               }
             ]
+          },
+          "promptOptions": {
+            "$ref": "#/components/schemas/PromptOptions"
+          },
+          "responseProtocol": {
+            "type": "integer",
+            "enum": [
+              2,
+              3
+            ],
+            "title": "Responseprotocol",
+            "default": 2
           }
         },
         "additionalProperties": false,
@@ -23710,7 +24565,8 @@
             "default": "ai-events-v1",
             "enum": [
               "ai-events-v1",
-              "ai-events-v2"
+              "ai-events-v2",
+              "ai-events-v3"
             ],
             "title": "Version",
             "type": "string"
@@ -23759,8 +24615,10 @@
               "discriminator": {
                 "mapping": {
                   "discovery": "#/components/schemas/DiscoveryCard",
+                  "maps_search": "#/components/schemas/MapsSearchCard",
                   "mood_form": "#/components/schemas/MoodCard",
-                  "navigate_bot": "#/components/schemas/NavigateCard"
+                  "navigate_bot": "#/components/schemas/NavigateCard",
+                  "places": "#/components/schemas/PlacesCard"
                 },
                 "propertyName": "kind"
               },
@@ -23773,11 +24631,25 @@
                 },
                 {
                   "$ref": "#/components/schemas/DiscoveryCard"
+                },
+                {
+                  "$ref": "#/components/schemas/MapsSearchCard"
+                },
+                {
+                  "$ref": "#/components/schemas/PlacesCard"
                 }
               ]
             },
             "maxItems": 3,
             "title": "Cards",
+            "type": "array"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "maxItems": 8,
+            "title": "Citations",
             "type": "array"
           }
         },
@@ -23811,8 +24683,10 @@
               "discriminator": {
                 "mapping": {
                   "discovery": "#/components/schemas/DiscoveryCard",
+                  "maps_search": "#/components/schemas/MapsSearchCard",
                   "mood_form": "#/components/schemas/MoodCard",
-                  "navigate_bot": "#/components/schemas/NavigateCard"
+                  "navigate_bot": "#/components/schemas/NavigateCard",
+                  "places": "#/components/schemas/PlacesCard"
                 },
                 "propertyName": "kind"
               },
@@ -23825,6 +24699,12 @@
                 },
                 {
                   "$ref": "#/components/schemas/DiscoveryCard"
+                },
+                {
+                  "$ref": "#/components/schemas/MapsSearchCard"
+                },
+                {
+                  "$ref": "#/components/schemas/PlacesCard"
                 }
               ]
             },

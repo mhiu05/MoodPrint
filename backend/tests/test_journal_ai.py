@@ -108,7 +108,8 @@ def test_only_verified_current_journal_sources_can_be_cited():
     reply = render_journal_output(
         NhipOutput(text="Một ghi nhận trong bài viết.", source_entry_ids=[source.entry_id]), run
     )
-    assert set(reply.model_dump()) == {"text", "cards"}
+    # Public shape only; journal/mood replies never carry web citations.
+    assert set(reply.model_dump()) == {"text", "cards", "citations"} and reply.citations == []
     assert f"](/self/entry/{source.entry_id})" in reply.text
     with pytest.raises(DomainError):
         render_journal_output(NhipOutput(text="Nguồn giả", source_entry_ids=[uuid4()]), run)
@@ -243,7 +244,8 @@ async def test_actual_sdk_returns_public_reply_with_verified_backend_links():
         model_override=model,
     )
     assert f"/self/entry/{source.entry_id}" in output.text
-    assert set(output.model_dump()) == {"text", "cards"}
+    # Public shape only; journal/mood replies never carry web citations.
+    assert set(output.model_dump()) == {"text", "cards", "citations"} and output.citations == []
     assert "untrusted" in model.calls[0]["instructions"]
 
 

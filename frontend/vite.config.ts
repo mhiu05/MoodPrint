@@ -19,7 +19,7 @@ export default defineConfig({
     watch: { ignored: ["**/evidence/**", "**/.cache/**"] },
     port: 5173,
     strictPort: true,
-    proxy: {
+    proxy: process.env.MOODPRINT_MOCK_API_ONLY === "1" ? undefined : {
       "/api": {
         target: process.env.MOODPRINT_API_PROXY || "http://127.0.0.1:8001",
       },

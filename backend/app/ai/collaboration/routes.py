@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select, update
 
 from app.ai.collaboration.eligibility import collaboration_eligible
+from app.ai.collaboration.grants import effective_grants
 from app.ai.collaboration.models import SHARING_POLICY_VERSION, AiSharingPermission
 from app.ai.collaboration.policy import EDGES
 from app.ai.collaboration.schemas import SharingEdgeView, SharingInput, SharingReason, SharingView
@@ -54,10 +55,8 @@ async def sharing_view(db, settings, user) -> SharingView:
             await db.scalars(select(AiSharingPermission).where(AiSharingPermission.user_id == user.id))
         ).all()
     }
-    prefs = await db.get(AiProactiveSettings, user.id)
-    journal = bool(prefs and prefs.journal_context_enabled)
-    open_ = _feature_open(settings, user.id)
-    eligible = await collaboration_eligible(db, user)
+    grants = await effective_grants(db, settings, user, family="v3" if settings.v3_open_for(user.id) else "legacy")
+    journal, open_, eligible = grants.journal_context, grants.feature_open, grants.eligible
     edges = []
     for edge, requester, specialist, kind, reads_journal in _specs(settings, user.id):
         row = rows.get(edge)
@@ -70,11 +69,13 @@ async def sharing_view(db, settings, user) -> SharingView:
             reason = "journal_context_off"
         edges.append(SharingEdgeView(
             edge=edge, kind=kind, requester=requester, specialist=specialist,  # type: ignore[arg-type]
-            enabled=bool(row and row.enabled), version=row.version if row else 0,
+            enabled=edge in grants.edges if settings.ai_collaboration_defaults_enabled else bool(row and row.enabled),
+            version=grants.edges[edge].version if edge in grants.edges else (row.version if row else 0),
             requires=["journal_context"] if reads_journal else [],
             available=reason is None, reason=reason,
         ))
-    return SharingView(available=open_ and eligible, edges=edges)
+    return SharingView(available=open_ and eligible, edges=edges,
+                       policy_mode=grants.policy_mode, policy_epoch=grants.policy_epoch)
 
 
 @router.get("/ai/sharing", response_model=SharingView)
@@ -94,6 +95,8 @@ async def update_sharing(
 
     if edge not in EDGE_VALUES:
         raise DomainError(404, "NOT_FOUND", "Không tìm thấy kiểu phối hợp này.")
+    if settings.ai_collaboration_defaults_enabled:
+        raise DomainError(410, "SHARING_SETTINGS_RETIRED", "Phối hợp đã dùng chính sách mặc định. Hãy tải lại ứng dụng.")
     # Switching any edge off is always allowed; switching on only for an edge this account manages.
     managed = {item[0]: item for item in _specs(settings, actor.user_id)}
     reads_journal = bool(managed.get(edge, (None,) * 5)[4])

@@ -65,8 +65,14 @@ def output_texts(output: Any) -> list[str]:
     """Every user-visible text of a single-message or multi-bubble model output."""
     messages = getattr(output, "messages", None)
     if messages is not None:
-        return [bubble.text for bubble in messages]
+        return [bubble.text if hasattr(bubble, "text") else "".join(segment.text for segment in bubble.segments) for bubble in messages]
     return [output.text]
+
+
+def search_free_reply(parts: list[AiOutput]) -> AiReply:
+    if any(part.citations or any(card.kind in ("maps_search", "places") for card in part.cards) for part in parts):
+        raise DomainError(409, "SEARCH_PROVENANCE_REQUIRED", "Chưa có nguồn tìm kiếm đã xác minh cho lượt này.")
+    return AiReply(parts=parts)
 
 
 @output_guardrail
@@ -246,12 +252,13 @@ class SdkProvider:
             from app.ai.guest_model import GuestGuardedModel
 
             model = GuestGuardedModel(model, guard)
+        public_search = bool(getattr(context, "public_search", False))
         has_scope = caps(bot_id).mood_scope and getattr(context, "mood_scope", None) is not None
         runtime_context = hasattr(context, 'sources')
         intent = conversation_intent(bot_id, history, scoped=has_scope) if runtime_context else 'analysis'
         analytical = intent == 'analysis'
         scoped_mood = has_scope and analytical
-        journal_mode = caps(bot_id).journal and runtime_context and not has_scope
+        journal_mode = caps(bot_id).journal and runtime_context and not has_scope and not public_search
         journal_allowed = journal_mode and not journal_read_refused(history)
         if journal_mode:
             context.journal_read_allowed = journal_allowed
@@ -266,6 +273,9 @@ class SdkProvider:
             else CompanionReply if multi
             else AiOutput
         )
+        if public_search:
+            from app.ai.search.schemas import GroundedReply
+            output_type = GroundedReply
         agent = Agent[Any](
             name=f"MoodPrint:{bot_id}",
             instructions=instructions(bot_id, self.prompt_variant) + source_instructions(context, bot_id, mood_analysis=analytical) + (journal_instructions(context) if journal_mode else "") + runtime_guidance + (MULTI_MESSAGE_GUIDANCE if multi else "") + extra_instructions,
@@ -300,6 +310,10 @@ class SdkProvider:
             # the complete schema-validated result is returned to the caller.
             async for _ in result.stream_events():
                 pass
+            if public_search:
+                from app.ai.search.citations import render_grounded_reply
+                from app.ai.search.schemas import GroundedReply
+                return render_grounded_reply(GroundedReply.model_validate(result.final_output), context.public_sources)
             if scoped_mood:
                 plan = MoodAnalysisPlan.model_validate(result.final_output)
                 if runtime_context:
@@ -308,11 +322,11 @@ class SdkProvider:
                         plan.detail = 'brief'
                     if omit_mean:
                         plan.include_mean = False
-                return AiReply(parts=[render_mood_analysis(plan, context)])
+                return search_free_reply([render_mood_analysis(plan, context)])
             if journal_mode:
                 if multi:
-                    return AiReply(parts=render_journal_reply(NhipReply.model_validate(result.final_output), context))
-                return AiReply(parts=[render_journal_output(NhipOutput.model_validate(result.final_output), context)])
+                    return search_free_reply(render_journal_reply(NhipReply.model_validate(result.final_output), context))
+                return search_free_reply([render_journal_output(NhipOutput.model_validate(result.final_output), context)])
             if multi:
                 reply = CompanionReply.model_validate(result.final_output)
                 parts = [AiOutput(text=bubble.text, cards=bubble.cards) for bubble in reply.messages]
@@ -320,7 +334,7 @@ class SdkProvider:
                 parts = [AiOutput.model_validate(result.final_output)]
             if any(has_journal_link(part.text) for part in parts):
                 raise DomainError(409, "JOURNAL_EVIDENCE_REQUIRED", "Chưa đọc được nguồn nhật ký cho lượt này.")
-            return AiReply(parts=parts)
+            return search_free_reply(parts)
         except BaseException as error:
             await _cancel_and_drain(result)
             if isinstance(error, UserError) and isinstance(error.__cause__, DomainError):

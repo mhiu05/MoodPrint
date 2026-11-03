@@ -131,61 +131,63 @@ for (const width of [1440, 768, 390, 360]) {
   test(`check-in schedule page is usable and accessible at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
     await mount(page);
-    await page.goto("/#/check-ins");
-    await expect(page.getByRole("heading", { level: 1, name: "Lời hỏi thăm từ trợ lý" })).toBeVisible();
-    await expect(page.getByText("Đang dùng 1/4")).toBeVisible();
-    await expect(page.getByText("Múi giờ: Việt Nam (GMT+7)")).toBeVisible();
-    const morning = page.getByRole("region", { name: "Nhịp" }).getByRole("switch", { name: /Buổi sáng/ });
+    await page.goto("/#/assistants/nhip?panel=info&section=check-ins");
+    await expect(page.getByRole("heading", { name: "Lời hỏi thăm của Nhịp" })).toBeVisible();
+    await expect(page.getByText("Đang dùng 1/4 trên toàn tài khoản")).toBeVisible();
+    await expect(page.getByText("Múi giờ: Việt Nam (GMT+7) · Asia/Ho_Chi_Minh")).toBeVisible();
+    const morning = page.getByRole("region", { name: "Lời hỏi thăm của Nhịp" }).getByRole("switch", { name: /Buổi sáng/ });
     await expect(morning).toBeChecked();
     await expect(page.getByText("Lần tới:", { exact: false }).first()).toBeVisible();
-    await expect(page.getByRole("region", { name: "Cầu Nối" }).getByText("Cần bật tính năng kết nối để Cầu Nối hỏi thăm.")).toBeVisible();
     await noHorizontalOverflow(page);
     const box = await morning.boundingBox();
     expect(box!.width).toBeGreaterThanOrEqual(44);
     expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze()).violations).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath(`check-ins-${width}.png`), fullPage: true });
+    await page.goto("/#/assistants/caunoi?panel=info&section=check-ins");
+    await expect(page.getByRole("region", { name: "Lời hỏi thăm của Cầu Nối" }).getByText("Cần bật tính năng kết nối để Cầu Nối hỏi thăm.").first()).toBeVisible();
+    await expect(page.getByRole("switch", { name: /Buổi sáng/ })).toHaveAttribute("aria-disabled", "true");
   });
 }
 
 test("turning a check-in on saves immediately and announces it", async ({ page }) => {
   const seen = await mount(page);
-  await page.goto("/#/check-ins");
-  await page.getByRole("region", { name: "Mây" }).getByRole("switch", { name: /Buổi tối/ }).click();
-  await expect(page.getByRole("region", { name: "Mây" }).getByRole("status")).toHaveText("Đã lưu");
+  await page.goto("/#/assistants/may?panel=info&section=check-ins");
+  await page.getByRole("region", { name: "Lời hỏi thăm của Mây" }).getByRole("switch", { name: /Buổi tối/ }).click();
+  await expect(page.getByRole("region", { name: "Lời hỏi thăm của Mây" }).getByRole("status")).toHaveText("Đã lưu");
   const write = seen.writes.find((w) => w.path === "/ai/proactive/schedules/may/evening");
   expect(write?.body).toEqual({ enabled: true, localTime: "20:00", weekdays: [1, 2, 3, 4, 5, 6, 7], pausedUntil: null, expectedVersion: 0 });
-  await expect(page.getByText("Đang dùng 2/4")).toBeVisible();
+  await expect(page.getByText("Đang dùng 2/4 trên toàn tài khoản")).toBeVisible();
   // Times inside quiet hours are not offered.
-  const times = await page.getByRole("region", { name: "Mây" }).getByLabel("Giờ nhắn").locator("option").allTextContents();
+  const times = await page.getByRole("region", { name: "Lời hỏi thăm của Mây" }).getByLabel("Giờ nhắn").locator("option").allTextContents();
   expect(times).toContain("21:45");
   expect(times).not.toContain("22:00");
 });
 
 test("the fifth check-in is blocked with a clear reason", async ({ page }) => {
   await mount(page, { view: proactiveView({ enabled: [["nhip", "morning"], ["nhip", "evening"], ["may", "morning"], ["may", "evening"]] }) });
-  await page.goto("/#/check-ins");
-  const blocked = page.getByRole("region", { name: "Rủ Rê" }).getByRole("switch", { name: /Buổi sáng/ });
+  await page.goto("/#/assistants/rure?panel=info&section=check-ins");
+  const blocked = page.getByRole("region", { name: "Lời hỏi thăm của Rủ Rê" }).getByRole("switch", { name: /Buổi sáng/ });
   await expect(blocked).toHaveAttribute("aria-disabled", "true");
-  await expect(page.getByRole("region", { name: "Rủ Rê" }).getByText("Bạn đã dùng 4 lời hỏi thăm mỗi ngày. Tắt một lời khác để bật lời này.").first()).toBeVisible();
+  await expect(page.getByRole("region", { name: "Lời hỏi thăm của Rủ Rê" }).getByText("Bạn đã dùng 4 lời hỏi thăm mỗi ngày. Tắt một lời khác để bật lời này.").first()).toBeVisible();
 });
 
 test("a stale schedule reloads and explains what happened", async ({ page }) => {
   await mount(page, { scheduleError: "STALE_VERSION" });
-  await page.goto("/#/check-ins");
-  await page.getByRole("region", { name: "Gương" }).getByRole("switch", { name: /Buổi sáng/ }).click();
-  await expect(page.getByRole("region", { name: "Gương" }).getByRole("status")).toHaveText("Lịch vừa được thay đổi ở nơi khác. Mình đã tải lại để bạn xem.");
+  await page.goto("/#/assistants/guong?panel=info&section=check-ins");
+  await page.getByRole("region", { name: "Lời hỏi thăm của Gương" }).getByRole("switch", { name: /Buổi sáng/ }).click();
+  await expect(page.getByRole("region", { name: "Lời hỏi thăm của Gương" }).getByRole("status")).toHaveText("Lịch vừa được thay đổi ở nơi khác. Mình đã tải lại để bạn xem.");
   // The optimistic switch went back to the server's state.
-  await expect(page.getByRole("region", { name: "Gương" }).getByRole("switch", { name: /Buổi sáng/ })).not.toBeChecked();
+  await expect(page.getByRole("region", { name: "Lời hỏi thăm của Gương" }).getByRole("switch", { name: /Buổi sáng/ })).not.toBeChecked();
 });
 
 test("journal use is opt-in and explained before it is enabled", async ({ page }) => {
   const seen = await mount(page);
-  await page.goto("/#/check-ins");
+  await page.goto("/#/assistants/nhip?panel=info&section=check-ins");
   const optIn = page.getByRole("checkbox", { name: "Dùng khoảnh khắc đã lưu hôm qua" });
   await expect(optIn).not.toBeChecked();
   await page.getByRole("button", { name: "Tìm hiểu thêm" }).click();
   const dialog = page.getByRole("dialog", { name: "Nhịp dùng khoảnh khắc hôm qua như thế nào?" });
-  await expect(dialog).toContainText("không đọc bản nháp");
+  await expect(dialog).toContainText("Không đọc bản nháp");
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
   await optIn.click();
@@ -196,11 +198,11 @@ test("journal use is opt-in and explained before it is enabled", async ({ page }
 
 test("a closed feature and a guest get no settings", async ({ page }) => {
   await mount(page, { view: proactiveView({ available: false }) });
-  await page.goto("/#/check-ins");
-  await expect(page.getByRole("heading", { name: "Lời hỏi thăm chưa mở cho tài khoản của bạn." })).toBeVisible();
+  await page.goto("/#/assistants/nhip?panel=info&section=check-ins");
+  await expect(page.getByText("Lời hỏi thăm chưa mở cho tài khoản của bạn.")).toBeVisible();
   await page.unrouteAll({ behavior: "ignoreErrors" });
   await mount(page, { sess: guestSession(3_600_000) });
-  await page.goto("/#/check-ins");
+  await page.goto("/#/assistants/nhip?panel=info&section=check-ins");
   await expect(page.getByRole("switch")).toHaveCount(0);
 });
 
@@ -225,7 +227,7 @@ test("a check-in in chat is labelled, links to its schedule and is marked read",
   await expect(page.getByText("Lời hỏi thăm buổi sáng · 07:31", { exact: true })).toBeVisible();
   await expect(page.getByText("Lời hỏi thăm buổi sáng từ Nhịp lúc 07:31")).toBeAttached();
   await expect(page.getByRole("group", { name: "Tin nhắn từ Nhịp, 2 phần" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Đổi hoặc tắt lời hỏi thăm này" })).toHaveAttribute("href", "#/check-ins?bot=nhip");
+  await expect(page.getByRole("link", { name: "Đổi hoặc tắt lời hỏi thăm này" })).toHaveAttribute("href", `#/assistants/nhip?conversation=${CONV}&panel=info&section=check-ins`);
   // People answer a check-in in their own words; conversation starters do not come back (06 §4).
   await expect(page.getByLabel("Gợi ý trò chuyện")).toHaveCount(0);
   await expect.poll(() => seen.writes.find((w) => w.path === `/ai/conversations/${CONV}/read`)?.body).toEqual({ lastReadSequence: 3 });
@@ -240,25 +242,27 @@ test("on a phone the back button signals check-ins from other companions", async
   await noHorizontalOverflow(page);
 });
 
-test("the account page links to the schedule", async ({ page }) => {
+test("the account page has no schedule entry and old URLs open the agent info", async ({ page }) => {
   await mount(page);
   await page.goto("/#/profile");
-  await expect(page.getByRole("heading", { name: "Lời hỏi thăm từ trợ lý" })).toBeVisible();
-  await expect(page.getByText("1 lời hỏi thăm mỗi ngày, vào giờ bạn chọn.")).toBeVisible();
-  await page.getByRole("link", { name: "Chỉnh lịch hỏi thăm" }).click();
-  await expect(page).toHaveURL(/#\/check-ins$/);
+  await expect(page.getByRole("heading", { name: "Tài khoản", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lời hỏi thăm từ trợ lý" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Chỉnh lịch hỏi thăm" })).toHaveCount(0);
+  await page.goto("/#/check-ins?bot=nhip");
+  await expect(page).toHaveURL(/#\/assistants\/nhip\?panel=info&section=check-ins$/);
+  await expect(page.getByRole("heading", { name: "Lời hỏi thăm của Nhịp" })).toBeVisible();
 });
 
 test("the first schedule creates settings and the next settings change still saves", async ({ page }) => {
   const fresh = proactiveView({ enabled: [] });
   fresh.settings.version = 0;
   const seen = await mount(page, { view: fresh });
-  await page.goto("/#/check-ins");
-  await page.getByRole("region", { name: "Nhịp" }).getByRole("switch", { name: /Buổi sáng/ }).click();
-  await expect(page.getByRole("region", { name: "Nhịp" }).getByRole("status")).toHaveText("Đã lưu");
+  await page.goto("/#/assistants/nhip?panel=info&section=check-ins");
+  await page.getByRole("region", { name: "Lời hỏi thăm của Nhịp" }).getByRole("switch", { name: /Buổi sáng/ }).click();
+  await expect(page.getByRole("region", { name: "Lời hỏi thăm của Nhịp" }).getByRole("status")).toHaveText("Đã lưu");
   const optIn = page.getByRole("checkbox", { name: "Dùng khoảnh khắc đã lưu hôm qua" });
   await optIn.click();
-  await expect(page.getByRole("region", { name: "Nhịp" }).getByRole("status")).toHaveText("Đã lưu");
+  await expect(page.getByRole("region", { name: "Lời hỏi thăm của Nhịp" }).getByRole("status")).toHaveText("Đã lưu");
   await expect(optIn).toBeChecked();
   const write = seen.writes.filter((w) => w.path === "/ai/proactive/settings").at(-1);
   expect(write?.body).toMatchObject({ journalContextEnabled: true, expectedVersion: 1 });
@@ -266,15 +270,15 @@ test("the first schedule creates settings and the next settings change still sav
 
 test("keyboard focus stays on a control after it saves", async ({ page }) => {
   await mount(page);
-  await page.goto("/#/check-ins");
-  const evening = page.getByRole("region", { name: "Mây" }).getByRole("switch", { name: /Buổi tối/ });
+  await page.goto("/#/assistants/may?panel=info&section=check-ins");
+  const evening = page.getByRole("region", { name: "Lời hỏi thăm của Mây" }).getByRole("switch", { name: /Buổi tối/ });
   await evening.focus();
   await page.keyboard.press("Space");
-  await expect(page.getByRole("region", { name: "Mây" }).getByRole("status")).toHaveText("Đã lưu");
+  await expect(page.getByRole("region", { name: "Lời hỏi thăm của Mây" }).getByRole("status")).toHaveText("Đã lưu");
   await expect(evening).toBeFocused();
-  const time = page.getByRole("region", { name: "Mây" }).getByLabel("Giờ nhắn");
+  const time = page.getByRole("region", { name: "Lời hỏi thăm của Mây" }).getByLabel("Giờ nhắn");
   await time.focus();
   await time.selectOption("21:00");
-  await expect(page.getByRole("region", { name: "Mây" }).getByRole("status")).toHaveText("Đã lưu");
+  await expect(page.getByRole("region", { name: "Lời hỏi thăm của Mây" }).getByRole("status")).toHaveText("Đã lưu");
   await expect(time).toBeFocused();
 });

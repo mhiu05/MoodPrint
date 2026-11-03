@@ -116,6 +116,9 @@ check_health() {
   if grep -qx proactive <<< "$configured"; then
     health_services+=(proactive)
   fi
+  if grep -qx maps <<< "$configured"; then
+    health_services+=(maps)
+  fi
   for ((attempt=0; attempt<30; attempt++)); do
     state=healthy
     for service in "${health_services[@]}"; do

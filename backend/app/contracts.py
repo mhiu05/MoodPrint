@@ -65,6 +65,9 @@ class FeatureView(DTO):
     smart_orchestration: bool = False
     # V3: AI groups (registered adult, saved history, v2 stream).
     group_chat: bool = False
+    web_search: bool = False
+    maps_search: bool = False
+    agent_skills: bool = False
 
 
 class NoticeView(DTO):

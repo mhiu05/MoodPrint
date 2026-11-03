@@ -82,3 +82,10 @@
 .checkin-legacy-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
 .checkin-legacy-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
 .checkin-legacy-actions { display: inline-flex; flex-wrap: wrap; gap: var(--space-2); }
+
+/* Shared editors also appear outside the chat column, portaled to the dialog layer. */
+.checkin-impact { margin-block: var(--space-4); }
+.checkin-impact h3 { margin: 0 0 var(--space-2); font-size: 1rem; }
+.checkin-impact ul { padding-left: var(--space-4); }
+.checkin-impact a { display: inline-flex; align-items: center; min-height: var(--target-min); overflow-wrap: anywhere; }
+.checkin-zone-search input, .checkin-zone-search select { max-width: 100%; min-width: 0; }

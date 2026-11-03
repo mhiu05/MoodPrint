@@ -55,7 +55,7 @@ async def conversation_section(db: AsyncSession, user: User) -> list[dict]:
     for message in messages:
         grouped[message.conversation_id].append(
             AIMessage(id=message.id, actor=cast(Literal["self", "bot"], message.actor), text=message.text,
-                      cards=message.cards, created_at=message.created_at)
+                      cards=message.cards, citations=message.citations, source_backed=message.source_backed, created_at=message.created_at)
             .model_dump(mode="json", by_alias=True)
         )
     return [

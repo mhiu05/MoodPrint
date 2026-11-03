@@ -68,6 +68,10 @@ def model_messages(
     """
     result = []
     for message in reversed(messages):
+        if message.source_backed or message.citations or any(c.kind in ("maps_search", "places") for c in message.cards):
+            # Public search prose cannot re-enter a plain-text model reply without provenance.
+            # Explicit Maps reuse is reauthorized separately through mapsSearchId.
+            break
         stamp = stamps.get(message.run_id) if message.run_id else None
         allowed = stamp is not None and stamp.data_version == data_version and (
             stamp.policy in TEXT_POLICIES

@@ -90,7 +90,18 @@ async def test_late_embedding_cannot_recreate_deleted_memory(clients):
     )
     await queue(app, settings, memory_id)
     assert await counts(app) == (0, 1)
-    provider = PausedProvider()
+    class LateProvider(PausedProvider):
+        async def embed(self, text, input_type):
+            try:
+                return await super().embed(text, input_type)
+            except asyncio.CancelledError:
+                # Simulate a remote response arriving despite local cancellation. The
+                # conservative monotonic cutoff can precede DB T by the sampling RTT;
+                # keep this attempt in flight until the test has crossed the real T.
+                await self.release.wait()
+                return [1.0] + [0.0] * 255
+
+    provider = LateProvider()
     worker = asyncio.create_task(process_embedding_jobs(app.state.database, settings, provider))
     await asyncio.wait_for(provider.started.wait(), 5)
 

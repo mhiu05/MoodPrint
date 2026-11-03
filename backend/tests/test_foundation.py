@@ -21,9 +21,9 @@ async def test_live_works_without_configuration_but_ready_and_auth_fail_closed()
 def test_ready_revision_requires_the_destructive_retirement_head():
     from app.core.revisions import READY_REVISIONS
 
-    # V3 maps ai_conversations.kind/active_agent and ai_messages.mentions, so only 0024 is ready.
+    # Search/maps/receipt-policy columns (0025-0028) are mapped by the ORM, so only 0028 is ready.
     assert READY_REVISIONS == (
-        "0024_three_agent_groups",
+        "0028_collaboration_defaults",
     )
 
 
@@ -44,7 +44,11 @@ def test_ready_revision_requires_the_destructive_retirement_head():
         ("0021_multi_message", 503),
         ("0022_proactive_messages", 503),
         ("0023_collaboration", 503),
-        ("0024_three_agent_groups", 200),
+        ("0024_three_agent_groups", 503),
+        ("0025_search_citations", 503),
+        ("0026_search_usage", 503),
+        ("0027_maps_jobs", 503),
+        ("0028_collaboration_defaults", 200),
         ("0017_unreviewed", 503),
         ("9999_unknown", 503),
     ],

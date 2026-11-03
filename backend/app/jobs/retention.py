@@ -24,6 +24,8 @@ async def purge_expired(app):
 
         await purge_feedback(db)
         await recover_turns(db)
+        from app.ai.search.accounting import recover_searches
+        await recover_searches(db)
         await purge_chat(db)
         await expire_proposals(db)
         await purge_proposals(db)

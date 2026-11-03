@@ -1,5 +1,8 @@
+import ipaddress
+import re
 from datetime import date, datetime, timedelta
 from typing import Annotated, Literal
+from urllib.parse import urlsplit, urlunsplit
 from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator
@@ -20,12 +23,103 @@ class DiscoveryCard(DTO):
     kind: Literal["discovery"]
 
 
-Card = Annotated[NavigateCard | MoodCard | DiscoveryCard, Field(discriminator="kind")]
+class MapsSearchCard(DTO):
+    kind: Literal["maps_search"]
+    search_id: UUID
+
+
+class PlaceResult(DTO):
+    place_id: str | None = Field(default=None, max_length=200)
+    name: str = Field(min_length=1, max_length=200)
+    category: str | None = Field(default=None, max_length=100)
+    address: str = Field(max_length=300)
+    rating: float | None = Field(default=None, ge=0, le=5)
+    rating_count: int | None = Field(default=None, ge=0)
+    opening_hours: list[str] | None = Field(default=None, max_length=7)
+    maps_url: str = Field(max_length=2048)
+    fetched_at: datetime
+    provider: Literal["apify"] = "apify"
+
+    @field_validator("maps_url")
+    @classmethod
+    def safe_maps_url(cls, value):
+        value = public_https_url(value)
+        if urlsplit(value).hostname != "www.google.com" or not urlsplit(value).path.startswith("/maps/"):
+            raise ValueError("invalid Maps URL")
+        return value
+
+
+class PlacesCard(DTO):
+    kind: Literal["places"]
+    places: list[PlaceResult] = Field(min_length=1, max_length=5)
+
+
+Card = Annotated[NavigateCard | MoodCard | DiscoveryCard | MapsSearchCard | PlacesCard, Field(discriminator="kind")]
+
+
+def public_https_url(value: str) -> str:
+    if len(value) > 2048 or any(ord(c) < 33 or c in "\\" for c in value):
+        raise ValueError("invalid source URL")
+    url = urlsplit(value)
+    host = (url.hostname or "").lower().rstrip(".")
+    if (url.scheme != "https" or not host or url.username or url.password
+            or url.port not in (None, 443) or "." not in host
+            or host == "localhost" or host.endswith((".localhost", ".local", ".internal"))):
+        raise ValueError("source must be public HTTPS")
+    if not re.fullmatch(r"[a-z0-9.-]+", host) or all(re.fullmatch(r"(?:0x[0-9a-f]+|[0-9]+)", label) for label in host.split(".")):
+        raise ValueError("invalid or alternative numeric source host")
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        # Numeric/hex and bracket forms are not public DNS names.
+        if all(c.isdigit() or c == "." for c in host) or ":" in host:
+            raise ValueError("invalid source host") from None
+    else:
+        if not address.is_global:
+            raise ValueError("private source host")
+    return urlunsplit(("https", host, url.path or "/", url.query, ""))
+
+
+class Citation(DTO):
+    source_id: str = Field(min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
+    title: str = Field(min_length=1, max_length=200)
+    url: str = Field(max_length=2048)
+    start: int = Field(ge=0)
+    end: int = Field(gt=0)
+
+    @field_validator("url")
+    @classmethod
+    def safe_url(cls, value: str) -> str:
+        return public_https_url(value)
+
+
+class PromptOptions(DTO):
+    skill_id: Literal["hangout", "learn-new-thing"] | None = None
+    tools: list[Literal["web_search", "maps_search"]] = Field(default_factory=list, max_length=8)
+    area: str | None = Field(default=None, min_length=2, max_length=120)
+    maps_search_id: UUID | None = None
+
+    @field_validator("tools")
+    @classmethod
+    def unique_tools(cls, value):
+        return sorted(set(value))
+
+    @field_validator("area", mode="before")
+    @classmethod
+    def normalized_area(cls, value):
+        return " ".join(value.split()) if isinstance(value, str) else value
 
 
 class AiOutput(DTO):
     text: str = Field(min_length=1, max_length=6000)
     cards: list[Card] = Field(default_factory=list, max_length=3)
+    citations: list[Citation] = Field(default_factory=list, max_length=8)
+
+    @model_validator(mode="after")
+    def citation_ranges(self):
+        if any(c.start >= c.end or c.end > len(self.text) for c in self.citations):
+            raise ValueError("citation outside visible text")
+        return self
 
 
 MAX_BUBBLES = 4
@@ -70,6 +164,16 @@ class AiReply(DTO):
     """Validated, backend-rendered reply: the parts persisted as one bubble each."""
 
     parts: list[AiOutput] = Field(min_length=1, max_length=MAX_BUBBLES)
+
+    @model_validator(mode="after")
+    def bounded(self):
+        if sum(len(p.text) for p in self.parts) + 2 * (len(self.parts) - 1) > MAX_REPLY_CHARS:
+            raise ValueError("reply too long")
+        if sum(len(p.cards) for p in self.parts) > 3 or sum(len(p.citations) for p in self.parts) > 12:
+            raise ValueError("reply exceeds cards/citations limit")
+        if len({c.url for p in self.parts for c in p.citations}) > 8:
+            raise ValueError("too many source URLs")
+        return self
 
     def joined(self) -> AiOutput:
         """The ai-events-v1 / legacy single-message representation."""
@@ -139,6 +243,8 @@ class AIMessage(DTO):
     actor: Literal["self", "bot"]
     text: str
     cards: list[Card] = Field(default_factory=list, max_length=3)
+    citations: list[Citation] = Field(default_factory=list, max_length=8)
+    source_backed: bool = False
     created_at: datetime | None = None
     run_id: UUID | None = None
     status: str | None = None
@@ -195,6 +301,17 @@ class StartRunInput(DTO):
     client_message_id: UUID
     expected_conversation_version: int = Field(ge=1)
     mood_scope: MoodReadScope | None = None
+    prompt_options: PromptOptions = Field(default_factory=PromptOptions)
+    response_protocol: Literal[2, 3] = 2
+
+
+def idempotency_input(body: StartRunInput) -> str:
+    """Digest input of one send. A default (protocol 2, no options) send keeps the pre-search
+    shape, so a retry spanning the rollout still matches its original turn."""
+    fields = {"text", "mood_scope"}
+    if body.prompt_options != PromptOptions() or body.response_protocol != 2:
+        fields |= {"prompt_options", "response_protocol"}
+    return body.model_dump_json(include=fields)
 
 
 class AIRunAccepted(DTO):
@@ -206,7 +323,7 @@ class AIRunAccepted(DTO):
 
 
 class AIEvent(DTO):
-    version: Literal["ai-events-v1", "ai-events-v2"] = "ai-events-v1"
+    version: Literal["ai-events-v1", "ai-events-v2", "ai-events-v3"] = "ai-events-v1"
     seq: str = Field(pattern=r"^[1-9][0-9]*$")
     type: Literal["progress", "final", "completed", "failed", "cancelled"]
     data: dict
@@ -228,15 +345,36 @@ class AIFinalV2(DTO):
     messages: list[AIReplyBubble] = Field(min_length=1, max_length=MAX_BUBBLES)
 
 
-def final_v2(bubbles: list[tuple[UUID, str, list]]) -> dict:
+def final_v2(bubbles: list[tuple[UUID, str, list]], citations: list[list] | None = None, *, source_marked=False) -> dict:
     """Normalized final payload from (message id, text, JSON cards) in part order."""
-    return AIFinalV2(
+    result = AIFinalV2(
         part_count=len(bubbles),
         messages=[
             AIReplyBubble(message_id=identity, part_index=index, text=text, cards=cards)
             for index, (identity, text, cards) in enumerate(bubbles)
         ],
     ).model_dump(mode="json", by_alias=True)
+    if citations is not None and any(citations):
+        for message, sources in zip(result["messages"], citations, strict=True):
+            message["citations"] = sources
+    if source_marked:
+        for message in result["messages"]:
+            message["sourceBacked"] = True  # Internal negotiation marker, removed below.
+    return result
+
+
+SEARCH_REFRESH = "Hãy tải lại ứng dụng để xem câu trả lời có nguồn."
+
+
+def source_backed(data: dict) -> bool:
+    return bool(data.get("sourceBacked") or data.get("citations") or any(c.get("kind") in ("maps_search", "places") for c in data.get("cards", [])))
+
+
+def history_protocol(messages: list[AIMessage], protocol: int) -> list[AIMessage]:
+    if protocol >= 3:
+        return messages
+    return [m.model_copy(update={"text": SEARCH_REFRESH, "cards": [], "citations": []})
+            if m.source_backed or m.citations or any(c.kind in ("maps_search", "places") for c in m.cards) else m for m in messages]
 
 
 def as_protocol(event: AIEvent, protocol: int, final: dict | None = None) -> AIEvent:
@@ -244,8 +382,23 @@ def as_protocol(event: AIEvent, protocol: int, final: dict | None = None) -> AIE
 
     ``final`` is the v2 final data of a live (temporary) run whose stored event is v1.
     """
-    if protocol == 2:
-        update: dict = {"version": "ai-events-v2"}
+    if event.type == "final":
+        data = final if "messages" not in event.data and final is not None else event.data
+        if "messages" in data:
+            data = {**data, "messages": [dict(m) for m in data["messages"]]}
+            if protocol < 3 and any(source_backed(m) for m in data["messages"]):
+                data["messages"] = [{**m, "text": SEARCH_REFRESH, "cards": []} for m in data["messages"]]
+            for m in data["messages"]:
+                m.pop("sourceBacked", None)
+                if protocol < 3:
+                    m.pop("citations", None)
+                else:
+                    m.setdefault("citations", [])
+        elif source_backed(data) and protocol < 3:
+            data = {"text": SEARCH_REFRESH, "cards": []}
+        event = event.model_copy(update={"data": data})
+    if protocol >= 2:
+        update: dict = {"version": f"ai-events-v{protocol}"}
         if event.type == "final" and "messages" not in event.data:
             if final is None:
                 raise ValueError("v2 final requires its bubbles")
@@ -258,7 +411,7 @@ def as_protocol(event: AIEvent, protocol: int, final: dict | None = None) -> AIE
             "cards": [card for message in messages for card in message["cards"]],
         }
         return event.model_copy(update={"data": joined})
-    return event
+    return event.model_copy(update={"version": "ai-events-v1", "data": {k: v for k, v in event.data.items() if k != "citations"}})
 
 
 class ProposalConfirm(VersionInput):

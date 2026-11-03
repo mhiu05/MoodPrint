@@ -17,6 +17,8 @@ ORM kế thừa `Base` trong [database/models.py](../../backend/app/infrastructu
 | Ba trợ lý, điều phối, nhóm AI (V3, 0024) | `ai_orchestration_steps`, `ai_group_members` | Receipt content-free cho mỗi bước planner/consult (`Agent.as_tool`)/handoff/phát biểu trong nhóm (loại, người nhờ → người được nhờ, cạnh, thứ tự, trạng thái, digest, run con `origin='agent'`, `used_in_reply`); thành viên nhóm AI (chỉ 3 trợ lý V3, `journal_access` mặc định tắt, `history_from_sequence`). `ai_conversations.kind` (`direct`/`group`), `active_agent` (handoff dính), `ai_messages.mentions` |
 | Trợ lý phối hợp (Phase 2) | `ai_sharing_permissions`, `ai_collaborations` | Opt-in theo từng cạnh requester → specialist (mặc định tắt, có version); receipt content-free cho mỗi lần nhờ (cạnh, luật, trạng thái, digest SHA-256 của input/output, run con) — không lưu yêu cầu, kết quả hay nội dung nhật ký |
 | Memory proposal/index | `memory_proposals`, `memory_embedding_jobs`, `memory_embeddings` | Pending approval và semantic retrieval có quyền |
+| Search accounting | `ai_search_usage` | Content-free Web/Maps fee, quota, reservation and uncertain liability; nullable owner/run links preserve money on deletion |
+| Async Maps | `ai_maps_searches` | Owner-scoped status, lease/fence, provider references and cleanup; no persisted query, area or temporary-chat place results |
 | Publication | `matching_drafts`, `published_profiles`, `candidate_references` | Draft/preview/snapshot và opaque temporary refs |
 | Social | `pairs`, `connection_requests`, `connections`, `human_messages`, `blocks`, `connection_reads` | Pair lifecycle, room, sequence, private read watermark |
 | Aggregate | `matching_stats_daily` | Counters matching tổng hợp theo ngày/scorer |

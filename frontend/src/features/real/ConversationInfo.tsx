@@ -1,9 +1,11 @@
-import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Link } from "react-router-dom";
 import { X } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Button } from "../../components/UI";
+import type { BotId } from "../../companions/registry";
+import "./conversation-info.css";
 
 const DESKTOP = "(min-width: 1100px)";
 const TABLET = "(min-width: 768px)";
@@ -30,6 +32,9 @@ export type ConversationInfoProps = {
   panelId: string;
   title: string;
   botName: string;
+  botId: BotId;
+  botDescription?: string;
+  agentSettings?: ReactNode;
   persistent: boolean;
   modeLabel: string;
   retentionLabel: string;
@@ -44,12 +49,12 @@ export type ConversationInfoProps = {
   onNew: () => void;
 };
 
-/** Whether the panel is in the DOM: open, and not suspended behind a child dialog on a compact layout. */
-function panelMounted(open: boolean, suspended: boolean | undefined, desktop: boolean) {
-  return open && !(suspended && !desktop);
+/** Whether the panel is visible; suspended compact DOM stays mounted to retain child editors. */
+function panelMounted(open: boolean, suspended: boolean | undefined, _desktop: boolean) {
+  return open && !suspended;
 }
 
-/** For the trigger's aria-controls, which may only name a panel that is actually mounted. */
+/** For the trigger's aria-controls, which only names the currently visible panel. */
 export function useInfoPanelMounted(open: boolean, suspended: boolean | undefined) {
   return panelMounted(open, suspended, useMedia(DESKTOP));
 }
@@ -69,14 +74,10 @@ export function ConversationInfo(props: ConversationInfoProps) {
     if (!props.open) setOpenedMode(null);
     else setOpenedMode((value) => value ?? mode);
   }, [props.open, mode]);
-  // One media subscription decides both this and the layout below: two could disagree for a frame.
-  if (!panelMounted(props.open, props.suspended, desktop)) return null;
+  if (!props.open) return null;
   const animate = openedMode === null || openedMode === mode;
-  return desktop ? (
-    <ModelessPanel {...props} animate={animate} />
-  ) : (
-    <ModalPanel {...props} animate={animate} mode={tablet ? "tablet" : "phone"} />
-  );
+  // One stable host preserves draft editor state, portals and focus across breakpoint changes.
+  return <InfoPanel {...props} animate={animate} mode={mode} desktop={desktop} />;
 }
 
 function usePanelEntrance(ref: RefObject<HTMLElement | null>, animate: boolean, travel: { x?: number; y?: number }) {
@@ -94,17 +95,45 @@ function usePanelEntrance(ref: RefObject<HTMLElement | null>, animate: boolean, 
   );
 }
 
-function ModelessPanel(props: ConversationInfoProps & { animate: boolean }) {
-  const ref = useRef<HTMLElement>(null);
+export function infoFocusables(root: HTMLElement) {
+  return Array.from(root.querySelectorAll<HTMLElement>(
+    "button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex='0']",
+  )).filter((node) => node.getClientRects().length > 0);
+}
+
+function InfoPanel(props: ConversationInfoProps & { animate: boolean; mode: string; desktop: boolean }) {
+  const ref = useRef<HTMLDialogElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const headingId = useId();
-  const { onClose, triggerRef } = props;
-  usePanelEntrance(ref, props.animate, { x: 24 });
+  const lastFocused = useRef<HTMLElement | null>(null);
+  const { onClose, triggerRef, desktop, suspended } = props;
+  usePanelEntrance(ref, props.animate, props.mode === "phone" ? { y: 16 } : { x: desktop ? 24 : 16 });
+  useLayoutEffect(() => {
+    const dialog = ref.current!;
+    const before = document.activeElement as HTMLElement | null;
+    const retainedFocus = before && dialog.contains(before);
+    if (retainedFocus) lastFocused.current = before;
+    // Native modal state must be closed before changing between modal and modeless.
+    dialog.close();
+    if (suspended) return;
+    if (desktop) dialog.show();
+    else dialog.showModal();
+    if (!suspended) {
+      const target = retainedFocus ? before : lastFocused.current;
+      if (target?.isConnected && dialog.contains(target)) {
+        target.focus();
+        // A closing child dialog restores focus in its passive cleanup, after this layout
+        // effect. Return to the panel action once that cleanup has finished.
+        requestAnimationFrame(() => { if (dialog.open && !dialog.hidden && target.isConnected) target.focus(); });
+      } else heading.current?.focus();
+    }
+  }, [desktop, suspended]);
   useEffect(() => {
-    heading.current?.focus();
+    const dialog = ref.current!;
+    return () => dialog.close();
   }, []);
   useEffect(() => {
-    // Clicking elsewhere closes the overlay without taking focus from what was chosen.
+    if (!desktop || suspended) return;
     const outside = (event: PointerEvent) => {
       const target = event.target as Node;
       if (ref.current?.contains(target) || triggerRef.current?.contains(target)) return;
@@ -113,69 +142,41 @@ function ModelessPanel(props: ConversationInfoProps & { animate: boolean }) {
     };
     document.addEventListener("pointerdown", outside);
     return () => document.removeEventListener("pointerdown", outside);
-  }, [onClose, triggerRef]);
-  return (
-    <section
-      ref={ref}
-      id={props.panelId}
-      className="conversation-info is-modeless"
-      role="region"
-      aria-labelledby={headingId}
-      onKeyDown={(event) => {
-        if (event.key === "Escape" && !event.defaultPrevented) {
-          event.preventDefault();
-          onClose(true);
-        }
-      }}
-    >
-      <InfoHeader headingId={headingId} heading={heading} onClose={() => onClose(true)} />
-      <InfoContent {...props} />
-    </section>
-  );
-}
-
-function ModalPanel(props: ConversationInfoProps & { animate: boolean; mode: "tablet" | "phone" }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const heading = useRef<HTMLHeadingElement>(null);
-  const headingId = useId();
-  const closeRef = useRef(props.onClose);
-  closeRef.current = props.onClose;
-  usePanelEntrance(ref, props.animate, props.mode === "phone" ? { y: 16 } : { x: 16 });
-  useEffect(() => {
-    const dialog = ref.current!;
-    dialog.showModal();
-    heading.current?.focus();
-    return () => dialog.close();
-  }, []);
+  }, [desktop, suspended, onClose, triggerRef]);
   return (
     <dialog
       ref={ref}
       id={props.panelId}
-      className={`conversation-info is-modal is-${props.mode}`}
+      data-bot-id={props.botId}
+      hidden={suspended || undefined}
+      className={`conversation-info ${desktop ? "is-modeless" : `is-modal is-${props.mode}`}`}
+      role={desktop ? "region" : undefined}
       aria-labelledby={headingId}
       onCancel={(event) => {
-        event.preventDefault();
-        closeRef.current(true);
+        if (event.target !== event.currentTarget) return;
+        event.preventDefault(); onClose(true);
       }}
       onClick={(event) => {
-        if (event.target === event.currentTarget) closeRef.current(true);
+        if (!desktop && event.target === event.currentTarget) onClose(true);
       }}
       onKeyDown={(event) => {
+        // Portaled child dialogs own their own Escape and Tab events.
+        if (!ref.current?.contains(event.target as Node)) return;
+        if (desktop) {
+          if (event.key === "Escape" && !event.defaultPrevented) { event.preventDefault(); onClose(true); }
+          return;
+        }
         if (event.key !== "Tab") return;
-        const nodes = Array.from(
-          ref.current!.querySelectorAll<HTMLElement>("button:not(:disabled),a[href],input:not(:disabled),[tabindex='0']"),
-        ).filter((node) => node.getClientRects().length > 0);
+        const nodes = infoFocusables(ref.current);
         const first = nodes[0], last = nodes.at(-1);
         if (event.shiftKey && (document.activeElement === first || document.activeElement === heading.current)) {
-          event.preventDefault();
-          last?.focus();
+          event.preventDefault(); last?.focus();
         } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first?.focus();
+          event.preventDefault(); first?.focus();
         }
       }}
     >
-      <InfoHeader headingId={headingId} heading={heading} onClose={() => closeRef.current(true)} />
+      <InfoHeader headingId={headingId} heading={heading} onClose={() => onClose(true)} />
       <InfoContent {...props} />
     </dialog>
   );
@@ -204,7 +205,9 @@ function InfoContent(props: ConversationInfoProps) {
         <p>
           {props.botName} · <span>{props.modeLabel}</span>
         </p>
+        {props.botDescription ? <p>{props.botDescription}</p> : null}
       </section>
+      {props.agentSettings}
       <section>
         <h3>Dữ liệu</h3>
         <p>{props.retentionLabel}</p>

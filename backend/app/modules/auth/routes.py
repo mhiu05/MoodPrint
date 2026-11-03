@@ -103,6 +103,9 @@ async def _session_view(request: Request, db, user, user_id, csrf: str | None = 
 
         used = await daily_turns(db, user.id, now())
         remaining = max(0, settings.ai_daily_turns_per_user - used)
+    from app.ai.search.policy import search_ready
+    prompt_open = bool(not guest and eligible and settings.v3_open_for(user.id) and ai_available
+        and (not settings.ai_search_rollout_user_ids or user.id in settings.ai_search_rollout_user_ids))
     return SessionView(
         staff=staff.role if staff else None,  # type: ignore[arg-type]
         notices=notices,
@@ -125,6 +128,9 @@ async def _session_view(request: Request, db, user, user_id, csrf: str | None = 
         birth_year=declaration.birth_year if declaration else None,
         eligibility_version=declaration.version if declaration else 0,
         features=FeatureView(
+            web_search=prompt_open and search_ready(settings, "openai_web"),
+            maps_search=prompt_open and search_ready(settings, "apify"),
+            agent_skills=prompt_open and settings.ai_agent_skills_enabled,
             ai=ai_available,
             ai_status=ai_status,
             ai_quota_remaining=remaining,

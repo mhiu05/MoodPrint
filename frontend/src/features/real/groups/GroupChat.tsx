@@ -99,7 +99,7 @@ export function GroupChat({ groupId }: { groupId: string }) {
           const added = event.messages.filter((bubble) => !known.has(bubble.messageId)).map((bubble): Message => ({
             id: bubble.messageId, actor: "bot", text: bubble.text, cards: bubble.cards, partIndex: bubble.partIndex,
             partCount: event.messages.length, speaker: event.agent, runId: `${turnId}:${event.ordinal}`,
-            createdAt: new Date().toISOString(), origin: "user",
+            createdAt: new Date().toISOString(), origin: "user", sourceBacked: false,
           }));
           return added.length ? { ...current, messages: [...current.messages, ...added] } : current;
         });
@@ -237,7 +237,7 @@ export function GroupChat({ groupId }: { groupId: string }) {
       setPicked([]);
       setView((current) => current && {
         ...current, version: accepted.version,
-        messages: [...current.messages, { id: `self-${accepted.turnId}`, actor: "self", text, cards: [], createdAt: new Date().toISOString(), origin: "user", partIndex: 0, partCount: 1 }],
+        messages: [...current.messages, { id: `self-${accepted.turnId}`, actor: "self", text, cards: [], sourceBacked: false, createdAt: new Date().toISOString(), origin: "user", partIndex: 0, partCount: 1 }],
       });
       void follow(accepted.turnId, accepted.eventsUrl, signal);
     } catch (reason) {
@@ -459,6 +459,7 @@ function GroupInfo({ view, busy, onChange, onClose, onDeleted }: {
             <div className="group-member-text">
               <strong>{nameOf(member.botId)}</strong>
               <small>{botById(member.botId)?.role}</small>
+              <Link to={`/assistants/${member.botId}?panel=info&section=check-ins`}>Thông tin {nameOf(member.botId)}</Link>
             </div>
             <Button variant="text" disabled={busy || saving !== null || active.length <= 2}
               aria-label={`Bỏ ${nameOf(member.botId)} khỏi nhóm`}

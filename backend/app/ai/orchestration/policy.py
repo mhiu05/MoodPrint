@@ -37,6 +37,7 @@ class Grants:
     eligible: bool
     edges: dict[str, int] = field(default_factory=dict)  # enabled edge -> permission version
     journal_context: bool = False
+    permission_policy: str = "sharing-v1"
 
 
 @dataclass(frozen=True)
@@ -69,6 +70,7 @@ class Decision:
     denied: dict[str, str] = field(default_factory=dict)
     versions: dict[str, int] = field(default_factory=dict)
     allowed_data: dict[str, frozenset[str]] = field(default_factory=dict)
+    permission_policy: str = "sharing-v1"
 
     @property
     def delegates(self) -> bool:
@@ -130,6 +132,7 @@ def validate(plan: OrchestrationPlan, grants: Grants, counters: Counters, signal
             return Decision("direct", denied={target: reason} if reason else {})
         edge = EDGES[("handoff", target)]
         return Decision("handoff", handoff=target, versions={target: grants.edges[edge]},
+                        permission_policy=grants.permission_policy,
                         allowed_data={target: ALLOWED_DATA[edge] & (set(plan.data_categories) | {"latest_message"})})
     approved: list[str] = []
     for specialist in plan.specialists[: counters.max_specialists]:
@@ -149,4 +152,5 @@ def validate(plan: OrchestrationPlan, grants: Grants, counters: Counters, signal
         return Decision("direct", denied=denied)
     versions = {name: grants.edges[EDGES[("consult", name)]] for name in approved}
     allowed = {name: ALLOWED_DATA[EDGES[("consult", name)]] for name in approved}
-    return Decision("consult", consult=tuple(approved), denied=denied, versions=versions, allowed_data=allowed)
+    return Decision("consult", consult=tuple(approved), denied=denied, versions=versions, allowed_data=allowed,
+                    permission_policy=grants.permission_policy)
