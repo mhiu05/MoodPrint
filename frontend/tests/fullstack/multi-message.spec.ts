@@ -28,7 +28,7 @@ test("a real three-bubble reply persists, groups, survives reload and joins for 
   await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
   const group = page.getByRole("group", { name: "Tin nhắn từ Mây, 3 phần" });
   await expect(group.locator(".chat-bubble")).toHaveText(BUBBLES);
-  expect(eventRequests).toContain("?protocol=2");
+  expect(eventRequests).toContain("?protocol=3");
 
   // Persisted as three rows of one run, in order, with version == max(sequence).
   const conversationId = new URL(page.url().replace("/#", "")).searchParams.get("conversation");
@@ -43,6 +43,10 @@ test("a real three-bubble reply persists, groups, survives reload and joins for 
 
   // An old client asking for v1 receives the joined reply.
   const runId = bot[0].runId;
+  const v2 = await page.request.get(`${api}/ai/runs/${runId}/events?protocol=2`);
+  const legacyBubbles = await v2.text();
+  expect(legacyBubbles).toContain('"version":"ai-events-v2"');
+  for (const text of BUBBLES) expect(legacyBubbles).toContain(JSON.stringify(text));
   const v1 = await page.request.get(`${api}/ai/runs/${runId}/events`);
   expect(await v1.text()).toContain(JSON.stringify({ text: BUBBLES.join("\n\n"), cards: [] }).slice(1, -1));
 
