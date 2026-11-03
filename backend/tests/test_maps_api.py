@@ -65,6 +65,7 @@ async def test_maps_pending_ready_reuse_scope_authorization_and_saved_places(cli
     await turn(app, client, url, "Gợi ý từ kết quả", reply("Thử ghé quán để đọc sách."), responseProtocol=3,
                promptOptions={"mapsSearchId": identity})
     saved = (await client.get(url+"/export")).json()["messages"][-1]
+    assert len(saved["cards"]) == 1  # Exactly the backend-authorized card, never a model copy.
     assert saved["cards"][0]["kind"] == "places" and saved["cards"][0]["places"][0]["name"] == "Cà phê"
     other = await client.post("/api/v1/ai/conversations", json={"botId": "dieuphoi"}, headers=key())
     other_url = "/api/v1/ai/conversations/"+other.json()["conversationId"]

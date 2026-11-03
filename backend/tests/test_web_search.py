@@ -3,6 +3,23 @@ import json
 import pytest
 
 
+@pytest.mark.parametrize("card", [
+    {"kind": "maps_search", "searchId": "00000000-0000-0000-0000-000000000001"},
+    {"kind": "places", "places": [{"name": "Public cafe", "address": "Da Nang",
+        "mapsUrl": "https://www.google.com/maps/search/?api=1&query=cafe", "fetchedAt": "2026-11-03T00:00:00Z"}]},
+])
+def test_grounded_model_contract_excludes_backend_owned_search_cards(card):
+    from pydantic import ValidationError
+
+    from app.ai.search.schemas import GroundedReply
+
+    # The model must never be offered output variants that the renderer forbids.
+    with pytest.raises(ValidationError):
+        GroundedReply(messages=[{"segments": [{"text": "Try this cafe.", "sourceIds": []}], "cards": [card]}])
+    schema = json.dumps(GroundedReply.model_json_schema())
+    assert '"MapsSearchCard"' not in schema and '"PlacesCard"' not in schema
+
+
 def test_grounded_segments_use_backend_sources_and_codepoints():
     from app.ai.search.citations import render_grounded_reply
     from app.ai.search.schemas import GroundedReply, SearchSource

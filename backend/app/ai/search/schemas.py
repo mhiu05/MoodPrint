@@ -1,8 +1,8 @@
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import Field, field_validator
 
-from app.ai.schemas import Card, public_https_url
+from app.ai.schemas import DiscoveryCard, MoodCard, NavigateCard, public_https_url
 from app.contracts import DTO
 
 
@@ -25,7 +25,9 @@ class GroundedSegment(DTO):
 
 class GroundedBubble(DTO):
     segments: list[GroundedSegment] = Field(min_length=1, max_length=12)
-    cards: list[Card] = Field(default_factory=list, max_length=3)
+    # Search cards carry backend-authorized provenance and are appended by the
+    # runtime. Do not offer them as model-generated structured output variants.
+    cards: list[Annotated[NavigateCard | MoodCard | DiscoveryCard, Field(discriminator="kind")]] = Field(default_factory=list, max_length=3)
 
 
 class GroundedReply(DTO):

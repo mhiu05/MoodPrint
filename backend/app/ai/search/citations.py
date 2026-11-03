@@ -19,7 +19,7 @@ def render_grounded_reply(draft: GroundedReply, sources: dict[str, SearchSource]
                                           start=start, end=len(text)))
         if len(text) > 1500:
             raise ValueError("grounded bubble too long")
-        parts.append(AiOutput(text=text, cards=bubble.cards, citations=citations))
+        parts.append(AiOutput(text=text, cards=[*bubble.cards], citations=citations))
     reply = AiReply(parts=parts)
     if sources and any(not p.citations for p in parts):
         raise ValueError("source-backed answer requires citations")
