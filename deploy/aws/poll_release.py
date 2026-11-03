@@ -17,7 +17,6 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-
 VERIFY_WORKFLOW_ID = 394882427
 VERIFY_WORKFLOW_PATH = ".github/workflows/verify.yml"
 PUBLISH_WORKFLOW_PATH = ".github/workflows/deploy-staging.yml"
@@ -206,6 +205,20 @@ def github_get(url: str) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         raise RuntimeError("GitHub API returned an unexpected response")
     return value
+
+
+def main_commit_sha(repository: str) -> str:
+    """Read the exact branch reference without downloading commit files or patches."""
+    reference = github_get(f"{API_BASE}/repos/{repository}/git/ref/heads/main")
+    _require(isinstance(reference, dict), "GitHub did not return the main reference")
+    _require(reference.get("ref") == "refs/heads/main", "GitHub reference is not main")
+    commit = reference.get("object")
+    _require(isinstance(commit, dict) and commit.get("type") == "commit",
+             "GitHub main reference does not point to a commit")
+    sha = commit.get("sha")
+    _require(isinstance(sha, str) and SHA_RE.fullmatch(sha) is not None,
+             "GitHub did not return a valid main commit SHA")
+    return sha
 
 
 def download_manifest(url: str, expected_url: str, destination: Path) -> dict[str, Any]:
@@ -437,10 +450,7 @@ def run_once(values: dict[str, str]) -> None:
     api_image = values["GHCR_API_IMAGE"]
     web_image = values["GHCR_WEB_IMAGE"]
 
-    main = github_get(f"{API_BASE}/repos/{repository}/commits/main")
-    if not main or not isinstance(main.get("sha"), str) or not SHA_RE.fullmatch(main["sha"]):
-        raise RuntimeError("GitHub did not return a valid main commit SHA")
-    commit_sha = main["sha"]
+    commit_sha = main_commit_sha(repository)
     if read_state_sha(ACTIVE) == commit_sha:
         return
 
@@ -504,8 +514,7 @@ def run_once(values: dict[str, str]) -> None:
                     bundle_path, trusted_root_path, environment,
                 )
 
-            latest = github_get(f"{API_BASE}/repos/{repository}/commits/main")
-            if not latest or latest.get("sha") != commit_sha:
+            if main_commit_sha(repository) != commit_sha:
                 print("Main moved during verification; release deployment was skipped.")
                 return
 
