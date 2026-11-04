@@ -89,6 +89,12 @@ Hướng dẫn an toàn chung (khủng hoảng, tự hại) đã nằm trong `SH
 
 ## JI-40 — Allowlist agent, 4 skill, resolver, hợp đồng, chip
 
+Ruling trước triển khai: assertion mọi skill có câu cấm chẩn đoán được so sánh bằng `casefold()` vì body chốt của `reframe-thought` dùng chữ thường sau dấu hai chấm; giữ nguyên body và ý nghĩa assertion. Chip nằm ngoài component tải capability view trong source hiện tại: chia sẻ danh sách skill đã tải qua parent, không thêm request hoặc bảng tên cứng thứ hai. Copy menu đổi sang mô tả một lượt cho đủ sáu skill; các locator theo copy cũ được đồng bộ, giữ assertions hành vi.
+
+Ruling bằng chứng runtime: `LiveRun.journal_evidence` bị xóa khi terminal theo chính sách hiện có. Test weekly kiểm JSON thật của tool (ID/window), citation đã publish và evidence đã scrub; không giữ evidence sống chỉ để assertion nhìn thấy. Không thay runtime scrub hoặc bất biến privacy.
+
+Ruling guest regression: `test_guest_prompt_capabilities_are_a_zero_projection` ghim danh sách hai skill, nên thêm bốn ID vào chính equality này. Assertion mọi skill/tool `available=False` giữ nguyên; không mở skill cho guest hoặc nới paid-dispatch gate.
+
 **Mục tiêu:** 4 skill mới, mỗi skill chỉ dùng được với agent phù hợp, tôn trọng an toàn và lời từ chối đọc nhật ký.
 
 **Files:** Create 4 thư mục `backend/app/ai/skills/{weekly-review,mood-patterns,guided-journal,reframe-thought}/SKILL.md`. Modify `backend/app/ai/skills/registry.py` (SPECS + `AGENTS`), `backend/app/ai/skills/resolver.py`, `backend/app/ai/skills/routes.py:41-44`, `backend/app/ai/search/turn.py:30-49,67-73`, `backend/app/ai/schemas.py:97`, `frontend/src/features/real/composer/ComposerOptions.tsx:60`, `frontend/src/features/real/composer/promptOptions.ts`. Test `backend/tests/test_agent_skills.py`, `backend/tests/test_prompt_options.py`, `backend/tests/test_guest_permissions.py:163` (giữ), `frontend/src/features/real/composer/promptOptions.test.ts`, `frontend/tests/e2e/agent-skills.spec.ts`.
@@ -100,7 +106,7 @@ Hướng dẫn an toàn chung (khủng hoảng, tự hại) đã nằm trong `SH
 - Capability: `available = … and bot_id in AGENTS[identity]`; reason khi sai agent: "Kỹ năng này dành cho trợ lý {tên, nối bằng ' và '}." (tên từ `agents.DISPLAY_NAMES`).
 - Frontend `skillChipLabel(skills: Capability[], id: string): string` (tên từ capability view; fallback `id`).
 
-- [ ] **Bước 1: Test đỏ**
+- [x] **Bước 1: Test đỏ**
   - `test_registry_loads_six_trusted_skills`: `set(load()) == {6 id}`; `"source_entry_ids" in instructions("weekly-review")`; mọi skill mới chứa "Không chẩn đoán".
   - `test_agent_allowlists_are_subsets_of_v3`; `AGENTS["weekly-review"] == ("nhatky",)`.
   - `test_resolution_table` (parametrize `(prompt, agent, expected)`): ("Nhìn lại tuần này giúp mình","nhatky","weekly-review"), (cùng câu,"dieuphoi",None), ("Mình hay buồn khi nào, xem mẫu cảm xúc giúp","nhatky","mood-patterns"), ("Hôm nay không biết viết gì","dieuphoi","guided-journal"), ("Giúp mình nghĩ theo cách khác về chuyện này","dieuphoi","reframe-thought"), ("Nhìn lại tuần và viết nhật ký","nhatky",None) (mơ hồ), ("Không muốn nhìn lại tuần","nhatky",None).
@@ -112,10 +118,10 @@ Hướng dẫn an toàn chung (khủng hoảng, tự hại) đã nằm trong `SH
   - `test_capabilities_are_per_agent` (`GET /ai/prompt-capabilities?botId=hoatdong` ⇒ `weekly-review.available is False`, reason đúng chuỗi).
   - `promptOptions.test.ts`: `skillChipLabel(view.skills,"weekly-review") === "Nhìn lại tuần"`.
   - `agent-skills.spec.ts`: thêm ca chọn "Nhìn lại tuần" trong Nhật ký ⇒ chip hiện đúng tên, gửi ⇒ chip biến mất; trong Hoạt động skill đó bị disabled có `title` lý do.
-- [ ] **Bước 2:** `uv run --locked pytest -q tests/test_agent_skills.py tests/test_prompt_options.py`; `npm.cmd test -- promptOptions` → FAIL.
-- [ ] **Bước 3:** Cài đặt; export OpenAPI, `npm.cmd run contracts:generate`.
-- [ ] **Bước 4:** chạy lại + `tests/test_guest_permissions.py tests/test_search_*.py tests/test_three_agents.py`; `npx.cmd playwright test tests/e2e/agent-skills.spec.ts --config playwright.owned.config.ts`.
-- [ ] **Bước 5:** Commit `feat(ai): journal and planning skills with per-agent allowlists`.
+- [x] **Bước 2:** `uv run --locked pytest -q tests/test_agent_skills.py tests/test_prompt_options.py`; `npm.cmd test -- promptOptions` → FAIL.
+- [x] **Bước 3:** Cài đặt; export OpenAPI, `npm.cmd run contracts:generate`.
+- [x] **Bước 4:** chạy lại + `tests/test_guest_permissions.py tests/test_search_*.py tests/test_three_agents.py`; `npx.cmd playwright test tests/e2e/agent-skills.spec.ts --config playwright.owned.config.ts`.
+- [x] **Bước 5:** Commit `feat(ai): journal and planning skills with per-agent allowlists`.
 
 **Chấp nhận:** 6 skill nạp được; không skill nào cấp tool mới; mọi bất biến cũ (`test_agent_skills.py` 4 test cũ) vẫn pass.
 **Rủi ro:** tự nhận diện bằng từ khóa có thể bắt nhầm. Đã giới hạn theo agent và loại mơ hồ; chọn tay luôn có sẵn. Chất lượng câu trả lời chỉ đo được bằng eval live (06, tùy chọn).

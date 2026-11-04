@@ -23020,7 +23020,11 @@
                 "type": "string",
                 "enum": [
                   "hangout",
-                  "learn-new-thing"
+                  "learn-new-thing",
+                  "weekly-review",
+                  "mood-patterns",
+                  "guided-journal",
+                  "reframe-thought"
                 ]
               },
               {

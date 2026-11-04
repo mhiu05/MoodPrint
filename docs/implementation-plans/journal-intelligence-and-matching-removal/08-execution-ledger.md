@@ -11,7 +11,7 @@ Quy ước (giống `docs/implementation-plans/three-agent-orchestration-group-c
 
 ## Trạng thái hiện tại (cập nhật khi chốt checkpoint)
 
-Tất cả commit dưới đây đang local, chưa push trong phiên triển khai này. Các dòng lịch sử nói "đang chạy" được giữ để thể hiện thời điểm quan sát; trạng thái hiện tại trong bảng này và kết quả mới nhất cuối sổ có ưu tiên.
+Các commit tới checkpoint A `587e61d5` đã push thành công lên `origin/feat/journal-intelligence` (từ `e2c3e5e8`), sau khi gates 1–10/15 xanh. Chưa mở PR/merge/deploy. Các dòng lịch sử nói "đang chạy" hoặc "chưa push" được giữ để thể hiện thời điểm quan sát; trạng thái hiện tại trong bảng này và kết quả mới nhất cuối sổ có ưu tiên.
 
 | Task | Trạng thái | Commit | Bằng chứng chính |
 | --- | --- | --- | --- |
@@ -27,8 +27,8 @@ Tất cả commit dưới đây đang local, chưa push trong phiên triển kha
 | JI-22 | xong | `f691898d` | revision/deletion/cap/backfill/provider lock regression pass |
 | JI-23 | xong | `9fefdf8d` | 105 regression pass; 17 targeted retrieval/eval pass |
 | JI-24 | xong | `6adc9fa4` | CLI fake exit 0; 40 entry/15 query/55 fake calls |
-| Checkpoint A | xong kiểm chứng | commit checkpoint kế tiếp | backend 2065 pass/3 skip; gates 1–10/15 xanh; chưa push |
-| JI-40 | chưa làm | — | chờ checkpoint A |
+| Checkpoint A | xong | `587e61d5`, đã push | backend 2065 pass/3 skip; gates 1–10/15 xanh |
+| JI-40 | xong kiểm chứng task | commit task kế tiếp | 32 backend pass; hồi quy 204 pass; frontend 205 + 2 pass; browser skill 7 pass |
 | Checkpoint B | chưa làm | — | chờ JI-40 |
 | JI-30 + JI-31 | chưa làm | — | phải phát hành cùng khối |
 | JI-25 | chưa làm | — | sau khối memory |
@@ -146,6 +146,19 @@ Các log/JSON ở `.tmp/journal-intelligence/` là artifact cục bộ, không c
 - Backend Ruff đúng cwd: **All checks passed**; mypy **188 source files pass** tại thời điểm có retrieval. Docs checker **179 Markdown / 1154 links / 143 operations / 122 settings / 64 tables, PASS**. Cần chạy lại final gates sau các task còn lại.
 
 ## JI-50 / phát hành
+
+### JI-40 — RED/GREEN và hồi quy
+
+Chốt task: hồi quy 10 file chạy lại **204 passed, 214,63 s** (runner 219,188 s), 0 fail. Checkpoint B đang chạy full backend/fixture trên source này, chưa push JI-40. CI origin cho checkpoint A `587e61d5` đã **success**: [Verify local application](https://github.com/mhiu05/MoodPrint/actions/runs/41801661898). Plugin workflow chỉ liệt kê run PR, nên theo dõi run push bằng `gh run list` read-only.
+
+- Bắt đầu sau checkpoint A đã push `587e61d5`. RED `pytest -q tests/test_agent_skills.py tests/test_prompt_options.py`: **14 failed / 18 passed, 19,69 s**; registry thiếu bốn ID/AGENTS, resolver chưa nhận diện/chặn distress, API enum chưa có skill mới. Ca refusal timeout vì request bị schema 422 trước model. Frontend RED `npm.cmd test -- promptOptions`: **1 failed / 204 passed, 5,31 s**, thiếu `skillChipLabel`; lệnh này thực tế chạy toàn bộ Vitest, không chỉ file lọc.
+- Bốn file skill được tạo đúng thứ tự weekly-review → mood-patterns → guided-journal → reframe-thought, body lấy nguyên văn từ 05, version 1. Runtime thêm allowlist, manual validation trước tạo run, distress guard; không cấp tool mới hoặc thay persona/frozen instructions.
+- Lượt GREEN đầu bị Docker Engine dừng: log mới có 25 dấu pass và một error kết nối, chưa có kết quả suite cuối; đã dừng đúng process test sở hữu, không coi là code failure hoặc PASS. Khởi động Docker Desktop ẩn, xác minh label run-id rồi chỉ start lại container disposable của phiên. Do tmpfs reset, tạo lại năm DB local đúng run-id/owner/marker; không đụng container khác, không đọc backend/.env.
+- Sau khôi phục, **31 passed / 1 failed, 14,38 s**: test weekly sai khi đọc `run.journal_evidence` sau terminal. Code hiện có scrub evidence; sửa test quan sát output JSON thật của tool và citation đã publish, đồng thời assert evidence được scrub. Ruling đã sửa 05; không sửa privacy cleanup. GREEN cuối cùng cùng lệnh: **32 passed, 13,85 s** (runner 16,984 s), gồm refusal tool **403 JOURNAL_READ_DENIED**, lượt completed/no citation và mood scope 422.
+- Browser: lần dựng regression proof đầu sai cwd của Python nên chưa phục hồi UI cũ, test chạy trên candidate và **1 passed/11,9 s**; không coi là RED. Lần đúng phục hồi chỉ ba file UI của tác vụ từ checkpoint A (candidate được lưu byte trước đó): **1 failed**, test 9,4 s, không tìm thấy chip “Nhìn lại tuần” vì UI cũ ghi “Học điều mới”. Phục hồi candidate, chạy cả file: hai ca mới pass nhưng hai viewport fail locator copy menu cũ; đã dừng đúng cây process test, sửa hai locator theo copy mới, giữ assertions. Lượt cuối `playwright ... agent-skills.spec.ts --workers=1`: **7 passed, 19,5 s**.
+- Frontend GREEN `npm.cmd run typecheck`; `npm.cmd test -- promptOptions`: **205 tests / 36 files pass, 5,29 s**, cộng **2 script checks pass/647,285 ms**. Build pass, Vite 4,54 s; RealApp **311,40 kB/gzip 97,22 kB**. OpenAPI xuất qua script không dotenv rồi `contracts:generate`; không sửa tay schema.
+- Ruff lần đầu có 3 I001 ở import test mới, đã `ruff --fix`; full lint PASS. Mypy **189 source files PASS**. Docs sau cập nhật registry/runtime PASS, **181 Markdown/1162 links/143 operations/122 settings/64 tables**.
+- Hồi quy mở rộng 10 file: **203 passed / 1 failed, 146,08 s**; chỉ guest capability inventory còn ghim hai skill. RED riêng `test_guest_prompt_capabilities_are_a_zero_projection`: **1 failed, 4,40 s**, đúng bốn ID thừa. Equality đổi thành sáu ID, giữ assertion mọi `available=False`; GREEN **1 passed, 12,00 s**. Toàn bộ 204 ca đang chạy lại trước commit task; checkpoint B backend/fixture cũng đã bắt đầu trên DB/server riêng, không sửa frontend trong lúc browser đang chạy.
 
 ### Checkpoint A — kết quả cuối trước push
 

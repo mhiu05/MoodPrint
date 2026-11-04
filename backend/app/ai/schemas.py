@@ -93,8 +93,11 @@ class Citation(DTO):
         return public_https_url(value)
 
 
+SkillId = Literal["hangout", "learn-new-thing", "weekly-review", "mood-patterns", "guided-journal", "reframe-thought"]
+
+
 class PromptOptions(DTO):
-    skill_id: Literal["hangout", "learn-new-thing"] | None = None
+    skill_id: SkillId | None = None
     tools: list[Literal["web_search", "maps_search"]] = Field(default_factory=list, max_length=8)
     area: str | None = Field(default=None, min_length=2, max_length=120)
     maps_search_id: UUID | None = None

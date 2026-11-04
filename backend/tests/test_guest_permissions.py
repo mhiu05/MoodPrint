@@ -433,5 +433,8 @@ async def test_guest_prompt_capabilities_are_a_zero_projection(clients):
     response = await guest.client.get("/api/v1/ai/prompt-capabilities?botId=dieuphoi")
     assert response.status_code == 200, response.text
     body = response.json()
-    assert {item["id"] for item in body["skills"]} == {"hangout", "learn-new-thing"}
+    assert {item["id"] for item in body["skills"]} == {
+        "hangout", "learn-new-thing", "weekly-review", "mood-patterns",
+        "guided-journal", "reframe-thought",
+    }
     assert not any(item["available"] for item in body["skills"] + body["tools"])

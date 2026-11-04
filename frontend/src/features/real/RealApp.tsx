@@ -49,7 +49,7 @@ import { BotAvatar } from "../../companions/Avatar";
 import { botById, type BotId } from "../../companions/registry";
 import { ApiClient, ApiError, errorMessage } from "../../api/client";
 import { consumeAISearchReply, validCards } from "../../api/stream";
-import type { PromptOptions } from "../../api/contracts";
+import type { PromptCapabilities, PromptOptions } from "../../api/contracts";
 import { ComposerOptions, PromptChips } from "./composer/ComposerOptions";
 import { acceptSelection, normalizePromptOptions, selectionKey, type SelectionState } from "./composer/promptOptions";
 import { CitationText } from "./search/CitationText";
@@ -1082,6 +1082,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     lifetime = useRef<AbortController | null>(null);
   const intent = useRef<{ text: string; scopeKey: string; clientMessageId: string; options: PromptOptions; selectionRevision: number } | null>(null);
   const [selection, setSelection] = useState<SelectionState>({ revision: 0, options: {} });
+  const [skillCapabilities, setSkillCapabilities] = useState<PromptCapabilities["skills"]>([]);
   const selectionRef = useRef(selection);
   const changeOptions = useCallback((options: PromptOptions) => {
     const next = { revision: selectionRef.current.revision + 1, options };
@@ -2167,7 +2168,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         ) : null}
         {draftNotice ? <p className={cx.footnote} role="status">{draftNotice}</p> : null}
         <QuotaHint />
-        <PromptChips options={selection.options} onChange={changeOptions} onFocusComposer={() => requestAnimationFrame(() => composer.current?.focus())} />
+        <PromptChips options={selection.options} skills={skillCapabilities} onChange={changeOptions} onFocusComposer={() => requestAnimationFrame(() => composer.current?.focus())} />
         <form
           className="bot-composer"
           onSubmit={(event) => {
@@ -2177,6 +2178,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           }}
         >
           <ComposerOptions api={api} botId={conversation?.activeAgent ?? bot.botId}
+            onSkillsChange={setSkillCapabilities}
             enabled={!!(session.features.agentSkills || session.features.webSearch || session.features.mapsSearch) && !legacyReadOnly}
             options={selection.options} onChange={changeOptions} onFocusComposer={() => requestAnimationFrame(() => composer.current?.focus())} />
           <textarea

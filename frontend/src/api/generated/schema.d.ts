@@ -4080,7 +4080,7 @@ export interface components {
         /** PromptOptions */
         PromptOptions: {
             /** Skillid */
-            skillId?: ("hangout" | "learn-new-thing") | null;
+            skillId?: ("hangout" | "learn-new-thing" | "weekly-review" | "mood-patterns" | "guided-journal" | "reframe-thought") | null;
             /** Tools */
             tools?: ("web_search" | "maps_search")[];
             /** Area */

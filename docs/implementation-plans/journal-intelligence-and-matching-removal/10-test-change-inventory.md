@@ -156,6 +156,11 @@ Inventory theo diff source, không phải số ca runtime (template/width đư�
 
 ## Backend: assertion/test cập nhật
 
+- JI-40 `test_registry_is_closed_and_loads_trusted_offline_workflows` đổi tên thành `test_registry_loads_six_trusted_skills`, equality đóng đổi 2→6 ID đúng đặc tả; các assertion metadata/path-security cũ giữ nguyên.
+- JI-40 `test_guest_prompt_capabilities_are_a_zero_projection`: equality 2→6 skill; assertion tất cả skill/tool unavailable cho guest giữ nguyên.
+- JI-40 test weekly dùng output JSON thực của tool và citation đã publish; evidence terminal phải được scrub theo privacy invariant, không sửa production cleanup.
+- Hai locator menu trong `agent-skills.spec.ts` đổi theo menu sáu skill; giữ kiểm tra one-turn, retry cùng ID/options, keyboard focus và overflow ở cả bốn viewport.
+
 - `test_upgrade_from_0015_preserves_registered_rows_and_matches_models`: expected head 0028→0029; giữ bảo toàn registered rows, session lifetime, private grants và Alembic drift.
 - `test_journal_upgrade_downgrade_preserves_legacy_mood_and_private_acl`: tháo/phục hồi migration phụ thuộc 0029 quanh diễn tập 0019 để không vi phạm FK mới; giữ nguyên mọi assertion và rollback temporary roles.
 - Standalone chat/social load server: dùng `ALL_FEATURES_OFF` trước các override rõ ràng, thêm hai ca kiểm cấu hình subprocess không chạy server/provider.

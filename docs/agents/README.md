@@ -8,9 +8,15 @@ Ba trợ lý hiện hành dùng chung backend runtime và OpenAI Agents SDK Pyth
 | `nhatky` — Nhật ký | Nhìn lại trang đã lưu và cảm xúc | `search_journal_entries`, mood summary theo scope, đề xuất ghi nhớ; search khi khả dụng |
 | `hoatdong` — Hoạt động | Hoạt động một người, học và chơi | Search khi khả dụng; không đọc nhật ký/mood riêng |
 
-Skill chọn thủ công theo lượt, không mở thêm quyền dữ liệu. Registry hiện có
-`hangout` v2 và `learn-new-thing` v1; hangout gợi ý hoạt động một người, không tạo
-lời mời hay phòng chat. Persona V3 và instruction năm bot cũ được giữ nguyên byte.
+Skill áp dụng cho một lượt, chọn thủ công hoặc nhận diện rõ từ tin hiện tại, không mở thêm quyền dữ liệu.
+
+| Skill | Trợ lý được dùng |
+| --- | --- |
+| `hangout` v2, `learn-new-thing` v1 | Cả ba trợ lý; hangout dành cho hoạt động một người |
+| `weekly-review` v1, `mood-patterns` v1 | Nhật ký |
+| `guided-journal` v1, `reframe-thought` v1 | Nhật ký và Điều phối |
+
+Capability API trả lý do khi skill không dành cho trợ lý hiện tại; gửi tay sai trợ lý bị từ chối trước khi tạo run. Tin có dấu hiệu distress không dùng skill kể cả chọn tay. Skill không đi cùng mood scope; từ chối đọc nhật ký vẫn chặn công cụ. Persona V3 và instruction năm bot cũ được giữ nguyên byte.
 
 Danh tính cũ được giữ cho tương thích và đọc lịch sử, không ghép lịch sử giữa bot:
 
