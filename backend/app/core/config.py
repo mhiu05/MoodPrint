@@ -25,18 +25,19 @@ class Settings(EmbeddingSettings, BaseSettings):
     auth_captcha_enabled: bool = False
     openai_api_key: SecretStr = SecretStr("")
     openai_model: str = ""
-    ai_enabled: bool = False
-    ai_accounting_enabled: bool = False
+    ai_enabled: bool = True
+    ai_accounting_enabled: bool = True
+    journal_auto_memory_enabled: bool = True
     ai_local_test_user_ids: list[UUID] = Field(default_factory=list)
-    stt_enabled: bool = False
+    stt_enabled: bool = True
     stt_model: str = ""
-    sandbox_enabled: bool = False
+    sandbox_enabled: bool = True
     chat_history_enabled: bool = True
-    # 1–4 validated bubbles per reply (SSE v2); off keeps the single-message contract.
-    ai_multi_message_enabled: bool = False
-    ai_web_search_enabled: bool = False
-    ai_maps_search_enabled: bool = False
-    ai_agent_skills_enabled: bool = False
+    # 1–4 validated bubbles per reply (SSE v2); explicit false keeps the single-message contract.
+    ai_multi_message_enabled: bool = True
+    ai_web_search_enabled: bool = True
+    ai_maps_search_enabled: bool = True
+    ai_agent_skills_enabled: bool = True
     ai_search_rollout_user_ids: list[UUID] = Field(default_factory=list)
     ai_search_daily_cap_per_user: int = Field(default=5, ge=1, le=5)
     ai_search_user_concurrency: int = Field(default=1, ge=1, le=1)
@@ -44,15 +45,15 @@ class Settings(EmbeddingSettings, BaseSettings):
     ai_search_daily_budget_usd: float = Field(default=5, gt=0, le=5)
     ai_web_search_pricing_version: str = Field(default="", max_length=100)
     ai_web_search_token_bound_verified: bool = False
-    maps_search_worker_enabled: bool = False
+    maps_search_worker_enabled: bool = True
     apify_api_token: SecretStr = SecretStr("")
     apify_maps_actor_build: str = Field(default="", max_length=64, pattern=r"^[a-zA-Z0-9._-]*$")
     apify_maps_pricing_version: str = Field(default="", max_length=100)
     apify_maps_charge_bound_verified: bool = False
     chat_retention_days: int = Field(default=30, ge=1, le=90)
     # Scheduled check-ins (phase-1/05 §8). API/UI flag, then the dedicated worker service.
-    proactive_enabled: bool = False
-    proactive_worker_enabled: bool = False
+    proactive_enabled: bool = True
+    proactive_worker_enabled: bool = True
     proactive_worker_concurrency: int = Field(default=1, ge=1, le=4)
     proactive_daily_cap_per_user: int = Field(default=4, ge=1, le=6)
     # Share of AI_DAILY_BUDGET_USD proactive work may use before it yields to user chat.
@@ -62,9 +63,9 @@ class Settings(EmbeddingSettings, BaseSettings):
     proactive_inactive_days: int = Field(default=14, ge=1, le=60)
     # Non-empty: only these consenting test accounts see or receive check-ins.
     proactive_rollout_user_ids: list[UUID] = Field(default_factory=list)
-    # Companion collaboration (phase-2/05 §7). Off: no specialist call, no receipt, no UI line.
-    ai_collaboration_enabled: bool = False
-    ai_collaboration_defaults_enabled: bool = False
+    # Companion collaboration (phase-2/05 §7). Explicit false: no specialist call or receipt.
+    ai_collaboration_enabled: bool = True
+    ai_collaboration_defaults_enabled: bool = True
     ai_collaboration_policy_epoch: int = Field(default=2, ge=1)
     ai_collaboration_daily_cap: int = Field(default=10, ge=1, le=50)
     ai_collaboration_timeout_seconds: float = Field(default=8, ge=3, le=10)
@@ -72,11 +73,11 @@ class Settings(EmbeddingSettings, BaseSettings):
     ai_collaboration_budget_share: float = Field(default=0.7, ge=0.1, le=0.9)
     # Non-empty: only these consenting test accounts can enable or use collaboration.
     ai_collaboration_rollout_user_ids: list[UUID] = Field(default_factory=list)
-    # V3 (docs/implementation-plans/three-agent-orchestration-group-chat). All default off; B and
-    # C act only with A. Off: the five Phase 1/2 companions and contracts stay byte-compatible.
-    ai_three_agent_experience_enabled: bool = False
-    ai_smart_orchestration_enabled: bool = False
-    ai_group_chat_enabled: bool = False
+    # V3 defaults on (docs/implementation-plans/three-agent-orchestration-group-chat); B and
+    # C act only with A. Explicit false restores the five Phase 1/2 companions.
+    ai_three_agent_experience_enabled: bool = True
+    ai_smart_orchestration_enabled: bool = True
+    ai_group_chat_enabled: bool = True
     # Non-empty: only these accounts get the V3 experience (A, B and C share the cohort).
     ai_v3_rollout_user_ids: list[UUID] = Field(default_factory=list)
     ai_orchestration_max_specialists: int = Field(default=2, ge=1, le=2)
@@ -100,7 +101,7 @@ class Settings(EmbeddingSettings, BaseSettings):
     # Matching scorer: v1 (rollback), v2 (rules-v2) or shadow (serve v1, log v2 overlap).
     matching_scorer: Literal["v1", "v2", "shadow"] = "v1"
     # Shared activities master switch and per-kind rollout (rollback = remove a kind).
-    activities_enabled: bool = False
+    activities_enabled: bool = True
     activity_kinds: list[Literal["icebreaker", "coop_quiz", "focus"]] = [
         "icebreaker",
         "coop_quiz",
@@ -109,19 +110,19 @@ class Settings(EmbeddingSettings, BaseSettings):
     # Short focus phases for automated tests only; ignored unless APP_ENV=test.
     focus_test_plan_seconds: int | None = Field(default=None, ge=5, le=600)
     # Staff moderation queue; the admin routes return 404 while this is off.
-    moderation_admin_enabled: bool = False
+    moderation_admin_enabled: bool = True
     # Cost protection (DR-12): per-user turns per Asia/Bangkok day and a global daily
     # estimated-spend ceiling in USD (0 disables; needs AI_ACCOUNTING_ENABLED=true).
     ai_daily_turns_per_user: int = Field(default=60, ge=1, le=1000)
     ai_daily_budget_usd: float = Field(default=0, ge=0)
-    # Guest trial and feedback rollout. Every flag defaults off; none of them can disable guest
+    # Guest trial and feedback rollout. Feature flags default on; none can disable guest
     # expiry, cleanup, orphan reconciliation or liability settlement (those always run).
-    guest_auth_enabled: bool = False
-    guest_paid_enabled: bool = False
-    guest_semantic_enabled: bool = False
-    feedback_enabled: bool = False
-    feedback_admin_enabled: bool = False
-    product_tour_enabled: bool = False
+    guest_auth_enabled: bool = True
+    guest_paid_enabled: bool = True
+    guest_semantic_enabled: bool = True
+    feedback_enabled: bool = True
+    feedback_admin_enabled: bool = True
+    product_tour_enabled: bool = True
     # Deployment revision stamped on feedback by the server; a client can never supply it.
     release_version: str = Field(default="unknown", pattern=r"^[A-Za-z0-9._+-]{1,64}$")
     # Deployment SHA injected by compose. Invalid values become "unknown" so a
@@ -292,3 +293,26 @@ class Settings(EmbeddingSettings, BaseSettings):
         if value and not value.startswith("https://"):
             raise ValueError("Supabase Auth must use HTTPS")
         return value.rstrip("/")
+
+
+# Capabilities default on; environment variables may explicitly disable each one.
+FEATURE_FLAGS: tuple[str, ...] = (
+    "ai_enabled", "ai_accounting_enabled", "stt_enabled", "sandbox_enabled",
+    "chat_history_enabled", "ai_multi_message_enabled", "ai_web_search_enabled",
+    "ai_maps_search_enabled", "maps_search_worker_enabled", "ai_agent_skills_enabled",
+    "proactive_enabled", "proactive_worker_enabled", "ai_collaboration_enabled",
+    "ai_collaboration_defaults_enabled", "ai_three_agent_experience_enabled",
+    "ai_smart_orchestration_enabled", "ai_group_chat_enabled", "activities_enabled",
+    "moderation_admin_enabled", "feedback_admin_enabled", "guest_auth_enabled",
+    "guest_paid_enabled", "guest_semantic_enabled", "feedback_enabled",
+    "product_tour_enabled", "semantic_memory_enabled", "journal_semantic_enabled",
+    "journal_auto_memory_enabled",
+)
+
+SAFETY_SWITCHES: dict[str, str] = {
+    "auth_captcha_enabled": "Must match the Supabase Auth CAPTCHA configuration.",
+    "cookie_secure": "Local HTTP development requires non-secure cookies.",
+    "provider_force_ipv4": "Network compatibility option; choose for the deployment.",
+    "ai_web_search_token_bound_verified": "Requires an operator's explicit cost-bound attestation.",
+    "apify_maps_charge_bound_verified": "Requires an operator's explicit charge-bound attestation.",
+}

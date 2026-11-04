@@ -53,6 +53,11 @@ def pytest_configure(config):
     )
     from app.core.config import Settings
     Settings.model_config["env_file"] = None
+    from tests.settings_baseline import ALL_FEATURES_OFF
+
+    # Keep every synthetic Settings() caller on the legacy baseline. Tests of
+    # defaults explicitly remove these variables; never weaken the secret guard.
+    os.environ.update({name.upper(): str(value).lower() for name, value in ALL_FEATURES_OFF.items()})
 
 
 def pytest_asyncio_loop_factories(config, item):
@@ -114,8 +119,9 @@ async def clients(database):
 
     from app.core.config import Settings
     from app.main import create_app
+    from tests.settings_baseline import ALL_FEATURES_OFF
 
-    app = create_app(Settings(_env_file=None, database_url=str(database.url.render_as_string(hide_password=False))))
+    app = create_app(Settings(_env_file=None, database_url=str(database.url.render_as_string(hide_password=False)), **ALL_FEATURES_OFF))
     # Using the injected engine keeps test teardown and application queries on the same event loop.
     await app.state.database.engine.dispose()
     app.state.database.engine = database

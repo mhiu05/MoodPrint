@@ -7,7 +7,8 @@ from pydantic_settings import BaseSettings
 
 
 class EmbeddingSettings(BaseSettings):
-    semantic_memory_enabled: bool = False
+    semantic_memory_enabled: bool = True
+    journal_semantic_enabled: bool = True
     voyage_api_key: SecretStr = SecretStr("")
     voyage_model: str = Field(default="voyage-4-lite", min_length=1, max_length=100)
     voyage_dimensions: Literal[256, 512, 1024, 2048] = 1024
@@ -32,3 +33,7 @@ class EmbeddingSettings(BaseSettings):
     @property
     def semantic_memory_available(self) -> bool:
         return self.semantic_memory_enabled and bool(self.voyage_api_key.get_secret_value())
+
+    @property
+    def journal_semantic_available(self) -> bool:
+        return self.journal_semantic_enabled and bool(self.voyage_api_key.get_secret_value())

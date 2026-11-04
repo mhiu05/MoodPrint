@@ -50,6 +50,8 @@ Ngân sách: `AI_DAILY_BUDGET_USD` mặc định 0 = **không có trần toàn c
 
 **Mục tiêu:** Mọi cờ tính năng mặc định `true` và vẫn ghi đè được bằng env; suite hiện có giữ hành vi cũ nhờ nền tường minh.
 
+**Ruling thực thi 2026-11-04:** `pytest_configure` cố định một số env feature bằng `false`; env thắng field default. Mọi test kiểm mặc định và fixture `clients_defaults` phải xóa env của toàn bộ `FEATURE_FLAGS` (cùng URL/key tùy chọn liên quan) bằng `monkeypatch.delenv(..., raising=False)` trước khi tạo `Settings(_env_file=None)`. Giữ nguyên khối bảo vệ `.env` trong `conftest.py`. Nền legacy dùng `ALL_FEATURES_OFF` ở fixture/harness; `chat_history_enabled=True`. Hai field journal mới được thêm ngay trong JI-01. Red run toàn suite sau đổi default, trước ghim nền vẫn bắt buộc.
+
 **Files:**
 - Modify: `backend/app/core/config.py` (field 25–124; thêm `FEATURE_FLAGS`, `SAFETY_SWITCHES`; **thêm luôn field** `journal_auto_memory_enabled: bool = True`, JI-30 mới dùng)
 - Modify: `backend/app/ai/embedding_config.py` (`semantic_memory_enabled`; **thêm field** `journal_semantic_enabled: bool = True` và property `journal_semantic_available = journal_semantic_enabled and bool(voyage_api_key)`, JI-22/23 mới dùng). Nhờ vậy `len(FEATURE_FLAGS) == 28` đúng ngay từ JI-01 và `check_docs.py` thấy 2 setting mới trong `configuration.md` cùng commit

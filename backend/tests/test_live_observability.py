@@ -55,8 +55,8 @@ def test_local_live_actor_allowlist_is_closed_by_default_and_rejected_in_product
     from pydantic import ValidationError
 
     actor, outsider = uuid4(), uuid4()
-    assert not Settings().ai_available_for(actor)
-    settings = Settings(app_env="development", ai_local_test_user_ids=[actor])
+    assert not Settings(_env_file=None, ai_enabled=False).ai_available_for(actor)
+    settings = Settings(_env_file=None, ai_enabled=False, app_env="development", ai_local_test_user_ids=[actor])
     assert settings.ai_available_for(actor)
     assert not settings.ai_available_for(outsider)
     with pytest.raises(ValidationError):

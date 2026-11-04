@@ -62,12 +62,13 @@ from tests.feedback_schema import install_feedback_functions
 from tests.guest_helpers import LIFETIME, add_guest, enable_paid_fixture
 from tests.guest_schema import install_auth_fixture, install_guest_guards
 from tests.mood_e2e_model import MoodE2EModel
+from tests.settings_baseline import ALL_FEATURES_OFF
 
 # Phase D-I features on, as in a beta deployment; focus phases shortened to seconds
 # (test env only). MATCHING_SCORER follows E2E_MATCHING_SCORER so the v2 spec can run
 # against both the default (v1) and the candidate scorer.
 app = create_app(
-    Settings(
+    Settings(**{**ALL_FEATURES_OFF, **dict(
         _env_file=None,
         app_env="test",
         database_url=url,
@@ -96,7 +97,7 @@ app = create_app(
         ai_smart_orchestration_enabled=os.environ.get("E2E_V3", "1") == "1",
         ai_group_chat_enabled=os.environ.get("E2E_V3", "1") == "1",
         ai_v3_rollout_user_ids=[UUID(f"00000000-0000-4000-8000-{number:012d}") for number in range(60, 70)],
-    )
+    )})
 )
 app.state.ai.model_override = MoodE2EModel([])
 # Only the disposable test entrypoint installs this transport. Production
