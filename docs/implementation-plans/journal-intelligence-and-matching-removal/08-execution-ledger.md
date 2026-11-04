@@ -65,6 +65,8 @@ JI-21 commit **`216c3be6`**, chưa push. JI-22 chốt worker/debounce/revision f
 
 JI-22 commit **`f691898d`**, chưa push. JI-23 chốt hybrid search/runtime prompt +j2 và source evidence, theo các lượt 105 regression pass, 17 targeted pass và browser journal intelligence pass. Tool embed ngoài owner lock, recheck settings version trong lock; nhật ký/refusal/mood scope/citations không được nới. Thêm fullstack model marker chỉ test, không provider thật.
 
+JI-23 commit **`9fefdf8d`**, chưa push. JI-24 CLI cuối với `--embedder fake --out <scratch>/ji24-eval`: **exit 0, 11,141 s**, 55 fake calls. Không chạy Voyage. Recall/MRR giữ số như bảng trước; latency toàn bộ baseline keyword p50 **31,9999999992433 ms**, p95 **93,99999999914144 ms**; hybrid p50 **31,9999999992433 ms**, p95 **93,0000000007567 ms** (nearest-rank percentile). JSON giữ đầy đủ từng nhóm. Các số này dưới tải synthetic/local; không suy ra latency/quality thật. `tests/test_journal_retrieval_eval.py` 2 pass và cụm retrieval/eval mới nhất 17 pass. Runner chỉ `_env_file=None`, local disposable identity guard, xóa đúng actor synthetic sau hoàn tất.
+
 Các task dưới đây đã có triển khai và targeted tests; JI-01 đã có full green để chốt commit đầu tiên (hash bổ sung sau commit). Các task dưới bảng vẫn chờ commit riêng. Chưa chạy checkpoint A/B, chưa push/PR/merge/deploy. Những cổng thiếu bên dưới vẫn là việc phải làm.
 
 | Task | RED quan sát | GREEN quan sát | Còn thiếu để chốt |
