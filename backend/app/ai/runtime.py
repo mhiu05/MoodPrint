@@ -389,7 +389,7 @@ class AiRuntime:
         if self.settings.ai_accounting_enabled:
             await reserve_accounting(db, run_id, user_id, self.worker_id, self.settings.openai_model,
                                      # Compact journal policy revision fits existing varchar(60).
-                                     prompt_version(RUNTIME_VARIANTS[bot_id]) + "+" + EVIDENCE_POLICY + "+" + CONVERSATION_POLICY + ("+j1" if caps(bot_id).journal else ""), settings=self.settings, guest_reservation_id=guest_reservation_id)
+                                     prompt_version(RUNTIME_VARIANTS[bot_id]) + "+" + EVIDENCE_POLICY + "+" + CONVERSATION_POLICY + ("+j2" if caps(bot_id).journal else ""), settings=self.settings, guest_reservation_id=guest_reservation_id)
 
     async def record_usage(self, run: LiveRun, event: UsageEvent):
         run.usage.observe(event)
@@ -505,7 +505,9 @@ class AiRuntime:
             return json.dumps(result, ensure_ascii=False)
 
         async def search_journal_entries(ctx: RunContextWrapper[LiveRun], arguments: str) -> str:
-            from app.modules.journal.ai import JournalSearchInput, search_for_ai
+            from app.modules.journal.ai import JournalSearchInput
+            from app.modules.journal.ai_settings import journal_ai_allowed
+            from app.modules.journal.retrieval import hybrid_search, journal_query_vector
 
             args = JournalSearchInput.model_validate_json(arguments)
             state = run.sources.setdefault("journal", SourceState())
@@ -513,12 +515,18 @@ class AiRuntime:
                 await check_tool()
                 if not caps(bot_id).journal or run.mood_scope is not None or not run.journal_read_allowed:
                     raise DomainError(403, "JOURNAL_READ_DENIED", "Lượt này không đọc nhật ký.")
+                vector, settings_version, reason = await journal_query_vector(
+                    self.database, self.settings, run.actor, args.query,
+                    embedder=getattr(self, "journal_embedder", None),
+                )
                 async with self.database.require()() as db, db.begin():
                     user = await lock_actor(db, run.actor)
                     await assert_purpose(db, user, "AI")
                     if user.data_version != run.data_version:
                         raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
-                    result = await search_for_ai(db, user, **args.model_dump())
+                    if vector is not None and await journal_ai_allowed(db, user, self.settings, "embed") != settings_version:
+                        vector, reason = None, "disabled"
+                    result = await hybrid_search(db, user, args, query_vector=vector, settings=self.settings, reason=reason)
                     # Persist provenance before any retrieved prose can reach the model.
                     turn = await current_turn(db, run, self.worker_id)
                     if turn is not None:

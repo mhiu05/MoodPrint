@@ -63,6 +63,8 @@ JI-21 chốt candidate API/notice/component/hợp đồng đã export, test sett
 
 JI-21 commit **`216c3be6`**, chưa push. JI-22 chốt worker/debounce/revision fences, hooks cùng transaction, lifecycle, cap receipt bền, prefilter age và FakeEmbedder. RED/GREEN từng ca, 100 regression pass + 7 ca cap mới nhất pass đã ghi. Ruling bổ sung module `quota.py` dùng bảng có sẵn thay vì schema mới; các outcome không xác định giữ reservation bảo thủ, không có provider call giữ owner lock. Full backend checkpoint mới đang chạy trên working tree tương ứng; kết quả phải chờ, chưa tuyên bố gate xanh.
 
+JI-22 commit **`f691898d`**, chưa push. JI-23 chốt hybrid search/runtime prompt +j2 và source evidence, theo các lượt 105 regression pass, 17 targeted pass và browser journal intelligence pass. Tool embed ngoài owner lock, recheck settings version trong lock; nhật ký/refusal/mood scope/citations không được nới. Thêm fullstack model marker chỉ test, không provider thật.
+
 Các task dưới đây đã có triển khai và targeted tests; JI-01 đã có full green để chốt commit đầu tiên (hash bổ sung sau commit). Các task dưới bảng vẫn chờ commit riêng. Chưa chạy checkpoint A/B, chưa push/PR/merge/deploy. Những cổng thiếu bên dưới vẫn là việc phải làm.
 
 | Task | RED quan sát | GREEN quan sát | Còn thiếu để chốt |
