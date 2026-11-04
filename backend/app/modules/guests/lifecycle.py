@@ -277,6 +277,9 @@ async def _delete_guest_only_social(db: AsyncSession, uid: UUID) -> None:
 
 
 async def _delete_owned(db: AsyncSession, uid: UUID) -> None:
+    from app.modules.journal.ai_models import JournalAiSettings
+
+    await db.execute(delete(JournalAiSettings).where(JournalAiSettings.user_id == uid))
     from app.ai.proactive.lifecycle import purge_proactive
 
     await purge_owned_journal(db, uid)

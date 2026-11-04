@@ -13,6 +13,7 @@ from app.infrastructure.database.models import (
     User,
     now,
 )
+from app.modules.journal.quota import expired_receipts
 from app.modules.social.models import CandidateReference, HumanMessage
 
 
@@ -149,7 +150,7 @@ async def purge_expired(app):
         keys = (
             await db.scalars(
                 select(Idempotency.id)
-                .where(Idempotency.created_at <= now() - timedelta(hours=24))
+                .where(expired_receipts(now()))
                 .order_by(Idempotency.id)
                 .limit(1000)
                 .with_for_update(skip_locked=True)

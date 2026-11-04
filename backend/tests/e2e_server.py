@@ -107,6 +107,19 @@ app.state.settings.supabase_publishable_key = __import__("pydantic").SecretStr("
 app.state.auth_transport = httpx.MockTransport(LocalAuth(app.state.database).handle)
 enable_paid_fixture(app)
 
+# Synthetic journal indexing and query embedding for the real HTTP/DB journey.
+# Memory embeddings remain disabled. Neither worker can reach Voyage.
+from pydantic import SecretStr
+
+from tests.fakes import FakeEmbedder
+
+app.state.settings.journal_semantic_enabled = True
+app.state.settings.voyage_api_key = SecretStr("synthetic-no-network")
+app.state.settings.voyage_model = "synthetic"
+app.state.settings.voyage_dimensions = 256
+app.state.journal_embedder = FakeEmbedder(256)
+app.state.ai.journal_embedder = app.state.journal_embedder
+
 
 class SyntheticTranscriber:
     async def transcribe(self, data):

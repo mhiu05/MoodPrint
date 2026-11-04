@@ -144,6 +144,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 logging.getLogger("moodprint").error(
                     "embedding_worker_retry error_type=%s", type(error).__name__
                 )
+            from app.modules.journal.indexing import process_journal_jobs
+
+            try:
+                await process_journal_jobs(database, config, embedder=getattr(app.state, "journal_embedder", None))
+            except Exception as error:
+                logging.getLogger("moodprint").error("journal_index_retry error_type=%s", type(error).__name__)
 
         async def guest_pass() -> None:
             """Guest expiry cleanup and orphan reconciliation: always on, isolated per work class."""

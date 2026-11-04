@@ -125,6 +125,13 @@ change shared timezone, quiet hours, daily caps, pause state or journal consent.
 | `GUEST_VOICE_CONCURRENCY` | `int` | `1` |
 | `GUEST_VOICE_GLOBAL_CONCURRENCY` | `int` | `3` |
 | `JOURNAL_SEMANTIC_ENABLED` | `bool` | `True` |
+| `JOURNAL_EMBEDDING_DEBOUNCE_SECONDS` | `int` | `20` |
+| `JOURNAL_EMBEDDING_DAILY_CAP_PER_USER` | `int` | `200` |
+| `JOURNAL_QUERY_TIMEOUT_SECONDS` | `float` | `3` |
+| `JOURNAL_SEMANTIC_TOP_K` | `int` | `6` |
+| `JOURNAL_RECENT_K` | `int` | `2` |
+| `JOURNAL_SIMILARITY_THRESHOLD` | `float` | `0.25` |
+| `JOURNAL_DOCUMENT_CHAR_LIMIT` | `int` | `7000` |
 | `JOURNAL_AUTO_MEMORY_ENABLED` | `bool` | `True` |
 | `SEMANTIC_MEMORY_ENABLED` | `bool` | `True` |
 | `VOYAGE_API_KEY` | `SecretStr` | `SecretStr('')` |

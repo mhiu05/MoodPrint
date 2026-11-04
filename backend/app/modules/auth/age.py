@@ -49,6 +49,28 @@ async def is_adult_eligible(db, user, *, at: datetime | None = None) -> bool:
     return adult_eligible(user, declaration, at=at)
 
 
+def adult_eligibility_predicate(*, at: datetime | None = None):
+    """SQL prefilter for bounded background batches; callers still recheck live rights.
+
+    Match adult_eligible before LIMIT so invalid legacy evidence cannot starve
+    other users. Timestamp columns are NOT NULL/timestamptz in PostgreSQL.
+    """
+    from sqlalchemy import and_, func, or_
+
+    from app.infrastructure.database.models import User
+
+    at = at or now()
+    years = at.astimezone(ZoneInfo("Asia/Bangkok")).year-AgeDeclaration.birth_year
+    confirmed = AgeDeclaration.adult_confirmed_at
+    confirmation_years = func.extract("year", func.timezone("Asia/Bangkok", confirmed))-AgeDeclaration.birth_year
+    return and_(User.age_band == "adult", AgeDeclaration.user_id == User.id,
+                AgeDeclaration.policy_version.in_(ACCEPTED_DECLARATION_POLICIES),
+                AgeDeclaration.version >= 1, AgeDeclaration.birth_year >= 1900,
+                AgeDeclaration.declared_at <= at,
+                or_(confirmed.is_(None), and_(confirmed <= at, confirmation_years >= 18)),
+                or_(years > 18, and_(years == 18, confirmed.is_not(None))))
+
+
 def age_band(birth_year: int, confirmed_adult: bool, *, current_year: int) -> str:
     years = current_year - birth_year
     if years < 0 or (confirmed_adult and years < 18):

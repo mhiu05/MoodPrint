@@ -61,6 +61,8 @@ JI-20 commit **`6795c34f`**, chưa push. Manifest SQL ghi generatedFrom `6795c34
 
 JI-21 chốt candidate API/notice/component/hợp đồng đã export, test settings 6 pass + browser 3 pass + các hồi quy 100 pass/17 pass ghi ở trên; frontend typecheck/build/unit pass. Component hàm thuần dùng hậu tố Model theo ruling Windows. Auto memory vẫn unavailable=false. Không stage backend worker JI-22 vào commit này.
 
+JI-21 commit **`216c3be6`**, chưa push. JI-22 chốt worker/debounce/revision fences, hooks cùng transaction, lifecycle, cap receipt bền, prefilter age và FakeEmbedder. RED/GREEN từng ca, 100 regression pass + 7 ca cap mới nhất pass đã ghi. Ruling bổ sung module `quota.py` dùng bảng có sẵn thay vì schema mới; các outcome không xác định giữ reservation bảo thủ, không có provider call giữ owner lock. Full backend checkpoint mới đang chạy trên working tree tương ứng; kết quả phải chờ, chưa tuyên bố gate xanh.
+
 Các task dưới đây đã có triển khai và targeted tests; JI-01 đã có full green để chốt commit đầu tiên (hash bổ sung sau commit). Các task dưới bảng vẫn chờ commit riêng. Chưa chạy checkpoint A/B, chưa push/PR/merge/deploy. Những cổng thiếu bên dưới vẫn là việc phải làm.
 
 | Task | RED quan sát | GREEN quan sát | Còn thiếu để chốt |
