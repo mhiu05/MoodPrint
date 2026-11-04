@@ -208,10 +208,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     "journal_cleanup_failed error_type=%s", type(error).__name__
                 )
 
-        # Finish one pass before accepting traffic. Otherwise its pool checkouts
-        # share the event loop with the first requests.
+        # Recovery and local cleanup precede traffic. Provider batches run only
+        # in the background worker; an existing queue must not hold readiness.
         await sweep_pass()
-        await embedding_pass()
         await guest_pass()
         await journal_pass()
 
@@ -224,6 +223,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 await asyncio.sleep(1)
 
         async def embedding_worker():
+            # Give startup and the first requests their own pool window.
             await asyncio.sleep(3)
             while True:
                 await embedding_pass()

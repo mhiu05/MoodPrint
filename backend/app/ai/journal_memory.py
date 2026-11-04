@@ -75,7 +75,8 @@ _PII = re.compile(r"https?://|www\.|@|(?:\d[\s().+-]*){8,}", re.I)
 
 
 def vet_candidate(candidate: JournalMemoryCandidate, entry_text: str, existing: list[str]) -> str | None:
-    if _normal(candidate.evidence) not in _normal(entry_text):
+    evidence = _normal(candidate.evidence)
+    if len(evidence) < 4 or evidence not in _normal(entry_text):
         return "ungrounded"
     values = (candidate.text, candidate.evidence)
     if any(_CLINICAL.search(folded(value)) for value in values):

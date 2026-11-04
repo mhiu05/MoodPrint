@@ -121,6 +121,12 @@ async def test_candidates_must_quote_the_entry(auto_memory):
     assert await memories(app) == []
 
 
+@pytest.mark.parametrize("evidence", ["    ", "\n\t  ", "\u00a0"*4, " \u3000\t\n", " Tôi  "])
+def test_whitespace_evidence_never_grounds_an_automatic_memory(evidence):
+    candidate = JournalMemoryCandidate(text="Bạn thích một điều không có trong trang.", kind="fact", evidence=evidence)
+    assert vet_candidate(candidate, TEXT, []) == "ungrounded"
+
+
 @pytest.mark.parametrize("text", ["Bạn bị trầm cảm", "Bạn có dấu hiệu rối loạn lo âu", "Bạn nên uống thuốc ngủ", "Bạn từng muốn tự tử"])
 def test_clinical_candidates_are_rejected(text):
     candidate = JournalMemoryCandidate(text=text, kind="fact", evidence="Tôi tự nói điều này")
