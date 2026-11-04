@@ -12,9 +12,11 @@ Các kết quả dưới đây là local/synthetic, chưa xác minh bản tính 
 | JI-01 RED (đổi defaults, chưa ghim nền) | 307 failed, 1661 passed, 3 skipped, 4485,46 s; danh sách từng failure trong ledger |
 | JI-01 GREEN snapshot | 1968 passed, 3 skipped, 4732,79 s |
 | Checkpoint A backend sau sửa | 2065 passed, 3 skipped, 0 failed; 2233,27 s; cả 2068 test đã thu thập |
+| Checkpoint B backend (có JI-40) | 2082 passed, 3 skipped, 0 failed; 2715,39 s; cả 2085 test đã thu thập |
 | Frontend sau gỡ social và thêm công tắc | Typecheck pass; 204 unit tests + 2 script checks; build pass, RealApp 311,30 kB/gzip 97,17 kB |
-| Fixture browser | Baseline 445 passed/15,0 phút; toàn suite cuối chạy serial 382 passed/14,3 phút; các lượt có lỗi tài nguyên Windows và chẩn đoán ghi trong ledger |
-| Fullstack | Toàn suite 38 passed/6,2 phút; gồm journal intelligence với fake document/query embeddings và synthetic SDK model |
+| Fixture browser | Baseline 445 passed/15,0 phút; A serial 382 passed/14,3 phút; B serial 384 passed/15,4 phút; các lượt chẩn đoán ghi trong ledger |
+| Fullstack | A 38 passed/6,2 phút; B retry 38 passed/7,2 phút với timeout giữ nguyên; fake document/query embeddings và synthetic SDK model |
+| JI-40 | 32 backend targeted + 204 regression pass; typecheck/205 unit tests + 2 script checks/build pass; 7 browser skill tests pass |
 | Migration local | Upgrade 0029 + Alembic check không drift; tests migration 10 passed; cụm migration/memory/readiness 79 passed/446,06 s |
 | Retrieval | 105 regression tests pass; 17 targeted retrieval/eval tests pass sau bổ sung marker/fallback |
 | Fake eval | 40 entry/15 query, 55 fake calls; recall@6 paraphrase 0→1,0, keyword giữ 1,0; không chứng minh chất lượng Voyage |

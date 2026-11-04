@@ -28,8 +28,8 @@ Các commit tới checkpoint A `587e61d5` đã push thành công lên `origin/fe
 | JI-23 | xong | `9fefdf8d` | 105 regression pass; 17 targeted retrieval/eval pass |
 | JI-24 | xong | `6adc9fa4` | CLI fake exit 0; 40 entry/15 query/55 fake calls |
 | Checkpoint A | xong | `587e61d5`, đã push | backend 2065 pass/3 skip; gates 1–10/15 xanh |
-| JI-40 | xong kiểm chứng task | commit task kế tiếp | 32 backend pass; hồi quy 204 pass; frontend 205 + 2 pass; browser skill 7 pass |
-| Checkpoint B | chưa làm | — | chờ JI-40 |
+| JI-40 | xong | `b3f344ac`, chưa push | 32 backend pass; hồi quy 204 pass; frontend 205 + 2 pass; browser skill 7 pass |
+| Checkpoint B | xong kiểm chứng | commit checkpoint kế tiếp | backend 2082 pass/3 skip; fixture 384 pass; fullstack 38 pass; chưa push |
 | JI-30 + JI-31 | chưa làm | — | phải phát hành cùng khối |
 | JI-25 | chưa làm | — | sau khối memory |
 | JI-50 đầy đủ | một phần | SQL `9f3c238e`; docs còn cập nhật | 37 Linux tests pass; fake eval có số; live/hosted chưa chạy |
@@ -147,9 +147,39 @@ Các log/JSON ở `.tmp/journal-intelligence/` là artifact cục bộ, không c
 
 ## JI-50 / phát hành
 
+### Checkpoint B — kết quả cuối trước push
+
+Source task `b3f344ac`, full `pytest -q --ignore=tests/live --junitxml=<scratch>/ji50-backend-b.xml` trên DB disposable riêng: **2082 passed / 3 skipped / 0 failed, 2715,39 s** (runner **2744,203 s**), **2085 test** thu thập. Ba skip opt-in giống checkpoint A/baseline, không skip/xfail mới. Không sửa code khi suite chạy; các cập nhật giữa lúc chạy chỉ là tài liệu/preflight nhóm B.
+
+| Gate | Kết quả B / bằng chứng |
+| --- | --- |
+| 1 | Ruff toàn bộ PASS; mypy 189 source files PASS, source giữ nguyên sau task commit |
+| 2 | Full backend 2082 pass/3 skip, 0 fail; 2715,39 s |
+| 3 | Default flags 9 pass, tổng testcase 3,985 s trong JUnit B |
+| 4 | DB migration local sau tmpfs reset upgrade head/current 0029/check không drift; 10 migration tests pass/7,837 s |
+| 5 | Checker 12 pinned/12 consumed PASS; 28 reviewed-artifact tests pass/22,890 s; 15 database-operation tests pass/28,914 s |
+| 6 | OpenAPI export → contracts:generate ở JI-40; sau commit `git diff --exit-code -- backend/openapi.json frontend/src/api/generated/schema.d.ts` exit 0 |
+| 7 | Docs checker PASS: 181 Markdown/1162 links/143 operations/122 settings/64 tables |
+| 8 | Typecheck PASS; 205 tests/36 files + 2 script checks PASS; build PASS, RealApp 311,40 kB/gzip 97,22 kB |
+| 9 | Owned fixture serial 384 pass/15,4 phút |
+| 10 | Fullstack retry giữ nguyên timeout 38 pass/7,2 phút, runner 451,000 s; startup failure trước đó và seed diagnostic đã ghi riêng |
+| 15 | `git diff --check` PASS; scanner source thêm mới 0 candidate chưa phân loại; artifacts không stage |
+
+Gate 11 đã có 37 Linux tests PASS ở A, không có deploy-code thay đổi tại B. Gate 12 vẫn chỉ fake, chưa chạy Voyage/chờ duyệt chi phí. Gate 13 live chưa chạy/chờ duyệt chi phí. Gate 14 final whole-branch review còn chờ sau nhóm memory và JI-25; review trước A đã xử lý ba Important. Không suy ra hosted readiness hoặc quyền JI-51 từ các gate local này.
+
 ### JI-40 — RED/GREEN và hồi quy
 
 Chốt task: hồi quy 10 file chạy lại **204 passed, 214,63 s** (runner 219,188 s), 0 fail. Checkpoint B đang chạy full backend/fixture trên source này, chưa push JI-40. CI origin cho checkpoint A `587e61d5` đã **success**: [Verify local application](https://github.com/mhiu05/MoodPrint/actions/runs/41801661898). Plugin workflow chỉ liệt kê run PR, nên theo dõi run push bằng `gh run list` read-only.
+
+JI-40 commit local **`b3f344ac`**. Sau restart Docker, DB migration riêng trống được upgrade head rồi Alembic check lại bằng driver tắt dotenv/đặt URL `_test`: exit 0, không drift. Các suite checkpoint B tiếp tục chạy, chưa phát hành nhóm memory.
+
+Checkpoint B fixture `node node_modules/@playwright/test/cli.js test --config playwright.owned.config.ts --workers=1 --reporter=list`: **384 passed, 15,4 phút**, 0 fail. Tăng đúng hai ca skill so với checkpoint A. Fullstack B bắt đầu sau khi fixture kết thúc, dùng DB hậu tố `000000000004_test`; không sửa frontend khi suite chạy. Backend B ở DB `000000000007_test` vẫn đang chạy, chưa chốt checkpoint/push.
+
+Fullstack B lần đầu **exit 1, runner 31,312 s**, `Test server unavailable`, chưa có test nào chạy. Log synthetic backend chỉ tới feature-degraded, frontend đã ready; không có assertion hoặc provider failure. Không nới timeout startup 30 s hay timeout ứng dụng. Sau harness đã dừng process sở hữu, chạy riêng `tests.e2e_server.seed()` bằng runner DB4 (Settings `_env_file=None`, synthetic only): **exit 0, 12,437 s** để kiểm tra/import và khởi tạo DB sau tmpfs reset; không khởi chạy web/server ngoài harness. Retry nguyên harness và timeout cũ đang chạy; chưa coi fullstack B PASS.
+
+Retry fullstack B nguyên lệnh/timeout: **38 passed, 7,2 phút**, 0 fail; kết quả sau này thay trạng thái chờ phía trên. Cả tuổi 18+, privacy/revocation, receipts, journal evidence, V3 direct/consult/handoff và groups đều nằm trong suite. Backend B vẫn đang chạy, chưa coi checkpoint B xanh.
+
+Ruling tài liệu an toàn: 06 còn ghi worktree không có `.env`, trái workspace E: đã được chủ dự án cảnh báo. Sửa thành giữ nguyên file production, chỉ snapshot test không có file, và thêm prefix migration URL local `_test` cùng lệnh cho các ví dụ Alembic. Không đọc hoặc đụng file production để kiểm tra; đây là đồng bộ kế hoạch theo bàn giao, không thay guard/test.
 
 - Bắt đầu sau checkpoint A đã push `587e61d5`. RED `pytest -q tests/test_agent_skills.py tests/test_prompt_options.py`: **14 failed / 18 passed, 19,69 s**; registry thiếu bốn ID/AGENTS, resolver chưa nhận diện/chặn distress, API enum chưa có skill mới. Ca refusal timeout vì request bị schema 422 trước model. Frontend RED `npm.cmd test -- promptOptions`: **1 failed / 204 passed, 5,31 s**, thiếu `skillChipLabel`; lệnh này thực tế chạy toàn bộ Vitest, không chỉ file lọc.
 - Bốn file skill được tạo đúng thứ tự weekly-review → mood-patterns → guided-journal → reframe-thought, body lấy nguyên văn từ 05, version 1. Runtime thêm allowlist, manual validation trước tạo run, distress guard; không cấp tool mới hoặc thay persona/frozen instructions.

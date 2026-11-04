@@ -74,6 +74,8 @@ Cập nhật 3 tài liệu trên trong JI-50.
 
 ## JI-31 — Hiển thị, sửa/xóa, nhãn context
 
+Ruling preflight từ code hiện tại (chưa triển khai nhóm B): `orchestration/workflow.py:_run_planner` chỉ loại item bắt đầu bằng `Approved memory data`. Khi thêm nhãn tự động phải loại cả nhãn mới trước planner, kèm regression test, để giữ boundary không đưa memory vào recent-turn payload. `Memory.tsx` hiện gọi cả section là “Đã duyệt”; đổi heading trung tính khi cùng chứa hai origin. PATCH memory cũng cần source-date projection giống GET để metadata nguồn không mất sau sửa/idempotent replay. Đây là giữ các bất biến hiện có, không cấp quyền dữ liệu mới.
+
 **Mục tiêu:** Người dùng thấy, hiểu nguồn, sửa và xóa memory tự động; model phân biệt nó với memory đã duyệt.
 
 **Files:** Modify `backend/app/ai/schemas.py:421-426` (`MemoryDTO`), `backend/app/ai/memory.py:134-145` (list kèm ngày entry nguồn), thêm `DELETE /api/v1/memories/auto`; `backend/app/ai/embeddings.py:573-660` (`_fallback`/`retrieve_memories` trả origin); `backend/app/ai/context.py:105-126` (`build_history`); `backend/app/ai/runtime.py:802-815`; `frontend/src/features/real/Memory.tsx:145-298`; `frontend/src/features/real/memoryView.ts` (+test, mới); `docs/backend/api-reference.md`. Test `backend/tests/test_journal_auto_memory_api.py`, `backend/tests/test_context_selection.py` (thêm ca), e2e fixture `frontend/tests/e2e/memory-auto.spec.ts`.
