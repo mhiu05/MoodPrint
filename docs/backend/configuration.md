@@ -2,7 +2,7 @@
 
 Nguồn: [Settings](../../backend/app/core/config.py) và [EmbeddingSettings](../../backend/app/ai/embedding_config.py). Bảng lấy từ khai báo mã nguồn, không đọc `.env` hoặc giá trị runtime. Tên biến môi trường là tên field viết HOA. JSON list dùng cho trường danh sách.
 
-Global flag chỉ mở capability; người dùng vẫn cần eligibility, consent và preference tương ứng. `backend/local-mvp.env.example` có thể bật giá trị khác mặc định. Production validation yêu cầu HTTPS origin/Auth, publishable key, database và các provider settings khi feature bật.
+Global flag chỉ mở capability; người dùng vẫn cần eligibility, consent và preference tương ứng. `backend/local-mvp.env.example` có thể bật giá trị khác mặc định. Production validation yêu cầu HTTPS origin/Auth, publishable key và database. Thiếu OpenAI/STT/Voyage/Apify không chặn khởi động: runtime báo chưa khả dụng, `degraded_features()` và `check_config.py` chỉ xuất tên cờ/mã lý do. Khi thiếu tiền đề multi-message/ba trợ lý/accounting (và budget cho worker proactive production), cờ phụ thuộc đến từ mặc định được kẹp về false; cấu hình mâu thuẫn đặt tường minh vẫn raise. CAPTCHA bật tường minh mà thiếu site key vẫn bị từ chối.
 
 Search/Skills require V3, accounting, a positive global budget, verified pricing,
 and the corresponding runtime flag. Empty Search cohort means all eligible accounts.

@@ -41,6 +41,8 @@ Red run toàn suite từ snapshot bất biến đã kết thúc. Lệnh: `python
 
 ## Tiếp tục triển khai — bằng chứng tạm, chưa commit
 
+JI-01 commit cục bộ **`59d4dd02`**, chưa push. JI-02 precommit rerun đúng 8 file test đã liệt kê trong JSON `ji02-precommit`: **100 passed, 195,36 s**. Stage lấy snapshot đã kiểm chứng của task, không ghi đè thay đổi task sau trong working tree. `.gitignore` hiện có thay đổi ngoài tác vụ (người dùng đang mở file); không đọc/sửa/stage thay đổi đó.
+
 Các task dưới đây đã có triển khai và targeted tests; JI-01 đã có full green để chốt commit đầu tiên (hash bổ sung sau commit). Các task dưới bảng vẫn chờ commit riêng. Chưa chạy checkpoint A/B, chưa push/PR/merge/deploy. Những cổng thiếu bên dưới vẫn là việc phải làm.
 
 | Task | RED quan sát | GREEN quan sát | Còn thiếu để chốt |

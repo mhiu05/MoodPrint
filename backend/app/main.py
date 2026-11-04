@@ -58,6 +58,8 @@ def pool_counts(database) -> tuple[int | str, int | str]:
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     config = settings or Settings()
+    for flag, reason in config.degraded_features():
+        logging.getLogger("moodprint").warning("feature_degraded flag=%s reason=%s", flag, reason)
     warn_unenforced_budget(config)
     warn_pool_budget(config)
     shell_policy = content_security_policy(bool(config.guest_captcha_site_key),

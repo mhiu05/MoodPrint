@@ -134,6 +134,30 @@ async def clients(database):
     await app.state.ai.close()
 
 
+@pytest.fixture
+async def clients_defaults(database, monkeypatch):
+    """Real feature defaults with synthetic actors, no optional provider secrets."""
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+
+    from app.core.config import FEATURE_FLAGS, Settings
+    from app.main import create_app
+
+    for name in (*FEATURE_FLAGS, "database_url", "database_migration_url", "supabase_url",
+                 "supabase_publishable_key", "openai_api_key", "openai_model", "stt_model",
+                 "voyage_api_key", "apify_api_token", "guest_abuse_hmac_key", "guest_captcha_site_key"):
+        monkeypatch.delenv(name.upper(), raising=False)
+    app = create_app(Settings(_env_file=None, database_url=database.url.render_as_string(hide_password=False)))
+    await app.state.database.engine.dispose()
+    app.state.database.engine = database
+    app.state.database.sessions = async_sessionmaker(database, expire_on_commit=False)
+    actors = [await add_actor(app, index) for index in range(2)]
+    app.state.test_clients = [client for client, _ in actors]
+    yield app, actors
+    for client in app.state.test_clients:
+        await client.aclose()
+    await app.state.ai.close()
+
+
 async def add_actor(app, index: int, age_band: str = "adult"):
     """Seed one synthetic account with an opaque session; all consents start disabled."""
     from app.infrastructure.database.models import AgeDeclaration, AuthSession, Consent, User

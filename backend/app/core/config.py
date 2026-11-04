@@ -2,7 +2,7 @@ from decimal import Decimal
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import Field, SecretStr, field_validator, model_validator
+from pydantic import Field, PrivateAttr, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 
@@ -11,6 +11,7 @@ from app.ai.embedding_config import EmbeddingSettings
 
 class Settings(EmbeddingSettings, BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", hide_input_in_errors=True)
+    _clamped: list[tuple[str, str]] = PrivateAttr(default_factory=list)
     app_env: Literal["development", "test", "production"] = "development"
     database_url: SecretStr | None = None
     database_migration_url: SecretStr | None = None
@@ -175,21 +176,29 @@ class Settings(EmbeddingSettings, BaseSettings):
     def collaboration_requires_v2(self):
         # The consulting/composing progress and the final summary exist only in ai-events-v2.
         if self.ai_collaboration_enabled and not self.ai_multi_message_enabled:
-            raise ValueError("AI_COLLABORATION_ENABLED requires AI_MULTI_MESSAGE_ENABLED")
+            self._dependent("ai_collaboration_enabled", "multi_message_disabled",
+                            "AI_COLLABORATION_ENABLED requires AI_MULTI_MESSAGE_ENABLED")
         return self
 
     @model_validator(mode="after")
     def v3_requires_three_agents(self):
-        if (self.ai_smart_orchestration_enabled or self.ai_group_chat_enabled) and not (
-            self.ai_three_agent_experience_enabled
-        ):
-            raise ValueError(
-                "AI_SMART_ORCHESTRATION_ENABLED and AI_GROUP_CHAT_ENABLED require AI_THREE_AGENT_EXPERIENCE_ENABLED"
-            )
-        # Speaker/step progress and per-speaker bubbles exist only in ai-events-v2.
-        if (self.ai_smart_orchestration_enabled or self.ai_group_chat_enabled) and not self.ai_multi_message_enabled:
-            raise ValueError("V3 orchestration and group chat require AI_MULTI_MESSAGE_ENABLED")
+        for name in ("ai_smart_orchestration_enabled", "ai_group_chat_enabled"):
+            if not self.ai_three_agent_experience_enabled:
+                self._dependent(name, "three_agents_disabled",
+                                f"{name.upper()} requires AI_THREE_AGENT_EXPERIENCE_ENABLED")
+            if not self.ai_multi_message_enabled:
+                self._dependent(name, "multi_message_disabled",
+                                f"{name.upper()} requires AI_MULTI_MESSAGE_ENABLED")
         return self
+
+    def _dependent(self, name: str, reason: str, message: str) -> None:
+        if not getattr(self, name):
+            return
+        if name in self.model_fields_set:
+            raise ValueError(message)
+        # Assignment adds to fields_set; only inspect explicitness before clamping.
+        setattr(self, name, False)
+        self._clamped.append((name, reason))
 
     @model_validator(mode="after")
     def local_live_scope(self):
@@ -207,33 +216,43 @@ class Settings(EmbeddingSettings, BaseSettings):
                 raise ValueError("SUPABASE_PUBLISHABLE_KEY is required in production")
             if not self.database_url or not self.database_url.get_secret_value():
                 raise ValueError("DATABASE_URL is required in production")
-            if self.ai_enabled and (
-                not self.openai_api_key.get_secret_value() or not self.openai_model
-            ):
-                raise ValueError("OPENAI_API_KEY and OPENAI_MODEL are required when AI_ENABLED")
-            if self.stt_enabled and (
-                not self.openai_api_key.get_secret_value() or not self.stt_model
-            ):
-                raise ValueError("OPENAI_API_KEY and STT_MODEL are required when STT_ENABLED")
-            if self.semantic_memory_enabled and not self.voyage_api_key.get_secret_value():
-                raise ValueError("VOYAGE_API_KEY is required when SEMANTIC_MEMORY_ENABLED")
             if self.proactive_worker_enabled and not (
                 self.proactive_enabled
                 and self.ai_enabled
                 and self.ai_accounting_enabled
                 and self.ai_daily_budget_usd > 0
             ):
-                raise ValueError(
+                self._dependent(
+                    "proactive_worker_enabled", "proactive_prerequisites_missing",
                     "PROACTIVE_WORKER_ENABLED requires PROACTIVE_ENABLED, AI_ENABLED, "
                     "AI_ACCOUNTING_ENABLED and AI_DAILY_BUDGET_USD > 0"
                 )
             if self.ai_collaboration_enabled and not self.ai_accounting_enabled:
                 # Child runs have no ai_turns lease; crash recovery relies on the ai_usage lease.
-                raise ValueError("AI_COLLABORATION_ENABLED requires AI_ACCOUNTING_ENABLED in production")
-            if (self.ai_smart_orchestration_enabled or self.ai_group_chat_enabled) and not self.ai_accounting_enabled:
-                # Child runs carry their usage leases; recovery fences them through ai_usage.
-                raise ValueError("V3 orchestration and group chat require AI_ACCOUNTING_ENABLED in production")
+                self._dependent("ai_collaboration_enabled", "accounting_disabled",
+                                "AI_COLLABORATION_ENABLED requires AI_ACCOUNTING_ENABLED in production")
+            if not self.ai_accounting_enabled:
+                for name in ("ai_smart_orchestration_enabled", "ai_group_chat_enabled"):
+                    self._dependent(name, "accounting_disabled",
+                                    f"{name.upper()} requires AI_ACCOUNTING_ENABLED in production")
         return self
+
+    def degraded_features(self) -> tuple[tuple[str, str], ...]:
+        """Content-free diagnostics; missing optional providers do not prevent boot."""
+        reasons = list(self._clamped)
+        if self.ai_enabled and not (self.openai_api_key.get_secret_value() and self.openai_model.strip()):
+            reasons.append(("ai_enabled", "openai_configuration_missing"))
+        if self.stt_enabled and not (self.openai_api_key.get_secret_value() and self.stt_model.strip()):
+            reasons.append(("stt_enabled", "stt_configuration_missing"))
+        if not self.voyage_api_key.get_secret_value():
+            for name in ("semantic_memory_enabled", "journal_semantic_enabled"):
+                if getattr(self, name):
+                    reasons.append((name, "voyage_key_missing"))
+        if self.ai_maps_search_enabled and not (
+            self.apify_api_token.get_secret_value() and self.apify_maps_actor_build
+        ):
+            reasons.append(("ai_maps_search_enabled", "apify_configuration_missing"))
+        return tuple(reasons)
 
     def proactive_open_for(self, user_id: UUID) -> bool:
         """Feature flag plus optional rollout cohort; never a consent or eligibility grant."""
