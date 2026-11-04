@@ -55,6 +55,8 @@ JI-13 kiểm chứng tích hợp: baseline fixture **445 passed/15,0 phút**; fu
 
 Ruling commit JI-13: chốt code test theo bằng chứng tổng hợp **37 ca fullstack pass + 8 ca V3 mới nhất pass** (file sửa cuối chỉ thêm chờ terminal). Đây **không** được ghi là một lượt 38/38 xanh; fullstack toàn bộ vẫn phải chạy ở checkpoint A trước push. Fixture toàn bộ 382 ca đang chạy lại; lượt 379 xanh trước đó và regression có lỗi đã ghi riêng. Chi phí nếu còn race: final checkpoint chặn phát hành, không bỏ assertion để qua gate.
 
+JI-13 commit **`395dbedc`**, chưa push. JI-20 chốt candidate 0029 + ORM + readiness + import model + inventory, với 79 precommit tests pass ở trên. Alembic env luôn tắt dotenv (test guard RED→GREEN đã ghi), target local `_test` vẫn phải đặt tường minh. Pin SQL sẽ dùng đúng hash commit này sau commit.
+
 Các task dưới đây đã có triển khai và targeted tests; JI-01 đã có full green để chốt commit đầu tiên (hash bổ sung sau commit). Các task dưới bảng vẫn chờ commit riêng. Chưa chạy checkpoint A/B, chưa push/PR/merge/deploy. Những cổng thiếu bên dưới vẫn là việc phải làm.
 
 | Task | RED quan sát | GREEN quan sát | Còn thiếu để chốt |

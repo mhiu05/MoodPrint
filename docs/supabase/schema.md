@@ -9,6 +9,7 @@ ORM kế thừa `Base` trong [database/models.py](../../backend/app/infrastructu
 | Account | `users`, `auth_sessions`, `age_declarations` | Auth subject, age/status, session hash, version |
 | Consent | `consents`, `consent_events` | Purpose state/version và lịch sử thay đổi |
 | Personal | `moods`, `memories` | Mood theo ngày, memory được duyệt |
+| Journal AI (0029) | `journal_ai_settings`, `journal_entry_embeddings`, `journal_ai_jobs` | Công tắc riêng có version; vector đúng revision/model/dimensions; job embed/memories có lease/fence. FK entry/user `ON DELETE CASCADE`, RLS và grant chỉ cho runtime. Không có hàng settings nghĩa là bật mặc định. |
 | Journal | `journal_entries`, `journal_media`, `journal_storage_deletions` | Nhiều khoảnh khắc/ngày, metadata media riêng tư; hàng đợi xóa object tồn tại sau khi xóa tài khoản |
 | Write coordination | `idempotency_keys`, `outbox` | Receipts; outbox giữ compatibility, không delivery active |
 | AI metadata | `ai_runs`, `ai_usage`, `ai_turns` | Run status/accounting, content-free coordination/policy stamps |
@@ -74,3 +75,5 @@ erDiagram
 Role ứng dụng chỉ cần DML/sequence/function permissions theo reviewed SQL, không DDL hoặc quyền owner. Migration mới phải cấp quyền bảng mới theo review trước mở traffic. Không sửa SQL đã pin trong [reviewed-sql](../../deploy/supabase/reviewed-sql/README.md) để làm check hash đạt; thay đổi cần review/hash mới.
 
 Xem [migration runbook](migrations.md) và [data lifecycle](../backend/data-lifecycle.md) cho retention/deletion.
+
+Memory provenance (0029): `origin` defaults to approved; nullable `source_entry_id` cascades from journal entry and `source_entry_version` records revision. Auto rows require entry and non-null version >=1 with no proposal; approved rows require proposal. `AiRun.origin` additionally permits journal.

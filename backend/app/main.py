@@ -25,6 +25,7 @@ from app.infrastructure.database.budget import has_deployment_headroom
 from app.infrastructure.database.connection import Database
 from app.infrastructure.database.models import AiRun
 from app.modules.guests.output import GuestOutputMiddleware
+from app.modules.journal import ai_models as journal_ai_models  # noqa: F401
 
 
 def warn_unenforced_budget(config) -> None:
