@@ -196,3 +196,15 @@ async def add_actor(app, index: int, age_band: str = "adult"):
 @pytest.fixture
 def write_headers():
     return {"Idempotency-Key": str(uuid4())}
+
+
+@pytest.fixture
+async def journal_configured(clients):
+    from pydantic import SecretStr
+
+    app, actors = clients
+    app.state.settings.journal_semantic_enabled = True
+    app.state.settings.voyage_api_key = SecretStr("synthetic-no-network")
+    app.state.settings.voyage_dimensions = 256
+    app.state.settings.voyage_model = "synthetic"
+    return app, actors

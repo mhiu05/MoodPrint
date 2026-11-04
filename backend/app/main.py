@@ -384,6 +384,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from app.modules.feedback.admin_routes import router as feedback_admin
     from app.modules.feedback.routes import router as feedback
     from app.modules.guests.routes import router as guests
+    from app.modules.journal.ai_settings import router as journal_ai
     from app.modules.journal.media_routes import router as journal_media
     from app.modules.journal.routes import router as journal
     from app.modules.moderation.admin_routes import router as moderation_admin
@@ -405,6 +406,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         profiles,
         mood,
         journal,
+        journal_ai,
         journal_media,
         ai,
         proactive,

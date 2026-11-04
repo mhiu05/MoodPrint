@@ -6,7 +6,7 @@ const baseURL = `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: "tests/e2e",
-  testMatch: ["navigation-retired-social.spec.ts", "agent-skills.spec.ts", "search.spec.ts", "maps-search.spec.ts", "agent-check-in-settings.spec.ts", "eligibility.spec.ts", "journal.spec.ts", "real.spec.ts", "admin.spec.ts", "chat-history.spec.ts", "states.spec.ts", "auth.spec.ts", "ux-redesign.spec.ts", "motion.spec.ts", "merge-readiness.spec.ts", "landing.spec.ts", "guest.spec.ts", "guest-expiry.spec.ts", "session-reliability.spec.ts", "feedback.spec.ts", "feedback-admin.spec.ts", "onboarding.spec.ts", "multi-message.spec.ts", "proactive.spec.ts", "collaboration.spec.ts", "group-mentions.spec.ts", ...(process.env.MOODPRINT_TOUR_COMPATIBILITY === "1" ? ["onboarding-compatibility.spec.ts"] : [])],
+  testMatch: ["journal-ai-settings.spec.ts", "navigation-retired-social.spec.ts", "agent-skills.spec.ts", "search.spec.ts", "maps-search.spec.ts", "agent-check-in-settings.spec.ts", "eligibility.spec.ts", "journal.spec.ts", "real.spec.ts", "admin.spec.ts", "chat-history.spec.ts", "states.spec.ts", "auth.spec.ts", "ux-redesign.spec.ts", "motion.spec.ts", "merge-readiness.spec.ts", "landing.spec.ts", "guest.spec.ts", "guest-expiry.spec.ts", "session-reliability.spec.ts", "feedback.spec.ts", "feedback-admin.spec.ts", "onboarding.spec.ts", "multi-message.spec.ts", "proactive.spec.ts", "collaboration.spec.ts", "group-mentions.spec.ts", ...(process.env.MOODPRINT_TOUR_COMPATIBILITY === "1" ? ["onboarding-compatibility.spec.ts"] : [])],
   globalTimeout: 600000,
   fullyParallel: false,
   // Files use isolated mocked API/page state; keep the full matrix inside the

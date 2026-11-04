@@ -77,6 +77,7 @@ import type { components } from "../../api/generated/schema";
 import { AIInboxProvider, inboxLabel, otherUnread, unreadFor, useAIInbox } from "./useAIInbox";
 import { NAV_ITEMS, badgeText } from "./navigation";
 import { renderableCards } from "./messageCards";
+import { JournalAiSettings } from "./journal/JournalAiSettings";
 import { OfflineBanner, useOnline } from "./OfflineBanner";
 import {
   SESSION_GRACE_MS,
@@ -2246,6 +2247,7 @@ function AccountPage({ onGuide }: { onGuide: () => void }) {
     <div className={cx.reading}>
       <h1 tabIndex={-1} data-tour="personal-account">Tài khoản</h1>
       <AdultEligibility />
+      <JournalAiSettings />
       <AccountActions onGuide={onGuide} onDeleted={() => setAccountDeleted(true)} />
     </div>
   );

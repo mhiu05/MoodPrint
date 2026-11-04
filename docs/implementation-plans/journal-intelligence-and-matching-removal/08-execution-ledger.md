@@ -57,6 +57,10 @@ Ruling commit JI-13: chốt code test theo bằng chứng tổng hợp **37 ca f
 
 JI-13 commit **`395dbedc`**, chưa push. JI-20 chốt candidate 0029 + ORM + readiness + import model + inventory, với 79 precommit tests pass ở trên. Alembic env luôn tắt dotenv (test guard RED→GREEN đã ghi), target local `_test` vẫn phải đặt tường minh. Pin SQL sẽ dùng đúng hash commit này sau commit.
 
+JI-20 commit **`6795c34f`**, chưa push. Manifest SQL ghi generatedFrom `6795c34fee6c3d7e365453e92e5ebbaf5d4b9e04`; checker **PASS: 12 pinned approvals / 12 consumed**. Checkpoint A full backend mới (`--ignore=tests/live`, JUnit riêng) và fullstack toàn bộ đang chạy, không dùng kết quả JI-01 để thay gate này.
+
+JI-21 chốt candidate API/notice/component/hợp đồng đã export, test settings 6 pass + browser 3 pass + các hồi quy 100 pass/17 pass ghi ở trên; frontend typecheck/build/unit pass. Component hàm thuần dùng hậu tố Model theo ruling Windows. Auto memory vẫn unavailable=false. Không stage backend worker JI-22 vào commit này.
+
 Các task dưới đây đã có triển khai và targeted tests; JI-01 đã có full green để chốt commit đầu tiên (hash bổ sung sau commit). Các task dưới bảng vẫn chờ commit riêng. Chưa chạy checkpoint A/B, chưa push/PR/merge/deploy. Những cổng thiếu bên dưới vẫn là việc phải làm.
 
 | Task | RED quan sát | GREEN quan sát | Còn thiếu để chốt |

@@ -59,6 +59,21 @@ ORM: `JournalAiSettings`, `JournalEntryEmbedding`, `JournalAiJob` trong `backend
 
 ### Văn bản được embed
 
+Ruling về trần adapter: 24 tag hợp lệ (mỗi tag 60 ký tự) cộng text 7.000 có thể
+vượt 8.000 ký tự. `journal_document` giữ metadata giới hạn hợp lệ và cắt phần text
+theo cả `journal_document_char_limit` lẫn ngân sách còn lại của toàn document
+8.000 ký tự. Không gửi ID/media/timezone; hash tính trên đúng document đã cắt.
+
+Ruling về cap: đếm job succeeded không bền vì FK cascade xóa job cùng entry.
+Dùng receipt nội bộ content-free `journal:embed-usage` trong `idempotency_keys`,
+khóa theo owner, reserve trước provider cho mọi ngày local có thể hoàn tất trong
+lease (kể cả qua nửa đêm). Thành công giữ charge dù entry/job đã bị xóa; thất bại
+rõ ràng refund, crash chưa biết giữ reservation bảo thủ. Receipt quota giữ 72h,
+độc lập receipt API 24h; account deletion xóa receipt quota, settlement không tạo
+lại. Không thêm bảng/cột ngoài schema 0029. Backfill lọc đủ bằng chứng tuổi trước
+LIMIT, rồi kiểm lại quyền dưới owner lock để tránh batch legacy không hợp lệ làm
+kẹt người dùng khác.
+
 `journal_document(entry) -> str`: `"Ngày {local_date:%d/%m/%Y}. Tâm trạng {mood}/5.\nCảm xúc: {', '.join(emotions)}\nYếu tố: {', '.join(factors)}\n\n{text[:journal_document_char_limit]}"`. Không có ID, timezone hay media. `content_sha256 = sha256(document.encode())`. Entry `draft` không bao giờ được embed. Entry `saved` có text rỗng vẫn được embed nếu có emotions/factors. Entry > 7.000 ký tự bị cắt, ghi trong `coverage` (`snippetTruncated` đã có); chunking để sau demo.
 
 ### Quy tắc enqueue / hủy hiệu lực (đúng–sai, có test)
@@ -121,6 +136,8 @@ Prompt (`journal.py:85-104`, runtime layer, không đụng persona đóng băng)
 **Rủi ro:** `memories.proposal_id` đổi nullable có thể làm code cũ giả định không-null (`MemoryDTO` không lộ field này; `rg "proposal_id" backend/app` để rà). `VALIDATE CONSTRAINT` trên `ai_runs` quét toàn bảng nhưng lock nhẹ (`SHARE UPDATE EXCLUSIVE`); dữ liệu hosted nhỏ. **Rollback:** xem 06 (image tương thích); downgrade chỉ khi chưa có dữ liệu mới.
 
 ## JI-21 — Công tắc người dùng, thông báo, API `journal-ai`
+
+Ruling triển khai Windows: hàm thuần dùng `journalAiSettingsModel.ts` thay `journalAiSettings.ts`. Vite/esbuild trên filesystem không phân biệt hoa/thường phân giải nhầm tên chỉ khác case với component `JournalAiSettings.tsx`; browser test đã tái hiện lỗi thiếu export. Component/API giữ nguyên tên.
 
 **Mục tiêu:** Người dùng biết nhật ký được xử lý bởi dịch vụ ngoài và tắt được; số liệu chỉ mục kiểm chứng được.
 

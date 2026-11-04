@@ -4103,6 +4103,230 @@
         }
       }
     },
+    "/api/v1/journal/ai-settings": {
+      "get": {
+        "summary": "Get Settings",
+        "operationId": "get_settings_api_v1_journal_ai_settings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JournalAiSettingsView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Put Settings",
+        "operationId": "put_settings_api_v1_journal_ai_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JournalAiSettingsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JournalAiSettingsView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/journal/entries/{entry_id}/media": {
       "post": {
         "summary": "Reserve Media",
@@ -21227,6 +21451,92 @@
           "kind"
         ],
         "title": "InviteInput"
+      },
+      "JournalAiSettingsInput": {
+        "properties": {
+          "embeddingEnabled": {
+            "type": "boolean",
+            "title": "Embeddingenabled"
+          },
+          "autoMemoryEnabled": {
+            "type": "boolean",
+            "title": "Automemoryenabled"
+          },
+          "noticeVersion": {
+            "type": "string",
+            "const": "journal-ai-v1",
+            "title": "Noticeversion"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expectedversion"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "embeddingEnabled",
+          "autoMemoryEnabled",
+          "noticeVersion",
+          "expectedVersion"
+        ],
+        "title": "JournalAiSettingsInput"
+      },
+      "JournalAiSettingsView": {
+        "properties": {
+          "embeddingEnabled": {
+            "type": "boolean",
+            "title": "Embeddingenabled"
+          },
+          "autoMemoryEnabled": {
+            "type": "boolean",
+            "title": "Automemoryenabled"
+          },
+          "embeddingAvailable": {
+            "type": "boolean",
+            "title": "Embeddingavailable"
+          },
+          "autoMemoryAvailable": {
+            "type": "boolean",
+            "title": "Automemoryavailable"
+          },
+          "noticeVersion": {
+            "type": "string",
+            "const": "journal-ai-v1",
+            "title": "Noticeversion",
+            "default": "journal-ai-v1"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "indexedEntries": {
+            "type": "integer",
+            "title": "Indexedentries"
+          },
+          "pendingEntries": {
+            "type": "integer",
+            "title": "Pendingentries"
+          },
+          "autoMemories": {
+            "type": "integer",
+            "title": "Automemories"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "embeddingEnabled",
+          "autoMemoryEnabled",
+          "embeddingAvailable",
+          "autoMemoryAvailable",
+          "version",
+          "indexedEntries",
+          "pendingEntries",
+          "autoMemories"
+        ],
+        "title": "JournalAiSettingsView"
       },
       "JournalEntryDTO": {
         "properties": {
