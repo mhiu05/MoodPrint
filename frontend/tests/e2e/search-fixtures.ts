@@ -88,9 +88,7 @@ export async function searchFixture(page: Page, { skillsOnly = false, failFirst 
       "/session": { ...baseSession, features: { ...baseSession.features, threeAgents: true, agentSkills: true, webSearch: !skillsOnly, mapsSearch: !skillsOnly } },
       "/bots": [bot], "/bots/legacy": [], "/ai/conversations": [thread],
       "/ai/preferences": { historyEnabled: true, semanticMemoryEnabled: false, version: 1, policyVersion: "ai-data-v1", retentionDays: 30, historyAvailable: true, semanticMemoryAvailable: false },
-      "/social/summary": { pendingIncomingRequests: 0, unreadConnections: 0, activityInvites: 0 },
       "/ai/inbox": { bots: [], unreadTotal: 0, badgesEnabled: true }, "/proposals": [], "/memories": [],
-      "/profiles/published/current": null, "/connections": [], "/connection-requests": [], "/activities/catalog": [],
     };
     if (request.method() === "GET" && path in fixed) return json(fixed[path]);
     return json({ error: { code: "NOT_FOUND", message: "No synthetic route" } }, 404);

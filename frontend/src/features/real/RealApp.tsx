@@ -1040,6 +1040,7 @@ const compactLayout = () => !window.matchMedia("(min-width: 1100px)").matches;
 
 function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const { api, session, paused } = useSession();
+  const online = useOnline();
   const { preferences, loading: preferencesLoading, error: preferencesError, reload: reloadPreferences, refreshHistory } = useAIData();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedId = searchParams.get("conversation");
@@ -1454,6 +1455,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     if (
       !text ||
       !canSend ||
+      !online ||
       preferencesLoading ||
       busy ||
       loading ||
@@ -2207,9 +2209,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             ref={composerAction}
             type={canStop ? "button" : "submit"}
             className="send-button"
-            disabled={canStop ? stopDisabled : !draft.trim() || busy || loading || !ready || moodInvalid || preferencesLoading || paused}
+            disabled={canStop ? stopDisabled : !online || !draft.trim() || busy || loading || !ready || moodInvalid || preferencesLoading || paused}
             aria-label={actionLabel}
-            title={actionLabel}
+            title={!online && !canStop ? "Đang mất kết nối mạng" : actionLabel}
             onClick={canStop ? () => void cancel() : undefined}
           >
             {canStop ? <Pause size={18} fill="currentColor" strokeWidth={1.5} aria-hidden="true" /> : <ArrowUp size={20} strokeWidth={2} aria-hidden="true" />}

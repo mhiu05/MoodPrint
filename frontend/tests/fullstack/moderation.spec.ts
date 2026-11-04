@@ -1,37 +1,32 @@
-import { expect, test } from "@playwright/test";
-import { call, openRoom, pairAlias, session } from "./helpers";
+﻿import { expect, test } from "@playwright/test";
+import { call, origin, session } from "./helpers";
 
-// Report -> staff queue -> restriction, end to end (reporter 35, subject 36, staff 37).
-
-test("a report reaches the staff queue and a restriction removes the subject from discovery", async ({
-  browser,
-}) => {
+// Historical report -> staff queue -> restriction, without the retired human chat UI.
+test("a seeded historical report reaches the staff queue and a restriction preserves personal tools", async ({ browser }) => {
   test.setTimeout(150_000);
-  const { one, two, pageA, pageB, room, close } = await openRoom(browser, 35, 36);
+  const reporter = await browser.newContext();
+  const subject = await browser.newContext();
   const staff = await browser.newContext();
   try {
+    await session(reporter, 35);
+    await session(subject, 36);
+    await session(staff, 37);
+    const seeded = await reporter.request.post(`${origin}/__test/moderation/seed-report`);
+    expect(seeded.status(), await seeded.text()).toBe(200);
+    expect((await seeded.json()).id).toMatch(/^[0-9a-f-]{36}$/);
     const evidence = "LOI-LE-QUAY-ROI";
-    await pageB.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" }).fill(evidence);
-    await pageB.getByRole("button", { name: "Gửi tin nhắn" }).click();
-    await expect(pageA.getByRole("log")).toContainText(evidence);
-
-    // Non-staff cannot reach the queue.
-    const denied = await call(one, 35, "GET", "/admin/reports");
+    // Retained backend capability: restriction must still deny old social clients.
+    expect((await call(subject, 36, "PUT", "/consents/MATCH", {
+      enabled: true, expectedVersion: 1, policyVersion: "v1",
+    })).status).toBe(200);
+    const denied = await call(reporter, 35, "GET", "/admin/reports");
     expect(denied.status).toBe(403);
     expect(denied.body.error.code).toBe("STAFF_REQUIRED");
 
-    await pageA.getByRole("button", { name: "Chia sẻ và an toàn" }).click();
-    await pageA.getByLabel("Lý do báo cáo").fill("Quấy rối");
-    await pageA.getByRole("checkbox", { name: evidence }).check();
-    await pageA.getByRole("button", { name: "Gửi báo cáo" }).click();
-    await expect(pageA.getByText("Đã gửi báo cáo.")).toBeVisible();
-
-    await session(staff, 37);
     const queue = await staff.newPage();
     await queue.goto("/#/admin/reports");
     const card = queue.getByRole("article").filter({ hasText: evidence });
     await expect(card).toContainText("Quấy rối");
-    // Opaque references only: no email or raw user id on the screen.
     expect(await card.innerText()).not.toMatch(/@|00000000-0000-4000-8000/);
     await card.getByRole("button", { name: "Nhận xử lý" }).click();
     await expect(queue.getByText("Bạn đang xem xét báo cáo này.")).toBeVisible();
@@ -42,22 +37,20 @@ test("a report reaches the staff queue and a restriction removes the subject fro
     await dialog.getByRole("button", { name: "Xác nhận" }).click();
     await expect(queue.getByText("Đã ghi nhận quyết định.")).toBeVisible();
 
-    // The subject is restricted: no discovery, a notice, and the room is closed.
-    const blocked = await call(two, 36, "GET", "/matching/candidates");
+    const blocked = await call(subject, 36, "GET", "/matching/candidates");
     expect(blocked.status).toBe(403);
     expect(blocked.body.error.code).toBe("SOCIAL_RESTRICTED");
-    // Notices come with the session, which a hash navigation does not refetch.
-    await pageB.goto("/#/messages");
-    await pageB.reload();
-    await expect(pageB.getByText(/Tính năng kết nối của bạn đang tạm bị hạn chế/)).toBeVisible();
-    const access = await call(one, 35, "GET", `/connections/${room}`);
-    expect([403, 404, 410]).toContain(access.status);
-    const cards = await call(one, 35, "GET", "/matching/candidates");
-    expect(
-      cards.body.candidates.map((item: { alias: string }) => item.alias),
-    ).not.toContain(pairAlias(35, 36));
+    const page = await subject.newPage();
+    await page.goto("/#/assistants/may?new=1");
+    await expect(page.getByText(/Tài khoản của bạn đang bị hạn chế/)).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Tin nhắn cho Mây" })).toBeEditable();
+    await page.goto("/#/self");
+    await expect(page.getByRole("heading", { name: "Nhật ký cảm xúc", exact: true })).toBeVisible();
+    const resolved = await call(staff, 37, "GET", "/admin/reports?status=resolved");
+    expect(resolved.body.some((item: { resolution: string }) => item.resolution === "restricted")).toBe(true);
   } finally {
+    await reporter.close();
+    await subject.close();
     await staff.close();
-    await close();
   }
 });

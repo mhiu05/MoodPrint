@@ -151,11 +151,13 @@ test("V3-D: groups — create, mentions, everyone, automatic speakers, reload, r
   await composer.press("Enter");
   await expect(page.getByRole("group", { name: "Tin nhắn từ Nhật ký" })).toHaveCount(1, { timeout: 20000 });
   await expect(page.locator(".group-turn")).toHaveCount(1);
+  await expect(page.locator(".group-typing")).toHaveText("");
 
   // @Hoạt động targets that member.
   await composer.fill("@Hoạt động có gợi ý gì không?");
   await composer.press("Enter");
   await expect(page.getByRole("group", { name: "Tin nhắn từ Hoạt động" })).toHaveCount(1, { timeout: 20000 });
+  await expect(page.locator(".group-typing")).toHaveText("");
 
   // @mọi người: every member, in order, as distinct speakers; the typing line names the speaker.
   await composer.fill("@mọi người giúp mình lên kế hoạch cuối tuần nhé");
@@ -163,11 +165,13 @@ test("V3-D: groups — create, mentions, everyone, automatic speakers, reload, r
   await expect(page.locator(".group-typing")).toContainText(/đang trả lời/, { timeout: 10000 });
   await expect(page.locator(".group-turn")).toHaveCount(5, { timeout: 30000 });
   await expect(page.locator(".group-turn .group-speaker strong")).toHaveText(["Nhật ký", "Hoạt động", "Nhật ký", "Hoạt động", "Điều phối"]);
+  await expect(page.locator(".group-typing")).toHaveText("");
 
   // No mention: the selector chooses (synthetic: Hoạt động then Điều phối gathers).
   await composer.fill("Tối nay mình nên làm gì cho vui?");
   await composer.press("Enter");
   await expect(page.locator(".group-turn")).toHaveCount(7, { timeout: 30000 });
+  await expect(page.locator(".group-typing")).toHaveText("");
 
   // Reload: same history, no duplicates.
   await page.reload();

@@ -116,6 +116,27 @@ class SyntheticTranscriber:
 app.state.transcriber = SyntheticTranscriber()
 
 
+@app.post("/__test/moderation/seed-report", include_in_schema=False)
+async def seed_moderation_report():
+    """A historical report for queue/restriction UI coverage after social UI retirement."""
+    from fastapi import HTTPException
+
+    from app.modules.moderation.models import Report
+
+    if os.environ.get("APP_ENV") != "test" or app.state.settings.app_env != "test":
+        raise HTTPException(status_code=404)
+    async with app.state.database.sessions.begin() as db:
+        report = Report(
+            reporter_id=UUID("00000000-0000-4000-8000-000000000035"),
+            subject_id=UUID("00000000-0000-4000-8000-000000000036"),
+            reason="Quấy rối",
+            evidence=[{"kind": "message", "text": "LOI-LE-QUAY-ROI"}],
+        )
+        db.add(report)
+        await db.flush()
+        return {"id": str(report.id)}
+
+
 @app.post("/__test/reset-admission", include_in_schema=False)
 async def reset_admission():
     # Scenario isolation only; production rate limits are unchanged and separately tested.

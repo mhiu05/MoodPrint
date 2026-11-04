@@ -112,7 +112,7 @@ Hosted (aggregate): **0** saved journal entries — tính năng journal mới đ
 | Due-sweeper: đọc id không khóa, mỗi id một transaction ngắn, `SKIP LOCKED` | `advance_due` [activities/jobs.py:57-100](../../../backend/app/modules/activities/jobs.py#L57) | **Có** — cho bước materialize lịch |
 | Data job có lease 30 s | `process_deletions` | Tham khảo |
 | Read marker riêng tư + đếm unread nhóm theo room | `ConnectionRead`, `unread_by_room` [social/summary.py:50-73](../../../backend/app/modules/social/summary.py#L50) | **Có** — mẫu cho `ai_conversation_reads` |
-| Badge polling 15 s khi tab visible + focus | [useSocialSummary.ts:14-47](../../../frontend/src/features/real/social/useSocialSummary.ts#L14) | **Có** — mẫu cho unread AI |
+| Badge polling 15 s khi tab visible + focus | `useSocialSummary.ts:14-47` (nguồn tại baseline `e2c3e5e8`, đã gỡ cùng UI social) | **Có tại thời điểm audit** — mẫu cho unread AI |
 | Bảng `outbox` | Đã retired (DR-10), không consumer | **Không** dùng lại |
 
 `pg_cron` (1.6.4) và `pgmq` (1.5.1) **có sẵn nhưng chưa cài** trên hosted (Supabase MCP `list_extensions`).
