@@ -39,6 +39,21 @@ Nguồn: [memory.py](../../backend/app/ai/memory.py), [memory_models.py](../../b
 
 ## Semantic retrieval tùy chọn
 
+Nhật ký có chỉ mục riêng với công tắc `/journal/ai-settings`, độc lập preference
+embedding memory. Chỉ account registered, active, đủ 18+, có AI authorization và
+opt-in còn hiệu lực được lập chỉ mục trang `saved` trong 90 ngày local. Không có
+hàng settings nghĩa là bật; Tài khoản hiển thị notice xử lý ngoài và cho tắt.
+Guest không có embedding tự động. Tắt công tắc xóa vector/hủy job; sửa entry xóa
+vector ngay trong transaction; mọi đường xóa entry dùng FK cascade.
+
+`search_journal_entries` hợp semantic → keyword literal → recent, bỏ trùng và
+giới hạn 6 mặc định/8 tối đa, snippets 1.000 ký tự và 24.000 byte. Query embed có
+trần 3 giây, thực hiện ngoài owner lock; timeout/lỗi provider có fallback với
+`coverage.retrieval.reason`. Model chỉ được cite entry thật sự trả về trong lượt;
+`journal-evidence-v1` kiểm owner/run/data version, expiry và revision lúc publish.
+Nội dung retrieved là dữ liệu không đáng tin, không phải instruction. Từ chối đọc
+nhật ký và mood scope vẫn chặn tool. Không dùng index để mở rộng scope 90 ngày.
+
 Capability `SEMANTIC_MEMORY_ENABLED`, Voyage key và preference `semanticMemoryEnabled` là các gate riêng. Bật preference còn yêu cầu MEM. Embedding jobs chỉ xử lý memory được phép; không index transcript hay public candidate data như một lối tắt.
 
 [embeddings.py](../../backend/app/ai/embeddings.py) dùng jobs có lease/attempt, kiểm tra lại authorization/version trước commit. Tắt preference loại bỏ index user qua `discard_user_index`; sửa/xóa memory làm dữ liệu vector cũ không còn là nguồn hợp lệ. Provider lỗi không được biến thành kết quả từ nguồn cấm.

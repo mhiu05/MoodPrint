@@ -28,7 +28,7 @@ Task JI-00, JI-50, JI-51. JI-51 chỉ chạy khi chủ dự án duyệt rõ cử
 | 9 | E2E fixture | `npx.cmd playwright test --config playwright.owned.config.ts --reporter=list --output "$env:TEMP\ji-e2e"` | pass |
 | 10 | Fullstack | mục 6 `docs/development.md` với `moodprint_ji_fullstack_test`; thêm spec mới `frontend/tests/fullstack/journal-intelligence.spec.ts`: lưu 3 entry → chờ worker (FakeEmbedder qua `app.state.journal_embedder` trong `e2e_server.py`) → hỏi diễn đạt khác → link trích dẫn đúng entry → xóa entry → `GET /journal/ai-settings` `indexedEntries` giảm 1 → hỏi lại không còn link đó | pass |
 | 11 | Deploy (Linux) | `deploy/aws/tests` bằng image Python Linux mount read-only (cách ở `docs/verification.md`) | pass (Windows thiếu `fcntl`: không mock) |
-| 12 | Đo truy xuất | `uv run --locked python evals/journal_retrieval/run.py --embedder fake`; tùy chọn `--embedder voyage --confirm-cost` khi chủ dự án cho phép | số thật vào ledger |
+| 12 | Đo truy xuất | Từ backend: `uv run --locked python -m evals.journal_retrieval.run --embedder fake --out ../.tmp/journal-retrieval`; tùy chọn `--embedder voyage --confirm-cost` khi chủ dự án cho phép | số thật vào ledger |
 | 13 | Eval live skill/memory (tùy chọn) | theo `docs/agents/evaluation.md`, chỉ `gpt-6-luna`, trần chi phí do chủ dự án duyệt (ghi chép trước: ~3 USD cho đợt eval) | rubric: có căn cứ, không chẩn đoán, trích đúng |
 | 14 | Review độc lập | 1 reviewer (subagent) đọc diff 0029 + `indexing.py` + `journal_memory.py` theo [00](00-overview.md) Review Focus | không P0/P1 mở |
 | 15 | Khác | `git diff --check`; `rg -n "sk-|VOYAGE_API_KEY=|postgresql://[^ ]+:[^ ]+@" docs backend/tests frontend/tests` không có secret | sạch |

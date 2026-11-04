@@ -1,4 +1,32 @@
-# Kết quả kiểm chứng ngày 28/10/2026
+# Kết quả kiểm chứng
+
+## Journal intelligence — 04/11/2026 (đang triển khai)
+
+Nguồn số liệu đầy đủ, RED/GREEN và giới hạn nằm trong
+[execution ledger](implementation-plans/journal-intelligence-and-matching-removal/08-execution-ledger.md).
+Các kết quả dưới đây là local/synthetic, chưa xác minh bản tính năng trên hosted.
+
+| Phạm vi | Kết quả đã quan sát |
+| --- | --- |
+| Backend baseline `e2c3e5e8` | 1964 passed, 3 skipped, 4732,76 s |
+| JI-01 RED (đổi defaults, chưa ghim nền) | 307 failed, 1661 passed, 3 skipped, 4485,46 s; danh sách từng failure trong ledger |
+| JI-01 GREEN snapshot | 1968 passed, 3 skipped, 4732,79 s |
+| Checkpoint A backend sau sửa | 2065 passed, 3 skipped, 0 failed; 2233,27 s; cả 2068 test đã thu thập |
+| Frontend sau gỡ social và thêm công tắc | Typecheck pass; 204 unit tests + 2 script checks; build pass, RealApp 311,30 kB/gzip 97,17 kB |
+| Fixture browser | Baseline 445 passed/15,0 phút; toàn suite cuối chạy serial 382 passed/14,3 phút; các lượt có lỗi tài nguyên Windows và chẩn đoán ghi trong ledger |
+| Fullstack | Toàn suite 38 passed/6,2 phút; gồm journal intelligence với fake document/query embeddings và synthetic SDK model |
+| Migration local | Upgrade 0029 + Alembic check không drift; tests migration 10 passed; cụm migration/memory/readiness 79 passed/446,06 s |
+| Retrieval | 105 regression tests pass; 17 targeted retrieval/eval tests pass sau bổ sung marker/fallback |
+| Fake eval | 40 entry/15 query, 55 fake calls; recall@6 paraphrase 0→1,0, keyword giữ 1,0; không chứng minh chất lượng Voyage |
+| Linux deployment unit tests | Image test có sẵn, repo mount read-only, network none, Docker socket chỉ cho synthetic Compose/Caddy: 37 tests OK/11,708 s |
+| Chưa chạy | Provider thật, live eval có phí, hosted schema/deploy và toàn bộ final gates sau các nhóm tùy chọn |
+
+Không đọc dữ liệu hosted hoặc gọi provider thật. Có sự cố offline Alembic subprocess
+có thể đọc dotenv trái giới hạn trong lượt regression đầu; đã thông báo, ghi ledger
+và sửa cả exporter lẫn Alembic để luôn tắt dotenv, có test chặn truy cập thực sự.
+Không có secret được in ra hoặc kết nối hosted từ đường xuất SQL offline đó.
+
+## Baseline tài liệu ngày 28/10/2026
 
 Kết quả bên dưới là baseline của đợt tài liệu trước. Phần triển khai guest/feedback/tour có [execution ledger riêng](guest-experience/implementation/evidence/execution.md) và [release gates PARTIAL](guest-experience/implementation/evidence/release-readiness.md); không dùng baseline này để suy ra guest đã được phép mở public.
 

@@ -36,6 +36,15 @@ Output thường là `AiOutput`: `text` 1–6.000 ký tự, tối đa 3 card thu
 
 ## Tools và hành động được duyệt
 
+`search_journal_entries` của Nhật ký/Nhịp dùng truy xuất lai trong cửa sổ saved
+90 ngày: cosine chính xác trên vector đúng owner/revision/settings/model/dims,
+keyword literal và trang gần nhất. Query embed chạy trước owner lock, tối đa
+`JOURNAL_QUERY_TIMEOUT_SECONDS` (3 giây mặc định). Trong lock, runtime kiểm lại
+AI authorization, data version và settings version; vector cũ bị bỏ. Không có
+key/index hoặc provider lỗi vẫn trả fallback và lý do trong coverage. Tool vẫn
+tính vào giới hạn hai tool call mỗi lượt. Prompt runtime có marker `+j2`; persona
+đóng băng không đổi. `journal-evidence-v1` và revision fence giữ nguyên.
+
 `propose_memory` chỉ tạo đề xuất ngắn (tối đa 120 ký tự sau trim), trả status `proposed` và proposal ID/version. Đề xuất chưa phải ghi nhớ đã duyệt. Người dùng xem/sửa/xác nhận qua API riêng; endpoint confirm kiểm tra quyền/version/consent hiện tại.
 
 `read_mood_summary` chỉ cấp cho Nhịp khi người dùng chọn phạm vi ngày. Arguments phải là object rỗng; model không chọn owner, ngày hoặc nguồn dữ liệu. Tool trả điểm/thống kê trong scope, không trả ghi chú riêng tư. Runtime ghi source state và evidence; không diễn giải lỗi tool như nguồn dữ liệu hợp lệ.

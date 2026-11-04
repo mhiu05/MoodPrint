@@ -44,10 +44,10 @@ Runner kiểm tra ports 8002/5174, tạo process riêng và dừng process do n�
 
 ## Coverage hiện tại
 
-- Unit: HTTP intent retry, SSE validation, audio encode, profile rules, PII advisory, activity view/clock, motion policy và production imports.
-- Fixture E2E: auth/recovery, consent/states, AI history/error handling, discovery/social, activity dock/timer, admin, responsive/a11y/motion.
-- Fullstack: HTTP thật, isolation hai user, privacy/revocation, matching v2, hoạt động chung, moderation, persistent chat và mood evidence.
+- Unit: HTTP intent retry, SSE validation, audio encode, journal AI settings, motion policy và production imports.
+- Fixture E2E: auth/recovery, consent/states, AI history/error handling, journal/account, retired route redirects, admin, responsive/a11y/motion.
+- Fullstack: HTTP thật, isolation hai user, privacy/revocation, moderation từ report synthetic, persistent/group chat, mood evidence và journal intelligence với FakeEmbedder.
 
-Scorer của fullstack mặc định là v1; riêng nhánh v2 của matching spec cần `E2E_MATCHING_SCORER=v2` trong môi trường harness. Xem lệnh và giới hạn trong [matching evaluation](../matching/evaluation.md).
+Browser specs thuần matching/social/hoạt động đôi đã gỡ cùng giao diện. Backend matching vẫn có kiểm thử riêng; xem [matching evaluation](../matching/evaluation.md). Các ca generic trước đây đi qua social đã được viết lại và thống kê trong [test inventory](../implementation-plans/journal-intelligence-and-matching-removal/10-test-change-inventory.md).
 
 E2E fixture không chứng minh backend persistence; synthetic fullstack không chứng minh live provider; unit test không chứng minh browser permission micro trên máy thật. Báo rõ skipped, warning và phần không chạy.

@@ -67,8 +67,10 @@ theo cả `journal_document_char_limit` lẫn ngân sách còn lại của toàn
 Ruling về cap: đếm job succeeded không bền vì FK cascade xóa job cùng entry.
 Dùng receipt nội bộ content-free `journal:embed-usage` trong `idempotency_keys`,
 khóa theo owner, reserve trước provider cho mọi ngày local có thể hoàn tất trong
-lease (kể cả qua nửa đêm). Thành công giữ charge dù entry/job đã bị xóa; thất bại
-rõ ràng refund, crash chưa biết giữ reservation bảo thủ. Receipt quota giữ 72h,
+lease (kể cả qua nửa đêm). Thành công giữ charge dù entry/job đã bị xóa; chỉ refund
+khi xác định request chưa được gửi (unconfigured/input-invalid). Timeout, lỗi
+transport, response không hợp lệ và crash giữ reservation bảo thủ vì có thể đã
+phát sinh phí. Receipt quota giữ 72h,
 độc lập receipt API 24h; account deletion xóa receipt quota, settlement không tạo
 lại. Không thêm bảng/cột ngoài schema 0029. Backfill lọc đủ bằng chứng tuổi trước
 LIMIT, rồi kiểm lại quyền dưới owner lock để tránh batch legacy không hợp lệ làm
@@ -112,6 +114,14 @@ Tích hợp tool (`runtime.py:507-543`):
 Prompt (`journal.py:85-104`, runtime layer, không đụng persona đóng băng): thay "no drafts, media, legacy mood notes, other users, embeddings or automatic memories" bằng "no drafts, media, legacy mood notes or other users. The tool ranks your saved entries by meaning and keywords; only entries it returns are evidence". Thêm: "Call search_journal_entries before answering what the user wrote; for 'this week' pass from_date/to_date. If coverage.retrieval.mode is not hybrid, results come from keywords/recent entries only." Marker usage `"+j1"` → `"+j2"` (`runtime.py:392`). Persona Nhật ký vẫn nói "hướng dẫn chọn khoảng ngày" (`prompts.py`, V3_PERSONAS); câu runtime mới làm rõ đó là cho **điểm tâm trạng** (mood scope), không đổi cơ chế mood scope.
 
 ## JI-20 — Migration 0029 + ORM
+
+Ruling kiểm chứng full suite: ngoài `test_readiness.py`, head hiện hành còn được
+ghim trong `test_foundation.py`, `test_discovery_migration.py` và
+`test_guest_cleanup_recovery.py`; cập nhật đúng 0029, tiếp tục từ chối 0028.
+Inventory trong `guests/lifecycle.py` phải phân loại cả ba bảng mới là purged,
+và inventory operation của `test_guest_permissions.py` phải xếp hai endpoint
+journal-ai vào registered-only (JI-21). Không bỏ equality inventory hoặc các
+assertion ownership, rollback và cleanup để tránh failure.
 
 **Mục tiêu:** Schema 0029 expand-only cho công tắc, vector, job và memory tự động; image 0028 vẫn chạy được trên nó.
 

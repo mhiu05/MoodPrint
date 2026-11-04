@@ -27,12 +27,12 @@ Tất cả commit dưới đây đang local, chưa push trong phiên triển kha
 | JI-22 | xong | `f691898d` | revision/deletion/cap/backfill/provider lock regression pass |
 | JI-23 | xong | `9fefdf8d` | 105 regression pass; 17 targeted retrieval/eval pass |
 | JI-24 | xong | `6adc9fa4` | CLI fake exit 0; 40 entry/15 query/55 fake calls |
-| Checkpoint A | một phần | chưa chốt | đang chờ full backend sau sửa; chưa push |
+| Checkpoint A | xong kiểm chứng | commit checkpoint kế tiếp | backend 2065 pass/3 skip; gates 1–10/15 xanh; chưa push |
 | JI-40 | chưa làm | — | chờ checkpoint A |
 | Checkpoint B | chưa làm | — | chờ JI-40 |
 | JI-30 + JI-31 | chưa làm | — | phải phát hành cùng khối |
 | JI-25 | chưa làm | — | sau khối memory |
-| JI-50 đầy đủ | một phần | SQL/docs chưa commit | 37 Linux tests pass; fake eval có số; live/hosted chưa chạy |
+| JI-50 đầy đủ | một phần | SQL `9f3c238e`; docs còn cập nhật | 37 Linux tests pass; fake eval có số; live/hosted chưa chạy |
 | JI-51 | ngoài phạm vi | — | không migrate/deploy/SSM/đọc hosted |
 
 ## Quyết định và preflight — 2026-11-04
@@ -146,6 +146,30 @@ Các log/JSON ở `.tmp/journal-intelligence/` là artifact cục bộ, không c
 - Backend Ruff đúng cwd: **All checks passed**; mypy **188 source files pass** tại thời điểm có retrieval. Docs checker **179 Markdown / 1154 links / 143 operations / 122 settings / 64 tables, PASS**. Cần chạy lại final gates sau các task còn lại.
 
 ## JI-50 / phát hành
+
+### Checkpoint A — kết quả cuối trước push
+
+Full backend sau sửa: `pytest -q --ignore=tests/live --junitxml=<scratch>/ji50-backend-a-green.xml`, DB disposable hậu tố `000000000007_test`: **2065 passed / 3 skipped / 0 failed, 2233,27 s** (runner 2261,281 s). Source của hai commit bổ sung `d9cb601f` và `9f3c238e` đã có đầy đủ trong lượt này. Không thêm skip/xfail. Cả 2068 test đã được thu thập và thực thi/skip theo đúng opt-in hiện hữu.
+
+| Gate | Lệnh / phạm vi | Kết quả tại checkpoint A |
+| --- | --- | --- |
+| 1 | `python -m ruff check app tests evals alembic ../scripts/apply_supabase_review.py ../scripts/check_reviewed_artifacts.py`; `python -m mypy app` | PASS; 189 source files mypy |
+| 2 | Full pytest như trên | 2065 pass, 3 skip, 0 fail; 2233,27 s |
+| 3 | `tests/test_default_flags.py` trong full pytest | 9 pass |
+| 4 | Local Alembic driver đặt URL `_test` và `_env_file=None`: `upgrade head`, `current`, `check`; `tests/test_journal_intelligence_migration.py` | head 0029; không drift; 10 pass |
+| 5 | `scripts/check_reviewed_artifacts.py`; `tests/test_reviewed_artifacts.py`; `test_database_operations.py` | 12 pinned/12 consumed; 28 pass và 15 pass; SQL nguyên văn chạy local với roles rollback |
+| 6 | `scripts/export_openapi.py` → `npm.cmd --prefix frontend run contracts:generate` → `git diff --exit-code` hai file sinh | PASS, không drift |
+| 7 | `python scripts/check_docs.py` | PASS; 181 Markdown, 1162 links, 143 operations, 122 settings, 64 tables |
+| 8 | `npm.cmd run typecheck`; `npm.cmd test`; `npm.cmd run build` | PASS; 204 unit tests/36 files + 2 script checks; build RealApp 311,30 kB/gzip 97,17 kB |
+| 9 | `node node_modules/@playwright/test/cli.js test --config playwright.owned.config.ts --workers=1 --reporter=list` | 382 pass/14,3 phút; không đổi default workers của CI |
+| 10 | `python ../scripts/test_fullstack.py` qua runner DB riêng | 38 pass/6,2 phút; runner 381,187 s; FakeEmbedder và synthetic SDK |
+| 11 | Container Linux test có sẵn, network none, repo read-only, command đầy đủ bên dưới | 37 tests OK/11,708 s |
+| 12 | `python -m evals.journal_retrieval.run --embedder fake --out <scratch>/ji24-eval` | exit 0/runner 11,141 s; chỉ pipeline synthetic. Voyage: **chưa chạy, chờ chủ dự án duyệt chi phí** |
+| 13 | Eval live skill/memory | **Chưa chạy, chờ chủ dự án duyệt chi phí**; các nhóm tùy chọn còn triển khai |
+| 14 | Review độc lập trước checkpoint | 3 Important đã sửa và RED→GREEN; chưa phải review cuối toàn nhánh |
+| 15 | `git diff --check`; scanner added-source giữ kín giá trị nghi ngờ | PASS; 0 candidate chưa phân loại, không đưa artifact browser vào commit |
+
+Ruling tài liệu: cập nhật thêm `docs/frontend/README.md` và `docs/frontend/testing.md` ngoài danh sách tối thiểu JI-50 vì vẫn mô tả route/spec social đã gỡ. Giữ nguyên kết quả lịch sử trong các mục baseline; không đổi test để làm đẹp số liệu. Push feature branch chỉ kích hoạt Verify, không publish. Workflow publish tự động chỉ nhận Verify trên `main`; merge vẫn phải tuân thủ thứ tự image tương thích/migration 0029/image tính năng đã ghi, không suy ra quyền JI-51.
 
 ### Bổ sung hồi quy checkpoint A sau lượt full backend đầu
 
