@@ -144,10 +144,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 logging.getLogger("moodprint").error(
                     "embedding_worker_retry error_type=%s", type(error).__name__
                 )
+            from app.ai.journal_memory import extract_and_publish
             from app.modules.journal.indexing import process_journal_jobs
 
             try:
-                await process_journal_jobs(database, config, embedder=getattr(app.state, "journal_embedder", None))
+                await process_journal_jobs(database, config, embedder=getattr(app.state, "journal_embedder", None),
+                    memory_runner=lambda job_id, token: extract_and_publish(app.state.ai, job_id, token))
             except Exception as error:
                 logging.getLogger("moodprint").error("journal_index_retry error_type=%s", type(error).__name__)
 

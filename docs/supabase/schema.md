@@ -8,7 +8,7 @@ ORM kế thừa `Base` trong [database/models.py](../../backend/app/infrastructu
 | --- | --- | --- |
 | Account | `users`, `auth_sessions`, `age_declarations` | Auth subject, age/status, session hash, version |
 | Consent | `consents`, `consent_events` | Purpose state/version và lịch sử thay đổi |
-| Personal | `moods`, `memories` | Mood theo ngày, memory được duyệt |
+| Personal | `moods`, `memories` | Mood theo ngày; memory approved qua proposal và journal_auto có nguồn entry/version, nhãn riêng |
 | Journal | `journal_entries`, `journal_media`, `journal_storage_deletions` | Nhiều khoảnh khắc/ngày, metadata media riêng tư; hàng đợi xóa object tồn tại sau khi xóa tài khoản |
 | Journal AI (0029) | `journal_ai_settings`, `journal_entry_embeddings`, `journal_ai_jobs` | Công tắc riêng có version; vector đúng revision/model/dimensions; job embed/memories có lease/fence. FK entry/user `ON DELETE CASCADE`, RLS và grant chỉ cho runtime. Không có hàng settings nghĩa là bật mặc định. |
 | Write coordination | `idempotency_keys`, `outbox` | Receipts thông thường 24h; receipt nội bộ `journal:embed-usage` chỉ chứa ngày/số lượt, giữ 72h để cap không reset khi entry/job bị xóa. Outbox giữ compatibility, không delivery active. |

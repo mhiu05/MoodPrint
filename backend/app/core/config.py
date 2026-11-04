@@ -29,6 +29,14 @@ class Settings(EmbeddingSettings, BaseSettings):
     ai_enabled: bool = True
     ai_accounting_enabled: bool = True
     journal_auto_memory_enabled: bool = True
+    journal_auto_memory_min_chars: int = Field(default=80, ge=20, le=1000)
+    journal_auto_memory_debounce_seconds: int = Field(default=120, ge=30, le=3600)
+    journal_auto_memory_daily_cap_per_user: int = Field(default=10, ge=1, le=50)
+    journal_auto_memory_max_per_entry: int = Field(default=2, ge=1, le=3)
+    journal_auto_memory_max_active: int = Field(default=40, ge=5, le=200)
+    journal_auto_memory_budget_share: float = Field(default=0.2, ge=0.05, le=0.5)
+    journal_auto_memory_backfill_days: int = Field(default=14, ge=0, le=89)
+    journal_auto_memory_timeout_seconds: float = Field(default=20, ge=5, le=30)
     ai_local_test_user_ids: list[UUID] = Field(default_factory=list)
     stt_enabled: bool = True
     stt_model: str = ""

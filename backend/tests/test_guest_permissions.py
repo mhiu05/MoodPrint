@@ -78,6 +78,7 @@ PERSONAL = {
     ("GET", "/data-deletions/{job_id}"),
 }
 REGISTERED_ONLY = {
+    ("DELETE", "/memories/auto"),
     # Derived journal processing is excluded from guest accounts (OD-06).
     ("GET", "/journal/ai-settings"),
     ("PUT", "/journal/ai-settings"),

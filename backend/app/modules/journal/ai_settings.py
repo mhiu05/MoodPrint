@@ -59,8 +59,9 @@ async def journal_ai_allowed(db, user, settings, kind: Literal["embed", "memorie
     if kind == "embed":
         allowed = settings.journal_semantic_available and (pref is None or pref.embedding_enabled)
     else:
-        # Automatic extraction is introduced together with its labels in JI-30/31.
-        allowed = False
+        from app.ai.journal_memory import journal_memory_configured
+        allowed = (journal_memory_configured(settings) and settings.ai_available_for(user.id)
+                   and (pref is None or pref.auto_memory_enabled))
     return (pref.version if pref else 1) if allowed else None
 
 
@@ -85,9 +86,14 @@ async def settings_view(db, user, settings) -> JournalAiSettingsView:
         embedding_enabled=pref.embedding_enabled if pref else True,
         auto_memory_enabled=pref.auto_memory_enabled if pref else True,
         embedding_available=settings.journal_semantic_available and await journal_ai_eligible(db, user),
-        auto_memory_available=False, version=version,
+        auto_memory_available=await _auto_memory_available(db, user, settings), version=version,
         indexed_entries=indexed or 0, pending_entries=pending or 0, auto_memories=memories or 0,
     )
+
+
+async def _auto_memory_available(db, user, settings) -> bool:
+    from app.ai.journal_memory import journal_memory_configured
+    return journal_memory_configured(settings) and settings.ai_available_for(user.id) and await journal_ai_eligible(db, user)
 
 
 @router.get("/journal/ai-settings", response_model=JournalAiSettingsView)

@@ -7,6 +7,7 @@
 | Temporary transcript | RAM `ConversationStore` | Owner/session, AI consent, TTL |
 | Persistent transcript | `ai_conversations`, `ai_messages` | Global history capability và preference người dùng |
 | Approved memory | `memories`; embedding/index tùy chọn | Confirm của người dùng; MEM và AI gates |
+| Automatic journal memory | `memories.origin='journal_auto'`, FK về trang nguồn | Registered 18+, saved owner entry, công tắc opt-out riêng, worker có budget/lease/revision fence |
 | Public profile | `published_profiles` | Preview/publish rõ ràng, MATCH và adult gates |
 
 Không lấy public profile từ memory tự động. Không coi việc nhìn thấy transcript cũ là cho phép gửi toàn bộ transcript đó vào model. Không dùng semantic memory để mở quyền đọc mood hoặc dữ liệu peer.
@@ -15,7 +16,7 @@ Saved conversation được giữ tối đa 30 ngày trong implementation hiện
 
 ## Context projection
 
-[context.py](../../backend/app/ai/context.py) giới hạn history **24 messages / 24.000 byte UTF-8**. Ưu tiên message mới, lấy contiguous suffix theo thứ tự thời gian; message không vừa budget làm dừng việc lấy phần cũ. Approved memories được thêm dưới dạng data JSON, tối đa 10 trong bước build, còn phải vừa byte budget.
+[context.py](../../backend/app/ai/context.py) giới hạn history **24 messages / 24.000 byte UTF-8**. Ưu tiên message mới, lấy contiguous suffix theo thứ tự thời gian; message không vừa budget làm dừng việc lấy phần cũ. Memory được thêm dưới dạng data JSON, tối đa 10 tổng cộng, còn phải vừa byte budget. `approved` giữ nhãn “Approved memory data”; `journal_auto` có nhãn “Journal-derived memory data”, nói rõ tự động/chưa được duyệt và lời người dùng mới hơn có ưu tiên. Caller chuỗi cũ vẫn được coi là approved. Planner loại cả hai item memory khỏi recent-turn payload.
 
 Mỗi lượt có content-free stamp: `data_version` và policy `text-v1` hoặc `mood-turn-v1`. `model_messages()` đi ngược từ cuối và dừng khi stamp thiếu/không nhận diện, data version không khớp, hoặc message mood thuộc run khác. Cả user và bot text phụ thuộc nguồn cũ đều bị cắt khỏi context. Transcript UI không bị viết lại bởi projection này.
 
@@ -34,6 +35,10 @@ Source diagnostics tách `authorization` với `evidence`: được cấp quyề
 3. `/proposals/{id}/confirm` kiểm tra owner, session/authorization, expiry, expected version và data version; lưu target cùng receipt trong transaction.
 4. `/memories/{id}` cho phép sửa/xóa theo version. Thay đổi invalidate context/index có liên quan.
 5. Rút quyền, xóa dữ liệu và retention xử lý proposal/memory/index theo trạng thái. Không dùng proposal pending như approved memory.
+
+Worker nhật ký là lớp thứ hai, không approve proposal: debounce 120 giây, text tối thiểu 80 ký tự, không chạy trong lượt chat. SDK không có tools, chỉ một model request, tracing/store tắt, retry 0, timeout 20 giây. Tối đa ba ứng viên, nhận tối đa hai/trang; trích evidence khớp text chuẩn hóa, loại clinical/PII/claim và trùng. Chỉ `nhatky` sở hữu memory này; Điều phối không đọc trực tiếp. Backfill 14 ngày, cap active 40 và 10 lần/ngày, share budget 20% có tính reservation. Usage origin journal đi qua accounting/recovery hiện có; xóa trang không hoàn cap hoặc làm mất metadata chi phí.
+
+Tạo memory tự động không tăng `data_version` hay hủy lượt chat. Sửa trang xóa memory chưa được người dùng sửa (version 1), giữ mục đã sửa; xóa trang dùng FK cascade cho mọi origin dẫn xuất. Tắt công tắc hủy job mới, giữ memory đã có. `DELETE /memories/auto` có receipt/idempotency, tăng data version và chặn job cũ tái tạo nội dung sau xóa; xóa theo scope memory cũng fence job. UI phân nhãn và link nguồn chỉ khi nguồn vẫn owner/saved/trong cửa sổ 90 ngày; mọi mục vẫn sửa/xóa qua route expectedVersion hiện có.
 
 Nguồn: [memory.py](../../backend/app/ai/memory.py), [memory_models.py](../../backend/app/ai/memory_models.py), [lifecycle](../backend/data-lifecycle.md).
 

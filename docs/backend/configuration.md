@@ -133,6 +133,14 @@ change shared timezone, quiet hours, daily caps, pause state or journal consent.
 | `JOURNAL_SIMILARITY_THRESHOLD` | `float` | `0.25` |
 | `JOURNAL_DOCUMENT_CHAR_LIMIT` | `int` | `7000` |
 | `JOURNAL_AUTO_MEMORY_ENABLED` | `bool` | `True` |
+| `JOURNAL_AUTO_MEMORY_MIN_CHARS` | `int` | `80` |
+| `JOURNAL_AUTO_MEMORY_DEBOUNCE_SECONDS` | `int` | `120` |
+| `JOURNAL_AUTO_MEMORY_DAILY_CAP_PER_USER` | `int` | `10` |
+| `JOURNAL_AUTO_MEMORY_MAX_PER_ENTRY` | `int` | `2` |
+| `JOURNAL_AUTO_MEMORY_MAX_ACTIVE` | `int` | `40` |
+| `JOURNAL_AUTO_MEMORY_BUDGET_SHARE` | `float` | `0.2` |
+| `JOURNAL_AUTO_MEMORY_BACKFILL_DAYS` | `int` | `14` |
+| `JOURNAL_AUTO_MEMORY_TIMEOUT_SECONDS` | `float` | `20` |
 | `SEMANTIC_MEMORY_ENABLED` | `bool` | `True` |
 | `VOYAGE_API_KEY` | `SecretStr` | `SecretStr('')` |
 | `VOYAGE_MODEL` | `str` | `'voyage-4-lite'` |

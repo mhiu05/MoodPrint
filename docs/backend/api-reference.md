@@ -109,6 +109,7 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 | GET | `/api/v1/matching/candidates` | `candidates_api_v1_matching_candidates_get` |
 | POST | `/api/v1/matching/skips` | `skip_api_v1_matching_skips_post` |
 | GET | `/api/v1/memories` | `memories_api_v1_memories_get` |
+| DELETE | `/api/v1/memories/auto` | `delete_automatic_memories_api_v1_memories_auto_delete` |
 | PATCH | `/api/v1/memories/{memory_id}` | `edit_memory_api_v1_memories__memory_id__patch` |
 | DELETE | `/api/v1/memories/{memory_id}` | `delete_memory_api_v1_memories__memory_id__delete` |
 | GET | `/api/v1/moods` | `list_moods_api_v1_moods_get` |

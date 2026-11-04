@@ -156,10 +156,15 @@ Inventory theo diff source, không phải số ca runtime (template/width đư�
 
 ## Backend: assertion/test cập nhật
 
+- JI-31 sáu test `test_embeddings.py` đổi kết quả `list[str]` thành `MemoryText(text, 'approved')`: tenant/bot isolation, no opt-in/revocation fallback, config dimension fallback, Vietnamese semantic ranking, unrelated-data-version và no external query. Bảy assertion giá trị cập nhật đúng interface mới, giữ nguyên expected text, provider call counts và mọi authorization/bounds assertion.
+- JI-31 guest operation inventory thêm `DELETE /memories/auto` vào registered-only; các ca guest 403/expired 401 tự mở rộng từ parametrization, không bỏ gate cũ.
+- JI-31 `test_guest_review_regressions.py`: ba parameter của funded-admission guard và một ca funded-query replay đổi expected memory thành `MemoryText(text, 'approved')`; giữ zero external call khi flag/price/budget đóng, một query charge duy nhất và document-slot/usage assertions.
+
 - JI-40 `test_registry_is_closed_and_loads_trusted_offline_workflows` đổi tên thành `test_registry_loads_six_trusted_skills`, equality đóng đổi 2→6 ID đúng đặc tả; các assertion metadata/path-security cũ giữ nguyên.
 - JI-40 `test_guest_prompt_capabilities_are_a_zero_projection`: equality 2→6 skill; assertion tất cả skill/tool unavailable cho guest giữ nguyên.
 - JI-40 test weekly dùng output JSON thực của tool và citation đã publish; evidence terminal phải được scrub theo privacy invariant, không sửa production cleanup.
 - Hai locator menu trong `agent-skills.spec.ts` đổi theo menu sáu skill; giữ kiểm tra one-turn, retry cùng ID/options, keyboard focus và overflow ở cả bốn viewport.
+- JI-31 một locator region trong `ux-redesign.spec.ts` đổi “Đã duyệt”→“Ghi nhớ đã lưu” vì section chứa cả memory approved và tự động; giữ kiểm tra pending proposal “Chưa lưu”, tách mục bị từ chối và nội dung memory đã lưu.
 
 - `test_upgrade_from_0015_preserves_registered_rows_and_matches_models`: expected head 0028→0029; giữ bảo toàn registered rows, session lifetime, private grants và Alembic drift.
 - `test_journal_upgrade_downgrade_preserves_legacy_mood_and_private_acl`: tháo/phục hồi migration phụ thuộc 0029 quanh diễn tập 0019 để không vi phạm FK mới; giữ nguyên mọi assertion và rollback temporary roles.

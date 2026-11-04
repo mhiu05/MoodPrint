@@ -436,6 +436,9 @@ class MemoryDTO(DTO):
     text: str
     version: int
     status: str
+    origin: Literal["approved", "journal_auto"] = "approved"
+    source_entry_id: UUID | None = None
+    source_local_date: date | None = None
 
 
 class MemoryEdit(VersionInput):

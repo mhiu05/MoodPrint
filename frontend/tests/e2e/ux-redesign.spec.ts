@@ -893,7 +893,7 @@ test.describe("personal account and memory comprehension", () => {
     await expect(waiting.getByRole("textbox", { name: "Nội dung sẽ lưu" })).toHaveValue("Thích trà buổi tối");
     await expect(waiting).toContainText("Chưa lưu");
     await expect(waiting).not.toContainText("Bạn đã chọn không lưu đề xuất này.");
-    await expect(page.getByRole("region", { name: "Đã duyệt" })).toContainText("Thích đi bộ");
+    await expect(page.getByRole("region", { name: "Ghi nhớ đã lưu" })).toContainText("Thích đi bộ");
   });
 
   test("a failed memory deletion keeps the item and explains the failure", async ({ page }) => {

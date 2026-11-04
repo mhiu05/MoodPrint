@@ -31,6 +31,9 @@ def journal_document(entry, char_limit: int = 7000) -> str:
 
 
 async def on_entry_saved(db, user, entry, settings) -> None:
+    from app.ai.journal_memory import enqueue_journal_memory
+
+    await enqueue_journal_memory(db, user, entry, settings)
     version = await journal_ai_allowed(db, user, settings, "embed")
     start, end = active_dates(user)
     if version is None or entry.status != "saved" or not start <= entry.local_date <= end:
@@ -104,6 +107,14 @@ def _finish(job, state):
 
 
 async def process_journal_jobs(database, settings, *, embedder=None, memory_runner=None) -> int:
+    count = await _process_journal_embeddings(database, settings, embedder=embedder)
+    if memory_runner is not None:
+        from app.ai.journal_memory import process_memory_jobs
+        count += await process_memory_jobs(database, settings, memory_runner)
+    return count
+
+
+async def _process_journal_embeddings(database, settings, *, embedder=None) -> int:
     if not settings.journal_semantic_available:
         return 0
     await reconcile_journal_jobs(database, settings)

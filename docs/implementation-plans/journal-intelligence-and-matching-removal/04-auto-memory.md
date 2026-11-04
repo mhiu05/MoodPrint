@@ -4,6 +4,12 @@ Phạm vi: yêu cầu 4, phần memory tự động. Task JI-30, JI-31. Schema �
 
 **JI-30 và JI-31 là một khối phát hành.** Nếu chỉ có JI-30, memory tự động sẽ vào context dưới nhãn "Approved memory data" và hiện trong màn Ghi nhớ như memory đã duyệt. Cắt thì cắt cả hai; khi đó `JOURNAL_AUTO_MEMORY_ENABLED` vẫn mặc định true theo yêu cầu 1, nhưng hook enqueue `memories` không được merge nên cờ không có tác dụng.
 
+Ruling thực thi: JI-30 + JI-31 dùng **một commit nguyên khối** sau khi cả hai đã xanh, thay cho hai bước Commit riêng bên dưới, theo yêu cầu không để nhánh có worker thiếu label/API/UI. Tên trợ lý trong vetting được nhận diện bằng tên riêng đúng kiểu viết hoặc ngữ cảnh “trợ lý/bot/assistant”; không coi danh từ thường “nhật ký”, “hoạt động”, “gương” là claim về một trợ lý. Clinical guard vẫn dùng folded/case-insensitive như đặc tả.
+
+Ruling chi phí: cap/ngày của memory dùng receipt bền cùng cơ chế embed, operation riêng `journal:memory-usage`; không được reset khi xóa nguồn/memory. Hai operation đều giữ 72h và xóa khi account deletion. Budget share bao gồm cả reservation đang chạy dưới global accounting lock, trên trần ngân sách hiệu lực `min(AI_DAILY_BUDGET_USD, 20)` như accounting hiện hành; không đợi đến khi đã chi tiền mới chặn.
+
+Ruling xóa: bulk-delete và scope `memories` phải fence job pending/running/retry thành terminal skipped `memory_deleted`, giữ tombstone revision/settings để reconcile không tái tạo ngay sau thao tác xóa. Entry/revision mới hoặc thay đổi preference rõ ràng vẫn có thể xử lý. Usage/reservation không bị xóa/refund theo job. Backfill dùng bộ whitespace tương đương Python `str.strip()` ngay ở SQL trước LIMIT để text chỉ chứa tab/newline/NBSP không chặn entry hợp lệ.
+
 ## Bất biến bị đảo, có chủ đích
 
 | Bất biến hiện tại | Nơi khẳng định / bảo vệ | Sau thay đổi |

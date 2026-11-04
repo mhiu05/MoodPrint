@@ -29,8 +29,8 @@ Các commit tới checkpoint A `587e61d5` đã push thành công lên `origin/fe
 | JI-24 | xong | `6adc9fa4` | CLI fake exit 0; 40 entry/15 query/55 fake calls |
 | Checkpoint A | xong | `587e61d5`, đã push | backend 2065 pass/3 skip; gates 1–10/15 xanh |
 | JI-40 | xong | `b3f344ac`, chưa push | 32 backend pass; hồi quy 204 pass; frontend 205 + 2 pass; browser skill 7 pass |
-| Checkpoint B | xong kiểm chứng | commit checkpoint kế tiếp | backend 2082 pass/3 skip; fixture 384 pass; fullstack 38 pass; chưa push |
-| JI-30 + JI-31 | chưa làm | — | phải phát hành cùng khối |
+| Checkpoint B | xong | `7cd83b08`, đã push | backend 2082 pass/3 skip; fixture 384 pass; fullstack 38 pass |
+| JI-30 + JI-31 | xong kiểm chứng task | commit nguyên khối kế tiếp | 269/228 regression pass; precommit 68 pass; browser cuối 3 pass |
 | JI-25 | chưa làm | — | sau khối memory |
 | JI-50 đầy đủ | một phần | SQL `9f3c238e`; docs còn cập nhật | 37 Linux tests pass; fake eval có số; live/hosted chưa chạy |
 | JI-51 | ngoài phạm vi | — | không migrate/deploy/SSM/đọc hosted |
@@ -146,6 +146,36 @@ Các log/JSON ở `.tmp/journal-intelligence/` là artifact cục bộ, không c
 - Backend Ruff đúng cwd: **All checks passed**; mypy **188 source files pass** tại thời điểm có retrieval. Docs checker **179 Markdown / 1154 links / 143 operations / 122 settings / 64 tables, PASS**. Cần chạy lại final gates sau các task còn lại.
 
 ## JI-50 / phát hành
+
+### Bắt đầu khối JI-30 + JI-31 sau checkpoint B
+
+`git push origin feat/journal-intelligence`: **exit 0**, `587e61d5..7cd83b08`; JI-40 `b3f344ac` và checkpoint B đã lên origin. Chưa mở PR/merge/deploy. Khối memory dùng một commit nguyên khối theo ruling 04 để không có commit phát hành worker thiếu labels/API/UI.
+
+JI-30 RED `pytest -q tests/test_journal_auto_memory.py`: **1 collection error, 1,27 s** (runner 2,875 s), `ModuleNotFoundError: app.ai.journal_memory`. Tests đã bao gồm debit/accounting thật qua fake SDK có usage synthetic, không tạo provider client thật, debounce, grounded/clinical/PII/claim/dedup, retry, edit/delete fence, opt-out, budget/daily cap và data_version không đổi. Ruling tên trợ lý vs danh từ thường được ghi 04; không đổi clinical fold guard.
+
+JI-30 GREEN đầu cùng lệnh: **21 passed, 17,73 s** (runner 19,828 s). Model là fake SDK có usage synthetic 100 input/10 output, `_openai` bị test thay thành hàm raise để cấm tạo client thật. Thêm tám settings đã vào inventory. Worker memory không phụ thuộc Voyage; enqueue/reconcile lọc registered/adult/AI policy trước LIMIT và live recheck; provider ngoài transaction, owner→job; publish không tăng data_version. Dùng cap receipt riêng bền/72h, budget share tính cả reservation dưới cùng global lock, pricing/quota/SDK timeout/retry guards giữ nguyên. Không commit worker riêng khi JI-31 chưa hoàn tất.
+
+Lint/type JI-30 lần đầu: 3 import-order + 1 unused import; mypy 3 lỗi annotation/None/Literal trong module mới. Đã sửa (result None xử lý failed/retry content-free), Ruff fix 4 diagnostics; mypy **190 source files PASS**. Các hồi quy và cổng đầy đủ sau khối còn phải chạy, chưa dùng 21 test này để tuyên bố toàn nhánh xanh.
+
+JI-30 hồi quy trước đổi interface memory: `pytest -q tests/test_journal_auto_memory.py tests/test_memory.py tests/test_embeddings.py tests/test_ai_quota.py tests/test_budget_reservations.py tests/test_proactive_*.py` (script mở glob thành danh sách cố định): **269 passed, 190,53 s**, runner 194,860 s. Không sửa `tests/test_memory.py`.
+
+JI-31 RED `pytest -q tests/test_journal_auto_memory_api.py`: **6 failed, 10,37 s**, runner 14,797 s: thiếu origin/source date, bulk route, MemoryText/nhãn context, planner lọt automatic label vào recentTurns. Frontend RED `npm.cmd test`: **1 suite failed/36 passed, 205 tests passed, 3,36 s**, thiếu module memoryView. GREEN API + context selection: **9 passed, 9,02 s**. Browser lần đầu “No tests found” vì config testMatch đóng; thêm đúng spec memory-auto vào allowlist. Chạy trên Memory UI cũ từ checkpoint B (candidate lưu byte): **1 failed**, badge expected 2/got 0. Phục hồi candidate: **1 passed, 5,3 s** (test 3,1 s): badge/link nguồn, edit expectedVersion, delete hai bước, bulk dialog focus “Giữ lại”, idempotency key và không gọi xóa journal.
+
+JI-31 regression đầu: **6 failed / 166 passed, 203,21 s** (runner 207,578 s); chỉ sáu test embedding còn expected `str` trong khi interface đặc tả chuyển `MemoryText`. Đổi đúng bảy assertion giá trị sang `MemoryText(..., 'approved')`, giữ mọi filtering/provider/bounds assertion, ghi inventory. Frontend Vitest GREEN **206 tests/37 files, 3,64 s** + 2 script checks; typecheck lúc đầu một lỗi test truyền undefined cho origin, mở helper nhận undefined để giữ tương thích DTO cũ; typecheck rerun PASS. Lint sau JI-31 có hai import/unused rồi một import order lifecycle, đã sửa; full Ruff PASS và mypy **190 source files PASS**.
+
+Review biên xóa memory: thêm `test_memory_deletion_fences_pending_extraction_without_resurrecting_old_entries` bulk/scope. RED **2 failed/21 deselected, 8,32 s**; model đã dispatch nhưng kết quả trễ tái tạo memory sau user xóa. Thêm fence terminal skipped + clear lease + cancelled run dưới owner→job; giữ financial usage. GREEN **2 passed/21 deselected, 7,68 s**. Ruling 04 ghi semantics reconcile/tombstone, không schema mới.
+
+Review biên cap/backfill/timeout: **1 failed/4 passed/23 deselected, 14,11 s**; chỉ whitespace legacy (tab/newline/NBSP) lọt SQL LIMIT làm starvation. Đồng bộ SQL btrim với Python str.strip whitespace; không nới eligibility. GREEN toàn file auto-memory mới nhất **28 passed, 39,32 s** (runner 41,625 s), gồm cap bền qua cascade, active cap trước/sau provider, owner-lock tự do khi provider chờ, cửa sổ backfill 14 ngày và SDK timeout cancel/uncertain liability $2. Full regression sau sửa đang chạy; chưa commit khối.
+
+Frontend sau khối JI-31: `npm.cmd run typecheck` PASS; `npm.cmd test` **206 tests/37 files pass, 3,44 s** cộng **2 script checks/1792,274 ms**; build PASS/Vite 5,46 s, RealApp **313,06 kB/gzip 97,60 kB**. Tài liệu architecture/context/schema và API đã phân hai origin đúng code; docschecker **181 Markdown/1162 links/144 operations/130 settings/64 tables PASS**.
+
+Rà caller của interface mới: RED riêng `test_guest_review_regressions.py -k 'query_embedding_needs or funded_query_embedding'`: **4 failed/9 deselected, 9,77 s**, expected string cũ ở ba ca closed gate và một replay case. Chỉ đổi expected value sang MemoryText approved, giữ toàn bộ funded-admission/provider/charge assertions; inventory ghi rõ. Rerun cả file đang chạy trên DB chẩn đoán riêng.
+
+Caller guest GREEN cả file: **13 passed, 27,50 s**, runner 30,140 s. Hồi quy 11 file (memory/context/privacy/embeddings/auto API+worker/guest permissions/orchestration/indexing/settings/budget): **228 passed, 260,19 s**, runner 264,797 s, 0 fail.
+
+Review recovery bổ sung sau lượt 228: RED `test_recovered_usage_lease_cannot_publish_a_late_model_result` **1 failed/28 deselected, 4,88 s**. Job lease còn hạn nhưng accounting đã recover run thành interrupted; publisher chưa kiểm `persist_snapshot=False`. Thêm xác nhận settlement và lock run sau usage (giữ thứ tự recovery usage→run), không publish kết quả worker đã mất lease. GREEN nhóm recovery + bulk/scope fence: **3 passed/26 deselected, 7,10 s**. Precommit rerun cả worker/API/budget/privacy/guest-return đang chạy; sẽ có full suite final sau JI-25.
+
+Precommit mới nhất `pytest -q tests/test_journal_auto_memory.py tests/test_journal_auto_memory_api.py tests/test_budget_reservations.py tests/test_privacy_lifecycle.py tests/test_guest_review_regressions.py`: **68 passed, 79,91 s**, runner 82,906 s. Không sửa test_memory. Browser rà heading cũ: RED `ux-redesign.spec.ts --grep proposal` **1 failed/2 passed, 14,4 s**, chỉ region “Đã duyệt” đã đổi vì nay có automatic origin. Sửa một locator, giữ assertions về pending/rejected/saved. GREEN `memory-auto.spec.ts` + hai ca memory cũ: **3 passed, 8,6 s**. Ruff full PASS/mypy 190 files PASS. Chốt JI-30/31 cùng một commit; full final và review độc lập còn ở phía sau JI-25, chưa push nhóm memory.
 
 ### Checkpoint B — kết quả cuối trước push
 

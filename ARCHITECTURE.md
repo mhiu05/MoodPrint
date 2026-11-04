@@ -115,7 +115,7 @@ sequenceDiagram
 
 - **Transcript:** persistent chat lưu trong `ai_conversations/ai_messages` khi người dùng bật preference và capability cho phép. Temporary chat giữ nội dung trong RAM. Không được mô tả mọi transcript là RAM-only.
 - **Model context:** là projection có version/policy, không phải toàn bộ transcript nhìn thấy. Giới hạn 24 message và 24.000 byte; cắt tại privacy boundary. Mood scope chỉ có hiệu lực trong lượt HTTP đã chọn.
-- **Memory:** proposal cần người dùng confirm; memory active tách khỏi lịch sử. Semantic index chỉ xử lý memory đã được phép và có opt-in.
+- **Memory:** `origin='approved'` vẫn cần người dùng confirm proposal. Lớp `journal_auto` chỉ do worker ngoài lượt chat tạo từ trang saved của chính tài khoản registered 18+, có công tắc riêng; evidence phải là trích đoạn thật, qua bộ lọc nội dung và cap/chi phí. Nó có nhãn “Tự động từ nhật ký”, nguồn trang, sửa/xóa riêng hoặc hàng loạt, không được gọi là đã duyệt. Context phân nhãn hai origin, giới hạn chung; tạo tự động không tăng data_version, thao tác sửa/xóa của người dùng vẫn tăng và invalidate. Mỗi trợ lý chỉ nhận memory của chính nó. Semantic index vẫn đòi opt-in riêng.
 - **Events:** SDK delta/tool text được buffer nội bộ; browser chỉ nhận output validated. UI cần `final` hợp lệ và terminal `completed` trước khi coi thành công.
 
 `store=False`, tracing disabled và no automatic provider retry là cấu hình client; không phải cam kết về retention hạ tầng của provider. Restart đánh dấu lượt đang chạy interrupted và không replay model call. Xem [runtime](docs/agents/runtime.md), [context-memory](docs/agents/context-memory.md).
