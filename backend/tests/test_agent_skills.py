@@ -3,6 +3,14 @@ import shutil
 import pytest
 
 
+def test_hangout_does_not_direct_users_to_retired_shared_activities():
+    from app.ai.skills.registry import SkillRegistry
+
+    registry = SkillRegistry()
+    assert "activity hiện có" not in registry.instructions("hangout")
+    assert registry.load()["hangout"].version == "2"
+
+
 def test_registry_is_closed_and_loads_trusted_offline_workflows():
     from app.ai.skills.registry import SkillRegistry
     registry = SkillRegistry()

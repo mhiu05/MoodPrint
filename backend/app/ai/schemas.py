@@ -122,6 +122,15 @@ class AiOutput(DTO):
         return self
 
 
+def drop_retired_cards(parts: list[AiOutput], bot_id: str) -> list[AiOutput]:
+    from app.ai.agents import V3_IDS
+
+    if bot_id not in V3_IDS:
+        return parts
+    return [part.model_copy(update={"cards": [card for card in part.cards if card.kind != "discovery"]})
+            for part in parts]
+
+
 MAX_BUBBLES = 4
 MAX_BUBBLE_CHARS = 1500
 # SSE v1 joins bubbles with "\n\n" and old clients reject a final text above 6000 chars.

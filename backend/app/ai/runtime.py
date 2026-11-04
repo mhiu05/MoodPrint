@@ -867,7 +867,10 @@ class AiRuntime:
                 if run.public_cards:
                     reply.parts[-1].cards.extend(run.public_cards)
                     reply = AiReply.model_validate(reply.model_dump())
-                parts = reply.parts
+                from app.ai.schemas import drop_retired_cards
+
+                parts = drop_retired_cards(reply.parts, bot)
+                reply = AiReply(parts=parts)
                 backed = run.public_search or any(p.citations or any(c.kind in ("maps_search", "places") for c in p.cards) for p in parts)
                 if run.mood_evidence is not None:
                     run.mood_evidence.assert_current(run)

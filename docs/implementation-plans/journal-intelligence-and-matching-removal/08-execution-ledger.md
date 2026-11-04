@@ -47,6 +47,8 @@ JI-02 commit cục bộ **`5f6ed77a`**, chưa push. JI-10 chốt từ snapshot r
 
 JI-10 commit cục bộ **`651f1fde`**, chưa push. JI-11 chốt snapshot 16 file với RED/GREEN đã ghi, frontend suite sau tích hợp **204 pass + 2 script checks**, typecheck/build mới nhất pass. OD-09 Auth.tsx/GuestEntry.tsx có thay đổi sẽ xung đột stash người dùng; không pop/drop stash.
 
+JI-11 commit cục bộ **`ddb8c18e`**, chưa push. JI-12 precommit `pytest -q tests/test_retired_social.py tests/test_agent_skills.py tests/test_prompt_options.py tests/test_three_agents.py tests/test_orchestration_sdk.py tests/test_groups_turn.py`: **57 passed, 118,59 s**. SHA instructions/persona được test bảo vệ; snapshot runtime chỉ chứa lọc card, chưa lấy thay đổi truy xuất JI-23.
+
 Các task dưới đây đã có triển khai và targeted tests; JI-01 đã có full green để chốt commit đầu tiên (hash bổ sung sau commit). Các task dưới bảng vẫn chờ commit riêng. Chưa chạy checkpoint A/B, chưa push/PR/merge/deploy. Những cổng thiếu bên dưới vẫn là việc phải làm.
 
 | Task | RED quan sát | GREEN quan sát | Còn thiếu để chốt |

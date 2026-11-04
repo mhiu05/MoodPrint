@@ -18,7 +18,7 @@ class SkillSpec:
 
 
 SPECS = {
-    "hangout": ("Đi chơi", "Gợi ý hoạt động vừa sức và địa điểm khi bạn cần.", "1"),
+    "hangout": ("Đi chơi", "Gợi ý hoạt động vừa sức và địa điểm khi bạn cần.", "2"),
     "learn-new-thing": ("Học điều mới", "Chọn một điều thú vị và thử trong 5–15 phút.", "1"),
 }
 
