@@ -67,6 +67,20 @@ JI-22 commit **`f691898d`**, chưa push. JI-23 chốt hybrid search/runtime prom
 
 JI-23 commit **`9fefdf8d`**, chưa push. JI-24 CLI cuối với `--embedder fake --out <scratch>/ji24-eval`: **exit 0, 11,141 s**, 55 fake calls. Không chạy Voyage. Recall/MRR giữ số như bảng trước; latency toàn bộ baseline keyword p50 **31,9999999992433 ms**, p95 **93,99999999914144 ms**; hybrid p50 **31,9999999992433 ms**, p95 **93,0000000007567 ms** (nearest-rank percentile). JSON giữ đầy đủ từng nhóm. Các số này dưới tải synthetic/local; không suy ra latency/quality thật. `tests/test_journal_retrieval_eval.py` 2 pass và cụm retrieval/eval mới nhất 17 pass. Runner chỉ `_env_file=None`, local disposable identity guard, xóa đúng actor synthetic sau hoàn tất.
 
+JI-24 commit **`6adc9fa4`**, chưa push. Fullstack mới nhất **38 passed, 6,2 phút** (runner 381,187 s), gồm V3-D đã chờ terminal, không còn fail. Fixture owned chạy song song fullstack: **380 passed/2 failed, 14,3 phút**; một logout trace có `net::ERR_NO_BUFFER_SPACE`, ca paused schedule còn chờ lazy component. Thử giả thuyết StrictMode bằng harness riêng: hai lượt đầu hỏng setup import Vite, sau sửa harness **1 passed/7,3 s trên code chưa sửa**; giả thuyết chưa được xác nhận nên không sửa production hook. Gỡ đúng test harness mới chưa commit và testMatch của nó; không xóa test gốc. Đóng browser public do phiên sở hữu, rerun hai ca lỗi một worker không fullstack song song: **2 passed, 8,9 s**. Ruling chạy owned suite một worker để giảm áp lực socket/memory Windows, giữ timeout/assertion; không thay worker default/CI. Full serial đang chạy.
+
+Full backend A đã thấy một failure, collect-current có **2063 tests**, vị trí failure tương ứng `test_0020_preserves_journal_auth_matching_and_approved_memories`; rerun riêng trên sibling `_test` khác để xem lỗi, không giẫm DB full suite. Chưa coi gate A đạt.
+
+### Hồi quy phát hiện bởi full backend A (đang chạy)
+
+- `test_discovery_migration.py` RED riêng **1 failed, 8,65 s**: constant HEAD còn 0028 trong khi Alembic current trả 0029. Chỉ đổi HEAD→0029, giữ toàn bộ dữ liệu/RLS/rollback assert. GREEN **1 passed, 29,73 s**.
+- `test_foundation.py` có hai failure trong full A: tuple READY_REVISIONS và ca 0028→200. Đổi expected head 0029, bắt 0028→503, thêm 0029→200; không mở cửa chấp nhận schema cũ. `pytest -q tests/test_foundation.py tests/test_readiness.py`: **53 passed, 53,46 s**.
+- `test_guest_cleanup_recovery.py::test_guest_aware_rollback_cannot_resurrect` cũng ghim tuple 0028; đổi 0029, giữ toàn bộ denial/purge/peer assertions.
+- `INVENTORY` guest thiếu ba bảng journal AI: phân loại purged (entry cascade cho job/vector, settings đã xóa tường minh). Isolated `test_inventory_classifies_every_orm_table` còn lộ phụ thuộc collection side effects đăng ký các model cũ. Bổ sung app build offline trước equality; không đổi assertion/allowlist nhóm. Lượt giữa **1 failed/6 passed/36 deselected, 24,53 s** ghi nhận setup chưa đủ; lượt cuối `tests/test_guest_cleanup.py tests/test_guest_cleanup_recovery.py tests/test_journal_indexing.py -k 'inventory_classifies or purge_removes_every_guest_owned_store or every_journal_delete_path or rollback_cannot_resurrect'`: **8 passed/49 deselected, 19,66 s**.
+- Full A đang giữ các failure cũ đã collect/compile trước sửa; phải phân biệt với rerun xanh trên source mới, không ghi full suite xanh. Cần lượt full final sau sửa để chốt gate.
+- Operation inventory của `test_guest_permissions.py::test_every_operation_has_guest_policy` cũng fail trong full A vì thiếu GET/PUT journal/ai-settings. Thêm vào REGISTERED_ONLY, giữ equality và mở rộng tự động hai ca live guest403/expired guest401; không sửa assertion để bỏ endpoint mới. Full file rerun đang chạy trên sibling riêng.
+- Ruling lệnh eval: dùng `python -m evals.journal_retrieval.run ... --out <dir>` từ backend để import app ổn định và cấp output bắt buộc; đã cập nhật cổng 12 của 06. Không thêm dependency hoặc chạy live.
+
 Các task dưới đây đã có triển khai và targeted tests; JI-01 đã có full green để chốt commit đầu tiên (hash bổ sung sau commit). Các task dưới bảng vẫn chờ commit riêng. Chưa chạy checkpoint A/B, chưa push/PR/merge/deploy. Những cổng thiếu bên dưới vẫn là việc phải làm.
 
 | Task | RED quan sát | GREEN quan sát | Còn thiếu để chốt |
@@ -106,6 +120,13 @@ Các log/JSON ở `.tmp/journal-intelligence/` là artifact cục bộ, không c
 - Backend Ruff đúng cwd: **All checks passed**; mypy **188 source files pass** tại thời điểm có retrieval. Docs checker **179 Markdown / 1154 links / 143 operations / 122 settings / 64 tables, PASS**. Cần chạy lại final gates sau các task còn lại.
 
 ## JI-50 / phát hành
+
+### Bổ sung hồi quy checkpoint A sau lượt full backend đầu
+
+- Standalone load fixtures: RED `pytest -q tests/test_load_settings_baseline.py`: **2 failed, 18,42 s**; subprocess xóa env cờ do pytest ghim rồi so với `ALL_FEATURES_OFF` cộng đúng các tính năng từng fixture chủ động bật. Chat/social load server chưa được chạy; chỉ import cấu hình, không lifespan/network. GREEN **2 passed, 13,95 s**. Ruling JI-01: hai entrypoint tải cũng phải ghim nền tắt; nếu không mặc định mới có thể bật worker ngoài phạm vi fake provider của fixture. Giữ chat history bật.
+- Schema regression RED `pytest -q tests/test_guest_schema.py::test_upgrade_from_0015_preserves_registered_rows_and_matches_models tests/test_journal_migration.py::test_journal_upgrade_downgrade_preserves_legacy_mood_and_private_acl`: **2 failed, 15,68 s** (head assertion cũ 0028; rollback 0019 bị FK của 0029 chặn). Ruling: assertion head chuyển 0029; diễn tập migration lịch sử tháo 0029 trước rồi phục hồi sau 0019, trong cùng transaction rollback cả temporary roles. Không sửa DDL hay bỏ assertion bảo toàn/RLS. GREEN `pytest -q tests/test_guest_schema.py tests/test_journal_migration.py tests/test_load_settings_baseline.py`: **6 passed, 34,86 s**.
+- Gate 1 sau các sửa trên: Ruff **All checks passed**; mypy **189 source files**, không lỗi. Gate 7: **181 Markdown / 1161 local links / 143 operations / 122 settings / 64 tables, PASS**. Reviewed artifacts **12 pinned / 12 consumed, PASS**.
+- Gate 11 Linux: lệnh tài liệu cũ dùng `python:3.12-slim` chạy **37 tests, 5 failures/4 errors**, do image không có Docker CLI/Compose cho các test Storage mới; không phải lỗi `fcntl`, không sửa hoặc skip test. Chạy lại bằng image test có sẵn `moodprint-release-deploy-tests:latest`: `docker run --rm --pull=never --network none --mount 'type=bind,source=E:\MoodPrint,target=/repo,readonly' --workdir /repo --env PYTHONDONTWRITEBYTECODE=1 --mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock moodprint-release-deploy-tests:latest python -m unittest discover -s deploy/aws/tests -v`: **37 tests, OK, 11,708 s**. Chỉ synthetic config và container Caddy; không AWS/hosted/provider. Không thêm dependency dự án hay thay assertions.
 
 ### Sự cố guard subprocess và khắc phục
 

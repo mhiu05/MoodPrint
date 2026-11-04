@@ -156,11 +156,20 @@ Inventory theo diff source, không phải số ca runtime (template/width đư�
 
 ## Backend: assertion/test cập nhật
 
+- `test_upgrade_from_0015_preserves_registered_rows_and_matches_models`: expected head 0028→0029; giữ bảo toàn registered rows, session lifetime, private grants và Alembic drift.
+- `test_journal_upgrade_downgrade_preserves_legacy_mood_and_private_acl`: tháo/phục hồi migration phụ thuộc 0029 quanh diễn tập 0019 để không vi phạm FK mới; giữ nguyên mọi assertion và rollback temporary roles.
+- Standalone chat/social load server: dùng `ALL_FEATURES_OFF` trước các override rõ ràng, thêm hai ca kiểm cấu hình subprocess không chạy server/provider.
+
 - `test_guest_input_and_settings_defaults_fail_closed`: defaults bật nên kiểm configuration_missing và guest paid/feedback đóng khi thiếu config.
 - `test_local_live_actor_allowlist_is_closed_by_default_and_rejected_in_production`: ghim ai_enabled=false để giữ phạm vi allowlist.
 - `test_three_agents` legacy baseline: chỉ đổi tên mô tả, không đổi assertion.
 - Production settings: thiếu provider key chuyển từ raise sang degraded; các assert auth/HTTPS/database/captcha giữ nguyên.
 - Readiness: revision 0028 không đủ cho ORM mới, head bắt buộc 0029.
+- `test_foundation.py`: assertion READY_REVISIONS dùng 0029; ca 0028 đổi 200→503, thêm ca 0029→200, giữ mọi revision cũ/unknown bị từ chối.
+- `test_0020_preserves_journal_auth_matching_and_approved_memories`: constant HEAD đổi 0028→0029 để chạy hết chain hiện hành; giữ nguyên mọi assertion dữ liệu/RLS/rollback.
+- `test_guest_aware_rollback_cannot_resurrect`: expected readiness head đổi 0028→0029; giữ denial, purge và peer-session assertions.
+- `test_inventory_classifies_every_orm_table`: đăng ký route-owned models bằng app build offline trước assertion để chạy riêng không phụ thuộc side effect collection; không đổi equality hoặc danh sách nhóm lifecycle.
+- `test_guest_permissions.py`: thêm GET/PUT journal/ai-settings vào registered-only; equality operation inventory không đổi, đồng thời thêm hai ca live guest 403/expired guest 401 qua parametrization có sẵn.
 - `test_journal_query_cannot_choose_owner_drafts_or_unbounded_inputs`: invalid limit 6→9 theo giới hạn mới 8; giữ các payload owner/draft/date/query sai.
 - `test_journal_search_is_owner_saved_date_and_size_bounded`: thêm field match; literal `100_` được recent fallback 2 bài, kiểm cả hai không giả thành keyword match. Owner/draft/window/size vẫn giữ.
 - Hai test seed derivative trong `test_journal_ai_settings.py`: xóa job auto-enqueue của đúng entry synthetic trước fixture seed để tránh unique conflict; assertions không đổi.

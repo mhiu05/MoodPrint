@@ -78,6 +78,9 @@ PERSONAL = {
     ("GET", "/data-deletions/{job_id}"),
 }
 REGISTERED_ONLY = {
+    # Derived journal processing is excluded from guest accounts (OD-06).
+    ("GET", "/journal/ai-settings"),
+    ("PUT", "/journal/ai-settings"),
     # Scheduled check-ins are for permanent accounts only (P1-10).
     ("GET", "/ai/proactive"),
     ("PUT", "/ai/proactive/settings"),

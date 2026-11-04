@@ -2,6 +2,8 @@
 
 Phạm vi: yêu cầu 1. Task JI-01, JI-02. Đọc trước [00-overview.md](00-overview.md) mục Global Constraints.
 
+Ruling bổ sung khi kiểm checkpoint A: `tests/chat_load_server.py` và `tests/social_load_server.py` cũng dùng `ALL_FEATURES_OFF` trước override của từng fixture. Test subprocess phải xóa env `FEATURE_FLAGS` do pytest ghim để phát hiện mặc định lọt vào; chỉ import cấu hình, không chạy lifespan hay provider. Giữ `chat_history_enabled=True` trong nền.
+
 ## Kiểm kê (đã đọc `backend/app/core/config.py` và `backend/app/ai/embedding_config.py`)
 
 `Settings` có 31 field boolean. Kế hoạch tách chúng thành **cờ tính năng** (26 cờ hiện có + 2 cờ mới, mặc định `true`) và **công tắc an toàn/tương thích** (5 field, giữ `false`). Việc tách nhóm này lệch khỏi chữ "TẤT CẢ" trong yêu cầu, nên được ghi thành quyết định mở OD-01 ở [07](07-decisions-risks-unknowns.md).

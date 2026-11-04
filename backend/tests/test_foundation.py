@@ -18,12 +18,12 @@ async def test_live_works_without_configuration_but_ready_and_auth_fail_closed()
         assert "requestId" in response.json()["error"]
 
 
-def test_ready_revision_requires_the_destructive_retirement_head():
+def test_ready_revision_requires_the_journal_intelligence_head():
     from app.core.revisions import READY_REVISIONS
 
-    # Search/maps/receipt-policy columns (0025-0028) are mapped by the ORM, so only 0028 is ready.
+    # Journal settings/provenance columns (0029) are mapped by the ORM.
     assert READY_REVISIONS == (
-        "0028_collaboration_defaults",
+        "0029_journal_intelligence",
     )
 
 
@@ -48,7 +48,8 @@ def test_ready_revision_requires_the_destructive_retirement_head():
         ("0025_search_citations", 503),
         ("0026_search_usage", 503),
         ("0027_maps_jobs", 503),
-        ("0028_collaboration_defaults", 200),
+        ("0028_collaboration_defaults", 503),
+        ("0029_journal_intelligence", 200),
         ("0017_unreviewed", 503),
         ("9999_unknown", 503),
     ],
