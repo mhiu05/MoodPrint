@@ -11,7 +11,7 @@ Quy ước (giống `docs/implementation-plans/three-agent-orchestration-group-c
 
 ## Trạng thái hiện tại (cập nhật khi chốt checkpoint)
 
-Các commit tới checkpoint B `7cd83b08` đã push. Final local đã đủ2131 testcase JUnit: **2128 pass/3 skip baseline**, tổng hợp187 file Windows +1 file Linux, không phải một lượt nguyên khối. Memory `61469170`, consult `43d27e4c`, review fixes `caf1ea82`, release hold `1c916cc7` và báo cáo final đang chốt trước push. CI nguyên khối bắt buộc xanh trước merge. Chưa deploy/migrate hosted. Mục final dưới đây có ưu tiên so với các dòng lịch sử.
+Đã push toàn bộ tới `a725fdff` lên `origin/feat/journal-intelligence`: gồm checkpointB, memory `61469170`, consult `43d27e4c`, fixes `caf1ea82`, hold `1c916cc7` và báo cáo final `a725fdff`. Final local đủ2131 testcase JUnit: **2128 pass/3 skip baseline**, tổng hợp187 file Windows +1 file Linux, không phải một lượt nguyên khối. Đã mở [PR38](https://github.com/mhiu05/MoodPrint/pull/38) vào main; CI nguyên khối đang chạy, bắt buộc xanh trước merge. Chưa deploy/migrate hosted. Bản ghi Git/PR này là cập nhật tài liệu sau push; kết quả CI/merge cuối được kiểm tra trực tiếp trên PR, không suy từ trạng thái lịch sử trong sổ.
 
 | Task | Trạng thái | Commit | Bằng chứng chính |
 | --- | --- | --- | --- |
@@ -30,8 +30,8 @@ Các commit tới checkpoint B `7cd83b08` đã push. Final local đã đủ2131 
 | Checkpoint A | xong | `587e61d5`, đã push | backend 2065 pass/3 skip; gates 1–10/15 xanh |
 | JI-40 | xong | `b3f344ac`, đã push tại checkpoint B | 32 backend pass; hồi quy 204 pass; frontend 205 + 2 pass; browser skill 7 pass |
 | Checkpoint B | xong | `7cd83b08`, đã push | backend 2082 pass/3 skip; fixture 384 pass; fullstack 38 pass |
-| JI-30 + JI-31 | xong | `61469170`, chưa push | 269/228 regression pass; precommit 68 pass; browser cuối 3 pass |
-| JI-25 | xong | `43d27e4c`, chưa push | 51 regression pass; ranking/timeout/settings/dimensions guards |
+| JI-30 + JI-31 | xong | `61469170`, đã push | 269/228 regression pass; precommit 68 pass; browser cuối 3 pass |
+| JI-25 | xong | `43d27e4c`, đã push | 51 regression pass; ranking/timeout/settings/dimensions guards |
 | JI-50 | xong local; live/snapshot chưa chạy | SQL `9f3c238e`, fixes `caf1ea82`, hold `1c916cc7` | 2128 pass/3 skip tổng hợp; fixture385/fullstack38/Linux37 pass; bảng15gates ở mục final |
 | JI-51 | ngoài phạm vi | — | không migrate/deploy/SSM/đọc hosted |
 
