@@ -45,6 +45,8 @@ JI-01 commit cục bộ **`59d4dd02`**, chưa push. JI-02 precommit rerun đúng
 
 JI-02 commit cục bộ **`5f6ed77a`**, chưa push. JI-10 chốt từ snapshot riêng đã kiểm chứng frontend unit/type/build + browser 3 ca RED→GREEN (bảng dưới); stage 44 file đúng task, giữ các sửa copy/API sau trong working tree.
 
+JI-10 commit cục bộ **`651f1fde`**, chưa push. JI-11 chốt snapshot 16 file với RED/GREEN đã ghi, frontend suite sau tích hợp **204 pass + 2 script checks**, typecheck/build mới nhất pass. OD-09 Auth.tsx/GuestEntry.tsx có thay đổi sẽ xung đột stash người dùng; không pop/drop stash.
+
 Các task dưới đây đã có triển khai và targeted tests; JI-01 đã có full green để chốt commit đầu tiên (hash bổ sung sau commit). Các task dưới bảng vẫn chờ commit riêng. Chưa chạy checkpoint A/B, chưa push/PR/merge/deploy. Những cổng thiếu bên dưới vẫn là việc phải làm.
 
 | Task | RED quan sát | GREEN quan sát | Còn thiếu để chốt |

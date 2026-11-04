@@ -258,8 +258,7 @@ export function ApprovedMemories() {
     <div className={cx.reading}>
       <h1 tabIndex={-1} data-tour="memory-intro">Thông tin AI ghi nhớ</h1>
       <p className={cx.lede}>
-        Mỗi trợ lý chỉ dùng những mục bạn đã duyệt cho trợ lý đó. Hồ sơ tìm bạn
-        không dùng các ghi nhớ này để gợi ý.
+        Mỗi trợ lý chỉ dùng những mục bạn đã duyệt cho trợ lý đó.
       </p>
       <Link to="/profile">Về Tài khoản</Link>
       {notice && <p role="status">{notice}</p>}

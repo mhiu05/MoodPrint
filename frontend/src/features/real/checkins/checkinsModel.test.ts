@@ -7,12 +7,18 @@ import {
   quietOptions,
   repeatKind,
   slotLabel,
+  socialEligibilityText,
   timeOptions,
   weekdaysFor,
   zoneLabel,
 } from "./checkinsModel";
 
 describe("check-in schedule model", () => {
+  it.each(["social_not_enabled", "teen_social_unavailable", "social_restricted"])(
+    "explains retired check-ins without sending users to a removed route: %s", (reason) => {
+      expect(socialEligibilityText(reason)).toBe("Cầu Nối đã ngừng hỏi thăm.");
+    },
+  );
   it("treats quiet hours as [start, end) across midnight", () => {
     expect(inQuiet("22:00", "22:00", "07:00")).toBe(true);
     expect(inQuiet("06:45", "22:00", "07:00")).toBe(true);

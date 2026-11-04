@@ -76,6 +76,7 @@ import "./checkins/proactive.css";
 import type { components } from "../../api/generated/schema";
 import { AIInboxProvider, inboxLabel, otherUnread, unreadFor, useAIInbox } from "./useAIInbox";
 import { NAV_ITEMS, badgeText } from "./navigation";
+import { renderableCards } from "./messageCards";
 import { OfflineBanner, useOnline } from "./OfflineBanner";
 import {
   SESSION_GRACE_MS,
@@ -653,11 +654,11 @@ function SessionNotices() {
       {notices.map((notice) =>
         notice.kind === "restricted" ? (
           <p key="restricted">
-            Tính năng kết nối của bạn đang tạm bị hạn chế
+            Tài khoản của bạn đang bị hạn chế
             {notice.until
               ? ` đến ${new Date(notice.until).toLocaleDateString("vi-VN")}`
               : ""}
-            . Bạn vẫn dùng được các trợ lý và nhật ký cảm xúc.
+            . Bạn vẫn dùng được trợ lý và nhật ký.
           </p>
         ) : (
           <p key="warning">
@@ -1005,7 +1006,7 @@ function Assistants({ group }: { group?: "new" | "chat" }) {
             <p>
               Một nơi để lắng nghe bản thân
               <br />
-              và kết nối từ những điểm chung.
+              và hiểu mình hơn qua từng trang nhật ký.
             </p>
             {bots[0] ? (
               <Link
@@ -1837,7 +1838,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
 
   let readOnlyMessage = "Đang kiểm tra cài đặt trò chuyện AI…";
   if (legacyReadOnly)
-    readOnlyMessage = `Đây là cuộc trò chuyện cũ với ${bot.name}, chỉ để xem lại. ${successor ? `${successor.name} đã tiếp nhận phần việc này. ` : "Tìm bạn giờ là một mục riêng. "}Bạn vẫn có thể đổi tên, tải xuống hoặc xóa.`;
+    readOnlyMessage = `Đây là cuộc trò chuyện cũ với ${bot.name}, chỉ để xem lại. ${successor ? `${successor.name} đã tiếp nhận phần việc này. ` : ""}Bạn vẫn có thể đổi tên, tải xuống hoặc xóa.`;
   else if (!session.features.ai) readOnlyMessage = aiServiceMessage(session.features);
   else if (!preferences && !preferencesLoading)
     readOnlyMessage = "Chưa tải được cài đặt trò chuyện AI. Tải lại trước khi gửi tin nhắn.";
@@ -1883,7 +1884,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
                 ) : <p>{message.text}</p>}
               </div>
               {validCards(message.cards, 3) &&
-                message.cards.map((card, index) => (
+                renderableCards(message.cards).map((card, index) => (
                   <div className="inline-card" key={`${message.id}-${index}`}>
                     {card.kind === "places" ? <PlacesCard places={card.places} /> : card.kind === "maps_search" ? <MapsSearchCard api={api} searchId={card.searchId} onReuse={(id) => {
                       changeOptions({ ...selectionRef.current.options, mapsSearchId: id });
@@ -1895,9 +1896,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
                       <Link to={`/assistants/${card.botId}`}>
                         Trò chuyện với {botById(card.botId)?.name} <ArrowUpRight size={15} aria-hidden="true" />
                       </Link>
-                    ) : (
-                      <Link to="/connect">Tìm bạn đồng điệu <ArrowUpRight size={15} aria-hidden="true" /></Link>
-                    )}
+                    ) : null}
                   </div>
                 ))}
               {date || message.actor === "bot" ? (
@@ -2019,7 +2018,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           <p>{bot.description}</p>
           {!conversation?.messages.length && <AssistantGuide botId={bot.botId} />}
           <small>
-            <LockKeyhole size={13} /> Không chia sẻ với bạn kết nối
+            <LockKeyhole size={13} /> Chỉ bạn xem được
           </small>
         </div> : null}
         {notice ? <p role="status"><span>{notice}</span>{previousConversation ? <> <Link to={`/assistants/${bot.botId}?conversation=${encodeURIComponent(previousConversation)}`}>Xem cuộc trò chuyện trước</Link></> : null}</p> : null}
