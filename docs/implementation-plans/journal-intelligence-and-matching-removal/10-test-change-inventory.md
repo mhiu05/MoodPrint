@@ -154,6 +154,10 @@ Inventory theo diff source, không phải số ca runtime (template/width đư�
 | `frontend/src/features/real/social/profileRules.test.ts` | "counts towards minimums and caps selections at the maximum" | Hàm thuần chỉ phục vụ component social/activity đã gỡ, không có consumer còn lại. |
 | `frontend/src/features/real/social/profileRules.test.ts` | "falls back to the documented limits when the taxonomy has none" | Hàm thuần chỉ phục vụ component social/activity đã gỡ, không có consumer còn lại. |
 
+## Browser: regression từ CI
+
+CI follow-up: thêm một browser regression trong `maps-search.spec.ts` giữ callback animation frame sau chọn tool rồi cho người dùng focus/nhập khu vực; kiểm focus vẫn ở input, payload chứa đúng area và chỉ gửi một lượt. Không sửa hay bỏ assertion của test Maps retry cũ; không đổi timeout/skip. Production fix chỉ ngăn callback focus cũ kéo con trỏ khỏi control người dùng vừa chọn.
+
 ## Backend: assertion/test cập nhật
 
 - JI-31 sáu test `test_embeddings.py` đổi kết quả `list[str]` thành `MemoryText(text, 'approved')`: tenant/bot isolation, no opt-in/revocation fallback, config dimension fallback, Vietnamese semantic ranking, unrelated-data-version và no external query. Bảy assertion giá trị cập nhật đúng interface mới, giữ nguyên expected text, provider call counts và mọi authorization/bounds assertion.

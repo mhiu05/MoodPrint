@@ -11,7 +11,7 @@ Quy ước (giống `docs/implementation-plans/three-agent-orchestration-group-c
 
 ## Trạng thái hiện tại (cập nhật khi chốt checkpoint)
 
-Đã push toàn bộ tới `a725fdff` lên `origin/feat/journal-intelligence`: gồm checkpointB, memory `61469170`, consult `43d27e4c`, fixes `caf1ea82`, hold `1c916cc7` và báo cáo final `a725fdff`. Final local đủ2131 testcase JUnit: **2128 pass/3 skip baseline**, tổng hợp187 file Windows +1 file Linux, không phải một lượt nguyên khối. Đã mở [PR38](https://github.com/mhiu05/MoodPrint/pull/38) vào main; CI nguyên khối đang chạy, bắt buộc xanh trước merge. Chưa deploy/migrate hosted. Bản ghi Git/PR này là cập nhật tài liệu sau push; kết quả CI/merge cuối được kiểm tra trực tiếp trên PR, không suy từ trạng thái lịch sử trong sổ.
+Đã push tới `c97a8d22` lên `origin/feat/journal-intelligence`: checkpointB, memory `61469170`, consult `43d27e4c`, fixes `caf1ea82`, hold `1c916cc7`, báo cáo `a725fdff/c97a8d22`; đã mở [PR38](https://github.com/mhiu05/MoodPrint/pull/38) vào main. CI phát hiện race focus Maps; fix `06682bf0` đã có RED→GREEN, full fixture386pass/fullstack38pass và được chốt cùng cập nhật ledger này cho lần push kế tiếp. Backend local đủ2131nodes:2128pass/3skip tổng hợp; CI nguyên khối trước focus fix2129pass/4skip, khác2guard hiện hữu. CI toàn workflow mới bắt buộc xanh trước merge. Chưa deploy/migrate hosted. Kết quả CI/merge cuối kiểm tra trực tiếp trên PR, không suy từ trạng thái lịch sử trong sổ.
 
 | Task | Trạng thái | Commit | Bằng chứng chính |
 | --- | --- | --- | --- |
@@ -39,6 +39,18 @@ Quy ước (giống `docs/implementation-plans/three-agent-orchestration-group-c
 
 ### Final local sau review — 2026-11-04
 
+#### CI phát hiện race focus sau push — đang kiểm chứng lại
+
+Push final `c97a8d22`/PR38: bước backend nguyên khối trong CI push **2129 passed/4 skipped/801,68s**, migration check no drift, frontend206unit/37files pass. Số CI hơn local1pass/1skip vì workflow hiện hữu chạy `pytest -q` có thêm hai test trong `tests/live/test_guest_auth_compatibility.py`: pure hosted-target guard và hosted signup opt-in (skip khi không owner-approved target). Không chạy tests/live ở local, không sửa workflow để bật hosted/provider. Frontend browser CI có **384 passed/1 failed/5,3phút**: `a Maps network failure retries the same job and keyboard reuse only edits the draft on mobile` không thấy nút retry. Artifact trace xác nhận POST chỉ có tools maps_search, thiếu area dù thao tác trước đó điền Quận3; fixture vì vậy trả câu hỏi khu vực.
+
+Root cause được tái hiện riêng: callback `requestAnimationFrame(() => composer.focus())` sau chọn tool có thể chạy sau khi người dùng chuyển vào input Khu vực, kéo focus khỏi input và làm mất dữ liệu lúc nhập. Test mới giữ frame tới khi input đã nhận focus rồi thả: RED chính thức `maps-search.spec.ts --grep 'deferred tool-selection'` **1failed**, runner16,109s, đúng `expect(area).toBeFocused()`. RED đầu với scheduler giữ frame sớm hơn cũng1failed/29,578s; chỉnh harness bắt đầu giữ frame ở capture click cho sát đúng callback chọn tool, không đổi assertion.
+
+Sửa tối thiểu: callback focus chỉ chạy nếu activeElement còn là control lúc chọn hoặc body sau control bị unmount; người dùng đã chuyển sang control khác thì giữ nguyên focus mới. Dùng chung cho option và chip, không đổi maps request/cap/quota/timeout/authorization. Nhóm23test đầu **22pass/1fail/101,578s**: ca768px fail ngay openSearch vì hiện trang login trước phần lựa chọn, không phải focus assertion; không sửa ca đó. New regression và ca Maps retry cũ đã pass. Full fixture mới đã qua lại ca768px, đang chạy trên frontend ổn định. Typecheck PASS; frontend206unit/37files/3,58s +2script checks/977,065ms PASS; build PASS6,85s, RealApp313,14kB/gzip97,62. Chưa coi full browser/fullstack source sau fix xanh cho tới khi kết thúc. Đây là fix bug bị CI phát hiện, không phải mở lại lượt sửa Minor đã defer từ review.
+
+Full fixture sau fix: `node .../cli.js test --config playwright.owned.config.ts --workers=2 --reporter=list`: **386passed/0failed/0skipped,13,2phút**, runner791,359s. Cả ca768px, new regression và ca Maps retry đều nằm trong lượt này. Không đổi default workers hoặc timeout của CI. Fullstack attempt song song browser dừng trước test do backend startup không đạt30s: **exit1/36,156s**, frontend Vite đã ready; log backend chỉ có content-free degraded flags, chưa có traceback nguyên nhân. Không nới startup timeout. Sau fixture exit0 mới chạy retry fullstack cùng source/DB4; đang chờ kết quả. Trong các lượt fullstack không chỉnh frontend. Ruling: chỉ rerun cổng liên quan frontend; source backend/fingerprint/JUnit2131nodes không đổi và bước backend nguyên khối CI đã pass.
+
+Retry fullstack sau fixture hoàn tất: **38passed/0failed/0skipped,7,5phút**, runner462,797s, exit0, cùng timeout30s. Bản sửa focus chốt `06682bf0`; không thay assertion cũ hoặc thêm skip/xfail. Backend inventory fingerprint vẫn trùng/đủ2131nodes; hợp đồng/SQL/backend source không đổi. Quét trước chốt fix7274addedlines/0unclassified, diff check PASS. Đây là kết quả final local mới nhất của frontend sau CI follow-up; lượt fixture385/fullstack38 trước đây vẫn là lịch sử. PR38 cần CI mới xanh sau lần push này rồi mới merge có hold.
+
 Đủ **2131 collected/2131 reported:2128 passed/3 skipped/0 failed/0 error**, missing0/duplicate0/unknown0/nonzero reports0. Đây là **188 report pytest theo file**, cùng fingerprint `5f768ef4d9994b33781689bd7a3b855d9de1723da55a3f5cb11baea524347576`:187 file Windows +1 file inbox Linux; không phải một invocation nguyên khối. Tổng runner report được chấp nhận **3461,421s**, không phải wall-clock. Worker Windows0/1 hoàn tất exit0 lần lượt1839,297s/1628,141s. Ba skip đúng baseline (collaboration latency,V3 live evaluation,V3 latency). CI nguyên khối giữ nguyên và phải xanh trước merge. Hai Important đã commit `caf1ea82`; marker hold `1c916cc7` trả `held=true`.
 
 Lượt Linux inbox đầu chọn host `database`, bị guard loopback chặn:10 setup errors/2,15s. Không thay guard. Traceback lượt đó đã in password **DB disposable phiên này**, trái yêu cầu không đưa credential vào output; không phải hosted/provider credential. Đã che credential trong log/XML và hủy đúng container/credential cũ run-id `4e8979b64a084f1a8fe8c42aaadadf9f` bằng ownership-checked script. Credential lộ không còn dùng được; output cũ đã hiện không thể thu hồi. Tạo replacement36433 bằng disposable script, run-id `13d9fb78da8a4f18952269e62eb1f04a`; container worker1/36434 giữ nguyên. Không đụng container khác hoặc backend/.env.
@@ -54,9 +66,9 @@ Lượt Linux cuối dùng loopback5432 trong network namespace của đúng PG 
 | 5 | `check_reviewed_artifacts.py`; reviewed-artifact/database-operation tests | 12pinned/12consumed;28pass/22,125s +15pass/22,015s; snapshot hosted chưa chạy |
 | 6 | `export_openapi.py` → `npm.cmd --prefix frontend run contracts:generate` → diff hai file sinh | PASS/no drift; exporter10,500s |
 | 7 | `python scripts/check_docs.py` | PASS;181Markdown/1163links/144operations/130settings/64tables |
-| 8 | Frontend `typecheck`; `test`; `build` | PASS;206tests/37files/3,44s +2script checks/1792,274ms; frontend không đổi sau lượt này |
-| 9 | Owned Playwright `--workers=1 --reporter=list` | 385pass/13,9phút; runner836,625s |
-| 10 | `python ../scripts/test_fullstack.py`,fake providers | 38pass/6,4phút; runner403,469s |
+| 8 | Frontend `typecheck`; `test`; `build` | PASS sau focus fix;206tests/37files/3,58s +2script checks/977,065ms; build6,85s |
+| 9 | Owned Playwright `--workers=2 --reporter=list` | 386pass/13,2phút; runner791,359s |
+| 10 | `python ../scripts/test_fullstack.py`,fake providers | 38pass/7,5phút; runner462,797s sau focus fix |
 | 11 | Linux deploy tests,repoRO/networknone/Docker socket cho synthetic Caddy | 37testsOK/11,479s; không actual deploy |
 | 12 | Retrieval CLI `--embedder fake` | 40entries/15queries/55fakecalls; exit0/8,000s; Voyage **chưa chạy,chờ chủ dự án duyệt chi phí** |
 | 13 | Live skill/memory eval | **Chưa chạy,chờ chủ dự án duyệt chi phí** |

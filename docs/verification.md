@@ -26,6 +26,7 @@ Các kết quả dưới đây là local/synthetic, chưa xác minh bản tính 
 | Linux deployment unit tests | Image test có sẵn, repo mount read-only, network none, Docker socket chỉ cho synthetic Compose/Caddy: 37 tests OK/11,479 s ở lượt final sau khôi phục Docker |
 | Backend final local | Đủ2131nodes:2128pass/3skip baseline,0missing/duplicate/unknown/nonzero;188reports cùng fingerprint (187Windows+inboxLinux),sum3461,421s; không phải một lượt nguyên khối. CI nguyên khối giữ nguyên,bắt buộc xanh trước merge |
 | Timing inbox | Windows50,6/69,0ms fail; baseline cũng74,9ms fail. Nguyên file Linux10pass/17,08s,ngưỡng50ms giữ nguyên; không gọi Windows SLO đã đạt |
+| CI follow-up focus Maps | CI backend nguyên khối2129pass/4skip/801,68s (workflow gồm2guard live,opt-in hosted skip); browser384pass/1fail do area bị callback focus trì hoãn lấy mất. Fix06682bf0 RED→GREEN; sau sửa fixture386pass/13,2phút,fullstack38pass/7,5phút,unit206+2/typecheck/build pass. CI toàn workflow mới bắt buộc xanh trước merge |
 | Web công khai hiện hữu | Homepage và health/live200; trang login có email/password, không tràn ngang ở1440/390px. Chỉ GET/HEAD cùng domain; CAPTCHA ngoài domain bị chặn, chưa login hoặc kiểm chứng tính năng mới |
 | Tích hợp source | Marker release hold có sẵn được dùng lại để merge source mà không tự publish/deploy; rollout C→0029→F vẫn là công việc riêng cần chủ dự án duyệt |
 | Chưa chạy | Provider thật, live eval có phí, rehearsal snapshot hosted và hosted schema/deploy |
