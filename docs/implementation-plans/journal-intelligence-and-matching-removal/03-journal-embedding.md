@@ -251,6 +251,8 @@ Ruling triển khai Windows: hàm thuần dùng `journalAiSettingsModel.ts` thay
 
 ## JI-25 (cắt được, nhóm B) — Hybrid cho consult của Điều phối
 
+Ruling interface: helper còn cần `settings` keyword-only để lọc đúng model/dimensions/settings-version của vector; không tạo Settings nội bộ hoặc đọc dotenv. `query_vector=None` giữ chọn recent cũ. Vector tính sau policy decision đã cho consult Nhật ký và trước open_step, ngoài owner lock, query tối đa 80 ký tự; open_step recheck preference version và model/dimensions trước dùng. Permission edge, journal consent, max 14 ngày/5 trang/600 ký tự và revision fence không đổi.
+
 **Mục tiêu:** Consult Nhật ký của Điều phối chọn trang liên quan nhất trong cửa sổ đã cho phép.
 
 `orchestration/workflow.py:163-183` `journal_excerpts(db, user, days)` → thêm `query_vector: list[float] | None = None`; vector tính trong `Workflow.decide` **trước** `open_step` (không giữ khóa). Giữ trần `days ≤ 14`, `JOURNAL_EXCERPTS = 5`, `EXCERPT_CHARS = 600` (policy edge `dieuphoi_consult_nhatky` không đổi); chỉ đổi thứ tự chọn trong cửa sổ. Test `test_consult_ranks_relevant_entry_first_within_window` trong `tests/test_orchestration_sdk.py`. Rollback: tham số mặc định `None` = hành vi cũ.

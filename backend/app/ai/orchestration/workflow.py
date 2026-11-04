@@ -17,7 +17,7 @@ import json
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import date, timedelta
 from typing import Any, cast
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
@@ -160,12 +160,21 @@ async def handoff_allowed(db, settings, user: User, agent: str, *, conversation_
     return valid
 
 
-async def journal_excerpts(db, user: User, days: int) -> list[dict]:
+async def journal_excerpts(db, user: User, days: int, query_vector: list[float] | None = None, *, settings=None) -> list[dict]:
     """At most five saved, owner-only entries of the last ``days`` local days (90-day bound)."""
     from app.modules.journal.models import JournalEntry
 
     today = now().astimezone(ZoneInfo(user.timezone)).date()
     first = today - timedelta(days=max(1, min(days, 14)) - 1)
+    if query_vector is not None and settings is not None:
+        from app.modules.journal.ai import JournalSearchInput
+        from app.modules.journal.retrieval import hybrid_search
+
+        result = await hybrid_search(db, user, JournalSearchInput(from_date=first, to_date=today, limit=JOURNAL_EXCERPTS),
+                                     query_vector=query_vector, settings=settings, reason=None)
+        return [{"id": UUID(row["id"]), "revision": row["version"], "localDate": date.fromisoformat(row["localDate"]),
+                 "mood": row["mood"], "emotions": row["emotions"][:6], "factors": row["factors"][:6],
+                 "excerpt": row["snippet"][:EXCERPT_CHARS]} for row in result["entries"]]
     rows = (await db.scalars(
         select(JournalEntry).where(
             JournalEntry.user_id == user.id, JournalEntry.status == "saved",
@@ -199,6 +208,9 @@ class Workflow:
         self.latest: dict | None = None
         self.speaker = "dieuphoi"
         self.plan: OrchestrationPlan | None = None
+        self.journal_query_vector: list[float] | None = None
+        self.journal_query_version: int | None = None
+        self.journal_query_config: tuple[str, int] | None = None
 
     # ---------------------------------------------------------------- models and hooks
 
@@ -385,6 +397,15 @@ class Workflow:
         }
         await self.settle(plan_step, "completed", None, digest=_digest(self.plan), detail=detail,
                           denied=self.decision.denied)
+        if "nhatky" in self.decision.consult:
+            from app.modules.journal.retrieval import journal_query_vector
+
+            # No owner lock or transaction is held while the query is embedded.
+            self.journal_query_config = (self.settings.voyage_model, self.settings.voyage_dimensions)
+            self.journal_query_vector, self.journal_query_version, _reason = await journal_query_vector(
+                self.runtime.database, self.settings, self.run.actor, latest[:80],
+                embedder=getattr(self.runtime, "journal_embedder", None),
+            )
         log.info("metric=orchestration_plan workflow=%s proposed=%s consult=%d handoff=%s",
                  self.decision.workflow, self.plan.workflow, len(self.decision.consult), bool(self.decision.handoff))
         return self.decision
@@ -453,7 +474,13 @@ class Workflow:
                 raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
             excerpts: list[dict] = []
             if edge in policy.READS_JOURNAL:
-                excerpts = await journal_excerpts(db, user, days or 7)
+                from app.modules.journal.ai_settings import journal_ai_allowed
+
+                vector = self.journal_query_vector
+                if (self.journal_query_config != (self.settings.voyage_model, self.settings.voyage_dimensions)
+                        or await journal_ai_allowed(db, user, self.settings, "embed") != self.journal_query_version):
+                    vector = None
+                excerpts = await journal_excerpts(db, user, days or 7, vector, settings=self.settings)
                 if distress_screen([item["excerpt"] for item in excerpts]):
                     # Never forwarded, never recorded: Điều phối answers alone.
                     return None

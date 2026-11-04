@@ -30,8 +30,8 @@ Các commit tới checkpoint A `587e61d5` đã push thành công lên `origin/fe
 | Checkpoint A | xong | `587e61d5`, đã push | backend 2065 pass/3 skip; gates 1–10/15 xanh |
 | JI-40 | xong | `b3f344ac`, chưa push | 32 backend pass; hồi quy 204 pass; frontend 205 + 2 pass; browser skill 7 pass |
 | Checkpoint B | xong | `7cd83b08`, đã push | backend 2082 pass/3 skip; fixture 384 pass; fullstack 38 pass |
-| JI-30 + JI-31 | xong kiểm chứng task | commit nguyên khối kế tiếp | 269/228 regression pass; precommit 68 pass; browser cuối 3 pass |
-| JI-25 | chưa làm | — | sau khối memory |
+| JI-30 + JI-31 | xong | `61469170`, chưa push | 269/228 regression pass; precommit 68 pass; browser cuối 3 pass |
+| JI-25 | xong kiểm chứng task | commit task kế tiếp | 51 regression pass; ranking/timeout/settings/dimensions guards |
 | JI-50 đầy đủ | một phần | SQL `9f3c238e`; docs còn cập nhật | 37 Linux tests pass; fake eval có số; live/hosted chưa chạy |
 | JI-51 | ngoài phạm vi | — | không migrate/deploy/SSM/đọc hosted |
 
@@ -146,6 +146,14 @@ Các log/JSON ở `.tmp/journal-intelligence/` là artifact cục bộ, không c
 - Backend Ruff đúng cwd: **All checks passed**; mypy **188 source files pass** tại thời điểm có retrieval. Docs checker **179 Markdown / 1154 links / 143 operations / 122 settings / 64 tables, PASS**. Cần chạy lại final gates sau các task còn lại.
 
 ## JI-50 / phát hành
+
+### JI-25 — Truy xuất consult có xếp hạng
+
+Sau commit nguyên khối memory **`61469170`**, RED `pytest -q tests/test_orchestration_sdk.py -k consult_ranks_relevant`: **1 failed/7 deselected, 4,82 s**, helper chưa nhận `query_vector`. Thêm helper settings keyword-only để lọc đúng config, fallback None giữ recent cũ; vector tính trong decide sau decision cho phép và trước open_step, không owner lock; recheck preference version/model/dimensions khi lấy nguồn. GREEN test end-to-end qua SDK thực/fake model **1 passed/7 deselected, 4,88 s**. Giữ 14 ngày/5 trang/600 ký tự, nguồn foreign/outside window bị loại.
+
+Mở rộng cùng test cho preference đổi trong embed, dimensions đổi và timeout ⇒ fallback recent hoàn tất. Rerun hồi quy có hai lệnh sai danh sách/path Windows (`test_orchestration_state.py` không tồn tại, sau đó prefix backend lặp): **exit 4/no tests ran**, không ghi PASS. Đã dùng Path.relative_to(...).as_posix() lấy đúng ba file orchestration + retrieval để chạy; kết quả còn chờ. Ruff có một import-order test, đã sửa; mypy 190 files PASS.
+
+JI-25 GREEN hồi quy cuối `pytest -q tests/test_orchestration_policy.py tests/test_orchestration_sdk.py tests/test_orchestration_sse.py tests/test_journal_retrieval.py`: **51 passed, 51,68 s**, runner 54,484 s; bốn ca ranking/fallback đều hoàn tất qua SDK. Khởi động full backend final trên DB7 và fixture final/server owned sau khi code đã ổn định; chưa chỉnh frontend trong khi suite chạy. Reviewer độc lập fresh-context `journal_final_review` đã được giao toàn diff/schema/worker/context/retrieval, chỉ đọc source, không DB/provider/network. CI checkpoint B `7cd83b08` **success**: [Verify](https://github.com/mhiu05/MoodPrint/actions/runs/41811789160).
 
 ### Bắt đầu khối JI-30 + JI-31 sau checkpoint B
 

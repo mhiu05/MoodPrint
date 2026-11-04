@@ -84,6 +84,8 @@ Run `origin='proactive'` do service `proactive` tạo khi lịch người dùng 
 
 ## Kiểm tra khi thay đổi
 
+Consult Nhật ký của Điều phối có thể xếp hạng semantic trong cửa sổ đã được policy cho phép. Query được embed ngoài owner lock, tối đa 80 ký tự/3 giây, rồi recheck preference version và model/dimensions ở open_step. Thiếu key/index, timeout hoặc cấu hình đổi dùng recent fallback; vẫn tối đa 14 ngày, 5 trang và 600 ký tự/trang. Không thay sharing edge/journal consent hoặc provenance/revision fence. Vector không được dùng để mở rộng cửa sổ dữ liệu.
+
 Skill thuộc registry đóng gồm `hangout`, `learn-new-thing`, `weekly-review`, `mood-patterns`, `guided-journal`, `reframe-thought`; mỗi skill có allowlist agent. `GET /ai/prompt-capabilities` là projection tư vấn, không thay authorization khi gửi. `SKILL_NOT_FOR_AGENT` từ chối skill tay sai trợ lý; `PROMPT_OPTIONS_MOOD_SCOPE` giữ nguyên. Resolver bỏ skill khi distress, phủ định tự động hoặc mơ hồ; skill hợp lệ thêm runtime instructions và bỏ delegation trong đúng một lượt. Nhật ký vẫn được bảo vệ bởi refusal, owner/version và `journal-evidence-v1`; không có quyền dữ liệu mới từ skill.
 
 Chạy `test_sdk_adapter.py`, `test_context_selection.py`, `test_scoped_mood_tool.py`, `test_mood_evidence_runtime.py`, `test_privacy_lifecycle.py` cùng unit test `src/api/stream.test.ts`. Toàn bộ lệnh và phân tầng test ở [development](../development.md), [evaluation](evaluation.md).
