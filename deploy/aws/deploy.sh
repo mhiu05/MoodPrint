@@ -92,9 +92,50 @@ if any(value in ("true", "1", "yes", "on", "t", "y") for value in flags.values()
 PY
 }
 captcha_origin_value=$(captcha_origin "$runtime_file")
-# Only this fixed public origin reaches the web container; runtime secrets remain API-only.
-printf 'API_IMAGE=%s\nWEB_IMAGE=%s\nAPP_DOMAIN=%s\nAPI_ENV_FILE=%s\nRELEASE_SHA=%s\nGUEST_CAPTCHA_ORIGIN=%s\n' \
-  "$api_ref" "$web_ref" "$APP_DOMAIN" "$runtime_file" "$release_sha" "$captcha_origin_value" > "$candidate"
+journal_storage_origins() {
+  # Export only validated public origins, never the server-only Storage credential.
+  python3 - "$1" "$base/compose.staging.yml" "$api_ref" "$web_ref" "$APP_DOMAIN" <<'PY'
+import json
+import os
+import re
+import subprocess
+import sys
+from urllib.parse import urlsplit
+
+# Use the exact values Compose will inject into the API, including dotenv interpolation.
+# Both streams may contain secrets, so capture them and emit only a fixed error on failure.
+try:
+    result = subprocess.run(
+        ["docker", "compose", "-f", sys.argv[2], "config", "--format", "json"],
+        env={**os.environ, "API_ENV_FILE": sys.argv[1], "API_IMAGE": sys.argv[3],
+             "WEB_IMAGE": sys.argv[4], "APP_DOMAIN": sys.argv[5],
+             "JOURNAL_STORAGE_ORIGINS": ""},
+        text=True, capture_output=True, check=True,
+    )
+    values = json.loads(result.stdout)["services"]["api"]["environment"]
+except (OSError, subprocess.CalledProcessError, ValueError, KeyError, TypeError):
+    raise SystemExit("Cannot resolve journal Storage runtime configuration") from None
+if not values.get("JOURNAL_STORAGE_KEY") or not values.get("SUPABASE_URL"):
+    raise SystemExit(0)
+try:
+    parsed = urlsplit(values["SUPABASE_URL"])
+    if (parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password
+        or parsed.path not in ("", "/") or parsed.query or parsed.fragment
+        or not re.fullmatch(r"[A-Za-z0-9.-]+", parsed.netloc)):
+        raise ValueError
+except ValueError:
+    raise SystemExit("Journal Storage requires a plain HTTPS provider origin") from None
+origin = f"https://{parsed.hostname}"
+origins = [origin]
+if parsed.hostname.endswith(".supabase.co") and not parsed.hostname.endswith(".storage.supabase.co"):
+    origins.append(f"https://{parsed.hostname.removesuffix('.supabase.co')}.storage.supabase.co")
+print(" ".join(origins), end="")
+PY
+}
+journal_storage_origins_value=$(journal_storage_origins "$runtime_file")
+# Only public provider origins reach the web container; runtime secrets remain API-only.
+printf 'API_IMAGE=%s\nWEB_IMAGE=%s\nAPP_DOMAIN=%s\nAPI_ENV_FILE=%s\nRELEASE_SHA=%s\nGUEST_CAPTCHA_ORIGIN=%s\nJOURNAL_STORAGE_ORIGINS=%s\n' \
+  "$api_ref" "$web_ref" "$APP_DOMAIN" "$runtime_file" "$release_sha" "$captcha_origin_value" "$journal_storage_origins_value" > "$candidate"
 chmod 600 "$candidate"
 
 compose=(docker compose --project-directory "$base" -f "$base/compose.staging.yml")

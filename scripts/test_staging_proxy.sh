@@ -19,11 +19,14 @@ docker network create "$network" >/dev/null
 docker run -d --rm --name "$api" --network "$network" --network-alias api \
   --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m --cap-drop ALL \
   -e APP_ENV=development "$api_image" >/dev/null
-MSYS_NO_PATHCONV=1 docker run -d --rm --name "$web" --network "$network" \
-  --read-only --tmpfs /data:rw,size=16m --tmpfs /config:rw,size=16m \
-  --cap-drop ALL --cap-add NET_BIND_SERVICE \
-  -p 127.0.0.1::80 -e APP_DOMAIN=:80 \
-  -v "$host_root/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" "$web_image" >/dev/null
+start_web() {
+  MSYS_NO_PATHCONV=1 docker run -d --rm --name "$web" --network "$network" \
+    --read-only --tmpfs /data:rw,size=16m --tmpfs /config:rw,size=16m \
+    --cap-drop ALL --cap-add NET_BIND_SERVICE \
+    -p 127.0.0.1::80 -e APP_DOMAIN=:80 -e "JOURNAL_STORAGE_ORIGINS=$1" \
+    -v "$host_root/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" "$web_image" >/dev/null
+}
+start_web ''
 port=$(docker port "$web" 80/tcp | sed 's/.*://')
 base="http://127.0.0.1:$port"
 for ((attempt=0; attempt<60; attempt++)); do
@@ -58,6 +61,29 @@ echo "shell headers: ok"
 check /api/v1/health/live 200
 check /api/v1/health/ready 503
 check /api/v1/session 401
+
+# Browser uploads and signed media reads must be allowed by the deployed shell,
+# while scripts, frames, and disabled Storage retain the existing restrictions.
+docker rm -f "$web" >/dev/null
+start_web 'https://project.supabase.co https://project.storage.supabase.co'
+port=$(docker port "$web" 80/tcp | sed 's/.*://')
+base="http://127.0.0.1:$port"
+for ((attempt=0; attempt<60; attempt++)); do
+  if curl --fail --silent --output /dev/null "$base/"; then break; fi
+  sleep 1
+done
+csp=$(header / Content-Security-Policy)
+for directive in img-src connect-src media-src; do
+  value=$(printf '%s' "$csp" | tr ';' '\n' | sed -n "s/^ *$directive //p")
+  [[ "$value" == *'https://project.supabase.co'* && "$value" == *'https://project.storage.supabase.co'* ]] \
+    || { echo "/: $directive blocks private journal Storage" >&2; exit 1; }
+done
+for directive in script-src frame-src default-src; do
+  value=$(printf '%s' "$csp" | tr ';' '\n' | sed -n "s/^ *$directive //p")
+  [[ "$value" != *'supabase.co'* ]] \
+    || { echo "/: Storage must not expand $directive" >&2; exit 1; }
+done
+echo "journal Storage shell CSP: ok"
 
 # Replace only the test-owned API container with a synthetic two-event stream.
 docker rm -f "$api" >/dev/null
