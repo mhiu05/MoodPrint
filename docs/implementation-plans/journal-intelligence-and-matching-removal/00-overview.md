@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Kế hoạch lưu tại `E:\MoodPrint`, nhánh `test/04-11-26`. **Code** phải thực thi trong worktree mới tạo từ `origin/main@565f5a74` (JI-00), vì `test/04-11-26` và `main` local chậm 132 commit so với `origin/main`: các file, hàm và migration mà kế hoạch trích dẫn (0020–0028, `ai/skills`, `ai/proactive`, `ai/groups`, `ai/orchestration`, `ai/search`) không có trên nhánh này (xem Kiểm chứng giả định). Mọi đường dẫn/số dòng trong kế hoạch là của `origin/main@565f5a74`.
+- Thực thi trực tiếp trong `E:\MoodPrint`, nhánh `feat/journal-intelligence` (gốc `origin/main@565f5a74`, đã push lên origin). Mọi đường dẫn/số dòng trong kế hoạch là của `565f5a74`. Lúc viết kế hoạch, `test/04-11-26` và `main` local chậm 132 commit; `main` local đã được pull lên `565f5a74` ngày 04/11, nên bảng "Kiểm chứng giả định" bên dưới chỉ còn là ghi chép lịch sử. `E:\MoodPrint\backend\.env` trỏ tới DB hosted và chứa key thật: xem quy tắc ở [09-codex-prompt.md](09-codex-prompt.md) mục 2.
 - Không sửa `.gitignore`. Không đưa secret, URL có mật khẩu, ID tài khoản thật hay nội dung nhật ký vào tài liệu, log hay test.
 - Chuỗi hiển thị cho người dùng bằng tiếng Việt. Môi trường dev là Windows + PowerShell; lệnh trong tài liệu dùng cú pháp PowerShell.
 - Migration mới duy nhất là `0029_journal_intelligence`, `down_revision = "0028_collaboration_defaults"`, chỉ thêm (expand-only). Không viết migration drop bảng social/matching trong đợt này.
@@ -109,4 +109,4 @@ Tổng phần bắt buộc ≈ 11,5 ngày công; thêm A ≈ 1,5; thêm B ≈ 3,
 
 ## Trạng thái
 
-2026-11-04: kế hoạch viết xong, lưu tại `E:\MoodPrint` nhánh `test/04-11-26` (chưa commit). Code được đọc và kiểm chứng trên `origin/main@565f5a74`. Chưa thực thi task nào.
+2026-11-04: kế hoạch viết xong; code được đọc và kiểm chứng trên `origin/main@565f5a74`. Nhánh `feat/journal-intelligence` đã push lên origin. Triển khai làm trong `E:\MoodPrint` theo [09-codex-prompt.md](09-codex-prompt.md).
