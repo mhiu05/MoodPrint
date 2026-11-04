@@ -57,6 +57,94 @@ def test_tracked_tree_passes_and_checks_a_real_set():
     assert report["referencedCount"] == report["artifactCount"]
 
 
+def test_journal_intelligence_upgrade_is_pinned_and_checks_all_new_tables():
+    plan = script("apply_supabase_review").UPGRADES["0029"]
+    assert plan.from_revision == "0028_collaboration_defaults"
+    assert plan.to_revision == "0029_journal_intelligence"
+    assert plan.tables == ("journal_ai_settings", "journal_entry_embeddings", "journal_ai_jobs")
+    assert plan.review.name == "0029-review.sql"
+    assert sha(plan.review) == next(row["sha256"] for row in manifest(ROOT)["artifacts"] if row["path"] == plan.review.name)
+
+
+def test_offline_export_disables_dotenv_and_sets_local_migration_url(monkeypatch):
+    from types import SimpleNamespace
+
+    runner = script("apply_supabase_review")
+    captured = {}
+
+    def process(command, **kwargs):
+        captured.update(command=command, **kwargs)
+        return SimpleNamespace(stdout="synthetic offline SQL")
+
+    monkeypatch.setattr(runner.subprocess, "run", process)
+    assert runner.alembic_export("0028_collaboration_defaults:0029_journal_intelligence") == "synthetic offline SQL"
+    assert captured["env"]["DATABASE_MIGRATION_URL"] == "postgresql+psycopg://localhost/moodprint_review_test"
+    assert captured["command"][1] == "-c"
+    code = captured["command"][2]
+    assert 'Settings.model_config["env_file"] = None' in code
+    assert code.index('Settings.model_config["env_file"] = None') < code.index("from alembic.config import main")
+
+
+def test_alembic_subprocess_never_reads_dotenv():
+    import os
+    import subprocess
+    import sys
+
+    # Intercept dotenv *before* Alembic: a RED cannot read the protected file.
+    code = '''
+from dotenv.main import DotEnv
+def forbidden(self):
+    raise AssertionError("Alembic attempted dotenv access")
+DotEnv.dict = forbidden
+from alembic.config import main
+main(argv=["upgrade", "0028_collaboration_defaults:0029_journal_intelligence", "--sql"])
+'''
+    result = subprocess.run([sys.executable, "-c", code], cwd=ROOT/"backend", capture_output=True, text=True,
+                            env={**os.environ, "DATABASE_MIGRATION_URL": "postgresql+psycopg://localhost/moodprint_review_test"})
+    assert result.returncode == 0, result.stderr
+    assert "journal_ai_settings" in result.stdout
+
+
+@pytest.mark.parametrize("change", ["complete_swap", "missing_validate", "other_constraint", "drop_column"])
+def test_review_allows_only_named_validated_constraint_swaps(tmp_path, monkeypatch, change):
+    runner = script("apply_supabase_review")
+    sql = ("ALTER TABLE moodprint.ai_runs DROP CONSTRAINT ck_ai_runs_origin;\n"
+           "ALTER TABLE moodprint.ai_runs ADD CONSTRAINT ck_ai_runs_origin CHECK (true) NOT VALID;\n"
+           "ALTER TABLE moodprint.ai_runs VALIDATE CONSTRAINT ck_ai_runs_origin;\n")
+    if change == "missing_validate":
+        sql = sql.split("ALTER TABLE moodprint.ai_runs VALIDATE")[0]
+    elif change == "other_constraint":
+        sql = sql.replace("ck_ai_runs_origin", "unrelated_gate")
+    elif change == "drop_column":
+        sql += "ALTER TABLE moodprint.ai_runs DROP COLUMN user_id;\n"
+    path = tmp_path/"synthetic.sql"
+    path.write_text(sql, encoding="utf-8")
+    plan = runner.UpgradePlan(path, tmp_path/"report.json", "before", "after",
+                              constraint_swaps=(("ai_runs", "ck_ai_runs_origin"),))
+    monkeypatch.setattr(runner, "alembic_export", lambda revisions: sql)
+    if change == "complete_swap":
+        assert runner.review_upgrade_artifact(plan, sha(path))[1] == sql
+    else:
+        with pytest.raises(ValueError):
+            runner.review_upgrade_artifact(plan, sha(path))
+
+
+@pytest.mark.parametrize("column", ["proposal_id", "user_id"])
+def test_review_allows_only_named_nullable_relaxation(tmp_path, monkeypatch, column):
+    runner = script("apply_supabase_review")
+    sql = f"ALTER TABLE moodprint.memories ALTER COLUMN {column} DROP NOT NULL;\n"
+    path = tmp_path/"synthetic.sql"
+    path.write_text(sql, encoding="utf-8")
+    plan = runner.UpgradePlan(path, tmp_path/"report.json", "before", "after",
+                              nullable_relaxations=(("memories", "proposal_id"),))
+    monkeypatch.setattr(runner, "alembic_export", lambda revisions: sql)
+    if column == "proposal_id":
+        assert runner.review_upgrade_artifact(plan, sha(path))[1] == sql
+    else:
+        with pytest.raises(ValueError):
+            runner.review_upgrade_artifact(plan, sha(path))
+
+
 def test_manifest_hashes_match_the_files_on_disk():
     entries = manifest(ROOT)["artifacts"]
     assert entries

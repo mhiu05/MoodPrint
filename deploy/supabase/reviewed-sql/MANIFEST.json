@@ -110,6 +110,15 @@
         "commit": "15d212a2d3061905cf6accf2838ecf1589ee9243",
         "command": "alembic upgrade 0018_app_feedback:0019_journal --sql"
       }
+    },
+    {
+      "path": "0029-review.sql",
+      "sha256": "e15bb5fefbcfec4b3e6bf76463fcf9470a32a331835c1d93977ea4c53a9bc476",
+      "bytes": 7488,
+      "generatedFrom": {
+        "commit": "6795c34fee6c3d7e365453e92e5ebbaf5d4b9e04",
+        "command": "alembic upgrade 0028_collaboration_defaults:0029_journal_intelligence --sql"
+      }
     }
   ]
 }

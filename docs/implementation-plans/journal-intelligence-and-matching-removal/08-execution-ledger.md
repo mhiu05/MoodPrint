@@ -7,7 +7,33 @@ Quy ước (giống `docs/implementation-plans/three-agent-orchestration-group-c
 | Nhánh / worktree | `feat/journal-intelligence` / `E:\MoodPrint` (theo prompt bàn giao) |
 | Gốc phiên này | `e2c3e5e8`, đã merge `main@d6280561`; nền kế hoạch `565f5a74` |
 | PostgreSQL disposable | `scripts/disposable_postgres.py --port 36433`, container `moodprint-disposable-4e8979b64a084f1a8fe8c42aaadadf9f`, PostgreSQL 17.10 / pgvector 0.8.2 |
-| Cách ly | Không đọc/sửa `backend/.env`, không sửa `.gitignore`, stash hoặc các worktree khác. File `09-codex-prompt.md` có thay đổi sẵn của người dùng; giữ nguyên. |
+| Cách ly | Không mở/sửa trực tiếp `backend/.env`; sự cố subprocess có thể đọc dotenv và bản sửa được ghi tại mục JI-50 bên dưới. Không sửa `.gitignore`, stash hoặc các worktree khác. File `09-codex-prompt.md` có thay đổi sẵn của người dùng; giữ nguyên. |
+
+## Trạng thái hiện tại (cập nhật khi chốt checkpoint)
+
+Tất cả commit dưới đây đang local, chưa push trong phiên triển khai này. Các dòng lịch sử nói "đang chạy" được giữ để thể hiện thời điểm quan sát; trạng thái hiện tại trong bảng này và kết quả mới nhất cuối sổ có ưu tiên.
+
+| Task | Trạng thái | Commit | Bằng chứng chính |
+| --- | --- | --- | --- |
+| JI-00 | xong | nền `e2c3e5e8` | baseline 1964 pass/3 skip; fixture 445 pass |
+| JI-01 | xong | `59d4dd02`, bổ sung `d9cb601f` | full RED 307 fail; full GREEN 1968 pass/3 skip; 2 load fixture config pass |
+| JI-02 | xong | `5f6ed77a` | 100 regression pass; check_config với empty.env exit 0 |
+| JI-10 | xong | `651f1fde` | frontend unit/type/build; nav/retirement browser assertions |
+| JI-11 | xong | `ddb8c18e` | copy/card retirement và frontend gates; có xung đột stash Auth/GuestEntry |
+| JI-12 | xong | `edca78d0` | 57 backend regression pass; frozen prompt hashes giữ nguyên |
+| JI-13 | xong | `395dbedc` | fullstack cuối 38 pass; fixture cuối 382 pass |
+| JI-20 | xong | `6795c34f` | 10 migration tests pass; local head 0029/check không drift |
+| JI-21 | xong | `216c3be6` | 6 settings tests + 3 browser tests pass; hợp đồng không drift |
+| JI-22 | xong | `f691898d` | revision/deletion/cap/backfill/provider lock regression pass |
+| JI-23 | xong | `9fefdf8d` | 105 regression pass; 17 targeted retrieval/eval pass |
+| JI-24 | xong | `6adc9fa4` | CLI fake exit 0; 40 entry/15 query/55 fake calls |
+| Checkpoint A | một phần | chưa chốt | đang chờ full backend sau sửa; chưa push |
+| JI-40 | chưa làm | — | chờ checkpoint A |
+| Checkpoint B | chưa làm | — | chờ JI-40 |
+| JI-30 + JI-31 | chưa làm | — | phải phát hành cùng khối |
+| JI-25 | chưa làm | — | sau khối memory |
+| JI-50 đầy đủ | một phần | SQL/docs chưa commit | 37 Linux tests pass; fake eval có số; live/hosted chưa chạy |
+| JI-51 | ngoài phạm vi | — | không migrate/deploy/SSM/đọc hosted |
 
 ## Quyết định và preflight — 2026-11-04
 
@@ -122,6 +148,16 @@ Các log/JSON ở `.tmp/journal-intelligence/` là artifact cục bộ, không c
 ## JI-50 / phát hành
 
 ### Bổ sung hồi quy checkpoint A sau lượt full backend đầu
+
+Commit local `d9cb601f` chứa lifecycle inventory, pin load fixtures và đồng bộ regression assertions/schema rehearsal; chưa push. `.gitignore` và prompt 09 đang có thay đổi của chủ dự án, không stage hoặc sửa.
+
+Lượt full backend A đầu: `pytest -q --ignore=tests/live --junitxml=<scratch>/ji50-backend-a.xml` trên DB disposable riêng: **8 failed / 2052 passed / 3 skipped, 2700,05 s**. Tám failure là discovery migration head; foundation head; foundation ca 0028; guest inventory; guest rollback head; guest operation policy inventory; guest 0015→head assertion; journal 0019 rollback với FK 0029. Tất cả đã có sửa và targeted GREEN như ghi bên dưới; lượt full mới sau sửa đang chạy, chưa coi gate 2 xanh. Không thêm skip: ba skip opt-in giống baseline.
+
+Trong chính lượt full A đầu (trích JUnit, không suy từ collection): default flags **9/9 pass, tổng testcase 2,720 s**; migration 0029 **10/10 pass, 9,771 s**; reviewed artifacts **28/28 pass, 27,096 s**; database operations **15/15 pass, 20,123 s**, gồm thực thi nguyên văn chuỗi SQL đã pin với Supabase roles trong DB local và rollback roles. Đây không thay cho rehearsal từ snapshot hosted: chưa có snapshot, không đọc hosted.
+
+Gate 6: `scripts/export_openapi.py` (qua runner xóa key và không dotenv) exit 0; `npm.cmd --prefix frontend run contracts:generate` exit 0; `git diff --exit-code -- backend/openapi.json frontend/src/api/generated/schema.d.ts` exit 0, không drift.
+
+SQL 0029 đã sinh bằng offline Alembic không dotenv, **7488 byte**, không BOM/`%%`; SHA256 `e15bb5fefbcfec4b3e6bf76463fcf9470a32a331835c1d93977ea4c53a9bc476`, generatedFrom migration commit `6795c34fee6c3d7e365453e92e5ebbaf5d4b9e04`. `apply_supabase_review.py --upgrade 0029` ở chế độ review-only exit 0, `alembicExportMatches=true`; không `--apply`, không kết nối hosted. Chốt riêng SQL/offline exporter từ bằng chứng 28 reviewed-artifact tests pass trước khi chốt checkpoint; đây chưa phải checkpoint A xanh hoặc quyền rollout hosted. Image Linux test đã dùng có digest local `sha256:7f862ffe38dd78e5416feb8610bea8f131b70c05a5e4287039d09645d83c4100`.
 
 - Standalone load fixtures: RED `pytest -q tests/test_load_settings_baseline.py`: **2 failed, 18,42 s**; subprocess xóa env cờ do pytest ghim rồi so với `ALL_FEATURES_OFF` cộng đúng các tính năng từng fixture chủ động bật. Chat/social load server chưa được chạy; chỉ import cấu hình, không lifespan/network. GREEN **2 passed, 13,95 s**. Ruling JI-01: hai entrypoint tải cũng phải ghim nền tắt; nếu không mặc định mới có thể bật worker ngoài phạm vi fake provider của fixture. Giữ chat history bật.
 - Schema regression RED `pytest -q tests/test_guest_schema.py::test_upgrade_from_0015_preserves_registered_rows_and_matches_models tests/test_journal_migration.py::test_journal_upgrade_downgrade_preserves_legacy_mood_and_private_acl`: **2 failed, 15,68 s** (head assertion cũ 0028; rollback 0019 bị FK của 0029 chặn). Ruling: assertion head chuyển 0029; diễn tập migration lịch sử tháo 0029 trước rồi phục hồi sau 0019, trong cùng transaction rollback cả temporary roles. Không sửa DDL hay bỏ assertion bảo toàn/RLS. GREEN `pytest -q tests/test_guest_schema.py tests/test_journal_migration.py tests/test_load_settings_baseline.py`: **6 passed, 34,86 s**.

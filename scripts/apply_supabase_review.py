@@ -37,6 +37,8 @@ class UpgradePlan:
     to_revision: str
     tables: tuple[str, ...] = ()
     functions: tuple[str, ...] = ()
+    constraint_swaps: tuple[tuple[str, str], ...] = ()
+    nullable_relaxations: tuple[tuple[str, str], ...] = ()
 
 
 UPGRADES = {
@@ -116,6 +118,15 @@ UPGRADES = {
         "0019_journal",
         tables=("journal_entries", "journal_media", "journal_storage_deletions"),
     ),
+    "0029": UpgradePlan(
+        REVIEWED_SQL / "0029-review.sql",
+        REPORTS / "0029-execution.json",
+        "0028_collaboration_defaults",
+        "0029_journal_intelligence",
+        tables=("journal_ai_settings", "journal_entry_embeddings", "journal_ai_jobs"),
+        constraint_swaps=(("ai_runs", "ck_ai_runs_origin"),),
+        nullable_relaxations=(("memories", "proposal_id"),),
+    ),
 }
 SUPABASE_API_ROLES = ("anon", "authenticated", "service_role")
 
@@ -177,13 +188,23 @@ def review_artifact(approved_sha256: str | None, path: Path | None = None):
 def alembic_export(revisions: str) -> str:
     env = {
         **os.environ,
-        "DATABASE_URL": "postgresql+psycopg://localhost/moodprint_review_test",
-        "DATABASE_MIGRATION_URL": "",
+        "APP_ENV": "test",
+        "DATABASE_URL": "",
+        "DATABASE_MIGRATION_URL": "postgresql+psycopg://localhost/moodprint_review_test",
+        "OPENAI_API_KEY": "",
+        "OPENAI_MODEL": "",
+        "VOYAGE_API_KEY": "",
+        "APIFY_API_TOKEN": "",
         "AI_ENABLED": "false",
         "STT_ENABLED": "false",
     }
+    # pytest's in-process guard is not inherited by a fresh Python interpreter.
+    # Disable dotenv before Alembic imports env.py (which constructs Settings()).
+    code = ('import sys; from app.core.config import Settings; '
+            'Settings.model_config["env_file"] = None; '
+            'from alembic.config import main; main(argv=sys.argv[1:])')
     return subprocess.run(
-        [sys.executable, "-m", "alembic", "upgrade", revisions, "--sql"],
+        [sys.executable, "-c", code, "upgrade", revisions, "--sql"],
         cwd=ROOT / "backend",
         env=env,
         capture_output=True,
@@ -202,12 +223,21 @@ def review_upgrade_artifact(plan: UpgradePlan, approved_sha256: str | None):
     if sql != expected.replace("\r\n", "\n"):
         raise ValueError("Reviewed SQL no longer matches the Alembic offline export")
     # Constraint swaps on tables this same artifact creates are empty by construction.
+    for table, constraint in plan.constraint_swaps:
+        drop = f"ALTER TABLE moodprint.{table} DROP CONSTRAINT {constraint};"
+        if drop in sql and (
+            not re.search(rf"^ALTER TABLE moodprint\.{re.escape(table)} ADD CONSTRAINT {re.escape(constraint)} CHECK .+ NOT VALID;$", sql, re.M)
+            or f"ALTER TABLE moodprint.{table} VALIDATE CONSTRAINT {constraint};" not in sql
+        ):
+            raise ValueError("Reviewed constraint swap must add and validate the named check")
     own_table_constraint_swap = re.compile(
-        r"^ALTER TABLE moodprint\.(\w+) DROP CONSTRAINT \w+;$", re.M
+        r"^ALTER TABLE moodprint\.(\w+) DROP CONSTRAINT (\w+);$", re.M
     )
     checked = own_table_constraint_swap.sub(
-        lambda match: "" if match.group(1) in plan.tables else match.group(0), sql
+        lambda match: "" if match.group(1) in plan.tables or (match.group(1), match.group(2)) in plan.constraint_swaps else match.group(0), sql
     )
+    for table, column in plan.nullable_relaxations:
+        checked = checked.replace(f"ALTER TABLE moodprint.{table} ALTER COLUMN {column} DROP NOT NULL;", "")
     if re.search(r"\b(?:DROP|TRUNCATE)\b", checked, re.I):
         raise ValueError("Destructive SQL is not supported by this upgrade")
     # Executed verbatim: a driver-escaped percent sign would reach PL/pgSQL format().
