@@ -43,6 +43,8 @@ Red run toàn suite từ snapshot bất biến đã kết thúc. Lệnh: `python
 
 JI-01 commit cục bộ **`59d4dd02`**, chưa push. JI-02 precommit rerun đúng 8 file test đã liệt kê trong JSON `ji02-precommit`: **100 passed, 195,36 s**. Stage lấy snapshot đã kiểm chứng của task, không ghi đè thay đổi task sau trong working tree. `.gitignore` hiện có thay đổi ngoài tác vụ (người dùng đang mở file); không đọc/sửa/stage thay đổi đó.
 
+JI-02 commit cục bộ **`5f6ed77a`**, chưa push. JI-10 chốt từ snapshot riêng đã kiểm chứng frontend unit/type/build + browser 3 ca RED→GREEN (bảng dưới); stage 44 file đúng task, giữ các sửa copy/API sau trong working tree.
+
 Các task dưới đây đã có triển khai và targeted tests; JI-01 đã có full green để chốt commit đầu tiên (hash bổ sung sau commit). Các task dưới bảng vẫn chờ commit riêng. Chưa chạy checkpoint A/B, chưa push/PR/merge/deploy. Những cổng thiếu bên dưới vẫn là việc phải làm.
 
 | Task | RED quan sát | GREEN quan sát | Còn thiếu để chốt |

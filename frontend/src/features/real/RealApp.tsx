@@ -30,7 +30,6 @@ import {
   Copy,
   Info,
   LockKeyhole,
-  MessageCircle,
   Moon,
   NotebookPen,
   Pause,
@@ -38,7 +37,6 @@ import {
   Sparkles,
   Sun,
   UserRound,
-  Users,
 } from "lucide-react";
 import {
   Brand,
@@ -77,7 +75,7 @@ import "./agent-chat.css";
 import "./checkins/proactive.css";
 import type { components } from "../../api/generated/schema";
 import { AIInboxProvider, inboxLabel, otherUnread, unreadFor, useAIInbox } from "./useAIInbox";
-import { Discovery } from "./social/Discovery";
+import { NAV_ITEMS, badgeText } from "./navigation";
 import { OfflineBanner, useOnline } from "./OfflineBanner";
 import {
   SESSION_GRACE_MS,
@@ -87,9 +85,6 @@ import {
 } from "../../api/sessionPolicy";
 import { AssistantGuide } from "./AssistantGuide";
 import { aiServiceMessage } from "./aiStatus";
-import { HumanChat } from "./social/HumanChat";
-import { HumanMessages } from "./social/HumanMessages";
-import { badgeText, useSocialSummary } from "./social/useSocialSummary";
 import { Moderation } from "./admin/Moderation";
 import { ApprovedMemories } from "./Memory";
 import { Moods } from "./Mood";
@@ -624,14 +619,14 @@ function GuestBanner() {
   );
 }
 
-/** Registered-only explanation. It makes no API call, so a guest never polls or probes social data. */
-function GuestLocked() {
+/** A local explanation without a registered-only API request. */
+function RegisteredOnly({ title, children }: { title: string; children: ReactNode }) {
   const guest = useGuest();
   return (
     <>
-      <h1 tabIndex={-1}>Tìm bạn và nhắn tin</h1>
-      <StatePanel title="Tạo tài khoản để tìm bạn và nhắn tin.">
-        Tính năng này dành cho người từ 18 tuổi, khi bạn chủ động bật chia sẻ.
+      <h1 tabIndex={-1}>{title}</h1>
+      <StatePanel title="Tạo tài khoản">
+        {children}
       </StatePanel>
       <div className={cx.actions}>
         <Link className={`${cx.button} ${cx.primary}`} to="/assistants">
@@ -694,40 +689,22 @@ function QuotaHint() {
 }
 
 function Navigation() {
-  const location = useLocation();
-  const summary = useSocialSummary(location.pathname);
-  const unread = summary.unreadConnections + summary.activityInvites;
   const { inbox } = useAIInbox();
   const checkIns = inbox.badgesEnabled ? inbox.unreadTotal : 0;
+  const icons = [Sparkles, NotebookPen, UserRound];
   return (
     <nav className={cx.navigation} aria-label="Điều hướng chính">
-      {[
-        { to: "/assistants", label: "Trợ lý", Icon: Sparkles, count: checkIns, what: "lời nhắn mới" },
-        { to: "/self", label: "Nhật ký", Icon: NotebookPen, count: 0, what: "" },
-        {
-          // Pending invitations open their tab directly (08 section 2).
-          to: summary.pendingIncomingRequests ? "/connect?tab=requests" : "/connect",
-          label: "Tìm bạn",
-          Icon: Users,
-          count: summary.pendingIncomingRequests,
-          what: "lời mời kết nối mới",
-        },
-        {
-          to: "/messages",
-          label: "Tin nhắn",
-          Icon: MessageCircle,
-          count: unread,
-          what: "cuộc trò chuyện chưa đọc",
-        },
-        { to: "/profile", label: "Tài khoản", Icon: UserRound, count: 0, what: "" },
-      ].map(({ to, label, Icon, count, what }) => (
+      {NAV_ITEMS.map(({ to, label }, index) => {
+        const Icon = icons[index];
+        const count = to === "/assistants" ? checkIns : 0;
+        return (
         <NavLink
           key={label}
           className={({ isActive }) =>
             `${cx.navItem} ${isActive ? cx.navActive : ""}`
           }
           to={to}
-          aria-label={count ? `${label}, ${count} ${what}` : undefined}
+          aria-label={count ? `${label}, ${count} lời nhắn mới` : undefined}
         >
           <span className={cx.navIcon}>
             <Icon size={21} strokeWidth={1.6} />
@@ -739,7 +716,7 @@ function Navigation() {
           </span>
           <span>{label}</span>
         </NavLink>
-      ))}
+      ); })}
     </nav>
   );
 }
@@ -841,13 +818,7 @@ function Shell() {
               <Route path="/self/daily" element={<Moods />} />
               <Route path="/profile" element={<AccountPage onGuide={() => setGuideOpen(true)} />} />
               <Route path="/memory" element={<ApprovedMemories />} />
-              <Route path="/connect" element={session.accountKind === "guest" ? <GuestLocked /> : <Discovery />} />
-              <Route path="/messages" element={session.accountKind === "guest" ? <GuestLocked /> : <HumanMessages />} />
-              <Route
-                path="/chat/:connectionId"
-                element={session.accountKind === "guest" ? <GuestLocked /> : <HumanChat key={location.pathname} />}
-              />
-              <Route path="/check-ins" element={session.accountKind === "guest" ? <GuestLocked /> : <Suspense fallback={<p role="status">Đang mở lịch hỏi thăm…</p>}><CheckInsPage /></Suspense>} />
+              <Route path="/check-ins" element={session.accountKind === "guest" ? <RegisteredOnly title="Tính năng cần tài khoản">Tạo tài khoản để dùng lịch hỏi thăm.</RegisteredOnly> : <Suspense fallback={<p role="status">Đang mở lịch hỏi thăm…</p>}><CheckInsPage /></Suspense>} />
               <Route path="/companion-sharing" element={<Navigate to="/assistants" replace />} />
               <Route path="*" element={<Navigate replace to="/assistants" />} />
           </Routes>
@@ -2142,7 +2113,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       />
       </div>
       {session.features.aiStatus === "test_provider" ? <p className={cx.footnote} role="note">Môi trường kiểm thử · phản hồi từ model giả, không phải OpenAI.</p> : null}
-      {!canSend ? <div className="chat-readonly" role="status" data-legacy={legacyReadOnly || undefined}><p>{readOnlyMessage}</p>{legacyReadOnly ? <div className={cx.actions}><Link className={`${cx.button} ${cx.secondary}`} to={successor ? `/assistants/${successor.id}` : "/connect"}>{successor ? `Trò chuyện với ${successor.name}` : "Mở Tìm bạn"}</Link></div> : allowed && preferences && !historyWritable ? <div className={cx.actions}><Button variant="secondary" onClick={requestNew}>Mở cuộc trò chuyện mới</Button></div> : null}</div> : <div className="chat-bottom">
+      {!canSend ? <div className="chat-readonly" role="status" data-legacy={legacyReadOnly || undefined}><p>{readOnlyMessage}</p>{legacyReadOnly && successor ? <div className={cx.actions}><Link className={`${cx.button} ${cx.secondary}`} to={`/assistants/${successor.id}`}>{`Trò chuyện với ${successor.name}`}</Link></div> : allowed && preferences && !historyWritable ? <div className={cx.actions}><Button variant="secondary" onClick={requestNew}>Mở cuộc trò chuyện mới</Button></div> : null}</div> : <div className="chat-bottom">
         {activeAgent ? <HandoffBanner agent={activeAgent} owner={bot.name} busy={returning || busy} onReturn={() => void returnToOwner()} /> : null}
         {bot.botId === "nhip" || (bot.botId === "nhatky" && !activeAgent) ? (
           <>
