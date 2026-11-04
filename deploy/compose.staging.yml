@@ -101,6 +101,8 @@ services:
       APP_DOMAIN: ${APP_DOMAIN:?Set a staging domain}
       # Empty keeps the CSP strictly same-origin; set to the CAPTCHA origin only with the guest entry.
       GUEST_CAPTCHA_ORIGIN: ${GUEST_CAPTCHA_ORIGIN:-}
+      # Validated public provider origins only; never pass JOURNAL_STORAGE_KEY to the web.
+      JOURNAL_STORAGE_ORIGINS: ${JOURNAL_STORAGE_ORIGINS:-}
     restart: unless-stopped
     read_only: true
     cap_drop: [ALL]
