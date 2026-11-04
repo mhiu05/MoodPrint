@@ -10,6 +10,8 @@ Ruling chi phí: cap/ngày của memory dùng receipt bền cùng cơ chế embe
 
 Ruling xóa: bulk-delete và scope `memories` phải fence job pending/running/retry thành terminal skipped `memory_deleted`, giữ tombstone revision/settings để reconcile không tái tạo ngay sau thao tác xóa. Entry/revision mới hoặc thay đổi preference rõ ràng vẫn có thể xử lý. Usage/reservation không bị xóa/refund theo job. Backfill dùng bộ whitespace tương đương Python `str.strip()` ngay ở SQL trước LIMIT để text chỉ chứa tab/newline/NBSP không chặn entry hợp lệ.
 
+Ruling review cuối: evidence phải có ít nhất bốn ký tự **sau** NFC/casefold/gộp whitespace rồi mới kiểm substring. Raw schema min_length không đủ để bảo đảm có trích đoạn. Provider batch chỉ chạy background sau lifespan startup; recovery/local cleanup vẫn chạy trước nhận traffic, không nới timeout/health gate.
+
 ## Bất biến bị đảo, có chủ đích
 
 | Bất biến hiện tại | Nơi khẳng định / bảo vệ | Sau thay đổi |
