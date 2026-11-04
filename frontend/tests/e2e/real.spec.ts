@@ -864,7 +864,7 @@ test("validated AI cards navigate to existing tools without claiming a saved act
     page
       .locator(".inline-card")
       .getByRole("link", { name: "Tìm bạn đồng điệu", exact: true }),
-  ).toHaveAttribute("href", "#/connect");
+  ).toHaveCount(0);
   await expect(page.getByText("Đã lưu", { exact: true })).toHaveCount(0);
 });
 

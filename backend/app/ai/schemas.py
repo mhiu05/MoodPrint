@@ -93,8 +93,11 @@ class Citation(DTO):
         return public_https_url(value)
 
 
+SkillId = Literal["hangout", "learn-new-thing", "weekly-review", "mood-patterns", "guided-journal", "reframe-thought"]
+
+
 class PromptOptions(DTO):
-    skill_id: Literal["hangout", "learn-new-thing"] | None = None
+    skill_id: SkillId | None = None
     tools: list[Literal["web_search", "maps_search"]] = Field(default_factory=list, max_length=8)
     area: str | None = Field(default=None, min_length=2, max_length=120)
     maps_search_id: UUID | None = None
@@ -120,6 +123,15 @@ class AiOutput(DTO):
         if any(c.start >= c.end or c.end > len(self.text) for c in self.citations):
             raise ValueError("citation outside visible text")
         return self
+
+
+def drop_retired_cards(parts: list[AiOutput], bot_id: str) -> list[AiOutput]:
+    from app.ai.agents import V3_IDS
+
+    if bot_id not in V3_IDS:
+        return parts
+    return [part.model_copy(update={"cards": [card for card in part.cards if card.kind != "discovery"]})
+            for part in parts]
 
 
 MAX_BUBBLES = 4
@@ -424,6 +436,9 @@ class MemoryDTO(DTO):
     text: str
     version: int
     status: str
+    origin: Literal["approved", "journal_auto"] = "approved"
+    source_entry_id: UUID | None = None
+    source_local_date: date | None = None
 
 
 class MemoryEdit(VersionInput):

@@ -60,6 +60,7 @@ from app.modules.guests import models as guest_models  # noqa: F401 -- register 
 from tests.fakes import completed_response, message_output
 from tests.feedback_schema import install_feedback_functions
 from tests.guest_schema import install_auth_fixture, install_guest_guards
+from tests.settings_baseline import ALL_FEATURES_OFF
 
 COUNTERS = {
     "sdk_calls": 0,
@@ -147,20 +148,25 @@ class LoadModel(Model):
 
 
 settings = Settings(
-    _env_file=None,
-    app_env="test",
-    database_url=SecretStr(DATABASE_URL),
-    ai_enabled=True,
-    chat_history_enabled=True,
-    ai_global_concurrency=50,
-    database_pool_size=int(os.environ.get("MOODPRINT_LOAD_POOL_SIZE", "5")),
-    database_pool_overflow=int(os.environ.get("MOODPRINT_LOAD_POOL_OVERFLOW", "5")),
-    database_pool_timeout=10,
-    ai_timeout_seconds=float(os.environ.get("MOODPRINT_LOAD_AI_TIMEOUT", "30")),
-    semantic_memory_enabled=True,
-    voyage_api_key=SecretStr("synthetic-fixture-only"),
-    voyage_dimensions=256,
-    embedding_job_batch_size=50,
+    **{
+        **ALL_FEATURES_OFF,
+        **dict(
+            _env_file=None,
+            app_env="test",
+            database_url=SecretStr(DATABASE_URL),
+            ai_enabled=True,
+            chat_history_enabled=True,
+            ai_global_concurrency=50,
+            database_pool_size=int(os.environ.get("MOODPRINT_LOAD_POOL_SIZE", "5")),
+            database_pool_overflow=int(os.environ.get("MOODPRINT_LOAD_POOL_OVERFLOW", "5")),
+            database_pool_timeout=10,
+            ai_timeout_seconds=float(os.environ.get("MOODPRINT_LOAD_AI_TIMEOUT", "30")),
+            semantic_memory_enabled=True,
+            voyage_api_key=SecretStr("synthetic-fixture-only"),
+            voyage_dimensions=256,
+            embedding_job_batch_size=50,
+        ),
+    }
 )
 embeddings.VoyageProvider = SyntheticVoyage  # type: ignore[misc, assignment]
 app = create_app(settings)
@@ -254,7 +260,9 @@ async def seed(count: int):
                 User(id=uid, auth_subject=uid, alias=f"Synthetic actor {number}", age_band="adult")
             )
             await db.flush()
-            db.add(AgeDeclaration(user_id=uid, birth_year=2000, policy_version="self-declared-age-v1"))
+            db.add(
+                AgeDeclaration(user_id=uid, birth_year=2000, policy_version="self-declared-age-v1")
+            )
             db.add(
                 AuthSession(
                     id=identity("session", number),

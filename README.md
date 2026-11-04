@@ -1,7 +1,9 @@
 # MoodPrint
-Dự án startup chương trình tiền ươm tạo, dự án giúp cho người dùng hiểu cảm xúc của bản thân hơn và kết nối tới mọi người xung quanh.
+Dự án startup chương trình tiền ươm tạo, giúp người dùng hiểu cảm xúc qua nhật ký và các trợ lý AI.
 
-React/Vite/TypeScript frontend và Python 3.12.13/FastAPI backend dạng Modular Monolith. Pydantic là nguồn schema; TypeScript được tạo từ OpenAPI. Database chính thức: Supabase PostgreSQL/Auth. OpenAI Agents SDK Python dùng chung cho năm trợ lý.
+React/Vite/TypeScript frontend và Python 3.12.13/FastAPI backend dạng Modular Monolith. Pydantic là nguồn schema; TypeScript được tạo từ OpenAPI. Database chính thức: Supabase PostgreSQL/Auth. OpenAI Agents SDK Python phục vụ ba trợ lý Điều phối, Nhật ký, Hoạt động và lịch sử trợ lý cũ.
+
+Điều hướng gồm Trợ lý, Nhật ký và Tài khoản. UI tìm bạn/chat người với người/hoạt động đôi đã được gỡ; backend social vẫn giữ. Nhật ký có truy xuất theo ý nghĩa, từ khóa và bài gần nhất, với link nguồn do backend xác thực. Xử lý ngoài qua Voyage có thông báo và công tắc riêng ở Tài khoản. Phát hành image tính năng cần schema 0029 và image rollback tương thích. Xem [kế hoạch phát hành và rollback](docs/implementation-plans/journal-intelligence-and-matching-removal/06-verification-and-release.md).
 
 Tài liệu kỹ thuật: [kiến trúc tổng thể](ARCHITECTURE.md), [mục lục docs](docs/README.md), [agents](docs/agents/README.md), [frontend](docs/frontend/README.md), [backend](docs/backend/README.md), [Supabase](docs/supabase/README.md), [matching](docs/matching/README.md). Kết quả và giới hạn kiểm chứng: [verification](docs/verification.md). Hướng dẫn vận hành: [deploy/README.md](deploy/README.md).
 

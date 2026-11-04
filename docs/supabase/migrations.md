@@ -4,6 +4,12 @@
 
 Nguồn: [backend/alembic/versions](../../backend/alembic/versions/). Revision ID là chuỗi đầy đủ, không chỉ số file.
 
+Alembic luôn dùng `Settings(_env_file=None)`: không tự đọc `backend/.env`, kể cả
+khi xuất SQL offline từ subprocess. Truyền `DATABASE_MIGRATION_URL` tường minh
+trong cùng process; khi kiểm thử chỉ dùng DB `_test` local do disposable script
+cấp. Offline exporter cũng tắt dotenv trước import Alembic. Các lệnh hosted vẫn
+cần quy trình review/duyệt riêng; thay đổi này không cho phép áp migration hosted.
+
 | Revision | Thay đổi chính |
 | --- | --- |
 | `0001_foundation` | Schema/bảng nền tảng cá nhân, AI metadata và social |
@@ -34,8 +40,14 @@ Nguồn: [backend/alembic/versions](../../backend/alembic/versions/). Revision I
 | `0026_search_usage` | Private external-tool financial ledger; unsettled liability survives user/run deletion |
 | `0027_maps_jobs` | Private fenced async Maps jobs and provider cleanup coordination |
 | `0028_collaboration_defaults` | Add permission policy identity to collaboration/orchestration receipts; stored preferences unchanged |
+| `0029_journal_intelligence` | Journal AI settings, revision-fenced embedding/jobs, memory origin/source and journal run origin; expand-only, RLS/runtime-only; downgrade refuses new automatic-memory/journal-run data |
 
-Current Search/Skills images require **0028_collaboration_defaults**. The reviewed
+The journal-intelligence feature image requires **0029_journal_intelligence**.
+Its rollout requires a compatible 0028 ORM image accepting both 0028/0029 first;
+see [0029 release order](../implementation-plans/journal-intelligence-and-matching-removal/06-verification-and-release.md).
+No hosted schema state or execution is inferred from this source change.
+
+The preceding Search/Skills images require **0028_collaboration_defaults**. The reviewed
 additive release artifact is [0024-0028-live.sql](../implementation-plans/agent-search-and-skills/0024-0028-live.sql);
 its exact hash, disposable rehearsal and actual hosted execution state are recorded
 in [live release verification](../implementation-plans/agent-search-and-skills/11-live-release.md).

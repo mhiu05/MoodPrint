@@ -102,9 +102,7 @@ async function mount(page: Page, options: { conversation?: ReturnType<typeof thr
       "/ai/sharing": sharing,
       "/ai/inbox": { badgesEnabled: true, unreadTotal: 0, bots: [] },
       "/ai/proactive": { available: false, settings: { timezone: "Asia/Ho_Chi_Minh", quietStart: "22:00", quietEnd: "07:00", badgesEnabled: true, journalContextEnabled: false, version: 0, policyVersion: "proactive-v1" }, schedules: [], limits: { dailyCap: 4, enabledSlots: 0, windows: { morning: ["05:00", "11:30"], evening: ["17:00", "22:30"] }, stepMinutes: 15 } },
-      "/social/summary": { pendingIncomingRequests: 0, unreadConnections: 0, activityInvites: 0 },
-      "/proposals": [], "/memories": [], "/connections": [], "/connection-requests": [], "/activities/catalog": [],
-      "/profiles/published/current": null,
+      "/proposals": [], "/memories": [],
     };
     if (method === "GET" && path in fixed) return json(fixed[path]);
     return json({ error: { code: "NOT_FOUND", message: `Missing synthetic fixture ${path}` } }, 404);

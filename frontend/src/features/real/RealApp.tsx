@@ -30,7 +30,6 @@ import {
   Copy,
   Info,
   LockKeyhole,
-  MessageCircle,
   Moon,
   NotebookPen,
   Pause,
@@ -38,7 +37,6 @@ import {
   Sparkles,
   Sun,
   UserRound,
-  Users,
 } from "lucide-react";
 import {
   Brand,
@@ -51,7 +49,7 @@ import { BotAvatar } from "../../companions/Avatar";
 import { botById, type BotId } from "../../companions/registry";
 import { ApiClient, ApiError, errorMessage } from "../../api/client";
 import { consumeAISearchReply, validCards } from "../../api/stream";
-import type { PromptOptions } from "../../api/contracts";
+import type { PromptCapabilities, PromptOptions } from "../../api/contracts";
 import { ComposerOptions, PromptChips } from "./composer/ComposerOptions";
 import { acceptSelection, normalizePromptOptions, selectionKey, type SelectionState } from "./composer/promptOptions";
 import { CitationText } from "./search/CitationText";
@@ -77,7 +75,9 @@ import "./agent-chat.css";
 import "./checkins/proactive.css";
 import type { components } from "../../api/generated/schema";
 import { AIInboxProvider, inboxLabel, otherUnread, unreadFor, useAIInbox } from "./useAIInbox";
-import { Discovery } from "./social/Discovery";
+import { NAV_ITEMS, badgeText } from "./navigation";
+import { renderableCards } from "./messageCards";
+import { JournalAiSettings } from "./journal/JournalAiSettings";
 import { OfflineBanner, useOnline } from "./OfflineBanner";
 import {
   SESSION_GRACE_MS,
@@ -87,9 +87,6 @@ import {
 } from "../../api/sessionPolicy";
 import { AssistantGuide } from "./AssistantGuide";
 import { aiServiceMessage } from "./aiStatus";
-import { HumanChat } from "./social/HumanChat";
-import { HumanMessages } from "./social/HumanMessages";
-import { badgeText, useSocialSummary } from "./social/useSocialSummary";
 import { Moderation } from "./admin/Moderation";
 import { ApprovedMemories } from "./Memory";
 import { Moods } from "./Mood";
@@ -624,14 +621,14 @@ function GuestBanner() {
   );
 }
 
-/** Registered-only explanation. It makes no API call, so a guest never polls or probes social data. */
-function GuestLocked() {
+/** A local explanation without a registered-only API request. */
+function RegisteredOnly({ title, children }: { title: string; children: ReactNode }) {
   const guest = useGuest();
   return (
     <>
-      <h1 tabIndex={-1}>Tìm bạn và nhắn tin</h1>
-      <StatePanel title="Tạo tài khoản để tìm bạn và nhắn tin.">
-        Tính năng này dành cho người từ 18 tuổi, khi bạn chủ động bật chia sẻ.
+      <h1 tabIndex={-1}>{title}</h1>
+      <StatePanel title="Tạo tài khoản">
+        {children}
       </StatePanel>
       <div className={cx.actions}>
         <Link className={`${cx.button} ${cx.primary}`} to="/assistants">
@@ -658,11 +655,11 @@ function SessionNotices() {
       {notices.map((notice) =>
         notice.kind === "restricted" ? (
           <p key="restricted">
-            Tính năng kết nối của bạn đang tạm bị hạn chế
+            Tài khoản của bạn đang bị hạn chế
             {notice.until
               ? ` đến ${new Date(notice.until).toLocaleDateString("vi-VN")}`
               : ""}
-            . Bạn vẫn dùng được các trợ lý và nhật ký cảm xúc.
+            . Bạn vẫn dùng được trợ lý và nhật ký.
           </p>
         ) : (
           <p key="warning">
@@ -694,40 +691,22 @@ function QuotaHint() {
 }
 
 function Navigation() {
-  const location = useLocation();
-  const summary = useSocialSummary(location.pathname);
-  const unread = summary.unreadConnections + summary.activityInvites;
   const { inbox } = useAIInbox();
   const checkIns = inbox.badgesEnabled ? inbox.unreadTotal : 0;
+  const icons = [Sparkles, NotebookPen, UserRound];
   return (
     <nav className={cx.navigation} aria-label="Điều hướng chính">
-      {[
-        { to: "/assistants", label: "Trợ lý", Icon: Sparkles, count: checkIns, what: "lời nhắn mới" },
-        { to: "/self", label: "Nhật ký", Icon: NotebookPen, count: 0, what: "" },
-        {
-          // Pending invitations open their tab directly (08 section 2).
-          to: summary.pendingIncomingRequests ? "/connect?tab=requests" : "/connect",
-          label: "Tìm bạn",
-          Icon: Users,
-          count: summary.pendingIncomingRequests,
-          what: "lời mời kết nối mới",
-        },
-        {
-          to: "/messages",
-          label: "Tin nhắn",
-          Icon: MessageCircle,
-          count: unread,
-          what: "cuộc trò chuyện chưa đọc",
-        },
-        { to: "/profile", label: "Tài khoản", Icon: UserRound, count: 0, what: "" },
-      ].map(({ to, label, Icon, count, what }) => (
+      {NAV_ITEMS.map(({ to, label }, index) => {
+        const Icon = icons[index];
+        const count = to === "/assistants" ? checkIns : 0;
+        return (
         <NavLink
           key={label}
           className={({ isActive }) =>
             `${cx.navItem} ${isActive ? cx.navActive : ""}`
           }
           to={to}
-          aria-label={count ? `${label}, ${count} ${what}` : undefined}
+          aria-label={count ? `${label}, ${count} lời nhắn mới` : undefined}
         >
           <span className={cx.navIcon}>
             <Icon size={21} strokeWidth={1.6} />
@@ -739,7 +718,7 @@ function Navigation() {
           </span>
           <span>{label}</span>
         </NavLink>
-      ))}
+      ); })}
     </nav>
   );
 }
@@ -841,13 +820,7 @@ function Shell() {
               <Route path="/self/daily" element={<Moods />} />
               <Route path="/profile" element={<AccountPage onGuide={() => setGuideOpen(true)} />} />
               <Route path="/memory" element={<ApprovedMemories />} />
-              <Route path="/connect" element={session.accountKind === "guest" ? <GuestLocked /> : <Discovery />} />
-              <Route path="/messages" element={session.accountKind === "guest" ? <GuestLocked /> : <HumanMessages />} />
-              <Route
-                path="/chat/:connectionId"
-                element={session.accountKind === "guest" ? <GuestLocked /> : <HumanChat key={location.pathname} />}
-              />
-              <Route path="/check-ins" element={session.accountKind === "guest" ? <GuestLocked /> : <Suspense fallback={<p role="status">Đang mở lịch hỏi thăm…</p>}><CheckInsPage /></Suspense>} />
+              <Route path="/check-ins" element={session.accountKind === "guest" ? <RegisteredOnly title="Tính năng cần tài khoản">Tạo tài khoản để dùng lịch hỏi thăm.</RegisteredOnly> : <Suspense fallback={<p role="status">Đang mở lịch hỏi thăm…</p>}><CheckInsPage /></Suspense>} />
               <Route path="/companion-sharing" element={<Navigate to="/assistants" replace />} />
               <Route path="*" element={<Navigate replace to="/assistants" />} />
           </Routes>
@@ -1034,7 +1007,7 @@ function Assistants({ group }: { group?: "new" | "chat" }) {
             <p>
               Một nơi để lắng nghe bản thân
               <br />
-              và kết nối từ những điểm chung.
+              và hiểu mình hơn qua từng trang nhật ký.
             </p>
             {bots[0] ? (
               <Link
@@ -1068,6 +1041,7 @@ const compactLayout = () => !window.matchMedia("(min-width: 1100px)").matches;
 
 function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const { api, session, paused } = useSession();
+  const online = useOnline();
   const { preferences, loading: preferencesLoading, error: preferencesError, reload: reloadPreferences, refreshHistory } = useAIData();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedId = searchParams.get("conversation");
@@ -1108,12 +1082,22 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     lifetime = useRef<AbortController | null>(null);
   const intent = useRef<{ text: string; scopeKey: string; clientMessageId: string; options: PromptOptions; selectionRevision: number } | null>(null);
   const [selection, setSelection] = useState<SelectionState>({ revision: 0, options: {} });
+  const [skillCapabilities, setSkillCapabilities] = useState<PromptCapabilities["skills"]>([]);
   const selectionRef = useRef(selection);
   const changeOptions = useCallback((options: PromptOptions) => {
     const next = { revision: selectionRef.current.revision + 1, options };
     selectionRef.current = next; setSelection(next);
   }, []);
   const composer = useRef<HTMLTextAreaElement>(null);
+  const focusAfterOptionSelection = useCallback(() => {
+    const previous = document.activeElement;
+    requestAnimationFrame(() => {
+      // Closing the option removes its focused button. Respect a person who
+      // already moved into the area field before this deferred frame runs.
+      if (document.activeElement === previous || document.activeElement === document.body)
+        composer.current?.focus();
+    });
+  }, []);
   const composerAction = useRef<HTMLButtonElement>(null);
   const restoreActionFocus = useRef(false);
   const [draftNotice, setDraftNotice] = useState("");
@@ -1482,6 +1466,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     if (
       !text ||
       !canSend ||
+      !online ||
       preferencesLoading ||
       busy ||
       loading ||
@@ -1866,7 +1851,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
 
   let readOnlyMessage = "Đang kiểm tra cài đặt trò chuyện AI…";
   if (legacyReadOnly)
-    readOnlyMessage = `Đây là cuộc trò chuyện cũ với ${bot.name}, chỉ để xem lại. ${successor ? `${successor.name} đã tiếp nhận phần việc này. ` : "Tìm bạn giờ là một mục riêng. "}Bạn vẫn có thể đổi tên, tải xuống hoặc xóa.`;
+    readOnlyMessage = `Đây là cuộc trò chuyện cũ với ${bot.name}, chỉ để xem lại. ${successor ? `${successor.name} đã tiếp nhận phần việc này. ` : ""}Bạn vẫn có thể đổi tên, tải xuống hoặc xóa.`;
   else if (!session.features.ai) readOnlyMessage = aiServiceMessage(session.features);
   else if (!preferences && !preferencesLoading)
     readOnlyMessage = "Chưa tải được cài đặt trò chuyện AI. Tải lại trước khi gửi tin nhắn.";
@@ -1912,7 +1897,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
                 ) : <p>{message.text}</p>}
               </div>
               {validCards(message.cards, 3) &&
-                message.cards.map((card, index) => (
+                renderableCards(message.cards).map((card, index) => (
                   <div className="inline-card" key={`${message.id}-${index}`}>
                     {card.kind === "places" ? <PlacesCard places={card.places} /> : card.kind === "maps_search" ? <MapsSearchCard api={api} searchId={card.searchId} onReuse={(id) => {
                       changeOptions({ ...selectionRef.current.options, mapsSearchId: id });
@@ -1924,9 +1909,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
                       <Link to={`/assistants/${card.botId}`}>
                         Trò chuyện với {botById(card.botId)?.name} <ArrowUpRight size={15} aria-hidden="true" />
                       </Link>
-                    ) : (
-                      <Link to="/connect">Tìm bạn đồng điệu <ArrowUpRight size={15} aria-hidden="true" /></Link>
-                    )}
+                    ) : null}
                   </div>
                 ))}
               {date || message.actor === "bot" ? (
@@ -2048,7 +2031,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           <p>{bot.description}</p>
           {!conversation?.messages.length && <AssistantGuide botId={bot.botId} />}
           <small>
-            <LockKeyhole size={13} /> Không chia sẻ với bạn kết nối
+            <LockKeyhole size={13} /> Chỉ bạn xem được
           </small>
         </div> : null}
         {notice ? <p role="status"><span>{notice}</span>{previousConversation ? <> <Link to={`/assistants/${bot.botId}?conversation=${encodeURIComponent(previousConversation)}`}>Xem cuộc trò chuyện trước</Link></> : null}</p> : null}
@@ -2142,7 +2125,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       />
       </div>
       {session.features.aiStatus === "test_provider" ? <p className={cx.footnote} role="note">Môi trường kiểm thử · phản hồi từ model giả, không phải OpenAI.</p> : null}
-      {!canSend ? <div className="chat-readonly" role="status" data-legacy={legacyReadOnly || undefined}><p>{readOnlyMessage}</p>{legacyReadOnly ? <div className={cx.actions}><Link className={`${cx.button} ${cx.secondary}`} to={successor ? `/assistants/${successor.id}` : "/connect"}>{successor ? `Trò chuyện với ${successor.name}` : "Mở Tìm bạn"}</Link></div> : allowed && preferences && !historyWritable ? <div className={cx.actions}><Button variant="secondary" onClick={requestNew}>Mở cuộc trò chuyện mới</Button></div> : null}</div> : <div className="chat-bottom">
+      {!canSend ? <div className="chat-readonly" role="status" data-legacy={legacyReadOnly || undefined}><p>{readOnlyMessage}</p>{legacyReadOnly && successor ? <div className={cx.actions}><Link className={`${cx.button} ${cx.secondary}`} to={`/assistants/${successor.id}`}>{`Trò chuyện với ${successor.name}`}</Link></div> : allowed && preferences && !historyWritable ? <div className={cx.actions}><Button variant="secondary" onClick={requestNew}>Mở cuộc trò chuyện mới</Button></div> : null}</div> : <div className="chat-bottom">
         {activeAgent ? <HandoffBanner agent={activeAgent} owner={bot.name} busy={returning || busy} onReturn={() => void returnToOwner()} /> : null}
         {bot.botId === "nhip" || (bot.botId === "nhatky" && !activeAgent) ? (
           <>
@@ -2194,7 +2177,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         ) : null}
         {draftNotice ? <p className={cx.footnote} role="status">{draftNotice}</p> : null}
         <QuotaHint />
-        <PromptChips options={selection.options} onChange={changeOptions} onFocusComposer={() => requestAnimationFrame(() => composer.current?.focus())} />
+        <PromptChips options={selection.options} skills={skillCapabilities} onChange={changeOptions} onFocusComposer={focusAfterOptionSelection} />
         <form
           className="bot-composer"
           onSubmit={(event) => {
@@ -2204,8 +2187,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           }}
         >
           <ComposerOptions api={api} botId={conversation?.activeAgent ?? bot.botId}
+            onSkillsChange={setSkillCapabilities}
             enabled={!!(session.features.agentSkills || session.features.webSearch || session.features.mapsSearch) && !legacyReadOnly}
-            options={selection.options} onChange={changeOptions} onFocusComposer={() => requestAnimationFrame(() => composer.current?.focus())} />
+            options={selection.options} onChange={changeOptions} onFocusComposer={focusAfterOptionSelection} />
           <textarea
             aria-label={`Tin nhắn cho ${bot.name}`}
             ref={composer}
@@ -2237,9 +2221,9 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
             ref={composerAction}
             type={canStop ? "button" : "submit"}
             className="send-button"
-            disabled={canStop ? stopDisabled : !draft.trim() || busy || loading || !ready || moodInvalid || preferencesLoading || paused}
+            disabled={canStop ? stopDisabled : !online || !draft.trim() || busy || loading || !ready || moodInvalid || preferencesLoading || paused}
             aria-label={actionLabel}
-            title={actionLabel}
+            title={!online && !canStop ? "Đang mất kết nối mạng" : actionLabel}
             onClick={canStop ? () => void cancel() : undefined}
           >
             {canStop ? <Pause size={18} fill="currentColor" strokeWidth={1.5} aria-hidden="true" /> : <ArrowUp size={20} strokeWidth={2} aria-hidden="true" />}
@@ -2274,6 +2258,7 @@ function AccountPage({ onGuide }: { onGuide: () => void }) {
     <div className={cx.reading}>
       <h1 tabIndex={-1} data-tour="personal-account">Tài khoản</h1>
       <AdultEligibility />
+      <JournalAiSettings />
       <AccountActions onGuide={onGuide} onDeleted={() => setAccountDeleted(true)} />
     </div>
   );

@@ -1,4 +1,8 @@
-"""Agent search/skills require migration 0028 before traffic.
+"""Journal intelligence requires migration 0029 before traffic.
+
+The ORM maps memory provenance on every memory read; 0029 adds journal settings,
+revision-fenced jobs and vectors. Rollback uses an image accepting 0028/0029;
+never advertise readiness for a schema missing mapped columns.
 
 The ORM maps ``ai_messages.citations/source_backed`` (0025), ``ai_search_usage`` (0026),
 ``ai_maps_searches`` (0027) and receipt ``permission_policy`` (0028). All four are additive;
@@ -21,5 +25,5 @@ head that predates the schema.
 """
 
 READY_REVISIONS: tuple[str, ...] = (
-    "0028_collaboration_defaults",
+    "0029_journal_intelligence",
 )

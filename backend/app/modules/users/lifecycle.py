@@ -98,11 +98,16 @@ async def process_deletions(app):
             await detach_searches(db, uid)
             await db.execute(delete(AiConversation).where(AiConversation.user_id == uid))
             await db.execute(delete(AiPreference).where(AiPreference.user_id == uid))
+            from app.modules.journal.ai_models import JournalAiSettings
+
+            await db.execute(delete(JournalAiSettings).where(JournalAiSettings.user_id == uid))
             # Temporary-chat turn digests have no conversation row to cascade from.
             await db.execute(delete(AiTurn).where(AiTurn.user_id == uid))
         if "memories" in scopes:
+            from app.ai.journal_memory import fence_deleted_memories
             from app.ai.memory_models import MemoryProposal
 
+            await fence_deleted_memories(db, uid)
             await db.execute(delete(MemoryProposal).where(MemoryProposal.user_id == uid))
             await db.execute(delete(Memory).where(Memory.user_id == uid))
         if "moods" in scopes:
@@ -180,6 +185,9 @@ async def process_deletions(app):
                                                     AiRun.status == "running")
                                  .values(status="cancelled", version=2))
             await db.execute(delete(AgeDeclaration).where(AgeDeclaration.user_id == uid))
+            from app.modules.journal.quota import OPERATIONS
+
+            await db.execute(delete(Idempotency).where(Idempotency.user_id == uid, Idempotency.operation.in_(tuple(OPERATIONS.values()))))
             await db.execute(
                 update(HumanMessage).where(HumanMessage.sender_id == uid).values(text="[Đã xóa]")
             )
@@ -204,6 +212,8 @@ async def process_deletions(app):
         job.version += 1
         job.lease_until = None
         # Receipts store only resource IDs, but expired keys still need bounded retention.
+        from app.modules.journal.quota import expired_receipts
+
         await db.execute(
-            delete(Idempotency).where(Idempotency.created_at < now() - timedelta(hours=24))
+            delete(Idempotency).where(expired_receipts(now()))
         )

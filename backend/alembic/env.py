@@ -23,13 +23,16 @@ from app.infrastructure.database.models import Base
 from app.modules.activities import models as activity_models  # noqa: F401
 from app.modules.feedback import models as feedback_models  # noqa: F401
 from app.modules.guests import models as guest_models  # noqa: F401
+from app.modules.journal import ai_models as journal_ai_models  # noqa: F401
 from app.modules.journal import models as journal_models  # noqa: F401
 from app.modules.moderation import models as moderation_models  # noqa: F401
 from app.modules.social import models  # noqa: F401 -- register all owned domain tables
 from app.modules.users import models as lifecycle_models  # noqa: F401
 
 config = context.config
-settings = Settings()
+# Migration targets must be supplied explicitly by the invoking process.
+# In-process pytest settings do not propagate to Alembic subprocesses.
+settings = Settings(_env_file=None)
 raw = settings.database_migration_url or settings.database_url
 url = raw.get_secret_value() if raw else "postgresql+psycopg://localhost/moodprint"
 url = url.replace("postgres://", "postgresql+psycopg://", 1).replace(

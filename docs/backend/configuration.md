@@ -2,7 +2,7 @@
 
 Nguồn: [Settings](../../backend/app/core/config.py) và [EmbeddingSettings](../../backend/app/ai/embedding_config.py). Bảng lấy từ khai báo mã nguồn, không đọc `.env` hoặc giá trị runtime. Tên biến môi trường là tên field viết HOA. JSON list dùng cho trường danh sách.
 
-Global flag chỉ mở capability; người dùng vẫn cần eligibility, consent và preference tương ứng. `backend/local-mvp.env.example` có thể bật giá trị khác mặc định. Production validation yêu cầu HTTPS origin/Auth, publishable key, database và các provider settings khi feature bật.
+Global flag chỉ mở capability; người dùng vẫn cần eligibility, consent và preference tương ứng. `backend/local-mvp.env.example` có thể bật giá trị khác mặc định. Production validation yêu cầu HTTPS origin/Auth, publishable key và database. Thiếu OpenAI/STT/Voyage/Apify không chặn khởi động: runtime báo chưa khả dụng, `degraded_features()` và `check_config.py` chỉ xuất tên cờ/mã lý do. Khi thiếu tiền đề multi-message/ba trợ lý/accounting (và budget cho worker proactive production), cờ phụ thuộc đến từ mặc định được kẹp về false; cấu hình mâu thuẫn đặt tường minh vẫn raise. CAPTCHA bật tường minh mà thiếu site key vẫn bị từ chối.
 
 Search/Skills require V3, accounting, a positive global budget, verified pricing,
 and the corresponding runtime flag. Empty Search cohort means all eligible accounts.
@@ -36,17 +36,17 @@ change shared timezone, quiet hours, daily caps, pause state or journal consent.
 | `AUTH_CAPTCHA_ENABLED` | `bool` | `False` |
 | `OPENAI_API_KEY` | `SecretStr` | `SecretStr('')` |
 | `OPENAI_MODEL` | `str` | `''` |
-| `AI_ENABLED` | `bool` | `False` |
-| `AI_ACCOUNTING_ENABLED` | `bool` | `False` |
+| `AI_ENABLED` | `bool` | `True` |
+| `AI_ACCOUNTING_ENABLED` | `bool` | `True` |
 | `AI_LOCAL_TEST_USER_IDS` | `list[UUID]` | `list` |
-| `STT_ENABLED` | `bool` | `False` |
+| `STT_ENABLED` | `bool` | `True` |
 | `STT_MODEL` | `str` | `''` |
-| `SANDBOX_ENABLED` | `bool` | `False` |
+| `SANDBOX_ENABLED` | `bool` | `True` |
 | `CHAT_HISTORY_ENABLED` | `bool` | `True` |
-| `AI_MULTI_MESSAGE_ENABLED` | `bool` | `False` |
-| `AI_WEB_SEARCH_ENABLED` | `bool` | `False` |
-| `AI_MAPS_SEARCH_ENABLED` | `bool` | `False` |
-| `AI_AGENT_SKILLS_ENABLED` | `bool` | `False` |
+| `AI_MULTI_MESSAGE_ENABLED` | `bool` | `True` |
+| `AI_WEB_SEARCH_ENABLED` | `bool` | `True` |
+| `AI_MAPS_SEARCH_ENABLED` | `bool` | `True` |
+| `AI_AGENT_SKILLS_ENABLED` | `bool` | `True` |
 | `AI_SEARCH_ROLLOUT_USER_IDS` | `list[UUID]` | `[]` |
 | `AI_SEARCH_DAILY_CAP_PER_USER` | `int` | `5` |
 | `AI_SEARCH_USER_CONCURRENCY` | `int` | `1` |
@@ -54,13 +54,13 @@ change shared timezone, quiet hours, daily caps, pause state or journal consent.
 | `AI_SEARCH_DAILY_BUDGET_USD` | `float` | `5` |
 | `AI_WEB_SEARCH_PRICING_VERSION` | `str` | `''` |
 | `AI_WEB_SEARCH_TOKEN_BOUND_VERIFIED` | `bool` | `False` |
-| `MAPS_SEARCH_WORKER_ENABLED` | `bool` | `False` |
+| `MAPS_SEARCH_WORKER_ENABLED` | `bool` | `True` |
 | `APIFY_API_TOKEN` | `SecretStr` | `SecretStr('')` |
 | `APIFY_MAPS_ACTOR_BUILD` | `str` | `''` |
 | `APIFY_MAPS_PRICING_VERSION` | `str` | `''` |
 | `APIFY_MAPS_CHARGE_BOUND_VERIFIED` | `bool` | `False` |
-| `PROACTIVE_ENABLED` | `bool` | `False` |
-| `PROACTIVE_WORKER_ENABLED` | `bool` | `False` |
+| `PROACTIVE_ENABLED` | `bool` | `True` |
+| `PROACTIVE_WORKER_ENABLED` | `bool` | `True` |
 | `PROACTIVE_WORKER_CONCURRENCY` | `int` | `1` |
 | `PROACTIVE_DAILY_CAP_PER_USER` | `int` | `4` |
 | `PROACTIVE_BUDGET_SHARE` | `float` | `0.5` |
@@ -68,16 +68,16 @@ change shared timezone, quiet hours, daily caps, pause state or journal consent.
 | `PROACTIVE_MAX_ATTEMPTS` | `int` | `3` |
 | `PROACTIVE_INACTIVE_DAYS` | `int` | `14` |
 | `PROACTIVE_ROLLOUT_USER_IDS` | `list[UUID]` | `[]` |
-| `AI_COLLABORATION_ENABLED` | `bool` | `False` |
-| `AI_COLLABORATION_DEFAULTS_ENABLED` | `bool` | `False` |
+| `AI_COLLABORATION_ENABLED` | `bool` | `True` |
+| `AI_COLLABORATION_DEFAULTS_ENABLED` | `bool` | `True` |
 | `AI_COLLABORATION_POLICY_EPOCH` | `int` | `2` |
 | `AI_COLLABORATION_DAILY_CAP` | `int` | `10` |
 | `AI_COLLABORATION_TIMEOUT_SECONDS` | `float` | `8` |
 | `AI_COLLABORATION_BUDGET_SHARE` | `float` | `0.7` |
 | `AI_COLLABORATION_ROLLOUT_USER_IDS` | `list[UUID]` | `[]` |
-| `AI_THREE_AGENT_EXPERIENCE_ENABLED` | `bool` | `False` |
-| `AI_SMART_ORCHESTRATION_ENABLED` | `bool` | `False` |
-| `AI_GROUP_CHAT_ENABLED` | `bool` | `False` |
+| `AI_THREE_AGENT_EXPERIENCE_ENABLED` | `bool` | `True` |
+| `AI_SMART_ORCHESTRATION_ENABLED` | `bool` | `True` |
+| `AI_GROUP_CHAT_ENABLED` | `bool` | `True` |
 | `AI_V3_ROLLOUT_USER_IDS` | `list[UUID]` | `[]` |
 | `AI_ORCHESTRATION_MAX_SPECIALISTS` | `int` | `2` |
 | `AI_ORCHESTRATION_DAILY_CAP` | `int` | `20` |
@@ -97,18 +97,18 @@ change shared timezone, quiet hours, daily caps, pause state or journal consent.
 | `SESSION_MAX_DAYS` | `int` | `7` |
 | `STATIC_DIR` | `str` | `''` |
 | `MATCHING_SCORER` | `Literal['v1', 'v2', 'shadow']` | `'v1'` |
-| `ACTIVITIES_ENABLED` | `bool` | `False` |
+| `ACTIVITIES_ENABLED` | `bool` | `True` |
 | `ACTIVITY_KINDS` | `list[Literal['icebreaker', 'coop_quiz', 'focus']]` | `['icebreaker', 'coop_quiz', 'focus']` |
 | `FOCUS_TEST_PLAN_SECONDS` | `int &#124; None` | `None` |
-| `MODERATION_ADMIN_ENABLED` | `bool` | `False` |
+| `MODERATION_ADMIN_ENABLED` | `bool` | `True` |
 | `AI_DAILY_TURNS_PER_USER` | `int` | `60` |
 | `AI_DAILY_BUDGET_USD` | `float` | `0` |
-| `GUEST_AUTH_ENABLED` | `bool` | `False` |
-| `GUEST_PAID_ENABLED` | `bool` | `False` |
-| `GUEST_SEMANTIC_ENABLED` | `bool` | `False` |
-| `FEEDBACK_ENABLED` | `bool` | `False` |
-| `FEEDBACK_ADMIN_ENABLED` | `bool` | `False` |
-| `PRODUCT_TOUR_ENABLED` | `bool` | `False` |
+| `GUEST_AUTH_ENABLED` | `bool` | `True` |
+| `GUEST_PAID_ENABLED` | `bool` | `True` |
+| `GUEST_SEMANTIC_ENABLED` | `bool` | `True` |
+| `FEEDBACK_ENABLED` | `bool` | `True` |
+| `FEEDBACK_ADMIN_ENABLED` | `bool` | `True` |
+| `PRODUCT_TOUR_ENABLED` | `bool` | `True` |
 | `RELEASE_VERSION` | `str` | `'unknown'` |
 | `RELEASE_SHA` | `str` | `'unknown'` |
 | `GUEST_DAILY_BUDGET_USD` | `Decimal &#124; None` | `None` |
@@ -124,7 +124,24 @@ change shared timezone, quiet hours, daily caps, pause state or journal consent.
 | `GUEST_VOICE_PER_MINUTE` | `int` | `2` |
 | `GUEST_VOICE_CONCURRENCY` | `int` | `1` |
 | `GUEST_VOICE_GLOBAL_CONCURRENCY` | `int` | `3` |
-| `SEMANTIC_MEMORY_ENABLED` | `bool` | `False` |
+| `JOURNAL_SEMANTIC_ENABLED` | `bool` | `True` |
+| `JOURNAL_EMBEDDING_DEBOUNCE_SECONDS` | `int` | `20` |
+| `JOURNAL_EMBEDDING_DAILY_CAP_PER_USER` | `int` | `200` |
+| `JOURNAL_QUERY_TIMEOUT_SECONDS` | `float` | `3` |
+| `JOURNAL_SEMANTIC_TOP_K` | `int` | `6` |
+| `JOURNAL_RECENT_K` | `int` | `2` |
+| `JOURNAL_SIMILARITY_THRESHOLD` | `float` | `0.25` |
+| `JOURNAL_DOCUMENT_CHAR_LIMIT` | `int` | `7000` |
+| `JOURNAL_AUTO_MEMORY_ENABLED` | `bool` | `True` |
+| `JOURNAL_AUTO_MEMORY_MIN_CHARS` | `int` | `80` |
+| `JOURNAL_AUTO_MEMORY_DEBOUNCE_SECONDS` | `int` | `120` |
+| `JOURNAL_AUTO_MEMORY_DAILY_CAP_PER_USER` | `int` | `10` |
+| `JOURNAL_AUTO_MEMORY_MAX_PER_ENTRY` | `int` | `2` |
+| `JOURNAL_AUTO_MEMORY_MAX_ACTIVE` | `int` | `40` |
+| `JOURNAL_AUTO_MEMORY_BUDGET_SHARE` | `float` | `0.2` |
+| `JOURNAL_AUTO_MEMORY_BACKFILL_DAYS` | `int` | `14` |
+| `JOURNAL_AUTO_MEMORY_TIMEOUT_SECONDS` | `float` | `20` |
+| `SEMANTIC_MEMORY_ENABLED` | `bool` | `True` |
 | `VOYAGE_API_KEY` | `SecretStr` | `SecretStr('')` |
 | `VOYAGE_MODEL` | `str` | `'voyage-4-lite'` |
 | `VOYAGE_DIMENSIONS` | `Literal[256, 512, 1024, 2048]` | `1024` |
@@ -142,14 +159,15 @@ change shared timezone, quiet hours, daily caps, pause state or journal consent.
 
 - **Database:** runtime URL dùng role tối thiểu; migration URL dùng owner riêng. `DATABASE_POOL_MODE` ghi nhận lựa chọn topology; connection implementation vẫn cần đối chiếu endpoint/pooling thực tế. Prepared statements bị tắt ở connection layer.
 - **Journal media:** `JOURNAL_STORAGE_KEY` là credential phía server cho bucket riêng tư `journal-media`; không dùng biến `VITE_`, không đưa vào session hoặc log. Thiếu key vẫn lưu nhật ký chữ/bản nháp được; media trả lỗi có thể thử lại. Xem [Storage nhật ký](../supabase/journal-storage.md).
+- **Journal embedding quota:** `JOURNAL_EMBEDDING_DAILY_CAP_PER_USER` tính cả reservation đang xử lý và lần gọi có thể đã phát sinh phí, theo ngày local. Xóa entry không giải phóng phần đã dùng. Timeout/lỗi transport không tự hoàn quota; receipt chỉ lưu ngày/count trong 72 giờ, không lưu nội dung nhật ký.
 - **AI:** `AI_ENABLED`, model/key, concurrency/rate/timeout; daily USD budget cần accounting. `AI_LOCAL_TEST_USER_IDS` chỉ được phép ở development, không phải production bypass.
 - **History:** `CHAT_HISTORY_ENABLED` và retention là capability global; preference mặc định của user vẫn tắt.
 - **Lời hỏi thăm (chủ động):** `PROACTIVE_ENABLED` mở API/UI lịch hỏi thăm (`GET/PUT /ai/proactive…`, `features.proactive`); `PROACTIVE_WORKER_ENABLED` bật vòng scheduler/executor **chỉ** trong service Compose `proactive` (`python -m app.jobs.proactive`), không bao giờ trong process API. Production bật worker bắt buộc `PROACTIVE_ENABLED`, `AI_ENABLED`, `AI_ACCOUNTING_ENABLED=true` và `AI_DAILY_BUDGET_USD > 0`. Lời hỏi thăm không trừ lượt chat của người dùng nhưng dừng khi chi tiêu ngày đạt `PROACTIVE_BUDGET_SHARE × AI_DAILY_BUDGET_USD`. `PROACTIVE_ROLLOUT_USER_IDS` khác rỗng giới hạn tính năng cho nhóm thử nghiệm đã đồng ý. Thứ tự bật: [operations](operations.md).
-- **Ba trợ lý, điều phối thông minh, nhóm AI (V3):** `AI_THREE_AGENT_EXPERIENCE_ENABLED` (mặc định tắt) thay 5 trợ lý mặc định bằng Điều phối, Nhật ký, Hoạt động; hội thoại của 5 trợ lý cũ chỉ còn đọc, lịch hỏi thăm cũ được giữ nhưng tạm dừng và chỉ chuyển khi người dùng chọn. `AI_SMART_ORCHESTRATION_ENABLED` (planner + `Agent.as_tool()` + handoff, chỉ trên cạnh người dùng đã bật) và `AI_GROUP_CHAT_ENABLED` (nhóm AI) chỉ có tác dụng khi cờ ba trợ lý bật và bắt buộc `AI_MULTI_MESSAGE_ENABLED=true`; production còn cần `AI_ACCOUNTING_ENABLED=true`. `AI_V3_ROLLOUT_USER_IDS` khác rỗng giới hạn cả ba cho nhóm thử nghiệm. Giới hạn: ≤ `AI_ORCHESTRATION_MAX_SPECIALISTS` chuyên gia/lượt, `AI_ORCHESTRATION_DAILY_CAP` bước chuyên gia/ngày Asia/Bangkok, timeout chuyên gia/planner, dừng ủy quyền khi chi tiêu ngày đạt `AI_ORCHESTRATION_BUDGET_SHARE × AI_DAILY_BUDGET_USD`; nhóm tối đa `AI_GROUP_MAX_SPEAKERS` người nói/lượt. Xem `docs/implementation-plans/three-agent-orchestration-group-chat/`.
-- **Trợ lý phối hợp (Phase 2):** `AI_COLLABORATION_ENABLED` (mặc định tắt) cho phép một trợ lý nhờ trợ lý khác **một** việc nhỏ theo luật xác định R1–R4, chỉ trên các cạnh người dùng đã bật ở `/ai/sharing` (mặc định tắt từng cạnh). Bắt buộc `AI_MULTI_MESSAGE_ENABLED=true` (mọi môi trường) và, ở production, `AI_ACCOUNTING_ENABLED=true` vì run con không có lease `ai_turns`. Mỗi người dùng tối đa `AI_COLLABORATION_DAILY_CAP` lần/ngày Asia/Bangkok; specialist có timeout `AI_COLLABORATION_TIMEOUT_SECONDS` (3–10 s); dừng phối hợp khi chi tiêu ngày đạt `AI_COLLABORATION_BUDGET_SHARE × AI_DAILY_BUDGET_USD`. `AI_COLLABORATION_ROLLOUT_USER_IDS` khác rỗng giới hạn cho nhóm thử nghiệm. Tắt cờ: không có specialist call, không có receipt mới, không có dòng cộng tác; người dùng vẫn luôn tắt được cạnh đã bật.
+- **Ba trợ lý, điều phối thông minh, nhóm AI (V3):** `AI_THREE_AGENT_EXPERIENCE_ENABLED` (mặc định bật) thay 5 trợ lý mặc định bằng Điều phối, Nhật ký, Hoạt động; hội thoại của 5 trợ lý cũ chỉ còn đọc, lịch hỏi thăm cũ được giữ nhưng tạm dừng và chỉ chuyển khi người dùng chọn. `AI_SMART_ORCHESTRATION_ENABLED` (planner + `Agent.as_tool()` + handoff, chỉ trên cạnh người dùng đã bật) và `AI_GROUP_CHAT_ENABLED` (nhóm AI) chỉ có tác dụng khi cờ ba trợ lý bật và bắt buộc `AI_MULTI_MESSAGE_ENABLED=true`; production còn cần `AI_ACCOUNTING_ENABLED=true`. `AI_V3_ROLLOUT_USER_IDS` khác rỗng giới hạn cả ba cho nhóm thử nghiệm. Giới hạn: ≤ `AI_ORCHESTRATION_MAX_SPECIALISTS` chuyên gia/lượt, `AI_ORCHESTRATION_DAILY_CAP` bước chuyên gia/ngày Asia/Bangkok, timeout chuyên gia/planner, dừng ủy quyền khi chi tiêu ngày đạt `AI_ORCHESTRATION_BUDGET_SHARE × AI_DAILY_BUDGET_USD`; nhóm tối đa `AI_GROUP_MAX_SPEAKERS` người nói/lượt. Xem `docs/implementation-plans/three-agent-orchestration-group-chat/`.
+- **Trợ lý phối hợp (Phase 2):** `AI_COLLABORATION_ENABLED` (mặc định bật) cho phép một trợ lý nhờ trợ lý khác **một** việc nhỏ theo luật xác định R1–R4, chỉ trên các cạnh người dùng đã bật ở `/ai/sharing` (mặc định tắt từng cạnh). Bắt buộc `AI_MULTI_MESSAGE_ENABLED=true` (mọi môi trường) và, ở production, `AI_ACCOUNTING_ENABLED=true` vì run con không có lease `ai_turns`. Mỗi người dùng tối đa `AI_COLLABORATION_DAILY_CAP` lần/ngày Asia/Bangkok; specialist có timeout `AI_COLLABORATION_TIMEOUT_SECONDS` (3–10 s); dừng phối hợp khi chi tiêu ngày đạt `AI_COLLABORATION_BUDGET_SHARE × AI_DAILY_BUDGET_USD`. `AI_COLLABORATION_ROLLOUT_USER_IDS` khác rỗng giới hạn cho nhóm thử nghiệm. Tắt cờ: không có specialist call, không có receipt mới, không có dòng cộng tác; người dùng vẫn luôn tắt được cạnh đã bật.
 - **Nhiều bubble:** `AI_MULTI_MESSAGE_ENABLED=true` cho model trả 1–4 tin đã validate trong một lượt (lưu mỗi tin một dòng, SSE v2 qua `?protocol=2`; client cũ nhận bản ghép v1). Tắt là kill switch: trả lời một tin như trước, lịch sử nhiều bubble cũ vẫn hiển thị.
 - **Embedding:** Voyage credentials + semantic capability + user opt-in/MEM. `PROVIDER_FORCE_IPV4` chỉ dùng xử lý network khi cần, không thay authorization.
-- **Social:** scorer mặc định v1; activities và moderation admin mặc định tắt. `ACTIVITY_KINDS` là rollout subset.
+- **Social:** scorer mặc định v1; activities và moderation admin mặc định bật. `ACTIVITY_KINDS` là rollout subset.
 - **Sandbox:** hiện không có model tool thực thi code/file; không cần bật để chạy các bot hiện tại.
 
 ## Cách thay đổi an toàn
@@ -161,6 +179,6 @@ change shared timezone, quiet hours, daily caps, pause state or journal consent.
 
 Frontend không nhận secrets từ bảng này. `MOODPRINT_API_PROXY` là biến Vite dev-server, không phải Settings field. `TEST_DATABASE_URL` là cấu hình harness riêng và không fallback sang DATABASE_URL.
 
-Guest/feedback/tour rollout theo [release gates](../guest-experience/implementation/evidence/release-readiness.md). Sáu cờ mặc định tắt; paid budget chưa được phê duyệt. Tắt entry/paid/feedback không tắt deadline, cleanup, reconciliation, retention hay settlement. Giữ HMAC key ổn định; xem [rollback/rotation](../guest-experience/implementation/evidence/rollback.md). CAPTCHA synthetic chỉ có trong cấu hình Vite fullstack riêng, không có trong production build.
+Guest/feedback/tour rollout theo [release gates](../guest-experience/implementation/evidence/release-readiness.md). Sáu cờ mặc định bật; khả dụng vẫn đòi cấu hình, paid budget chưa được phê duyệt. Tắt entry/paid/feedback không tắt deadline, cleanup, reconciliation, retention hay settlement. Giữ HMAC key ổn định; xem [rollback/rotation](../guest-experience/implementation/evidence/rollback.md). CAPTCHA synthetic chỉ có trong cấu hình Vite fullstack riêng, không có trong production build.
 
 Giá trị cấu hình và hiệu lực có thể khác nhau: saved-chat retention bị clamp tối đa 30 ngày trong persistence/routes; `SESSION_MAX_DAYS` đặt cookie max-age, còn server kiểm tra sliding idle expiry. Xem [lifecycle](data-lifecycle.md), [Auth](../supabase/auth.md).

@@ -1,5 +1,11 @@
 import { expect, it } from "vitest";
-import { normalizePromptOptions, selectionKey, acceptSelection, type SelectionState } from "./promptOptions";
+import { normalizePromptOptions, selectionKey, acceptSelection, skillChipLabel, type SelectionState } from "./promptOptions";
+
+it("labels skills from capabilities and preserves unknown ids as a fallback", () => {
+  const skills = [{ id: "weekly-review", name: "Nhìn lại tuần", description: "Nhìn lại tuần đã ghi.", available: true }];
+  expect(skillChipLabel(skills, "weekly-review")).toBe("Nhìn lại tuần");
+  expect(skillChipLabel(skills, "future-skill")).toBe("future-skill");
+});
 
 it("normalizes a one-turn skill and deduplicates tools for retry digest", () => {
   expect(normalizePromptOptions({ skillId: "hangout", tools: ["web_search", "maps_search", "web_search"], area: "  Quận 3 " }))

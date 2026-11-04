@@ -480,6 +480,21 @@ class SdkProvider:
                     raise error.__cause__ from None
                 raise
 
+    async def run_journal_memories(self, entry_payload: str, *, usage_observer,
+                                   model_override: Model | str | None = None, user_id=None):
+        from app.ai.journal_memory import JOURNAL_MEMORY_INSTRUCTIONS, JournalMemoryCandidates
+
+        async def progress():
+            return None
+
+        return await self.run_specialist(
+            name="MoodPrint:journal-memory", instructions=JOURNAL_MEMORY_INSTRUCTIONS,
+            input_item={"role": "user", "content": entry_payload}, output_type=JournalMemoryCandidates,
+            context=None, on_progress=progress, usage_observer=usage_observer,
+            limit_seconds=self.settings.journal_auto_memory_timeout_seconds,
+            model_override=model_override, user_id=user_id,
+        )
+
     async def run_specialist(
         self,
         *,

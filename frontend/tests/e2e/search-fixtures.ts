@@ -8,18 +8,20 @@ const stamp = "2026-11-03T08:00:00Z";
 export const places = [{ name: "Cà phê nhỏ", address: "Quận 3, TP.HCM", category: "Cà phê", placeId: "ChIJpublic",
   rating: 4.5, ratingCount: 12, openingHours: ["Thứ ba: 08:00–20:00"],
   mapsUrl: "https://www.google.com/maps/search/?api=1&query=cafe&query_place_id=ChIJpublic", fetchedAt: stamp, provider: "apify" }];
-type SearchFixtureOptions = { skillsOnly?: boolean; failFirst?: boolean; webOutcome?: "empty" | "timeout" | "rate_limit" | "budget" | "cancel"; mapsOutcome?: "pending" | "empty" | "failed" | "timed_out" | "gone" | "offlineOnce" };
-export async function searchFixture(page: Page, { skillsOnly = false, failFirst = false, webOutcome, mapsOutcome }: SearchFixtureOptions = {}) {
+type SearchBot = "hoatdong" | "nhatky";
+const botNames = { hoatdong: "Hoạt động", nhatky: "Nhật ký" };
+type SearchFixtureOptions = { botId?: SearchBot; skillsOnly?: boolean; failFirst?: boolean; webOutcome?: "empty" | "timeout" | "rate_limit" | "budget" | "cancel"; mapsOutcome?: "pending" | "empty" | "failed" | "timed_out" | "gone" | "offlineOnce" };
+export async function searchFixture(page: Page, { botId = "hoatdong", skillsOnly = false, failFirst = false, webOutcome, mapsOutcome }: SearchFixtureOptions = {}) {
   let mapsOffline = mapsOutcome === "offlineOnce";
   const seen = { sends: [] as Record<string, any>[], mapsReads: 0, capabilities: 0, cancels: 0, mapsCancels: 0, restoreMaps: () => { mapsOffline = false; } };
   let mapsCancelled = false;
   let releaseCancel!: () => void;
   const cancellation = new Promise<void>((resolve) => { releaseCancel = resolve; });
   let sendCount = 0, last: Record<string, any> = {}, run = "";
-  const thread = { conversationId: CONV, botId: "hoatdong", version: 1, persistent: true,
+  const thread = { conversationId: CONV, botId, version: 1, persistent: true,
     title: "Thử kỹ năng", expiresAt: "2026-12-01T08:00:00Z", messages: [] as Record<string, any>[],
     activeRunId: null, activeRunVersion: null, hasMoreMessages: false };
-  const bot = { botId: "hoatdong", name: "Hoạt động", role: "Gợi ý hoạt động", description: "Một bước nhỏ vừa sức.", starters: [], avatarKey: "hoatdong" };
+  const bot = { botId, name: botNames[botId], role: botNames[botId], description: "Một bước nhỏ vừa sức.", starters: [], avatarKey: botId };
   await page.route("**/api/v1/**", async route => {
     const request = route.request(), url = new URL(request.url()), path = url.pathname.replace("/api/v1", "");
     const json = (value: unknown, status=200) => route.fulfill({ status, json: value });
@@ -27,7 +29,12 @@ export async function searchFixture(page: Page, { skillsOnly = false, failFirst 
       seen.capabilities++;
       return json({ responseProtocols: [2,3], skills: [
         { id: "hangout", name: "Đi chơi", description: "Gợi ý hoạt động vừa sức.", available: true },
-        { id: "learn-new-thing", name: "Học điều mới", description: "Thử một điều mới trong 10 phút.", available: true }],
+        { id: "learn-new-thing", name: "Học điều mới", description: "Thử một điều mới trong 10 phút.", available: true },
+        ...[
+          ["weekly-review", "Nhìn lại tuần"], ["mood-patterns", "Nhận ra mẫu cảm xúc"],
+          ["guided-journal", "Viết nhật ký có gợi ý"], ["reframe-thought", "Viết lại suy nghĩ"],
+        ].map(([id, name]) => ({ id, name, description: "Kỹ năng cho một lượt.", available: botId === "nhatky",
+          reason: botId === "nhatky" ? null : "Kỹ năng này dành cho trợ lý Nhật ký." }))],
         tools: ["web_search", "maps_search"].map((id, i) => ({ id, name: i ? "Maps Search" : "Web Search", description: "Tìm kiếm công khai", available: !skillsOnly, reason: skillsOnly ? "Tìm kiếm chưa sẵn sàng" : null })) });
     }
     if (path === `/ai/conversations/${CONV}/messages` && request.method() === "POST") {
@@ -66,10 +73,10 @@ export async function searchFixture(page: Page, { skillsOnly = false, failFirst 
       const citations = web && !unavailable ? [{ sourceId: "s1", title: "Thông tin công khai", url: SOURCE, start: 2, end: Array.from(text).length }] : [];
       const cards = reuse ? [{ kind: "places", places }] : maps && options.area ? [{ kind: "maps_search", searchId: JOB }] : [];
       const message = { messageId: `55005500-5500-4500-8500-${String(sendCount).padStart(12,"0")}`, partIndex: 0, text, cards, citations };
-      thread.messages.push({ ...message, id: message.messageId, actor: "bot", createdAt: stamp, runId: run, partCount: 1, speaker: "hoatdong", steps: [] });
+      thread.messages.push({ ...message, id: message.messageId, actor: "bot", createdAt: stamp, runId: run, partCount: 1, speaker: botId, steps: [] });
       thread.version++;
       return route.fulfill({ contentType: "text/event-stream", body: [
-        { type: "progress", data: {} }, { type: "final", data: { partCount: 1, messages: [message], speaker: "hoatdong", steps: [] } },
+        { type: "progress", data: {} }, { type: "final", data: { partCount: 1, messages: [message], speaker: botId, steps: [] } },
         { type: "completed", data: {} }].map((e,i) => `data: ${JSON.stringify({ version: "ai-events-v3", seq: String(i+1), ...e })}\n\n`).join("") });
     }
     if (path === `/ai/maps-searches/${JOB}/cancel`) {
@@ -88,24 +95,22 @@ export async function searchFixture(page: Page, { skillsOnly = false, failFirst 
       "/session": { ...baseSession, features: { ...baseSession.features, threeAgents: true, agentSkills: true, webSearch: !skillsOnly, mapsSearch: !skillsOnly } },
       "/bots": [bot], "/bots/legacy": [], "/ai/conversations": [thread],
       "/ai/preferences": { historyEnabled: true, semanticMemoryEnabled: false, version: 1, policyVersion: "ai-data-v1", retentionDays: 30, historyAvailable: true, semanticMemoryAvailable: false },
-      "/social/summary": { pendingIncomingRequests: 0, unreadConnections: 0, activityInvites: 0 },
       "/ai/inbox": { bots: [], unreadTotal: 0, badgesEnabled: true }, "/proposals": [], "/memories": [],
-      "/profiles/published/current": null, "/connections": [], "/connection-requests": [], "/activities/catalog": [],
     };
     if (request.method() === "GET" && path in fixed) return json(fixed[path]);
     return json({ error: { code: "NOT_FOUND", message: "No synthetic route" } }, 404);
   });
   return seen;
 }
-export const field = (page: Page) => page.getByRole("textbox", { name: "Tin nhắn cho Hoạt động" });
-export async function openSearch(page: Page) {
-  await page.goto(`/#/assistants/hoatdong?conversation=${CONV}`);
-  await expect(field(page)).toBeVisible();
+export const field = (page: Page, botId: SearchBot = "hoatdong") => page.getByRole("textbox", { name: `Tin nhắn cho ${botNames[botId]}` });
+export async function openSearch(page: Page, botId: SearchBot = "hoatdong") {
+  await page.goto(`/#/assistants/${botId}?conversation=${CONV}`);
+  await expect(field(page, botId)).toBeVisible();
   await expect(page.getByText("Đang mở cuộc trò chuyện…")).toHaveCount(0);
 }
-export async function send(page: Page, text: string) {
-  await field(page).fill(text);
+export async function send(page: Page, text: string, botId: SearchBot = "hoatdong") {
+  await field(page, botId).fill(text);
   await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();
-  await expect(field(page)).toHaveValue("");
+  await expect(field(page, botId)).toHaveValue("");
   await expect(page.getByRole("button", { name: "Gửi tin cho AI", exact: true })).toBeDisabled();
 }

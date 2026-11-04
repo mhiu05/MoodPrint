@@ -3,11 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import {
   call,
-  connectByApi,
-  disable,
   noHorizontalOverflow,
-  pairAlias,
-  publish,
   session,
 } from "./helpers";
 
@@ -199,231 +195,7 @@ test("Mood lifecycle: create, reload, edit, stale-tab conflict, insights and con
   await context.close();
 });
 
-test("Journey B/C: two users match, request, accept and chat; stale tab loses access on MATCH withdrawal; C is denied", async ({
-  browser,
-}) => {
-  const a = await browser.newContext(),
-    b = await browser.newContext(),
-    c = await browser.newContext();
-  await session(a, 11);
-  await session(b, 12);
-  await session(c, 13);
-  const one = await a.newPage(),
-    two = await b.newPage();
-  await publish(one);
-  await publish(two);
-  await one.reload(); // same hash route: reload so discovery sees B's new profile
-  const card = one
-    .locator("article")
-    .filter({ has: one.getByRole("heading", { name: pairAlias(11, 12) }) });
-  await expect(card).toBeVisible();
-  await expect(card.getByText(/Cùng thích/).first()).toBeVisible();
-  await card.getByRole("button", { name: "Gửi lời mời kết nối", exact: true }).click();
-  await expect(one.getByText("Đã gửi lời mời kết nối.", { exact: true })).toBeVisible();
-  // Outgoing and incoming invitations live under the Lời mời tab (H-01).
-  await one.getByRole("tab", { name: /Lời mời/ }).click();
-  await expect(
-    one.getByText(`Lời mời đã gửi cho ${pairAlias(11, 12)}`),
-  ).toBeVisible();
-
-  await two.goto("/#/connect?tab=requests");
-  await two.reload();
-  const invite = two
-    .locator("article")
-    .filter({ hasText: `${pairAlias(11, 12)} muốn kết nối với bạn` });
-  await invite
-    .getByRole("button", { name: "Đồng ý kết nối", exact: true })
-    .click();
-  await expect(
-    two.getByText("Đã kết nối. Bạn có thể bắt đầu trò chuyện."),
-  ).toBeVisible();
-  await two.getByRole("link", { name: "Mở cuộc trò chuyện" }).click();
-  await expect(
-    two.getByRole("heading", { name: "Bắt đầu cuộc trò chuyện" }),
-  ).toBeVisible();
-
-  await one.goto("/#/messages");
-  await one.locator('a[href^="#/chat/"]').first().click();
-  const room = one.url().split("/chat/")[1];
-  const composer = one.getByRole("textbox", {
-    name: "Nhắn tin cho người bạn kết nối",
-  });
-  await composer.fill("Xin chào từ 11");
-  await one.getByRole("button", { name: "Gửi tin nhắn" }).dblclick();
-  await expect(
-    two.getByRole("log").getByText("Xin chào từ 11", { exact: true }),
-  ).toBeVisible({ timeout: 15_000 });
-  await two
-    .getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" })
-    .fill("Chào 11, mình là 12");
-  await two.getByRole("button", { name: "Gửi tin nhắn" }).click();
-  await expect(
-    one.getByRole("log").getByText("Chào 11, mình là 12", { exact: true }),
-  ).toBeVisible({ timeout: 15_000 });
-  const history = (await call(a, 11, "GET", `/connections/${room}/messages`))
-    .body.messages;
-  expect(history.map((m: { text: string }) => m.text)).toEqual([
-    "Xin chào từ 11",
-    "Chào 11, mình là 12",
-  ]);
-
-  await one.reload();
-  await two.reload();
-  await expect(one.getByRole("log").locator(".chat-bubble")).toHaveText([
-    "Xin chào từ 11",
-    "Chào 11, mình là 12",
-  ]);
-  await expect(two.getByRole("log").locator(".chat-bubble")).toHaveText([
-    "Xin chào từ 11",
-    "Chào 11, mình là 12",
-  ]);
-
-  for (const [method, path, data] of [
-    ["GET", `/connections/${room}`, undefined],
-    ["GET", `/connections/${room}/messages`, undefined],
-    [
-      "POST",
-      `/connections/${room}/messages`,
-      { text: "chen ngang", clientMessageId: crypto.randomUUID() },
-    ],
-  ] as const) {
-    const denied = await call(c, 13, method, path, data);
-    expect(denied.status).toBe(404);
-    expect(denied.text).not.toContain("Xin chào từ 11");
-  }
-
-  // B withdraws MATCH from another page; A's open chat tab must lose access without reload.
-  const settings = await b.newPage();
-  await disable(settings, "tìm bạn");
-  await expect(one.getByText(/không còn mở/)).toBeVisible({
-    timeout: 20_000,
-  });
-  await expect(composer).toBeDisabled();
-  await expect(one.getByRole("log").locator(".chat-bubble")).toHaveCount(0);
-  const stale = await call(a, 11, "POST", `/connections/${room}/messages`, {
-    text: "tab cũ",
-    clientMessageId: crypto.randomUUID(),
-  });
-  expect(stale.status).toBe(403);
-
-  // Restoring consent never republishes the profile implicitly.
-  const withdrawn = await call(b, 12, "GET", "/session");
-  expect((await call(b, 12, "PUT", "/consents/MATCH", {
-    enabled: true,
-    expectedVersion: withdrawn.body.consents.MATCH.version,
-    policyVersion: "v1",
-  })).status).toBe(200);
-  await settings.goto("/#/connect");
-  await expect(
-    settings.getByRole("heading", { name: "Hồ sơ đang tạm ẩn" }),
-  ).toBeVisible();
-  expect(
-    (await call(b, 12, "GET", "/profiles/published/current")).body.state,
-  ).toBe("needs_republish");
-  const cards = (await call(a, 11, "GET", "/matching/candidates")).body
-    .candidates;
-  expect(cards.map((x: { alias: string }) => x.alias)).not.toContain(
-    pairAlias(11, 12),
-  );
-  await a.close();
-  await b.close();
-  await c.close();
-});
-
-test("Journey D: block keeps report-after-block possible, the peer's tab closes, and ending needs confirmation", async ({
-  browser,
-}) => {
-  const a = await browser.newContext(),
-    b = await browser.newContext();
-  await session(a, 14);
-  await session(b, 15);
-  const room = await connectByApi(a, 14, b, 15, "friendship");
-  await call(b, 15, "POST", `/connections/${room}/messages`, {
-    text: "Tin nhắn cần báo cáo",
-    clientMessageId: crypto.randomUUID(),
-  });
-  const one = await a.newPage(),
-    two = await b.newPage();
-  await one.goto(`/#/chat/${room}`);
-  await two.goto(`/#/chat/${room}`);
-  await expect(
-    one.getByRole("log").getByText("Tin nhắn cần báo cáo"),
-  ).toBeVisible();
-  await one
-    .getByRole("button", { name: "Chia sẻ và an toàn" })
-    .click();
-  await one
-    .getByRole("button", { name: "Chặn kết nối này", exact: true })
-    .click();
-  await one.getByRole("button", { name: "Chặn người này", exact: true }).click();
-  await expect(one.getByText("Bạn đã chặn kết nối này.")).toBeVisible();
-  await expect(
-    one.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" }),
-  ).toBeDisabled();
-  await one
-    .getByRole("textbox", { name: "Lý do báo cáo", exact: true })
-    .fill("Quấy rối sau khi chặn");
-  await one
-    .getByRole("checkbox", { name: "Tin nhắn cần báo cáo", exact: true })
-    .check();
-  await one.getByRole("button", { name: "Gửi báo cáo", exact: true }).click();
-  await expect(
-    one.getByText("Đã gửi báo cáo.", { exact: true }),
-  ).toBeVisible();
-  await expect(two.getByText(/không còn mở/)).toBeVisible({
-    timeout: 20_000,
-  });
-  await expect(
-    two.getByRole("log").getByText("Tin nhắn cần báo cáo"),
-  ).toHaveCount(0);
-  expect(
-    (
-      await call(b, 15, "POST", `/connections/${room}/messages`, {
-        text: "còn đó?",
-        clientMessageId: crypto.randomUUID(),
-      })
-    ).status,
-  ).toBe(403);
-  const cards = (await call(b, 15, "GET", "/matching/candidates")).body
-    .candidates;
-  expect(cards.map((x: { alias: string }) => x.alias)).not.toContain(
-    pairAlias(14, 15),
-  );
-
-  const c = await browser.newContext(),
-    d = await browser.newContext();
-  await session(c, 16);
-  await session(d, 17);
-  const ended = await connectByApi(c, 16, d, 17, "shared-interests");
-  const three = await c.newPage();
-  await three.goto(`/#/chat/${ended}`);
-  await three.getByRole("button", { name: "Chia sẻ và an toàn" }).click();
-  const end = three.getByRole("button", {
-    name: "Kết thúc kết nối",
-    exact: true,
-  });
-  await end.click();
-  await expect(
-    three.getByRole("dialog", { name: "Kết thúc kết nối này?" }),
-  ).toBeVisible();
-  await three.keyboard.press("Escape");
-  await expect(three.getByRole("dialog", { name: "Kết thúc kết nối này?" })).toHaveCount(0);
-  await expect(end).toBeFocused();
-  expect(
-    (await call(d, 17, "GET", `/connections/${ended}/messages`)).status,
-  ).toBe(200);
-  await end.click();
-  await three
-    .getByRole("button", { name: "Xác nhận kết thúc", exact: true })
-    .click();
-  await expect(three.getByText("Bạn đã kết thúc kết nối này.")).toBeVisible();
-  expect(
-    (await call(d, 17, "GET", `/connections/${ended}/messages`)).status,
-  ).toBe(403);
-  for (const context of [a, b, c, d]) await context.close();
-});
-
-test("Journey F: mood, matching and chat stay usable at 390px and 430px with the composer in view", async ({
+test("Journey F: mood and AI chat stay usable at 390px and 430px with the composer in view", async ({
   browser,
 }) => {
   const a = await browser.newContext({
@@ -449,36 +221,17 @@ test("Journey F: mood, matching and chat stay usable at 390px and 430px with the
   await expect(one.getByText(/Trung bình từ 1\/7 ngày có ghi/)).toBeVisible();
   await noHorizontalOverflow(one);
   await one.screenshot({ path: `${shots}/mood-390.png`, fullPage: true });
-  const room = await connectByApi(a, 18, b, 19, "friendship");
-  for (const [page, width] of [
-    [one, 390],
-    [two, 430],
-  ] as const) {
-    await page.goto("/#/connect");
-    await noHorizontalOverflow(page);
-    await page.goto("/#/messages");
-    await expect(
-      page.getByRole("navigation", { name: "Điều hướng chính" }),
-    ).toBeVisible();
-    await noHorizontalOverflow(page);
-    await page.goto(`/#/chat/${room}`);
-    await expect(
-      page
-        .getByRole("heading", { name: "Bắt đầu cuộc trò chuyện" })
-        .or(page.locator(".chat-bubble").first()),
-    ).toBeVisible();
+  for (const [page, width] of [[one, 390], [two, 430]] as const) {
+    await page.goto("/#/assistants/may?new=1");
+    await expect(page.getByRole("textbox", { name: "Tin nhắn cho Mây" })).toBeVisible();
     await noHorizontalOverflow(page);
     await page.screenshot({ path: `${shots}/chat-${width}.png` });
   }
-  const composer = one.getByRole("textbox", {
-    name: "Nhắn tin cho người bạn kết nối",
-  });
+  const composer = one.getByRole("textbox", { name: "Tin nhắn cho Mây" });
   await composer.tap();
   await composer.fill("Nhắn từ 390px");
-  await one.getByRole("button", { name: "Gửi tin nhắn" }).tap();
-  await expect(two.getByRole("log").getByText("Nhắn từ 390px")).toBeVisible({
-    timeout: 15_000,
-  });
+  await one.getByRole("button", { name: "Gửi tin cho AI", exact: true }).tap();
+  await expect(one.locator(".from-bot .chat-bubble")).toContainText("Mây đã nhận được chia sẻ của bạn qua SDK.");
   // Approximate an open on-screen keyboard by shrinking the visual viewport.
   await one.setViewportSize({ width: 390, height: 480 });
   await composer.focus();
@@ -494,7 +247,7 @@ test("Journey F: mood, matching and chat stay usable at 390px and 430px with the
     one.getByRole("navigation", { name: "Điều hướng chính" }),
   ).toBeHidden();
   const send = await one
-    .getByRole("button", { name: "Gửi tin nhắn" })
+    .getByRole("button", { name: "Gửi tin cho AI" })
     .boundingBox();
   expect(send!.width).toBeGreaterThanOrEqual(44);
   expect(send!.height).toBeGreaterThanOrEqual(44);
@@ -521,8 +274,6 @@ test("Every real screen passes axe and reflows at 1440, 1280, 430 and 390 with r
     ["/profile", "Tài khoản"],
     ["/memory", ""],
     ["/settings", "Tài khoản"],
-    ["/connect", "Tìm một người bạn hợp gu"],
-    ["/messages", "Tin nhắn"],
   ] as const;
   for (const width of [1440, 1280, 430, 390]) {
     await page.setViewportSize({ width, height: 900 });

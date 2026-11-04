@@ -28,8 +28,8 @@ test("route changes swap content immediately without fading it in", async ({ pag
     "/moods": () => ({ json: [] }),
     "/moods/summary": () => ({ json: { from: "2026-10-17", to: "2026-10-23", count: 0, mean: null, min: null, max: null, insightAvailable: false, buckets: [] } }),
   });
-  await page.goto("/#/messages");
-  await expect(page.getByRole("heading", { level: 1, name: "Tin nhắn" })).toBeVisible();
+  await page.goto("/#/assistants");
+  await expect(page.getByRole("heading", { level: 1, name: "Chọn một trợ lý" })).toBeVisible();
   await recordMainOpacity(page);
   await page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("link", { name: "Nhật ký" }).click();
   await expect(page).toHaveURL(/#\/self$/);

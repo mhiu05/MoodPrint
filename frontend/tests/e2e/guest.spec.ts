@@ -315,7 +315,7 @@ for (const width of [390, 1280]) {
     await app(page, session, {
       "/auth/guest/end": () => { ends += 1; return { status: 204 }; },
     });
-    await page.goto("/#/connect");
+    await page.goto("/#/check-ins");
     await page.getByRole("button", { name: "Tạo tài khoản", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Tạo tài khoản?", exact: true });
     await expect(dialog).toContainText("sẽ không chuyển sang tài khoản mới");
@@ -356,13 +356,13 @@ test("end and register cancellation keeps the private view and restores focus", 
   await app(page, guestSession(7_000_000), {
     "/auth/guest/end": () => { ends += 1; return { status: 204 }; },
   });
-  await page.goto("/#/connect");
+  await page.goto("/#/check-ins");
   const trigger = page.getByRole("button", { name: "Tạo tài khoản", exact: true });
   await trigger.click();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(trigger).toBeFocused();
-  await expect(page.getByText("Tạo tài khoản để tìm bạn và nhắn tin.")).toBeVisible();
+  await expect(page.getByText("Tạo tài khoản để dùng lịch hỏi thăm.")).toBeVisible();
   expect(ends).toBe(0);
 });
 
@@ -379,12 +379,12 @@ for (const failureKind of ["503", "network"]) {
         code: "GUEST_END_UNAVAILABLE", message: "Chưa thể kết thúc lượt dùng thử.", retryable: true,
       } } });
     });
-    await page.goto("/#/connect");
+    await page.goto("/#/check-ins");
     await page.getByRole("button", { name: "Tạo tài khoản", exact: true }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByRole("button", { name: "Kết thúc và tạo tài khoản" }).click();
     await expect(dialog.getByRole("alert")).toBeVisible();
-    await expect(page.getByText("Tạo tài khoản để tìm bạn và nhắn tin.")).toBeVisible();
+    await expect(page.getByText("Tạo tài khoản để dùng lịch hỏi thăm.")).toBeVisible();
     await expect(page.getByLabel("Nhập lại mật khẩu", { exact: true })).toHaveCount(0);
     expect(ends).toBe(1);
     await page.screenshot({ path: artifactPath(`ux1-error-${failureKind}.png`) });
@@ -414,17 +414,11 @@ test.describe("inside a trial", () => {
     return calls;
   }
 
-  test("people-matching and messaging are explained without any social request", async ({ page }) => {
-    const calls = await inTrial(page, "/#/connect");
-    await expect(page.getByText("Tạo tài khoản để tìm bạn và nhắn tin.")).toBeVisible();
-    for (const hash of ["/#/messages", "/#/connect"]) {
-      await page.goto(hash);
-      await page.reload();
-      await expect(page.getByText("Tạo tài khoản để tìm bạn và nhắn tin.")).toBeVisible();
-    }
-    const social = calls.filter((call) =>
-      /^\/(social|connections?|connection-requests|proposals|activities|profiles\/published)/.test(call.path),
-    );
+  test("registered-only check-ins explain the account requirement without social requests", async ({ page }) => {
+    const calls = await inTrial(page, "/#/check-ins");
+    await expect(page.getByRole("heading", { name: "Tính năng cần tài khoản" })).toBeVisible();
+    await expect(page.getByText("Tạo tài khoản để dùng lịch hỏi thăm.")).toBeVisible();
+    const social = calls.filter((call) => /^\/(social|connections?|connection-requests|activities|profiles\/published)/.test(call.path));
     expect(social).toEqual([]);
   });
 

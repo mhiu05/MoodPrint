@@ -69,7 +69,7 @@ def test_journal_query_cannot_choose_owner_drafts_or_unbounded_inputs():
     for payload in [
         {"userId": str(uuid4())},
         {"status": "draft"},
-        {"limit": 6},
+        {"limit": 9},
         {"query": "x" * 81},
         {"fromDate": "2026-10-28", "toDate": "2026-10-27"},
         {"fromDate": "2026-01-01", "toDate": "2026-10-28"},
@@ -328,6 +328,7 @@ async def test_journal_search_is_owner_saved_date_and_size_bounded(clients):
             "factors",
             "snippet",
             "snippetTruncated",
+            "match",
         }
         assert all(set(row) == allowed for row in result["entries"])
         assert "media" not in raw and "objectPath" not in raw
@@ -341,7 +342,9 @@ async def test_journal_search_is_owner_saved_date_and_size_bounded(clients):
         )
         assert result["coverage"]["hasMore"] and not result["coverage"]["completeHistory"]
         assert len((await search_for_ai(db, user, query="100%"))["entries"]) == 5
-        assert (await search_for_ai(db, user, query="100_"))["entries"] == []
+        fallback = (await search_for_ai(db, user, query="100_"))["entries"]
+        assert len(fallback) == 2 and all(row["match"] == "recent" for row in fallback)
+        assert all("100_" not in row["snippet"] for row in fallback)
         with pytest.raises(DomainError):
             await search_for_ai(db, user, from_date=today - timedelta(days=90))
 
