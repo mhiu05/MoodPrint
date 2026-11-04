@@ -1089,6 +1089,15 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     selectionRef.current = next; setSelection(next);
   }, []);
   const composer = useRef<HTMLTextAreaElement>(null);
+  const focusAfterOptionSelection = useCallback(() => {
+    const previous = document.activeElement;
+    requestAnimationFrame(() => {
+      // Closing the option removes its focused button. Respect a person who
+      // already moved into the area field before this deferred frame runs.
+      if (document.activeElement === previous || document.activeElement === document.body)
+        composer.current?.focus();
+    });
+  }, []);
   const composerAction = useRef<HTMLButtonElement>(null);
   const restoreActionFocus = useRef(false);
   const [draftNotice, setDraftNotice] = useState("");
@@ -2168,7 +2177,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         ) : null}
         {draftNotice ? <p className={cx.footnote} role="status">{draftNotice}</p> : null}
         <QuotaHint />
-        <PromptChips options={selection.options} skills={skillCapabilities} onChange={changeOptions} onFocusComposer={() => requestAnimationFrame(() => composer.current?.focus())} />
+        <PromptChips options={selection.options} skills={skillCapabilities} onChange={changeOptions} onFocusComposer={focusAfterOptionSelection} />
         <form
           className="bot-composer"
           onSubmit={(event) => {
@@ -2180,7 +2189,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
           <ComposerOptions api={api} botId={conversation?.activeAgent ?? bot.botId}
             onSkillsChange={setSkillCapabilities}
             enabled={!!(session.features.agentSkills || session.features.webSearch || session.features.mapsSearch) && !legacyReadOnly}
-            options={selection.options} onChange={changeOptions} onFocusComposer={() => requestAnimationFrame(() => composer.current?.focus())} />
+            options={selection.options} onChange={changeOptions} onFocusComposer={focusAfterOptionSelection} />
           <textarea
             aria-label={`Tin nhắn cho ${bot.name}`}
             ref={composer}
