@@ -145,3 +145,43 @@ Chỉ apply reviewed alarm/dashboard sau owner chốt notification channel/reten
 Không gửi tin nhắn hoặc tạo billable monitoring tự động.Backup/PITR/Storage restore cần isolated target và cost approval cụ thể.
 Session purge TTL,RPO/RTO và maintenance/SPOF acceptance chưa có quyết định đầy đủ;giữ conservative behavior hiện tại.
 Các công việc code chưa xong được ghi trong [12](12-implementation-progress.md);không chuyển engineering gaps thành owner approvals.
+
+
+## Owner decision refresh — 2026-11-05T15:31:58.534Z
+
+The following are precise proposals from the attached-Chrome review. None was submitted or applied.
+
+### C01 — Approve rotation of the exposed migration-owner credential
+
+- Target: Supabase project ref `roznanxbiyqybjpvtilq`, verified fingerprint `44a655e04517`; reset only the `postgres` database-owner password.
+- UI action: Database → Settings → Database password → **Reset password**. The dashboard states the current password cannot be viewed and the reset breaks existing connections.
+- Approval covers opening the reset flow and handing the page to the owner. The owner must create/store the replacement in their password manager and personally enter, confirm and submit it. Do not put the password in chat, logs, command-line arguments or repository files.
+- Before reset: confirm admin/MFA recovery, inventory migration/admin consumers, and pause only migration/admin work. After reset: update only the migration-owner DSNs, verify new TLS login and old-password rejection, then verify the separate `moodprint_backend` role and app health. Do not change that runtime password, its SSM value, or restart the service.
+- Current status: **REQUIRES_OWNER_CONFIRMATION**; old credential was still active at last verification. No reset was attempted.
+
+### C02 — SES transactional production-access request draft (not submitted)
+
+> MoodPrint is a user-facing web application at https://moodprint.duckdns.org. We are requesting Amazon SES production access in ap-southeast-2 for strictly transactional email initiated by a user: signup address confirmation, password recovery and account-security notices. Users provide their own address in the signup or recovery flow; we do not send marketing, purchased lists, unsolicited messages or third-party bulk mail. Our planned cohort is up to 1,000 registered users, with bursts of about 100 signup attempts, so we request an initial quota of 5 messages/second and 3,000 messages/24 hours to provide confirmation and recovery headroom. Our verified sender is one Gmail email identity; we do not own a dedicated sending domain and are not claiming domain-level DKIM, custom MAIL FROM or DMARC alignment. Before expanding sending, we will verify bounce/complaint suppression, transient-only retries, reputation monitoring and a pause procedure. Please assess production access and these initial quotas; we understand sender alignment may limit delivery reliability.
+
+- Current status: **REQUIRES_OWNER_CONFIRMATION** before submission or quota request. The account is sandboxed at 200 recipients/day and 1/s. The Gmail sender is verified; no dedicated domain was invented or purchased.
+- The request describes planned capacity, not observed current traffic or a guarantee of SES approval. Production access would not by itself authorize turning on production SMTP.
+
+### C02c — Supabase Auth/email exact diff to review after SES decision
+
+- Keep email confirmation enabled, Turnstile CAPTCHA enabled, current site/redirect allowlist, and existing abuse protections.
+- Proposed security change for owner review: Leaked Password Protection **disabled → enabled**, after checking the app's recovery and signup UX. No setting has been changed.
+- Keep Auth IP forwarding off until the trusted proxy path and forwarded-header behavior are verified. Do not copy a client-supplied forwarding header into Auth trust configuration.
+- Custom SMTP currently uses a personal Gmail provider. Propose moving to SES only after production access, sender identity and a verified delivery canary are approved. The Supabase email send-rate value was redacted in the browser; obtain it through a safe dashboard view before proposing a numeric SMTP/Auth rate diff.
+- Any SMTP, sender, DNS, Auth or rate-limit update remains **REQUIRES_OWNER_CONFIRMATION**.
+
+### C06 — Backups, monitoring and restore
+
+- Observed: Supabase daily database backups exist, but exclude Storage object bytes; PITR is off. AWS has no EBS snapshots, AWS Backup plans/protected resources/recovery points, CloudWatch alarms or SNS topics.
+- Proposed target policy remains RPO ≤24h / RTO ≤8h, not achieved. Price encrypted off-project database and private `journal-media` object copies, daily encrypted EBS snapshots with a seven-day window, and a secure configuration/secrets recovery set; then rehearse to isolated resources and measure actual RPO/RTO.
+- No reliable cost estimate is available because the AWS Billing view is denied and current object/EBS sizes were not captured. Do not create billable copies, snapshots, alarms, SNS subscriptions or restore resources until the target sizes, monthly estimate, notification recipient and rollback are reviewed.
+- Current status: **REQUIRES_OWNER_CONFIRMATION** for all billable cloud changes and hosted restore.
+
+### C07 — Identify OpenAI staging project
+
+- The connected Platform session exposed only Personal Organization → Default project; no MoodPrint staging project could be identified. The visible `gpt-6-luna` catalog entry does not prove access or project limits.
+- No model call was made. The approved $3 cumulative staging campaign remains authorized but cannot begin until the correct project, model access, RPM/TPM and safe campaign adapter are verified. Production $50/day activation remains a separate **REQUIRES_OWNER_CONFIRMATION** decision.
