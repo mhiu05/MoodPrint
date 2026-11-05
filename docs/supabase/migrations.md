@@ -10,6 +10,12 @@ trong cùng process; khi kiểm thử chỉ dùng DB `_test` local do disposable
 cấp. Offline exporter cũng tắt dotenv trước import Alembic. Các lệnh hosted vẫn
 cần quy trình review/duyệt riêng; thay đổi này không cho phép áp migration hosted.
 
+Đường hosted `apply_supabase_review.py --apply` cũng dùng `_env_file=None` cho
+cả initialization và upgrade. Cấp `DATABASE_MIGRATION_URL` và `SUPABASE_URL`
+qua environment của process bằng kênh runtime đã xác minh; không truyền DSN qua
+command line hoặc lấy từ dotenv của workspace. Kiểm target/project/owner/TLS,
+approval hash và transaction giữ nguyên. Review-only không cần credential.
+
 | Revision | Thay đổi chính |
 | --- | --- |
 | `0001_foundation` | Schema/bảng nền tảng cá nhân, AI metadata và social |

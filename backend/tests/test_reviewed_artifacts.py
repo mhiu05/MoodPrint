@@ -105,6 +105,60 @@ main(argv=["upgrade", "0028_collaboration_defaults:0029_journal_intelligence", "
     assert "journal_ai_settings" in result.stdout
 
 
+@pytest.mark.parametrize("upgrade", [None, "0029"])
+def test_hosted_apply_uses_explicit_environment_without_reading_dotenv(
+    monkeypatch, tmp_path, capsys, upgrade
+):
+    """A dotenv path must fail before any filesystem access, even in the RED run."""
+    from dataclasses import replace
+
+    from pydantic_settings.sources import DotEnvSettingsSource
+
+    runner = script("apply_supabase_review")
+    digest = "e15bb5fefbcfec4b3e6bf76463fcf9470a32a331835c1d93977ea4c53a9bc476"
+    target = (
+        "postgresql+psycopg://postgres:synthetic-only@"
+        "db.roznanxbiyqybjpvtilq.supabase.co:5432/postgres?sslmode=require"
+    )
+    monkeypatch.setenv("DATABASE_MIGRATION_URL", target)
+    monkeypatch.setenv("SUPABASE_URL", "https://roznanxbiyqybjpvtilq.supabase.co")
+    monkeypatch.setitem(runner.Settings.model_config, "env_file", ".env")
+
+    def forbid_dotenv(self):
+        if self.env_file is not None:
+            raise AssertionError("Hosted apply attempted dotenv access")
+        return {}
+
+    monkeypatch.setattr(DotEnvSettingsSource, "_read_env_files", forbid_dotenv)
+    # Offline SQL equivalence is covered separately; no database can be reached here.
+    monkeypatch.setattr(runner, "review_artifact", lambda *args: (digest, "BEGIN; COMMIT;"))
+    monkeypatch.setattr(runner, "REPORTS", tmp_path)
+    argv = ["apply_supabase_review", "--approved-sha256", digest, "--apply"]
+    if upgrade:
+        argv += ["--upgrade", upgrade]
+        plan = runner.UPGRADES[upgrade]
+        monkeypatch.setitem(runner.UPGRADES, upgrade, replace(plan, report=tmp_path / "execution.json"))
+        monkeypatch.setattr(runner, "review_upgrade_artifact", lambda *args: (digest, "BEGIN; COMMIT;"))
+    monkeypatch.setattr(runner.sys, "argv", argv)
+    reached = []
+
+    def offline_connection(raw, **kwargs):
+        reached.append(raw)
+        raise ConnectionError("Synthetic connection boundary; no network performed")
+
+    monkeypatch.setattr(runner.psycopg, "connect", offline_connection)
+    with pytest.raises(SystemExit) as exit_result:
+        runner.main()
+    assert exit_result.value.code == 1
+    assert reached == [target.replace("postgresql+psycopg://", "postgresql://")]
+    output = capsys.readouterr()
+    report = json.loads(output.out)
+    assert report["ddlSubmitted"] is False
+    assert report["transactionOutcome"] == "not_submitted"
+    assert report["errorType"] == "ConnectionError"
+    assert "synthetic-only" not in output.out + output.err
+
+
 @pytest.mark.parametrize("change", ["complete_swap", "missing_validate", "other_constraint", "drop_column"])
 def test_review_allows_only_named_validated_constraint_swaps(tmp_path, monkeypatch, change):
     runner = script("apply_supabase_review")
