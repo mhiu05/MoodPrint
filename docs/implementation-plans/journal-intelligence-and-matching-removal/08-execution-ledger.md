@@ -16,8 +16,10 @@ Quy ước (giống `docs/implementation-plans/three-agent-orchestration-group-c
 `d6280561` trên schema0028, bốn service healthy/0restart, gate tắt, timer poller
 active/enabled. AWS login đã phục hồi. Blocker: thiếu credential owner DB qua kênh
 được phép để áp approvedSQL0029; chủ dự án đã bỏ yêu cầu backup trong chat.
-Sửa hai nhánh apply sang `_env_file=None` có RED2fail→GREEN2pass và đang đưa qua
-regression/review/CI riêng, publication hold giữ nguyên. Bằng chứng phiên mới,
+Sửa hai nhánh apply sang `_env_file=None` có RED2fail→GREEN2pass, hồi quy45pass,
+review không còn Critical/Important; [PR39](https://github.com/mhiu05/MoodPrint/pull/39)
+commit code `2d8f2330` đã push, CI đang chạy/chưa merge tại checkpoint.
+Publication hold giữ nguyên. Bằng chứng phiên mới,
 digest và ca chưa chạy nằm tại [13-release-execution-evidence.md](13-release-execution-evidence.md).
 Các kết quả/phạm vi JI-51 “ngoài phạm vi” bên dưới là lịch sử trước ủy quyền mới.
 

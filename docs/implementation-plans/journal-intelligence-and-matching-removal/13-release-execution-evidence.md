@@ -63,8 +63,22 @@ file `.env` bị cấm hoặc bypass kiểm tra readiness.
 | `git diff --check` | PASS |
 | Reviewer độc lập, read-only | Code/test không Critical/Important; lỗi evidence13 cũ đã sửa và reviewer kiểm lại, không còn Critical/Important; probe TLS được bổ sung theo Minor |
 
-CI/PR mới: đang chuẩn bị; không suy PASS từ lịch sử. CI toàn workflow mới bắt
-buộc xanh trước merge; không chạy lại JI-00→JI-50 local để thay CI.
+## Git và CI của bản sửa preflight
+
+- Commit code/test: `2d8f233073e0eb6cd457e4a4a5b2a1ee1d2f56d0`.
+- Đã push `release/ji51-preflight`, mở [PR39](https://github.com/mhiu05/MoodPrint/pull/39).
+- Tại checkpoint 05/11 08:45 UTC+7, [CI push](https://github.com/mhiu05/MoodPrint/actions/runs/41950420709)
+  và [CI PR](https://github.com/mhiu05/MoodPrint/actions/runs/41950430245) đang chạy
+  bước backend, chưa có conclusion. Không gọi CI xanh hoặc merge hoàn tất.
+- Commit cập nhật bằng chứng sau commit code vẫn thuộc PR39; trạng thái exact-head
+  mới nhất tra tại [PR39 checks](https://github.com/mhiu05/MoodPrint/pull/39/checks).
+- Chưa merge PR39; chưa thay main, chưa publish C/F. Publication hold nguyên vẹn.
+- Disposable container do phiên tạo đã được hủy bằng `disposable_postgres.py --remove`
+  có kiểm ownership, exit0; credential disposable đã xóa. Không đụng container khác.
+
+CI toàn workflow mới bắt buộc xanh trước merge; không chạy lại JI-00→JI-50 local
+để thay CI. Bản ghi này là checkpoint tại blocker credential, không phải báo cáo
+release thành công. Không lấy CI lịch sử thay kết quả mới.
 
 ## Hosted và rollback
 
