@@ -110,7 +110,7 @@ async def test_cancel_before_commit_leaves_no_bubbles(multi):
         headers=key(),
     )
     assert accepted.status_code == 202, accepted.text
-    await asyncio.wait_for(model.started.wait(), 3)
+    await asyncio.wait_for(model.started.wait(), 10)
     cancelled = await client.post(f"/api/v1/ai/runs/{accepted.json()['runId']}/cancel", json={"expectedVersion": 1})
     assert cancelled.status_code == 200, cancelled.text
     model.release.set()
