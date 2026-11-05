@@ -106,9 +106,14 @@ async def test_defaults_do_not_bypass_existing_gates(clients, family, gate):
         assert grants.edges == {}
 
 
-@pytest.mark.parametrize("scenario", ["r1", "r3", "r4", "journal_off", "refusal", "injection", "r2", "source_edit",
-                                      "consult_both", "handoff", "taint", "handoff_scope"])
-async def test_defaults_runtime_keeps_existing_privacy_proofs_without_put_sharing(clients, monkeypatch, scenario):
+@pytest.mark.parametrize(("scenario", "dispatch_enabled"), [
+    *[pytest.param(scenario, False, id=scenario) for scenario in (
+        "r1", "r3", "r4", "journal_off", "refusal", "injection", "r2", "source_edit",
+        "consult_both", "handoff", "taint", "handoff_scope",
+    )],
+    pytest.param("consult_both", True, id="consult_both-dispatch-enabled"),
+])
+async def test_defaults_runtime_keeps_existing_privacy_proofs_without_put_sharing(clients, monkeypatch, scenario, dispatch_enabled):
     """Reuse the full existing SDK projection/usage assertions with defaults-only setup."""
     from tests import test_collaboration_chat as chat
     from tests import test_collaboration_privacy as privacy
@@ -137,12 +142,6 @@ async def test_defaults_runtime_keeps_existing_privacy_proofs_without_put_sharin
     for module in (sdk, v3review):
         monkeypatch.setattr(module, "v3_setup", defaults_v3_setup)
     monkeypatch.setattr(proactive, "opt_in", defaults_proactive)
-
-    async def consult_both_default_dispatch(client_pair):
-        await sdk.test_consult_both_specialists_through_real_as_tool(
-            client_pair, dispatch_enabled=False
-        )
-
     cases = {
         "r1": chat.test_r1_rure_gets_only_the_energy_enum_never_the_journal,
         "r3": chat.test_r3_may_receives_a_labelled_suggestion_and_never_sends_user_words,
@@ -152,12 +151,15 @@ async def test_defaults_runtime_keeps_existing_privacy_proofs_without_put_sharin
         "injection": privacy.test_journal_injection_cannot_cross_to_the_requester,
         "r2": proactive.test_r2_morning_check_in_uses_only_the_energy_hint,
         "source_edit": proactive.test_entry_edited_before_publish_regenerates_from_fresh_data,
-        "consult_both": consult_both_default_dispatch,
+        "consult_both": sdk.test_consult_both_specialists_through_real_as_tool,
         "handoff": sdk.test_handoff_rebuilds_the_input_and_the_specialist_answers,
         "taint": v3review.test_h1_hoatdong_is_never_asked_after_nhatky_returned,
         "handoff_scope": v3review.test_h1_handoff_carries_no_free_text_and_journal_tool_needs_the_plan,
     }
-    await cases[scenario](clients)
+    if scenario == "consult_both":
+        await cases[scenario](clients, dispatch_enabled=dispatch_enabled)
+    else:
+        await cases[scenario](clients)
     async with app.state.database.sessions() as db:
         assert (await db.scalars(select(AiSharingPermission))).all() == []
 

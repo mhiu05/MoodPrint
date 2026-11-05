@@ -1,0 +1,286 @@
+FFFFFFFF                                                                 [100%]
+=================================== FAILURES ===================================
+________________ test_fifty_bounded_workflows_hold_under_twenty ________________
+
+clients = (<fastapi.applications.FastAPI object at 0x7d0573282360>, [(<httpx.AsyncClient object at 0x7d05735a1100>, UUID('0ce6de...d1-9e7e-7af07cd079c9')), (<httpx.AsyncClient object at 0x7d0573243200>, UUID('ad3ca859-bd19-449b-99c8-5f4cff98a380'))])
+
+    async def test_fifty_bounded_workflows_hold_under_twenty(clients):
+        app, actors = clients
+        bounded(app)
+        uid, worker = actors[0][1], uuid4()
+        async with app.state.database.sessions.begin() as db:
+            for _ in range(50):
+                parent = await reserve(db, app, uid, worker)
+                for role in ("plan-planner+three-agent-v1", "consult-nhatky+three-agent-v1", "consult-hoatdong+three-agent-v1"):
+>                   await reserve(db, app, uid, worker, parent=parent.id, role=role)
+
+tests/test_pooled_accounting.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_pooled_accounting.py:24: in reserve
+    await reserve_accounting(db, run.id, uid, worker, "gpt-6-luna", role, settings=app.state.settings)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+db = <sqlalchemy.ext.asyncio.session.AsyncSession object at 0x7d0578feb2f0>
+run_id = UUID('b1e0e139-0456-42dc-b3d7-7c2d20f09175')
+user_id = UUID('0ce6de58-2ba6-47d1-9e7e-7af07cd079c9')
+worker_id = UUID('eb0c95f0-dbd3-4090-939c-dbe5db9f2979'), model = 'gpt-6-luna'
+prompt_version = 'consult-nhatky+three-agent-v1'
+settings = Settings(semantic_memory_enabled=False, journal_semantic_enabled=False, journal_embedding_debounce_seconds=20, journal...ips=20, guest_voice_seconds=600, guest_voice_per_minute=2, guest_voice_concurrency=1, guest_voice_global_concurrency=3)
+guest_reservation_id = None
+
+    async def reserve_accounting(db, run_id: UUID, user_id: UUID, worker_id: UUID, model: str, prompt_version: str, *, settings=None, guest_reservation_id=None):
+        capped = settings is not None and settings.ai_daily_budget_usd > 0
+        estimate, pricing_version = None, PRICING_VERSION
+        rates = RATES.get(model)
+        if capped:
+            if not settings.ai_accounting_enabled or model not in CAPPED_RATES:
+                raise budget_unavailable()
+            # Same lock/order as user and proactive admission; transaction ends before
+            # provider I/O. Concurrent processes cannot reserve the same remaining money.
+            await db.execute(text("select pg_advisory_xact_lock(664201, 1)"))
+            at = await db.scalar(select(func.clock_timestamp()))
+            owner = await db.get(User, user_id)
+            guest = owner is not None and owner.account_kind == "guest"
+            bound = (BOUNDED_RESERVATION_NANO if settings.ai_bounded_reservations_enabled and not guest else RUN_RESERVATION_NANO)
+            liability = await budget_liability(db, at)
+            ceiling = global_budget_nano(settings.ai_daily_budget_usd)
+            # Proactive descendants must also leave the interactive share untouched.
+            run = await db.get(AiRun, run_id)
+            ancestor = run
+            while ancestor is not None and ancestor.parent_run_id is not None:
+                ancestor = await db.get(AiRun, ancestor.parent_run_id)
+            if ancestor is not None and ancestor.origin == "proactive":
+                ceiling = int(Decimal(ceiling) * Decimal(str(settings.proactive_budget_share)))
+            guest_upper = None
+            if guest:
+                from app.modules.guests.models import GuestCostReservation, GuestOperationLink
+                from app.modules.guests.pricing import ai_upper, kind_available
+    
+                guest_upper = await db.scalar(select(GuestCostReservation.upper_nano_usd).join(
+                    GuestOperationLink, GuestOperationLink.reservation_id == GuestCostReservation.id).where(
+                        GuestCostReservation.id == guest_reservation_id, GuestCostReservation.state == "reserved",
+                        GuestOperationLink.user_id == user_id, GuestCostReservation.kind == "ai"))
+                required = ai_upper(settings.guest_pricing_json)
+                if (not kind_available(settings, "ai") or required is None or guest_upper is None
+                        or guest_upper < required[1]):
+                    raise budget_unavailable()
+            if liability + (0 if guest else bound) > ceiling:
+>               raise DomainError(503, "AI_BUDGET_EXHAUSTED", "AI đã đạt giới hạn sử dụng. Vui lòng thử lại sau.", True)
+E               app.core.errors.DomainError: AI_BUDGET_EXHAUSTED
+
+app/ai/accounting.py:152: DomainError
+------------------------------ Captured log setup ------------------------------
+WARNING  moodprint:main.py:43 database_pool_exceeds_headroom size=5 overflow=2
+WARNING  moodprint:main.py:43 database_pool_exceeds_headroom size=5 overflow=2
+_____ test_child_allocation_never_double_counts_and_unknown_retains_bound ______
+
+clients = (<fastapi.applications.FastAPI object at 0x7d05730af9e0>, [(<httpx.AsyncClient object at 0x7d05730e4fb0>, UUID('e20ba2...96-a32d-8ccbc12de881')), (<httpx.AsyncClient object at 0x7d05730acc50>, UUID('dafb90ec-89c3-4dad-8ec0-2f3b65df2db9'))])
+
+    async def test_child_allocation_never_double_counts_and_unknown_retains_bound(clients):
+        app, actors = clients
+        bounded(app)
+        uid, worker = actors[0][1], uuid4()
+        async with app.state.database.sessions.begin() as db:
+            parent = await reserve(db, app, uid, worker)
+>           assert await budget_liability(db, now()) == POOL
+E           assert 120000000 == 280000000
+
+tests/test_pooled_accounting.py:53: AssertionError
+------------------------------ Captured log setup ------------------------------
+WARNING  moodprint:main.py:43 database_pool_exceeds_headroom size=5 overflow=2
+______ test_child_cannot_borrow_invalid_or_exhausted_parent_hold[worker] _______
+
+clients = (<fastapi.applications.FastAPI object at 0x7d0572e28e90>, [(<httpx.AsyncClient object at 0x7d0572fe4fb0>, UUID('06cef0...97-8238-1f3a81b34957')), (<httpx.AsyncClient object at 0x7d0572e28da0>, UUID('2e9e038a-a8c8-4c1d-80cb-fc274fa46e13'))])
+change = 'worker'
+
+    @pytest.mark.parametrize("change", ["worker", "owner", "terminal", "expired", "unknown_role", "exhausted"])
+    async def test_child_cannot_borrow_invalid_or_exhausted_parent_hold(clients, change):
+        from datetime import timedelta
+    
+        app, actors = clients
+        bounded(app)
+        uid, worker = actors[0][1], uuid4()
+        async with app.state.database.sessions.begin() as db:
+            parent = await reserve(db, app, uid, worker)
+            usage = await db.get(AiUsage, parent.id)
+            if change == "terminal":
+                usage.state = "settled"
+            elif change == "expired":
+                usage.lease_until = now() - timedelta(seconds=1)
+            elif change == "exhausted":
+                for _ in range(4):
+                    await reserve(db, app, uid, worker, parent=parent.id, role="consult-nhatky+three-agent-v1")
+            await db.flush()
+        async with app.state.database.sessions.begin() as db:
+>           with pytest.raises(DomainError):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE DomainError
+
+tests/test_pooled_accounting.py:83: Failed
+------------------------------ Captured log setup ------------------------------
+WARNING  moodprint:main.py:43 database_pool_exceeds_headroom size=5 overflow=2
+_______ test_child_cannot_borrow_invalid_or_exhausted_parent_hold[owner] _______
+
+clients = (<fastapi.applications.FastAPI object at 0x7d0572e7bbc0>, [(<httpx.AsyncClient object at 0x7d0572e32d20>, UUID('0918b0...51-9ce1-394dc705572e')), (<httpx.AsyncClient object at 0x7d0572eeffe0>, UUID('f1f532ff-efef-497f-b3cb-ae67f42cdbc9'))])
+change = 'owner'
+
+    @pytest.mark.parametrize("change", ["worker", "owner", "terminal", "expired", "unknown_role", "exhausted"])
+    async def test_child_cannot_borrow_invalid_or_exhausted_parent_hold(clients, change):
+        from datetime import timedelta
+    
+        app, actors = clients
+        bounded(app)
+        uid, worker = actors[0][1], uuid4()
+        async with app.state.database.sessions.begin() as db:
+            parent = await reserve(db, app, uid, worker)
+            usage = await db.get(AiUsage, parent.id)
+            if change == "terminal":
+                usage.state = "settled"
+            elif change == "expired":
+                usage.lease_until = now() - timedelta(seconds=1)
+            elif change == "exhausted":
+                for _ in range(4):
+                    await reserve(db, app, uid, worker, parent=parent.id, role="consult-nhatky+three-agent-v1")
+            await db.flush()
+        async with app.state.database.sessions.begin() as db:
+>           with pytest.raises(DomainError):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE DomainError
+
+tests/test_pooled_accounting.py:83: Failed
+------------------------------ Captured log setup ------------------------------
+WARNING  moodprint:main.py:43 database_pool_exceeds_headroom size=5 overflow=2
+_____ test_child_cannot_borrow_invalid_or_exhausted_parent_hold[terminal] ______
+
+clients = (<fastapi.applications.FastAPI object at 0x7d0572e7bef0>, [(<httpx.AsyncClient object at 0x7d0572d3b890>, UUID('0e0e19...e5-bedb-de7b8c9b1dab')), (<httpx.AsyncClient object at 0x7d0572da3260>, UUID('8eae1dcf-67de-4d4b-acb8-e8f53b10490a'))])
+change = 'terminal'
+
+    @pytest.mark.parametrize("change", ["worker", "owner", "terminal", "expired", "unknown_role", "exhausted"])
+    async def test_child_cannot_borrow_invalid_or_exhausted_parent_hold(clients, change):
+        from datetime import timedelta
+    
+        app, actors = clients
+        bounded(app)
+        uid, worker = actors[0][1], uuid4()
+        async with app.state.database.sessions.begin() as db:
+            parent = await reserve(db, app, uid, worker)
+            usage = await db.get(AiUsage, parent.id)
+            if change == "terminal":
+                usage.state = "settled"
+            elif change == "expired":
+                usage.lease_until = now() - timedelta(seconds=1)
+            elif change == "exhausted":
+                for _ in range(4):
+                    await reserve(db, app, uid, worker, parent=parent.id, role="consult-nhatky+three-agent-v1")
+            await db.flush()
+        async with app.state.database.sessions.begin() as db:
+>           with pytest.raises(DomainError):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE DomainError
+
+tests/test_pooled_accounting.py:83: Failed
+------------------------------ Captured log setup ------------------------------
+WARNING  moodprint:main.py:43 database_pool_exceeds_headroom size=5 overflow=2
+______ test_child_cannot_borrow_invalid_or_exhausted_parent_hold[expired] ______
+
+clients = (<fastapi.applications.FastAPI object at 0x7d0572ecbf20>, [(<httpx.AsyncClient object at 0x7d0572e9e2d0>, UUID('aca012...dc-a48b-8fb31f0d3562')), (<httpx.AsyncClient object at 0x7d0572d81160>, UUID('152e13b3-f45b-4703-b13f-c14bd6e8ac11'))])
+change = 'expired'
+
+    @pytest.mark.parametrize("change", ["worker", "owner", "terminal", "expired", "unknown_role", "exhausted"])
+    async def test_child_cannot_borrow_invalid_or_exhausted_parent_hold(clients, change):
+        from datetime import timedelta
+    
+        app, actors = clients
+        bounded(app)
+        uid, worker = actors[0][1], uuid4()
+        async with app.state.database.sessions.begin() as db:
+            parent = await reserve(db, app, uid, worker)
+            usage = await db.get(AiUsage, parent.id)
+            if change == "terminal":
+                usage.state = "settled"
+            elif change == "expired":
+                usage.lease_until = now() - timedelta(seconds=1)
+            elif change == "exhausted":
+                for _ in range(4):
+                    await reserve(db, app, uid, worker, parent=parent.id, role="consult-nhatky+three-agent-v1")
+            await db.flush()
+        async with app.state.database.sessions.begin() as db:
+>           with pytest.raises(DomainError):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE DomainError
+
+tests/test_pooled_accounting.py:83: Failed
+------------------------------ Captured log setup ------------------------------
+WARNING  moodprint:main.py:43 database_pool_exceeds_headroom size=5 overflow=2
+___ test_child_cannot_borrow_invalid_or_exhausted_parent_hold[unknown_role] ____
+
+clients = (<fastapi.applications.FastAPI object at 0x7d0572f02d50>, [(<httpx.AsyncClient object at 0x7d05730bf0b0>, UUID('3b010d...8e-ac7d-9680e1b7bcf3')), (<httpx.AsyncClient object at 0x7d05735b9c70>, UUID('3e50ebaa-5e31-4df6-b9c1-81b458a56223'))])
+change = 'unknown_role'
+
+    @pytest.mark.parametrize("change", ["worker", "owner", "terminal", "expired", "unknown_role", "exhausted"])
+    async def test_child_cannot_borrow_invalid_or_exhausted_parent_hold(clients, change):
+        from datetime import timedelta
+    
+        app, actors = clients
+        bounded(app)
+        uid, worker = actors[0][1], uuid4()
+        async with app.state.database.sessions.begin() as db:
+            parent = await reserve(db, app, uid, worker)
+            usage = await db.get(AiUsage, parent.id)
+            if change == "terminal":
+                usage.state = "settled"
+            elif change == "expired":
+                usage.lease_until = now() - timedelta(seconds=1)
+            elif change == "exhausted":
+                for _ in range(4):
+                    await reserve(db, app, uid, worker, parent=parent.id, role="consult-nhatky+three-agent-v1")
+            await db.flush()
+        async with app.state.database.sessions.begin() as db:
+>           with pytest.raises(DomainError):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE DomainError
+
+tests/test_pooled_accounting.py:83: Failed
+------------------------------ Captured log setup ------------------------------
+WARNING  moodprint:main.py:43 database_pool_exceeds_headroom size=5 overflow=2
+_____ test_child_cannot_borrow_invalid_or_exhausted_parent_hold[exhausted] _____
+
+clients = (<fastapi.applications.FastAPI object at 0x7d0573083500>, [(<httpx.AsyncClient object at 0x7d0572fff980>, UUID('2eb669...dc-b0cb-c2f680882de0')), (<httpx.AsyncClient object at 0x7d0572ccb5c0>, UUID('da364758-2a2a-48c9-9a47-7bfb502036e3'))])
+change = 'exhausted'
+
+    @pytest.mark.parametrize("change", ["worker", "owner", "terminal", "expired", "unknown_role", "exhausted"])
+    async def test_child_cannot_borrow_invalid_or_exhausted_parent_hold(clients, change):
+        from datetime import timedelta
+    
+        app, actors = clients
+        bounded(app)
+        uid, worker = actors[0][1], uuid4()
+        async with app.state.database.sessions.begin() as db:
+            parent = await reserve(db, app, uid, worker)
+            usage = await db.get(AiUsage, parent.id)
+            if change == "terminal":
+                usage.state = "settled"
+            elif change == "expired":
+                usage.lease_until = now() - timedelta(seconds=1)
+            elif change == "exhausted":
+                for _ in range(4):
+                    await reserve(db, app, uid, worker, parent=parent.id, role="consult-nhatky+three-agent-v1")
+            await db.flush()
+        async with app.state.database.sessions.begin() as db:
+>           with pytest.raises(DomainError):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE DomainError
+
+tests/test_pooled_accounting.py:83: Failed
+------------------------------ Captured log setup ------------------------------
+WARNING  moodprint:main.py:43 database_pool_exceeds_headroom size=5 overflow=2
+=========================== short test summary info ============================
+FAILED tests/test_pooled_accounting.py::test_fifty_bounded_workflows_hold_under_twenty
+FAILED tests/test_pooled_accounting.py::test_child_allocation_never_double_counts_and_unknown_retains_bound
+FAILED tests/test_pooled_accounting.py::test_child_cannot_borrow_invalid_or_exhausted_parent_hold[worker]
+FAILED tests/test_pooled_accounting.py::test_child_cannot_borrow_invalid_or_exhausted_parent_hold[owner]
+FAILED tests/test_pooled_accounting.py::test_child_cannot_borrow_invalid_or_exhausted_parent_hold[terminal]
+FAILED tests/test_pooled_accounting.py::test_child_cannot_borrow_invalid_or_exhausted_parent_hold[expired]
+FAILED tests/test_pooled_accounting.py::test_child_cannot_borrow_invalid_or_exhausted_parent_hold[unknown_role]
+FAILED tests/test_pooled_accounting.py::test_child_cannot_borrow_invalid_or_exhausted_parent_hold[exhausted]
+8 failed in 10.67s

@@ -322,3 +322,64 @@ Only approved external mutation:C02a oneSES canary identity plus verification.
 | G15 | OPEN | P0/P1 blockers and final release approval remain open. |
 
 Release remains **NO-GO**. These statuses are not upgraded by a code push, local mock, healthy idle EC2 instance or dashboard read.
+# CI repair evidence — 2026-11-05
+
+Original GitHub run [42028979060](https://github.com/mhiu05/MoodPrint/actions/runs/42028979060),
+SHA `e4e56997d6088516de009eaeca9d5a89461e9eb5`: **3 failed,2276 passed,4 skipped**,
+926.16s. All three failure names in the owner's report are confirmed in its log.
+Linux3.12.13 uses PostgreSQL17.10/pgvector0.8.2 in a unique tmpfs container; every
+direct pinned dependency and dev-tool version matches pyproject. No hosted DB or
+provider secret is mounted. The original scoped RED has2 failed/1 passed: wrapper
+missing dispatch parameter and incomplete settings double. Cancellation passes in
+isolation (0.37s call) and in the original-order full Linux run; its CI-only3s timeout
+has **not** been independently reproduced as a production scheduling defect.
+
+Cancellation validation now covers dispatch false/true and waiting-slot/in-model
+states. Readiness races model-start against the owned drive task, retaining the
+unchanged runtime deadline and exposing early run failure; it does not enlarge a
+test timeout. Terminal task completion, provider cancellation and durable no-bubble
+state are asserted. No production scheduling fix is claimed without reproduction.
+
+Intermediate GREEN:86 tests in the original three files; pooled/legacy21 tests;
+expanded pooled/legacy/snapshot/revocation-lock32 tests; Ruff passed and mypy passed
+195 source files. Expanded handoff assertions were corrected to account for the
+existing proof's initial turn and direct-specialist continuation, retaining every
+original SDK/privacy assertion. Error-boundary/guest-deadline failures were traced
+to inherited STATIC_DIR in the test image, then3 tests passed with aligned runner
+environment and the real SQL-review path fix. The latter prohibits repo artifact
+writes even when the checkout itself is under OS temp.
+
+The new900s T4 attempt failed at257.592s wall/197.592s measurement:462 attempts,
+461 completed,mean occupancy41.43/50,peak50 parents/SSE/provider calls,one pool
+timeout,one noncompleted stream; pool recent-window p95=735.958ms,loop p95=29.93ms,
+peak RSS199929856bytes. Financial invariant held; peak liability7820400000nano.
+This diagnostic overlapped the original-order suite and is not an isolated target
+benchmark. SQL-structure reuse is under regression/remeasurement; pool4+1 and all
+timeouts are unchanged. **P3-I07 remains FAILED; P4-E01 target load remains absent.**
+
+Artifacts: [scoped RED](evidence/ci-repair-scoped-red.log),
+[pooled RED](evidence/ci-repair-pooled-red.log),
+[financial/security GREEN](evidence/ci-repair-accounting-security-green.log),
+[additional GREEN](evidence/ci-repair-new-green.log),
+[T4 failure](evidence/ci-repair-T4-before.json),
+[AWS facts](evidence/ci-repair-aws-readonly.json),
+[SES/EBS/SSM](evidence/ci-repair-aws-additional.json).
+Zero paid generation/judge calls,zero external generation spend,no deployment or
+production-budget activation. New remote CI/SHA evidence will be appended after push.
+
+Pre-push verification: **124 passed** in108.70s across the three original files,
+pooled accounting, legacy budget, fresh snapshot, live revocation/lock races and
+guest SQL-review tests. Another **21 passed** in22.24s covers both SQL-review
+generators and session-reliability errors with STATIC_DIR removed. Ruff passed;
+mypy passed195 source files. These scoped counts overlap and must not be added
+as a distinct full-suite total. Independent read-only code review found no blocker
+in pooled transfer/recovery, immutable SQL-structure reuse, cancellation lifecycle
+or resolved-path artifact guards.
+
+The original-source full diagnostic (before fixes, with image STATIC_DIR and no
+Git metadata) finished **13 failed,2266 passed,4 skipped** in1782.94s. All13 are
+accounted for:2 known contract failures,7 SPA-shadowed dynamic test routes,
+2 missing-Git reviewed-artifact checks,and2 genuine SQL-export path guards in a
+checkout under/tmp. The original cancellation test passed in this order. This
+diagnostic is not reported as an equivalent full CI run; the new GitHub workflow
+is the authority for the final source and exact counts.

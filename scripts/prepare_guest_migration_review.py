@@ -24,7 +24,12 @@ def migration_sql(revision_range=f"{BASE}:head") -> str:
 
 def prepare(output: Path, from_revision=BASE) -> dict:
     output = Path(output).resolve()
-    roots = (Path(tempfile.gettempdir()).resolve(), (ROOT / "deploy/supabase/reports").resolve())
+    reports = (ROOT / "deploy/supabase/reports").resolve()
+    # A checkout can itself live under /tmp (containers and ephemeral runners).
+    # The OS-temp allowance must never authorize writing approved repo artifacts.
+    if output.is_relative_to(ROOT) and not output.is_relative_to(reports):
+        raise ValueError("Pending SQL must not modify repository artifacts")
+    roots = (Path(tempfile.gettempdir()).resolve(), reports)
     if not any(output.is_relative_to(root) for root in roots) or output.suffix != ".sql":
         raise ValueError("Pending SQL must be a new .sql in the OS temp directory or deploy/supabase/reports")
     if from_revision != BASE:

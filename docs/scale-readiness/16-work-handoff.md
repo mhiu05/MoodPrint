@@ -1,6 +1,25 @@
 # MoodPrint — execution handoff to ChatGPT Work
 
 Updated 2026-11-05. **Release NO-GO. Feature-branch push is not deployment approval.**
+
+Coding continuation is owned by Codex; do not wait for Work's browser to repair code.
+Run42028979060 is confirmed3 failed/2276 passed/4 skipped at
+`e4e56997d6088516de009eaeca9d5a89461e9eb5`. The repair retains every scenario,
+adds consult dispatch coverage and cancellation queue/lifecycle coverage, uses real
+Settings in the web deadline test, and transfers direct bounded V3 child holds from
+a280M-nano parent pool. Legacy/guest/group authorities remain intact; pooled group,
+all-provider accounting and live campaign adapter remain open engineering work.
+No feature flag, production budget, credential, quota or deployment is changed.
+
+AWS MCP works for current account facts; use
+[fresh EC2/CloudWatch evidence](evidence/ci-repair-aws-readonly.json) and
+[fresh SES/EBS/SSM evidence](evidence/ci-repair-aws-additional.json) before treating
+cloud-browser403/login failures as account-access blockers. P4-E01 still lacks
+approved target-load evidence and host memory/cgroup distributions. P3-I07's latest
+900s attempt stopped after257.592s with one pool timeout; it remains FAILED.
+Local test-image STATIC_DIR was removed from the runner; a separate SQL-review
+path guard now rejects approved-artifact writes even when a checkout lives in/tmp.
+See [15](15-test-results.md) for exact test evidence and CI follow-up.
 Shared source: [feat/upgrade-user](https://github.com/mhiu05/MoodPrint/tree/feat/upgrade-user).
 Use the implementation SHA recorded in [17](17-work-execution-prompt.md), then read the
 latest branch tip for documentation corrections. Read [12](12-implementation-progress.md)

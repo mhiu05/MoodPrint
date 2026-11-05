@@ -18,6 +18,16 @@ def generator():
     return module
 
 
+def test_checkout_inside_os_temp_still_protects_approved_artifacts(tmp_path, monkeypatch):
+    module = generator()
+    checkout = tmp_path / "checkout"
+    monkeypatch.setattr(module, "ROOT", checkout)
+    monkeypatch.setattr(module, "PENDING", checkout / "deploy/supabase/pending-review/0020")
+    monkeypatch.setattr(module, "migration_sql", lambda: pytest.fail("No export permitted"))
+    with pytest.raises(ValueError):
+        module.prepare(checkout / "deploy/supabase/reviewed-sql/0020-review.sql")
+
+
 def test_real_package_exports_exact_0019_to_0020_and_keeps_hosted_execution_closed(tmp_path):
     module = generator()
     output = tmp_path / "retirement.sql"

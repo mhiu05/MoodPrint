@@ -13,6 +13,15 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 
+def test_checkout_inside_os_temp_still_protects_approved_artifacts(tmp_path, monkeypatch):
+    prepare = importlib.import_module("prepare_guest_migration_review")
+    checkout = tmp_path / "checkout"
+    monkeypatch.setattr(prepare, "ROOT", checkout)
+    monkeypatch.setattr(prepare, "migration_sql", lambda: pytest.fail("No export permitted"))
+    with pytest.raises(ValueError):
+        prepare.prepare(checkout / "deploy/supabase/reviewed-sql/pending.sql")
+
+
 def test_pending_review_never_executes_remote_or_overwrites_approval(tmp_path, monkeypatch):
     prepare = importlib.import_module("prepare_guest_migration_review")
     verify = importlib.import_module("verify_guest_migration_review")

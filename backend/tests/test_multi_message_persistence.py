@@ -97,8 +97,14 @@ async def test_flag_off_persists_exactly_one_part(clients):
 
 
 @pytest.mark.postgres
-async def test_cancel_before_commit_leaves_no_bubbles(multi):
+@pytest.mark.parametrize("dispatch_enabled", [False, True])
+@pytest.mark.parametrize("queued", [False, True])
+async def test_cancel_before_commit_leaves_no_bubbles(multi, dispatch_enabled, queued):
     app, client = multi
+    app.state.settings.ai_dispatch_gate_enabled = dispatch_enabled
+    if queued:
+        # Exercise cancellation before provider dispatch, with actual backpressure.
+        app.state.ai.slots = asyncio.Semaphore(0)
     url = await conversation(client)
     model = ScriptedModel(
         [[message_output(json.dumps({"messages": [{"text": "Không bao giờ hiện", "cards": []}]}))]], hold=True
@@ -110,10 +116,28 @@ async def test_cancel_before_commit_leaves_no_bubbles(multi):
         headers=key(),
     )
     assert accepted.status_code == 202, accepted.text
-    await asyncio.wait_for(model.started.wait(), 10)
+    run = app.state.ai.runs[UUID(accepted.json()["runId"])]
+    if queued:
+        await asyncio.sleep(0)
+        assert run.drive_started and not run.task.done()
+        assert not model.started.is_set()
+    else:
+        # Readiness is a lifecycle condition, not a three-second startup SLO.
+        # The drive task owns the unchanged runtime deadline. Race it so an
+        # early failure reports its real cause instead of waiting on an orphaned
+        # model event, and never cancel the drive task from the readiness waiter.
+        started = asyncio.create_task(model.started.wait())
+        try:
+            await asyncio.wait((started, run.task), return_when=asyncio.FIRST_COMPLETED)
+            assert model.started.is_set() and not run.task.done(), run.failure
+        finally:
+            started.cancel()
+            await asyncio.gather(started, return_exceptions=True)
     cancelled = await client.post(f"/api/v1/ai/runs/{accepted.json()['runId']}/cancel", json={"expectedVersion": 1})
     assert cancelled.status_code == 200, cancelled.text
     model.release.set()
+    assert run.task.done() and run.terminal_status == "cancelled"
+    assert model.cancelled is (not queued)
     rows = await db_rows(app, UUID(url.rsplit("/", 1)[1]))
     assert [row.actor for row in rows] == ["self"]
     assert (await client.get(url)).json()["version"] == 2

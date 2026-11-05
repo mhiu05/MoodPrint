@@ -4,11 +4,12 @@ import json
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import timedelta
+from functools import lru_cache
 from typing import Any
 from uuid import UUID
 
 from fastapi import Depends, Request
-from sqlalchemy import func, null, select, text, update
+from sqlalchemy import bindparam, func, null, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import DomainError
@@ -139,6 +140,20 @@ async def require_registered_actor(actor: Actor = Depends(require_actor)) -> Act
     return actor
 
 
+@lru_cache(maxsize=2)
+def _actor_statement(lock: bool):
+    # Cache immutable SQL structure only. Actor values and the provider-session
+    # function are evaluated on every execution in its fresh transaction.
+    provider_check = func.moodprint.is_provider_session_active(AuthSession.id, User.id) if not lock else null()
+    statement = (
+        select(User, AuthSession, AgeDeclaration, provider_check)
+        .join(AuthSession, (AuthSession.user_id == User.id) & (AuthSession.id == bindparam("actor_session_id")))
+        .outerjoin(AgeDeclaration, AgeDeclaration.user_id == User.id)
+        .where(User.id == bindparam("actor_user_id"))
+    )
+    return statement.with_for_update(of=User) if lock else statement
+
+
 async def lock_actor(
     db: AsyncSession, actor: Actor, *, eligible: bool = True, lock: bool = True
 ) -> User:
@@ -150,15 +165,9 @@ async def lock_actor(
     # A writer must check the provider AFTER acquiring the account lock: a
     # STABLE function evaluated by the locking SELECT can retain its pre-wait
     # snapshot while a remote logout commits. Read-only polls have no lock wait.
-    provider_check = func.moodprint.is_provider_session_active(AuthSession.id, User.id) if not lock else null()
-    statement = (
-        select(User, AuthSession, AgeDeclaration,
-               provider_check)
-        .join(AuthSession, (AuthSession.user_id == User.id) & (AuthSession.id == actor.session_id))
-        .outerjoin(AgeDeclaration, AgeDeclaration.user_id == User.id)
-        .where(User.id == actor.user_id)
-    )
-    found = (await db.execute(statement.with_for_update(of=User) if lock else statement)).one_or_none()
+    found = (await db.execute(_actor_statement(lock), {
+        "actor_session_id": actor.session_id, "actor_user_id": actor.user_id,
+    })).one_or_none()
     user = found[0] if found else None
     return await verify_actor(
         db, actor, user, eligible=eligible, provider_active=found[3] if found else None

@@ -1,13 +1,15 @@
 """Idempotent metadata accounting. Unknown provider usage is never refunded or invented."""
 
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from functools import lru_cache
 from uuid import UUID
 
 from sqlalchemy import and_, case, func, or_, select, text, update
 
 from app.ai.envelope import BOUNDED_PRICING_VERSION, BOUNDED_RESERVATION_NANO
+from app.ai.pooled_accounting import POOL_VERSIONS, allocation
 from app.ai.usage import UsageEvent
 from app.core.errors import DomainError
 from app.infrastructure.database.models import AiRun, AiUsage, User, now
@@ -23,7 +25,7 @@ LEASE_SECONDS = 45
 CAPPED_PRICING_VERSION = "openai-conservative-2026-11-02-v1"
 CAPPED_RATES = {"gpt-6-luna": (550, 550, 1650)}
 RUN_RESERVATION_NANO = 2_000_000_000
-CAPPED_VERSIONS = (CAPPED_PRICING_VERSION, BOUNDED_PRICING_VERSION)
+CAPPED_VERSIONS = (CAPPED_PRICING_VERSION, BOUNDED_PRICING_VERSION, *POOL_VERSIONS)
 GLOBAL_BUDGET_MAX_USD = Decimal(50)
 
 
@@ -48,8 +50,11 @@ def budget_unavailable() -> DomainError:
     return DomainError(503, "AI_BUDGET_UNAVAILABLE", "Chưa xác minh được giới hạn chi phí AI. Vui lòng thử lại sau.", True)
 
 
-async def budget_liability(db, at: datetime) -> int:
-    """Known conservative cost + reservations. Unknown relevant history fails closed."""
+@lru_cache(maxsize=2)
+def _budget_statement(day: date):
+    # Only the SQL expression is reused. Every total/unknown flag is read from
+    # PostgreSQL in the caller's transaction, including newly admitted holds.
+    at = datetime(day.year, day.month, day.day, tzinfo=UTC)
     relevant = liability_scope(at)
     legacy = AiUsage.pricing_version.not_in(CAPPED_VERSIONS)
     guest_owner = select(User.id).where(User.id == AiUsage.user_id, User.account_kind == "guest").exists()
@@ -76,13 +81,18 @@ async def budget_liability(db, at: datetime) -> int:
     # One database snapshot and round trip while the admission lock is held.
     # This retains every authority and fail-closed flag, including detached guest
     # and search liabilities; it does not cache money across transactions.
-    unknown_rows, halted, total = (await db.execute(select(
+    return select(
         select(AiUsage.run_id).where(relevant, unknown).exists(),
         select(GuestBudgetDay.day).where(GuestBudgetDay.halted_at.is_not(None)).exists(),
         select(func.coalesce(func.sum(cost), 0)).where(relevant, registered).scalar_subquery()
         + detached_liability_statement(at).scalar_subquery()
         + external_liability_statement(at).scalar_subquery(),
-    ))).one()
+    )
+
+
+async def budget_liability(db, at: datetime) -> int:
+    """Known conservative cost + reservations. Unknown relevant history fails closed."""
+    unknown_rows, halted, total = (await db.execute(_budget_statement(at.astimezone(UTC).date()))).one()
     if unknown_rows or halted:
         raise budget_unavailable()
     return int(total)
@@ -126,10 +136,14 @@ async def reserve_accounting(db, run_id: UUID, user_id: UUID, worker_id: UUID, m
         owner = await db.get(User, user_id)
         guest = owner is not None and owner.account_kind == "guest"
         bound = (BOUNDED_RESERVATION_NANO if settings.ai_bounded_reservations_enabled and not guest else RUN_RESERVATION_NANO)
+        run = await db.get(AiRun, run_id)
+        pooled = (await allocation(db, run, user_id, worker_id, model, prompt_version)
+                  if settings.ai_bounded_reservations_enabled and not guest else None)
+        if pooled is not None:
+            bound = pooled[0]
         liability = await budget_liability(db, at)
         ceiling = global_budget_nano(settings.ai_daily_budget_usd)
         # Proactive descendants must also leave the interactive share untouched.
-        run = await db.get(AiRun, run_id)
         ancestor = run
         while ancestor is not None and ancestor.parent_run_id is not None:
             ancestor = await db.get(AiRun, ancestor.parent_run_id)
@@ -148,10 +162,15 @@ async def reserve_accounting(db, run_id: UUID, user_id: UUID, worker_id: UUID, m
             if (not kind_available(settings, "ai") or required is None or guest_upper is None
                     or guest_upper < required[1]):
                 raise budget_unavailable()
-        if liability + (0 if guest else bound) > ceiling:
+        transfer = pooled is not None and pooled[2] is not None
+        if liability + (0 if guest or transfer else bound) > ceiling:
             raise DomainError(503, "AI_BUDGET_EXHAUSTED", "AI đã đạt giới hạn sử dụng. Vui lòng thử lại sau.", True)
         rates, estimate = CAPPED_RATES[model], guest_upper if guest else bound
         pricing_version = BOUNDED_PRICING_VERSION if settings.ai_bounded_reservations_enabled and not guest else CAPPED_PRICING_VERSION
+        if pooled is not None:
+            pricing_version = pooled[1]
+            if pooled[2] is not None:
+                pooled[2].estimated_nano_usd -= bound
     db.add(AiUsage(run_id=run_id, user_id=user_id, worker_id=worker_id,
                    model=model, prompt_version=prompt_version, pricing_version=pricing_version,
                    estimated_nano_usd=estimate,

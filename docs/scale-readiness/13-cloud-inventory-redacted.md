@@ -182,3 +182,20 @@ All checks below were read-only in the owner's connected Chrome session. No proj
 ### Unresolved inventory facts
 
 Billing/cost permissions, MoodPrint staging OpenAI project quotas, Supabase email rate, numeric CloudWatch samples, alarm delivery, Storage-byte backups, PITR, and restore evidence remain unverified or absent. RPO 24h/RTO 8h are targets, not achieved results.
+# Fresh read-only MCP evidence — 2026-11-05 14:30–14:43 UTC
+
+Account suffix3536, Sydney target `i-0664d6ea5930452db`: running `m7i-flex.large`,
+public IPv4 `13.210.93.93`; instance/system/attached-EBS checks OK; SSM Online.
+The four-hour EC2 metric window contains48 CPU points, maximum13.0002167%, mean
+of period averages5.8335767%;47 StatusCheckFailed points all zero. These are
+ordinary-operation metrics, **not 50-user load proof**. No CWAgent metric in this
+region, no MoodPrint-prefixed alarm, and no `/moodprint`-prefixed log group returned.
+Memory/disk/cgroup/5xx distributions therefore remain unknown from these APIs.
+
+SES remains sandbox: production access false, sending enabled,200/day,1/s,
+SentLast24Hours1; suppression retains BOUNCE/COMPLAINT. Attached encrypted gp3
+volume30GiB has zero self-owned snapshots returned for that volume. No alarm,
+snapshot, quota, identity, credential, deployment or runtime setting was changed.
+API call success records and raw numeric datapoints:
+[EC2/CloudWatch](evidence/ci-repair-aws-readonly.json),
+[SES/EBS/SSM](evidence/ci-repair-aws-additional.json).

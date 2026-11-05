@@ -1,5 +1,22 @@
 # Implementation ledger — plan: 08-implementation-roadmap.md
 
+## CI repair and coding continuation — 2026-11-05
+
+Release remains **NO-GO**. The original CI run
+[42028979060](https://github.com/mhiu05/MoodPrint/actions/runs/42028979060)
+at `e4e56997d6088516de009eaeca9d5a89461e9eb5` had **3 failed, 2276 passed,
+4 skipped**, not one failure. Local and remote matched after fetch; existing user
+changes, deletions and `.gitignore` are excluded from this repair's staging.
+
+Current engineering evidence is recorded in [15](15-test-results.md). The defaults
+wrapper preserves all twelve scenarios and adds dispatch-enabled consult coverage;
+the web deadline test now uses the real Settings contract. Direct bounded V3 pooled
+holds and SQL-structure reuse are being verified; these do not enable a feature flag.
+`P3-I02` remains IN_PROGRESS for group/all-provider/campaign integration.
+`P3-I07` and `P4-E01` remain FAILED until their complete sustained-load acceptance
+is established. AWS read-only MCP works; cloud-browser login failures do not block
+the available EC2/CloudWatch/SES inventory reads.
+
 ## Current execution override — owner update, 2026-11-05
 
 **NO-GO; original41 IDs retained:2 DONE,27 IN_PROGRESS,7 BLOCKED,2 FAILED,3 DEFERRED.**

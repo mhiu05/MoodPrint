@@ -45,7 +45,12 @@ def migration_sql() -> str:
 
 def prepare(output: Path) -> dict:
     output = Path(output).resolve()
-    roots = (Path(tempfile.gettempdir()).resolve(), (ROOT / ".tmp").resolve(), PENDING.resolve())
+    repo_temp, pending = (ROOT / ".tmp").resolve(), PENDING.resolve()
+    # Check protected repo paths before the OS-temp allowance. Ephemeral checkouts
+    # may themselves be inside /tmp; that must not authorize approved SQL writes.
+    if output.is_relative_to(ROOT) and not any(output.is_relative_to(root) for root in (repo_temp, pending)):
+        raise ValueError("Pending SQL must not modify repository artifacts")
+    roots = (Path(tempfile.gettempdir()).resolve(), repo_temp, pending)
     if output.suffix != ".sql" or not any(output.is_relative_to(root) for root in roots):
         raise ValueError("Use a new .sql inside OS temp, .tmp or the pending 0020 review directory")
     if output.exists() or output.with_suffix(".json").exists():

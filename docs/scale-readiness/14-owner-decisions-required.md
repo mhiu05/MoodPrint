@@ -185,3 +185,13 @@ The following are precise proposals from the attached-Chrome review. None was su
 
 - The connected Platform session exposed only Personal Organization → Default project; no MoodPrint staging project could be identified. The visible `gpt-6-luna` catalog entry does not prove access or project limits.
 - No model call was made. The approved $3 cumulative staging campaign remains authorized but cannot begin until the correct project, model access, RPM/TPM and safe campaign adapter are verified. Production $50/day activation remains a separate **REQUIRES_OWNER_CONFIRMATION** decision.
+# CI continuation authority — 2026-11-05
+
+Engineering repair, disposable Linux/PostgreSQL tests, read-only AWS facts and
+normal commit/push to `feat/upgrade-user` are authorized. No new approval is needed
+for those actions. Existing `.gitignore` and unrelated user changes must be preserved.
+AWS browser failures do not require a console sign-in before the working MCP reads.
+No merge/deploy, credential rotation, quota change, production AI $50 activation,
+new paid infrastructure or unapproved paid test is included. Direct V3 pooled code
+does not close group/all-provider, project quota/pricing, hosted backup or target-load
+gates. Release remains **NO-GO**.
