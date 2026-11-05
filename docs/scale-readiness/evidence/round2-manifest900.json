@@ -1,0 +1,18 @@
+{
+  "run_id": "e12f15aa8e014a36a40966df1fa850f2",
+  "environment": "L0",
+  "provider": "fake",
+  "workers": 1,
+  "users": 50,
+  "duration_seconds": 900,
+  "warmup_seconds": 60,
+  "egress": "denied",
+  "ai_daily_budget_usd": 50,
+  "accounting": true,
+  "target": {
+    "host": "127.0.0.1",
+    "port": 5432,
+    "database": "moodprint_e12f15aa8e014a36a40966df1fa850f2_test"
+  },
+  "reservation_profile": "bounded64k"
+}

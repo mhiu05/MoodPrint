@@ -1,0 +1,15 @@
+{
+  "at_utc": "2026-11-05T07:01:22.843326+00:00",
+  "run_id": "3659984110c64efc811c54e70d438002",
+  "case": "T4",
+  "environment": "L0",
+  "real_generation_calls": 0,
+  "external_generation_spend_usd": 0,
+  "head": "0573af5b50c0584c523e5119755479fcf47fae74",
+  "working_tree_dirty": true,
+  "source_sha256": "5fce9f6a369e1721a9afc55f17b3657853f867acb6173c0e52842ba448102c44",
+  "result": {
+    "status": "FAILED",
+    "error_type": "TimeoutError"
+  }
+}

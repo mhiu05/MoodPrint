@@ -1,0 +1,33 @@
+{
+  "scope": "SYNTHETIC_LOCAL_ONLY",
+  "run_id": "ceff12d998b544eb817227129854cab4",
+  "production_restore_proven": false,
+  "rpo_achieved": false,
+  "rto_achieved": false,
+  "cleanup_verified": true,
+  "artifact_verification": {
+    "status": "ARTIFACT_INTEGRITY_PASS",
+    "restore_proven": false,
+    "source_completeness": "NOT_PROVEN",
+    "cloud_resources_verified": false,
+    "oldest_capture_age_hours": 5.986111111111111e-07,
+    "rpo_target_hours": 24,
+    "artifact_counts": {
+      "database": 1,
+      "storage": 2,
+      "configuration": 1,
+      "secrets": 1,
+      "infrastructure": 1
+    }
+  },
+  "synthetic_object_bytes_match": true,
+  "synthetic_config_and_secret_bytes_match": true,
+  "status": "SYNTHETIC_LOCAL_RESTORE_PASS",
+  "postgres": "17.11",
+  "entries_restored": 2,
+  "rls_cross_owner_denied": true,
+  "uncertain_liability_preserved_micros": 120000,
+  "network": "none",
+  "published_ports": 0,
+  "elapsed_seconds": 3.812
+}

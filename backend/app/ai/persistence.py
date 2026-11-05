@@ -4,14 +4,13 @@ import logging
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import delete, func, select, update
-
 from app.ai.context import ContextStamp
 from app.ai.models import AiConversation, AiMessageRecord, AiTurn
 from app.ai.schemas import AIMessage, AiPreferenceView, ConversationHeader, ConversationView
 from app.ai.store import Conversation
 from app.core.errors import DomainError
-from app.infrastructure.database.models import AiRun, now
+from app.infrastructure.database.models import AiRun, User, now
+from sqlalchemy import delete, func, select, update
 
 log = logging.getLogger("moodprint")
 
@@ -319,10 +318,9 @@ async def close_orphaned_consultations(db) -> None:
 
 async def interrupt_consultations(db, primary_run_ids) -> None:
     """A consultation never outlives its primary run (crash recovery, Phase 2 and V3)."""
-    from sqlalchemy import case
-
     from app.ai.collaboration.models import AiCollaboration
     from app.ai.orchestration.models import AiOrchestrationStep
+    from sqlalchemy import case
 
     # V3: open plan/consult/handoff/group steps of an interrupted run end as cancelled (review M1).
     await db.execute(
@@ -422,10 +420,13 @@ async def admission(db, user, settings):
 
     await db.execute(text("select pg_advisory_xact_lock(664201, 1)"))
     await recover_turns(db)
-    # Global capacity counts every origin (chat and check-ins share the provider).
-    active = await db.scalar(
-        select(func.count()).select_from(AiRun).where(AiRun.status == "running")
-    )
+    # Legacy policy counts all rows. Candidate dispatch mode has an independent
+    # physical-call gate, so its registered parent policy must not count children.
+    active_query = select(func.count()).select_from(AiRun).where(AiRun.status == "running")
+    if settings.ai_dispatch_gate_enabled and user.account_kind == "registered":
+        active_query = active_query.join(User, User.id == AiRun.user_id).where(
+            AiRun.parent_run_id.is_(None), AiRun.origin == "user", User.account_kind == "registered")
+    active = await db.scalar(active_query)
     own = await db.scalar(
         select(func.count())
         .select_from(AiRun)

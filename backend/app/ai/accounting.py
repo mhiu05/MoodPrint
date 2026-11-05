@@ -7,6 +7,7 @@ from uuid import UUID
 
 from sqlalchemy import and_, case, func, or_, select, text, update
 
+from app.ai.envelope import BOUNDED_PRICING_VERSION, BOUNDED_RESERVATION_NANO
 from app.ai.usage import UsageEvent
 from app.core.errors import DomainError
 from app.infrastructure.database.models import AiRun, AiUsage, User, now
@@ -22,6 +23,15 @@ LEASE_SECONDS = 45
 CAPPED_PRICING_VERSION = "openai-conservative-2026-11-02-v1"
 CAPPED_RATES = {"gpt-6-luna": (550, 550, 1650)}
 RUN_RESERVATION_NANO = 2_000_000_000
+CAPPED_VERSIONS = (CAPPED_PRICING_VERSION, BOUNDED_PRICING_VERSION)
+GLOBAL_BUDGET_MAX_USD = Decimal(50)
+
+
+def global_budget_nano(configured: float) -> int:
+    value = Decimal(str(configured))
+    if not value.is_finite() or value < 0:
+        raise budget_unavailable()
+    return int(min(value, GLOBAL_BUDGET_MAX_USD) * 1_000_000_000)
 
 
 def liability_scope(at: datetime):
@@ -41,7 +51,7 @@ def budget_unavailable() -> DomainError:
 async def budget_liability(db, at: datetime) -> int:
     """Known conservative cost + reservations. Unknown relevant history fails closed."""
     relevant = liability_scope(at)
-    legacy = AiUsage.pricing_version != CAPPED_PRICING_VERSION
+    legacy = AiUsage.pricing_version.not_in(CAPPED_VERSIONS)
     guest_owner = select(User.id).where(User.id == AiUsage.user_id, User.account_kind == "guest").exists()
     unknown = or_(
         AiUsage.estimated_nano_usd.is_(None), AiUsage.model.not_in(tuple(CAPPED_RATES)),
@@ -50,8 +60,6 @@ async def budget_liability(db, at: datetime) -> int:
                          AiUsage.requests_started != AiUsage.responses_received,
                          and_(AiUsage.requests_started > 0, AiUsage.input_tokens == 0))),
     )
-    if await db.scalar(select(AiUsage.run_id).where(relevant, unknown).limit(1)):
-        raise budget_unavailable()
     # Old standard-price settled rows are conservatively revalued without rewriting
     # historical audit metadata. Never assume their short-context estimate was a bound.
     cost = case((legacy, func.greatest(
@@ -61,10 +69,23 @@ async def budget_liability(db, at: datetime) -> int:
     # Guest usage is diagnostic metadata. Its detached reservation/totals are the
     # financial authority and survive deleting every guest identity and usage row.
     registered = select(User.id).where(User.id == AiUsage.user_id, User.account_kind != "guest").exists()
-    total = int(await db.scalar(select(func.coalesce(func.sum(cost), 0)).where(relevant, registered)) or 0)
-    from app.ai.search.accounting import external_liability
-    from app.modules.guests.accounting import detached_liability
-    return total + await detached_liability(db, at) + await external_liability(db, at)
+    from app.ai.search.accounting import external_liability_statement
+    from app.modules.guests.accounting import detached_liability_statement
+    from app.modules.guests.models import GuestBudgetDay
+
+    # One database snapshot and round trip while the admission lock is held.
+    # This retains every authority and fail-closed flag, including detached guest
+    # and search liabilities; it does not cache money across transactions.
+    unknown_rows, halted, total = (await db.execute(select(
+        select(AiUsage.run_id).where(relevant, unknown).exists(),
+        select(GuestBudgetDay.day).where(GuestBudgetDay.halted_at.is_not(None)).exists(),
+        select(func.coalesce(func.sum(cost), 0)).where(relevant, registered).scalar_subquery()
+        + detached_liability_statement(at).scalar_subquery()
+        + external_liability_statement(at).scalar_subquery(),
+    ))).one()
+    if unknown_rows or halted:
+        raise budget_unavailable()
+    return int(total)
 
 
 @dataclass
@@ -104,8 +125,9 @@ async def reserve_accounting(db, run_id: UUID, user_id: UUID, worker_id: UUID, m
         at = await db.scalar(select(func.clock_timestamp()))
         owner = await db.get(User, user_id)
         guest = owner is not None and owner.account_kind == "guest"
+        bound = (BOUNDED_RESERVATION_NANO if settings.ai_bounded_reservations_enabled and not guest else RUN_RESERVATION_NANO)
         liability = await budget_liability(db, at)
-        ceiling = int(min(Decimal(str(settings.ai_daily_budget_usd)), Decimal(20)) * 1_000_000_000)
+        ceiling = global_budget_nano(settings.ai_daily_budget_usd)
         # Proactive descendants must also leave the interactive share untouched.
         run = await db.get(AiRun, run_id)
         ancestor = run
@@ -126,9 +148,10 @@ async def reserve_accounting(db, run_id: UUID, user_id: UUID, worker_id: UUID, m
             if (not kind_available(settings, "ai") or required is None or guest_upper is None
                     or guest_upper < required[1]):
                 raise budget_unavailable()
-        if liability + (0 if guest else RUN_RESERVATION_NANO) > ceiling:
+        if liability + (0 if guest else bound) > ceiling:
             raise DomainError(503, "AI_BUDGET_EXHAUSTED", "AI đã đạt giới hạn sử dụng. Vui lòng thử lại sau.", True)
-        rates, estimate, pricing_version = CAPPED_RATES[model], guest_upper if guest else RUN_RESERVATION_NANO, CAPPED_PRICING_VERSION
+        rates, estimate = CAPPED_RATES[model], guest_upper if guest else bound
+        pricing_version = BOUNDED_PRICING_VERSION if settings.ai_bounded_reservations_enabled and not guest else CAPPED_PRICING_VERSION
     db.add(AiUsage(run_id=run_id, user_id=user_id, worker_id=worker_id,
                    model=model, prompt_version=prompt_version, pricing_version=pricing_version,
                    estimated_nano_usd=estimate,
@@ -158,7 +181,7 @@ async def persist_snapshot(db, run_id: UUID, worker_id: UUID, snapshot: UsageSna
     row.state = state
     row.lease_until = now() + timedelta(seconds=LEASE_SECONDS)
     input_rate, cached_rate, output_rate = row.input_nano_rate, row.cached_nano_rate, row.output_nano_rate
-    capped = row.pricing_version == CAPPED_PRICING_VERSION
+    capped = row.pricing_version in CAPPED_VERSIONS
     if input_rate is not None and cached_rate is not None and output_rate is not None and (
         not capped or state == "settled"
     ):
@@ -181,7 +204,7 @@ async def recover_expired(db):
     await db.execute(update(AiUsage).where(AiUsage.state == "open", AiUsage.run_id.in_(expired)).values(
         state=case((AiUsage.requests_started == AiUsage.responses_received, "settled"), else_="uncertain"),
         # On a crashed worker, only definite no-dispatch can release a reservation.
-        estimated_nano_usd=case((and_(AiUsage.pricing_version == CAPPED_PRICING_VERSION,
+        estimated_nano_usd=case((and_(AiUsage.pricing_version.in_(CAPPED_VERSIONS),
                                               AiUsage.requests_started == 0), 0),
                                else_=AiUsage.estimated_nano_usd),
     ))

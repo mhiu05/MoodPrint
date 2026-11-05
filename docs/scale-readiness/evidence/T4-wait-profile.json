@@ -1,0 +1,2037 @@
+{
+  "scope": "Local fake run, includes seed and drain; observer adds one independent PG connection",
+  "query_categories": {
+    "other": {
+      "count": 256,
+      "total_ms": 767.6541710352467,
+      "max_ms": 20.095619998755865
+    },
+    "SELECT": {
+      "count": 36580,
+      "total_ms": 302024.0766429211,
+      "max_ms": 450.65060799970524
+    },
+    "INSERT": {
+      "count": 1485,
+      "total_ms": 6899.2394189299375,
+      "max_ms": 286.7145159980282
+    },
+    "UPDATE": {
+      "count": 1185,
+      "total_ms": 8142.911136063049,
+      "max_ms": 52.19550900073955
+    },
+    "advisory_lock": {
+      "count": 310,
+      "total_ms": 19516.536247003387,
+      "max_ms": 617.4813040015579
+    }
+  },
+  "checkout_count": 7609,
+  "hold_p95_ms": 145.6725110001571,
+  "hold_max_ms": 1140.5958480027039,
+  "pg_wait_samples": [
+    {
+      "elapsed": 0.081,
+      "groups": []
+    },
+    {
+      "elapsed": 1.083,
+      "groups": []
+    },
+    {
+      "elapsed": 2.085,
+      "groups": []
+    },
+    {
+      "elapsed": 3.108,
+      "groups": []
+    },
+    {
+      "elapsed": 4.12,
+      "groups": []
+    },
+    {
+      "elapsed": 5.128,
+      "groups": []
+    },
+    {
+      "elapsed": 6.131,
+      "groups": []
+    },
+    {
+      "elapsed": 7.132,
+      "groups": []
+    },
+    {
+      "elapsed": 8.133,
+      "groups": []
+    },
+    {
+      "elapsed": 9.135,
+      "groups": []
+    },
+    {
+      "elapsed": 10.138,
+      "groups": []
+    },
+    {
+      "elapsed": 11.139,
+      "groups": []
+    },
+    {
+      "elapsed": 12.14,
+      "groups": []
+    },
+    {
+      "elapsed": 13.158,
+      "groups": []
+    },
+    {
+      "elapsed": 14.159,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ]
+      ]
+    },
+    {
+      "elapsed": 15.189,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ]
+      ]
+    },
+    {
+      "elapsed": 16.192,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ]
+      ]
+    },
+    {
+      "elapsed": 17.201,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          2
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          2
+        ]
+      ]
+    },
+    {
+      "elapsed": 18.204,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 19.213,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          3
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          2
+        ]
+      ]
+    },
+    {
+      "elapsed": 20.22,
+      "groups": [
+        [
+          "active",
+          "Lock",
+          "advisory",
+          2
+        ],
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          2
+        ]
+      ]
+    },
+    {
+      "elapsed": 21.221,
+      "groups": [
+        [
+          "active",
+          "Lock",
+          "advisory",
+          3
+        ],
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          1
+        ]
+      ]
+    },
+    {
+      "elapsed": 22.225,
+      "groups": [
+        [
+          "active",
+          "Lock",
+          "advisory",
+          3
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          2
+        ]
+      ]
+    },
+    {
+      "elapsed": 23.295,
+      "groups": [
+        [
+          "active",
+          "Lock",
+          "advisory",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 24.298,
+      "groups": [
+        [
+          "active",
+          "Lock",
+          "advisory",
+          2
+        ],
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          2
+        ]
+      ]
+    },
+    {
+      "elapsed": 25.301,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 26.303,
+      "groups": [
+        [
+          "active",
+          "Lock",
+          "transactionid",
+          1
+        ],
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 27.307,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 28.328,
+      "groups": [
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          5
+        ]
+      ]
+    },
+    {
+      "elapsed": 29.331,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          4
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          1
+        ]
+      ]
+    },
+    {
+      "elapsed": 30.337,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 31.342,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 32.349,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 33.356,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          3
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          2
+        ]
+      ]
+    },
+    {
+      "elapsed": 34.361,
+      "groups": [
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          5
+        ]
+      ]
+    },
+    {
+      "elapsed": 35.366,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 36.372,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 37.374,
+      "groups": [
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          5
+        ]
+      ]
+    },
+    {
+      "elapsed": 38.407,
+      "groups": [
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          5
+        ]
+      ]
+    },
+    {
+      "elapsed": 39.408,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          4
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          1
+        ]
+      ]
+    },
+    {
+      "elapsed": 40.412,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 41.416,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 42.422,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 43.693,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 44.697,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 45.704,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          3
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          2
+        ]
+      ]
+    },
+    {
+      "elapsed": 46.707,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 47.709,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 48.716,
+      "groups": [
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          5
+        ]
+      ]
+    },
+    {
+      "elapsed": 49.722,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 50.728,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 51.735,
+      "groups": [
+        [
+          "active",
+          "Lock",
+          "advisory",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 52.74,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          2
+        ]
+      ]
+    },
+    {
+      "elapsed": 53.746,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 54.752,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 55.754,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 56.758,
+      "groups": [
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          5
+        ]
+      ]
+    },
+    {
+      "elapsed": 57.763,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          2
+        ]
+      ]
+    },
+    {
+      "elapsed": 58.768,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 59.769,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          3
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          2
+        ]
+      ]
+    },
+    {
+      "elapsed": 60.773,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 61.778,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 62.785,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 63.79,
+      "groups": [
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          5
+        ]
+      ]
+    },
+    {
+      "elapsed": 64.791,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 65.801,
+      "groups": [
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          5
+        ]
+      ]
+    },
+    {
+      "elapsed": 66.81,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 67.821,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 68.826,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 69.828,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          3
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          2
+        ]
+      ]
+    },
+    {
+      "elapsed": 70.834,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 71.838,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 72.844,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 73.852,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 74.854,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 75.856,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 76.861,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 77.864,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 78.865,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          3
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          2
+        ]
+      ]
+    },
+    {
+      "elapsed": 79.868,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          4
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          1
+        ]
+      ]
+    },
+    {
+      "elapsed": 80.87,
+      "groups": [
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          5
+        ]
+      ]
+    },
+    {
+      "elapsed": 81.876,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          3
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          2
+        ]
+      ]
+    },
+    {
+      "elapsed": 82.878,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 83.879,
+      "groups": [
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          5
+        ]
+      ]
+    },
+    {
+      "elapsed": 84.881,
+      "groups": [
+        [
+          "active",
+          "Lock",
+          "advisory",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 85.882,
+      "groups": [
+        [
+          "active",
+          "Lock",
+          "transactionid",
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          2
+        ]
+      ]
+    },
+    {
+      "elapsed": 86.885,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 87.893,
+      "groups": [
+        [
+          "active",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 88.894,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 89.896,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 90.905,
+      "groups": [
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          5
+        ]
+      ]
+    },
+    {
+      "elapsed": 91.911,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          4
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          1
+        ]
+      ]
+    },
+    {
+      "elapsed": 92.916,
+      "groups": [
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          5
+        ]
+      ]
+    },
+    {
+      "elapsed": 93.919,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          2
+        ]
+      ]
+    },
+    {
+      "elapsed": 94.93,
+      "groups": [
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          5
+        ]
+      ]
+    },
+    {
+      "elapsed": 95.933,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 96.937,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 97.94,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          2
+        ]
+      ]
+    },
+    {
+      "elapsed": 98.947,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 99.953,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          2
+        ]
+      ]
+    },
+    {
+      "elapsed": 100.958,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 101.959,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          3
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          2
+        ]
+      ]
+    },
+    {
+      "elapsed": 102.961,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 103.964,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          null,
+          null,
+          1
+        ]
+      ]
+    },
+    {
+      "elapsed": 104.966,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 105.97,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 106.973,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          3
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          2
+        ]
+      ]
+    },
+    {
+      "elapsed": 107.976,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ],
+        [
+          "idle in transaction",
+          null,
+          null,
+          1
+        ]
+      ]
+    },
+    {
+      "elapsed": 108.978,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 109.982,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 110.984,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 111.985,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 112.988,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          2
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 113.992,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          3
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          1
+        ]
+      ]
+    },
+    {
+      "elapsed": 114.994,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          3
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          1
+        ]
+      ]
+    },
+    {
+      "elapsed": 115.994,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 116.998,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          3
+        ]
+      ]
+    },
+    {
+      "elapsed": 117.999,
+      "groups": [
+        [
+          "active",
+          null,
+          null,
+          1
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 119.0,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 120.002,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 121.003,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 122.005,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          3
+        ],
+        [
+          "idle in transaction",
+          null,
+          null,
+          1
+        ]
+      ]
+    },
+    {
+      "elapsed": 123.011,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          3
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          1
+        ]
+      ]
+    },
+    {
+      "elapsed": 124.014,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          3
+        ],
+        [
+          "idle in transaction",
+          "Client",
+          "ClientRead",
+          1
+        ]
+      ]
+    },
+    {
+      "elapsed": 125.016,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 126.017,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    },
+    {
+      "elapsed": 127.018,
+      "groups": [
+        [
+          "idle",
+          "Client",
+          "ClientRead",
+          4
+        ]
+      ]
+    }
+  ],
+  "observer_errors": []
+}

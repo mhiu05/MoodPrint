@@ -34,6 +34,7 @@ change shared timezone, quiet hours, daily caps, pause state or journal consent.
 | `FRONTEND_ORIGIN` | `str` | `'http://127.0.0.1:5173'` |
 | `COOKIE_SECURE` | `bool` | `False` |
 | `AUTH_CAPTCHA_ENABLED` | `bool` | `False` |
+| `AUTH_NAT_POLICY_ENABLED` | `bool` | `False` |
 | `OPENAI_API_KEY` | `SecretStr` | `SecretStr('')` |
 | `OPENAI_MODEL` | `str` | `''` |
 | `AI_ENABLED` | `bool` | `True` |
@@ -88,11 +89,19 @@ change shared timezone, quiet hours, daily caps, pause state or journal consent.
 | `CHAT_RETENTION_DAYS` | `int` | `30` |
 | `AI_GLOBAL_CONCURRENCY` | `int` | `50` |
 | `AI_USER_CONCURRENCY` | `int` | `2` |
+| `AI_DISPATCH_GATE_ENABLED` | `bool` | `False` |
+| `AI_BOUNDED_RESERVATIONS_ENABLED` | `bool` | `False` |
+| `AI_DISPATCH_PROCESS_LANE` | `Literal['api', 'proactive']` | `'api'` |
+| `AI_DISPATCH_QUEUE_LIMIT` | `int` | `100` |
 | `AI_REQUESTS_PER_MINUTE` | `int` | `20` |
 | `AI_TIMEOUT_SECONDS` | `float` | `30` |
 | `DATABASE_POOL_SIZE` | `int` | `5` |
 | `DATABASE_POOL_OVERFLOW` | `int` | `2` |
 | `DATABASE_POOL_TIMEOUT` | `float` | `10` |
+| `DATABASE_POOL_METRICS_ENABLED` | `bool` | `False` |
+| `DATABASE_TRANSACTION_TIMEOUTS_ENABLED` | `bool` | `False` |
+| `DATABASE_STATEMENT_TIMEOUT_MS` | `int` | `15000` |
+| `DATABASE_LOCK_TIMEOUT_MS` | `int` | `2000` |
 | `SESSION_IDLE_HOURS` | `int` | `12` |
 | `SESSION_MAX_DAYS` | `int` | `7` |
 | `STATIC_DIR` | `str` | `''` |
@@ -156,6 +165,19 @@ change shared timezone, quiet hours, daily caps, pause state or journal consent.
 | `PROVIDER_FORCE_IPV4` | `bool` | `False` |
 
 ## Nhóm vận hành
+
+Scale candidates mặc định tắt: `AUTH_NAT_POLICY_ENABLED` yêu cầu CAPTCHA, tách
+150 attempts/action/60s và aggregate600/IP/900s, vẫn giữ email3/h và login10/900s.
+`AI_BOUNDED_RESERVATIONS_ENABLED` dùng exact input-count trước mỗi generation,
+64k input/1200 output/3calls,row hold$0.12; không cắt history và từ chối hosted tools,
+stateful/file inputs chưa bounded. Guest vẫn dùng reservation/quota legacy.
+`AI_DISPATCH_GATE_ENABLED` cần đúng một API50 slots và một proactive2 slots, tổng52;
+không coi semaphore local là coordination nhiều process. Các flags này cần account,
+security/UX và release verification trước activation. `AI_DAILY_BUDGET_USD` chỉ nhận
+0..50 hữu hạn;0 chỉ cho local/test uncapped, provider production từ chối generation
+khi0 hoặc accounting=false. Target50/day đã duyệt nhưng SSM chưa được đổi.
+SET LOCAL timeouts candidate áp trước row lock, không ALTER hosted role.
+Pool acquisition metrics là bounded recent window, không phải distribution toàn run.
 
 - **Database:** runtime URL dùng role tối thiểu; migration URL dùng owner riêng. `DATABASE_POOL_MODE` ghi nhận lựa chọn topology; connection implementation vẫn cần đối chiếu endpoint/pooling thực tế. Prepared statements bị tắt ở connection layer.
 - **Journal media:** `JOURNAL_STORAGE_KEY` là credential phía server cho bucket riêng tư `journal-media`; không dùng biến `VITE_`, không đưa vào session hoặc log. Thiếu key vẫn lưu nhật ký chữ/bản nháp được; media trả lỗi có thể thử lại. Xem [Storage nhật ký](../supabase/journal-storage.md).

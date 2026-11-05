@@ -1,4 +1,5 @@
 import logging
+import pytest
 
 import httpx
 from sqlalchemy.exc import OperationalError, ProgrammingError
@@ -33,7 +34,8 @@ async def _raise(app, error: Exception):
 
 
 def test_recommended_pool_fits_the_approved_role_and_the_old_default_does_not():
-    assert has_deployment_headroom(5, 2, role_limit=20) is True
+    assert has_deployment_headroom(4, 1, role_limit=20) is True
+    assert has_deployment_headroom(5, 2, role_limit=20) is False
     assert has_deployment_headroom(5, 5, role_limit=20) is False
     assert has_deployment_headroom(8, 4, role_limit=10) is False
     assert has_deployment_headroom(8, 4, role_limit=20) is False
@@ -71,6 +73,16 @@ async def test_connection_limit_is_retryable_503_without_leaking_the_driver_text
     assert "category=connection_limit" in caplog.text
     assert "sqlstate=53300" in caplog.text
     assert "release=abc123" in caplog.text
+
+
+@pytest.mark.parametrize("sqlstate", ["55P03", "57014"])
+async def test_bounded_database_waits_return_busy_without_exposing_sql(sqlstate):
+    error = OperationalError("secret-canary-query", {}, _DriverError(CANARY, sqlstate))
+    response = await _raise(_app(), error)
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "DATABASE_BUSY"
+    assert response.headers["Retry-After"] == "2"
+    assert CANARY not in response.text and "secret-canary-query" not in response.text
 
 
 async def test_pool_timeout_and_unknown_errors_stay_distinct(caplog):

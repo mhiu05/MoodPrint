@@ -1,4 +1,4 @@
-import { type FormEvent, type InputHTMLAttributes, type ReactNode, useState } from "react";
+import { type FormEvent, type InputHTMLAttributes, type ReactNode, useEffect, useRef, useState } from "react";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { ApiError, type ApiClient } from "../../api/client";
 import type { components } from "../../api/generated/schema";
@@ -86,6 +86,17 @@ export function AuthScreen({
     ),
     [unconfirmed, setUnconfirmed] = useState(false);
   const captcha = useAuthCaptcha(api, mode !== "reset");
+  const submitting = useRef(false);
+  const retryUntil = useRef(0);
+  const [retrySeconds, setRetrySeconds] = useState(0);
+  const waitingToRetry = retrySeconds > 0;
+  useEffect(() => {
+    if (!waitingToRetry) return;
+    const timer = window.setInterval(() => {
+      setRetrySeconds(Math.max(0, Math.ceil((retryUntil.current - Date.now()) / 1000)));
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [waitingToRetry]);
 
   function switchTo(next: Mode) {
     setMode(next);
@@ -98,7 +109,9 @@ export function AuthScreen({
   }
 
   async function run(action: (captchaFields: { captchaToken?: string }) => Promise<void>) {
-    if (busy) return;
+    // Acquire synchronously: two submit events can arrive before React renders busy.
+    if (submitting.current || Date.now() < retryUntil.current) return;
+    submitting.current = true;
     setBusy(true);
     setError(undefined);
     setNotice("");
@@ -106,8 +119,18 @@ export function AuthScreen({
       await action(captcha.fields());
     } catch (reason) {
       if (reason instanceof ApiError && reason.code === "EMAIL_NOT_CONFIRMED") setUnconfirmed(true);
+      if (reason instanceof ApiError && reason.status === 429) {
+        const header = reason.retryAfter ?? "";
+        const seconds = /^\d+$/.test(header)
+          ? Number(header)
+          : Math.ceil((Date.parse(header) - Date.now()) / 1000);
+        const bounded = Number.isFinite(seconds) ? Math.max(1, Math.min(86400, seconds)) : 60;
+        retryUntil.current = Date.now() + bounded * 1000;
+        setRetrySeconds(bounded);
+      }
       setError(reason);
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   }
@@ -202,8 +225,9 @@ export function AuthScreen({
       {(mode === "login" || mode === "signup") && <p>MoodPrint dành cho người từ đủ 18 tuổi.</p>}
       {notice && <p role="status">{notice}</p>}
       <ErrorNotice error={error} />
+      {waitingToRetry && <p role="status" aria-live="off">Có thể gửi lại sau {retrySeconds} giây.</p>}
       {unconfirmed && (
-        <Button variant="secondary" disabled={busy} onClick={resend}>
+        <Button variant="secondary" disabled={busy || waitingToRetry} onClick={resend}>
           Gửi lại thư xác nhận
         </Button>
       )}
@@ -273,7 +297,7 @@ export function AuthScreen({
             </Button>
           </div>
         )}
-        <Button className={landing ? "landing-submit" : ""} type="submit" disabled={busy}>
+        <Button className={landing ? "landing-submit" : ""} type="submit" disabled={busy || waitingToRetry}>
           {submitLabels[mode][busy ? 1 : 0]}
           {landing && mode === "login" && !busy ? <ArrowRight size={20} aria-hidden="true" /> : null}
         </Button>

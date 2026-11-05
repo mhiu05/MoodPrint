@@ -23,12 +23,11 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
+from app.ai.proactive.models import AiProactiveJob, AiProactiveSchedule, AiProactiveSettings
+from app.ai.proactive.schedule import local_date, next_occurrence
 from sqlalchemy import and_, exists, func, or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import aliased
-
-from app.ai.proactive.models import AiProactiveJob, AiProactiveSchedule, AiProactiveSettings
-from app.ai.proactive.schedule import local_date, next_occurrence
 
 log = logging.getLogger("moodprint")
 LEASE_SECONDS = 90
@@ -415,7 +414,8 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
     from app.core.config import Settings
 
-    settings = Settings()
+    # Fixed lane split with one API process; never infer coordination from a semaphore.
+    settings = Settings(ai_dispatch_process_lane="proactive")
 
     async def run() -> None:
         stop = asyncio.Event()

@@ -19,7 +19,7 @@ def relevant(at):
     return or_(AiSearchUsage.created_at >= since, AiSearchUsage.state != "settled", AiSearchUsage.tokens_uncertain.is_(True))
 
 
-async def external_liability(db, at, *, subset=False) -> int:
+def external_liability_statement(at, *, subset=False):
     fee = case((AiSearchUsage.state == "settled", AiSearchUsage.actual_nano_usd),
                else_=AiSearchUsage.reservation_nano_usd)
     # Global already includes attached AiUsage in its own window; the subset counts those same
@@ -27,8 +27,12 @@ async def external_liability(db, at, *, subset=False) -> int:
     detached = (AiUsage.run_id.is_(None), AiSearchUsage.token_liability_nano_usd)
     tokens = case(detached, (liability_scope(at), func.coalesce(AiUsage.estimated_nano_usd,
                   AiSearchUsage.token_liability_nano_usd)), else_=0) if subset else case(detached, else_=0)
-    return int(await db.scalar(select(func.coalesce(func.sum(fee + tokens), 0)).select_from(AiSearchUsage)
-        .outerjoin(AiUsage, AiUsage.run_id == AiSearchUsage.child_run_id).where(relevant(at))) or 0)
+    return select(func.coalesce(func.sum(fee + tokens), 0)).select_from(AiSearchUsage).outerjoin(
+        AiUsage, AiUsage.run_id == AiSearchUsage.child_run_id).where(relevant(at))
+
+
+async def external_liability(db, at, *, subset=False) -> int:
+    return int(await db.scalar(external_liability_statement(at, subset=subset)) or 0)
 
 
 async def claim(db, settings, user, run_id, provider):

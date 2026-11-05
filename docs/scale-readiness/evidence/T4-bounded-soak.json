@@ -1,0 +1,358 @@
+{
+  "at_utc": "2026-11-05T08:00:12.097174+00:00",
+  "run_id": "3659984110c64efc811c54e70d438002",
+  "case": "T4",
+  "environment": "L0",
+  "real_generation_calls": 0,
+  "external_generation_spend_usd": 0,
+  "head": "0573af5b50c0584c523e5119755479fcf47fae74",
+  "working_tree_dirty": true,
+  "source_sha256": "c0d1dec8392367529d5fb0546e0f50b1c71bd142cc79b46e33c798c8e6ae4fbc",
+  "result": {
+    "status": "FAILED",
+    "error_type": "TimeoutError",
+    "error_module": "sqlalchemy.exc",
+    "location": [
+      {
+        "file": "scale_readiness.py",
+        "function": "main",
+        "line": 369
+      },
+      {
+        "file": "runners.py",
+        "function": "run",
+        "line": 195
+      },
+      {
+        "file": "runners.py",
+        "function": "run",
+        "line": 118
+      },
+      {
+        "file": "base_events.py",
+        "function": "run_until_complete",
+        "line": 691
+      },
+      {
+        "file": "scale_readiness.py",
+        "function": "run_case",
+        "line": 325
+      },
+      {
+        "file": "scale_readiness.py",
+        "function": "ai_probe",
+        "line": 277
+      },
+      {
+        "file": "scale_readiness.py",
+        "function": "user_worker",
+        "line": 273
+      },
+      {
+        "file": "scale_readiness.py",
+        "function": "turn",
+        "line": 251
+      },
+      {
+        "file": "_client.py",
+        "function": "get",
+        "line": 1768
+      },
+      {
+        "file": "_client.py",
+        "function": "request",
+        "line": 1540
+      },
+      {
+        "file": "_client.py",
+        "function": "send",
+        "line": 1629
+      },
+      {
+        "file": "_client.py",
+        "function": "_send_handling_auth",
+        "line": 1657
+      },
+      {
+        "file": "_client.py",
+        "function": "_send_handling_redirects",
+        "line": 1694
+      },
+      {
+        "file": "_client.py",
+        "function": "_send_single_request",
+        "line": 1730
+      },
+      {
+        "file": "asgi.py",
+        "function": "handle_async_request",
+        "line": 170
+      },
+      {
+        "file": "applications.py",
+        "function": "__call__",
+        "line": 1194
+      },
+      {
+        "file": "applications.py",
+        "function": "__call__",
+        "line": 96
+      },
+      {
+        "file": "errors.py",
+        "function": "__call__",
+        "line": 186
+      },
+      {
+        "file": "errors.py",
+        "function": "__call__",
+        "line": 164
+      },
+      {
+        "file": "_asgi.py",
+        "function": "__call__",
+        "line": 151
+      },
+      {
+        "file": "base.py",
+        "function": "__call__",
+        "line": 208
+      },
+      {
+        "file": "base.py",
+        "function": "coro",
+        "line": 149
+      },
+      {
+        "file": "output.py",
+        "function": "__call__",
+        "line": 64
+      },
+      {
+        "file": "body_limit.py",
+        "function": "__call__",
+        "line": 15
+      },
+      {
+        "file": "base.py",
+        "function": "__call__",
+        "line": 208
+      },
+      {
+        "file": "base.py",
+        "function": "coro",
+        "line": 149
+      },
+      {
+        "file": "exceptions.py",
+        "function": "__call__",
+        "line": 63
+      },
+      {
+        "file": "_exception_handler.py",
+        "function": "wrapped_app",
+        "line": 53
+      },
+      {
+        "file": "_exception_handler.py",
+        "function": "wrapped_app",
+        "line": 42
+      },
+      {
+        "file": "asyncexitstack.py",
+        "function": "__call__",
+        "line": 18
+      },
+      {
+        "file": "routing.py",
+        "function": "__call__",
+        "line": 678
+      },
+      {
+        "file": "routing.py",
+        "function": "app",
+        "line": 2811
+      },
+      {
+        "file": "routing.py",
+        "function": "handle",
+        "line": 1839
+      },
+      {
+        "file": "routing.py",
+        "function": "handle",
+        "line": 2894
+      },
+      {
+        "file": "routing.py",
+        "function": "_handle_selected",
+        "line": 1865
+      },
+      {
+        "file": "routing.py",
+        "function": "handle",
+        "line": 1328
+      },
+      {
+        "file": "routing.py",
+        "function": "app",
+        "line": 166
+      },
+      {
+        "file": "_exception_handler.py",
+        "function": "wrapped_app",
+        "line": 53
+      },
+      {
+        "file": "_exception_handler.py",
+        "function": "wrapped_app",
+        "line": 42
+      },
+      {
+        "file": "routing.py",
+        "function": "app",
+        "line": 153
+      },
+      {
+        "file": "responses.py",
+        "function": "__call__",
+        "line": 278
+      },
+      {
+        "file": "contextlib.py",
+        "function": "__aexit__",
+        "line": 231
+      },
+      {
+        "file": "_utils.py",
+        "function": "create_collapsing_task_group",
+        "line": 112
+      },
+      {
+        "file": "_tasks.py",
+        "function": "_run_coro",
+        "line": 327
+      },
+      {
+        "file": "responses.py",
+        "function": "wrap",
+        "line": 281
+      },
+      {
+        "file": "responses.py",
+        "function": "stream_response",
+        "line": 255
+      },
+      {
+        "file": "chat_routes.py",
+        "function": "stream",
+        "line": 764
+      },
+      {
+        "file": "chat_routes.py",
+        "function": "poll",
+        "line": 784
+      },
+      {
+        "file": "chat_routes.py",
+        "function": "durable_run",
+        "line": 657
+      },
+      {
+        "file": "contextlib.py",
+        "function": "__aenter__",
+        "line": 210
+      },
+      {
+        "file": "security.py",
+        "function": "transaction",
+        "line": 182
+      },
+      {
+        "file": "security.py",
+        "function": "lock_actor",
+        "line": 136
+      },
+      {
+        "file": "session.py",
+        "function": "scalar",
+        "line": 505
+      },
+      {
+        "file": "_concurrency_py3k.py",
+        "function": "greenlet_spawn",
+        "line": 201
+      },
+      {
+        "file": "session.py",
+        "function": "scalar",
+        "line": 2421
+      },
+      {
+        "file": "session.py",
+        "function": "_execute_internal",
+        "line": 2261
+      },
+      {
+        "file": "session.py",
+        "function": "_connection_for_bind",
+        "line": 2113
+      },
+      {
+        "file": "<string>",
+        "function": "_connection_for_bind",
+        "line": 2
+      },
+      {
+        "file": "state_changes.py",
+        "function": "_go",
+        "line": 137
+      },
+      {
+        "file": "session.py",
+        "function": "_connection_for_bind",
+        "line": 1191
+      },
+      {
+        "file": "base.py",
+        "function": "connect",
+        "line": 3302
+      },
+      {
+        "file": "base.py",
+        "function": "__init__",
+        "line": 144
+      },
+      {
+        "file": "base.py",
+        "function": "raw_connection",
+        "line": 3326
+      },
+      {
+        "file": "base.py",
+        "function": "connect",
+        "line": 448
+      },
+      {
+        "file": "base.py",
+        "function": "_checkout",
+        "line": 1320
+      },
+      {
+        "file": "base.py",
+        "function": "checkout",
+        "line": 712
+      },
+      {
+        "file": "connection.py",
+        "function": "_do_get",
+        "line": 28
+      },
+      {
+        "file": "impl.py",
+        "function": "_do_get",
+        "line": 167
+      }
+    ]
+  }
+}

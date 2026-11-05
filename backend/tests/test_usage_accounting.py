@@ -115,7 +115,8 @@ async def test_runtime_records_request_before_model_and_cancellation_has_no_zero
         assert (await db.get(AiRun, run_id)).status == "cancelled"
 
 
-async def test_usage_retention_continues_when_capture_is_disabled(clients):
+@pytest.mark.parametrize("state", ["settled", "uncertain"])
+async def test_usage_retention_keeps_unknown_liability_when_capture_is_disabled(clients, state):
     from app.ai.accounting import reserve_accounting
     from app.infrastructure.database.models import AiUsage
     from app.jobs.retention import purge_expired
@@ -129,7 +130,8 @@ async def test_usage_retention_continues_when_capture_is_disabled(clients):
         await reserve_accounting(db, run_id, actors[0][1], uuid4(), "gpt-6-luna", "legacy-v1")
         row = await db.get(AiUsage, run_id)
         row.created_at = now() - timedelta(days=91)
-        row.state = "uncertain"
+        row.state = state
     await purge_expired(app)
     async with app.state.database.sessions() as db:
-        assert await db.get(AiUsage, run_id) is None
+        row = await db.get(AiUsage, run_id)
+        assert (row is None) is (state == "settled")

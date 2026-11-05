@@ -332,7 +332,7 @@ def test_local_date_reexported():
 def test_connection_budget_includes_the_worker():
     from app.infrastructure.database import budget
 
-    assert budget.headroom(5, 2) == 4  # (5+2)x2 API + 2 worker of 20
-    assert budget.has_deployment_headroom(5, 2) is True
+    assert budget.headroom(4, 1) == 4  # 2 generations * (API5 + proactive2 + maps1)
+    assert budget.has_deployment_headroom(4, 1) is True
     assert budget.has_deployment_headroom(5, 2, worker_connections=3) is False
     assert budget.has_deployment_headroom(5, 2, role_limit=30, worker_connections=4) is True

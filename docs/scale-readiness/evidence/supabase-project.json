@@ -1,0 +1,10 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"id\":\"roznanxbiyqybjpvtilq\",\"ref\":\"roznanxbiyqybjpvtilq\",\"organization_id\":\"vaxjdqsurhxejlzynswl\",\"organization_slug\":\"vaxjdqsurhxejlzynswl\",\"name\":\"database\",\"region\":\"ap-northeast-1\",\"status\":\"ACTIVE_HEALTHY\",\"database\":{\"host\":\"db.roznanxbiyqybjpvtilq.supabase.co\",\"version\":\"17.11.0.003\",\"postgres_engine\":\"17\",\"release_channel\":\"ga\"},\"created_at\":\"2026-10-23T15:25:47.548485Z\"}"
+    }
+  ],
+  "structuredContent": null,
+  "isError": false
+}

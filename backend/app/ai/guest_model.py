@@ -18,15 +18,27 @@ class GuestGuardedModel(Model):
         self.delegate, self.before_dispatch = delegate, before_dispatch
 
     async def get_response(self, *args: Any, **kwargs: Any) -> ModelResponse:
-        await self.before_dispatch()
-        return await self.delegate.get_response(*args, **kwargs)
+        from app.ai.envelope import LEGACY_GUEST_DISPATCH
+
+        token = LEGACY_GUEST_DISPATCH.set(True)
+        try:
+            await self.before_dispatch()
+            return await self.delegate.get_response(*args, **kwargs)
+        finally:
+            LEGACY_GUEST_DISPATCH.reset(token)
 
     async def stream_response(
         self, *args: Any, **kwargs: Any
     ) -> AsyncIterator[TResponseStreamEvent]:
-        await self.before_dispatch()
-        async for event in self.delegate.stream_response(*args, **kwargs):
-            yield event
+        from app.ai.envelope import LEGACY_GUEST_DISPATCH
+
+        token = LEGACY_GUEST_DISPATCH.set(True)
+        try:
+            await self.before_dispatch()
+            async for event in self.delegate.stream_response(*args, **kwargs):
+                yield event
+        finally:
+            LEGACY_GUEST_DISPATCH.reset(token)
 
     async def close(self) -> None:
         closer = getattr(self.delegate, "close", None)

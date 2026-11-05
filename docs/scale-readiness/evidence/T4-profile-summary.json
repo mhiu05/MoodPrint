@@ -1,0 +1,775 @@
+{
+  "total_calls": 29417322,
+  "total_seconds": 56.45946572900049,
+  "by_self": [
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method posix.stat>",
+      "primitive_calls": 7821,
+      "calls": 7821,
+      "self_seconds": 3.305,
+      "cumulative_seconds": 3.308
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<method 'switch' of 'greenlet.greenlet' objects>",
+      "primitive_calls": 161,
+      "calls": 130536,
+      "self_seconds": 1.331,
+      "cumulative_seconds": 40.66
+    },
+    {
+      "file": "_cursor_base.py",
+      "line": 416,
+      "function": "_execute_send",
+      "primitive_calls": 22217,
+      "calls": 22217,
+      "self_seconds": 1.299,
+      "cumulative_seconds": 1.3
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method _io.open>",
+      "primitive_calls": 588,
+      "calls": 588,
+      "self_seconds": 1.196,
+      "cumulative_seconds": 1.203
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method builtins.compile>",
+      "primitive_calls": 6225,
+      "calls": 6225,
+      "self_seconds": 1.127,
+      "cumulative_seconds": 1.127
+    },
+    {
+      "file": "cache_key.py",
+      "line": 221,
+      "function": "_gen_cache_key",
+      "primitive_calls": 18679,
+      "calls": 108213,
+      "self_seconds": 1.072,
+      "cumulative_seconds": 2.061
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<method 'poll' of 'select.epoll' objects>",
+      "primitive_calls": 17319,
+      "calls": 17319,
+      "self_seconds": 0.952,
+      "cumulative_seconds": 0.952
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method builtins.isinstance>",
+      "primitive_calls": 4384003,
+      "calls": 4384396,
+      "self_seconds": 0.94,
+      "cumulative_seconds": 1.087
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method _io.open_code>",
+      "primitive_calls": 2115,
+      "calls": 2115,
+      "self_seconds": 0.9,
+      "cumulative_seconds": 0.9
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<method 'read' of '_io.BufferedReader' objects>",
+      "primitive_calls": 2401,
+      "calls": 2401,
+      "self_seconds": 0.893,
+      "cumulative_seconds": 0.893
+    },
+    {
+      "file": "coercions.py",
+      "line": 314,
+      "function": "expect",
+      "primitive_calls": 114687,
+      "calls": 114687,
+      "self_seconds": 0.753,
+      "cumulative_seconds": 2.091
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<method '__exit__' of '_io._IOBase' objects>",
+      "primitive_calls": 2420,
+      "calls": 2420,
+      "self_seconds": 0.743,
+      "cumulative_seconds": 52.915
+    },
+    {
+      "file": "_cursor_base.py",
+      "line": 275,
+      "function": "_maybe_prepare_gen",
+      "primitive_calls": 44320,
+      "calls": 44320,
+      "self_seconds": 0.63,
+      "cumulative_seconds": 2.523
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<method 'get' of 'dict' objects>",
+      "primitive_calls": 1201677,
+      "calls": 1201677,
+      "self_seconds": 0.551,
+      "cumulative_seconds": 0.578
+    },
+    {
+      "file": "json_schema.py",
+      "line": 2976,
+      "function": "_make_json_hashable",
+      "primitive_calls": 19800,
+      "calls": 475600,
+      "self_seconds": 0.53,
+      "cumulative_seconds": 1.079
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method posix.scandir>",
+      "primitive_calls": 134,
+      "calls": 134,
+      "self_seconds": 0.459,
+      "cumulative_seconds": 0.459
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<method 'run' of '_contextvars.Context' objects>",
+      "primitive_calls": 108423,
+      "calls": 108521,
+      "self_seconds": 0.417,
+      "cumulative_seconds": 2389.746
+    },
+    {
+      "file": "loading.py",
+      "line": 79,
+      "function": "instances",
+      "primitive_calls": 15621,
+      "calls": 15621,
+      "self_seconds": 0.397,
+      "cumulative_seconds": 1.73
+    },
+    {
+      "file": "waiting.py",
+      "line": 158,
+      "function": "wait_async",
+      "primitive_calls": 59561,
+      "calls": 59561,
+      "self_seconds": 0.391,
+      "cumulative_seconds": 7.257
+    },
+    {
+      "file": "_column.py",
+      "line": 20,
+      "function": "__init__",
+      "primitive_calls": 159813,
+      "calls": 159813,
+      "self_seconds": 0.391,
+      "cumulative_seconds": 0.841
+    },
+    {
+      "file": "_connection_base.py",
+      "line": 443,
+      "function": "_exec_command",
+      "primitive_calls": 9876,
+      "calls": 9876,
+      "self_seconds": 0.383,
+      "cumulative_seconds": 0.41
+    },
+    {
+      "file": "events.py",
+      "line": 86,
+      "function": "_run",
+      "primitive_calls": 108421,
+      "calls": 108421,
+      "self_seconds": 0.355,
+      "cumulative_seconds": 3026.405
+    },
+    {
+      "file": "_cursor_base.py",
+      "line": 504,
+      "function": "_select_current_result",
+      "primitive_calls": 22017,
+      "calls": 22017,
+      "self_seconds": 0.354,
+      "cumulative_seconds": 0.456
+    },
+    {
+      "file": "_concurrency_py3k.py",
+      "line": 167,
+      "function": "greenlet_spawn",
+      "primitive_calls": 55981,
+      "calls": 55981,
+      "self_seconds": 0.33,
+      "cumulative_seconds": 5241.534
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method builtins.exec>",
+      "primitive_calls": 1,
+      "calls": 4242,
+      "self_seconds": 0.32,
+      "cumulative_seconds": 56.937
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method builtins.getattr>",
+      "primitive_calls": 558850,
+      "calls": 562068,
+      "self_seconds": 0.316,
+      "cumulative_seconds": 1.391
+    },
+    {
+      "file": "default.py",
+      "line": 1325,
+      "function": "_init_compiled",
+      "primitive_calls": 19348,
+      "calls": 19348,
+      "self_seconds": 0.305,
+      "cumulative_seconds": 1.275
+    },
+    {
+      "file": "loading.py",
+      "line": 812,
+      "function": "_instance_processor",
+      "primitive_calls": 14365,
+      "calls": 14365,
+      "self_seconds": 0.301,
+      "cumulative_seconds": 0.364
+    },
+    {
+      "file": "cursor_async.py",
+      "line": 276,
+      "function": "fetchall",
+      "primitive_calls": 18298,
+      "calls": 18298,
+      "self_seconds": 0.289,
+      "cumulative_seconds": 0.318
+    },
+    {
+      "file": "_tasks.py",
+      "line": 42,
+      "function": "get_callable_name",
+      "primitive_calls": 2744,
+      "calls": 2744,
+      "self_seconds": 0.281,
+      "cumulative_seconds": 0.285
+    },
+    {
+      "file": "_queries.py",
+      "line": 94,
+      "function": "dump",
+      "primitive_calls": 22217,
+      "calls": 22217,
+      "self_seconds": 0.279,
+      "cumulative_seconds": 0.462
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method __new__ of type object at 0x7673e511c9c0>",
+      "primitive_calls": 224080,
+      "calls": 224770,
+      "self_seconds": 0.241,
+      "cumulative_seconds": 0.276
+    },
+    {
+      "file": "base_events.py",
+      "line": 1922,
+      "function": "_run_once",
+      "primitive_calls": 17315,
+      "calls": 17315,
+      "self_seconds": 0.232,
+      "cumulative_seconds": 1817.825
+    },
+    {
+      "file": "locks.py",
+      "line": 13,
+      "function": "__aenter__",
+      "primitive_calls": 32069,
+      "calls": 32069,
+      "self_seconds": 0.23,
+      "cumulative_seconds": 0.242
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method builtins.sorted>",
+      "primitive_calls": 71298,
+      "calls": 174302,
+      "self_seconds": 0.23,
+      "cumulative_seconds": 1.248
+    }
+  ],
+  "by_cumulative": [
+    {
+      "file": "_concurrency_py3k.py",
+      "line": 167,
+      "function": "greenlet_spawn",
+      "primitive_calls": 55981,
+      "calls": 55981,
+      "self_seconds": 0.33,
+      "cumulative_seconds": 5241.534
+    },
+    {
+      "file": "events.py",
+      "line": 86,
+      "function": "_run",
+      "primitive_calls": 108421,
+      "calls": 108421,
+      "self_seconds": 0.355,
+      "cumulative_seconds": 3026.405
+    },
+    {
+      "file": "session.py",
+      "line": 481,
+      "function": "scalar",
+      "primitive_calls": 24759,
+      "calls": 24759,
+      "self_seconds": 0.148,
+      "cumulative_seconds": 2418.644
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<method 'run' of '_contextvars.Context' objects>",
+      "primitive_calls": 108423,
+      "calls": 108521,
+      "self_seconds": 0.417,
+      "cumulative_seconds": 2389.746
+    },
+    {
+      "file": "base_events.py",
+      "line": 1922,
+      "function": "_run_once",
+      "primitive_calls": 17315,
+      "calls": 17315,
+      "self_seconds": 0.232,
+      "cumulative_seconds": 1817.825
+    },
+    {
+      "file": "session.py",
+      "line": 571,
+      "function": "get",
+      "primitive_calls": 10724,
+      "calls": 10724,
+      "self_seconds": 0.083,
+      "cumulative_seconds": 1651.495
+    },
+    {
+      "file": "session.py",
+      "line": 424,
+      "function": "execute",
+      "primitive_calls": 8707,
+      "calls": 8707,
+      "self_seconds": 0.076,
+      "cumulative_seconds": 1113.65
+    },
+    {
+      "file": "_tasks.py",
+      "line": 322,
+      "function": "_run_coro",
+      "primitive_calls": 28813,
+      "calls": 28813,
+      "self_seconds": 0.129,
+      "cumulative_seconds": 1002.891
+    },
+    {
+      "file": "security.py",
+      "line": 196,
+      "function": "assert_purpose",
+      "primitive_calls": 4188,
+      "calls": 4188,
+      "self_seconds": 0.105,
+      "cumulative_seconds": 896.979
+    },
+    {
+      "file": "security.py",
+      "line": 130,
+      "function": "lock_actor",
+      "primitive_calls": 17245,
+      "calls": 17245,
+      "self_seconds": 0.105,
+      "cumulative_seconds": 877.14
+    },
+    {
+      "file": "session.py",
+      "line": 1884,
+      "function": "__aexit__",
+      "primitive_calls": 4884,
+      "calls": 4884,
+      "self_seconds": 0.033,
+      "cumulative_seconds": 770.307
+    },
+    {
+      "file": "responses.py",
+      "line": 280,
+      "function": "wrap",
+      "primitive_calls": 14037,
+      "calls": 14037,
+      "self_seconds": 0.088,
+      "cumulative_seconds": 748.049
+    },
+    {
+      "file": "security.py",
+      "line": 139,
+      "function": "verify_actor",
+      "primitive_calls": 8590,
+      "calls": 8590,
+      "self_seconds": 0.056,
+      "cumulative_seconds": 742.562
+    },
+    {
+      "file": "session.py",
+      "line": 536,
+      "function": "scalars",
+      "primitive_calls": 4872,
+      "calls": 4872,
+      "self_seconds": 0.028,
+      "cumulative_seconds": 715.528
+    },
+    {
+      "file": "session.py",
+      "line": 3591,
+      "function": "get",
+      "primitive_calls": 2194,
+      "calls": 5387,
+      "self_seconds": 0.051,
+      "cumulative_seconds": 695.973
+    },
+    {
+      "file": "age.py",
+      "line": 47,
+      "function": "is_adult_eligible",
+      "primitive_calls": 4388,
+      "calls": 4388,
+      "self_seconds": 0.032,
+      "cumulative_seconds": 686.936
+    },
+    {
+      "file": "session.py",
+      "line": 3764,
+      "function": "_get_impl",
+      "primitive_calls": 2194,
+      "calls": 5387,
+      "self_seconds": 0.193,
+      "cumulative_seconds": 679.26
+    },
+    {
+      "file": "responses.py",
+      "line": 253,
+      "function": "stream_response",
+      "primitive_calls": 13837,
+      "calls": 13837,
+      "self_seconds": 0.077,
+      "cumulative_seconds": 564.487
+    },
+    {
+      "file": "security.py",
+      "line": 171,
+      "function": "transaction",
+      "primitive_calls": 12260,
+      "calls": 12260,
+      "self_seconds": 0.102,
+      "cumulative_seconds": 516.505
+    },
+    {
+      "file": "chat_routes.py",
+      "line": 759,
+      "function": "stream",
+      "primitive_calls": 13587,
+      "calls": 13587,
+      "self_seconds": 0.065,
+      "cumulative_seconds": 508.943
+    },
+    {
+      "file": "session.py",
+      "line": 2313,
+      "function": "execute",
+      "primitive_calls": 1221,
+      "calls": 9420,
+      "self_seconds": 0.066,
+      "cumulative_seconds": 485.361
+    },
+    {
+      "file": "persistence.py",
+      "line": 351,
+      "function": "current_turn",
+      "primitive_calls": 1894,
+      "calls": 1894,
+      "self_seconds": 0.032,
+      "cumulative_seconds": 481.465
+    },
+    {
+      "file": "loading.py",
+      "line": 527,
+      "function": "load_on_pk_identity",
+      "primitive_calls": 2159,
+      "calls": 5337,
+      "self_seconds": 0.05,
+      "cumulative_seconds": 461.263
+    },
+    {
+      "file": "chat_routes.py",
+      "line": 772,
+      "function": "poll",
+      "primitive_calls": 13587,
+      "calls": 13587,
+      "self_seconds": 0.096,
+      "cumulative_seconds": 458.1
+    },
+    {
+      "file": "runtime.py",
+      "line": 334,
+      "function": "check",
+      "primitive_calls": 13521,
+      "calls": 13521,
+      "self_seconds": 0.091,
+      "cumulative_seconds": 414.753
+    },
+    {
+      "file": "runtime.py",
+      "line": 834,
+      "function": "monitor_policy",
+      "primitive_calls": 10573,
+      "calls": 10573,
+      "self_seconds": 0.074,
+      "cumulative_seconds": 404.956
+    },
+    {
+      "file": "persistence.py",
+      "line": 51,
+      "function": "owned_conversation",
+      "primitive_calls": 1994,
+      "calls": 1994,
+      "self_seconds": 0.014,
+      "cumulative_seconds": 372.711
+    },
+    {
+      "file": "contextlib.py",
+      "line": 205,
+      "function": "__aenter__",
+      "primitive_calls": 9333,
+      "calls": 9335,
+      "self_seconds": 0.052,
+      "cumulative_seconds": 364.363
+    },
+    {
+      "file": "chat_routes.py",
+      "line": 652,
+      "function": "durable_run",
+      "primitive_calls": 12244,
+      "calls": 12244,
+      "self_seconds": 0.054,
+      "cumulative_seconds": 332.036
+    },
+    {
+      "file": "accounting.py",
+      "line": 153,
+      "function": "persist_snapshot",
+      "primitive_calls": 994,
+      "calls": 994,
+      "self_seconds": 0.006,
+      "cumulative_seconds": 330.167
+    }
+  ],
+  "application": [
+    {
+      "file": "security.py",
+      "line": 196,
+      "function": "assert_purpose",
+      "primitive_calls": 4188,
+      "calls": 4188,
+      "self_seconds": 0.105,
+      "cumulative_seconds": 896.979
+    },
+    {
+      "file": "security.py",
+      "line": 130,
+      "function": "lock_actor",
+      "primitive_calls": 17245,
+      "calls": 17245,
+      "self_seconds": 0.105,
+      "cumulative_seconds": 877.14
+    },
+    {
+      "file": "security.py",
+      "line": 171,
+      "function": "transaction",
+      "primitive_calls": 12260,
+      "calls": 12260,
+      "self_seconds": 0.102,
+      "cumulative_seconds": 516.505
+    },
+    {
+      "file": "chat_routes.py",
+      "line": 772,
+      "function": "poll",
+      "primitive_calls": 13587,
+      "calls": 13587,
+      "self_seconds": 0.096,
+      "cumulative_seconds": 458.1
+    },
+    {
+      "file": "runtime.py",
+      "line": 334,
+      "function": "check",
+      "primitive_calls": 13521,
+      "calls": 13521,
+      "self_seconds": 0.091,
+      "cumulative_seconds": 414.753
+    },
+    {
+      "file": "runtime.py",
+      "line": 834,
+      "function": "monitor_policy",
+      "primitive_calls": 10573,
+      "calls": 10573,
+      "self_seconds": 0.074,
+      "cumulative_seconds": 404.956
+    },
+    {
+      "file": "runtime.py",
+      "line": 288,
+      "function": "<genexpr>",
+      "primitive_calls": 13176,
+      "calls": 13176,
+      "self_seconds": 0.066,
+      "cumulative_seconds": 0.167
+    },
+    {
+      "file": "chat_routes.py",
+      "line": 759,
+      "function": "stream",
+      "primitive_calls": 13587,
+      "calls": 13587,
+      "self_seconds": 0.065,
+      "cumulative_seconds": 508.943
+    },
+    {
+      "file": "security.py",
+      "line": 139,
+      "function": "verify_actor",
+      "primitive_calls": 8590,
+      "calls": 8590,
+      "self_seconds": 0.056,
+      "cumulative_seconds": 742.562
+    },
+    {
+      "file": "chat_routes.py",
+      "line": 652,
+      "function": "durable_run",
+      "primitive_calls": 12244,
+      "calls": 12244,
+      "self_seconds": 0.054,
+      "cumulative_seconds": 332.036
+    },
+    {
+      "file": "runtime.py",
+      "line": 293,
+      "function": "<genexpr>",
+      "primitive_calls": 9030,
+      "calls": 9030,
+      "self_seconds": 0.046,
+      "cumulative_seconds": 0.113
+    },
+    {
+      "file": "runtime.py",
+      "line": 756,
+      "function": "drive",
+      "primitive_calls": 4667,
+      "calls": 4667,
+      "self_seconds": 0.036,
+      "cumulative_seconds": 182.572
+    },
+    {
+      "file": "security.py",
+      "line": 35,
+      "function": "verify_session",
+      "primitive_calls": 4600,
+      "calls": 4600,
+      "self_seconds": 0.032,
+      "cumulative_seconds": 228.946
+    },
+    {
+      "file": "persistence.py",
+      "line": 351,
+      "function": "current_turn",
+      "primitive_calls": 1894,
+      "calls": 1894,
+      "self_seconds": 0.032,
+      "cumulative_seconds": 481.465
+    },
+    {
+      "file": "persistence.py",
+      "line": 41,
+      "function": "save_obj",
+      "primitive_calls": 871,
+      "calls": 950,
+      "self_seconds": 0.021,
+      "cumulative_seconds": 38.904
+    },
+    {
+      "file": "runtime.py",
+      "line": 284,
+      "function": "size",
+      "primitive_calls": 4540,
+      "calls": 4540,
+      "self_seconds": 0.019,
+      "cumulative_seconds": 0.33
+    },
+    {
+      "file": "persistence.py",
+      "line": 327,
+      "function": "_collect_insert_commands",
+      "primitive_calls": 1850,
+      "calls": 1850,
+      "self_seconds": 0.018,
+      "cumulative_seconds": 0.029
+    },
+    {
+      "file": "persistence.py",
+      "line": 963,
+      "function": "_emit_insert_statements",
+      "primitive_calls": 891,
+      "calls": 950,
+      "self_seconds": 0.018,
+      "cumulative_seconds": 0.722
+    },
+    {
+      "file": "chat_routes.py",
+      "line": 371,
+      "function": "send",
+      "primitive_calls": 2231,
+      "calls": 2231,
+      "self_seconds": 0.018,
+      "cumulative_seconds": 1.032
+    },
+    {
+      "file": "security.py",
+      "line": 107,
+      "function": "require_actor",
+      "primitive_calls": 1209,
+      "calls": 1209,
+      "self_seconds": 0.017,
+      "cumulative_seconds": 0.368
+    }
+  ]
+}

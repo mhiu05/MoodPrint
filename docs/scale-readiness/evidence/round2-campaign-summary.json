@@ -1,0 +1,41 @@
+{
+  "observed_date": "2026-11-05",
+  "scope": "offline single-host campaign reservation controller only",
+  "controller": "scripts/paid_campaign.py",
+  "cap_currency": "USD",
+  "cap_decimal": "3",
+  "cap_resets": false,
+  "refund_api_present": false,
+  "model": "gpt-6-luna",
+  "paid_calls_run": 0,
+  "judge_api_calls_run": 0,
+  "live_campaign_status": "NOT_RUN",
+  "live_ledger_created": false,
+  "account_pricing_verified": false,
+  "account_project_rpm_tpm_verified": false,
+  "exact_input_count_contract_verified": false,
+  "live_transport_adapter_implemented": false,
+  "cloud_or_runtime_changes": false,
+  "verification": {
+    "red_observed": "23 failures: missing controller assertion before implementation; later excessive rate precision rejection failed before fix",
+    "offline_command": "backend/.venv/Scripts/python.exe -m pytest backend/tests/test_paid_campaign.py -q --noconftest",
+    "result": "25 passed",
+    "log": "round2-campaign-tests.txt",
+    "lint_command": "backend/.venv/Scripts/python.exe -m ruff check scripts/paid_campaign.py backend/tests/test_paid_campaign.py",
+    "lint_result": "All checks passed",
+    "format_result": "2 files already formatted",
+    "concurrency": "12 separate processes compete for USD 1 reservations; exactly 3 admitted and 9 rejected",
+    "crash": "subprocess exits with code 27 from claimed dispatch; reopen retains USD 1 and dispatching state; replay rejected"
+  },
+  "official_documentation": [
+    "https://developers.openai.com/api/docs/models/gpt-6-luna",
+    "https://developers.openai.com/api/docs/pricing"
+  ],
+  "coverage_limits": [
+    "Attestation fields are validated but evidence authenticity/account identity is not independently verified by code.",
+    "Future injected transport is trusted; immutable payload binding, exact input counting, no hidden retries and all extra paid operations require a reviewed adapter.",
+    "Cap requires one canonical durable ledger shared by cooperating processes on one host; no multi-host or independent-ledger authority.",
+    "Quota fields are prerequisites, not an RPM/TPM rate limiter.",
+    "No workflow pooled allocation, Voyage/STT accounting, all-provider budget authority, application integration or production capacity proof is supplied."
+  ]
+}

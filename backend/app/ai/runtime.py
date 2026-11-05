@@ -33,7 +33,7 @@ from app.ai.journal import (
     assert_journal_revisions,
     journal_read_refused,
 )
-from app.ai.models import AiMessageRecord
+from app.ai.models import AiConversation, AiMessageRecord
 from app.ai.persistence import current_turn, owned_conversation
 from app.ai.prompts import RUNTIME_VARIANTS, prompt_version
 from app.ai.schemas import AIEvent, AIMessage, AiReply, MoodReadScope, PromptOptions, final_v2
@@ -139,6 +139,7 @@ class AiRuntime:
         self.runs: dict[UUID, LiveRun] = {}
         self.proposals: dict[UUID, Proposal] = {}
         self.model_override = None
+        self.draining = False
         self.slots = asyncio.Semaphore(settings.ai_global_concurrency)
         self.finalizers: set[asyncio.Task] = set()
         self.pending_terminal: dict[UUID, LiveRun] = {}
@@ -146,11 +147,14 @@ class AiRuntime:
         # One immediate area clarification, containing only a closed public query label.
         self.maps_clarifications: dict[tuple, tuple[str, float]] = {}
         # Per-user SSE slots, reserved before any await (see app.core.streams).
-        self.streams = StreamSlots(6)
+        self.streams = StreamSlots(6, total_limit=100)
 
     @property
     def available(self) -> bool:
         return self.status_for(None) in ("ready", "test_provider")
+
+    def begin_drain(self) -> None:
+        self.draining = True
 
     def status_for(self, user_id: UUID | None) -> AiStatus:
         if self.model_override is not None:
@@ -163,6 +167,10 @@ class AiRuntime:
         key, model = self.settings.openai_api_key.get_secret_value(), self.settings.openai_model
         if not key.strip() or not model.strip():
             return "configuration_missing"
+        if self.settings.app_env == "production" and (
+            self.settings.ai_daily_budget_usd <= 0 or not self.settings.ai_accounting_enabled
+        ):
+            return "configuration_invalid"
         if any(char.isspace() for char in key + model):
             return "configuration_invalid"
         # Presence is not a remote credential/model validation; provider errors are
@@ -342,19 +350,32 @@ class AiRuntime:
                 if not await handoff_allowed(db, self.settings, user, run.responder,
                                              conversation_id=run.conversation_id):
                     raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
-            if run.persistent and not await owned_conversation(db, run.conversation_id, user.id, kind=run.kind):
-                raise DomainError(410, "CONVERSATION_EXPIRED", "Cuộc trò chuyện đã kết thúc.")
-            status = await db.scalar(
-                select(AiRun.status).where(
+            # The turn remains locked above. Read its run status, owned/unexpired
+            # conversation and accounting lease in one fresh statement instead of
+            # three serial round trips in every policy-monitor tick.
+            state = (await db.execute(
+                select(AiRun.status, AiConversation.id, AiUsage)
+                .select_from(AiRun)
+                .outerjoin(AiConversation, (AiConversation.id == run.conversation_id)
+                    & (AiConversation.user_id == user.id) & (AiConversation.kind == run.kind)
+                    & (AiConversation.expires_at > now()))
+                .outerjoin(AiUsage, AiUsage.run_id == AiRun.id)
+                .where(
                     AiRun.id == run.id,
                     AiRun.user_id == run.actor.user_id,
                     AiRun.conversation_id == run.conversation_id,
                 )
-            )
+            )).one_or_none()
+            if run.persistent and (state is None or state[1] is None):
+                # Preserve the legacy error distinction when the run itself is
+                # absent. The extra lookup is only on this terminal/error path.
+                if state is not None or not await owned_conversation(db, run.conversation_id, user.id, kind=run.kind):
+                    raise DomainError(410, "CONVERSATION_EXPIRED", "Cuộc trò chuyện đã kết thúc.")
+            status = state[0] if state else None
             if status != "running" and not (completed_ok and status == "completed"):
                 raise DomainError(410, "RUN_ENDED", "Lượt trò chuyện đã kết thúc.")
             if self.settings.ai_accounting_enabled:
-                usage = await db.get(AiUsage, run.id)
+                usage = state[2] if state else None
                 if usage is None or usage.worker_id != self.worker_id or usage.lease_until <= now():
                     raise DomainError(410, "WORKER_FENCED", "Lượt trò chuyện đã kết thúc.")
 
@@ -417,6 +438,7 @@ class AiRuntime:
                 del self.proposals[identity]
 
     async def close(self):
+        self.begin_drain()
         await asyncio.gather(
             *(
                 self.stop(run)

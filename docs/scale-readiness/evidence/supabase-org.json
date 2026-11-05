@@ -1,0 +1,10 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"id\":\"vaxjdqsurhxejlzynswl\",\"name\":\"VDaAgent\",\"plan\":\"pro\",\"tier\":\"tier_pro\",\"opt_in_tags\":[],\"allowed_release_channels\":[\"ga\",\"preview\"]}"
+    }
+  ],
+  "structuredContent": null,
+  "isError": false
+}

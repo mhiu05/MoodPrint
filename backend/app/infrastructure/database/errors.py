@@ -74,6 +74,8 @@ def database_failure_category(error: BaseException) -> str | None:
     state = sqlstate_of(error)
     if state in _LIMIT:
         return "connection_limit"
+    if state in {"55P03", "57014"}:
+        return "bounded_wait"
     if state in _UNAVAILABLE:
         return "connection_unavailable"
     if state is not None:

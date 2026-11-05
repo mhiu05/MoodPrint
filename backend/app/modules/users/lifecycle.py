@@ -4,8 +4,6 @@ import logging
 from datetime import timedelta
 from uuid import uuid4
 
-from sqlalchemy import and_, delete, func, or_, select, text, update
-
 from app.infrastructure.database.models import (
     AgeDeclaration,
     AiRun,
@@ -29,6 +27,7 @@ from app.modules.social.models import (
 )
 from app.modules.social.service import invalidate_user_social
 from app.modules.users.models import DataJob
+from sqlalchemy import and_, delete, func, or_, select, text, update
 
 logger = logging.getLogger("moodprint.lifecycle")
 
@@ -160,15 +159,16 @@ async def process_deletions(app):
             await db.execute(delete(FeedbackSubmissionReceipt).where(FeedbackSubmissionReceipt.user_id == uid))
             retained_runs = set()
             if await db.scalar(select(func.to_regclass("moodprint.ai_usage"))):
-                from app.ai.accounting import CAPPED_PRICING_VERSION, liability_scope
+                from app.ai.accounting import liability_scope
 
                 # The user remains a tombstone. Keep only financial metadata needed
                 # by the active cap; deleting it would refund already dispatched work.
                 # Usage -> run lock order matches terminal settlement and recovery.
                 retained_runs = set((await db.scalars(select(AiUsage.run_id).where(
+                    # Current budget=0 is not permission to erase historical debt.
+                    # Keep relevant settled legacy rows too: a later cap activation
+                    # must revalue them or fail closed, never see a free empty ledger.
                     AiUsage.user_id == uid, liability_scope(now()),
-                    or_(AiUsage.pricing_version == CAPPED_PRICING_VERSION,
-                        app.state.settings.ai_daily_budget_usd > 0),
                 ).order_by(AiUsage.run_id).with_for_update())).all())
                 if retained_runs:
                     parents = dict((await db.execute(select(AiRun.id, AiRun.parent_run_id)

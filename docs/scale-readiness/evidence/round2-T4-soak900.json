@@ -1,0 +1,98 @@
+{
+  "at_utc": "2026-11-05T11:00:53.479283+00:00",
+  "run_id": "e12f15aa8e014a36a40966df1fa850f2",
+  "case": "T4",
+  "environment": "L0",
+  "real_generation_calls": 0,
+  "external_generation_spend_usd": 0,
+  "head": "UNKNOWN",
+  "working_tree_dirty": "UNKNOWN",
+  "source_sha256": "162dd04d429439fc6177e77c2a42aa3451bebe9cedadf4a684c458a9fcbd393c",
+  "result": {
+    "status": "FAILED",
+    "scope": "single-agent saved turns + ASGI SSE; real PostgreSQL/financial guards, fake SDK Model/embeddings; exact-count HTTP guard is separately unit-tested with mock transport, NOT exercised by this Model override; no socket/Caddy, multi-agent or production proof",
+    "requested_users": 50,
+    "requested_duration_seconds": 900,
+    "measured_wall_seconds": 524.608,
+    "completed": 945,
+    "mean_parent_occupancy": 42.17,
+    "occupancy_samples": 288,
+    "measured_window_seconds": 464.608,
+    "measurement_method": "time-weighted sampled parent count; warmup/drain excluded",
+    "event_loop_lag": {
+      "count": 4672,
+      "p50_ms": 6.483,
+      "p95_ms": 34.79,
+      "p99_ms": 139.636
+    },
+    "process_cpu_seconds": 523.999,
+    "pool_acquisition_recent_window": {
+      "acquisitions": 58322,
+      "timeouts": 3,
+      "window_samples": 2048,
+      "p95_ms": 1475.069870997686,
+      "max_ms": 4631.219361996045
+    },
+    "simulated_provider_usage": {
+      "input_tokens": 8000,
+      "output_tokens": 600
+    },
+    "attempts": 948,
+    "statuses": {
+      "202": 948
+    },
+    "errors": {
+      "exception:sqlalchemy.exc.TimeoutError": 2,
+      "noncompleted_stream": 1
+    },
+    "peaks": {
+      "parent_turns": 50,
+      "sse_streams": 50,
+      "provider_active": 50,
+      "liability_nano": 10570720000,
+      "pool_checked_out": 5,
+      "rss_bytes": 201089024
+    },
+    "latency_including_rejections": {
+      "count": 946,
+      "p50_ms": 25031.089,
+      "p95_ms": 31910.025,
+      "p99_ms": 37645.721
+    },
+    "fingerprint": {
+      "ai_global_concurrency": 50,
+      "ai_user_concurrency": 2,
+      "ai_requests_per_minute": 20,
+      "ai_timeout_seconds": 60,
+      "ai_daily_budget_usd": 50,
+      "ai_daily_turns_per_user": 60,
+      "ai_accounting_enabled": true,
+      "database_pool_size": 4,
+      "database_pool_overflow": 1,
+      "ai_bounded_reservations_enabled": true,
+      "ai_dispatch_gate_enabled": true,
+      "ai_dispatch_queue_limit": 100,
+      "auth_nat_policy_enabled": false,
+      "database_pool_metrics_enabled": true,
+      "database_transaction_timeouts_enabled": false,
+      "database_statement_timeout_ms": 15000,
+      "database_lock_timeout_ms": 2000,
+      "database_pool_timeout": 10.0,
+      "database_pool_mode": "session",
+      "proactive_worker_enabled": false,
+      "proactive_worker_concurrency": 1,
+      "journal_auto_memory_enabled": false,
+      "ai_collaboration_enabled": false,
+      "ai_smart_orchestration_enabled": false,
+      "ai_group_chat_enabled": false,
+      "auth_captcha_enabled": false,
+      "openai_model": "gpt-6-luna",
+      "pricing_version": "openai-conservative-64k-2026-11-05-v2",
+      "supported_api_processes": 1,
+      "source": "resolved_settings"
+    },
+    "financial_invariant": true,
+    "soak_stopped_on_failed_first_cohort": true,
+    "mixed_auth": null
+  }
+}

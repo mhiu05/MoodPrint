@@ -116,12 +116,14 @@ async def test_consult_ranks_relevant_entry_first_within_window(clients, mode):
         assert forwarded.index("CONSULT_RELEVANT_CANARY") < forwarded.index("CONSULT_UNRELATED_")
 
 
-async def test_consult_both_specialists_through_real_as_tool(clients):
+@pytest.mark.parametrize("dispatch_enabled", [False, True])
+async def test_consult_both_specialists_through_real_as_tool(clients, dispatch_enabled):
     from app.ai.orchestration.specialists import HOATDONG_CONSULT, NHATKY_CONSULT
     from app.ai.proactive.models import AiMessageSource
     from app.infrastructure.database.models import AiRun
 
     app, [(client, uid), _] = clients
+    app.state.settings.ai_dispatch_gate_enabled = dispatch_enabled
     await v3_setup(app, client)
     entry_id = await entry(app, uid, days_ago=2, text=f"Học tới khuya, mệt rã rời {JOURNAL_CANARY}")
     url = await conversation(client, "dieuphoi")

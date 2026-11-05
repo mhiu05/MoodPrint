@@ -1,0 +1,45 @@
+{
+  "status": "success",
+  "stdout": "",
+  "return_value": {
+    "observed_at_utc": "2026-11-05T07:20:17.921352+00:00",
+    "account_suffix": "3536",
+    "region": "ap-southeast-2",
+    "runtime_parameter_found": true,
+    "settings_source": "SSM parameter, not proof of deployed container values",
+    "parameter_version": 26,
+    "resolved_allowlist": {
+      "AI_GLOBAL_CONCURRENCY": 10,
+      "AI_USER_CONCURRENCY": 2,
+      "AI_TIMEOUT_SECONDS": 60,
+      "DATABASE_POOL_SIZE": 5,
+      "DATABASE_POOL_OVERFLOW": 2,
+      "DATABASE_POOL_TIMEOUT": 10,
+      "AI_ACCOUNTING_ENABLED": true,
+      "AI_DAILY_BUDGET_USD": 20,
+      "PROACTIVE_WORKER_ENABLED": true,
+      "AUTH_CAPTCHA_ENABLED": true
+    },
+    "duplicate_allowlisted_keys": {}
+  },
+  "api_calls": [
+    {
+      "service": "sts",
+      "operation": "GetCallerIdentity",
+      "status": "success"
+    },
+    {
+      "service": "ssm",
+      "operation": "DescribeParameters",
+      "status": "success",
+      "n_items": {
+        "Parameters": 1
+      }
+    },
+    {
+      "service": "ssm",
+      "operation": "GetParameter",
+      "status": "success"
+    }
+  ]
+}

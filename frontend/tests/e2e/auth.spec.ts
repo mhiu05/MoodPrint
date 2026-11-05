@@ -50,6 +50,42 @@ async function api(page: Page, authenticated: boolean, handlers: Record<string, 
   return calls;
 }
 
+test("auth submission is synchronous single-flight even before React renders busy", async ({ page }) => {
+  const calls = await api(page, false, {
+    "POST /auth/login": () => failure(401, "LOGIN_FAILED", "Email hoặc mật khẩu chưa đúng."),
+  });
+  await page.goto("/login");
+  await page.getByLabel("Email", { exact: true }).fill("synthetic@example.test");
+  await page.getByLabel("Mật khẩu", { exact: true }).fill("synthetic password");
+  await page.locator("form").evaluate(form => {
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  });
+  await expect(page.getByRole("alert")).toContainText("mật khẩu chưa đúng");
+  expect(calls.filter(call => call.path === "/auth/login")).toHaveLength(1);
+});
+
+test("auth honors Retry-After without automatic replay and preserves entered fields", async ({ page }) => {
+  const calls = await api(page, false, {
+    "POST /auth/login": () => ({ ...failure(429, "AUTH_RATE_LIMITED", "Vui lòng đợi trước khi thử lại."), headers: { "Retry-After": "2" } }),
+  });
+  await page.goto("/login");
+  await page.getByLabel("Email", { exact: true }).fill("synthetic@example.test");
+  await page.getByLabel("Mật khẩu", { exact: true }).fill("synthetic password");
+  const submit = page.locator('button[type="submit"]');
+  await submit.click();
+  await expect(page.getByRole("alert")).toContainText("Vui lòng đợi");
+  await expect(submit).toBeDisabled();
+  await page.locator("form").evaluate(form => form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+  expect(calls.filter(call => call.path === "/auth/login")).toHaveLength(1);
+  await expect(page.getByLabel("Email", { exact: true })).toHaveValue("synthetic@example.test");
+  await expect(page.getByLabel("Mật khẩu", { exact: true })).toHaveValue("synthetic password");
+  await expect(submit).toBeEnabled({ timeout: 3500 });
+  expect(calls.filter(call => call.path === "/auth/login")).toHaveLength(1);
+  await submit.click();
+  await expect.poll(() => calls.filter(call => call.path === "/auth/login").length).toBe(2);
+});
+
 test("sign-up checks the password confirmation and never claims the account exists", async ({ page }) => {
   const calls = await api(page, false, {
     "POST /auth/signup": () => ({ status: 202, json: { status: "sent" } }),

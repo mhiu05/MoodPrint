@@ -616,7 +616,10 @@ class Workflow:
             on_stream=lambda _event: None,  # nested run uses the SDK streaming path
             run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False),
             max_turns=1,
-            hooks=_DeferredHooks(lambda: self.step_hooks(step_holder["step"], model_limit=1, tool_limit=0)),
+            # as_tool starts its own nested Runner; it does not inherit the
+            # primary Runner's post-queue authorization/accounting hooks.
+            hooks=self.runtime.provider._dispatch_hooks(
+                _DeferredHooks(lambda: self.step_hooks(step_holder["step"], model_limit=1, tool_limit=0))),
             failure_error_function=None,
             parameters=params_type,
             input_builder=build_input,

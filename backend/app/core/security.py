@@ -8,11 +8,18 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import Depends, Request
-from sqlalchemy import select, text, update
+from sqlalchemy import func, null, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import DomainError
-from app.infrastructure.database.models import AuthSession, Consent, Idempotency, User, now
+from app.infrastructure.database.models import (
+    AgeDeclaration,
+    AuthSession,
+    Consent,
+    Idempotency,
+    User,
+    now,
+)
 from app.modules.auth.age import AGE_REQUIRED_MESSAGE, is_adult_eligible
 from app.modules.consent.policy import consent_enabled
 from app.modules.guests import policy as guest_policy
@@ -33,7 +40,9 @@ class Actor:
     account_kind: str = "registered"
 
 
-async def verify_session(db: AsyncSession, session: AuthSession, user: User) -> None:
+async def verify_session(
+    db: AsyncSession, session: AuthSession, user: User, *, provider_active: bool | None = None
+) -> None:
     # The immutable trial deadline is judged first, on the database clock, so a retained guest
     # row at T reports GUEST_EXPIRED (and clears cookies) rather than a generic expiry.
     await assert_guest_active(db, user)
@@ -50,10 +59,12 @@ async def verify_session(db: AsyncSession, session: AuthSession, user: User) -> 
             403, "ACCOUNT_SUSPENDED", "Tài khoản đang bị tạm khóa theo quy tắc cộng đồng."
         )
     # Supabase logout/revocation removes auth.sessions. A JWT signature alone is insufficient.
-    exists = await db.scalar(
-        text("select moodprint.is_provider_session_active(:sid,:uid)"),
-        {"sid": session.id, "uid": user.id},
-    )
+    exists = provider_active
+    if exists is None:
+        exists = await db.scalar(
+            text("select moodprint.is_provider_session_active(:sid,:uid)"),
+            {"sid": session.id, "uid": user.id},
+        )
     if not exists:
         raise DomainError(401, "SESSION_EXPIRED", "Phiên đã kết thúc. Vui lòng đăng nhập lại.")
 
@@ -132,13 +143,31 @@ async def lock_actor(
     db: AsyncSession, actor: Actor, *, eligible: bool = True, lock: bool = True
 ) -> User:
     # lock=False is for read-only polling that must not contend with writers.
-    statement = select(User).where(User.id == actor.user_id)
-    user = await db.scalar(statement.with_for_update() if lock else statement)
-    return await verify_actor(db, actor, user, eligible=eligible)
+    # Fetch the identity and age evidence on the same fresh checkout. Keep the
+    # result tuple alive through verification so SQLAlchemy's weak identity map
+    # can serve the existing db.get checks without two more round trips. This is
+    # transaction-local prefetching, never an authorization cache across ticks.
+    # A writer must check the provider AFTER acquiring the account lock: a
+    # STABLE function evaluated by the locking SELECT can retain its pre-wait
+    # snapshot while a remote logout commits. Read-only polls have no lock wait.
+    provider_check = func.moodprint.is_provider_session_active(AuthSession.id, User.id) if not lock else null()
+    statement = (
+        select(User, AuthSession, AgeDeclaration,
+               provider_check)
+        .join(AuthSession, (AuthSession.user_id == User.id) & (AuthSession.id == actor.session_id))
+        .outerjoin(AgeDeclaration, AgeDeclaration.user_id == User.id)
+        .where(User.id == actor.user_id)
+    )
+    found = (await db.execute(statement.with_for_update(of=User) if lock else statement)).one_or_none()
+    user = found[0] if found else None
+    return await verify_actor(
+        db, actor, user, eligible=eligible, provider_active=found[3] if found else None
+    )
 
 
 async def verify_actor(
-    db: AsyncSession, actor: Actor, user: User | None, *, eligible: bool = True
+    db: AsyncSession, actor: Actor, user: User | None, *, eligible: bool = True,
+    provider_active: bool | None = None,
 ) -> User:
     """Revalidate an actor after the caller acquires its account gate.
 
@@ -155,7 +184,7 @@ async def verify_actor(
         or actor.auth_version != user.auth_version
     ):
         raise DomainError(401, "SESSION_EXPIRED", "Phiên đã kết thúc.")
-    await verify_session(db, session, user)
+    await verify_session(db, session, user, provider_active=provider_active)
     if eligible and not await is_adult_eligible(db, user):
         raise DomainError(
             403, "ELIGIBILITY_REQUIRED", AGE_REQUIRED_MESSAGE
@@ -172,13 +201,22 @@ async def verify_actor(
 @asynccontextmanager
 async def transaction(request: Request, actor: Actor, *, eligible: bool = True, lock: bool = True):
     async with request.app.state.database.require()() as db, db.begin():
+        config = request.app.state.settings
+        if config.database_transaction_timeouts_enabled:
+            # Transaction-scoped: safe with transaction pooling and no state bleed.
+            # Apply before the User lock, not after the potentially unbounded wait.
+            await db.execute(text("select set_config('statement_timeout', :ms, true), set_config('lock_timeout', :lock_ms, true)"),
+                             {"ms": str(config.database_statement_timeout_ms),
+                              "lock_ms": str(config.database_lock_timeout_ms)})
         user = await lock_actor(db, actor, eligible=eligible, lock=lock)
         deadline = await guest_deadline(db, user)
         if deadline is not None:
             # Lock waits and statements may never outlive the remaining trial.
-            bound = str(max(1, int(deadline.remaining_seconds * 1000)))
-            await db.execute(text("select set_config('statement_timeout', :ms, true)"), {"ms": bound})
-            await db.execute(text("select set_config('lock_timeout', :ms, true)"), {"ms": bound})
+            remaining = max(1, int(deadline.remaining_seconds * 1000))
+            statement_bound = min(remaining, config.database_statement_timeout_ms) if config.database_transaction_timeouts_enabled else remaining
+            lock_bound = min(remaining, config.database_lock_timeout_ms) if config.database_transaction_timeouts_enabled else remaining
+            await db.execute(text("select set_config('statement_timeout', :ms, true)"), {"ms": str(statement_bound)})
+            await db.execute(text("select set_config('lock_timeout', :ms, true)"), {"ms": str(lock_bound)})
         yield db, user
         if deadline is not None:
             # Reached only on a normal exit: a body that crossed T rolls back mutation and receipt.

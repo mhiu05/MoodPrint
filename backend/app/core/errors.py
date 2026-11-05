@@ -1,12 +1,11 @@
 import re
 from uuid import uuid4
 
+from app.contracts import ApiError, ErrorDetail
+from app.infrastructure.database.errors import database_failure_category, sqlstate_of
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-
-from app.contracts import ApiError, ErrorDetail
-from app.infrastructure.database.errors import database_failure_category, sqlstate_of
 
 _SAFE_TOKEN = re.compile(r"^[A-Za-z0-9_.]{1,48}$")
 
@@ -45,7 +44,7 @@ def note_failure(request: Request, category: str, error_type: str, sqlstate: str
 def render_unexpected(request: Request, error: Exception) -> JSONResponse:
     category = database_failure_category(error)
     note_failure(request, category or "unexpected", type(error).__name__, sqlstate_of(error))
-    if category in {"connection_limit", "pool_timeout"}:
+    if category in {"connection_limit", "pool_timeout", "bounded_wait"}:
         status, code, message, retryable, retry_after = (
             503,
             "DATABASE_BUSY",

@@ -1,0 +1,10 @@
+{
+  "observed_date": "2026-11-05",
+  "repository": "mhiu05/MoodPrint",
+  "baseline_sha": "0573af5b50c0584c523e5119755479fcf47fae74",
+  "compare_baseline_to_main": {"status": "identical", "ahead_by": 0, "behind_by": 0},
+  "combined_commit_statuses": [],
+  "pull_request_workflow_runs_first_page": [],
+  "scope": "Read-only GitHub connector; the workflow tool filters pull-request-triggered runs. Empty results do not prove all Actions/check-runs passed or that no push-triggered runs exist. Local dirty candidate is not remotely CI verified.",
+  "mutations": 0
+}

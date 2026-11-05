@@ -28,6 +28,8 @@ def test_every_feature_flag_defaults_true(pure_defaults):
 def test_safety_switches_stay_false_and_are_not_features(pure_defaults):
     settings = Settings(_env_file=None)
     assert set(SAFETY_SWITCHES) == {
+        'auth_nat_policy_enabled', 'ai_bounded_reservations_enabled', 'ai_dispatch_gate_enabled',
+        'database_pool_metrics_enabled', 'database_transaction_timeouts_enabled',
         'auth_captcha_enabled', 'cookie_secure', 'provider_force_ipv4',
         'ai_web_search_token_bound_verified', 'apify_maps_charge_bound_verified',
     }

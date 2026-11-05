@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import signal
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -96,6 +97,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if time.monotonic() >= sweep_clock["sample"]:
                 metrics = logging.getLogger("moodprint")
                 metrics.info("metric=sse_streams_open value=%d", STREAM_SLOTS.open())
+                metrics.info("metric=ai_sse_streams_open value=%d", app.state.ai.streams.open())
+                gate = getattr(app.state.ai.provider, "dispatch_gate", None)
+                if gate is not None:
+                    metrics.info("metric=ai_dispatch_active value=%d", gate.active)
+                    metrics.info("metric=ai_dispatch_waiting value=%d", gate.waiting)
+                measure_pool = getattr(database, "pool_metrics", None)
+                observed = measure_pool() if callable(measure_pool) else {}
+                if observed.get("p95_ms") is not None:
+                    metrics.info("metric=db_pool_acquire_window_p95_ms value=%.3f", observed["p95_ms"])
+                    metrics.info("metric=db_pool_acquire_timeouts_total value=%d", observed["timeouts"])
                 metrics.info("metric=http_requests value=%d", app.state.http_requests)
                 checked_out, overflow = pool_counts(database)
                 if isinstance(checked_out, int):
@@ -244,14 +255,31 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         indexer = asyncio.create_task(embedding_worker())
         guests = asyncio.create_task(guest_worker())
         journal_cleanup = asyncio.create_task(journal_worker())
+        from app.modules.auth.provider import auth_http_client
+
+        app.state.auth_http = auth_http_client(getattr(app.state, "auth_transport", None))
+        drain_signal = getattr(signal, "SIGUSR1", None)
+        previous_drain_handler = None
+        if drain_signal is not None:
+            try:
+                previous_drain_handler = signal.getsignal(drain_signal)
+                asyncio.get_running_loop().add_signal_handler(drain_signal, app.state.ai.begin_drain)
+            except (NotImplementedError, ValueError, RuntimeError):
+                drain_signal = None
         try:
             yield
         finally:
+            app.state.ai.begin_drain()
+            if drain_signal is not None:
+                asyncio.get_running_loop().remove_signal_handler(drain_signal)
+                signal.signal(drain_signal, previous_drain_handler)
             sweeper.cancel()
             indexer.cancel()
             guests.cancel()
             journal_cleanup.cancel()
             await asyncio.gather(sweeper, indexer, guests, journal_cleanup, return_exceptions=True)
+            await app.state.auth_http.aclose()
+            app.state.auth_http = None
             await app.state.ai.close()
             if database.engine:
                 await database.engine.dispose()
@@ -269,6 +297,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         },
     )
     app.state.settings, app.state.database = config, database
+    from app.modules.auth.admission import AuthAdmission
+
+    app.state.auth_admission = AuthAdmission()
     app.state.ai = AiRuntime(config, database)
     app.state.exports = {}
     from app.modules.journal.storage import SupabaseJournalStorage
@@ -303,7 +334,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 status_code=413,
             )
         try:
-            response = await call_next(request)
+            path = request.url.path
+            new_ai_turn = request.method == "POST" and path.startswith("/api/v1/ai/") and path.endswith("/messages")
+            if app.state.ai.draining and (new_ai_turn or path == "/api/v1/health/ready"):
+                error = DomainError(503, "AI_DRAINING", "Trợ lý đang được cập nhật. Bạn hãy thử lại sau ít giây.", True, retry_after=5)
+                response = await app.exception_handlers[DomainError](request, error)
+            else:
+                response = await call_next(request)
         except Exception as error:
             response = render_unexpected(request, error)
         path = request.url.path

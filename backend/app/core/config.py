@@ -2,11 +2,10 @@ from decimal import Decimal
 from typing import Any, Literal
 from uuid import UUID
 
+from app.ai.embedding_config import EmbeddingSettings
 from pydantic import Field, PrivateAttr, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
-
-from app.ai.embedding_config import EmbeddingSettings
 
 
 class Settings(EmbeddingSettings, BaseSettings):
@@ -24,6 +23,8 @@ class Settings(EmbeddingSettings, BaseSettings):
     cookie_secure: bool = False
     # Match the Supabase Auth CAPTCHA setting; shares the public Turnstile site key with guests.
     auth_captcha_enabled: bool = False
+    # Candidate security policy; production activation requires owner approval.
+    auth_nat_policy_enabled: bool = False
     openai_api_key: SecretStr = SecretStr("")
     openai_model: str = ""
     ai_enabled: bool = True
@@ -98,12 +99,21 @@ class Settings(EmbeddingSettings, BaseSettings):
     ai_group_max_speakers: int = Field(default=3, ge=1, le=3)
     ai_global_concurrency: int = Field(default=50, ge=1, le=100)
     ai_user_concurrency: int = Field(default=2, ge=1, le=5)
+    ai_dispatch_gate_enabled: bool = False
+    # Candidate only;64k exact-count rejection (no truncation), legacy$2 fallback by default.
+    ai_bounded_reservations_enabled: bool = False
+    ai_dispatch_process_lane: Literal["api", "proactive"] = "api"
+    ai_dispatch_queue_limit: int = Field(default=100, ge=0, le=200)
     ai_requests_per_minute: int = Field(default=20, ge=1, le=120)
     ai_timeout_seconds: float = Field(default=30, ge=1, le=120)
     # 5+2 stays inside the approved role limit of 20 when two processes overlap.
     database_pool_size: int = Field(default=5, ge=1, le=50)
     database_pool_overflow: int = Field(default=2, ge=0, le=50)
     database_pool_timeout: float = Field(default=10, ge=1, le=60)
+    database_pool_metrics_enabled: bool = False
+    database_transaction_timeouts_enabled: bool = False
+    database_statement_timeout_ms: int = Field(default=15000, ge=10, le=60000)
+    database_lock_timeout_ms: int = Field(default=2000, ge=10, le=15000)
     session_idle_hours: int = Field(default=12, ge=1, le=72)
     session_max_days: int = Field(default=7, ge=1, le=30)
     static_dir: str = ""
@@ -123,7 +133,8 @@ class Settings(EmbeddingSettings, BaseSettings):
     # Cost protection (DR-12): per-user turns per Asia/Bangkok day and a global daily
     # estimated-spend ceiling in USD (0 disables; needs AI_ACCOUNTING_ENABLED=true).
     ai_daily_turns_per_user: int = Field(default=60, ge=1, le=1000)
-    ai_daily_budget_usd: float = Field(default=0, ge=0)
+    # Owner-approved global target; examples prepare $50, live activation is separate.
+    ai_daily_budget_usd: float = Field(default=0, ge=0, le=50, allow_inf_nan=False)
     # Guest trial and feedback rollout. Feature flags default on; none can disable guest
     # expiry, cleanup, orphan reconciliation or liability settlement (those always run).
     guest_auth_enabled: bool = True
@@ -161,6 +172,12 @@ class Settings(EmbeddingSettings, BaseSettings):
             if cleaned and len(cleaned) <= 64 and all(char.isalnum() or char in "._+-" for char in cleaned):
                 return cleaned
         return "unknown"
+
+    @model_validator(mode="after")
+    def nat_policy_requires_captcha(self):
+        if self.auth_nat_policy_enabled and not self.auth_captcha_enabled:
+            raise ValueError("AUTH_NAT_POLICY_ENABLED requires AUTH_CAPTCHA_ENABLED")
+        return self
 
     @field_validator("guest_abuse_hmac_key")
     @classmethod
@@ -337,6 +354,11 @@ FEATURE_FLAGS: tuple[str, ...] = (
 )
 
 SAFETY_SWITCHES: dict[str, str] = {
+    "auth_nat_policy_enabled": "Candidate signup security policy; requires CAPTCHA and activation approval.",
+    "ai_bounded_reservations_enabled": "Candidate exact-count64k envelope; requires verified account contract and UX approval.",
+    "ai_dispatch_gate_enabled": "Candidate single-API50/proactive2 dispatch split;52 total requires topology/quota validation.",
+    "database_pool_metrics_enabled": "Opt-in bounded acquisition telemetry.",
+    "database_transaction_timeouts_enabled": "Candidate transaction-local timeout policy; measure before activation.",
     "auth_captcha_enabled": "Must match the Supabase Auth CAPTCHA configuration.",
     "cookie_secure": "Local HTTP development requires non-secure cookies.",
     "provider_force_ipv4": "Network compatibility option; choose for the deployment.",

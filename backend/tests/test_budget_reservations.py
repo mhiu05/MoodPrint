@@ -89,11 +89,12 @@ async def make_run(db, uid, *, origin="user", parent=None, created=None):
 
 
 @pytest.mark.postgres
-async def test_parallel_admissions_reserve_exactly_twenty_dollars(clients):
+@pytest.mark.parametrize("budget,attempts,accepted", [(20, 12, 10), (50, 30, 25)])
+async def test_parallel_admissions_reserve_the_configured_legacy_budget(clients, budget, attempts, accepted):
     import asyncio
 
     app, actors = clients
-    settings = Settings(_env_file=None, ai_daily_budget_usd=20, ai_accounting_enabled=True)
+    settings = Settings(_env_file=None, ai_daily_budget_usd=budget, ai_accounting_enabled=True)
 
     async def attempt():
         try:
@@ -105,10 +106,33 @@ async def test_parallel_admissions_reserve_exactly_twenty_dollars(clients):
             assert error.code == "AI_BUDGET_EXHAUSTED"
             return False
 
-    outcomes = await asyncio.gather(*(attempt() for _ in range(12)))
-    assert outcomes.count(True) == 10
+    outcomes = await asyncio.gather(*(attempt() for _ in range(attempts)))
+    assert outcomes.count(True) == accepted
     async with app.state.database.sessions() as db:
-        assert await db.scalar(select(func.sum(AiUsage.estimated_nano_usd))) == 20_000_000_000
+        assert await db.scalar(select(func.sum(AiUsage.estimated_nano_usd))) == budget * 1_000_000_000
+
+
+@pytest.mark.postgres
+async def test_fifty_bounded_parents_and_children_reserve_atomically_under_fifty(clients):
+    import asyncio
+    from app.ai.accounting import budget_liability
+    from app.ai.envelope import BOUNDED_RESERVATION_NANO
+
+    app, actors = clients
+    settings = Settings(_env_file=None, ai_daily_budget_usd=50, ai_accounting_enabled=True,
+                        ai_bounded_reservations_enabled=True)
+
+    async def workflow():
+        async with app.state.database.sessions.begin() as db:
+            parent = await make_run(db, actors[0][1])
+            await reserve_accounting(db, parent.id, parent.user_id, uuid4(), "gpt-6-luna", "test", settings=settings)
+            for _ in range(2):
+                child = await make_run(db, actors[0][1], origin="agent", parent=parent.id)
+                await reserve_accounting(db, child.id, child.user_id, uuid4(), "gpt-6-luna", "test", settings=settings)
+    await asyncio.gather(*(workflow() for _ in range(50)))
+    async with app.state.database.sessions() as db:
+        assert await budget_liability(db, now()) == 150 * BOUNDED_RESERVATION_NANO
+        assert await budget_liability(db, now()) <= 50_000_000_000
 
 
 @pytest.mark.postgres

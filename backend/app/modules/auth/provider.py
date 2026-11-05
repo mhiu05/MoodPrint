@@ -2,9 +2,12 @@
 
 import base64
 import json
+import logging
 import math
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
+from http.cookiejar import CookieJar, DefaultCookiePolicy
 from typing import Literal
 from uuid import UUID
 
@@ -43,9 +46,44 @@ def _unavailable() -> DomainError:
     return DomainError(503, "AUTH_UNAVAILABLE", "Chưa kết nối được dịch vụ đăng nhập.", True)
 
 
-def _rate_limited() -> DomainError:
+def _retry_after(response: httpx.Response) -> int:
+    raw = response.headers.get("Retry-After", "")
+    try:
+        seconds = int(raw) if raw.isdigit() else math.ceil(
+            (parsedate_to_datetime(raw).astimezone(UTC) - datetime.now(UTC)).total_seconds()
+        )
+        return max(1, min(86400, seconds))
+    except (ValueError, TypeError, OverflowError):
+        return 60
+
+
+def _rate_limited(response: httpx.Response) -> DomainError:
     return DomainError(
-        429, "AUTH_RATE_LIMITED", "Bạn đã thử quá nhiều lần. Vui lòng đợi vài phút.", True
+        429, "AUTH_RATE_LIMITED", "Bạn đã thử quá nhiều lần. Vui lòng đợi vài phút.", True,
+        retry_after=_retry_after(response),
+    )
+
+
+class _NoProviderCookies(DefaultCookiePolicy):
+    def set_ok(self, cookie, request):
+        return False
+
+
+def auth_http_client(transport=None) -> httpx.AsyncClient:
+    """One bounded pool per API lifespan; no retries of side-effecting operations."""
+    return httpx.AsyncClient(
+        timeout=httpx.Timeout(10, connect=5, pool=2), follow_redirects=False,
+        limits=httpx.Limits(max_connections=64, max_keepalive_connections=32),
+        cookies=CookieJar(policy=_NoProviderCookies()),
+        transport=transport,
+    )
+
+
+def _outcome_unknown() -> DomainError:
+    return DomainError(
+        503, "AUTH_OUTCOME_UNKNOWN",
+        "Chưa xác định được kết quả. Hãy kiểm tra email (kể cả thư rác) trước khi gửi lại. Nếu đã xác nhận, bạn có thể đăng nhập.",
+        False,
     )
 
 
@@ -96,6 +134,22 @@ def _error_code(response: httpx.Response) -> str:
     return str(body.get("error_code") or body.get("code") or body.get("error") or "")
 
 
+def _mail_result(response: httpx.Response, operation: str) -> None:
+    # Identity-specific outcomes remain opaque. Configuration/validation failures
+    # must not tell a legitimate user that a confirmation/recovery mail was sent.
+    hidden = response.status_code in (400, 403, 404, 422) and _error_code(response) in (
+        "user_not_found", "email_not_confirmed", "user_banned",
+    )
+    accepted = response.status_code == 200 or hidden
+    logging.getLogger("moodprint").log(
+        logging.INFO if accepted else logging.WARNING,
+        "metric=auth_mail_provider_outcome operation=%s status=%d category=%s",
+        operation, response.status_code, "accepted_or_identity_hidden" if accepted else "rejected",
+    )
+    if not accepted:
+        raise _unavailable()
+
+
 def _audience_ok(audience: object) -> bool:
     return audience == "authenticated" or (
         isinstance(audience, list) and "authenticated" in audience
@@ -127,6 +181,7 @@ class SupabaseAuth:
         self.issuer = self.base
         self.headers = {"apikey": settings.supabase_publishable_key.get_secret_value()}
         self.transport = getattr(request.app.state, "auth_transport", None)
+        self.http = getattr(request.app.state, "auth_http", None)
         self.redirect = settings.frontend_origin.rstrip("/") + "/auth/callback"
         self.captcha_required = settings.auth_captcha_enabled
 
@@ -137,28 +192,34 @@ class SupabaseAuth:
         return {"gotrue_meta_security": {"captcha_token": token}} if token else {}
 
     def client(self) -> httpx.AsyncClient:
-        return httpx.AsyncClient(timeout=10, follow_redirects=False, transport=self.transport)
+        return auth_http_client(self.transport)
 
     async def _send(self, method: str, path: str, **kwargs) -> httpx.Response:
         """One raw provider exchange; transport failures propagate for callers that classify them."""
+        headers = {**self.headers, **kwargs.pop("headers", {})}
+        if self.http is not None:
+            return await self.http.request(method, self.base + path, headers=headers, **kwargs)
+        # Small adapters/tests outside the ASGI lifespan still own and close their pool.
         async with self.client() as provider:
             return await provider.request(
-                method, self.base + path, headers={**self.headers, **kwargs.pop("headers", {})}, **kwargs
+                method, self.base + path, headers=headers, **kwargs
             )
 
-    async def _call(self, method: str, path: str, **kwargs) -> httpx.Response:
+    async def _call(self, method: str, path: str, *, ambiguous_side_effect: bool = False, **kwargs) -> httpx.Response:
         try:
             response = await self._send(method, path, **kwargs)
-        except httpx.HTTPError:
+        except httpx.PoolTimeout:
             raise _unavailable() from None
+        except httpx.HTTPError:
+            raise (_outcome_unknown() if ambiguous_side_effect else _unavailable()) from None
         if response.status_code == 429:
-            raise _rate_limited()
+            raise _rate_limited(response)
         if response.status_code >= 400 and _error_code(response) == "captcha_failed":
             raise DomainError(
                 422, "CAPTCHA_FAILED", "Chưa xác minh được bước kiểm tra an toàn. Vui lòng thử lại.", True
             )
         if response.status_code >= 500:
-            raise _unavailable()
+            raise _outcome_unknown() if ambiguous_side_effect else _unavailable()
         return response
 
     async def password_session(self, email: str, password: str, *, captcha_token: str | None = None) -> ProviderSession:
@@ -255,6 +316,7 @@ class SupabaseAuth:
         response = await self._call(
             "POST",
             "/signup",
+            ambiguous_side_effect=True,
             params={"redirect_to": self.redirect},
             json={"email": email, "password": password, **self._captcha_security(captcha_token)},
         )
@@ -276,32 +338,41 @@ class SupabaseAuth:
         response = await self._call(
             "POST",
             "/resend",
+            ambiguous_side_effect=True,
             params={"redirect_to": self.redirect},
             json={"type": "signup", "email": email, **self._captcha_security(captcha_token)},
         )
-        if response.status_code not in (200, 400, 422):
-            raise _unavailable()
+        _mail_result(response, "confirmation")
 
     async def request_recovery(self, email: str, *, captcha_token: str | None = None) -> None:
         response = await self._call(
             "POST", "/recover", params={"redirect_to": self.redirect},
+            ambiguous_side_effect=True,
             json={"email": email, **self._captcha_security(captcha_token)}
         )
-        # Unknown addresses look identical to known ones.
-        if response.status_code not in (200, 400, 404, 422):
-            raise _unavailable()
+        _mail_result(response, "recovery")
 
     async def update_password(self, token: str, password: str) -> UUID:
         session = await self.verify_token(token)
         if session.is_anonymous:
             # A bearer token must never become an implicit guest-to-permanent conversion route.
             raise _registered_required()
-        response = await self._call(
-            "PUT",
-            "/user",
-            headers={"Authorization": f"Bearer {token}"},
-            json={"password": password},
-        )
+        try:
+            response = await self._call(
+                "PUT",
+                "/user",
+                ambiguous_side_effect=True,
+                headers={"Authorization": f"Bearer {token}"},
+                json={"password": password},
+            )
+        except DomainError as error:
+            if error.code == "AUTH_OUTCOME_UNKNOWN":
+                raise DomainError(
+                    503, "PASSWORD_RESET_OUTCOME_UNKNOWN",
+                    "Chưa xác định được kết quả đổi mật khẩu. Các phiên cũ đã kết thúc. Hãy thử đăng nhập bằng mật khẩu mới; nếu chưa được, yêu cầu liên kết khôi phục mới.",
+                    False,
+                ) from None
+            raise
         if response.status_code == 200:
             return session.user_id
         code = _error_code(response)

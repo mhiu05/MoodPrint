@@ -1,0 +1,49 @@
+{
+  "observed_at_utc": "2026-11-05T10:54:41.819068+00:00",
+  "read_only": true,
+  "secret_values_emitted": false,
+  "exposure_file": "backend/runtime.txt",
+  "exposure_file_tracked": false,
+  "category": "PostgreSQL password embedded in migration DSN",
+  "role_category": "postgres",
+  "tls_requested": true,
+  "local_configuration": {
+    "DATABASE_URL": {
+      "same_password": false,
+      "same_endpoint": true,
+      "role_category": "moodprint_backend"
+    },
+    "DATABASE_MIGRATION_URL": {
+      "same_password": true,
+      "same_endpoint": true,
+      "role_category": "postgres"
+    }
+  },
+  "tracked_files_containing_exact_password": [],
+  "ssm_comparison": {
+    "parameter_version": 26,
+    "variables": {
+      "DATABASE_URL": {
+        "present": true,
+        "same_password": false,
+        "same_endpoint": true,
+        "role_category": "moodprint_backend"
+      },
+      "DATABASE_MIGRATION_URL": {
+        "present": false
+      }
+    }
+  },
+  "active_check": {
+    "status": "authenticated",
+    "role_category": "postgres",
+    "tls_active": true,
+    "superuser": false,
+    "create_role": true,
+    "create_database": true,
+    "bypass_rls": true,
+    "can_login": true,
+    "connection_limit": -1,
+    "transaction_read_only": true
+  }
+}

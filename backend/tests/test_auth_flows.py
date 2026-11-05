@@ -111,6 +111,43 @@ async def login(fake, client, email="user@example.com", password="correct horse"
 
 
 @pytest.mark.postgres
+async def test_100_first_logins_from_one_nat_provision_once_and_duplicate_logins_are_safe(auth_env):
+    import asyncio
+
+    from sqlalchemy import func, select
+
+    from app.infrastructure.database.models import Consent, User
+
+    app, fake, _, _ = auth_env
+    app.state.settings.auth_captcha_enabled = True
+    app.state.settings.auth_nat_policy_enabled = True
+    subjects, params = [], []
+    for index in range(100):
+        email = f"scale-{index}@example.com"
+        uid = fake.add(email, "synthetic-password")
+        sid = uuid4()
+        fake.users[email]["session"] = sid
+        subjects.append(uid)
+        params.append({"id": sid, "uid": uid})
+    async with fake.database.begin() as db:
+        await db.execute(text("insert into auth.sessions(id,user_id) values (:id,:uid)"), params)
+
+    async def first_login(index):
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post("/api/v1/auth/login", headers={"Origin": ORIGIN}, json={
+                "email": f"scale-{index}@example.com", "password": "synthetic-password", "captchaToken": "synthetic"})
+            assert response.status_code == 200, response.text
+            assert client.cookies.get("moodprint_session")
+
+    await asyncio.gather(*(first_login(i) for i in range(100)))
+    await asyncio.gather(first_login(0), first_login(0))
+    async with app.state.database.sessions() as db:
+        owners = select(User.id).where(User.auth_subject.in_(subjects))
+        assert await db.scalar(select(func.count()).select_from(User).where(User.auth_subject.in_(subjects))) == 100
+        assert await db.scalar(select(func.count()).select_from(Consent).where(Consent.user_id.in_(owners))) == 400
+
+
+@pytest.mark.postgres
 async def test_login_sets_sliding_session_and_absolute_cookie(auth_env):
     from app.infrastructure.database.models import AuthSession, now
 
@@ -240,6 +277,126 @@ async def test_password_reset_updates_provider_and_ends_existing_sessions(auth_e
     assert done.status_code == 200 and done.json() == {"status": "updated"}
     assert ("POST", "/logout") in [(m, p) for m, p, _, _ in fake.calls]
     assert (await client.get("/api/v1/session")).status_code == 401
+
+
+@pytest.mark.postgres
+@pytest.mark.parametrize("failure", ["unavailable", "commit"])
+async def test_password_reset_never_dispatches_before_local_revocation_commits(auth_env, monkeypatch, failure):
+    from contextlib import asynccontextmanager
+
+    from app.core.errors import DomainError
+
+    app, fake, client, _ = auth_env
+    assert (await login(fake, client)).status_code == 200
+    recovery = jwt(fake.users["user@example.com"]["id"], uuid4())
+    original = app.state.database.require
+
+    @asynccontextmanager
+    async def failing_session():
+        if failure == "unavailable":
+            raise DomainError(503, "DATABASE_BUSY", "Synthetic DB failure")
+        async with original()() as db:
+            class Proxy:
+                def __getattr__(self, key):
+                    return getattr(db, key)
+
+                @asynccontextmanager
+                async def begin(self):
+                    async with db.begin():
+                        yield
+                        raise DomainError(503, "DATABASE_BUSY", "Synthetic commit failure")
+
+            yield Proxy()
+
+    monkeypatch.setattr(app.state.database, "require", lambda: failing_session)
+    response = await client.post("/api/v1/auth/password-reset", json={
+        "accessToken": recovery, "password": "synthetic-new-password"})
+    assert response.status_code == 503
+    assert not any(method == "PUT" for method, _, _, _ in fake.calls)
+    monkeypatch.setattr(app.state.database, "require", original)
+    # A failed transaction did not revoke locally and did not change the provider.
+    assert (await client.get("/api/v1/session")).status_code == 200
+
+
+@pytest.mark.postgres
+async def test_password_reset_lost_provider_response_keeps_sessions_fenced_and_never_replays(auth_env):
+    app, fake, client, _ = auth_env
+    assert (await login(fake, client)).status_code == 200
+    recovery = jwt(fake.users["user@example.com"]["id"], uuid4())
+
+    def lost_response(request):
+        response = fake.handler(request)
+        if request.method == "PUT":
+            raise httpx.ReadTimeout("private-provider-body", request=request)
+        return response
+
+    app.state.auth_transport = httpx.MockTransport(lost_response)
+    response = await client.post("/api/v1/auth/password-reset", json={
+        "accessToken": recovery, "password": "synthetic-new-password"})
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "PASSWORD_RESET_OUTCOME_UNKNOWN"
+    assert response.json()["error"]["retryable"] is False
+    assert "private-provider-body" not in response.text
+    assert sum(method == "PUT" for method, _, _, _ in fake.calls) == 1
+    assert (await client.get("/api/v1/session")).status_code == 401
+
+
+@pytest.mark.postgres
+@pytest.mark.parametrize("stage", ["flush", "commit", "view"])
+async def test_first_login_faults_never_issue_cookies_and_retry_provisions_once(auth_env, monkeypatch, stage):
+    from sqlalchemy import event, func
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from sqlalchemy.orm import Session
+
+    from app.core.errors import DomainError
+    from app.infrastructure.database.models import AuthSession, Consent, User
+    from app.modules.auth import routes
+
+    app, fake, client, _ = auth_env
+    email = "synthetic-fault@example.com"
+    subject = fake.add(email, "synthetic-password")
+    fake.users[email]["session"] = await fake.session_row(subject)
+
+    def fail_commit(session):
+        raise DomainError(503, "DATABASE_BUSY", "Synthetic commit failure")
+
+    original_flush = AsyncSession.flush
+
+    async def fail_flush(session, *args, **kwargs):
+        if any(isinstance(row, AuthSession) for row in session.new):
+            raise DomainError(503, "DATABASE_BUSY", "Synthetic flush failure")
+        return await original_flush(session, *args, **kwargs)
+
+    async def fail_view(*args, **kwargs):
+        raise DomainError(503, "DATABASE_BUSY", "Synthetic view failure")
+
+    with monkeypatch.context() as patch:
+        if stage == "flush":
+            patch.setattr(AsyncSession, "flush", fail_flush)
+        elif stage == "view":
+            patch.setattr(routes, "_session_view", fail_view)
+        else:
+            event.listen(Session, "before_commit", fail_commit)
+        try:
+            response = await login(fake, client, email, "synthetic-password")
+        finally:
+            if stage == "commit":
+                event.remove(Session, "before_commit", fail_commit)
+    assert response.status_code == 503
+    assert "set-cookie" not in response.headers
+    assert "moodprint_session" not in client.cookies
+
+    async with app.state.database.sessions() as db:
+        before = await db.scalar(select(func.count()).select_from(User).where(User.auth_subject == subject))
+        assert before == (1 if stage == "view" else 0)
+    assert (await login(fake, client, email, "synthetic-password")).status_code == 200
+    async with app.state.database.sessions() as db:
+        users = (await db.scalars(select(User).where(User.auth_subject == subject))).all()
+        assert len(users) == 1
+        assert await db.scalar(select(func.count()).select_from(Consent).where(Consent.user_id == users[0].id)) == 4
+        # A committed but unissued session may remain until expiry; it is never
+        # returned by the failed response, and we do not revoke another session.
+        assert await db.scalar(select(func.count()).select_from(AuthSession).where(AuthSession.user_id == users[0].id)) == (2 if stage == "view" else 1)
 
 
 @pytest.mark.postgres

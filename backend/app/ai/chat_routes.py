@@ -4,11 +4,6 @@ from contextlib import ExitStack
 from datetime import timedelta
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import JSONResponse, StreamingResponse
-from sqlalchemy import delete, select, tuple_, update
-from starlette.background import BackgroundTask
-
 from app.ai.context import MOOD_TURN_POLICY, TEXT_POLICY, ContextStamp
 from app.ai.models import AiConversation, AiMessageRecord, AiPreference, AiTurn
 from app.ai.persistence import (
@@ -55,6 +50,10 @@ from app.modules.guests.limits import reserve_guest_quota
 from app.modules.guests.output import REVOKED_EVENT
 from app.modules.guests.policy import guest_paid_available
 from app.modules.guests.pricing import ai_upper, budget_nano
+from fastapi import APIRouter, Depends, Query, Request
+from fastapi.responses import JSONResponse, StreamingResponse
+from sqlalchemy import delete, select, tuple_, update
+from starlette.background import BackgroundTask
 
 router = APIRouter()
 DEFAULT_TITLE = "Cuộc trò chuyện mới"
@@ -69,9 +68,8 @@ MAX_SAVED_CONVERSATIONS = 500
 
 async def _ephemeral_epoch(db, user_id):
     """Current AI consent version and latest private-data deletion request time."""
-    from sqlalchemy import func
-
     from app.modules.users.models import DataJob
+    from sqlalchemy import func
 
     ai_version = await db.scalar(
         select(Consent.version).where(Consent.user_id == user_id, Consent.purpose == "AI")
@@ -658,14 +656,18 @@ async def durable_run(request, actor, run_id, *, poll=False, recover=True, with_
         await assert_purpose(db, user, "AI")
         if recover:
             await recover_turns(db)
-        row = await db.scalar(select(AiRun).where(AiRun.id == run_id, AiRun.user_id == user.id))
-        turn = await db.get(AiTurn, run_id)
+        found = (await db.execute(
+            select(AiRun, AiTurn)
+            .join(AiTurn, AiTurn.run_id == AiRun.id)
+            .join(AiConversation, AiConversation.id == AiTurn.conversation_id)
+            .where(AiRun.id == run_id, AiRun.user_id == user.id, AiRun.origin == "user",
+                   AiTurn.user_id == user.id, AiConversation.user_id == user.id,
+                   AiConversation.kind == "direct", AiConversation.expires_at > now())
+        )).one_or_none()
         # Check-ins have no stream; they appear through the conversation and the inbox.
-        if row is None or row.origin != "user" or turn is None or turn.conversation_id is None:
+        if found is None:
             raise DomainError(404, "NOT_FOUND", "Không tìm thấy lượt trò chuyện.")
-        c = await owned_conversation(db, turn.conversation_id, user.id)
-        if not c:
-            raise DomainError(404, "NOT_FOUND", "Không tìm thấy cuộc trò chuyện.")
+        row, turn = found
         if user.data_version != turn.data_version:
             raise DomainError(410, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
         # Every bubble of the run, in order; a replay never shows a partial reply because
@@ -673,7 +675,9 @@ async def durable_run(request, actor, run_id, *, poll=False, recover=True, with_
         # V3: a handoff target's bubbles live under its child run of this turn.
         children = select(AiRun.id).where(AiRun.parent_run_id == run_id, AiRun.origin == "agent")
         answers = []
-        for record, speaker in (
+        # Replies publish atomically with terminal status. A running turn has no
+        # publishable answer; avoid a repeated empty transcript query every250ms.
+        records = [] if row.status == "running" else (
             await db.execute(
                 select(AiMessageRecord, AiRun.bot_id)
                 .join(AiRun, AiRun.id == AiMessageRecord.run_id)
@@ -683,7 +687,8 @@ async def durable_run(request, actor, run_id, *, poll=False, recover=True, with_
                 )
                 .order_by(AiMessageRecord.sequence)
             )
-        ).all():
+        ).all()
+        for record, speaker in records:
             record.speaker = speaker
             answers.append(record)
         if with_receipt or with_steps:

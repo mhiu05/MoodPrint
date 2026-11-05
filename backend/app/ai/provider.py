@@ -25,9 +25,6 @@ from agents.items import TResponseInputItem
 from agents.models.openai_responses import OpenAIResponsesModel
 from agents.result import RunResultStreaming
 from agents.tool import Tool
-from openai import AsyncOpenAI
-from openai.types.shared import Reasoning
-
 from app.ai.agents import caps
 from app.ai.conversation import conversation_intent, requested_presentation
 from app.ai.evidence import MoodAnalysisPlan, render_mood_analysis, source_instructions
@@ -51,8 +48,10 @@ from app.ai.usage import UsageEvent, UsageObserver
 from app.core.config import Settings
 from app.core.errors import DomainError
 from app.core.outbound import openai_http_client
+from openai import AsyncOpenAI
+from openai.types.shared import Reasoning
 
-RUN_TIMEOUT_SECONDS = 30.0
+RUN_TIMEOUT_SECONDS = 120.0
 _DURABLE_CLAIM = re.compile(
     r"(?:^|[.!?\n]\s*)(?:(?:mình|tôi|i)\s+)?"
     r"(?:đã\s+(?:lưu|ghi nhớ|xuất bản|gửi lời mời|kết nối)|"
@@ -157,20 +156,47 @@ class SdkProvider:
         self.settings = settings
         self.usage_observer = usage_observer
         self.prompt_variant = prompt_variant
+        self._bounded_mode = settings.ai_bounded_reservations_enabled
         # One keep-alive client per runtime: per-turn clients paid a TLS handshake each turn.
         self._client: AsyncOpenAI | None = None
+        from app.ai.dispatch import ProviderDispatchGate
+
+        capacity = 2 if settings.ai_dispatch_process_lane == "proactive" else 50
+        self.dispatch_gate = ProviderDispatchGate(capacity, settings.ai_dispatch_queue_limit, min(4, capacity))
         set_tracing_disabled(True)
+
+    def _guard_model(self, model: Model, *, background: bool = False) -> Model:
+        from app.ai.dispatch import DispatchModel
+
+        if not self.settings.ai_dispatch_gate_enabled or isinstance(model, DispatchModel):
+            return model
+        return DispatchModel(model, self.dispatch_gate, self.settings.ai_timeout_seconds, background)
+
+    def _dispatch_hooks(self, hooks):
+        from app.ai.dispatch import PostQueueHooks
+
+        return PostQueueHooks(hooks) if self.settings.ai_dispatch_gate_enabled else hooks
 
     def _openai(self, key: str) -> AsyncOpenAI:
         if self._client is None:
             self._client = AsyncOpenAI(
                 api_key=key,
                 max_retries=0,
-                http_client=openai_http_client(self.settings.provider_force_ipv4),
+                http_client=openai_http_client(self.settings.provider_force_ipv4, bounded_reservations=self._bounded_mode),
             )
         return self._client
 
     def _check_capped_model(self, override: Model | str | None) -> None:
+        if self.settings.app_env == "production" and (
+            self.settings.ai_daily_budget_usd <= 0 or not self.settings.ai_accounting_enabled
+        ):
+            from app.ai.accounting import budget_unavailable
+            raise budget_unavailable()
+        if self._bounded_mode != self.settings.ai_bounded_reservations_enabled or (
+            self._bounded_mode and self.settings.ai_daily_budget_usd <= 0
+        ):
+            from app.ai.accounting import budget_unavailable
+            raise budget_unavailable()
         if self.settings.ai_daily_budget_usd <= 0:
             return
         from app.ai.accounting import CAPPED_RATES, budget_unavailable
@@ -216,7 +242,7 @@ class SdkProvider:
             if self.usage_observer:
                 await self.usage_observer(event)
 
-        async with asyncio.timeout(RUN_TIMEOUT_SECONDS):
+        async with asyncio.timeout(min(RUN_TIMEOUT_SECONDS, self.settings.ai_timeout_seconds)):
             if isinstance(model_override, Model):
                 return await self._stream(
                     bot_id, history, tools, context, on_progress, model_override, observe,
@@ -249,9 +275,14 @@ class SdkProvider:
     ) -> AiReply:
         guard = getattr(context, "before_dispatch", None)
         if guard is not None:
+            from app.ai.dispatch import DispatchModel
             from app.ai.guest_model import GuestGuardedModel
 
+            if isinstance(model, DispatchModel):
+                model = model.delegate
             model = GuestGuardedModel(model, guard)
+        # Queue first; the guest lifetime/reservation fence must run AFTER that wait.
+        model = self._guard_model(model)
         public_search = bool(getattr(context, "public_search", False))
         has_scope = caps(bot_id).mood_scope and getattr(context, "mood_scope", None) is not None
         runtime_context = hasattr(context, 'sources')
@@ -302,7 +333,7 @@ class SdkProvider:
             input=cast(list[TResponseInputItem], model_input),
             context=context,
             max_turns=3,
-            hooks=_BudgetHooks(on_progress, observer),
+            hooks=self._dispatch_hooks(_BudgetHooks(on_progress, observer)),
             run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False),
         )
         try:
@@ -374,7 +405,7 @@ class SdkProvider:
             name=f"MoodPrint:{bot_id}:proactive",
             instructions=instructions(bot_id, self.prompt_variant) + proactive_instructions(bot_id, slot, teen=teen)
             + extra_instructions,
-            model=model,
+            model=self._guard_model(model, background=True),
             tools=[],
             output_type=output_type,
             output_guardrails=[_no_unreceipted_claim],
@@ -392,12 +423,12 @@ class SdkProvider:
             if self.usage_observer:
                 await self.usage_observer(event)
 
-        async with asyncio.timeout(RUN_TIMEOUT_SECONDS):
+        async with asyncio.timeout(min(RUN_TIMEOUT_SECONDS, self.settings.ai_timeout_seconds)):
             result = Runner.run_streamed(
                 agent,
                 input=cast(list[TResponseInputItem], [input_item]),
                 max_turns=2,
-                hooks=_BudgetHooks(on_progress, observe),
+                hooks=self._dispatch_hooks(_BudgetHooks(on_progress, observe)),
                 run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False),
             )
             try:
@@ -414,11 +445,11 @@ class SdkProvider:
         """The SDK model of one agent in a V3 workflow (tests pass a synthetic Model)."""
         self._check_capped_model(override)
         if isinstance(override, Model):
-            return override
+            return self._guard_model(override)
         key = self.settings.openai_api_key.get_secret_value()
         if not key or not (override or self.settings.openai_model) or not self.settings.ai_available_for(user_id):
             raise DomainError(503, "AI_UNAVAILABLE", "Trò chuyện AI hiện chưa khả dụng.")
-        return OpenAIResponsesModel(override or self.settings.openai_model, self._openai(key))
+        return self._guard_model(OpenAIResponsesModel(override or self.settings.openai_model, self._openai(key)))
 
     async def run_once(
         self,
@@ -435,7 +466,7 @@ class SdkProvider:
         """One structured model call (V3 planner/selector): no tools, no transcript, no tracing."""
         set_tracing_disabled(True)
         agent = Agent[Any](
-            name=name, instructions=instructions, model=model, tools=[], output_type=output_type,
+            name=name, instructions=instructions, model=self._guard_model(model), tools=[], output_type=output_type,
             model_settings=ModelSettings(
                 store=False, max_tokens=max_tokens, timeout=limit_seconds, retry=ModelRetrySettings(max_retries=0),
                 reasoning=Reasoning(effort="low"),
@@ -443,7 +474,7 @@ class SdkProvider:
         )
         async with asyncio.timeout(limit_seconds):
             result = Runner.run_streamed(
-                agent, input=cast(list[TResponseInputItem], input_items), max_turns=1, hooks=hooks,
+                agent, input=cast(list[TResponseInputItem], input_items), max_turns=1, hooks=self._dispatch_hooks(hooks),
                 run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False),
             )
             try:
@@ -465,10 +496,10 @@ class SdkProvider:
         runs stay inside the SDK. Tracing is off and nothing is stored provider-side.
         """
         set_tracing_disabled(True)
-        async with asyncio.timeout(RUN_TIMEOUT_SECONDS):
+        async with asyncio.timeout(min(RUN_TIMEOUT_SECONDS, self.settings.ai_timeout_seconds)):
             result = Runner.run_streamed(
                 agent, input=cast(list[TResponseInputItem], history), context=context, max_turns=max_turns,
-                hooks=hooks, run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False),
+                hooks=self._dispatch_hooks(hooks), run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False),
             )
             try:
                 async for _ in result.stream_events():
@@ -523,7 +554,7 @@ class SdkProvider:
         agent = Agent[Any](
             name=name,
             instructions=instructions,
-            model=model,
+            model=self._guard_model(model, background=name == "MoodPrint:journal-memory"),
             tools=[],
             output_type=output_type,
             # 600 includes reasoning tokens (R-15: 300 risks response.incomplete); output is
@@ -546,7 +577,7 @@ class SdkProvider:
                 input=cast(list[TResponseInputItem], [input_item]),
                 context=context,
                 max_turns=1,
-                hooks=_BudgetHooks(on_progress, observe, model_limit=1, tool_limit=0),
+                hooks=self._dispatch_hooks(_BudgetHooks(on_progress, observe, model_limit=1, tool_limit=0)),
                 run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False),
             )
             try:

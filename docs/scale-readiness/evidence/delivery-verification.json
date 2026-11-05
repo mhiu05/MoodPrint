@@ -1,0 +1,170 @@
+{
+  "at_utc": "2026-11-05T10:16:59.470543+00:00",
+  "branch": "feat/upgrade-user",
+  "head": "0573af5b50c0584c523e5119755479fcf47fae74",
+  "baseline_preserved": {
+    ".gitignore": true,
+    "backend/runtime.txt": true,
+    "frontend/evidence/test-results/.last-run.json": true
+  },
+  "git_diff_check_exit": 0,
+  "scoped_ruff": "PASS (12 explicitly named changed files)",
+  "scoped_mypy": "PASS (4 files, follow-imports=silent); initial missing deque annotation fixed",
+  "current_backend": "242 passed in449.37s;candidate gate enabled",
+  "current_frontend": {
+    "typecheck": "PASS",
+    "vitest_passed": 206,
+    "node_passed": 2,
+    "playwright_passed": 25
+  },
+  "global_docs_checker": "FAIL on pre-existing user-deleted targets",
+  "docs_failures": [
+    {
+      "source": "docs\\agents\\evaluation.md",
+      "line": 43,
+      "target": "docs/matching/evaluation.md",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "docs\\backend\\operations.md",
+      "line": 52,
+      "target": "docs/implementation-plans/proactive-multi-agent-companion/96-architecture-hardening-review.md",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "docs\\backend\\operations.md",
+      "line": 79,
+      "target": "docs/implementation-plans/agent-search-and-skills/11-live-release.md",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "docs\\backend\\operations.md",
+      "line": 96,
+      "target": "docs/implementation-plans/proactive-multi-agent-companion/evidence/sql/0022-0023-offline.candidate.sql",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "docs\\frontend\\testing.md",
+      "line": 51,
+      "target": "docs/matching/evaluation.md",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "docs\\frontend\\testing.md",
+      "line": 51,
+      "target": "docs/implementation-plans/journal-intelligence-and-matching-removal/10-test-change-inventory.md",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "docs\\README.md",
+      "line": 15,
+      "target": "docs/matching/README.md",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "docs\\README.md",
+      "line": 24,
+      "target": "docs/matching/algorithm.md",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "docs\\README.md",
+      "line": 24,
+      "target": "docs/matching/evaluation.md",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "docs\\supabase\\migrations.md",
+      "line": 53,
+      "target": "docs/implementation-plans/journal-intelligence-and-matching-removal/06-verification-and-release.md",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "docs\\supabase\\migrations.md",
+      "line": 57,
+      "target": "docs/implementation-plans/agent-search-and-skills/0024-0028-live.sql",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "docs\\supabase\\migrations.md",
+      "line": 59,
+      "target": "docs/implementation-plans/agent-search-and-skills/11-live-release.md",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "docs\\supabase\\migrations.md",
+      "line": 63,
+      "target": "docs/implementation-plans/proactive-multi-agent-companion/93-release-rollback-and-observability.md",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "docs\\supabase\\migrations.md",
+      "line": 63,
+      "target": "docs/implementation-plans/proactive-multi-agent-companion/evidence/sql/0020-0022-offline.candidate.sql",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "docs\\verification.md",
+      "line": 6,
+      "target": "docs/implementation-plans/journal-intelligence-and-matching-removal/08-execution-ledger.md",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "ARCHITECTURE.md",
+      "line": 125,
+      "target": "docs/implementation-plans/proactive-multi-agent-companion/phase-2/02-orchestration-architecture.md",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "ARCHITECTURE.md",
+      "line": 142,
+      "target": "docs/matching/README.md",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "ARCHITECTURE.md",
+      "line": 154,
+      "target": "docs/implementation-plans/journal-intelligence-and-matching-removal/06-verification-and-release.md",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "README.md",
+      "line": 6,
+      "target": "docs/implementation-plans/journal-intelligence-and-matching-removal/06-verification-and-release.md",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "README.md",
+      "line": 8,
+      "target": "docs/matching/README.md",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "backend\\evals\\matching\\README.md",
+      "line": 16,
+      "target": "docs/matching/algorithm.md",
+      "deleted_in_baseline": true
+    },
+    {
+      "source": "backend\\evals\\matching\\README.md",
+      "line": 16,
+      "target": "docs/matching/evaluation.md",
+      "deleted_in_baseline": true
+    }
+  ],
+  "new_scale_docs_missing_links": 0,
+  "credential_pattern_scan_suspects": [],
+  "credential_scan_scope": "Owned evidence text files only;pattern scan is not a complete secret or security audit",
+  "owned_disposable_containers_removed": [
+    "moodprint-disposable-3659984110c64efc811c54e70d438002",
+    "moodprint-disposable-c2011872501f495385be83e58841c887"
+  ],
+  "existing_user_database_preserved": true,
+  "excluded_sensitive_configuration": [
+    "backend/.env",
+    "backend/runtime.txt",
+    ".mcp.json"
+  ],
+  "approved_cloud_mutation": "C02a SES canary identity created and verified;no SMTP/DNS/IAM/runtime mutation",
+  "release_decision": "NO-GO"
+}

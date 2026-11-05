@@ -10,6 +10,7 @@ from app.ai.search.models import AiSearchUsage
 from app.ai.search.schemas import WebSearchResult
 from app.ai.search.web import WebSearchAdapter
 from app.ai.usage import UsageEvent
+from app.core.errors import DomainError
 from app.core.security import assert_purpose, lock_actor
 from app.infrastructure.database.models import AiRun, AiUsage, now
 
@@ -20,6 +21,10 @@ class WebSearchService:
 
     async def search(self, query: str, run) -> WebSearchResult:
         runtime, settings = self.runtime, self.runtime.settings
+        if settings.ai_dispatch_gate_enabled:
+            # Hosted search has its own HTTP path and fee semantics. Until it shares
+            # the post-queue authority fence, never bypass the candidate model gate.
+            raise DomainError(503, "AI_DISPATCH_UNSUPPORTED", "Tìm kiếm web chưa khả dụng với cấu hình hàng đợi thử nghiệm.", True)
         remaining = min(30, settings.ai_timeout_seconds) - (time.monotonic() - run.started)
         if remaining < 20:
             return WebSearchResult(status="unavailable")

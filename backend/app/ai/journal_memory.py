@@ -12,12 +12,8 @@ from typing import Literal
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
-from pydantic import Field
-from sqlalchemy import Date, and_, case, exists, func, or_, select, text, true, update
-from sqlalchemy.dialects.postgresql import insert
-
 from app.ai.accounting import (
-    CAPPED_PRICING_VERSION,
+    CAPPED_VERSIONS,
     RUN_RESERVATION_NANO,
     UsageSnapshot,
     budget_unavailable,
@@ -47,6 +43,9 @@ from app.modules.journal.ai_settings import journal_ai_allowed
 from app.modules.journal.models import JournalEntry
 from app.modules.journal.quota import reserve_daily_capacity, settle_daily_capacity
 from app.modules.journal.service import active_dates
+from pydantic import Field
+from sqlalchemy import Date, and_, case, exists, func, or_, select, text, true, update
+from sqlalchemy.dialects.postgresql import insert
 
 log = logging.getLogger("moodprint.journal_memory")
 PROMPT_VERSION = "journal-memory-v1"
@@ -223,12 +222,15 @@ async def _reserve_model(db, runtime, user, run_id):
         scope = (AiRun.origin == "journal", relevant)
         if await db.scalar(select(AiUsage.run_id).join(AiRun, AiRun.id == AiUsage.run_id).where(*scope, AiUsage.estimated_nano_usd.is_(None)).limit(1)):
             raise budget_unavailable()
-        cost = case((AiUsage.pricing_version != CAPPED_PRICING_VERSION,
+        cost = case((AiUsage.pricing_version.not_in(CAPPED_VERSIONS),
                      func.greatest(AiUsage.estimated_nano_usd, AiUsage.input_tokens*550+AiUsage.output_tokens*1650)),
                     else_=AiUsage.estimated_nano_usd)
         liability = int(await db.scalar(select(func.coalesce(func.sum(cost), 0)).join(AiRun, AiRun.id == AiUsage.run_id).where(*scope)) or 0)
-        ceiling = int(min(Decimal(str(settings.ai_daily_budget_usd)), Decimal(20)) * Decimal(str(settings.journal_auto_memory_budget_share)) * 1_000_000_000)
-        if liability + RUN_RESERVATION_NANO > ceiling:
+        from app.ai.accounting import global_budget_nano
+        ceiling = int(Decimal(global_budget_nano(settings.ai_daily_budget_usd)) * Decimal(str(settings.journal_auto_memory_budget_share)))
+        from app.ai.envelope import BOUNDED_RESERVATION_NANO
+        bound = BOUNDED_RESERVATION_NANO if settings.ai_bounded_reservations_enabled else RUN_RESERVATION_NANO
+        if liability + bound > ceiling:
             raise DomainError(503, "JOURNAL_MEMORY_BUDGET_SHARE", "Đã đạt giới hạn xử lý nhật ký tự động.")
     await reserve_accounting(db, run_id, user.id, runtime.worker_id, settings.openai_model, PROMPT_VERSION, settings=settings)
 

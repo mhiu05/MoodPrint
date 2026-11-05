@@ -1,0 +1,21 @@
+{
+  "at_utc": "2026-11-05T06:44:34.559571+00:00",
+  "run_id": "3659984110c64efc811c54e70d438002",
+  "case": "T1",
+  "environment": "L0",
+  "real_generation_calls": 0,
+  "external_generation_spend_usd": 0,
+  "head": "0573af5b50c0584c523e5119755479fcf47fae74",
+  "working_tree_dirty": true,
+  "result": {
+    "status": "LOCAL_SYNTHETIC_PASS",
+    "scope": "Synthetic app accounts/sessions/consents only; Auth confirmation and 30/90-day journal/vector growth NOT validated",
+    "counts": {
+      "users": 1000,
+      "sessions": 1000,
+      "consents": 4000
+    },
+    "database_bytes": 40288783,
+    "growth_profile_complete": false
+  }
+}

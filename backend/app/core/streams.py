@@ -6,12 +6,16 @@ from app.core.errors import DomainError
 
 
 class StreamSlots:
-    def __init__(self, limit: int):
+    def __init__(self, limit: int, total_limit: int | None = None):
         self.limit = limit
+        self.total_limit = total_limit
         self.active: dict[UUID, int] = {}
 
     def reserve(self, user_id: UUID):
         """Reserve synchronously, before any await, so concurrent requests cannot overshoot."""
+        if self.total_limit is not None and self.open() >= self.total_limit:
+            raise DomainError(429, "STREAM_LIMIT", "Đang có nhiều kết nối. Bạn hãy thử lại sau ít giây.",
+                              True, retry_after=2)
         if self.active.get(user_id, 0) >= self.limit:
             raise DomainError(
                 429, "STREAM_LIMIT", "Có quá nhiều kết nối đang mở. Hãy đóng bớt tab.", True

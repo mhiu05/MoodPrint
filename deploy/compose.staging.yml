@@ -18,7 +18,8 @@ services:
     security_opt: [no-new-privileges:true]
     mem_limit: 768m
     cpus: 1.5
-    stop_grace_period: 150s
+    # Covers maximum group deadline240s + server cleanup10s + container margin20s.
+    stop_grace_period: 270s
     healthcheck:
       test: [CMD, /srv/moodprint/.venv/bin/python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health/ready',timeout=5)"]
       interval: 20s

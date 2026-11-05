@@ -56,20 +56,25 @@ async def _today(db: AsyncSession) -> date:
     return (await database_time(db)).astimezone(BANGKOK).date()
 
 
-async def detached_liability(db, at) -> int:
-    """Guest totals survive purge; include days overlapping the global UTC window."""
+def detached_liability_statement(at):
+    """Compose the purge-proof totals into the caller's financial snapshot."""
     since = at.astimezone(UTC).date() - timedelta(days=1)
     unresolved = select(GuestCostReservation.id).where(
         GuestCostReservation.day == GuestBudgetDay.day,
         GuestCostReservation.state.in_(("reserved", "dispatched", "uncertain")),
     ).exists()
+    return select(func.coalesce(func.sum(
+        GuestBudgetDay.spent_nano_usd + GuestBudgetDay.reserved_nano_usd), 0)).where(
+            or_(GuestBudgetDay.day >= since, GuestBudgetDay.reserved_nano_usd > 0, unresolved))
+
+
+async def detached_liability(db, at) -> int:
+    """Guest totals survive purge; include days overlapping the global UTC window."""
     if await db.scalar(select(GuestBudgetDay.day).where(GuestBudgetDay.halted_at.is_not(None)).limit(1)):
         from app.ai.accounting import budget_unavailable
 
         raise budget_unavailable()
-    return int(await db.scalar(select(func.coalesce(func.sum(
-        GuestBudgetDay.spent_nano_usd + GuestBudgetDay.reserved_nano_usd), 0)).where(
-            or_(GuestBudgetDay.day >= since, GuestBudgetDay.reserved_nano_usd > 0, unresolved))) or 0)
+    return int(await db.scalar(detached_liability_statement(at)) or 0)
 
 
 async def reserve_guest_operation(
@@ -89,7 +94,6 @@ async def reserve_guest_operation(
         raise unavailable()
     capped = settings is not None and settings.ai_daily_budget_usd > 0
     if capped:
-        from decimal import Decimal
 
         from app.ai.accounting import budget_liability
         from app.modules.guests.pricing import ai_upper, budget_nano, kind_available
@@ -113,7 +117,8 @@ async def reserve_guest_operation(
             return Reservation(existing.id, existing.upper_nano_usd)
     if capped:
         at = await database_time(db)
-        ceiling = int(min(Decimal(str(settings.ai_daily_budget_usd)), Decimal(20)) * 1_000_000_000)
+        from app.ai.accounting import global_budget_nano
+        ceiling = global_budget_nano(settings.ai_daily_budget_usd)
         if await budget_liability(db, at) + upper_cost > ceiling:
             raise DomainError(503, "AI_BUDGET_EXHAUSTED", "AI đã đạt giới hạn sử dụng. Vui lòng thử lại sau.", True)
         if await detached_liability(db, at) + upper_cost > limit_nano_usd:

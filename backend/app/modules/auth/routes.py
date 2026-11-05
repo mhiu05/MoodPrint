@@ -229,13 +229,20 @@ IP_LIMIT = AttemptLimiter(40, 900, *AUTH_LIMITED)
 EMAIL_LIMIT = AttemptLimiter(3, 3600, *AUTH_LIMITED)
 
 
+def _admit_auth(request: Request, action: str) -> None:
+    if request.app.state.settings.auth_nat_policy_enabled:
+        request.app.state.auth_admission.check(action, _client_key(request))
+    else:
+        IP_LIMIT.check(_client_key(request))
+
+
 @router.post("/auth/login", response_model=SessionView)
 async def login(body: LoginInput, request: Request, response: Response):
     settings = request.app.state.settings
     request.app.state.database.require()
     _check_origin(request)
     email = body.email.strip().lower()
-    IP_LIMIT.check(_client_key(request))
+    _admit_auth(request, "login")
     LOGIN_LIMIT.check("email:" + email)
     # Password verification, hashing and account recovery remain Supabase's responsibility.
     provider = await SupabaseAuth(request).password_session(email, body.password, captcha_token=body.captcha_token)
@@ -308,7 +315,7 @@ async def signup(body: SignupInput, request: Request):
     ) != "adult":
         raise DomainError(403, "ADULT_REQUIRED", AGE_REQUIRED_MESSAGE)
     email = body.email.strip().lower()
-    IP_LIMIT.check(_client_key(request))
+    _admit_auth(request, "signup")
     EMAIL_LIMIT.check("signup:" + email)
     await SupabaseAuth(request).sign_up(email, body.password, captcha_token=body.captcha_token)
     return AuthNotice(status="sent")
@@ -318,7 +325,7 @@ async def signup(body: SignupInput, request: Request):
 async def resend_confirmation(body: EmailInput, request: Request):
     _check_origin(request)
     email = body.email.strip().lower()
-    IP_LIMIT.check(_client_key(request))
+    _admit_auth(request, "confirmation")
     EMAIL_LIMIT.check("confirm:" + email)
     await SupabaseAuth(request).resend_confirmation(email, captcha_token=body.captcha_token)
     return AuthNotice(status="sent")
@@ -328,7 +335,7 @@ async def resend_confirmation(body: EmailInput, request: Request):
 async def request_password_recovery(body: EmailInput, request: Request):
     _check_origin(request)
     email = body.email.strip().lower()
-    IP_LIMIT.check(_client_key(request))
+    _admit_auth(request, "recovery")
     EMAIL_LIMIT.check("recover:" + email)
     await SupabaseAuth(request).request_recovery(email, captcha_token=body.captcha_token)
     return AuthNotice(status="sent")
@@ -337,20 +344,27 @@ async def request_password_recovery(body: EmailInput, request: Request):
 @router.post("/auth/password-reset", response_model=AuthNotice)
 async def reset_password(body: PasswordResetInput, request: Request):
     _check_origin(request)
-    IP_LIMIT.check(_client_key(request))
+    _admit_auth(request, "reset")
     provider = SupabaseAuth(request)
-    subject = await provider.update_password(body.access_token, body.password)
-    await provider.sign_out(body.access_token)
+    checked = await provider.verify_token(body.access_token)
+    if checked.is_anonymous:
+        raise DomainError(403, "REGISTERED_REQUIRED", "Tính năng này cần tài khoản đã đăng ký.")
     async with request.app.state.database.require()() as db, db.begin():
-        # A password reset ends every existing MoodPrint session for the account.
+        # Fence local sessions BEFORE changing the remote password. A DB/commit
+        # failure cannot leave a changed password with old local sessions active.
+        # After commit, a rejected/ambiguous provider call keeps this fence; the
+        # user may need to sign in again even if the password update did not finish.
         user_id = await db.scalar(
             update(User)
-            .where(User.auth_subject == subject)
+            .where(User.auth_subject == checked.user_id)
             .values(auth_version=User.auth_version + 1)
             .returning(User.id)
         )
     if user_id:
         request.app.state.ai.invalidate(str(user_id))
+    # Reverify the token at the provider immediately before its password mutation.
+    await provider.update_password(body.access_token, body.password)
+    await provider.sign_out(body.access_token)
     return AuthNotice(status="updated")
 
 

@@ -2,8 +2,6 @@
 
 from datetime import timedelta
 
-from sqlalchemy import Date, cast, delete, func, select
-
 from app.infrastructure.database.models import (
     AiRun,
     AiUsage,
@@ -15,6 +13,8 @@ from app.infrastructure.database.models import (
 )
 from app.modules.journal.quota import expired_receipts
 from app.modules.social.models import CandidateReference, HumanMessage
+from sqlalchemy import Date, cast, delete, func, select
+from sqlalchemy.orm import aliased
 
 
 async def purge_expired(app):
@@ -38,7 +38,9 @@ async def purge_expired(app):
                     select(AiUsage.run_id)
                     .where(
                         AiUsage.created_at <= now() - timedelta(days=90),
-                        AiUsage.state != "open",
+                        # An uncertain dispatch is an outstanding financial liability,
+                        # regardless of age; time passing cannot refund it.
+                        AiUsage.state == "settled",
                     )
                     .limit(1000)
                     .with_for_update(skip_locked=True)
@@ -82,6 +84,8 @@ async def purge_expired(app):
         # no longer anchor any message. Usage rows for these runs cascade.
         from app.ai.models import AiMessageRecord
 
+        child_run = aliased(AiRun)
+
         run_ids = (
             await db.scalars(
                 select(AiRun.id)
@@ -89,6 +93,11 @@ async def purge_expired(app):
                     AiRun.created_at <= now() - timedelta(days=90),
                     AiRun.status != "running",
                     ~select(AiMessageRecord.id).where(AiMessageRecord.run_id == AiRun.id).exists(),
+                    ~select(AiUsage.run_id).where(AiUsage.run_id == AiRun.id,
+                                                  AiUsage.state.in_(("open", "uncertain"))).exists(),
+                    # Deleting a parent cascades to children. Let safely settled children
+                    # be pruned first, then its childless parent on a later sweep.
+                    ~select(child_run.id).where(child_run.parent_run_id == AiRun.id).exists(),
                 )
                 .order_by(AiRun.id)
                 .limit(1000)

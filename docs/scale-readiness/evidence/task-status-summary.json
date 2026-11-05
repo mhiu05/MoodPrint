@@ -1,0 +1,176 @@
+{
+  "total": 41,
+  "statuses": {
+    "IN_PROGRESS": 27,
+    "BLOCKED": 7,
+    "DONE": 2,
+    "DEFERRED": 3,
+    "FAILED": 2
+  },
+  "tasks": [
+    {
+      "id": "P0-H01",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P0-H02",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "P0-H03",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "P1-A01",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P1-A02",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P1-A03",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P1-A04",
+      "status": "DONE"
+    },
+    {
+      "id": "P1-A05",
+      "status": "DONE"
+    },
+    {
+      "id": "P1-A06",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P1-A07",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P1-A08",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "P1-A09",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "P1-A10",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P1-A11",
+      "status": "DEFERRED"
+    },
+    {
+      "id": "P2-D01",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P2-D02",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P2-D03",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P2-D04",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P2-D05",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P2-D06",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P2-D07",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P2-D08",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P2-D09",
+      "status": "DEFERRED"
+    },
+    {
+      "id": "P2-D10",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "P3-I01",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P3-I02",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P3-I03",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P3-I04",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P3-I05",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P3-I06",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P3-I07",
+      "status": "FAILED"
+    },
+    {
+      "id": "P3-I08",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P3-I09",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "P3-I10",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P3-I11",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P3-I12",
+      "status": "DEFERRED"
+    },
+    {
+      "id": "P4-E01",
+      "status": "FAILED"
+    },
+    {
+      "id": "P4-E02",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P4-E03",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P5-L01",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "P5-L02",
+      "status": "BLOCKED"
+    }
+  ]
+}

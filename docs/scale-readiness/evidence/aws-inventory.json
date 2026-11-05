@@ -1,0 +1,223 @@
+{
+  "status": "success",
+  "stdout": "",
+  "return_value": {
+    "observed_at_utc": "2026-11-05T06:23:50.354083+00:00",
+    "account_suffix": "3536",
+    "region": "ap-southeast-2",
+    "scope": "Application=MoodPrint resources only",
+    "instances": [
+      {
+        "instance_suffix": "0452db",
+        "name": [
+          "moodprint-staging"
+        ],
+        "type": "t3.small",
+        "state": "running",
+        "vcpus": 2,
+        "public_network": true,
+        "iam_profile_attached": true,
+        "imds_tokens": "required",
+        "credit_mode": [
+          "unlimited"
+        ],
+        "volumes": [
+          {
+            "Size": 30,
+            "Encrypted": true,
+            "VolumeType": "gp3",
+            "Iops": 3000,
+            "Throughput": 125,
+            "State": "in-use"
+          }
+        ],
+        "ssm": [
+          {
+            "ping": "Online",
+            "platform": "Ubuntu",
+            "version": "3.3.4793.0"
+          }
+        ],
+        "alarms": [],
+        "snapshots": [],
+        "metrics_24h": {
+          "CPUUtilization": {
+            "samples": 288,
+            "latest": {
+              "Timestamp": "2026-11-05T06:18:00+00:00",
+              "Average": 7.8698944240805755,
+              "Minimum": 6.632584870355519,
+              "Maximum": 8.399160083991601,
+              "Unit": "Percent"
+            },
+            "maximum": 39.87776038370583
+          },
+          "CPUCreditBalance": {
+            "samples": 288,
+            "latest": {
+              "Timestamp": "2026-11-05T06:18:00+00:00",
+              "Average": 576,
+              "Minimum": 576,
+              "Maximum": 576,
+              "Unit": "Count"
+            },
+            "maximum": 576
+          },
+          "CPUSurplusCreditBalance": {
+            "samples": 288,
+            "latest": {
+              "Timestamp": "2026-11-05T06:18:00+00:00",
+              "Average": 0,
+              "Minimum": 0,
+              "Maximum": 0,
+              "Unit": "Count"
+            },
+            "maximum": 0
+          },
+          "CPUSurplusCreditsCharged": {
+            "samples": 288,
+            "latest": {
+              "Timestamp": "2026-11-05T06:18:00+00:00",
+              "Average": 0,
+              "Minimum": 0,
+              "Maximum": 0,
+              "Unit": "Count"
+            },
+            "maximum": 0
+          }
+        }
+      }
+    ],
+    "ses": {
+      "ProductionAccessEnabled": false,
+      "SendingEnabled": true,
+      "SendQuota": {
+        "Max24HourSend": 200,
+        "MaxSendRate": 1,
+        "SentLast24Hours": 0
+      },
+      "SuppressionAttributes": {
+        "SuppressedReasons": [
+          "BOUNCE",
+          "COMPLAINT"
+        ]
+      },
+      "EnforcementStatus": "HEALTHY",
+      "PricingAttributes": {
+        "CurrentPlan": "ESSENTIALS"
+      }
+    },
+    "ses_identities": [],
+    "ses_event_destinations": []
+  },
+  "api_calls": [
+    {
+      "service": "sts",
+      "operation": "GetCallerIdentity",
+      "status": "success"
+    },
+    {
+      "service": "ec2",
+      "operation": "DescribeInstances",
+      "status": "success",
+      "n_items": {
+        "Reservations": 1
+      }
+    },
+    {
+      "service": "sesv2",
+      "operation": "GetAccount",
+      "status": "success"
+    },
+    {
+      "service": "sesv2",
+      "operation": "ListEmailIdentities",
+      "status": "success",
+      "n_items": {
+        "EmailIdentities": 0
+      }
+    },
+    {
+      "service": "sesv2",
+      "operation": "ListConfigurationSets",
+      "status": "success",
+      "n_items": {
+        "ConfigurationSets": 0
+      }
+    },
+    {
+      "service": "ec2",
+      "operation": "DescribeInstanceCreditSpecifications",
+      "status": "success",
+      "n_items": {
+        "InstanceCreditSpecifications": 1
+      }
+    },
+    {
+      "service": "ec2",
+      "operation": "DescribeVolumes",
+      "status": "success",
+      "n_items": {
+        "Volumes": 1
+      }
+    },
+    {
+      "service": "ssm",
+      "operation": "DescribeInstanceInformation",
+      "status": "success",
+      "n_items": {
+        "InstanceInformationList": 1
+      }
+    },
+    {
+      "service": "cloudwatch",
+      "operation": "DescribeAlarms",
+      "status": "success",
+      "n_items": {
+        "MetricAlarms": 0,
+        "CompositeAlarms": 0,
+        "LogAlarms": 0
+      }
+    },
+    {
+      "service": "ec2",
+      "operation": "DescribeSnapshots",
+      "status": "success",
+      "n_items": {
+        "Snapshots": 0
+      }
+    },
+    {
+      "service": "cloudwatch",
+      "operation": "GetMetricStatistics",
+      "status": "success",
+      "n_items": {
+        "Datapoints": 288
+      }
+    },
+    {
+      "service": "cloudwatch",
+      "operation": "GetMetricStatistics",
+      "status": "success",
+      "n_items": {
+        "Datapoints": 288
+      }
+    },
+    {
+      "service": "cloudwatch",
+      "operation": "GetMetricStatistics",
+      "status": "success",
+      "n_items": {
+        "Datapoints": 288
+      }
+    },
+    {
+      "service": "cloudwatch",
+      "operation": "GetMetricStatistics",
+      "status": "success",
+      "n_items": {
+        "Datapoints": 288
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "observed_date": "2026-11-05",
+  "region": "ap-southeast-2",
+  "type": "m7i-flex.large",
+  "on_demand_linux_shared_rates": [
+    {
+      "unit": "Hrs",
+      "usd": "0.1197000000",
+      "description": "$0.1197 per On Demand Linux m7i-flex.large Instance Hour",
+      "effective_date": "2026-11-01T00:00:00Z"
+    }
+  ],
+  "account_discounts_and_credits_verified": false,
+  "not_a_total_bill": true
+}

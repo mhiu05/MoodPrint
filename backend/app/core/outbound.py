@@ -22,17 +22,22 @@ def provider_transport(force_ipv4: bool) -> httpx.AsyncHTTPTransport:
     )
 
 
-def openai_http_client(force_ipv4: bool, total: float = 30):
+def openai_http_client(force_ipv4: bool, total: float = 30, *, bounded_reservations: bool = False):
     """The OpenAI SDK ships its own httpx fork (httpx2) with the same transport API."""
     import httpx2
 
-    return httpx2.AsyncClient(
-        transport=httpx2.AsyncHTTPTransport(
+    transport = httpx2.AsyncHTTPTransport(
             retries=CONNECT_RETRIES,
             local_address="0.0.0.0" if force_ipv4 else None,
             limits=httpx2.Limits(
                 max_connections=100, max_keepalive_connections=20, keepalive_expiry=60
             ),
-        ),
+        )
+    if bounded_reservations:
+        from app.ai.envelope import BoundedResponsesTransport
+
+        transport = BoundedResponsesTransport(transport)
+    return httpx2.AsyncClient(
+        transport=transport,
         timeout=httpx2.Timeout(total, connect=min(5.0, total)),
     )
