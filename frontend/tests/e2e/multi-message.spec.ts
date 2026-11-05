@@ -61,9 +61,7 @@ async function mount(page: Page, mode: Mode) {
       "/bots": bots,
       "/ai/preferences": prefs,
       "/ai/conversations": [thread],
-      "/social/summary": { pendingIncomingRequests: 0, unreadConnections: 0, activityInvites: 0 },
-      "/proposals": [], "/memories": [], "/connections": [], "/connection-requests": [], "/activities/catalog": [],
-      "/profiles/published/current": null,
+      "/proposals": [], "/memories": [],
     };
     if (request.method() === "GET" && path in fixed) return json(fixed[path]);
     return json({ error: { code: "NOT_FOUND", message: `Missing synthetic fixture ${path}` } }, 404);

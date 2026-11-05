@@ -136,6 +136,41 @@ F khôi phục file0029 về directory gốc và exporter gốc, giữ `_env_fil
 
 ## Git và CI của bản sửa preflight
 
+### Tiếp tục C/F — 05/11 09:14–09:20 UTC+7
+
+- PR39 CI exact-head `efa4ff4b` đã completed/success cả
+  [push41950633391](https://github.com/mhiu05/MoodPrint/actions/runs/41950633391)
+  và [PR41950641821](https://github.com/mhiu05/MoodPrint/actions/runs/41950641821).
+  Merge bình thường (không admin bypass) lúc09:14:21, main
+  `1c64affa98ad1a52630f0cf62874ded123eb91df`; hold vẫn còn ở commit này.
+- Pin snapshot F an toàn bằng branch `release/ji51-feature-safe-snapshot` tại1c64affa.
+- C đã commit/push `fe4cee6c3b711d04fbe29537344005fdebb0763a`,
+  [PR40](https://github.com/mhiu05/MoodPrint/pull/40); fullCI
+  [push41953385033](https://github.com/mhiu05/MoodPrint/actions/runs/41953385033)
+  và [PR41953466317](https://github.com/mhiu05/MoodPrint/actions/runs/41953466317)
+  đang chạy. Gỡ hold chỉ trong ứng viên C; chưa merge/publish/deployC.
+- Một lần stage C dùng nhầm path `evals` ở root đã fail, commit không được tạo;
+  branch push đầu chỉ mang head cũ efa4ff4b. Đã sửa stage có kiểm exit, commit
+  thực tếfe4cee6c gồm đầy đủ restored-untracked source và reviewed-migrations;
+  không tính lượt cũ làm CI của C.
+- F ứng viên tạo trên Cfe4cee6c, phục hồi212path từ snapshot1c64affa, bỏ config
+  review-only của C và đưa migration0029 về directory chuẩn. Staged diff so với
+  snapshot an toàn có **0file backend/frontend/scripts/workflow/lock khác biệt**;
+  chỉ khác gỡ hold và ledger/evidence. Docs/SQLchecker/diffcheck PASS.
+- Reviewer F xác minh parity, không lỗi Critical/Important về source. F merge
+  vẫn phụ thuộc C đang chạy, rollback digest, hosted0029 và gates vận hành.
+- Cost gate: reviewer không tìm được trần tăng thêm1USD cho fullpaid smoke;
+  reservation2USD/run là liability bảo thủ, không phải bill. Voyage journal chỉ
+  có cap thao tác, thiếu aggregate-dollar cap. Hai cờ journal mới phải false
+  trước Fstartup; không coi hai cờ này là fence các provider khác. Đã hỏi riêng
+  chủ dự án về giữ1USD/hoãn paid phase hoặc cho phép10USD, chưa tự tăng trần.
+- Chủ dự án xác nhận đã login QA trong Chrome thường. Agent-browser CAPTCHA
+  trước đó có mã600010; script đã tải nhưng challenge thất bại. CLI mở Chrome
+  với remote-debugging bị automatic approval review từ chối “blocked by policy”,
+  không bypass. Chrome extension tạo tab được nhưng API điều hướng/evaluate/CDP
+  có internal `timeoutMs` error; tab QA đã claim và markHandoff, chưa đọc nội dung
+  tài khoản. Đây là blocker công cụ smoke, không phải bằng chứng lỗi app F.
+
 - Commit code/test: `2d8f233073e0eb6cd457e4a4a5b2a1ee1d2f56d0`.
 - Đã push `release/ji51-preflight`, mở [PR39](https://github.com/mhiu05/MoodPrint/pull/39).
 - Tại checkpoint 05/11 08:45 UTC+7, [CI push](https://github.com/mhiu05/MoodPrint/actions/runs/41950420709)

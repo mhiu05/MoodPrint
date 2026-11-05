@@ -97,34 +97,12 @@ def forbidden(self):
     raise AssertionError("Alembic attempted dotenv access")
 DotEnv.dict = forbidden
 from alembic.config import main
-main(argv=["-c", "../deploy/supabase/reviewed-migrations/alembic.ini", "upgrade", "0028_collaboration_defaults:0029_journal_intelligence", "--sql"])
+main(argv=["upgrade", "0028_collaboration_defaults:0029_journal_intelligence", "--sql"])
 '''
     result = subprocess.run([sys.executable, "-c", code], cwd=ROOT/"backend", capture_output=True, text=True,
                             env={**os.environ, "DATABASE_MIGRATION_URL": "postgresql+psycopg://localhost/moodprint_review_test"})
     assert result.returncode == 0, result.stderr
     assert "journal_ai_settings" in result.stdout
-
-
-def test_compat_review_configuration_refuses_online_before_engine_creation():
-    import os
-    import subprocess
-    import sys
-
-    code = '''
-import sqlalchemy.ext.asyncio
-def forbidden(*args, **kwargs):
-    raise AssertionError("Online review reached engine creation")
-sqlalchemy.ext.asyncio.create_async_engine = forbidden
-from alembic.config import main
-main(argv=["-c", "../deploy/supabase/reviewed-migrations/alembic.ini", "upgrade", "head"])
-'''
-    result = subprocess.run(
-        [sys.executable, "-c", code], cwd=ROOT / "backend", capture_output=True, text=True,
-        env={**os.environ, "DATABASE_MIGRATION_URL": "postgresql+psycopg://localhost/moodprint_review_test"},
-    )
-    assert result.returncode != 0
-    assert "Review-only migration configuration requires --sql" in result.stderr
-    assert "Online review reached engine creation" not in result.stderr
 
 
 @pytest.mark.parametrize("upgrade", [None, "0029"])

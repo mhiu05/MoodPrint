@@ -193,10 +193,10 @@ export function AuthScreen({
       ) : <Brand />}
       <h1 tabIndex={-1}>{landing && mode === "login" ? "Bắt đầu với MoodPrint" : titles[mode][0]}</h1>
       {landing && mode === "login" ? (
-        <p className="landing-auth-lede">MoodPrint là nơi ghi lại cảm xúc, trò chuyện với trợ lý AI và kết nối với người khác qua những điểm chung bạn chọn chia sẻ.</p>
+        <p className="landing-auth-lede">MoodPrint là nơi ghi lại cảm xúc, trò chuyện với trợ lý AI và để trợ lý AI giúp bạn hiểu nhật ký của chính mình.</p>
       ) : null}
       {!landing && (mode === "login" || mode === "signup") ? (
-        <p>MoodPrint là nơi ghi lại cảm xúc, trò chuyện với trợ lý AI và kết nối với người khác qua những điểm chung bạn chọn chia sẻ.</p>
+        <p>MoodPrint là nơi ghi lại cảm xúc, trò chuyện với trợ lý AI và để trợ lý AI giúp bạn hiểu nhật ký của chính mình.</p>
       ) : null}
       {(!landing || mode !== "login") && <p className={cx.lede}>{titles[mode][1]}</p>}
       {(mode === "login" || mode === "signup") && <p>MoodPrint dành cho người từ đủ 18 tuổi.</p>}

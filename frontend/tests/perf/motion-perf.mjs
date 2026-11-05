@@ -95,8 +95,7 @@ async function measure(browser, baseURL, scenario, reducedMotion = "no-preferenc
       await held;
       return route.fulfill({ contentType: "text/event-stream", body: sse([{ type: "progress" }, { type: "final", data: { text: "Mình nghe bạn đây.", cards: [] } }, { type: "completed" }]) });
     }
-    if (["/proposals", "/memories", "/connections", "/connection-requests"].includes(path)) return json([]);
-    if (path === "/social/summary") return json({ pendingIncomingRequests: 0, unreadConnections: 0, activityInvites: 0 });
+    if (["/proposals", "/memories"].includes(path)) return json([]);
     if (path === "/moods") return json([]);
     if (path === "/moods/summary") return json({ from: "2026-10-17", to: "2026-10-23", count: 0, mean: null, min: null, max: null, insightAvailable: false, buckets: [] });
     return json({ error: { code: "NOT_FOUND", message: "Missing fixture" } }, 404);
@@ -137,8 +136,8 @@ async function measure(browser, baseURL, scenario, reducedMotion = "no-preferenc
       longTasks: perf.longTasks,
     });
   } else {
-    await page.goto(`${baseURL}/#/messages`);
-    await page.getByRole("heading", { level: 1, name: "Tin nhắn" }).waitFor();
+    await page.goto(`${baseURL}/#/assistants`);
+    await page.getByRole("heading", { level: 1, name: "Chọn một trợ lý" }).waitFor();
     await page.waitForTimeout(300);
     await page.evaluate(() => {
       window.__perf.layoutShift = 0; window.__perf.longTasks = [];

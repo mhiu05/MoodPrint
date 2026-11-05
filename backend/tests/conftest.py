@@ -53,6 +53,11 @@ def pytest_configure(config):
     )
     from app.core.config import Settings
     Settings.model_config["env_file"] = None
+    from tests.settings_baseline import ALL_FEATURES_OFF
+
+    # Keep every synthetic Settings() caller on the legacy baseline. Tests of
+    # defaults explicitly remove these variables; never weaken the secret guard.
+    os.environ.update({name.upper(): str(value).lower() for name, value in ALL_FEATURES_OFF.items()})
 
 
 def pytest_asyncio_loop_factories(config, item):
@@ -80,6 +85,7 @@ async def database():
     from app.modules.activities import models as activity_models  # noqa: F401
     from app.modules.feedback import models as feedback_models  # noqa: F401
     from app.modules.guests import models as guest_models  # noqa: F401
+    from app.modules.journal import ai_models as journal_ai_models  # noqa: F401
     from app.modules.journal import models as journal_models  # noqa: F401
     from app.modules.moderation import models as safety_models  # noqa: F401
     from app.modules.social import models  # noqa: F401 -- register every table before reset
@@ -114,9 +120,34 @@ async def clients(database):
 
     from app.core.config import Settings
     from app.main import create_app
+    from tests.settings_baseline import ALL_FEATURES_OFF
 
-    app = create_app(Settings(_env_file=None, database_url=str(database.url.render_as_string(hide_password=False))))
+    app = create_app(Settings(_env_file=None, database_url=str(database.url.render_as_string(hide_password=False)), **ALL_FEATURES_OFF))
     # Using the injected engine keeps test teardown and application queries on the same event loop.
+    await app.state.database.engine.dispose()
+    app.state.database.engine = database
+    app.state.database.sessions = async_sessionmaker(database, expire_on_commit=False)
+    actors = [await add_actor(app, index) for index in range(2)]
+    app.state.test_clients = [client for client, _ in actors]
+    yield app, actors
+    for client in app.state.test_clients:
+        await client.aclose()
+    await app.state.ai.close()
+
+
+@pytest.fixture
+async def clients_defaults(database, monkeypatch):
+    """Real feature defaults with synthetic actors, no optional provider secrets."""
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+
+    from app.core.config import FEATURE_FLAGS, Settings
+    from app.main import create_app
+
+    for name in (*FEATURE_FLAGS, "database_url", "database_migration_url", "supabase_url",
+                 "supabase_publishable_key", "openai_api_key", "openai_model", "stt_model",
+                 "voyage_api_key", "apify_api_token", "guest_abuse_hmac_key", "guest_captcha_site_key"):
+        monkeypatch.delenv(name.upper(), raising=False)
+    app = create_app(Settings(_env_file=None, database_url=database.url.render_as_string(hide_password=False)))
     await app.state.database.engine.dispose()
     app.state.database.engine = database
     app.state.database.sessions = async_sessionmaker(database, expire_on_commit=False)
@@ -165,3 +196,15 @@ async def add_actor(app, index: int, age_band: str = "adult"):
 @pytest.fixture
 def write_headers():
     return {"Idempotency-Key": str(uuid4())}
+
+
+@pytest.fixture
+async def journal_configured(clients):
+    from pydantic import SecretStr
+
+    app, actors = clients
+    app.state.settings.journal_semantic_enabled = True
+    app.state.settings.voyage_api_key = SecretStr("synthetic-no-network")
+    app.state.settings.voyage_dimensions = 256
+    app.state.settings.voyage_model = "synthetic"
+    return app, actors

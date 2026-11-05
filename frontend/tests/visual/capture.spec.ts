@@ -1,6 +1,6 @@
 import { artifactPath } from "../artifacts";
 import { expect, test, type Page } from "@playwright/test";
-import { app, baseSession, room, sessionWith } from "../e2e/ux-fixtures";
+import { app, sessionWith } from "../e2e/ux-fixtures";
 
 // Synthetic data only. Screens are captured after their real data has settled.
 const out = artifactPath("visual", process.env.CAPTURE_DIR || "../docs/ux-redesign/evidence/redesign");
@@ -12,7 +12,7 @@ const bots = [
   { botId: "guong", name: "Gương", role: "Nhìn lại bản thân", description: "Cùng nhìn lại một ngày bằng những câu hỏi nhẹ nhàng.", starters: ["Mình muốn nhìn lại hôm nay"], avatarKey: "guong" },
   { botId: "nhip", name: "Nhịp", role: "Theo dõi cảm xúc", description: "Đọc những ngày bạn chọn chia sẻ để cùng nhìn xu hướng.", starters: ["Tuần này mình thế nào?"], avatarKey: "nhip" },
   { botId: "rure", name: "Rủ Rê", role: "Gợi ý hoạt động", description: "Gợi ý những việc nhỏ để làm cùng người khác.", starters: ["Gợi ý mình một hoạt động"], avatarKey: "rure" },
-  { botId: "caunoi", name: "Cầu Nối", role: "Chuẩn bị kết nối", description: "Giúp bạn xem lại hồ sơ tìm bạn trước khi chia sẻ.", starters: ["Mình nên giới thiệu thế nào?"], avatarKey: "caunoi" },
+  { botId: "caunoi", name: "Cầu Nối", role: "Trợ lý cũ", description: "Lịch sử trò chuyện.", starters: [], avatarKey: "caunoi" },
 ];
 const conversation = {
   conversationId: "22222222-2222-4222-8222-222222222222", botId: "may", version: 4, persistent: true, title: "Một ngày dài ở trường",
@@ -39,7 +39,6 @@ for (const width of widths) {
       "/moods": () => ({ json: [] }),
       "/moods/summary": () => ({ json: { from: "2026-10-17", to: "2026-10-23", count: 0, mean: null, min: null, max: null, insightAvailable: false, buckets: [] } }),
       "/users/me/identity": () => ({ json: [] }),
-      "/connections": () => ({ json: [room] }),
     });
     await page.goto("/#/assistants");
     await expect(page.getByRole("link", { name: /Cầu Nối/ }).first()).toBeVisible();
@@ -58,9 +57,9 @@ for (const width of widths) {
     await page.goto("/#/settings");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await shot(page, "settings", width);
-    await page.goto("/#/messages");
+    await page.goto("/#/profile");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await shot(page, "messages", width);
+    await shot(page, "profile", width);
     await page.goto("/#/self");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await shot(page, "mood", width);

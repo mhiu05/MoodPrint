@@ -96,7 +96,7 @@ async def test_document_provider_is_cancelled_at_guest_deadline(clients):
 
 @pytest.mark.parametrize("closed", ["flag", "price", "budget"])
 async def test_guest_query_embedding_needs_its_own_funded_admission(clients, closed):
-    from app.ai.embeddings import process_embedding_jobs, retrieve_memories
+    from app.ai.embeddings import MemoryText, process_embedding_jobs, retrieve_memories
     from app.core.security import Actor
     app, _ = clients
     guest, settings, memory = await semantic_guest(app, started_ago=timedelta(minutes=1))
@@ -115,11 +115,11 @@ async def test_guest_query_embedding_needs_its_own_funded_admission(clients, clo
     provider.release.set()
     result = await retrieve_memories(app.state.database, settings, Actor(guest.user_id, guest.session_id, 1, "guest"), "may", "đọc sách", 1, provider=provider)
     assert provider.calls == [], "query embeddings are separately paid, not covered by model token reservation"
-    assert result == ["Tôi thích đọc sách"], "lexical fallback preserves approved memory without an external call"
+    assert result == [MemoryText("Tôi thích đọc sách", "approved")], "lexical fallback preserves approved memory without an external call"
 
 
 async def test_funded_query_embedding_is_charged_once_without_consuming_a_document_slot(clients):
-    from app.ai.embeddings import process_embedding_jobs, retrieve_memories
+    from app.ai.embeddings import MemoryText, process_embedding_jobs, retrieve_memories
     from app.core.security import Actor
     from app.modules.guests.models import GuestUsage
     app, _ = clients
@@ -132,7 +132,7 @@ async def test_funded_query_embedding_is_charged_once_without_consuming_a_docume
     actor = Actor(guest.user_id, guest.session_id, 1, "guest")
     for _ in range(2):
         assert await retrieve_memories(app.state.database, settings, actor, "may", "đọc sách", 1,
-            provider=provider, operation_key="query-replay") == ["Tôi thích đọc sách"]
+            provider=provider, operation_key="query-replay") == [MemoryText("Tôi thích đọc sách", "approved")]
     assert [kind for _, kind in provider.calls] == ["document", "query"]
     assert (await today_row(app)).spent_nano_usd == 22
     async with app.state.database.sessions() as db:

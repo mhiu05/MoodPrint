@@ -43,10 +43,10 @@ Không sửa generated file bằng tay. TypeScript type không validate dữ li�
 
 **AI:** `consumeAIEvents()` dùng fetch SSE, kiểm tra version/seq/fields/cards, buffer final đến `completed`. Xem [runtime protocol](../agents/runtime.md). Lost stream yêu cầu reconcile trạng thái, không tự gọi model lần nữa.
 
-**Social:** [useConnectionEvents](../../frontend/src/features/real/social/useConnectionEvents.ts) cập nhật watermark/tín hiệu thay đổi của room; client đọc lại projection message/activity. [useSocialSummary](../../frontend/src/features/real/social/useSocialSummary.ts) phục vụ badge riêng của viewer. Read marker không phải read receipt công khai của peer.
+Giao diện social và các hook polling của nó đã được gỡ trong kế hoạch journal intelligence. [Navigation](../../frontend/src/features/real/navigation.ts) chỉ còn nhật ký, trợ lý và tài khoản; các router social backend vẫn được giữ.
 
 ## State của màn hình
 
-Mỗi flow phải có loading, unavailable/error, empty và success. Discovery empty khác chưa có profile, chưa bật MATCH hoặc lỗi server. Conversation draft không đồng nghĩa message accepted. Form dùng version từ response mới nhất; 409 cần đọc trạng thái hiện tại thay vì tăng version giả.
+Mỗi flow phải có loading, unavailable/error, empty và success. Conversation draft không đồng nghĩa message accepted. Form dùng version từ response mới nhất; 409 cần đọc trạng thái hiện tại thay vì tăng version giả.
 
 Identity `displayName` là input, `gender` là select chuẩn hóa các nhãn Nam/Nữ/Khác trong UI hiện tại. Voice chép vào draft để người dùng xem trước, không tự gửi message. Quick starters chỉ xuất hiện trước user message đầu tiên và khi không loading/busy. Đây là hành vi của working tree được kiểm thử trong lần cập nhật tài liệu này.
