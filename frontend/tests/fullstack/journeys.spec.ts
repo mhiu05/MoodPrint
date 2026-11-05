@@ -2,6 +2,7 @@ import { artifactPath } from "../artifacts";
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { randomUUID } from "node:crypto";
+import { fillProfileEditor } from "./helpers";
 
 async function session(context: BrowserContext, number: number) {
   await context.addCookies([
@@ -21,6 +22,10 @@ async function session(context: BrowserContext, number: number) {
   ]);
 }
 
+async function publish(page: Page) {
+  await page.goto("/#/connect?tab=profile");
+  await fillProfileEditor(page);
+}
 
 test("existing ages 16 and 17 retain accounts but cannot use any private or social feature", async ({ browser }) => {
   for (const [number, years] of [[7, 16], [8, 17]]) {
@@ -82,12 +87,15 @@ test("the eighteenth-year account confirms its actual birthday before applicatio
   } finally { await context.close(); }
 });
 
-test("real FastAPI/PostgreSQL preserves mood and streams through the SDK", async ({
+test("real FastAPI/PostgreSQL preserves mood, streams through the SDK, and connects two users", async ({
   browser,
 }) => {
-  const a = await browser.newContext();
+  const a = await browser.newContext(),
+    b = await browser.newContext();
   await session(a, 1);
-  const one = await a.newPage();
+  await session(b, 2);
+  const one = await a.newPage(),
+    two = await b.newPage();
   await one.goto("/#/self/daily");
   await one
     .getByRole("textbox", { name: "Ghi chú", exact: true })
@@ -114,7 +122,195 @@ test("real FastAPI/PostgreSQL preserves mood and streams through the SDK", async
   await expect(
     one.getByText("Mây đã nhận được chia sẻ của bạn qua SDK.", { exact: true }),
   ).toBeVisible();
+  await publish(one);
+  await publish(two);
+  await one.goto("/#/connect");
+  await one.getByRole("button", { name: "Tải lại gợi ý", exact: true }).click();
+  await one.getByRole("button", { name: "Gửi lời mời kết nối", exact: true }).click();
+  await expect(one.getByText("Đã gửi lời mời kết nối.", { exact: true })).toBeVisible();
+  await two.goto("/#/connect?tab=requests");
+  await two
+    .getByRole("button", { name: "Tải lại lời mời", exact: true })
+    .click();
+  await two
+    .getByRole("button", { name: "Đồng ý kết nối", exact: true })
+    .click();
+  await two
+    .getByRole("link", { name: "Mở cuộc trò chuyện", exact: true })
+    .click();
+  await one.goto("/#/messages");
+  await one.getByRole("link", { name: /Bạn đồng hành/ }).click();
+  await one
+    .getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" })
+    .fill("Chào bạn, mình cũng thích đọc sách!");
+  await one.getByRole("button", { name: "Gửi tin nhắn", exact: true }).click();
+  await expect(
+    two
+      .getByRole("log")
+      .getByText("Chào bạn, mình cũng thích đọc sách!", { exact: true }),
+  ).toBeVisible({ timeout: 10000 });
+  await two.reload();
+  await expect(
+    two
+      .getByRole("log")
+      .getByText("Chào bạn, mình cũng thích đọc sách!", { exact: true }),
+  ).toBeVisible();
   await a.close();
+  await b.close();
+});
+
+test("only the identity owner grants reveal, revocation removes access, and reporting is separate from blocking", async ({
+  browser,
+}) => {
+  const a = await browser.newContext(),
+    b = await browser.newContext();
+  await session(a, 3);
+  await session(b, 4);
+  const one = await a.newPage(),
+    two = await b.newPage();
+  const base = "http://127.0.0.1:5174/api/v1";
+  const write = async (
+    context: BrowserContext,
+    number: number,
+    path: string,
+    data: unknown,
+  ) => {
+    const result = await context.request.post(base + path, {
+      data,
+      headers: {
+        "X-CSRF-Token": `e2e-synthetic-csrf-${number}`,
+        "Idempotency-Key": crypto.randomUUID(),
+      },
+    });
+    expect(result.ok(), await result.text()).toBeTruthy();
+    return result.json();
+  };
+  for (const [context, number] of [
+    [a, 3],
+    [b, 4],
+  ] as const) {
+    const headers = {
+      "X-CSRF-Token": `e2e-synthetic-csrf-${number}`,
+      "Idempotency-Key": crypto.randomUUID(),
+    };
+    expect(
+      (
+        await context.request.put(base + "/consents/MATCH", {
+          data: { enabled: true, expectedVersion: 1, policyVersion: "v1" },
+          headers,
+        })
+      ).ok(),
+    ).toBeTruthy();
+    const draft = {
+      interests: ["reading", "music", "walking"],
+      values: ["respect", "kindness"],
+      style: "balanced",
+      goal: "shared-interests",
+      languages: ["vi"],
+      expectedVersion: 0,
+    };
+    expect(
+      (
+        await context.request.put(base + "/profiles/matching-draft", {
+          data: draft,
+          headers: { ...headers, "Idempotency-Key": crypto.randomUUID() },
+        })
+      ).ok(),
+    ).toBeTruthy();
+    const preview = await write(
+      context,
+      number,
+      "/profiles/matching-draft/preview",
+      {},
+    );
+    await write(context, number, "/profiles/published", {
+      draftVersion: preview.draftVersion,
+      previewDigest: preview.previewDigest,
+      expectedPublishedVersion: 0,
+    });
+  }
+  const candidates = await (
+    await a.request.get(base + "/matching/candidates")
+  ).json();
+  const pending = await write(a, 3, "/connection-requests", {
+    candidateRef: candidates.candidates[0].candidateRef,
+  });
+  const accepted = await write(
+    b,
+    4,
+    `/connection-requests/${pending.id}/accept`,
+    { expectedVersion: pending.version },
+  );
+  const room = accepted.connectionId;
+  await one.goto("/#/connect?tab=identity");
+  await one
+    .getByRole("textbox", { name: "Tên hiển thị", exact: true })
+    .fill("Tên được chủ nhân lựa chọn");
+  await one
+    .getByRole("button", { name: "Lưu tên hiển thị", exact: true })
+    .click();
+  await expect(
+    one.getByText("Đã cập nhật thông tin riêng.", { exact: true }),
+  ).toBeVisible();
+  await one.goto(`/#/chat/${room}`);
+  await two.goto(`/#/chat/${room}`);
+  await one
+    .getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" })
+    .fill("Một tin nhắn để chọn báo cáo");
+  await one.getByRole("button", { name: "Gửi tin nhắn", exact: true }).click();
+  await expect(
+    two
+      .getByRole("log")
+      .getByText("Một tin nhắn để chọn báo cáo", { exact: true }),
+  ).toBeVisible();
+  await two
+    .getByRole("button", { name: "Chia sẻ và an toàn" })
+    .click();
+  await two
+    .getByRole("button", { name: "Yêu cầu xem tên hiển thị", exact: true })
+    .click();
+  await one
+    .getByRole("button", { name: "Chia sẻ và an toàn" })
+    .click();
+  await one
+    .getByRole("button", { name: "Đồng ý chia sẻ", exact: true })
+    .click();
+  await two
+    .getByRole("button", { name: "Xem thông tin đã được chia sẻ", exact: true })
+    .click();
+  await expect(
+    two.getByText("Tên được chủ nhân lựa chọn", { exact: true }),
+  ).toBeVisible();
+  await one
+    .getByRole("button", { name: "Ngừng chia sẻ", exact: true })
+    .click();
+  await expect(
+    two.getByText("Tên được chủ nhân lựa chọn", { exact: true }),
+  ).toHaveCount(0, { timeout: 10000 });
+  await two
+    .getByRole("textbox", { name: "Lý do báo cáo", exact: true })
+    .fill("Kiểm tra tiếp nhận báo cáo");
+  await two
+    .getByRole("checkbox", {
+      name: "Một tin nhắn để chọn báo cáo",
+      exact: true,
+    })
+    .check();
+  await two.getByRole("button", { name: "Gửi báo cáo", exact: true }).click();
+  await expect(
+    two.getByText("Đã gửi báo cáo.", { exact: true }),
+  ).toBeVisible();
+  await two
+    .getByRole("button", { name: "Chặn kết nối này", exact: true })
+    .click();
+  await two.getByRole("button", { name: "Chặn người này", exact: true }).click();
+  await expect(
+    one
+      .locator('[role="log"]')
+      .getByText("Một tin nhắn để chọn báo cáo", { exact: true }),
+  ).toHaveCount(0, { timeout: 10000 });
+  await a.close();
+  await b.close();
 });
 
 test("approved memory uses the edited approval, survives reload, and local privacy actions return real receipts", async ({
@@ -174,6 +370,7 @@ test("real authenticated screens reflow and pass automated accessibility checks 
       ["/profile", "Tài khoản"],
       ["/settings", "Tài khoản"],
       ["/self", "Nhật ký cảm xúc"],
+      ["/connect", "Tìm một người bạn hợp gu"],
     ]) {
       await page.goto(`/#${route}`);
       await expect(

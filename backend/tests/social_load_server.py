@@ -48,11 +48,9 @@ from app.modules.social import models as social_models  # noqa: F401
 from app.modules.users import models as lifecycle_models  # noqa: F401
 from tests.feedback_schema import install_feedback_functions
 from tests.guest_schema import install_auth_fixture, install_guest_guards
-from tests.settings_baseline import ALL_FEATURES_OFF
 
 USERS = int(os.environ.get("MOODPRINT_LOAD_USERS", "50"))
 PORT = int(os.environ.get("MOODPRINT_LOAD_PORT", "8005"))
-
 
 def identity(kind: str, number: int):
     return uuid5(NAMESPACE_URL, f"moodprint-social-load:{kind}:{number}")
@@ -61,18 +59,13 @@ def identity(kind: str, number: int):
 # Production pool defaults (config.py); the driver samples checked-out connections.
 app = create_app(
     Settings(
-        **{
-            **ALL_FEATURES_OFF,
-            **dict(
-                _env_file=None,
-                app_env="test",
-                database_url=DATABASE_URL,
-                frontend_origin=f"http://127.0.0.1:{PORT}",
-                # Beta feature set (J-02): shared activities on, scorer chosen by the driver.
-                activities_enabled=True,
-                matching_scorer=os.environ.get("MOODPRINT_LOAD_SCORER", "v2"),
-            ),
-        }
+        _env_file=None,
+        app_env="test",
+        database_url=DATABASE_URL,
+        frontend_origin=f"http://127.0.0.1:{PORT}",
+        # Beta feature set (J-02): shared activities on, scorer chosen by the driver.
+        activities_enabled=True,
+        matching_scorer=os.environ.get("MOODPRINT_LOAD_SCORER", "v2"),
     )
 )
 
@@ -128,9 +121,7 @@ async def seed():
             uid, provider = identity("user", number), identity("provider", number)
             db.add(User(id=uid, auth_subject=uid, alias=f"Tải {number}", age_band="adult"))
             await db.flush()
-            db.add(
-                AgeDeclaration(user_id=uid, birth_year=2000, policy_version="self-declared-age-v1")
-            )
+            db.add(AgeDeclaration(user_id=uid, birth_year=2000, policy_version="self-declared-age-v1"))
             for purpose in ("AI", "MEM", "MATCH", "VOICE"):
                 db.add(Consent(user_id=uid, purpose=purpose, enabled=False, version=1))
             db.add(

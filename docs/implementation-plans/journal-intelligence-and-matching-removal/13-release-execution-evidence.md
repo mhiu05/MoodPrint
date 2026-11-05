@@ -6,6 +6,12 @@ prompt cũ hoặc tài liệu lịch sử. Không đọc `E:\MoodPrint\backend\.
 
 ## Trạng thái hiện tại
 
+**Tiếp tục 05/11 08:51 UTC+7:** chủ dự án cấp credential qua `backend/runtime.txt`.
+Đã đọc duy nhất file được chỉ định vào bộ nhớ, chọn hai key cần thiết và đặt bản
+runtime tạm trong thư mục ngoài repo có ACL hạn chế. Không đọc `.env`, không stage
+`runtime.txt`. Kiểm target/TLS/identity chỉ đọc PASS; revision vẫn0028. Blocker
+credential bên dưới là checkpoint lịch sử, đã được gỡ. Chưa có hosted mutation.
+
 **Chưa release.** Đã xác minh hosted bằng SSM chỉ đọc; chưa thay đổi runtime,
 chưa bật maintenance, chưa dừng poller hoặc áp SQL. Hosted vẫn là source
 `d6280561a12cf50069ded12422734afb8c5e7335`, revision `0028_collaboration_defaults`.
@@ -35,6 +41,71 @@ file `.env` bị cấm hoặc bypass kiểm tra readiness.
 | 05/11 08:40 | Review-only0029 với approved hash; checker integrity | Offline export khớp, 7488bytes/hash nguyên vẹn; 12pinned/12consumed |
 
 ## Rulings và phụ thuộc
+
+### Thiết kế/thứ tự triển khai C — bổ sung thực thi
+
+Dùng skill writing-plans/executing-plans cho phần source chuyển tiếp của runbook.
+Không cần phát minh thiết kế sản phẩm mới hoặc hỏi lại các bước release đã được duyệt.
+
+- [x] Xác minh credential target/owner/TLS/revision kín.
+- [ ] Hoàn tất PR39 CI xanh, merge không gỡ hold; pin F gồm sửa an toàn.
+- [ ] Tạo C từ manifest **210 path** thuộc diff F so với baseline0028, phục hồi
+  có chọn lọc app/tests/contracts/docs cần khớp source; bảo toàn reviewed SQL,
+  ledger, workflow và mọi thay đổi main ngoài phạm vi.
+- [ ] RED readiness0029 trên ORM0028; GREEN readiness0028/0029; giữ từ chối revision khác.
+- [ ] C online migration head0028 khớp ORM0028. Giữ nguyên byte migration0029 tại
+  `deploy/supabase/reviewed-migrations/` chỉ phục vụ exporter offline; exporter
+  mở thêm đúng directory cố định đó **chỉ** cho range0028→0029. Không đưa0029 vào
+  online version_locations, không sửa SQL/hash và không cho caller chọn SQL tùy ý.
+- [ ] Targeted regression/static/docs/SQL checks, reviewer độc lập, PR C đầy đủCI.
+- [ ] Chỉ gỡ hold khi sẵn sàng vận hành; exact-main CI/publish/attestation/deployC.
+- [ ] Rehearsal schema snapshot chỉ cấu trúc + dữ liệu synthetic trên disposable;
+  không sao chép dữ liệu người dùng sau khi chủ dự án bỏ backup. Báo rõ giới hạn:
+  đây không chứng minh restore bản sao dữ liệu production.
+- [ ] Maintenance/fence worker/poller → approvedSQL0029 → verify → PR Frestore
+  snapshot + sửa an toàn → exact-main CI/publish/deploy → smoke/khôi phục traffic.
+
+Ruling C: tách nguồn offline review khỏi online migration chain giúp C thực sự
+giữ ORM/head0028, đồng thời CI vẫn so sánh nguyên văn approved0029. Giữ0029 trong
+online chain rồi bỏ qua drift sẽ làm sai cổng `alembic check`, nên không làm vậy.
+F khôi phục file0029 về directory gốc và exporter gốc, giữ `_env_file=None`.
+
+### Kết quả C local / rehearsal — 05/11 08:54–09:07 UTC+7
+
+- Readiness RED chính thức:1failed/2passed/30deselected/9,20s;0029 trả503 trước
+  mở window. Một lượt trước đó có ImportError ở test metadata (sửa import đúng
+  module, không coi lỗi setup là bằng chứng RED). GREEN:3passed/7,86s.
+- Offline export khi C chưa có directory review:1failed/29deselected/27,03s.
+  Sau thêm config cố định:30artifact tests passed/31,38s.
+- Config review-only online guard: RED1failed/2,28s, engine stub chặn mọi network;
+  GREEN1passed/1,73s, từ chối trước engine. Không mở remote Alembic guard.
+- Regression backend C:114passed/0failed/0skipped/90,47s, runner93,734s
+  (`test_foundation`, `test_readiness`, `test_guest_cleanup_recovery`,
+  `test_reviewed_artifacts`, `test_database_operations`).
+- Ruff PASS; mypy184files PASS; frontend typecheck PASS,241unit +2script checks
+  PASS,build PASS/5,18s. OpenAPI/contracts xuất lại và khớp baseline0028.
+- Docs PASS:182Markdown/1161links/141operations/113settings/61tables;
+  SQLchecker12pinned/12consumed PASS. Không thay lock/dependency/workflow.
+- Snapshot cấu trúc226072bytes,sha256
+  `41d375cb1e03f9c6d9f208252ad3cb328072b8ded62be97ff62f782f690557f1`;
+  revision metadata1351bytes,sha256
+  `cab0d8afbea8589ae7368fc785b51a1e7eedb8b307221e64977ddb8bf6d0d59a`.
+  Không dump dữ liệu ứng dụng; artifacts ở thư mục ngoài repo ACL hạn chế.
+- Restore vào owned scratch `_test`, `alembic check` C trên cấu trúc0028 PASS.
+  Seed4hàng synthetic(user/entry/proposal/memory), tổng5hàng gồm revision.
+  Rollback transaction0029 PASS; sau đó exactSQL0029commit và8checksPASS
+  (revision,NoSchemaCreate,row-count,RLS,policies,DML,API-role-denial,Auth-structure).
+  Legacy approved-memory origin/default và entry synthetic giữ nguyên.
+  C ASGI ready200 trên0028 và0029. Scratch đã hủy có ownershipcheck;
+  các role local do rehearsal tạo đã drop. Không restore dữ liệu người dùng.
+- Reviewer độc lập so403filebaseline: source app/frontend/migration online chỉ
+  khác readiness có chủ đích; kiểm207/210manifestpath (3envexamples không đọc).
+  Không Critical/Important; migration source0029byte-identical SHA256
+  `52661ecabf74ff271ea4ef297a58cd89aba7dd8158b01723b17baa7bf19eb748`.
+- Gỡ hold trong ứng viên PR C theo ủy quyền release; main vẫn held cho tới mergeC.
+  Chưa publish/deploy C và chưa migration hosted; CI mới vẫn bắt buộc.
+- Browser QA riêng đã mở; chủ dự án gặp lỗi tải CAPTCHA trước đăng nhập.
+  Đang chẩn đoán, không bypass và chưa đọc dữ liệu tài khoản.
 
 - Dùng worktree ngoài repo để bảo toàn working tree của chủ dự án và không sửa
   `.gitignore`. Không cài/nâng dependency hoặc sửa lockfile.

@@ -13,7 +13,6 @@ import pytest
 from sqlalchemy import func, inspect, select, update
 
 from app.ai import embedding_models  # noqa: F401 -- register before the database fixture
-from app.ai.embeddings import MemoryText
 
 
 class SyntheticProvider:
@@ -179,7 +178,7 @@ async def test_retrieval_filters_tenant_and_bot_before_top_k(embedding_env):
     result = await retrieve_memories(
         database, settings, actor, "may", "đọc sách", 1, provider=provider
     )
-    assert result == [MemoryText("Tôi đọc sách để thư giãn", "approved")]
+    assert result == ["Tôi đọc sách để thư giãn"]
     assert provider.calls == [("đọc sách", "query")]
 @pytest.mark.postgres
 async def test_no_indexing_before_semantic_optin_or_after_mem_revocation(embedding_env):
@@ -204,7 +203,7 @@ async def test_no_indexing_before_semantic_optin_or_after_mem_revocation(embeddi
         )
     assert (
         await retrieve_memories(database, settings, actor, "may", "sách", 1, provider=provider)
-    ) == [MemoryText("Tôi đọc sách để thư giãn", "approved")]
+    ) == ["Tôi đọc sách để thư giãn"]
     assert provider.calls == []
 
 
@@ -270,7 +269,7 @@ async def test_config_change_never_compares_incompatible_vectors(embedding_env):
     provider = SyntheticProvider()
     assert await retrieve_memories(
         database, settings, actor, "may", "sách", 1, provider=provider
-    ) == [MemoryText("Tôi đọc sách để thư giãn", "approved")]
+    ) == ["Tôi đọc sách để thư giãn"]
     assert provider.calls == []
 
 
@@ -325,7 +324,7 @@ async def test_vietnamese_retrieval_contract_uses_semantics_and_similarity_thres
         )
         assert await retrieve_memories(
             database, settings, actor, "may", query["text"], 1, provider=TopicProvider()
-        ) == [MemoryText(expected, "approved")]
+        ) == [expected]
 
 
 @pytest.mark.postgres
@@ -344,7 +343,7 @@ async def test_unrelated_user_data_revision_does_not_reembed_approved_memories(e
     await process_embedding_jobs(database, settings, provider=provider)
     assert await retrieve_memories(
         database, settings, actor, "may", "sách", 2, provider=provider
-    ) == [MemoryText("Tôi đọc sách để thư giãn", "approved")]
+    ) == ["Tôi đọc sách để thư giãn"]
     assert [kind for _, kind in provider.calls] == ["document", "query"]
 
 
@@ -382,7 +381,7 @@ async def test_no_external_query_without_index_optin_or_caunoi_and_lexical_fallb
     provider = SyntheticProvider()
     assert (
         await retrieve_memories(database, settings, actor, "may", "sách", 1, provider=provider)
-    )[0] == MemoryText("Tôi đọc sách để thư giãn", "approved")
+    )[0] == "Tôi đọc sách để thư giãn"
     assert (
         await retrieve_memories(database, settings, actor, "caunoi", "sách", 1, provider=provider)
         == []
@@ -395,7 +394,7 @@ async def test_no_external_query_without_index_optin_or_caunoi_and_lexical_fallb
         )
     assert (
         await retrieve_memories(database, settings, actor, "may", "sách", 1, provider=provider)
-    )[0] == MemoryText("Tôi đọc sách để thư giãn", "approved")
+    )[0] == "Tôi đọc sách để thư giãn"
     assert provider.calls == []
 
 

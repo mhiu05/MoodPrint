@@ -62,7 +62,7 @@ test("schedule, delivery, unread, provenance and read state work end to end", as
   expect(((await again.json()).jobs as unknown[]).length).toBe(2);
 
   await page.goto("/#/assistants");
-  await expect(page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("link", { name: "Trợ lý, 2 lời nhắn mới", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Trợ lý, 2 lời nhắn mới" })).toBeVisible();
   const inbox = page.getByRole("region", { name: "Lời nhắn mới" });
   await expect(inbox.getByRole("link")).toHaveCount(2);
   await inbox.getByRole("link", { name: /^Nhịp · Lời hỏi thăm buổi sáng/ }).click();
@@ -71,7 +71,7 @@ test("schedule, delivery, unread, provenance and read state work end to end", as
   await expect(group).toContainText("PROACTIVE-E2E Hôm qua bạn có ghi lại một khoảnh khắc.");
   await expect(page.getByText(/^Lời hỏi thăm buổi sáng · \d\d:\d\d$/)).toBeVisible();
   await expect(group.getByRole("link", { name: /\d\d\/\d\d\/\d{4}/ })).toHaveAttribute("href", /#\/self\/entry\//);
-  await expect(page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("link", { name: "Trợ lý, 1 lời nhắn mới", exact: true })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("link", { name: "Trợ lý, 1 lời nhắn mới" })).toBeVisible({ timeout: 10_000 });
 
   // The persisted run: proactive origin, two bubbles, no user message.
   const conversationId = new URL(page.url().replace("/#", "")).searchParams.get("conversation");
@@ -92,10 +92,10 @@ test("schedule, delivery, unread, provenance and read state work end to end", as
   // A second tab hears about reads without reloading.
   const other = await context.newPage();
   await other.goto("/#/assistants");
-  await expect(other.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("link", { name: "Trợ lý, 1 lời nhắn mới", exact: true })).toBeVisible();
+  await expect(other.getByRole("link", { name: "Trợ lý, 1 lời nhắn mới" })).toBeVisible();
   await page.goto("/#/assistants");
   await page.getByRole("region", { name: "Lời nhắn mới" }).getByRole("button", { name: "Đánh dấu đã đọc tất cả" }).click();
-  await expect(other.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("link", { name: "Trợ lý", exact: true })).toBeVisible({ timeout: 10_000 });
+  await expect(other.getByRole("link", { name: "Trợ lý" })).toBeVisible({ timeout: 10_000 });
   await expect(other.getByRole("region", { name: "Lời nhắn mới" })).toBeHidden();
 
   // Turning journal use off takes effect at once.

@@ -120,9 +120,6 @@ async def create_entry(
             db.add(row)
             user.data_version += 1
             await db.flush()
-            from app.modules.journal.indexing import on_entry_saved
-
-            await on_entry_saved(db, user, row, request.app.state.settings)
             save_receipt(
                 db,
                 user,
@@ -163,9 +160,6 @@ async def update_entry(
             row.version += 1
             user.data_version += 1
             await db.flush()
-            from app.modules.journal.indexing import on_entry_changed
-
-            await on_entry_changed(db, user, row, request.app.state.settings)
             save_receipt(
                 db,
                 user,

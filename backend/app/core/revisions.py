@@ -1,8 +1,6 @@
-"""Journal intelligence requires migration 0029 before traffic.
+"""Intermediate C: the 0028 ORM accepts both schema 0028 and additive 0029.
 
-The ORM maps memory provenance on every memory read; 0029 adds journal settings,
-revision-fenced jobs and vectors. Rollback uses an image accepting 0028/0029;
-never advertise readiness for a schema missing mapped columns.
+Feature F restores the journal-intelligence ORM and must accept only 0029.
 
 The ORM maps ``ai_messages.citations/source_backed`` (0025), ``ai_search_usage`` (0026),
 ``ai_maps_searches`` (0027) and receipt ``permission_policy`` (0028). All four are additive;
@@ -24,6 +22,9 @@ recorded in evidence/execution-phase2.md). Keep this tuple at the current head; 
 head that predates the schema.
 """
 
+# Intermediate C: the unchanged 0028 ORM remains compatible with additive 0029.
+# Restore feature F only after 0029; F must narrow this window to 0029 again.
 READY_REVISIONS: tuple[str, ...] = (
+    "0028_collaboration_defaults",
     "0029_journal_intelligence",
 )

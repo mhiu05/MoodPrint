@@ -15,7 +15,6 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
-from sqlalchemy import text as sql_text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -158,19 +157,8 @@ class Memory(Base):
     text: Mapped[str] = mapped_column(String(120))
     version: Mapped[int] = mapped_column(default=1)
     status: Mapped[str] = mapped_column(String(16), default="active")
-    proposal_id: Mapped[UUID | None] = mapped_column(PGUUID, unique=True)
-    origin: Mapped[str] = mapped_column(String(16), default="approved", server_default="approved")
-    source_entry_id: Mapped[UUID | None] = mapped_column(ForeignKey("moodprint.journal_entries.id", ondelete="CASCADE"))
-    source_entry_version: Mapped[int | None]
-    __table_args__ = (
-        Index("ix_memories_scope", "user_id", "bot_id", "status"),
-        Index("ix_memories_source_entry", "source_entry_id", postgresql_where=sql_text("source_entry_id IS NOT NULL")),
-        Index("uq_memories_auto_text", "source_entry_id", "source_entry_version", sql_text("md5(text)"),
-              unique=True, postgresql_where=sql_text("origin='journal_auto' AND status='active'")),
-        CheckConstraint("(origin='approved' AND proposal_id IS NOT NULL AND source_entry_id IS NULL) OR "
-                        "(origin='journal_auto' AND proposal_id IS NULL AND source_entry_id IS NOT NULL "
-                        "AND source_entry_version IS NOT NULL AND source_entry_version >= 1)", name="origin"),
-    )
+    proposal_id: Mapped[UUID] = mapped_column(PGUUID, unique=True)
+    __table_args__ = (Index("ix_memories_scope", "user_id", "bot_id", "status"),)
 
 
 class Idempotency(Base):
@@ -227,7 +215,7 @@ class AiRun(Base):
             postgresql_where=text("parent_run_id IS NOT NULL"),
         ),
         # 'agent' (V3): a planner, consulted specialist, handoff responder or group speaker run.
-        CheckConstraint("origin in ('user', 'proactive', 'collaboration', 'agent', 'journal')", name="origin"),
+        CheckConstraint("origin in ('user', 'proactive', 'collaboration', 'agent')", name="origin"),
         CheckConstraint("(origin in ('collaboration', 'agent')) = (parent_run_id is not null)", name="parent"),
         CheckConstraint(
             "(origin = 'proactive') = (proactive_slot is not null) "

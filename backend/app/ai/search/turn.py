@@ -46,10 +46,6 @@ async def validate_options(db, settings, user, bot, body):
                 raise DomainError(503, "SEARCH_UNAVAILABLE", "Công cụ tìm kiếm chưa sẵn sàng.")
         if options.skill_id and not settings.ai_agent_skills_enabled:
             raise DomainError(503, "SKILL_UNAVAILABLE", "Kỹ năng chưa sẵn sàng.")
-        if options.skill_id:
-            from app.ai.skills.registry import AGENTS
-            if bot not in AGENTS[options.skill_id]:
-                raise DomainError(422, "SKILL_NOT_FOR_AGENT", "Kỹ năng này không dành cho trợ lý hiện tại.")
 
 
 async def prepare_turn(runtime, run, bot: str, prompt: str) -> list[dict]:

@@ -129,14 +129,6 @@ def _v3(instructions: str, inputs, tools, handoffs, schema=None) -> list | None:
         tail = instructions.split("Đây là một NHÓM", 1)[1]
         name = next((name for name in GROUP_LINES if f"Bạn là {name}." in tail), "Điều phối")
         return _json({"messages": [{"text": GROUP_LINES[name], "cards": []}]})
-    if "[journal-hybrid-e2e]" in json.dumps(inputs, ensure_ascii=False) and "Bạn là Nhật ký" in instructions:
-        results = [item for item in inputs if isinstance(item, dict) and item.get("type") == "function_call_output"]
-        if not results:
-            return [call("search_journal_entries", {"query": "kiệt sức"}, "hybrid_journal")]
-        result = json.loads(results[-1]["output"])
-        sources = [item["id"] for item in result["entries"] if item["match"] == "semantic"][:1]
-        return _json({"messages": [{"text": "JOURNAL-HYBRID-E2E Một ghi nhận từ những trang đã tìm thấy.", "cards": []}],
-                      "source_entry_ids": sources or [item["id"] for item in result["entries"][:1]]})
     called = any(isinstance(item, dict) and item.get("type") == "function_call_output" for item in inputs)
     consult = [tool.name for tool in tools if tool.name.startswith("consult_")]
     if consult and not called:

@@ -10,6 +10,7 @@ export type InlineCard =
   | { kind: "insight" }
   | { kind: "profile"; text: string; decision?: "saved" | "skipped" }
   | { kind: "activity"; mode: "puzzle" | "learn"; revealed?: boolean }
+  | { kind: "match" }
   | { kind: "handoff"; botId: BotId };
 export type BotMessage = {
   id: string;
@@ -79,11 +80,15 @@ export const bots: BotProfile[] = [
   {
     id: "caunoi",
     name: "Cầu Nối",
-    role: "Trợ lý cũ",
-    description: "Lịch sử trò chuyện với Cầu Nối.",
+    role: "Tìm bạn đồng điệu",
+    description: "Từ một điểm chung đến một người bạn.",
     color: "#dcebf5",
-    intro: "Bạn có thể xem lại lịch sử trò chuyện.",
-    starters: [],
+    intro: "Bạn muốn tìm người cùng học, cùng chơi hay cùng chia sẻ sở thích?",
+    starters: [
+      "Tìm bạn cùng sở thích",
+      "Cùng học tiếng Anh",
+      "Sửa hồ sơ tìm bạn",
+    ],
   },
 ];
 /** V3 agents. Only their own descriptions; legacy companions above stay for history labels. */

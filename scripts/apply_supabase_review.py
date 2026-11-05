@@ -203,8 +203,13 @@ def alembic_export(revisions: str) -> str:
     code = ('import sys; from app.core.config import Settings; '
             'Settings.model_config["env_file"] = None; '
             'from alembic.config import main; main(argv=sys.argv[1:])')
+    # C keeps its online migration head/ORM at 0028. This fixed offline-only
+    # configuration also sees the unchanged approved 0029 migration source.
+    review_config = []
+    if revisions == "0028_collaboration_defaults:0029_journal_intelligence":
+        review_config = ["-c", str(ROOT / "deploy/supabase/reviewed-migrations/alembic.ini")]
     return subprocess.run(
-        [sys.executable, "-c", code, "upgrade", revisions, "--sql"],
+        [sys.executable, "-c", code, *review_config, "upgrade", revisions, "--sql"],
         cwd=ROOT / "backend",
         env=env,
         capture_output=True,

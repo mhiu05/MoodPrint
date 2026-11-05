@@ -161,25 +161,18 @@ test("R1 reads only an authorized saved moment, and the flag off restores Phase 
   await expect.poll(async () => (await call(context, 59, "GET", "/ai/proactive")).body.settings.journalContextEnabled).toBe(true);
   await setLegacyEdge(page, 59, "nhip_energy_for_rure", true);
   // No saved moment yet: Rủ Rê answers alone.
-  const firstReply = page.waitForResponse(response => response.url().includes("/events") && response.request().method() === "GET");
   await send(page, "rure", "Rủ Rê", "Gợi ý gì nhẹ nhàng hợp với mình hôm nay");
-  expect((await firstReply).ok()).toBe(true);
-  await expect(page.getByRole("button", { name: "Dừng phản hồi", exact: true })).toHaveCount(0);
   await expect(page.locator(".chat-bubble").last()).toBeVisible();
   await expect(page.locator(".collaboration-line")).toHaveCount(0);
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date());
   await controls(page, { journalToday: userId(59), day: today });
   await send(page, "rure", "Rủ Rê", "Hôm nay mình đang mệt, chơi gì đây?");
   await expect(page.locator(".collaboration-line").last()).toContainText(ENERGY_LINE);
-  await expect(page.getByRole("button", { name: "Dừng phản hồi", exact: true })).toHaveCount(0);
   // Flag off: no line, no progress, ordinary replies; the stored opt-in can still be turned off.
   await controls(page, { enabled: false });
   await page.reload();
   await expect(page.locator(".collaboration-line")).toHaveCount(0);
-  const finalReply = page.waitForResponse(response => response.url().includes("/events") && response.request().method() === "GET");
   await send(page, "rure", "Rủ Rê", "Hôm nay mình đang mệt, chơi gì đây?");
-  expect((await finalReply).ok()).toBe(true);
-  await expect(page.getByRole("button", { name: "Dừng phản hồi", exact: true })).toHaveCount(0);
   await expect(page.locator(".chat-bubble").last()).toBeVisible();
   await expect(page.locator(".collaboration-line")).toHaveCount(0);
   await setLegacyEdge(page, 59, "nhip_energy_for_rure", false);

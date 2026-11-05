@@ -30,21 +30,11 @@ async def test_journal_upgrade_downgrade_preserves_legacy_mood_and_private_acl(c
     spec = importlib.util.spec_from_file_location("journal_migration", MIGRATION_PATH)
     migration = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(migration)
-    intelligence_spec = importlib.util.spec_from_file_location(
-        "journal_intelligence_migration",
-        MIGRATION_PATH.with_name("0029_journal_intelligence.py"),
-    )
-    intelligence = importlib.util.module_from_spec(intelligence_spec)
-    intelligence_spec.loader.exec_module(intelligence)
 
     def migrate(connection):
         with Operations.context(MigrationContext.configure(connection)):
-            # Remove dependent 0029 foreign keys before rehearsing the historical
-            # 0019 rollback; restore them before checking current-schema behavior.
-            intelligence.downgrade()
             migration.downgrade()
             migration.upgrade()
-            intelligence.upgrade()
 
     async with app.state.database.engine.begin() as connection:
         await connection.execute(

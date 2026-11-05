@@ -193,15 +193,8 @@ CONVERSATIONAL_PERSONAS = {
 }
 
 
-V3_RETIRED_SOCIAL = "MoodPrint không còn tính năng tìm bạn hay nhắn tin với người khác. Không dùng card discovery, không gợi ý mời hay kết nối với người dùng khác; nếu cần hoạt động cùng người thân, gợi ý để người dùng tự liên hệ họ."
-
-
 def conversation_instructions(bot_id: str, intent: str) -> str:
-    from app.ai.agents import V3_IDS
-
-    return (CONVERSATIONAL_SHARED + '\n' + CONVERSATIONAL_PERSONAS[bot_id]
-            + '\nÝ định gợi ý cho lượt hiện tại: ' + intent + '.\n'
-            + (V3_RETIRED_SOCIAL if bot_id in V3_IDS else ""))
+    return CONVERSATIONAL_SHARED + '\n' + CONVERSATIONAL_PERSONAS[bot_id] + '\nÝ định gợi ý cho lượt hiện tại: ' + intent + '.\n'
 
 
 # Runtime layer for AI_MULTI_MESSAGE_ENABLED only; appended after the frozen instructions.

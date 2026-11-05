@@ -18,21 +18,8 @@ class SkillSpec:
 
 
 SPECS = {
-    "hangout": ("Đi chơi", "Gợi ý hoạt động vừa sức và địa điểm khi bạn cần.", "2"),
+    "hangout": ("Đi chơi", "Gợi ý hoạt động vừa sức và địa điểm khi bạn cần.", "1"),
     "learn-new-thing": ("Học điều mới", "Chọn một điều thú vị và thử trong 5–15 phút.", "1"),
-    "weekly-review": ("Nhìn lại tuần", "Cùng nhìn lại 7 ngày qua từ chính những gì bạn đã ghi.", "1"),
-    "mood-patterns": ("Nhận ra mẫu cảm xúc", "Tìm điều hay đi cùng một cảm xúc trong nhật ký, không kết luận nguyên nhân.", "1"),
-    "guided-journal": ("Viết nhật ký có gợi ý", "Vài câu gợi ý ngắn để bạn viết vài dòng cho hôm nay.", "1"),
-    "reframe-thought": ("Viết lại suy nghĩ", "Nhìn một suy nghĩ khó từ góc khác, công bằng và nhẹ nhàng hơn.", "1"),
-}
-
-AGENTS: dict[str, tuple[str, ...]] = {
-    "hangout": ("dieuphoi", "nhatky", "hoatdong"),
-    "learn-new-thing": ("dieuphoi", "nhatky", "hoatdong"),
-    "weekly-review": ("nhatky",),
-    "mood-patterns": ("nhatky",),
-    "guided-journal": ("nhatky", "dieuphoi"),
-    "reframe-thought": ("dieuphoi", "nhatky"),
 }
 
 

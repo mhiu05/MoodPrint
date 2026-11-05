@@ -128,13 +128,8 @@ async def test_public_experience_is_identity_free_and_flag_driven(clients):
     await anonymous.aclose()
 
 
-def test_guest_input_and_settings_defaults_fail_closed(monkeypatch):
-    from types import SimpleNamespace
-
-    from app.core.config import FEATURE_FLAGS, Settings
-    from app.modules.feedback.policy import feedback_open
-    from app.modules.guests.availability import experience_view
-    from app.modules.guests.policy import guest_paid_available
+def test_guest_input_and_settings_defaults_fail_closed():
+    from app.core.config import Settings
     from app.modules.guests.schemas import GuestInput
 
     valid = {"eligibility": ELIGIBILITY, "captchaToken": "x" * 20, "disclosureVersion": "guest-v2"}
@@ -150,19 +145,16 @@ def test_guest_input_and_settings_defaults_fail_closed(monkeypatch):
         with pytest.raises(ValidationError):
             GuestInput.model_validate(broken)
 
-    for name in (*FEATURE_FLAGS, "supabase_url", "supabase_publishable_key",
-                 "guest_captcha_site_key", "guest_abuse_hmac_key", "voyage_api_key",
-                 "openai_api_key", "openai_model"):
-        monkeypatch.delenv(name.upper(), raising=False)
     settings = Settings(_env_file=None)
-    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(
-        settings=settings, database=SimpleNamespace(sessions=None),
-    )))
-    experience = experience_view(request)
-    assert experience.guest_available is False
-    assert experience.guest_unavailable_reason == "configuration_missing"
-    assert feedback_open(settings) is False
-    assert guest_paid_available(settings) is False
+    for flag in (
+        "guest_auth_enabled",
+        "guest_paid_enabled",
+        "guest_semantic_enabled",
+        "feedback_enabled",
+        "feedback_admin_enabled",
+        "product_tour_enabled",
+    ):
+        assert getattr(settings, flag) is False, flag
     assert settings.guest_daily_budget_usd is None and settings.guest_pricing_json == {}
     assert (
         settings.guest_ai_turns,

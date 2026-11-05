@@ -43,9 +43,6 @@ print(
     json.dumps(
         {
             "valid": True,
-            "degradedFeatures": [
-                {"flag": flag, "reason": reason} for flag, reason in config.degraded_features()
-            ],
             "configured": {
                 name.upper(): present(getattr(config, name))
                 for name in (

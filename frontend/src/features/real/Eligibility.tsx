@@ -77,7 +77,7 @@ export function EligibilityGate() {
       {canDeclare ? (
         <>
           <p>Hãy nhập năm sinh và xác nhận bạn đã qua sinh nhật lần thứ 18.</p>
-          <p>Năm sinh chỉ dùng để kiểm tra độ tuổi.</p>
+          <p>Năm sinh không xuất hiện trong hồ sơ tìm bạn của bạn.</p>
           <AgeForm key={`${session.birthYear ?? "unknown"}:${session.eligibilityVersion ?? 0}`} />
         </>
       ) : (

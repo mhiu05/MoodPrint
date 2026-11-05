@@ -9,7 +9,7 @@ test("end and register opens signup after one confirmed HTTP end", async ({ brow
   try {
     await createGuest(context);
     const page = await context.newPage();
-    await page.goto('/#/check-ins');
+    await page.goto('/#/connect');
     await page.getByRole('button', { name: 'Tạo tài khoản', exact: true }).click();
     const response = page.waitForResponse(r => r.url().endsWith('/auth/guest/end') && r.request().method() === 'POST');
     await page.getByRole('dialog').getByRole('button', { name: 'Kết thúc và tạo tài khoản' }).click();

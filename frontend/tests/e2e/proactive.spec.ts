@@ -12,7 +12,7 @@ const bots = [
   { botId: "rure", name: "Rủ Rê", role: "Học hỏi & cùng chơi", description: "Chơi một chút.", starters: [], avatarKey: "rure" },
   { botId: "may", name: "Mây", role: "Lắng nghe & tâm sự", description: "Lắng nghe.", starters: [], avatarKey: "may" },
   { botId: "guong", name: "Gương", role: "Khám phá bản thân", description: "Khám phá.", starters: [], avatarKey: "guong" },
-  { botId: "caunoi", name: "Cầu Nối", role: "Trợ lý cũ", description: "Kết nối.", starters: [], avatarKey: "caunoi" },
+  { botId: "caunoi", name: "Cầu Nối", role: "Tìm bạn đồng điệu", description: "Kết nối.", starters: [], avatarKey: "caunoi" },
 ];
 const prefs = { historyEnabled: true, semanticMemoryEnabled: false, version: 1, policyVersion: "ai-data-v1", retentionDays: 30, historyAvailable: true, semanticMemoryAvailable: true };
 
@@ -112,7 +112,9 @@ async function mount(page: Page, options: { view?: ReturnType<typeof proactiveVi
       "/ai/inbox": currentInbox,
       "/ai/conversations": [thread],
       [`/ai/conversations/${CONV}`]: thread,
-      "/proposals": [], "/memories": [],
+      "/social/summary": { pendingIncomingRequests: 0, unreadConnections: 0, activityInvites: 0 },
+      "/proposals": [], "/memories": [], "/connections": [], "/connection-requests": [], "/activities/catalog": [],
+      "/profiles/published/current": null,
     };
     if (method === "GET" && path in fixed) return json(fixed[path]);
     return json({ error: { code: "NOT_FOUND", message: `Missing synthetic fixture ${path}` } }, 404);
@@ -142,7 +144,7 @@ for (const width of [1440, 768, 390, 360]) {
     expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze()).violations).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath(`check-ins-${width}.png`), fullPage: true });
     await page.goto("/#/assistants/caunoi?panel=info&section=check-ins");
-    await expect(page.getByRole("region", { name: "Lời hỏi thăm của Cầu Nối" }).getByText("Cầu Nối đã ngừng hỏi thăm.").first()).toBeVisible();
+    await expect(page.getByRole("region", { name: "Lời hỏi thăm của Cầu Nối" }).getByText("Cần bật tính năng kết nối để Cầu Nối hỏi thăm.").first()).toBeVisible();
     await expect(page.getByRole("switch", { name: /Buổi sáng/ })).toHaveAttribute("aria-disabled", "true");
   });
 }

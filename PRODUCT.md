@@ -8,7 +8,7 @@ web
 
 ## Product Purpose
 
-MoodPrint giúp người dùng hiểu cảm xúc qua nhật ký và ba trợ lý Điều phối, Nhật ký, Hoạt động. Giao diện tập trung vào Trợ lý, Nhật ký và Tài khoản; giao diện tìm bạn, chat người với người và hoạt động đôi đã được gỡ. Backend social vẫn giữ để bảo toàn tương thích và dữ liệu.
+Theo README.md, MoodPrint giúp người dùng hiểu cảm xúc của bản thân và kết nối với mọi người xung quanh. Ứng dụng hiện có năm trợ lý AI, nhật ký/cảm xúc và các tính năng kết nối.
 
 ## Operating Context
 
@@ -19,7 +19,7 @@ Code hiện tại dùng React 19, Vite và TypeScript. Chat AI có giao diện d
 - Dữ kiện từ code: server xác nhận lượt AI bằng accepted run, sau đó phát kết quả cuối; UI không nhận các giai đoạn suy luận chi tiết.
 - Dữ kiện từ code: hủy là yêu cầu dừng, phải đợi kết quả cuối từ server. Chưa có tạm dừng rồi tiếp tục cùng một phản hồi.
 - Dữ kiện từ code: metadata tin nhắn hiện có thao tác hover, focus bàn phím và chạm trên mobile; thiết kế mới phải giữ các hành vi này.
-- Nhật ký saved có thể được lập chỉ mục qua Voyage khi đủ quyền; notice và công tắc opt-out nằm ở Tài khoản. Guest không được tự động lập chỉ mục.
+- Chỉ thay đổi màn chat AI trong yêu cầu hiện tại; các màn khác vẫn dùng hệ thống hiện có.
 - Người dùng yêu cầu không tự ý sửa .gitignore.
 
 ## Brand Commitments

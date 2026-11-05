@@ -17,7 +17,7 @@ def three_agents(app, on=True):
     app.state.settings.ai_three_agent_experience_enabled = on
 
 
-async def test_bots_are_the_five_companions_on_the_legacy_baseline_and_exactly_three_with_the_flag(clients):
+async def test_bots_are_the_five_companions_by_default_and_exactly_three_with_the_flag(clients):
     app, [(client, _uid), _] = clients
     off = (await client.get("/api/v1/bots")).json()
     assert [bot["botId"] for bot in off] == ["may", "guong", "nhip", "rure", "caunoi"]

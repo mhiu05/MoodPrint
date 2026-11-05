@@ -86,7 +86,7 @@ export const EDGE_COPY: Record<Edge, EdgeCopy> = {
 };
 
 export const CAUNOI_NOTE = "Cầu Nối không nhận thông tin từ trợ lý khác.";
-export const V3_NOTE = "Nhật ký của bạn chỉ dùng cho các trợ lý trong MoodPrint, không chia sẻ với người khác.";
+export const V3_NOTE = "Tìm bạn không bao giờ nhận nhật ký, cảm xúc hay tin nhắn với trợ lý.";
 
 export function edgeCopy(kind: string): EdgeCopy | undefined {
   return Object.hasOwn(EDGE_COPY, kind) ? EDGE_COPY[kind as Edge] : undefined;

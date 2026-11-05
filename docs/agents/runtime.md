@@ -36,15 +36,6 @@ Output thường là `AiOutput`: `text` 1–6.000 ký tự, tối đa 3 card thu
 
 ## Tools và hành động được duyệt
 
-`search_journal_entries` của Nhật ký/Nhịp dùng truy xuất lai trong cửa sổ saved
-90 ngày: cosine chính xác trên vector đúng owner/revision/settings/model/dims,
-keyword literal và trang gần nhất. Query embed chạy trước owner lock, tối đa
-`JOURNAL_QUERY_TIMEOUT_SECONDS` (3 giây mặc định). Trong lock, runtime kiểm lại
-AI authorization, data version và settings version; vector cũ bị bỏ. Không có
-key/index hoặc provider lỗi vẫn trả fallback và lý do trong coverage. Tool vẫn
-tính vào giới hạn hai tool call mỗi lượt. Prompt runtime có marker `+j2`; persona
-đóng băng không đổi. `journal-evidence-v1` và revision fence giữ nguyên.
-
 `propose_memory` chỉ tạo đề xuất ngắn (tối đa 120 ký tự sau trim), trả status `proposed` và proposal ID/version. Đề xuất chưa phải ghi nhớ đã duyệt. Người dùng xem/sửa/xác nhận qua API riêng; endpoint confirm kiểm tra quyền/version/consent hiện tại.
 
 `read_mood_summary` chỉ cấp cho Nhịp khi người dùng chọn phạm vi ngày. Arguments phải là object rỗng; model không chọn owner, ngày hoặc nguồn dữ liệu. Tool trả điểm/thống kê trong scope, không trả ghi chú riêng tư. Runtime ghi source state và evidence; không diễn giải lỗi tool như nguồn dữ liệu hợp lệ.
@@ -83,9 +74,5 @@ Run `origin='proactive'` do service `proactive` tạo khi lịch người dùng 
 **SSE v2 khi cờ bật:** danh sách event của run đã lưu là hàm xác định, chỉ tiến, của DB: `progress {}` → `progress {activity:"consulting", companion}` (có receipt không `denied`) → `progress {activity:"composing"}` (receipt đã kết thúc) → `final` (+`collaboration`: template hoặc `null`) → `completed`; tối đa 5 event (`afterSeq ≤ 5`). v1 và cờ tắt giữ nguyên dạng Phase 1. Client chỉ nhận `{}` hoặc đúng hai dạng progress trên và một `collaboration` hợp lệ (≤ 200 ký tự, cạnh allowlist); khung `event: revoked` là dừng đã xác nhận. Chat tạm (không lưu) không phối hợp.
 
 ## Kiểm tra khi thay đổi
-
-Consult Nhật ký của Điều phối có thể xếp hạng semantic trong cửa sổ đã được policy cho phép. Query được embed ngoài owner lock, tối đa 80 ký tự/3 giây, rồi recheck preference version và model/dimensions ở open_step. Thiếu key/index, timeout hoặc cấu hình đổi dùng recent fallback; vẫn tối đa 14 ngày, 5 trang và 600 ký tự/trang. Không thay sharing edge/journal consent hoặc provenance/revision fence. Vector không được dùng để mở rộng cửa sổ dữ liệu.
-
-Skill thuộc registry đóng gồm `hangout`, `learn-new-thing`, `weekly-review`, `mood-patterns`, `guided-journal`, `reframe-thought`; mỗi skill có allowlist agent. `GET /ai/prompt-capabilities` là projection tư vấn, không thay authorization khi gửi. `SKILL_NOT_FOR_AGENT` từ chối skill tay sai trợ lý; `PROMPT_OPTIONS_MOOD_SCOPE` giữ nguyên. Resolver bỏ skill khi distress, phủ định tự động hoặc mơ hồ; skill hợp lệ thêm runtime instructions và bỏ delegation trong đúng một lượt. Nhật ký vẫn được bảo vệ bởi refusal, owner/version và `journal-evidence-v1`; không có quyền dữ liệu mới từ skill.
 
 Chạy `test_sdk_adapter.py`, `test_context_selection.py`, `test_scoped_mood_tool.py`, `test_mood_evidence_runtime.py`, `test_privacy_lifecycle.py` cùng unit test `src/api/stream.test.ts`. Toàn bộ lệnh và phân tầng test ở [development](../development.md), [evaluation](evaluation.md).

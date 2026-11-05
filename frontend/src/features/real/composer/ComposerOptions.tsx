@@ -2,14 +2,12 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Plus, X } from "lucide-react";
 import type { PromptCapabilities, PromptOptions } from "../../../api/contracts";
 import type { ApiClient } from "../../../api/client";
-import { skillChipLabel } from "./promptOptions";
 import "./composer.css";
 
 type Props = { api: ApiClient; botId: string; enabled: boolean; options: PromptOptions;
-  onChange: (options: PromptOptions) => void; onFocusComposer: () => void;
-  onSkillsChange: (skills: PromptCapabilities["skills"]) => void };
+  onChange: (options: PromptOptions) => void; onFocusComposer: () => void };
 
-export function ComposerOptions({ api, botId, enabled, options, onChange, onFocusComposer, onSkillsChange }: Props) {
+export function ComposerOptions({ api, botId, enabled, options, onChange, onFocusComposer }: Props) {
   const [open, setOpen] = useState(false), [skills, setSkills] = useState(false);
   const [view, setView] = useState<PromptCapabilities>(), [failed, setFailed] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null), menu = useRef<HTMLDivElement>(null);
@@ -18,10 +16,10 @@ export function ComposerOptions({ api, botId, enabled, options, onChange, onFocu
     if (!enabled) return;
     const controller = new AbortController();
     api.request<PromptCapabilities>(`/ai/prompt-capabilities?botId=${encodeURIComponent(botId)}`, { signal: controller.signal })
-      .then(v => { if (!controller.signal.aborted) { setView(v); setFailed(false); onSkillsChange(v.skills); } })
+      .then(v => { if (!controller.signal.aborted) { setView(v); setFailed(false); } })
       .catch(() => { if (!controller.signal.aborted) setFailed(true); });
     return () => controller.abort();
-  }, [api, botId, enabled, onSkillsChange]);
+  }, [api, botId, enabled]);
   useEffect(() => {
     if (!open) return;
     menu.current?.querySelector<HTMLButtonElement>("button")?.focus();
@@ -48,18 +46,18 @@ export function ComposerOptions({ api, botId, enabled, options, onChange, onFocu
         {view.tools.map(tool => <button key={tool.id} type="button" disabled={!tool.available} title={tool.reason ?? undefined}
           onClick={() => choose({ ...options, tools: [...new Set([...(options.tools ?? []), tool.id as "web_search" | "maps_search"]) ] })}>
           <strong>{tool.name}</strong><small>{tool.available ? tool.description : tool.reason}</small></button>)}
-        <button type="button" onClick={() => setSkills(true)}><strong>Kỹ năng</strong><small>Chọn kỹ năng cho một lượt</small></button>
+        <button type="button" onClick={() => setSkills(true)}><strong>Kỹ năng</strong><small>Đi chơi hoặc học điều mới</small></button>
       </>}
     </div> : null}
   </div>;
 }
 
-export function PromptChips({ options, onChange, onFocusComposer, skills }: Pick<Props, "options" | "onChange" | "onFocusComposer"> & { skills: PromptCapabilities["skills"] }) {
+export function PromptChips({ options, onChange, onFocusComposer }: Pick<Props, "options" | "onChange" | "onFocusComposer">) {
   const areaId = useId();
   const remove = (next: PromptOptions) => { onChange(next); onFocusComposer(); };
   return <div className="prompt-options-selection">
     <div className="prompt-chips">
-      {options.skillId ? <span>{skillChipLabel(skills, options.skillId)}<button type="button" aria-label="Bỏ kỹ năng" onClick={() => remove({ ...options, skillId: undefined })}><X size={14} /></button></span> : null}
+      {options.skillId ? <span>{options.skillId === "hangout" ? "Đi chơi" : "Học điều mới"}<button type="button" aria-label="Bỏ kỹ năng" onClick={() => remove({ ...options, skillId: undefined })}><X size={14} /></button></span> : null}
       {(options.tools ?? []).map(tool => <span key={tool}>{tool === "web_search" ? "Web Search" : "Maps Search"}<button type="button" aria-label={`Bỏ ${tool === "web_search" ? "Web Search" : "Maps Search"}`} onClick={() => remove({ ...options, tools: options.tools?.filter(t => t !== tool), ...(tool === "maps_search" ? { area: undefined } : {}) })}><X size={14} /></button></span>)}
       {options.mapsSearchId ? <span>Kết quả địa điểm<button type="button" aria-label="Bỏ kết quả địa điểm" onClick={() => remove({ ...options, mapsSearchId: undefined })}><X size={14} /></button></span> : null}
     </div>

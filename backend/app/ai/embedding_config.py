@@ -7,15 +7,7 @@ from pydantic_settings import BaseSettings
 
 
 class EmbeddingSettings(BaseSettings):
-    semantic_memory_enabled: bool = True
-    journal_semantic_enabled: bool = True
-    journal_embedding_debounce_seconds: int = Field(default=20, ge=5, le=300)
-    journal_embedding_daily_cap_per_user: int = Field(default=200, ge=10, le=1000)
-    journal_query_timeout_seconds: float = Field(default=3, ge=1, le=5)
-    journal_semantic_top_k: int = Field(default=6, ge=1, le=8)
-    journal_recent_k: int = Field(default=2, ge=0, le=5)
-    journal_similarity_threshold: float = Field(default=0.25, ge=0, le=1)
-    journal_document_char_limit: int = Field(default=7000, ge=1000, le=7900)
+    semantic_memory_enabled: bool = False
     voyage_api_key: SecretStr = SecretStr("")
     voyage_model: str = Field(default="voyage-4-lite", min_length=1, max_length=100)
     voyage_dimensions: Literal[256, 512, 1024, 2048] = 1024
@@ -40,7 +32,3 @@ class EmbeddingSettings(BaseSettings):
     @property
     def semantic_memory_available(self) -> bool:
         return self.semantic_memory_enabled and bool(self.voyage_api_key.get_secret_value())
-
-    @property
-    def journal_semantic_available(self) -> bool:
-        return self.journal_semantic_enabled and bool(self.voyage_api_key.get_secret_value())

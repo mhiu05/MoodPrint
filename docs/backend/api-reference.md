@@ -109,7 +109,6 @@ Danh mục từ [backend/openapi.json](../../backend/openapi.json). Base path đ
 | GET | `/api/v1/matching/candidates` | `candidates_api_v1_matching_candidates_get` |
 | POST | `/api/v1/matching/skips` | `skip_api_v1_matching_skips_post` |
 | GET | `/api/v1/memories` | `memories_api_v1_memories_get` |
-| DELETE | `/api/v1/memories/auto` | `delete_automatic_memories_api_v1_memories_auto_delete` |
 | PATCH | `/api/v1/memories/{memory_id}` | `edit_memory_api_v1_memories__memory_id__patch` |
 | DELETE | `/api/v1/memories/{memory_id}` | `delete_memory_api_v1_memories__memory_id__delete` |
 | GET | `/api/v1/moods` | `list_moods_api_v1_moods_get` |
@@ -200,18 +199,3 @@ Cờ `AI_SMART_ORCHESTRATION_ENABLED`: lượt của Điều phối có thể h�
 ### V3 — nhóm AI (`AI_GROUP_CHAT_ENABLED`)
 
 Chỉ tài khoản đã đăng ký, đủ 18+, đồng ý AI; cờ/cohort tắt → `404`. Một nhóm là một người dùng + 2–3 trợ lý V3. `POST /ai/groups {name, members}` → `201 GroupView`; `PATCH` đổi tên; `POST …/members {botId, shareHistory, expectedVersion}` (mặc định chỉ thấy tin từ lúc tham gia); `DELETE …/members/{botId}?expectedVersion=` (không xuống dưới 2, hủy lượt đang chạy); `PUT …/members/nhatky/journal-access` (mặc định tắt); `DELETE` xóa nhóm. `POST …/messages {text, clientMessageId, expectedVersion, mentions[]}` → `202 {turnId, eventsUrl}`; nhắc tên không phải thành viên qua picker → `422 MENTION_NOT_MEMBER`. SSE `GET …/turns/{turnId}/events?afterSeq=` phiên bản `ai-group-events-v1`: `turn_started`, `agent_selected`, `agent_started`, `agent_message {messages[]}`, `agent_failed`, `turn_completed|turn_failed|turn_cancelled` — hàm thuần của trạng thái DB, nối lại không trùng; cursor > 11 → `409 CURSOR_GAP`. `AIMessage.speaker` của mỗi tin AI = trợ lý của run sinh ra nó.
-
-## Journal AI preferences
-
-| Phương thức | Đường dẫn | Operation ID |
-| --- | --- | --- |
-| GET | `/api/v1/journal/ai-settings` | `get_settings_api_v1_journal_ai_settings_get` |
-| PUT | `/api/v1/journal/ai-settings` | `put_settings_api_v1_journal_ai_settings_put` |
-
-GET/PUT chỉ cho tài khoản đã đăng ký, đủ 18+, đúng owner. PUT yêu cầu CSRF,
-Idempotency-Key và expectedVersion; tắt embedding xóa vector, hủy job và lượt
-đang chạy trong cùng giao dịch. Không xóa ghi nhớ đã có khi tắt tự động.
-Response gồm hai công tắc, availability, noticeVersion, version, số trang indexed,
-pending và autoMemories. `autoMemoryAvailable` giữ false tới khi cả logic và nhãn
-memory tự động được triển khai. Không có row settings nghĩa là bật mặc định;
-thiếu provider vẫn cho lưu lựa chọn và báo capability chưa khả dụng.

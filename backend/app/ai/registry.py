@@ -37,9 +37,9 @@ BOTS = [
     BotPublicDTO(
         bot_id="caunoi",
         name="Cầu Nối",
-        role="Trợ lý cũ",
-        description="Lịch sử trò chuyện với Cầu Nối.",
-        starters=[],
+        role="Tìm bạn đồng điệu",
+        description="Từ một điểm chung đến một người bạn.",
+        starters=["Tìm bạn cùng sở thích", "Sửa hồ sơ kết nối"],
         avatar_key="caunoi",
     ),
 ]
