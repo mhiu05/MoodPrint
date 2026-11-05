@@ -211,3 +211,13 @@ and their experiment-only test were removed;all RED/GREEN/load artifacts remain.
 Current candidate keeps PostgreSQL admission and the physical model gate. Do not raise
 queue deadlines above the frontend20s timeout or increase pools merely to hide failure.
 Cost of rollback:the original measured database pressure remains unresolved.
+
+
+## Execution update — 2026-11-05T15:26:44.797Z
+
+- The 41 original task IDs and the existing ledger counts (2 DONE, 27 IN_PROGRESS, 7 BLOCKED, 2 FAILED, 3 DEFERRED) were preserved. No cloud evidence or source implementation was promoted to a production PASS.
+- Test-only fixes were pushed to `feat/upgrade-user`: `d655ee86` passes `dispatch_enabled=False` through the collaboration test wrapper; `48a1df2f` raises the cancellation-start wait from 3s to 10s; `fdb5dc98` supplies `ai_dispatch_gate_enabled=False` in the web-search mock. No product runtime code changed in these three commits.
+- GitHub Actions run #365 for `fdb5dc9897562b0d8550058218f7579411b1c2c5` was IN_PROGRESS at capture time; backend checks against disposable PostgreSQL were still running. Runs #363 and #364 had completed with failure in that backend-check step. Do not claim a green candidate until #365 and the latest post-documentation run finish successfully.
+- Cloud review confirmed the running Sydney EC2 target and account/project fingerprints; billing permission, OpenAI staging-project selection, Supabase email-send rate, and complete recovery readiness remain unresolved. Detailed read-only values and gaps are recorded in documents 13–16.
+- The exposed `postgres` migration-owner credential was not rotated. The project Database Settings page confirms reset will break existing connections. Rotation remains blocked pending owner approval and a secure owner-entered reset; the separate runtime credential was not changed.
+- Release remains **NO-GO**. No hosted Auth/SMTP/security setting, database migration, SES request, paid backup, alarm, deployment, restart, resize, or merge was performed.
