@@ -199,3 +199,9 @@ snapshot, quota, identity, credential, deployment or runtime setting was changed
 API call success records and raw numeric datapoints:
 [EC2/CloudWatch](evidence/ci-repair-aws-readonly.json),
 [SES/EBS/SSM](evidence/ci-repair-aws-additional.json).
+
+Refresh limitation at2026-11-05 23:xxUTC: AWS MCP returned `Unknown tool` twice,
+and local AWS CLI `sts get-caller-identity` returned `NoCredentials`. No credentials
+were created,read,rotated or requested. The successful14:30–14:43UTC API records
+above remain historical facts;do not relabel them as a later snapshot. No target
+load,cloud setting,instance state or paid operation changed during this continuation.

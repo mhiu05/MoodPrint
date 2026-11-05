@@ -195,3 +195,10 @@ No merge/deploy, credential rotation, quota change, production AI $50 activation
 new paid infrastructure or unapproved paid test is included. Direct V3 pooled code
 does not close group/all-provider, project quota/pricing, hosted backup or target-load
 gates. Release remains **NO-GO**.
+
+The later blanket allow instruction continues ordinary engineering/read-only work;
+the explicit no-deploy/no-merge/no-production/no-rotation/no-quota/no-unapproved-paid
+limits still apply. No approval is needed for the feature-branch fix/evidence push.
+The new load experiments failed and were removed;their failure does not authorize
+a larger pool,timeout,instance or spend limit. Account/project facts and hosted
+recovery/load gates remain open;working CLI credentials are currently unavailable.

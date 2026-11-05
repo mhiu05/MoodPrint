@@ -115,3 +115,74 @@ async def test_running_saved_poll_keeps_authorization_and_has_a_bounded_query_bu
         event.remove(engine, "before_cursor_execute", count)
         model.release.set()
         await run.task
+
+
+@pytest.mark.postgres
+@pytest.mark.parametrize(("change", "code"), [
+    ("provider_session", "SESSION_EXPIRED"),
+    ("application_session", "SESSION_EXPIRED"),
+    ("session_expiry", "SESSION_EXPIRED"),
+    ("auth_version", "SESSION_EXPIRED"),
+    ("age", "ELIGIBILITY_REQUIRED"),
+    ("suspended", "ACCOUNT_SUSPENDED"),
+    ("deleting", "DELETION_IN_PROGRESS"),
+    ("purpose", "CONSENT_REQUIRED"),
+    ("data_version", "CONTEXT_CHANGED"),
+    ("conversation", "NOT_FOUND"),
+])
+async def test_running_poll_revalidates_each_authority_on_the_next_snapshot(clients, change, code):
+    from datetime import timedelta
+    from uuid import uuid4
+
+    from sqlalchemy import select
+
+    from app.ai.models import AiConversation
+    from app.core.errors import DomainError
+    from app.infrastructure.database.models import AgeDeclaration, AuthSession, Consent, User, now
+
+    app, actors = clients
+    client, uid = actors[0]
+    await enable(client)
+    model = make_test_model("Synthetic reply")
+    model.hold = True
+    app.state.ai.model_override = model
+    created = await client.post("/api/v1/ai/conversations", headers=key(), json={"botId": "may", "persistent": True})
+    cid = UUID(created.json()["conversationId"])
+    accepted = await client.post(f"/api/v1/ai/conversations/{cid}/messages", headers=key(), json={
+        "text": "Synthetic", "clientMessageId": str(uuid4()), "expectedConversationVersion": 1,
+    })
+    assert accepted.status_code == 202, accepted.text
+    run = app.state.ai.runs[UUID(accepted.json()["runId"])]
+    await asyncio.wait_for(model.started.wait(), 5)
+    request = Request({"type": "http", "app": app, "headers": []})
+    try:
+        assert (await durable_run(request, run.actor, run.id, poll=True, recover=False))[0].id == run.id
+        async with app.state.database.sessions.begin() as db:
+            user = await db.get(User, uid)
+            session = await db.scalar(select(AuthSession).where(AuthSession.user_id == uid))
+            if change == "provider_session":
+                await db.execute(text("delete from auth.sessions where user_id=:uid"), {"uid": uid})
+            elif change == "application_session":
+                session.revoked = True
+            elif change == "session_expiry":
+                session.expires_at = now() - timedelta(seconds=1)
+            elif change == "auth_version":
+                user.auth_version += 1
+            elif change == "age":
+                await db.delete(await db.get(AgeDeclaration, uid))
+            elif change == "suspended":
+                user.suspended_until = now() + timedelta(hours=1)
+            elif change == "deleting":
+                user.deletion_pending = True
+            elif change == "purpose":
+                await db.delete(await db.get(Consent, (uid, "AI")))
+            elif change == "data_version":
+                user.data_version += 1
+            else:
+                (await db.get(AiConversation, cid)).expires_at = now() - timedelta(seconds=1)
+        with pytest.raises(DomainError) as denied:
+            await durable_run(request, run.actor, run.id, poll=True, recover=False)
+        assert denied.value.code == code
+    finally:
+        model.release.set()
+        await run.task

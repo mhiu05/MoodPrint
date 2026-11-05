@@ -1,0 +1,141 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+______________ test_cancel_contract_after_a_delayed_runtime_slot _______________
+
+fut = <coroutine object Event.wait at 0x7e9ab0c3c9e0>, timeout = 3
+
+    async def wait_for(fut, timeout):
+        """Wait for the single Future or coroutine to complete, with timeout.
+    
+        Coroutine will be wrapped in Task.
+    
+        Returns result of the Future or coroutine.  When a timeout occurs,
+        it cancels the task and raises TimeoutError.  To avoid the task
+        cancellation, wrap it in shield().
+    
+        If the wait is cancelled, the task is also cancelled.
+    
+        If the task suppresses the cancellation and returns a value instead,
+        that value is returned.
+    
+        This function is a coroutine.
+        """
+        # The special case for timeout <= 0 is for the following case:
+        #
+        # async def test_waitfor():
+        #     func_started = False
+        #
+        #     async def func():
+        #         nonlocal func_started
+        #         func_started = True
+        #
+        #     try:
+        #         await asyncio.wait_for(func(), 0)
+        #     except asyncio.TimeoutError:
+        #         assert not func_started
+        #     else:
+        #         assert False
+        #
+        # asyncio.run(test_waitfor())
+    
+    
+        if timeout is not None and timeout <= 0:
+            fut = ensure_future(fut)
+    
+            if fut.done():
+                return fut.result()
+    
+            await _cancel_and_wait(fut)
+            try:
+                return fut.result()
+            except exceptions.CancelledError as exc:
+                raise TimeoutError from exc
+    
+        async with timeouts.timeout(timeout):
+>           return await fut
+                   ^^^^^^^^^
+
+/usr/local/lib/python3.12/asyncio/tasks.py:520: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <asyncio.locks.Event object at 0x7e9aad9c0080 [unset]>
+
+    async def wait(self):
+        """Block until the internal flag is true.
+    
+        If the internal flag is true on entry, return True
+        immediately.  Otherwise, block until another coroutine calls
+        set() to set the flag to true, then return True.
+        """
+        if self._value:
+            return True
+    
+        fut = self._get_loop().create_future()
+        self._waiters.append(fut)
+        try:
+>           await fut
+E           asyncio.exceptions.CancelledError
+
+/usr/local/lib/python3.12/asyncio/locks.py:212: CancelledError
+
+The above exception was the direct cause of the following exception:
+
+multi = (<fastapi.applications.FastAPI object at 0x7e9ab0b66cc0>, <httpx.AsyncClient object at 0x7e9aadef4b30>)
+
+    @pytest.mark.postgres
+    async def test_cancel_contract_after_a_delayed_runtime_slot(multi):
+        app, _ = multi
+        app.state.ai.slots = asyncio.Semaphore(0)
+    
+        async def release_slot():
+            await asyncio.sleep(3.25)
+            app.state.ai.slots.release()
+    
+        release = asyncio.create_task(release_slot())
+        try:
+            if 'dispatch_enabled' in inspect.signature(cancel_contract).parameters:
+                await cancel_contract(multi, dispatch_enabled=True, queued=False)
+            else:
+>               await cancel_contract(multi)
+
+tests/_cancel_probe.py:29: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_multi_message_persistence.py:113: in test_cancel_before_commit_leaves_no_bubbles
+    await asyncio.wait_for(model.started.wait(), 3)
+/usr/local/lib/python3.12/asyncio/tasks.py:519: in wait_for
+    async with timeouts.timeout(timeout):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Timeout [expired]>
+exc_type = <class 'asyncio.exceptions.CancelledError'>
+exc_val = CancelledError(), exc_tb = <traceback object at 0x7e9aad83a900>
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> Optional[bool]:
+        assert self._state in (_State.ENTERED, _State.EXPIRING)
+    
+        if self._timeout_handler is not None:
+            self._timeout_handler.cancel()
+            self._timeout_handler = None
+    
+        if self._state is _State.EXPIRING:
+            self._state = _State.EXPIRED
+    
+            if self._task.uncancel() <= self._cancelling and exc_type is exceptions.CancelledError:
+                # Since there are no new cancel requests, we're
+                # handling this.
+>               raise TimeoutError from exc_val
+E               TimeoutError
+
+/usr/local/lib/python3.12/asyncio/timeouts.py:115: TimeoutError
+------------------------------ Captured log setup ------------------------------
+WARNING  moodprint:main.py:43 database_pool_exceeds_headroom size=5 overflow=2
+WARNING  moodprint:main.py:43 database_pool_exceeds_headroom size=5 overflow=2
+=========================== short test summary info ============================
+FAILED tests/_cancel_probe.py::test_cancel_contract_after_a_delayed_runtime_slot
+1 failed in 11.98s

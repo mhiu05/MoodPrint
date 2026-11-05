@@ -1,3 +1,4 @@
+import asyncio
 import importlib.util
 from pathlib import Path
 from uuid import uuid4
@@ -54,3 +55,76 @@ def test_cleanup_requires_exact_manifest_ownership(monkeypatch):
     monkeypatch.setenv("MOODPRINT_TEST_RUN_ID", first)
     with pytest.raises(ValueError):
         cli.validate_manifest(manifest(second), "T1", Path("new-result.json"))
+
+
+def ai_result():
+    return {"requested_users": 50, "requested_duration_seconds": 900,
+            "measured_window_seconds": 900, "mean_parent_occupancy": 45,
+            "peaks": {"parent_turns": 50}, "attempts": 1900, "completed": 1900,
+            "errors": {}, "measurement_errors": {}, "statuses": {"202": 1900}, "financial_invariant": True,
+            "pool_acquisition_recent_window": {"p95_ms": 99, "timeouts": 0},
+            "latency_including_rejections": {"p95_ms": 30000, "p99_ms": 60000},
+            "event_loop_lag": {"p95_ms": 99}}
+
+
+@pytest.mark.parametrize(("path", "value", "failed_gate"), [
+    (("latency_including_rejections", "p95_ms"), 30001, "completion_latency"),
+    (("latency_including_rejections", "p99_ms"), 60001, "completion_latency"),
+    (("latency_including_rejections", "p95_ms"), None, "completion_latency"),
+    (("latency_including_rejections", "p95_ms"), float("nan"), "completion_latency"),
+    (("pool_acquisition_recent_window", "p95_ms"), 100, "pool_recent_window"),
+    (("pool_acquisition_recent_window", "timeouts"), 1, "pool_recent_window"),
+    (("event_loop_lag", "p95_ms"), 100, "event_loop_lag"),
+    (("measured_window_seconds",), 899.9996, "full_measurement_window"),
+    (("mean_parent_occupancy",), 44.999, "parent_occupancy"),
+    (("measurement_errors",), {"sampler": "RuntimeError"}, "measurement_health"),
+    (("financial_invariant",), False, "financial_invariant"),
+    (("completed",), 1899, "all_turns_completed"),
+    (("errors",), {"noncompleted_stream": 1}, "all_turns_completed"),
+    (("statuses",), {"202": 1899, "503": 1}, "all_turns_completed"),
+])
+def test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents(path, value, failed_gate):
+    result = ai_result()
+    target = result
+    for part in path[:-1]:
+        target = target[part]
+    target[path[-1]] = value
+    gates = load_cli().ai_local_gates(result)
+    assert gates[failed_gate] is False
+    assert not all(gates.values())
+
+
+def test_ai_probe_accepts_exact_local_boundaries_without_claiming_release_readiness():
+    assert all(load_cli().ai_local_gates(ai_result()).values())
+
+
+def test_latency_percentile_must_not_round_an_slo_failure_into_a_pass():
+    cli = load_cli()
+    result = ai_result()
+    result["latency_including_rejections"] = cli.percentiles([30000.0001])
+    assert cli.ai_local_gates(result)["completion_latency"] is False
+
+
+@pytest.mark.parametrize("fail", [False, True])
+async def test_measurement_failure_or_early_exit_cannot_leave_a_stale_passing_result(fail):
+    cli = load_cli()
+    stop, late = asyncio.Event(), asyncio.Event()
+
+    async def sampler():
+        await late.wait()
+        if fail:
+            raise RuntimeError("sensitive failure details must not appear in the report")
+
+    tasks = {"sampler": asyncio.create_task(sampler()), "loop": asyncio.create_task(stop.wait())}
+    late.set()
+    await asyncio.sleep(0)
+    try:
+        errors = await cli.finish_measurements(stop, tasks)
+        assert errors == {"sampler": "RuntimeError" if fail else "StoppedEarly"}
+        result = ai_result()
+        result["measurement_errors"] = errors
+        assert cli.ai_local_gates(result)["measurement_health"] is False
+        assert all(task.done() for task in tasks.values())
+    finally:
+        stop.set()
+        await asyncio.gather(*tasks.values(), return_exceptions=True)

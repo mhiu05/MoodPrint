@@ -43,7 +43,7 @@ jobs:
       - name: Backend checks against disposable PostgreSQL
         working-directory: backend
         run: |
-          uv run ruff check app tests evals alembic ../scripts/load_chat_memory.py ../scripts/apply_supabase_review.py ../scripts/provision_supabase_runtime.py ../scripts/check_reviewed_artifacts.py ../scripts/test_supabase_fullstack.py ../scripts/load_social_mood.py ../scripts/test_fullstack.py ../scripts/load_guest_experience.py ../scripts/prepare_guest_migration_review.py ../scripts/verify_guest_migration_review.py
+          uv run ruff check app tests evals alembic ../scripts/load_chat_memory.py ../scripts/apply_supabase_review.py ../scripts/provision_supabase_runtime.py ../scripts/check_reviewed_artifacts.py ../scripts/test_supabase_fullstack.py ../scripts/load_social_mood.py ../scripts/test_fullstack.py ../scripts/load_guest_experience.py ../scripts/prepare_guest_migration_review.py ../scripts/verify_guest_migration_review.py ../scripts/scale_readiness.py
           uv run mypy app
           uv run pytest -q
           uv run python ../scripts/export_openapi.py

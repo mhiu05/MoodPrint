@@ -1,0 +1,97 @@
+...................F.....FFF                                             [100%]
+=================================== FAILURES ===================================
+_ test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path9-value9-measurement_health] _
+
+path = ('measurement_errors',), value = {'sampler': 'RuntimeError'}
+failed_gate = 'measurement_health'
+
+    @pytest.mark.parametrize(("path", "value", "failed_gate"), [
+        (("latency_including_rejections", "p95_ms"), 30001, "completion_latency"),
+        (("latency_including_rejections", "p99_ms"), 60001, "completion_latency"),
+        (("latency_including_rejections", "p95_ms"), None, "completion_latency"),
+        (("latency_including_rejections", "p95_ms"), float("nan"), "completion_latency"),
+        (("pool_acquisition_recent_window", "p95_ms"), 100, "pool_recent_window"),
+        (("pool_acquisition_recent_window", "timeouts"), 1, "pool_recent_window"),
+        (("event_loop_lag", "p95_ms"), 100, "event_loop_lag"),
+        (("measured_window_seconds",), 899.9996, "full_measurement_window"),
+        (("mean_parent_occupancy",), 44.999, "parent_occupancy"),
+        (("measurement_errors",), {"sampler": "RuntimeError"}, "measurement_health"),
+        (("financial_invariant",), False, "financial_invariant"),
+        (("completed",), 1899, "all_turns_completed"),
+        (("errors",), {"noncompleted_stream": 1}, "all_turns_completed"),
+        (("statuses",), {"202": 1899, "503": 1}, "all_turns_completed"),
+    ])
+    def test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents(path, value, failed_gate):
+        result = ai_result()
+        target = result
+        for part in path[:-1]:
+            target = target[part]
+        target[path[-1]] = value
+        gates = load_cli().ai_local_gates(result)
+>       assert gates[failed_gate] is False
+               ^^^^^^^^^^^^^^^^^^
+E       KeyError: 'measurement_health'
+
+tests/test_scale_readiness_safety.py:93: KeyError
+______ test_latency_percentile_must_not_round_an_slo_failure_into_a_pass _______
+
+    def test_latency_percentile_must_not_round_an_slo_failure_into_a_pass():
+        cli = load_cli()
+        result = ai_result()
+        result["latency_including_rejections"] = cli.percentiles([30000.0001])
+>       assert cli.ai_local_gates(result)["completion_latency"] is False
+E       assert True is False
+
+tests/test_scale_readiness_safety.py:105: AssertionError
+_ test_measurement_failure_or_early_exit_cannot_leave_a_stale_passing_result[False] _
+
+fail = False
+
+    @pytest.mark.parametrize("fail", [False, True])
+    async def test_measurement_failure_or_early_exit_cannot_leave_a_stale_passing_result(fail):
+        cli = load_cli()
+        stop, late = asyncio.Event(), asyncio.Event()
+    
+        async def sampler():
+            await late.wait()
+            if fail:
+                raise RuntimeError("sensitive failure details must not appear in the report")
+    
+        tasks = {"sampler": asyncio.create_task(sampler()), "loop": asyncio.create_task(stop.wait())}
+        late.set()
+        await asyncio.sleep(0)
+        try:
+>           errors = await cli.finish_measurements(stop, tasks)
+                           ^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: module 'scale_cli' has no attribute 'finish_measurements'
+
+tests/test_scale_readiness_safety.py:122: AttributeError
+_ test_measurement_failure_or_early_exit_cannot_leave_a_stale_passing_result[True] _
+
+fail = True
+
+    @pytest.mark.parametrize("fail", [False, True])
+    async def test_measurement_failure_or_early_exit_cannot_leave_a_stale_passing_result(fail):
+        cli = load_cli()
+        stop, late = asyncio.Event(), asyncio.Event()
+    
+        async def sampler():
+            await late.wait()
+            if fail:
+                raise RuntimeError("sensitive failure details must not appear in the report")
+    
+        tasks = {"sampler": asyncio.create_task(sampler()), "loop": asyncio.create_task(stop.wait())}
+        late.set()
+        await asyncio.sleep(0)
+        try:
+>           errors = await cli.finish_measurements(stop, tasks)
+                           ^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: module 'scale_cli' has no attribute 'finish_measurements'
+
+tests/test_scale_readiness_safety.py:122: AttributeError
+=========================== short test summary info ============================
+FAILED tests/test_scale_readiness_safety.py::test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path9-value9-measurement_health]
+FAILED tests/test_scale_readiness_safety.py::test_latency_percentile_must_not_round_an_slo_failure_into_a_pass
+FAILED tests/test_scale_readiness_safety.py::test_measurement_failure_or_early_exit_cannot_leave_a_stale_passing_result[False]
+FAILED tests/test_scale_readiness_safety.py::test_measurement_failure_or_early_exit_cannot_leave_a_stale_passing_result[True]
+4 failed, 24 passed in 0.47s

@@ -56,6 +56,7 @@ def validate_manifest(data, case, output):
 
 def resolve_database(data):
     import psycopg
+
     from tests.database_target import require_local_test_database, verify_test_database_sync
 
     url = require_local_test_database(os.environ.get("TEST_DATABASE_URL", ""))
@@ -81,7 +82,46 @@ def percentiles(values):
     if not values:
         return {"count": 0, "p50_ms": None, "p95_ms": None, "p99_ms": None}
     ordered = sorted(values)
-    return {"count": len(ordered), **{f"p{q}_ms": round(ordered[max(0, math.ceil(len(ordered)*q/100)-1)], 3) for q in (50, 95, 99)}}
+    # Keep raw values for gate decisions: 30000.0001ms must not become 30000ms.
+    return {"count": len(ordered), **{f"p{q}_ms": ordered[max(0, math.ceil(len(ordered)*q/100)-1)] for q in (50, 95, 99)}}
+
+
+async def finish_measurements(stop, tasks):
+    # Collect late failures before assessing the result. A stopped sampler must
+    # never authorize PASS from an earlier occupancy/financial high-water mark.
+    stopped_early = {name for name, task in tasks.items() if task.done()}
+    stop.set()
+    outcomes = await asyncio.gather(*tasks.values(), return_exceptions=True)
+    return {name: type(outcome).__name__ if isinstance(outcome, BaseException) else "StoppedEarly"
+            for name, outcome in zip(tasks, outcomes, strict=True)
+            if isinstance(outcome, BaseException) or name in stopped_early}
+
+
+def ai_local_gates(result):
+    """Assess measured single-agent L0 gates; this never proves release readiness.
+
+    Pool p95 is explicitly the bounded recent window, not a whole-run percentile.
+    The single-agent completion thresholds come from the capacity plan (02/07).
+    """
+    def within(value, limit, *, inclusive=True):
+        return (isinstance(value, (int, float)) and math.isfinite(value) and value >= 0
+                and (value <= limit if inclusive else value < limit))
+
+    pool = result["pool_acquisition_recent_window"]
+    latency = result["latency_including_rejections"]
+    attempts = result["attempts"]
+    return {
+        "measurement_health": result.get("measurement_errors") == {},
+        "full_measurement_window": result["measured_window_seconds"] >= result["requested_duration_seconds"],
+        "parent_occupancy": (result["peaks"]["parent_turns"] >= result["requested_users"]
+                             and result["mean_parent_occupancy"] >= result["requested_users"] * 0.9),
+        "all_turns_completed": (attempts > 0 and result["completed"] == attempts and not result["errors"]
+                                and result["statuses"] == {"202": attempts}),
+        "financial_invariant": result["financial_invariant"] is True,
+        "completion_latency": within(latency.get("p95_ms"), 30000) and within(latency.get("p99_ms"), 60000),
+        "pool_recent_window": pool.get("timeouts") == 0 and within(pool.get("p95_ms"), 100, inclusive=False),
+        "event_loop_lag": within(result["event_loop_lag"].get("p95_ms"), 100, inclusive=False),
+    }
 
 
 def failure_location(error):
@@ -117,6 +157,7 @@ def isolate_settings():
 
 async def auth_probe(data, shared_app=None):
     import httpx
+
     from app.core.config import Settings
     from app.main import create_app
     from app.modules.auth.routes import EMAIL_LIMIT
@@ -169,8 +210,9 @@ async def auth_probe(data, shared_app=None):
 
 
 async def database_probe(data):
-    from app.infrastructure.database.models import AuthSession, Consent, User
     from sqlalchemy import func, select, text
+
+    from app.infrastructure.database.models import AuthSession, Consent, User
     from tests import chat_load_server as fixture
 
     await fixture.seed(data["users"])
@@ -190,10 +232,11 @@ async def database_probe(data):
 
 async def ai_probe(data):
     import httpx
+    from sqlalchemy import func, select
+
     from app.ai.accounting import budget_liability
     from app.core.capacity import ai_capacity_fingerprint
     from app.infrastructure.database.models import AiRun, now
-    from sqlalchemy import func, select
     from tests import chat_load_server as fixture
 
     app = fixture.app
@@ -294,22 +337,23 @@ async def ai_probe(data):
             # A failed first cohort stops the soak; never reset the ledger to make it pass.
             if mixed_auth:
                 mixed_auth = await mixed_auth
+        measured_end = time.monotonic()
+        measurement_errors = await finish_measurements(stop, {"sampler": monitor, "event_loop": loop_monitor})
         window_start = started + data["warmup_seconds"]
         window_end = window_start + data["duration_seconds"]
         window_samples = [active for at, active in parent_samples if window_start <= at < window_end]
         area = 0.0
         for (at, active), (next_at, _) in zip(parent_samples, parent_samples[1:], strict=False):
             area += active * max(0, min(next_at, window_end) - max(at, window_start))
-        sampled_duration = max(0, min(time.monotonic(), window_end) - window_start)
+        sampled_duration = max(0, min(measured_end, window_end) - window_start)
         occupancy = area / sampled_duration if sampled_duration else 0
         elapsed = time.monotonic() - started
-        passed = all(outcome) and peaks["parent_turns"] >= data["users"] and occupancy >= data["users"] * 0.9 and elapsed >= data["duration_seconds"] + data["warmup_seconds"]
-        return {"status": "LOCAL_SYNTHETIC_PASS" if passed else "FAILED",
-                "scope": "single-agent saved turns + ASGI SSE; real PostgreSQL/financial guards, fake SDK Model/embeddings; exact-count HTTP guard is separately unit-tested with mock transport, NOT exercised by this Model override; no socket/Caddy, multi-agent or production proof",
+        result = {"scope": "single-agent saved turns + ASGI SSE; real PostgreSQL/financial guards, fake SDK Model/embeddings; exact-count HTTP guard is separately unit-tested with mock transport, NOT exercised by this Model override; no socket/Caddy, multi-agent or production proof",
                 "requested_users": data["users"], "requested_duration_seconds": data["duration_seconds"],
                 "measured_wall_seconds": round(elapsed, 3), "completed": sum(outcome),
-                "mean_parent_occupancy": round(occupancy, 2), "occupancy_samples": len(window_samples),
-                "measured_window_seconds": round(sampled_duration, 3),
+                "mean_parent_occupancy": occupancy, "occupancy_samples": len(window_samples),
+                "measured_window_seconds": sampled_duration,
+                "measurement_errors": measurement_errors,
                 "measurement_method": "time-weighted sampled parent count; warmup/drain excluded",
                 "event_loop_lag": percentiles(loop_lags),
                 "process_cpu_seconds": round(time.process_time() - cpu_started, 3),
@@ -319,6 +363,14 @@ async def ai_probe(data):
                 "latency_including_rejections": percentiles(durations), "fingerprint": ai_capacity_fingerprint(s),
                 "financial_invariant": peaks["liability_nano"] <= 50_000_000_000,
                 "soak_stopped_on_failed_first_cohort": not all(outcome), "mixed_auth": mixed_auth}
+        result["local_gates"] = ai_local_gates(result)
+        result["status"] = "LOCAL_SYNTHETIC_PASS" if all(result["local_gates"].values()) else "FAILED"
+        result["unmeasured_release_gates"] = [
+            "whole-run pool wait distribution", "network/Caddy and non-AI endpoint latency",
+            "multi-agent and complete mixed profile", "real provider TTFT/quota/pricing",
+            "target CPU/RSS/cgroups and recovery/rollback",
+        ]
+        return result
     finally:
         stop.set()
         await asyncio.gather(monitor, loop_monitor, return_exceptions=True)

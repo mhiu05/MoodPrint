@@ -1,0 +1,383 @@
+..........FFFFFFFFFFFFF                                                  [100%]
+=================================== FAILURES ===================================
+_ test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path0-30001-completion_latency] _
+
+path = ('latency_including_rejections', 'p95_ms'), value = 30001
+failed_gate = 'completion_latency'
+
+    @pytest.mark.parametrize(("path", "value", "failed_gate"), [
+        (("latency_including_rejections", "p95_ms"), 30001, "completion_latency"),
+        (("latency_including_rejections", "p99_ms"), 60001, "completion_latency"),
+        (("latency_including_rejections", "p95_ms"), None, "completion_latency"),
+        (("pool_acquisition_recent_window", "p95_ms"), 100, "pool_recent_window"),
+        (("pool_acquisition_recent_window", "timeouts"), 1, "pool_recent_window"),
+        (("event_loop_lag", "p95_ms"), 100, "event_loop_lag"),
+        (("measured_window_seconds",), 899.99, "full_measurement_window"),
+        (("mean_parent_occupancy",), 44.99, "parent_occupancy"),
+        (("financial_invariant",), False, "financial_invariant"),
+        (("completed",), 1899, "all_turns_completed"),
+        (("errors",), {"noncompleted_stream": 1}, "all_turns_completed"),
+        (("statuses",), {"202": 1899, "503": 1}, "all_turns_completed"),
+    ])
+    def test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents(path, value, failed_gate):
+        result = ai_result()
+        target = result
+        for part in path[:-1]:
+            target = target[part]
+        target[path[-1]] = value
+>       gates = load_cli().ai_local_gates(result)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scale_cli' has no attribute 'ai_local_gates'
+
+tests/test_scale_readiness_safety.py:89: AttributeError
+_ test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path1-60001-completion_latency] _
+
+path = ('latency_including_rejections', 'p99_ms'), value = 60001
+failed_gate = 'completion_latency'
+
+    @pytest.mark.parametrize(("path", "value", "failed_gate"), [
+        (("latency_including_rejections", "p95_ms"), 30001, "completion_latency"),
+        (("latency_including_rejections", "p99_ms"), 60001, "completion_latency"),
+        (("latency_including_rejections", "p95_ms"), None, "completion_latency"),
+        (("pool_acquisition_recent_window", "p95_ms"), 100, "pool_recent_window"),
+        (("pool_acquisition_recent_window", "timeouts"), 1, "pool_recent_window"),
+        (("event_loop_lag", "p95_ms"), 100, "event_loop_lag"),
+        (("measured_window_seconds",), 899.99, "full_measurement_window"),
+        (("mean_parent_occupancy",), 44.99, "parent_occupancy"),
+        (("financial_invariant",), False, "financial_invariant"),
+        (("completed",), 1899, "all_turns_completed"),
+        (("errors",), {"noncompleted_stream": 1}, "all_turns_completed"),
+        (("statuses",), {"202": 1899, "503": 1}, "all_turns_completed"),
+    ])
+    def test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents(path, value, failed_gate):
+        result = ai_result()
+        target = result
+        for part in path[:-1]:
+            target = target[part]
+        target[path[-1]] = value
+>       gates = load_cli().ai_local_gates(result)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scale_cli' has no attribute 'ai_local_gates'
+
+tests/test_scale_readiness_safety.py:89: AttributeError
+_ test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path2-None-completion_latency] _
+
+path = ('latency_including_rejections', 'p95_ms'), value = None
+failed_gate = 'completion_latency'
+
+    @pytest.mark.parametrize(("path", "value", "failed_gate"), [
+        (("latency_including_rejections", "p95_ms"), 30001, "completion_latency"),
+        (("latency_including_rejections", "p99_ms"), 60001, "completion_latency"),
+        (("latency_including_rejections", "p95_ms"), None, "completion_latency"),
+        (("pool_acquisition_recent_window", "p95_ms"), 100, "pool_recent_window"),
+        (("pool_acquisition_recent_window", "timeouts"), 1, "pool_recent_window"),
+        (("event_loop_lag", "p95_ms"), 100, "event_loop_lag"),
+        (("measured_window_seconds",), 899.99, "full_measurement_window"),
+        (("mean_parent_occupancy",), 44.99, "parent_occupancy"),
+        (("financial_invariant",), False, "financial_invariant"),
+        (("completed",), 1899, "all_turns_completed"),
+        (("errors",), {"noncompleted_stream": 1}, "all_turns_completed"),
+        (("statuses",), {"202": 1899, "503": 1}, "all_turns_completed"),
+    ])
+    def test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents(path, value, failed_gate):
+        result = ai_result()
+        target = result
+        for part in path[:-1]:
+            target = target[part]
+        target[path[-1]] = value
+>       gates = load_cli().ai_local_gates(result)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scale_cli' has no attribute 'ai_local_gates'
+
+tests/test_scale_readiness_safety.py:89: AttributeError
+_ test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path3-100-pool_recent_window] _
+
+path = ('pool_acquisition_recent_window', 'p95_ms'), value = 100
+failed_gate = 'pool_recent_window'
+
+    @pytest.mark.parametrize(("path", "value", "failed_gate"), [
+        (("latency_including_rejections", "p95_ms"), 30001, "completion_latency"),
+        (("latency_including_rejections", "p99_ms"), 60001, "completion_latency"),
+        (("latency_including_rejections", "p95_ms"), None, "completion_latency"),
+        (("pool_acquisition_recent_window", "p95_ms"), 100, "pool_recent_window"),
+        (("pool_acquisition_recent_window", "timeouts"), 1, "pool_recent_window"),
+        (("event_loop_lag", "p95_ms"), 100, "event_loop_lag"),
+        (("measured_window_seconds",), 899.99, "full_measurement_window"),
+        (("mean_parent_occupancy",), 44.99, "parent_occupancy"),
+        (("financial_invariant",), False, "financial_invariant"),
+        (("completed",), 1899, "all_turns_completed"),
+        (("errors",), {"noncompleted_stream": 1}, "all_turns_completed"),
+        (("statuses",), {"202": 1899, "503": 1}, "all_turns_completed"),
+    ])
+    def test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents(path, value, failed_gate):
+        result = ai_result()
+        target = result
+        for part in path[:-1]:
+            target = target[part]
+        target[path[-1]] = value
+>       gates = load_cli().ai_local_gates(result)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scale_cli' has no attribute 'ai_local_gates'
+
+tests/test_scale_readiness_safety.py:89: AttributeError
+_ test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path4-1-pool_recent_window] _
+
+path = ('pool_acquisition_recent_window', 'timeouts'), value = 1
+failed_gate = 'pool_recent_window'
+
+    @pytest.mark.parametrize(("path", "value", "failed_gate"), [
+        (("latency_including_rejections", "p95_ms"), 30001, "completion_latency"),
+        (("latency_including_rejections", "p99_ms"), 60001, "completion_latency"),
+        (("latency_including_rejections", "p95_ms"), None, "completion_latency"),
+        (("pool_acquisition_recent_window", "p95_ms"), 100, "pool_recent_window"),
+        (("pool_acquisition_recent_window", "timeouts"), 1, "pool_recent_window"),
+        (("event_loop_lag", "p95_ms"), 100, "event_loop_lag"),
+        (("measured_window_seconds",), 899.99, "full_measurement_window"),
+        (("mean_parent_occupancy",), 44.99, "parent_occupancy"),
+        (("financial_invariant",), False, "financial_invariant"),
+        (("completed",), 1899, "all_turns_completed"),
+        (("errors",), {"noncompleted_stream": 1}, "all_turns_completed"),
+        (("statuses",), {"202": 1899, "503": 1}, "all_turns_completed"),
+    ])
+    def test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents(path, value, failed_gate):
+        result = ai_result()
+        target = result
+        for part in path[:-1]:
+            target = target[part]
+        target[path[-1]] = value
+>       gates = load_cli().ai_local_gates(result)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scale_cli' has no attribute 'ai_local_gates'
+
+tests/test_scale_readiness_safety.py:89: AttributeError
+_ test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path5-100-event_loop_lag] _
+
+path = ('event_loop_lag', 'p95_ms'), value = 100, failed_gate = 'event_loop_lag'
+
+    @pytest.mark.parametrize(("path", "value", "failed_gate"), [
+        (("latency_including_rejections", "p95_ms"), 30001, "completion_latency"),
+        (("latency_including_rejections", "p99_ms"), 60001, "completion_latency"),
+        (("latency_including_rejections", "p95_ms"), None, "completion_latency"),
+        (("pool_acquisition_recent_window", "p95_ms"), 100, "pool_recent_window"),
+        (("pool_acquisition_recent_window", "timeouts"), 1, "pool_recent_window"),
+        (("event_loop_lag", "p95_ms"), 100, "event_loop_lag"),
+        (("measured_window_seconds",), 899.99, "full_measurement_window"),
+        (("mean_parent_occupancy",), 44.99, "parent_occupancy"),
+        (("financial_invariant",), False, "financial_invariant"),
+        (("completed",), 1899, "all_turns_completed"),
+        (("errors",), {"noncompleted_stream": 1}, "all_turns_completed"),
+        (("statuses",), {"202": 1899, "503": 1}, "all_turns_completed"),
+    ])
+    def test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents(path, value, failed_gate):
+        result = ai_result()
+        target = result
+        for part in path[:-1]:
+            target = target[part]
+        target[path[-1]] = value
+>       gates = load_cli().ai_local_gates(result)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scale_cli' has no attribute 'ai_local_gates'
+
+tests/test_scale_readiness_safety.py:89: AttributeError
+_ test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path6-899.99-full_measurement_window] _
+
+path = ('measured_window_seconds',), value = 899.99
+failed_gate = 'full_measurement_window'
+
+    @pytest.mark.parametrize(("path", "value", "failed_gate"), [
+        (("latency_including_rejections", "p95_ms"), 30001, "completion_latency"),
+        (("latency_including_rejections", "p99_ms"), 60001, "completion_latency"),
+        (("latency_including_rejections", "p95_ms"), None, "completion_latency"),
+        (("pool_acquisition_recent_window", "p95_ms"), 100, "pool_recent_window"),
+        (("pool_acquisition_recent_window", "timeouts"), 1, "pool_recent_window"),
+        (("event_loop_lag", "p95_ms"), 100, "event_loop_lag"),
+        (("measured_window_seconds",), 899.99, "full_measurement_window"),
+        (("mean_parent_occupancy",), 44.99, "parent_occupancy"),
+        (("financial_invariant",), False, "financial_invariant"),
+        (("completed",), 1899, "all_turns_completed"),
+        (("errors",), {"noncompleted_stream": 1}, "all_turns_completed"),
+        (("statuses",), {"202": 1899, "503": 1}, "all_turns_completed"),
+    ])
+    def test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents(path, value, failed_gate):
+        result = ai_result()
+        target = result
+        for part in path[:-1]:
+            target = target[part]
+        target[path[-1]] = value
+>       gates = load_cli().ai_local_gates(result)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scale_cli' has no attribute 'ai_local_gates'
+
+tests/test_scale_readiness_safety.py:89: AttributeError
+_ test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path7-44.99-parent_occupancy] _
+
+path = ('mean_parent_occupancy',), value = 44.99
+failed_gate = 'parent_occupancy'
+
+    @pytest.mark.parametrize(("path", "value", "failed_gate"), [
+        (("latency_including_rejections", "p95_ms"), 30001, "completion_latency"),
+        (("latency_including_rejections", "p99_ms"), 60001, "completion_latency"),
+        (("latency_including_rejections", "p95_ms"), None, "completion_latency"),
+        (("pool_acquisition_recent_window", "p95_ms"), 100, "pool_recent_window"),
+        (("pool_acquisition_recent_window", "timeouts"), 1, "pool_recent_window"),
+        (("event_loop_lag", "p95_ms"), 100, "event_loop_lag"),
+        (("measured_window_seconds",), 899.99, "full_measurement_window"),
+        (("mean_parent_occupancy",), 44.99, "parent_occupancy"),
+        (("financial_invariant",), False, "financial_invariant"),
+        (("completed",), 1899, "all_turns_completed"),
+        (("errors",), {"noncompleted_stream": 1}, "all_turns_completed"),
+        (("statuses",), {"202": 1899, "503": 1}, "all_turns_completed"),
+    ])
+    def test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents(path, value, failed_gate):
+        result = ai_result()
+        target = result
+        for part in path[:-1]:
+            target = target[part]
+        target[path[-1]] = value
+>       gates = load_cli().ai_local_gates(result)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scale_cli' has no attribute 'ai_local_gates'
+
+tests/test_scale_readiness_safety.py:89: AttributeError
+_ test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path8-False-financial_invariant] _
+
+path = ('financial_invariant',), value = False
+failed_gate = 'financial_invariant'
+
+    @pytest.mark.parametrize(("path", "value", "failed_gate"), [
+        (("latency_including_rejections", "p95_ms"), 30001, "completion_latency"),
+        (("latency_including_rejections", "p99_ms"), 60001, "completion_latency"),
+        (("latency_including_rejections", "p95_ms"), None, "completion_latency"),
+        (("pool_acquisition_recent_window", "p95_ms"), 100, "pool_recent_window"),
+        (("pool_acquisition_recent_window", "timeouts"), 1, "pool_recent_window"),
+        (("event_loop_lag", "p95_ms"), 100, "event_loop_lag"),
+        (("measured_window_seconds",), 899.99, "full_measurement_window"),
+        (("mean_parent_occupancy",), 44.99, "parent_occupancy"),
+        (("financial_invariant",), False, "financial_invariant"),
+        (("completed",), 1899, "all_turns_completed"),
+        (("errors",), {"noncompleted_stream": 1}, "all_turns_completed"),
+        (("statuses",), {"202": 1899, "503": 1}, "all_turns_completed"),
+    ])
+    def test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents(path, value, failed_gate):
+        result = ai_result()
+        target = result
+        for part in path[:-1]:
+            target = target[part]
+        target[path[-1]] = value
+>       gates = load_cli().ai_local_gates(result)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scale_cli' has no attribute 'ai_local_gates'
+
+tests/test_scale_readiness_safety.py:89: AttributeError
+_ test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path9-1899-all_turns_completed] _
+
+path = ('completed',), value = 1899, failed_gate = 'all_turns_completed'
+
+    @pytest.mark.parametrize(("path", "value", "failed_gate"), [
+        (("latency_including_rejections", "p95_ms"), 30001, "completion_latency"),
+        (("latency_including_rejections", "p99_ms"), 60001, "completion_latency"),
+        (("latency_including_rejections", "p95_ms"), None, "completion_latency"),
+        (("pool_acquisition_recent_window", "p95_ms"), 100, "pool_recent_window"),
+        (("pool_acquisition_recent_window", "timeouts"), 1, "pool_recent_window"),
+        (("event_loop_lag", "p95_ms"), 100, "event_loop_lag"),
+        (("measured_window_seconds",), 899.99, "full_measurement_window"),
+        (("mean_parent_occupancy",), 44.99, "parent_occupancy"),
+        (("financial_invariant",), False, "financial_invariant"),
+        (("completed",), 1899, "all_turns_completed"),
+        (("errors",), {"noncompleted_stream": 1}, "all_turns_completed"),
+        (("statuses",), {"202": 1899, "503": 1}, "all_turns_completed"),
+    ])
+    def test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents(path, value, failed_gate):
+        result = ai_result()
+        target = result
+        for part in path[:-1]:
+            target = target[part]
+        target[path[-1]] = value
+>       gates = load_cli().ai_local_gates(result)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scale_cli' has no attribute 'ai_local_gates'
+
+tests/test_scale_readiness_safety.py:89: AttributeError
+_ test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path10-value10-all_turns_completed] _
+
+path = ('errors',), value = {'noncompleted_stream': 1}
+failed_gate = 'all_turns_completed'
+
+    @pytest.mark.parametrize(("path", "value", "failed_gate"), [
+        (("latency_including_rejections", "p95_ms"), 30001, "completion_latency"),
+        (("latency_including_rejections", "p99_ms"), 60001, "completion_latency"),
+        (("latency_including_rejections", "p95_ms"), None, "completion_latency"),
+        (("pool_acquisition_recent_window", "p95_ms"), 100, "pool_recent_window"),
+        (("pool_acquisition_recent_window", "timeouts"), 1, "pool_recent_window"),
+        (("event_loop_lag", "p95_ms"), 100, "event_loop_lag"),
+        (("measured_window_seconds",), 899.99, "full_measurement_window"),
+        (("mean_parent_occupancy",), 44.99, "parent_occupancy"),
+        (("financial_invariant",), False, "financial_invariant"),
+        (("completed",), 1899, "all_turns_completed"),
+        (("errors",), {"noncompleted_stream": 1}, "all_turns_completed"),
+        (("statuses",), {"202": 1899, "503": 1}, "all_turns_completed"),
+    ])
+    def test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents(path, value, failed_gate):
+        result = ai_result()
+        target = result
+        for part in path[:-1]:
+            target = target[part]
+        target[path[-1]] = value
+>       gates = load_cli().ai_local_gates(result)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scale_cli' has no attribute 'ai_local_gates'
+
+tests/test_scale_readiness_safety.py:89: AttributeError
+_ test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path11-value11-all_turns_completed] _
+
+path = ('statuses',), value = {'202': 1899, '503': 1}
+failed_gate = 'all_turns_completed'
+
+    @pytest.mark.parametrize(("path", "value", "failed_gate"), [
+        (("latency_including_rejections", "p95_ms"), 30001, "completion_latency"),
+        (("latency_including_rejections", "p99_ms"), 60001, "completion_latency"),
+        (("latency_including_rejections", "p95_ms"), None, "completion_latency"),
+        (("pool_acquisition_recent_window", "p95_ms"), 100, "pool_recent_window"),
+        (("pool_acquisition_recent_window", "timeouts"), 1, "pool_recent_window"),
+        (("event_loop_lag", "p95_ms"), 100, "event_loop_lag"),
+        (("measured_window_seconds",), 899.99, "full_measurement_window"),
+        (("mean_parent_occupancy",), 44.99, "parent_occupancy"),
+        (("financial_invariant",), False, "financial_invariant"),
+        (("completed",), 1899, "all_turns_completed"),
+        (("errors",), {"noncompleted_stream": 1}, "all_turns_completed"),
+        (("statuses",), {"202": 1899, "503": 1}, "all_turns_completed"),
+    ])
+    def test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents(path, value, failed_gate):
+        result = ai_result()
+        target = result
+        for part in path[:-1]:
+            target = target[part]
+        target[path[-1]] = value
+>       gates = load_cli().ai_local_gates(result)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scale_cli' has no attribute 'ai_local_gates'
+
+tests/test_scale_readiness_safety.py:89: AttributeError
+_ test_ai_probe_accepts_exact_local_boundaries_without_claiming_release_readiness _
+
+    def test_ai_probe_accepts_exact_local_boundaries_without_claiming_release_readiness():
+>       assert all(load_cli().ai_local_gates(ai_result()).values())
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scale_cli' has no attribute 'ai_local_gates'
+
+tests/test_scale_readiness_safety.py:95: AttributeError
+=========================== short test summary info ============================
+FAILED tests/test_scale_readiness_safety.py::test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path0-30001-completion_latency]
+FAILED tests/test_scale_readiness_safety.py::test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path1-60001-completion_latency]
+FAILED tests/test_scale_readiness_safety.py::test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path2-None-completion_latency]
+FAILED tests/test_scale_readiness_safety.py::test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path3-100-pool_recent_window]
+FAILED tests/test_scale_readiness_safety.py::test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path4-1-pool_recent_window]
+FAILED tests/test_scale_readiness_safety.py::test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path5-100-event_loop_lag]
+FAILED tests/test_scale_readiness_safety.py::test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path6-899.99-full_measurement_window]
+FAILED tests/test_scale_readiness_safety.py::test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path7-44.99-parent_occupancy]
+FAILED tests/test_scale_readiness_safety.py::test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path8-False-financial_invariant]
+FAILED tests/test_scale_readiness_safety.py::test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path9-1899-all_turns_completed]
+FAILED tests/test_scale_readiness_safety.py::test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path10-value10-all_turns_completed]
+FAILED tests/test_scale_readiness_safety.py::test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents[path11-value11-all_turns_completed]
+FAILED tests/test_scale_readiness_safety.py::test_ai_probe_accepts_exact_local_boundaries_without_claiming_release_readiness
+13 failed, 10 passed in 0.46s

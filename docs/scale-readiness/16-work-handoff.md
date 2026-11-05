@@ -11,12 +11,18 @@ a280M-nano parent pool. Legacy/guest/group authorities remain intact; pooled gro
 all-provider accounting and live campaign adapter remain open engineering work.
 No feature flag, production budget, credential, quota or deployment is changed.
 
-AWS MCP works for current account facts; use
+AWS MCP supplied timestamped account facts; use
 [fresh EC2/CloudWatch evidence](evidence/ci-repair-aws-readonly.json) and
 [fresh SES/EBS/SSM evidence](evidence/ci-repair-aws-additional.json) before treating
 cloud-browser403/login failures as account-access blockers. P4-E01 still lacks
-approved target-load evidence and host memory/cgroup distributions. P3-I07's latest
-900s attempt stopped after257.592s with one pool timeout; it remains FAILED.
+approved target-load evidence and host memory/cgroup distributions. P3-I07's next
+attempt completed900s with1953/1953 successes and zero pool timeouts,but occupancy
+43.69 and poolp95748.5ms still fail gates. The one-SQL snapshot and batched reader
+experiments also failed load and were removed. Runtime remains the verified bab7
+implementation;10 added authority regressions stay. The runner now checks local SLOs,
+measurement-task health and raw thresholds,with28 safety/gate tests. Full mixed,
+whole-run pool distribution and target-size performance remain unproven.
+MCP refresh at23:xxUTC failed with Unknown tool;AWS CLI has no credentials.
 Local test-image STATIC_DIR was removed from the runner; a separate SQL-review
 path guard now rejects approved-artifact writes even when a checkout lives in/tmp.
 See [15](15-test-results.md) for exact test evidence and CI follow-up.
@@ -210,7 +216,7 @@ must be read with account facts; defaults are not this project's actual limits.
 | Field | Actionable record |
 |---|---|
 | Task ID / Status | P3-I02/I06/I07/I08/I09/P5-L01/L02, G07/G08/G09; **BLOCKED** for paid run |
-| Problem | Canonical ledger primitive now exists, but no reviewed immutable-payload/exact-count/one-wire live adapter. Workflow pooled allocation and registered Voyage/STT coverage incomplete; fake sustained-load evidence does not close capacity. |
+| Problem | Direct V3 pooled parent/child accounting is implemented and regression-tested. Group pooling, registered Voyage/STT coverage and a reviewed immutable-payload/exact-count/one-wire live adapter remain incomplete; fake sustained-load evidence does not close target capacity. |
 | What Codex tried | Campaign25 offline tests incl12-process race/crash; financial regression; fake50/900s attempts recorded in15; zero generation/judge APIs. |
 | Evidence | [campaign19](19-paid-campaign-runbook.md), [controller](../../scripts/paid_campaign.py), [budget query regression](../../backend/tests/test_scale_budget_queries.py), [15](15-test-results.md). |
 | Target website / Account | OpenAI staging project once verified; reviewed isolated staging app; coding environment with one durable campaign file. |
@@ -257,7 +263,7 @@ Use a supported coding environment/agent for rows marked Coding.
 | P2-D09 | DEFERRED | Pooler topology benefit unproven | prepare_threshold=None kept |04;12 | Supabase/Coding |project/L0 | Read modes/caps;change only after benefit | Read now;topology confirmation | Potential downtime | Poolingcompatibility+benefit | Existing endpoint;section6 |
 | P2-D10 | BLOCKED | Hosted complete recovery untested | Policy/verifier22/localrestore |18;recovery JSON | AWS/Supabase |project/targetEC2 | Section6 costed isolatedrehearsal | REQUIRES_OWNER_CONFIRMATION | Storage/egress/testhost | RPO24h/RTO8h measured | Never replaceprod;quote destination |
 | P3-I01 | IN_PROGRESS | Exact release digest/quotas unknown | Runtime allowlist;Dockerimage IDs | round2-cloud.json | EC2/OpenAI |target/projectunknown | Read registry attestation/projectmapping | Read-only |$0 | SHA/digest/env same candidate | No deploy;read provenance |
-| P3-I02 | IN_PROGRESS | Pooled parent/child allocation missing | Per-row bound/oneSQL liability | accounting.py;15 | Coding |L0 | Implement pooled worstcase allocation+fanouttests | Code authorized;flagoff |$0mock | All children bound;unknownretained | Legacyholds;design pooledledger |
+| P3-I02 | IN_PROGRESS | Group/all-provider/campaign integration pending | Direct V3 pooled transfer,race,unknown recovery,SDK consult/handoff | pooled_accounting.py;test_pooled_accounting.py;15 | Coding |L0 | Extend reviewed bounds to remaining domains;verify account/count prices | Code authorized;flagoff |$0mock | All children/providers bounded;unknown retained | Preserve legacy/guest holds;no activation |
 | P3-I03 | IN_PROGRESS | Lane fairness/crossprocess quota proof | Dispatch gate+postqueuefences | dispatch.py;15 | Coding/EC2 |L0/target | Fanout/background targetload+headers | Code;stage activation confirmation |$0mock | Physicalcalls andparents separate | Flagfalse;run fake mixedprofile |
 | P3-I04 | IN_PROGRESS | Complete stage metric timeline missing | Pool/loop/RSS/parent counters | scale_readiness.py;15 | Coding |L0 | Instrument finite stagehistograms noPII | Code authorized |$0mock | PhysicalHTTP/SDK/client labelsaccurate | Revert metrics only;build contract |
 | P3-I05 | IN_PROGRESS | NetworkSSE/slowreader/restart missing | ASGI50 and lifecycle unit |15;streams.py | Coding/Caddy |L0 | Caddy/TLS sockettest+disconnect/replay/finite lifetime | Local authorized |$0 | No leak/orphans/duplicate charge | Preserve holds;build networkfixture |

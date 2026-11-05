@@ -383,3 +383,97 @@ accounted for:2 known contract failures,7 SPA-shadowed dynamic test routes,
 checkout under/tmp. The original cancellation test passed in this order. This
 diagnostic is not reported as an equivalent full CI run; the new GitHub workflow
 is the authority for the final source and exact counts.
+
+Controlled cancellation RED/GREEN: the same real runtime/DB/model test was driven
+with its runtime slot held for3.25s (within the unchanged runtime deadline). The
+original3s startup wait failed with TimeoutError (1 failed in11.98s); lifecycle
+readiness passed on the same scenario (1 passed in9.86s), including terminal task,
+provider cancellation and no committed bubble assertions. This is a controlled
+backpressure reproduction, not evidence of a production deadlock or a reproduced
+natural CI schedule. Logs: [RED](evidence/ci-repair-cancel-backpressure-red.log),
+[GREEN](evidence/ci-repair-cancel-backpressure-green.log).
+
+The isolated follow-up at source `bab7bad140be46e9ab9f98322fa0174354a3ef8f`
+completed the full900.0s measured window (978.193s wall): **1953/1953 completed,
+zero errors,zero pool timeouts**,peak50 parents/SSE/provider and199184384bytes RSS.
+Liability peaked16027950000nano,within the50USD test cap. It still **FAILED**:
+mean occupancy43.69<45,and recent-window pool p95=748.517ms>100ms. Completion
+p95=28757.929ms,p99=30614.367ms;loop p95=24.289ms. LocalDocker has12CPUs and
+8171651072bytes;this does not establish the target2-vCPU EC2 envelope.
+[Full report](evidence/ci-repair-T4-after.json);source SHA256
+`1cb00c7effa4f626b94d4bddcc4d190ebb913c9f72ae18e8f928334687633506`.
+
+Rejected pressure experiment: registered running saved polls without receipt/step
+projection,recovery or configured transaction timeouts used one fresh joined
+authorization/run snapshot. RED was3 SQL vs required1; **59 tests passed** over
+fresh provider/session revocation,expiry,auth version,age,suspension,deletion,AI
+row,data version,conversation expiry,saved chat and guest lifecycle. Guest/terminal/
+receipt/transaction-timeout routes retain their existing validation. No policy or
+result cache;unchanged pool/timeout. Independent review found no blocker. Ruff
+passed and mypy passed196 source files. Its subsequent load failed; this implementation
+and the follow-on coalescing reader are absent from the delivered source.
+Logs: [poll RED](evidence/ci-repair-poll-red.log),
+[authorization regressions](evidence/ci-repair-poll-security-green.log).
+
+Full GitHub workflow [42115340645](https://github.com/mhiu05/MoodPrint/actions/runs/42115340645)
+completed **SUCCESS** at source `bab7bad140be46e9ab9f98322fa0174354a3ef8f`:
+backend **2300 passed,4 skipped,0 failed** in1118.76s;Vitest206 tests/37 files;
+Playwright E2E388;full-stack38;AWS release poller37. Ruff,mypy195 files,migrations,
+synthetic load,contract drift,docs,12 SQL approvals,workflow syntax and all Docker
+packaging/build steps passed. These are separate suites,not an aggregate total.
+[Exact summary](evidence/ci-repair-ci-bab7.json). The next commit retains this runtime
+and adds authority/runner regressions plus evidence; its exact-SHA workflow must
+finish independently before it is described as verified.
+
+The one-snapshot attempt measured900s but completed1932/1933,with one pool timeout,
+mean occupancy43.12 and recent poolp951054.135ms: **FAILED**.
+[Report](evidence/ci-repair-T4-snapshot.json),source SHA256
+`d56f946a5f64729af1db7281c51106a1bd7149592fd9a4f183b9db898102d401`.
+Coalescing fresh reads reduced14905 logical polls to1495 SQL batches,but stopped
+at291.071s wall/231.071s measurement:546/561 completed,15 pool timeouts,poolp955500.72ms,
+mean occupancy40.17,completionp9533320.481ms: **FAILED**.
+[Report](evidence/ci-repair-T4-batched.json),source SHA256
+`a60420bc576313a6faeb0464fbb2325140f1f8a1580e78d18e2cc7a65b0e6398`.
+Isolated EXPLAIN ANALYZE was8.923ms/50 rows;10 batches took0.250s. This does not
+explain all workload pressure or establish a database lock regression. No pool,
+deadline or target threshold was raised. Both experiments were removed because
+the measurements did not support shipping them;original tests remain intact.
+
+Retained continuation:10 additional live authority-change regressions,including
+provider/application session,expiry,auth version,age,suspension,deletion,purpose,
+data version and conversation expiry. Sequential scope **82 passed in214.80s**
+includes saved chat,session reliability,guest lifecycle and the first runner checks;
+it is not a new full-suite total. An earlier overlapping fixture-reset run is invalid
+and was discarded;only sequential DB-suite evidence is used.
+[Scoped log](evidence/ci-repair-final-scoped-green.log).
+
+Runner defect fixed: parent peak/occupancy alone no longer produces a local PASS.
+It also requires all admitted turns complete,no rejection/error,financial invariant,
+full measurement window,single completionp95≤30s/p99≤60s,recent poolp95<100ms with
+zero timeouts,and event-loop lagp95<100ms. Monitor exceptions/early exits fail closed;
+errors contain only task names and exception types. Gate decisions use raw numbers,
+so rounding cannot convert44.999 occupancy or899.9996s into a pass. The JSON retains
+explicit unmeasured release gates;recent2048 pool samples never claim a whole-run
+distribution. The CI Ruff command now includes this script.
+RED13 failures,then review RED4 failures;final **28 passed in0.37s**.
+Logs:[initial RED](evidence/ci-repair-runner-slo-red.log),
+[review RED](evidence/ci-repair-runner-review-red.log),
+[GREEN](evidence/ci-repair-runner-slo-green.log). Ruff passed,mypy195 files passed
+after removing the experiments. All generation/judge/email calls remain synthetic
+or absent,external generation spend remains zero. P3-I07/P4-E01 remain FAILED.
+
+Final runner integration smoke (30s,no warmup;**not** a900s acceptance run):70/70
+completed,zero errors/timeouts,peak50,measurement tasks healthy. The report correctly
+returns **FAILED** for occupancy42.659,completionp9531507.274ms,and recent poolp95659.845ms.
+It exposes each failed local gate and the unmeasured release gates explicitly.
+[Report](evidence/ci-repair-runner-final.json),source SHA256
+`dcd57bf1c903da4d9c5b9345b6806ee66ad7f45c0bf2e4ceb33f85d2fd8e5708`.
+
+Final Linux scoped verification: **162 passed in164.86s** across the three original
+failure files,pooled/legacy accounting,live polling authority,runner safety and SQL
+review guards. [Log](evidence/ci-repair-final-regressions-green.log). Ruff passed
+including scale_readiness.py;mypy passed195 files;docs208 Markdown/1446 links and
+12 reviewed SQL approvals passed. Independent review found no remaining concrete
+blocker after both runner findings were fixed. These tests overlap prior scopes;
+the post-push full GitHub workflow,matched to the exact remote SHA,is the final
+suite authority. No merge or deployment follows a green feature-branch workflow.

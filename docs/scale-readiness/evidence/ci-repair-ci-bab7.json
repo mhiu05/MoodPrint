@@ -1,0 +1,16 @@
+{
+  "run_id": 42115340645,
+  "url": "https://github.com/mhiu05/MoodPrint/actions/runs/42115340645",
+  "head_sha": "bab7bad140be46e9ab9f98322fa0174354a3ef8f",
+  "status": "completed",
+  "conclusion": "success",
+  "backend": {"passed": 2300, "skipped": 4, "failed": 0, "seconds": 1118.76},
+  "vitest": {"passed": 206, "files_passed": 37},
+  "playwright_e2e": {"passed": 388},
+  "playwright_fullstack": {"passed": 38},
+  "aws_release_poller_unittest": {"ran": 37, "conclusion": "OK"},
+  "mypy_source_files": 195,
+  "ruff": "passed",
+  "reviewed_approvals": 12,
+  "scope": "Full verify workflow including migration/load, frontend/contracts, fullstack, docs, syntax and Docker builds. Before the subsequent one-snapshot polling optimization. No merge or deployment. Counts from separate suites are not combined."
+}

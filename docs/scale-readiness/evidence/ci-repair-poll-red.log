@@ -1,0 +1,43 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__ test_running_saved_poll_keeps_authorization_and_has_a_bounded_query_budget __
+
+clients = (<fastapi.applications.FastAPI object at 0x7bde84f62de0>, [(<httpx.AsyncClient object at 0x7bde85be1700>, UUID('75b6d9...d7-9986-bd7af7c3f8df')), (<httpx.AsyncClient object at 0x7bde8a5cd280>, UUID('3d1c1743-afbb-4f32-8fee-cb53c145299f'))])
+
+    @pytest.mark.postgres
+    async def test_running_saved_poll_keeps_authorization_and_has_a_bounded_query_budget(clients):
+        app, actors = clients
+        client = actors[0][0]
+        model = make_test_model("Synthetic reply")
+        model.hold = True
+        app.state.ai.model_override = model
+        await enable(client)
+        created = await client.post("/api/v1/ai/conversations", json={"botId": "may", "persistent": True}, headers=key())
+        cid = created.json()["conversationId"]
+        accepted = await client.post(f"/api/v1/ai/conversations/{cid}/messages", headers=key(),
+                                     json={"text": "Synthetic", "clientMessageId": str(__import__('uuid').uuid4()), "expectedConversationVersion": 1})
+        run_id = UUID(accepted.json()["runId"])
+        run = app.state.ai.runs[run_id]
+        await asyncio.wait_for(model.started.wait(), timeout=5)
+        query_count = 0
+    
+        def count(*args):
+            nonlocal query_count
+            query_count += 1
+    
+        engine = app.state.database.engine.sync_engine
+        event.listen(engine, "before_cursor_execute", count)
+        try:
+            found = await durable_run(Request({"type": "http", "app": app, "headers": []}),
+                                      run.actor, run_id, poll=True, recover=False)
+            assert found[0].status == "running" and found[2] == []
+>           assert query_count == 1
+E           assert 3 == 1
+
+tests/test_scale_polling.py:110: AssertionError
+------------------------------ Captured log setup ------------------------------
+WARNING  moodprint:main.py:43 database_pool_exceeds_headroom size=5 overflow=2
+WARNING  moodprint:main.py:43 database_pool_exceeds_headroom size=5 overflow=2
+=========================== short test summary info ============================
+FAILED tests/test_scale_polling.py::test_running_saved_poll_keeps_authorization_and_has_a_bounded_query_budget
+1 failed in 5.75s
