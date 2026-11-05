@@ -4,6 +4,8 @@ import logging
 from datetime import timedelta
 from uuid import uuid4
 
+from sqlalchemy import and_, delete, func, or_, select, text, update
+
 from app.infrastructure.database.models import (
     AgeDeclaration,
     AiRun,
@@ -27,7 +29,6 @@ from app.modules.social.models import (
 )
 from app.modules.social.service import invalidate_user_social
 from app.modules.users.models import DataJob
-from sqlalchemy import and_, delete, func, or_, select, text, update
 
 logger = logging.getLogger("moodprint.lifecycle")
 

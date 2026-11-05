@@ -2,6 +2,9 @@
 
 from datetime import timedelta
 
+from sqlalchemy import Date, cast, delete, func, select
+from sqlalchemy.orm import aliased
+
 from app.infrastructure.database.models import (
     AiRun,
     AiUsage,
@@ -13,8 +16,6 @@ from app.infrastructure.database.models import (
 )
 from app.modules.journal.quota import expired_receipts
 from app.modules.social.models import CandidateReference, HumanMessage
-from sqlalchemy import Date, cast, delete, func, select
-from sqlalchemy.orm import aliased
 
 
 async def purge_expired(app):

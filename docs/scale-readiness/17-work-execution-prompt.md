@@ -2,8 +2,10 @@
 
 Implementation commit: `ed75c4a1fbef462f33ad5389e0615b9afaa4b6da`. Normal push verified by
 `git ls-remote origin refs/heads/feat/upgrade-user` returning this exact SHA.
-This prompt is published in a later documentation-only commit; the branch tip is
-therefore expected to differ. Verify the implementation commit remains its ancestor.
+This prompt was first published in a later documentation commit. The branch also
+contains documented import-order and static-typing CI corrections, so its tip is expected to
+differ. Verify the implementation commit remains its ancestor and read the latest
+revision's Actions result; do not infer that the full CI passed.
 
 ---
 
@@ -15,8 +17,12 @@ https://github.com/mhiu05/MoodPrint/commit/ed75c4a1fbef462f33ad5389e0615b9afaa4b
 
 First read `docs/scale-readiness/16-work-handoff.md` on that branch, then12–15 and
 18–20. Use GitHub, not the local Windows directory. Confirm the pinned implementation
-commit is an ancestor of the branch tip; later documentation commits do not change
-the tested application source. Record the actual branch SHA and time of your read.
+commit is an ancestor of the branch tip; inspect later documented import-order and static-typing
+corrections and documentation updates. Record the actual branch SHA and time of your
+read. The first implementation CI run failed import checks; corrections passed the
+full Ruff command and full mypy on194app files locally, with118offline tests
+passing/2skipped and a74pass/1skip typing-fix regression (overlapping scopes). Read the final
+revision's full GitHub Actions status before claiming a green candidate.
 
 Use supported connectors/APIs first, browser tools where those cannot provide the
 needed configuration. Open AWS Console in ap-southeast-2, Supabase Dashboard,

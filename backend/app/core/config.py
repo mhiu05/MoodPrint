@@ -2,10 +2,11 @@ from decimal import Decimal
 from typing import Any, Literal
 from uuid import UUID
 
-from app.ai.embedding_config import EmbeddingSettings
 from pydantic import Field, PrivateAttr, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
+
+from app.ai.embedding_config import EmbeddingSettings
 
 
 class Settings(EmbeddingSettings, BaseSettings):

@@ -4,13 +4,14 @@ import logging
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from sqlalchemy import delete, func, select, update
+
 from app.ai.context import ContextStamp
 from app.ai.models import AiConversation, AiMessageRecord, AiTurn
 from app.ai.schemas import AIMessage, AiPreferenceView, ConversationHeader, ConversationView
 from app.ai.store import Conversation
 from app.core.errors import DomainError
 from app.infrastructure.database.models import AiRun, User, now
-from sqlalchemy import delete, func, select, update
 
 log = logging.getLogger("moodprint")
 
@@ -318,9 +319,10 @@ async def close_orphaned_consultations(db) -> None:
 
 async def interrupt_consultations(db, primary_run_ids) -> None:
     """A consultation never outlives its primary run (crash recovery, Phase 2 and V3)."""
+    from sqlalchemy import case
+
     from app.ai.collaboration.models import AiCollaboration
     from app.ai.orchestration.models import AiOrchestrationStep
-    from sqlalchemy import case
 
     # V3: open plan/consult/handoff/group steps of an interrupted run end as cancelled (review M1).
     await db.execute(

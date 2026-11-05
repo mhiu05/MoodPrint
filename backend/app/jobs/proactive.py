@@ -23,11 +23,12 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
-from app.ai.proactive.models import AiProactiveJob, AiProactiveSchedule, AiProactiveSettings
-from app.ai.proactive.schedule import local_date, next_occurrence
 from sqlalchemy import and_, exists, func, or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import aliased
+
+from app.ai.proactive.models import AiProactiveJob, AiProactiveSchedule, AiProactiveSettings
+from app.ai.proactive.schedule import local_date, next_occurrence
 
 log = logging.getLogger("moodprint")
 LEASE_SECONDS = 90

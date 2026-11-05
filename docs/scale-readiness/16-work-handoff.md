@@ -292,3 +292,12 @@ Record each browser action with UTC timestamp, account/project fingerprint, exac
 navigation/API and redacted result, not just a checkbox. If denied/login/MFA blocks
 one site, document it and continue independent authorized work. Never mark an
 operation complete without reading back its resulting state.
+
+GitHub CI follow-up (G00):the first implementation push failed20Ruff import-order
+checks, corrected in a subsequent CI correction commit. Exact fullCI Ruff and full `mypy app` (194files) now pass
+locally;118offline tests pass/2skip after import normalization, then74pass/1skip
+after2static typing clarifications. Counts overlap;no runtimepolicy changes. Verify the final revision's
+Actions run rather than assuming the earlier failure or a local lane proves its
+status. [Original failed run](https://github.com/mhiu05/MoodPrint/actions/runs/42027966645),
+[normalization evidence](evidence/round2-ci-import-fix.json). Fullworkflow status may
+still be pending;it is not a release authorization.

@@ -1,11 +1,12 @@
 import re
 from uuid import uuid4
 
-from app.contracts import ApiError, ErrorDetail
-from app.infrastructure.database.errors import database_failure_category, sqlstate_of
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+
+from app.contracts import ApiError, ErrorDetail
+from app.infrastructure.database.errors import database_failure_category, sqlstate_of
 
 _SAFE_TOKEN = re.compile(r"^[A-Za-z0-9_.]{1,48}$")
 

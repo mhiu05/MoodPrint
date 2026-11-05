@@ -25,6 +25,9 @@ from agents.items import TResponseInputItem
 from agents.models.openai_responses import OpenAIResponsesModel
 from agents.result import RunResultStreaming
 from agents.tool import Tool
+from openai import AsyncOpenAI
+from openai.types.shared import Reasoning
+
 from app.ai.agents import caps
 from app.ai.conversation import conversation_intent, requested_presentation
 from app.ai.evidence import MoodAnalysisPlan, render_mood_analysis, source_instructions
@@ -48,8 +51,6 @@ from app.ai.usage import UsageEvent, UsageObserver
 from app.core.config import Settings
 from app.core.errors import DomainError
 from app.core.outbound import openai_http_client
-from openai import AsyncOpenAI
-from openai.types.shared import Reasoning
 
 RUN_TIMEOUT_SECONDS = 120.0
 _DURABLE_CLAIM = re.compile(

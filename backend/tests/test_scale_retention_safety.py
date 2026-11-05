@@ -2,6 +2,7 @@ from datetime import timedelta
 from uuid import uuid4
 
 import pytest
+
 from app.ai.accounting import budget_liability, reserve_accounting
 from app.core.config import Settings
 from app.infrastructure.database.models import AiRun, AiUsage, now
@@ -39,11 +40,12 @@ async def test_retention_cannot_refund_old_unknown_child_or_parent_liability(cli
 async def test_registered_transaction_lock_timeout_is_local_and_bounded(clients):
     import asyncio
 
-    from app.core.security import Actor, transaction
-    from app.infrastructure.database.models import AuthSession, User
     from sqlalchemy import select, text
     from sqlalchemy.exc import DBAPIError
     from starlette.requests import Request
+
+    from app.core.security import Actor, transaction
+    from app.infrastructure.database.models import AuthSession, User
 
     app, actors = clients
     uid = actors[0][1]

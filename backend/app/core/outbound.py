@@ -26,7 +26,7 @@ def openai_http_client(force_ipv4: bool, total: float = 30, *, bounded_reservati
     """The OpenAI SDK ships its own httpx fork (httpx2) with the same transport API."""
     import httpx2
 
-    transport = httpx2.AsyncHTTPTransport(
+    transport: httpx2.AsyncBaseTransport = httpx2.AsyncHTTPTransport(
             retries=CONNECT_RETRIES,
             local_address="0.0.0.0" if force_ipv4 else None,
             limits=httpx2.Limits(

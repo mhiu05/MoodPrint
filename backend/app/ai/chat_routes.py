@@ -4,6 +4,11 @@ from contextlib import ExitStack
 from datetime import timedelta
 from uuid import UUID, uuid4
 
+from fastapi import APIRouter, Depends, Query, Request
+from fastapi.responses import JSONResponse, StreamingResponse
+from sqlalchemy import delete, select, tuple_, update
+from starlette.background import BackgroundTask
+
 from app.ai.context import MOOD_TURN_POLICY, TEXT_POLICY, ContextStamp
 from app.ai.models import AiConversation, AiMessageRecord, AiPreference, AiTurn
 from app.ai.persistence import (
@@ -50,10 +55,6 @@ from app.modules.guests.limits import reserve_guest_quota
 from app.modules.guests.output import REVOKED_EVENT
 from app.modules.guests.policy import guest_paid_available
 from app.modules.guests.pricing import ai_upper, budget_nano
-from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import JSONResponse, StreamingResponse
-from sqlalchemy import delete, select, tuple_, update
-from starlette.background import BackgroundTask
 
 router = APIRouter()
 DEFAULT_TITLE = "Cuộc trò chuyện mới"
@@ -68,8 +69,9 @@ MAX_SAVED_CONVERSATIONS = 500
 
 async def _ephemeral_epoch(db, user_id):
     """Current AI consent version and latest private-data deletion request time."""
-    from app.modules.users.models import DataJob
     from sqlalchemy import func
+
+    from app.modules.users.models import DataJob
 
     ai_version = await db.scalar(
         select(Consent.version).where(Consent.user_id == user_id, Consent.purpose == "AI")

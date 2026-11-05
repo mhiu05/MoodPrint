@@ -115,6 +115,7 @@ async def test_parallel_admissions_reserve_the_configured_legacy_budget(clients,
 @pytest.mark.postgres
 async def test_fifty_bounded_parents_and_children_reserve_atomically_under_fifty(clients):
     import asyncio
+
     from app.ai.accounting import budget_liability
     from app.ai.envelope import BOUNDED_RESERVATION_NANO
 

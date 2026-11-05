@@ -3,11 +3,12 @@ import json
 from uuid import uuid4
 
 import pytest
+from sqlalchemy.exc import TimeoutError as PoolTimeout
+
 from app.core.config import Settings
 from app.core.errors import DomainError
 from app.core.limits import AttemptLimiter
 from app.core.streams import StreamSlots
-from sqlalchemy.exc import TimeoutError as PoolTimeout
 
 
 def test_limiter_identity_memory_is_bounded_without_evicting_active_cooldowns(monkeypatch):

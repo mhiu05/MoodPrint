@@ -12,6 +12,10 @@ from typing import Literal
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
+from pydantic import Field
+from sqlalchemy import Date, and_, case, exists, func, or_, select, text, true, update
+from sqlalchemy.dialects.postgresql import insert
+
 from app.ai.accounting import (
     CAPPED_VERSIONS,
     RUN_RESERVATION_NANO,
@@ -43,9 +47,6 @@ from app.modules.journal.ai_settings import journal_ai_allowed
 from app.modules.journal.models import JournalEntry
 from app.modules.journal.quota import reserve_daily_capacity, settle_daily_capacity
 from app.modules.journal.service import active_dates
-from pydantic import Field
-from sqlalchemy import Date, and_, case, exists, func, or_, select, text, true, update
-from sqlalchemy.dialects.postgresql import insert
 
 log = logging.getLogger("moodprint.journal_memory")
 PROMPT_VERSION = "journal-memory-v1"

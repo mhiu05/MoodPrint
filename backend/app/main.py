@@ -2,13 +2,15 @@ import asyncio
 import logging
 import signal
 import time
+from collections.abc import Awaitable
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import cast
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.openapi.utils import get_openapi
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select, text, update
 
@@ -338,7 +340,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             new_ai_turn = request.method == "POST" and path.startswith("/api/v1/ai/") and path.endswith("/messages")
             if app.state.ai.draining and (new_ai_turn or path == "/api/v1/health/ready"):
                 error = DomainError(503, "AI_DRAINING", "Trợ lý đang được cập nhật. Bạn hãy thử lại sau ít giây.", True, retry_after=5)
-                response = await app.exception_handlers[DomainError](request, error)
+                # install_errors registers this handler as async; Starlette's
+                # public registry also permits synchronous handlers in general.
+                response = await cast(Awaitable[Response], app.exception_handlers[DomainError](request, error))
             else:
                 response = await call_next(request)
         except Exception as error:

@@ -3,6 +3,8 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import text
+
 from app.ai.accounting import budget_liability, reserve_accounting
 from app.ai.dispatch import ProviderDispatchGate
 from app.ai.provider import SdkProvider
@@ -13,8 +15,6 @@ from app.core.errors import DomainError
 from app.infrastructure.database.models import AiUsage, User, now
 from app.modules.users.lifecycle import process_deletions
 from app.modules.users.models import DataJob
-from sqlalchemy import text
-
 from tests.fakes import make_test_model
 from tests.test_budget_reservations import make_run
 

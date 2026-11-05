@@ -2,6 +2,21 @@
 
 ## Current round — execution, verification and handoff
 
+Remote CI follow-up:implementation commit `ed75c4a1` failed the full workflow's
+Ruff step with20I001import-order errors ([run](https://github.com/mhiu05/MoodPrint/actions/runs/42027966645)).
+The narrower local lint scope missed these. Corrected imports in16files;AST comparison
+verifies the imported names/modules and every non-import statement are unchanged.
+The exact fullCI Ruff command nowPASS locally. After normalization,the local offline
+candidate lane reports **118PASS/2SKIP in10.58s**;this is separate from104DB-backed
+regression and does not replace the hosted fullworkflow. FullCI must be read back on
+the final branch revision;no greenCI claim yet. [Fix evidence](evidence/round2-ci-import-fix.json).
+Expanded localCI checks also found2typing errors:transport variable inferred too
+narrowly and Starlette's sync-or-async handler registry type. Explicit transport
+base annotation and an Awaitable cast for the already-async installed DomainError
+handler fix them without changing runtimepolicy. **Full `mypy app`:PASS,194files**;
+exactfullCI RuffPASS;drain/envelope/dispatch/campaign/recovery rerun **74PASS/1SKIP,
+10.21s**. These counts overlap earlier lanes and must not be summed.
+
 **NO-GO.** Original41task status remains2DONE/27IN_PROGRESS/7BLOCKED/2FAILED/3DEFERRED.
 Latest cloud facts supersede t3.small below:targetalready **running m7i-flex.large**,
 SSMcommandSuccess,4serviceshealthy,restart0snapshot,EIP/DNS/TLS/ready200.

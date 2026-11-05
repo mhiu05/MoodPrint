@@ -1,6 +1,7 @@
 import asyncio
 
 import pytest
+
 from app.core.errors import DomainError
 
 
@@ -67,7 +68,6 @@ async def test_dispatch_wait_deadline_and_background_share():
 async def test_candidate_parent_admission_does_not_count_specialist_rows_as_parents(clients):
     from app.ai.persistence import admission
     from app.infrastructure.database.models import User
-
     from tests.test_budget_reservations import make_run
 
     app, actors = clients

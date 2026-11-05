@@ -1,7 +1,7 @@
 import logging
-import pytest
 
 import httpx
+import pytest
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.exc import TimeoutError as PoolTimeout
 

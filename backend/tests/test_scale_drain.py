@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 import httpx
+
 from app.core.config import Settings
 from app.main import create_app
 
