@@ -150,3 +150,35 @@ sample (users, auth_sessions, journal_entries, ai_messages, memories) có RLS b�
 cho anon/authenticated SELECT. Đây là mẫu catalog, không thay thế toàn bộ policy audit.
 shared_buffers=256MiB, effective_cache_size=768MiB là PostgreSQL settings, không phải bằng
 chứng compute SKU. lock_timeout/idle_in_transaction_session_timeout=0 ở scope đã đọc.
+
+
+## Attached-Chrome verification — 2026-11-05T15:30:19.555Z
+
+All checks below were read-only in the owner's connected Chrome session. No project, Auth, email, database, billing, backup, or monitoring settings were changed.
+
+### AWS, account ending 3536, ap-southeast-2
+
+- EC2 target `i-0664d6ea5930452db` is `Running`, type `m7i-flex.large`; EC2 instance and system status checks passed. No restart, stop, resize, or deploy was performed.
+- CloudWatch `AWS/EC2` exposes 23 per-instance metric series, including CPU, network and status checks. No CloudWatch alarms exist. A reliable numeric datapoint was not captured; memory/OOM metrics were not verified.
+- EBS Snapshots: 0. AWS Backup: 0 plans, 0 protected resources, 0 recovery points. SNS topics: 0.
+- Billing page access was denied for the current AWS role, so current charges, credits and projected monthly backup/monitoring costs remain unknown.
+- SES is still in the sandbox. Applied quota is 200 recipients per 24 hours and 1 message/second. One Gmail email identity is verified; its address is intentionally omitted. SES dashboard showed 1 sent and 199 remaining in its last-24-hour view; Service Quotas showed 0 hourly utilization in its sampled view. No production request was submitted.
+
+### Supabase target project
+
+- The project ref is `roznanxbiyqybjpvtilq`; the API-host fingerprint begins `44a655e04517`, matching the handoff. It is Pro, Tokyo (`ap-northeast-1`), PostgreSQL 17.11. The dashboard label is `VDaAgent`; project identity was accepted only after the fingerprint matched. No other project was changed.
+- Compute is Micro (1 GB shared). Pooler size is 15; maximum client connections are 200 for this SKU. Dashboard samples showed 12–20 of 60 database connections in use.
+- The dashboard Migrations view showed `0020_private_profile_retirement` only, while the handoff expected `0029_journal_intelligence`. This discrepancy is unresolved; no migration was applied.
+- Auth: email confirmation, Turnstile CAPTCHA and new-user email auth are enabled; anonymous sign-ins are enabled. Limits shown include 100 sign-up/sign-in requests per 5 minutes per IP, 100 anonymous sign-ins/hour/IP, 60 verification requests/5 minutes and 150 refresh requests/5 minutes. The email-send-rate value was redacted by the browser and was not retrieved. Auth IP forwarding is off. Site URL is `https://moodprint.duckdns.org/login`; redirect allowlist contains only `https://moodprint.duckdns.org/auth/callback`.
+- Custom SMTP is enabled through a Gmail host on port 465; credentials and sender address were not read. Supabase flags the provider as personal-email rather than transactional. Leaked Password Protection is disabled.
+- Daily database backups are visible; latest observed capture was 2026-11-05 02:23:02 UTC. Database backup does not include Storage object bytes. PITR is a paid add-on and is not enabled. The `journal-media` bucket is private; its per-file limit is 50 MB. No Storage backup was found.
+
+### OpenAI Platform
+
+- The connected organization exposed only `Personal Organization → Default project`; no MoodPrint staging project was identifiable. The `gpt-6-luna` catalog card is visible, but project-level access, RPM/TPM and limits are not verified. No model was called.
+- Default-project usage displayed $0.11 this month and about 3.3M tokens / 2,060 requests over 7 days; these figures are not attributable to MoodPrint staging. The project must be identified before they can support the campaign budget.
+- Public GPT-6 Luna Standard short-context list rates are $0.10/M input tokens, $0.01/M cached input, and $0.50/M output. Long-context rates above 272K tokens are $0.20/M input, $0.02/M cached input and $0.75/M output. These are public list rates, not a verified account contract price: [OpenAI API pricing](https://developers.openai.com/api/docs/pricing). The input-token counting endpoint is documented as free and does not consume inference quota; no call was made.
+
+### Unresolved inventory facts
+
+Billing/cost permissions, MoodPrint staging OpenAI project quotas, Supabase email rate, numeric CloudWatch samples, alarm delivery, Storage-byte backups, PITR, and restore evidence remain unverified or absent. RPO 24h/RTO 8h are targets, not achieved results.
