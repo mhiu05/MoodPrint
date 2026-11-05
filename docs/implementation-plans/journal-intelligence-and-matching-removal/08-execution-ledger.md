@@ -11,6 +11,18 @@ Quy ước (giống `docs/implementation-plans/three-agent-orchestration-group-c
 
 ## Trạng thái hiện tại (cập nhật khi chốt checkpoint)
 
+**JI-51 — 05/11/2026:** đang thực thi preflight trong worktree release riêng;
+**chưa release**. Đã kiểm lại PR38/main Verify success; hosted đang chạy
+`d6280561` trên schema0028, bốn service healthy/0restart, gate tắt, timer poller
+active/enabled. AWS login đã phục hồi. Blocker: thiếu credential owner DB qua kênh
+được phép để áp approvedSQL0029; chủ dự án đã bỏ yêu cầu backup trong chat.
+Sửa hai nhánh apply sang `_env_file=None` có RED2fail→GREEN2pass, hồi quy45pass,
+review không còn Critical/Important; [PR39](https://github.com/mhiu05/MoodPrint/pull/39)
+commit code `2d8f2330` đã push, CI đang chạy/chưa merge tại checkpoint.
+Publication hold giữ nguyên. Bằng chứng phiên mới,
+digest và ca chưa chạy nằm tại [13-release-execution-evidence.md](13-release-execution-evidence.md).
+Các kết quả/phạm vi JI-51 “ngoài phạm vi” bên dưới là lịch sử trước ủy quyền mới.
+
 Đã push tới `c97a8d22` lên `origin/feat/journal-intelligence`: checkpointB, memory `61469170`, consult `43d27e4c`, fixes `caf1ea82`, hold `1c916cc7`, báo cáo `a725fdff/c97a8d22`; đã mở [PR38](https://github.com/mhiu05/MoodPrint/pull/38) vào main. CI phát hiện race focus Maps; fix `06682bf0` đã có RED→GREEN, full fixture386pass/fullstack38pass và được chốt cùng cập nhật ledger này cho lần push kế tiếp. Backend local đủ2131nodes:2128pass/3skip tổng hợp; CI nguyên khối trước focus fix2129pass/4skip, khác2guard hiện hữu. CI toàn workflow mới bắt buộc xanh trước merge. Chưa deploy/migrate hosted. Kết quả CI/merge cuối kiểm tra trực tiếp trên PR, không suy từ trạng thái lịch sử trong sổ.
 
 | Task | Trạng thái | Commit | Bằng chứng chính |
@@ -33,7 +45,7 @@ Quy ước (giống `docs/implementation-plans/three-agent-orchestration-group-c
 | JI-30 + JI-31 | xong | `61469170`, đã push | 269/228 regression pass; precommit 68 pass; browser cuối 3 pass |
 | JI-25 | xong | `43d27e4c`, đã push | 51 regression pass; ranking/timeout/settings/dimensions guards |
 | JI-50 | xong local; live/snapshot chưa chạy | SQL `9f3c238e`, fixes `caf1ea82`, hold `1c916cc7` | 2128 pass/3 skip tổng hợp; fixture385/fullstack38/Linux37 pass; bảng15gates ở mục final |
-| JI-51 | ngoài phạm vi | — | không migrate/deploy/SSM/đọc hosted |
+| JI-51 | preflight; chưa release, thiếu owner credential | nhánh `release/ji51-preflight` | bằng chứng mới tại13; SSM chỉ đọc/schema0028; chưa migration/deploy; backup được miễn trong chat |
 
 ## Quyết định và preflight — 2026-11-04
 

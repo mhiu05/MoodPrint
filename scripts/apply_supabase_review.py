@@ -526,7 +526,7 @@ def main():
             raw = target.set(drivername="postgresql").render_as_string(hide_password=False)
             report = run_upgrade(raw, plan, digest=digest, sql=sql, hosted=False, write=False)
         elif args.apply:
-            settings = Settings(_env_file=ROOT / "backend/.env")
+            settings = Settings(_env_file=None)
             if not settings.database_migration_url:
                 raise ValueError("DATABASE_MIGRATION_URL is required")
             raw = validate_target(
@@ -554,7 +554,7 @@ def main():
             )
         )
         return
-    settings = Settings(_env_file=ROOT / "backend/.env")
+    settings = Settings(_env_file=None)
     if not settings.database_migration_url:
         raise ValueError("DATABASE_MIGRATION_URL is required")
     raw = validate_target(settings.database_migration_url.get_secret_value(), settings.supabase_url)
