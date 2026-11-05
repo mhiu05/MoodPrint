@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Button, cx } from "../../components/UI";
+import { Button, cx, Dialog } from "../../components/UI";
 import type { components } from "../../api/generated/schema";
 import { ErrorNotice, useResource, useSession } from "./RealApp";
 import { botById, type BotId } from "../../companions/registry";
 import type { SessionView } from "../../api/contracts";
+import { memoryBadge, sourceEntryLink } from "./memoryView";
 
 type MemoryDTO = components["schemas"]["MemoryDTO"];
 type Proposal = components["schemas"]["ProposalDTO"];
@@ -150,6 +151,7 @@ function MemoryItem({
   completed: () => void;
 }) {
   const { api } = useSession();
+  const badge = memoryBadge(memory.origin), source = sourceEntryLink(memory);
   const [text, setText] = useState(memory.text),
     [editing, setEditing] = useState(false),
     [confirmDelete, setConfirmDelete] = useState(false),
@@ -176,6 +178,8 @@ function MemoryItem({
   return (
     <article className="real-item">
       <h3>{botById(memory.botId)?.name}</h3>
+      {badge ? <p className={cx.footnote}>{badge}</p> : null}
+      {source ? <Link to={source.to}>{source.label}</Link> : null}
       {editing ? (
         <>
           <label htmlFor={`memory-${memory.id}`}>Sửa ghi nhớ</label>
@@ -241,9 +245,26 @@ function MemoryItem({
 }
 
 export function ApprovedMemories() {
+  const { api } = useSession();
   const memories = useResource<MemoryDTO[]>("/memories");
   const proposals = useResource<Proposal[]>("/proposals");
   const [notice, setNotice] = useState("");
+  const [confirmBulk, setConfirmBulk] = useState(false), [deletingBulk, setDeletingBulk] = useState(false);
+  const [bulkError, setBulkError] = useState<unknown>();
+  const autoCount = memories.data?.filter(memory => memory.origin === "journal_auto").length ?? 0;
+  async function deleteAutomatic() {
+    setDeletingBulk(true);
+    setBulkError(undefined);
+    try {
+      await api.request("/memories/auto", { method: "DELETE", body: {} });
+      setConfirmBulk(false);
+      refresh();
+    } catch (reason) {
+      setBulkError(reason);
+    } finally {
+      setDeletingBulk(false);
+    }
+  }
   const refresh = () => {
     memories.refresh();
     proposals.refresh();
@@ -258,11 +279,19 @@ export function ApprovedMemories() {
     <div className={cx.reading}>
       <h1 tabIndex={-1} data-tour="memory-intro">Thông tin AI ghi nhớ</h1>
       <p className={cx.lede}>
-        Mỗi trợ lý chỉ dùng những mục bạn đã duyệt cho trợ lý đó. Hồ sơ tìm bạn
-        không dùng các ghi nhớ này để gợi ý.
+        Mỗi trợ lý chỉ dùng ghi nhớ của chính nó. Ghi nhớ có nhãn “Tự động từ nhật ký” được tạo từ trang bạn đã lưu; bạn sửa hoặc xóa được như mọi ghi nhớ khác.
       </p>
       <Link to="/profile">Về Tài khoản</Link>
       {notice && <p role="status">{notice}</p>}
+      {autoCount ? <Button variant="secondary" disabled={deletingBulk} onClick={() => { setBulkError(undefined); setConfirmBulk(true); }}>Xóa mọi ghi nhớ tự động</Button> : null}
+      {confirmBulk ? <Dialog title="Xóa ghi nhớ tự động" destructive onClose={() => { if (!deletingBulk) setConfirmBulk(false); }}>
+        <p>Xóa {autoCount} ghi nhớ tự động? Trang nhật ký không bị ảnh hưởng.</p>
+        <ErrorNotice error={bulkError} />
+        <div className={cx.actions}>
+          <Button variant="secondary" data-cancel disabled={deletingBulk} onClick={() => setConfirmBulk(false)}>Giữ lại</Button>
+          <Button variant="danger" disabled={deletingBulk} onClick={() => void deleteAutomatic()}>Xóa ghi nhớ tự động</Button>
+        </div>
+      </Dialog> : null}
       <section className="real-section" aria-labelledby="memory-waiting">
         <h2 id="memory-waiting">Đề xuất chờ duyệt</h2>
         <ErrorNotice error={proposals.error} retry={proposals.refresh} />
@@ -273,7 +302,7 @@ export function ApprovedMemories() {
         ))}
       </section>
       <section className="real-section" aria-labelledby="memory-approved">
-        <h2 id="memory-approved">Đã duyệt</h2>
+        <h2 id="memory-approved">Ghi nhớ đã lưu</h2>
         <ErrorNotice error={memories.error} retry={memories.refresh} />
         {memories.loading && <p role="status">Đang tải ghi nhớ…</p>}
         {memories.data?.length === 0 && <p>Bạn chưa lưu ghi nhớ nào. Khi trò chuyện, bạn có thể nhờ trợ lý đề xuất điều cần nhớ rồi duyệt tại đây.</p>}

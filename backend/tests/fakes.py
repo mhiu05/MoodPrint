@@ -108,3 +108,46 @@ def make_test_model(text: str) -> ScriptedModel:
     return ScriptedModel(
         [[message_output(json.dumps({"text": text, "cards": []}, ensure_ascii=False))]]
     )
+class FakeEmbedder:
+    """Deterministic synthetic vectors; never a quality claim about real embeddings."""
+
+    def __init__(self, dimensions=1024, synonyms=None, *, delay=0, error=None):
+        import asyncio
+
+        self.dimensions = dimensions
+        self.synonyms = synonyms or {"kiệt sức": "mệt", "rã rời": "mệt", "lo lắng": "lo",
+                                    "thư thái": "bình yên", "bồn chồn": "lo", "người thân": "gia đình",
+                                    "vận động": "chạy bộ", "áp lực thời gian": "hạn chót"}
+        self.delay, self.error = delay, error
+        self.calls = 0
+        self.started = asyncio.Event()
+
+    async def embed(self, text, input_type):
+        import asyncio
+        import hashlib
+        import math
+        import re
+        import unicodedata
+
+        self.calls += 1
+        self.started.set()
+        if isinstance(self.delay, asyncio.Event):
+            await self.delay.wait()
+        elif self.delay:
+            await asyncio.sleep(self.delay)
+        if self.error:
+            raise self.error
+        normalized = unicodedata.normalize("NFC", text).casefold()
+        if input_type == "document" and "\n\n" in normalized:
+            # Toy model ignores the shared metadata header; it measures plumbing.
+            normalized = normalized.split("\n\n", 1)[1]
+        for source, target in self.synonyms.items():
+            normalized = normalized.replace(source, target)
+        vector = [0.0] * self.dimensions
+        for token in re.findall(r"\w+", normalized):
+            index = int.from_bytes(hashlib.sha256(token.encode()).digest()[:4], "big") % self.dimensions
+            vector[index] += 1
+        if not any(vector):
+            vector[0] = 1
+        norm = math.sqrt(sum(value * value for value in vector))
+        return [value / norm for value in vector]

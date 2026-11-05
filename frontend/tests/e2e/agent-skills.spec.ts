@@ -1,6 +1,30 @@
 import { expect, test } from "@playwright/test";
 import { field, openSearch, searchFixture, send } from "./search-fixtures";
 
+test("weekly review uses its capability name and clears after one accepted turn", async ({ page }) => {
+  const seen = await searchFixture(page, { skillsOnly: true, botId: "nhatky" });
+  await openSearch(page, "nhatky");
+  await page.getByRole("button", { name: "Thêm kỹ năng hoặc công cụ" }).click();
+  await page.getByRole("button", { name: /^Kỹ năng / }).click();
+  await page.getByRole("button", { name: /^Nhìn lại tuần / }).click();
+  await expect(page.locator(".prompt-chips").getByText("Nhìn lại tuần", { exact: true })).toBeVisible();
+  await send(page, "Nhìn lại tuần này", "nhatky");
+  await expect(page.getByRole("button", { name: "Bỏ kỹ năng" })).toHaveCount(0);
+  expect(seen.sends[0].promptOptions.skillId).toBe("weekly-review");
+  await send(page, "Cảm ơn", "nhatky");
+  expect(seen.sends[1].promptOptions).toEqual({});
+});
+
+test("journal skills are disabled with a reason for the activity agent", async ({ page }) => {
+  await searchFixture(page, { skillsOnly: true });
+  await openSearch(page);
+  await page.getByRole("button", { name: "Thêm kỹ năng hoặc công cụ" }).click();
+  await page.getByRole("button", { name: /^Kỹ năng / }).click();
+  const weekly = page.getByRole("button", { name: /^Nhìn lại tuần / });
+  await expect(weekly).toBeDisabled();
+  await expect(weekly).toHaveAttribute("title", "Kỹ năng này dành cho trợ lý Nhật ký.");
+});
+
 for (const width of [320, 390, 768, 1280]) {
   test(`manual skill is one-turn, keyboard focus and no overflow at ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
@@ -11,7 +35,7 @@ for (const width of [320, 390, 768, 1280]) {
     await expect(page.getByRole("group", { name: "Kỹ năng và công cụ" })).toBeVisible();
     await page.keyboard.press("Escape"); await expect(plus).toBeFocused();
     await plus.click();
-    await page.getByRole("button", { name: "Kỹ năng Đi chơi hoặc học điều mới" }).click();
+    await page.getByRole("button", { name: /^Kỹ năng / }).click();
     await page.getByRole("button", { name: /Học điều mới Thử một điều mới/ }).click();
     await expect(field(page)).toBeFocused();
     await expect(page.getByRole("button", { name: "Bỏ kỹ năng" })).toBeVisible();
@@ -27,7 +51,7 @@ test("rejected unknown send keeps text, selection and id for explicit retry", as
   const seen = await searchFixture(page, { failFirst: true });
   await openSearch(page);
   await page.getByRole("button", { name: "Thêm kỹ năng hoặc công cụ" }).click();
-  await page.getByRole("button", { name: "Kỹ năng Đi chơi hoặc học điều mới" }).click();
+  await page.getByRole("button", { name: /^Kỹ năng / }).click();
   await page.getByRole("button", { name: /Đi chơi Gợi ý hoạt động/ }).click();
   await field(page).fill("Gợi ý đi chơi");
   await page.getByRole("button", { name: "Gửi tin cho AI", exact: true }).click();

@@ -1,4 +1,45 @@
-# Kết quả kiểm chứng ngày 28/10/2026
+# Kết quả kiểm chứng
+
+## Journal intelligence — 04/11/2026 (đang triển khai)
+
+Nguồn số liệu đầy đủ, RED/GREEN và giới hạn nằm trong
+[execution ledger](implementation-plans/journal-intelligence-and-matching-removal/08-execution-ledger.md).
+Các kết quả dưới đây là local/synthetic, chưa xác minh bản tính năng trên hosted.
+
+| Phạm vi | Kết quả đã quan sát |
+| --- | --- |
+| Backend baseline `e2c3e5e8` | 1964 passed, 3 skipped, 4732,76 s |
+| JI-01 RED (đổi defaults, chưa ghim nền) | 307 failed, 1661 passed, 3 skipped, 4485,46 s; danh sách từng failure trong ledger |
+| JI-01 GREEN snapshot | 1968 passed, 3 skipped, 4732,79 s |
+| Checkpoint A backend sau sửa | 2065 passed, 3 skipped, 0 failed; 2233,27 s; cả 2068 test đã thu thập |
+| Checkpoint B backend (có JI-40) | 2082 passed, 3 skipped, 0 failed; 2715,39 s; cả 2085 test đã thu thập |
+| Frontend sau gỡ social và thêm công tắc | Typecheck pass; 204 unit tests + 2 script checks; build pass, RealApp 311,30 kB/gzip 97,17 kB |
+| Fixture browser | Baseline 445 passed/15,0 phút; A serial 382 passed/14,3 phút; B serial 384 passed/15,4 phút; final 385 passed/13,9 phút (runner836,625s); các lượt chẩn đoán/bị ngắt ghi trong ledger |
+| Fullstack | A 38 passed/6,2 phút; B retry 38 passed/7,2 phút; final 38 passed/6,4 phút (runner403,469s), timeout giữ nguyên; fake document/query embeddings và synthetic SDK model |
+| JI-40 | 32 backend targeted + 204 regression pass; typecheck/205 unit tests + 2 script checks/build pass; 7 browser skill tests pass |
+| JI-30 + JI-31 | Commit nguyên khối `61469170`; 269 và 228 regression pass; 68 precommit pass; 206 frontend unit tests/37 files + 2 script checks/typecheck/build pass; 3 browser memory tests pass |
+| JI-25 | `43d27e4c`; 51 orchestration/retrieval regression tests pass, gồm query ngoài owner lock và fallback khi settings/dimensions đổi hoặc timeout |
+| Review cuối | 0 Critical, 2 Important tái hiện RED rồi sửa; nhóm hậu review 61 pass; 1 Minor capability view cũ khi đổi bot được ghi deferred, backend giữ 422 |
+| Migration local | Upgrade 0029 + Alembic check không drift; tests migration 10 passed; cụm migration/memory/readiness 79 passed/446,06 s |
+| Retrieval | 105 regression tests pass; 17 targeted retrieval/eval tests pass sau bổ sung marker/fallback |
+| Fake eval | 40 entry/15 query, 55 fake calls; recall@6 paraphrase 0→1,0, keyword giữ 1,0; không chứng minh chất lượng Voyage |
+| Linux deployment unit tests | Image test có sẵn, repo mount read-only, network none, Docker socket chỉ cho synthetic Compose/Caddy: 37 tests OK/11,479 s ở lượt final sau khôi phục Docker |
+| Backend final local | Đủ2131nodes:2128pass/3skip baseline,0missing/duplicate/unknown/nonzero;188reports cùng fingerprint (187Windows+inboxLinux),sum3461,421s; không phải một lượt nguyên khối. CI nguyên khối giữ nguyên,bắt buộc xanh trước merge |
+| Timing inbox | Windows50,6/69,0ms fail; baseline cũng74,9ms fail. Nguyên file Linux10pass/17,08s,ngưỡng50ms giữ nguyên; không gọi Windows SLO đã đạt |
+| CI follow-up focus Maps | CI backend nguyên khối2129pass/4skip/801,68s (workflow gồm2guard live,opt-in hosted skip); browser384pass/1fail do area bị callback focus trì hoãn lấy mất. Fix06682bf0 RED→GREEN; sau sửa fixture386pass/13,2phút,fullstack38pass/7,5phút,unit206+2/typecheck/build pass. CI toàn workflow mới bắt buộc xanh trước merge |
+| Web công khai hiện hữu | Homepage và health/live200; trang login có email/password, không tràn ngang ở1440/390px. Chỉ GET/HEAD cùng domain; CAPTCHA ngoài domain bị chặn, chưa login hoặc kiểm chứng tính năng mới |
+| Tích hợp source | Marker release hold có sẵn được dùng lại để merge source mà không tự publish/deploy; rollout C→0029→F vẫn là công việc riêng cần chủ dự án duyệt |
+| Chưa chạy | Provider thật, live eval có phí, rehearsal snapshot hosted và hosted schema/deploy |
+
+Không đọc dữ liệu hosted hoặc gọi provider thật. Có sự cố offline Alembic subprocess
+có thể đọc dotenv trái giới hạn trong lượt regression đầu; đã thông báo, ghi ledger
+và sửa cả exporter lẫn Alembic để luôn tắt dotenv, có test chặn truy cập thực sự.
+Không có secret được in ra hoặc kết nối hosted từ đường xuất SQL offline đó.
+Một lượt container test sau đó để traceback in credential **disposable local**;
+artifact đã che và container/credential cũ đã hủy, thay bằng disposable mới.
+Không phải credential hosted/provider; chi tiết và kết quả lỗi giữ trong ledger.
+
+## Baseline tài liệu ngày 28/10/2026
 
 Kết quả bên dưới là baseline của đợt tài liệu trước. Phần triển khai guest/feedback/tour có [execution ledger riêng](guest-experience/implementation/evidence/execution.md) và [release gates PARTIAL](guest-experience/implementation/evidence/release-readiness.md); không dùng baseline này để suy ra guest đã được phép mở public.
 

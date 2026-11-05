@@ -1,7 +1,7 @@
 import type { SessionView } from "../../api/contracts";
 
 export type TourStep = {
-  id: "assistants" | "mood" | "memory" | "profile" | "matching";
+  id: "assistants" | "mood" | "memory" | "profile";
   route: string;
   target: string;
   title: string;
@@ -11,7 +11,6 @@ export type TourStep = {
 
 export function getTourSteps(
   session: SessionView,
-  includeMatching = false,
 ): TourStep[] {
   const personal = (value: SessionView) => value.eligible && value.ageBand === "adult";
   const steps: TourStep[] = [
@@ -55,18 +54,5 @@ export function getTourSteps(
       isApplicable: personal,
     },
   ];
-  if (includeMatching)
-    steps.push({
-      id: "matching",
-      route: "/connect",
-      target: "[data-tour='matching-intro']",
-      title: "Kết nối khi sẵn sàng",
-      description:
-        "Bạn chủ động xem trước và chọn thông tin chia sẻ. Hướng dẫn không bật quyền tìm bạn.",
-      isApplicable: (value) =>
-        value.eligible &&
-        value.accountKind !== "guest" &&
-        value.ageBand === "adult",
-    });
   return steps.filter((step) => step.isApplicable(session));
 }

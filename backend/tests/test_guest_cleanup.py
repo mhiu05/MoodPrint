@@ -166,8 +166,12 @@ async def provider_rows(app, uid: UUID) -> tuple[int, int]:
 
 def test_inventory_classifies_every_orm_table():
     from app.infrastructure.database.models import Base
+    from app.main import create_app
     from app.modules.guests.lifecycle import INVENTORY
 
+    # Register route-owned models in isolated runs as well as full collection.
+    # pytest_configure disables dotenv and providers before this local app build.
+    create_app()
     tables = {name.removeprefix("moodprint.") for name in Base.metadata.tables}
     assert tables == set(INVENTORY), (
         f"unclassified={sorted(tables - set(INVENTORY))} obsolete={sorted(set(INVENTORY) - tables)}"

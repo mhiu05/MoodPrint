@@ -8,7 +8,7 @@ import { CheckInDialog, useCheckInDialog } from "./CheckInDialog";
 import { CheckInSlot } from "./CheckInSlot";
 import { LegacyCheckInSettings } from "./LegacyCheckInSettings";
 import { SharedCheckInSettings } from "./SharedCheckInSettings";
-import { zoneLabel } from "./checkinsModel";
+import { socialEligibilityText, zoneLabel } from "./checkinsModel";
 import { useProactiveSettings } from "./useProactiveSettings";
 import "./checkins.css";
 
@@ -52,7 +52,7 @@ export function AgentCheckInSettings({ api, session, botId, botName, onChildModa
             <>
               {!schedules.length ? <p>Chưa có lịch cho trợ lý này.</p> : null}
               {schedules.map((schedule) => <div key={schedule.slot}>
-                {!schedule.eligibility.allowed ? <p className="checkin-note">{schedule.eligibility.reason === "social_not_enabled" ? <>Cần bật tính năng kết nối để Cầu Nối hỏi thăm. <Link to="/connect">Mở cài đặt kết nối</Link></> : schedule.eligibility.reason === "teen_social_unavailable" ? "Cầu Nối chỉ dành cho tài khoản từ 18 tuổi." : schedule.eligibility.reason === "social_restricted" ? "Tính năng kết nối của bạn đang tạm bị hạn chế." : "Trợ lý chưa thể hỏi thăm với tài khoản hiện tại. Lịch đã lưu vẫn được giữ; bạn có thể tắt hoặc xóa."}</p> : null}
+                {!schedule.eligibility.allowed ? <p className="checkin-note">{socialEligibilityText(schedule.eligibility.reason) ?? "Trợ lý chưa thể hỏi thăm với tài khoản hiện tại. Lịch đã lưu vẫn được giữ; bạn có thể tắt hoặc xóa."}</p> : null}
                 <CheckInSlot schedule={schedule} settings={view.settings} window={view.limits.windows[schedule.slot] ?? []} step={view.limits.stepMinutes}
                   capReached={view.limits.enabledSlots >= view.limits.dailyCap && !schedule.enabled} cap={view.limits.dailyCap} disabled={busy}
                   onSave={(patch) => void controller.saveSchedule(schedule, patch)} onSharedSettings={openShared} />
@@ -76,7 +76,7 @@ export function AgentCheckInSettings({ api, session, botId, botName, onChildModa
       </CheckInDialog> : null}
       {journalHelp ? <CheckInDialog title={`${name} dùng khoảnh khắc hôm qua như thế nào?`} onClose={() => { setJournalHelp(false); modal(false); }}>
         <p>Mỗi sáng bạn đã hẹn, {name} đọc tối đa 3 khoảnh khắc đã lưu hôm qua (chữ, cảm xúc, yếu tố bạn chọn) để gợi ý một việc nhỏ. Không đọc bản nháp, ảnh, âm thanh hoặc video.</p>
-        <p>Khi phối hợp được phép, trợ lý có thể sử dụng tóm tắt trong giới hạn hiện có. Quyền này không bật lịch, không cho mọi trợ lý xem nguyên văn và không chia sẻ với bạn kết nối.</p>
+        <p>Khi phối hợp được phép, trợ lý có thể sử dụng tóm tắt trong giới hạn hiện có. Quyền này không bật lịch, không cho mọi trợ lý xem nguyên văn và không chia sẻ với người khác.</p>
         <p>Bạn có thể tắt bất cứ lúc nào. Lời hỏi thăm đã nhận vẫn nằm trong lịch sử cho đến khi cuộc trò chuyện hết hạn hoặc bạn xóa.</p>
         <div className={cx.actions}><Button onClick={() => { setJournalHelp(false); modal(false); }}>Đã hiểu</Button></div>
       </CheckInDialog> : null}

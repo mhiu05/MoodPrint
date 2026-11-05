@@ -37,6 +37,33 @@ async function findPlaces(page: import("@playwright/test").Page) {
   await send(page, "Tìm quán cà phê");
 }
 
+test("deferred tool-selection focus does not steal an area already being edited", async ({ page }) => {
+  const seen = await searchFixture(page);
+  await openSearch(page);
+  await page.getByRole("button", { name: "Thêm kỹ năng hoặc công cụ" }).click();
+  const maps = page.getByRole("button", { name: "Maps Search Tìm kiếm công khai" });
+  await maps.evaluate(button => button.addEventListener("click", () => {
+    const actual = window.requestAnimationFrame.bind(window);
+    const pending: FrameRequestCallback[] = [];
+    window.requestAnimationFrame = callback => { pending.push(callback); return pending.length; };
+    (window as any).__releaseSelectionFrames = () => {
+      window.requestAnimationFrame = actual;
+      for (const callback of pending.splice(0)) callback(performance.now());
+    };
+  }, { capture: true, once: true }));
+  await maps.click();
+  const area = page.getByRole("textbox", { name: "Khu vực", exact: true });
+  await area.focus();
+  await page.evaluate(() => (window as any).__releaseSelectionFrames());
+  await expect(area).toBeFocused();
+  await page.keyboard.insertText("Quận 3");
+  await expect(area).toHaveValue("Quận 3");
+  await send(page, "Tìm quán cà phê");
+  expect(seen.sends).toHaveLength(1);
+  expect(seen.sends[0].promptOptions).toMatchObject({ tools: ["maps_search"], area: "Quận 3" });
+  await expect(page.getByRole("link", { name: "Mở Google Maps" })).toBeVisible();
+});
+
 test("an expired or revoked Maps result offers a fresh turn instead of a dead reload loop", async ({ page }) => {
   await searchFixture(page, { mapsOutcome: "gone" });
   await findPlaces(page);

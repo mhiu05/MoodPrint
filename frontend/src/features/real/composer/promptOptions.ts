@@ -1,4 +1,8 @@
-import type { PromptOptions } from "../../../api/contracts";
+import type { PromptCapabilities, PromptOptions } from "../../../api/contracts";
+
+export function skillChipLabel(skills: PromptCapabilities["skills"], id: string): string {
+  return skills.find(skill => skill.id === id)?.name ?? id;
+}
 
 export type SelectionState = { revision: number; options: PromptOptions };
 export function normalizePromptOptions(options: PromptOptions): PromptOptions {

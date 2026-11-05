@@ -53,5 +53,5 @@ def require_registered_user(user: User) -> None:
         raise DomainError(
             403,
             "REGISTERED_REQUIRED",
-            "Tạo tài khoản để dùng tính năng này. Lượt dùng thử không có tìm bạn và nhắn tin.",
+            "Tạo tài khoản để dùng tính năng này.",
         )

@@ -7,6 +7,7 @@ role, so each agent's actual input can be inspected.
 
 import asyncio
 import json
+from datetime import timedelta
 from uuid import UUID, uuid4
 
 import pytest
@@ -44,6 +45,75 @@ async def earlier_turn(app, client, url):
     app.state.ai.model_override = first
     run = await finish(await start(app, client, url, f"Chào, mình là {HISTORY_CANARY}"))
     assert run.terminal_status == "completed", run.failure
+
+
+@pytest.mark.parametrize("mode", ["rank", "settings_changed", "dimensions_changed", "timeout"])
+async def test_consult_ranks_relevant_entry_first_within_window(clients, mode):
+    import hashlib
+
+    from pydantic import SecretStr
+
+    from app.ai.orchestration.workflow import journal_excerpts
+    from app.infrastructure.database.models import User
+    from app.modules.journal.ai_models import JournalEntryEmbedding
+    from tests.fakes import FakeEmbedder
+    from tests.test_journal import today
+
+    app, actors = clients
+    client, uid = actors[0]
+    settings = app.state.settings
+    settings.journal_semantic_enabled = True
+    settings.voyage_api_key = SecretStr("synthetic-no-network")
+    settings.voyage_dimensions, settings.voyage_model = 256, "synthetic-consult"
+    await v3_setup(app, client, edges=("dieuphoi_consult_nhatky",))
+    relevant = await entry(app, uid, days_ago=6, text="CONSULT_RELEVANT_CANARY " + "mệt "*250)
+    unrelated = [await entry(app, uid, days_ago=index, text=f"CONSULT_UNRELATED_{index}") for index in range(5)]
+    old = await entry(app, uid, days_ago=8, text="CONSULT_TOO_OLD_CANARY")
+    foreign = await entry(app, actors[1][1], days_ago=0, text="CONSULT_FOREIGN_CANARY")
+    async with app.state.database.sessions.begin() as db:
+        for identity, owner in [(relevant, uid), *[(item, uid) for item in unrelated], (old, uid), (foreign, actors[1][1])]:
+            db.add(JournalEntryEmbedding(entry_id=identity, user_id=owner, entry_version=1, settings_version=1,
+                content_sha256=hashlib.sha256(str(identity).encode()).hexdigest(), model=settings.voyage_model,
+                dimensions=256, embedding=([0.0, 1.0] if identity in unrelated else [1.0, 0.0])+[0.0]*254))
+    async with app.state.database.sessions() as db:
+        user = await db.get(User, uid)
+        fallback = await journal_excerpts(db, user, 7)
+        assert relevant not in {row["id"] for row in fallback}
+        ranked = await journal_excerpts(db, user, 7, query_vector=[1.0]+[0.0]*255, settings=settings)
+        assert ranked[0]["id"] == relevant
+        assert len(ranked) <= 5 and all(len(row["excerpt"]) <= 600 for row in ranked)
+        assert old not in {row["id"] for row in ranked} and foreign not in {row["id"] for row in ranked}
+        assert all(today()-timedelta(days=6) <= row["localDate"] <= today() for row in ranked)
+
+    class UnlockedEmbedder(FakeEmbedder):
+        async def embed(self, value, input_type):
+            async with asyncio.timeout(2):
+                async with app.state.database.sessions.begin() as db:
+                    await db.scalar(select(User).where(User.id == uid).with_for_update())
+            assert input_type == "query" and len(value) <= 80
+            self.calls += 1
+            if mode == "settings_changed":
+                from app.modules.journal.ai_models import JournalAiSettings
+                async with app.state.database.sessions.begin() as db:
+                    db.add(JournalAiSettings(user_id=uid, version=2, embedding_enabled=True, auto_memory_enabled=True))
+            elif mode == "dimensions_changed":
+                settings.voyage_dimensions = 512
+            elif mode == "timeout":
+                raise TimeoutError("synthetic")
+            return [1.0]+[0.0]*255
+    fake = app.state.ai.journal_embedder = UnlockedEmbedder(256)
+    url = await conversation(client, "dieuphoi")
+    specialist = scripted({**REFLECTION, "entries_considered": 3, "source_entry_ids": [str(relevant if mode == "rank" else unrelated[0])]})
+    primary = scripted([call("consult_nhatky", {"task": "summarize_recent_entries", "focus": "general", "days": 7})], reply("Có thể giữ một cuối tuần nhẹ nhàng."))
+    roles(app, planner=scripted(plan(specialists=["nhatky"])), dieuphoi=primary, nhatky_consult=specialist)
+    run = await finish(await start(app, client, url, ASK))
+    assert run.terminal_status == "completed", run.failure
+    assert fake.calls == 1
+    forwarded = sent(specialist)
+    assert ("CONSULT_RELEVANT_CANARY" in forwarded) == (mode == "rank")
+    assert "CONSULT_TOO_OLD_CANARY" not in forwarded and "CONSULT_FOREIGN_CANARY" not in forwarded
+    if mode == "rank":
+        assert forwarded.index("CONSULT_RELEVANT_CANARY") < forwarded.index("CONSULT_UNRELATED_")
 
 
 async def test_consult_both_specialists_through_real_as_tool(clients):

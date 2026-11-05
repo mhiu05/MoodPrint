@@ -98,7 +98,6 @@ export function GuestEntry({
         </p>
         <p className={cx.footnote}>
           Không cần email để dùng thử. MoodPrint dành cho người từ đủ 18 tuổi.
-          Tìm bạn và nhắn tin cần tài khoản đã đăng ký.
         </p>
         <AgeFields prefix="guest" year={year} confirmed={minimum} currentYear={thisYear}
           onYear={setYear} onConfirmed={setMinimum} />

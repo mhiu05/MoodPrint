@@ -18,32 +18,13 @@ async def test_live_works_without_configuration_but_ready_and_auth_fail_closed()
         assert "requestId" in response.json()["error"]
 
 
-def test_ready_revision_requires_the_destructive_retirement_head():
+def test_ready_revision_requires_the_journal_intelligence_head():
     from app.core.revisions import READY_REVISIONS
 
-    # C maps 0028 columns; additive 0029 remains compatible until F is restored.
+    # Journal settings/provenance columns (0029) are mapped by the ORM.
     assert READY_REVISIONS == (
-        "0028_collaboration_defaults",
         "0029_journal_intelligence",
     )
-
-
-@pytest.mark.parametrize("revision", ["0028_collaboration_defaults", "0029_journal_intelligence"])
-async def test_ready_window_accepts_0028_and_0029(monkeypatch, revision):
-    await test_ready_rejects_pre_retirement_and_unknown_revisions(monkeypatch, revision, 200)
-
-
-def test_compatibility_runtime_keeps_0028_models_and_online_head():
-    from alembic.config import Config
-    from alembic.script import ScriptDirectory
-
-    from app.infrastructure.database.models import Memory
-
-    assert "origin" not in Memory.__table__.columns
-    assert "source_entry_id" not in Memory.__table__.columns
-    config = Config("alembic.ini")
-    config.set_main_option("path_separator", "os")
-    assert ScriptDirectory.from_config(config).get_current_head() == "0028_collaboration_defaults"
 
 
 @pytest.mark.parametrize(
@@ -67,7 +48,8 @@ def test_compatibility_runtime_keeps_0028_models_and_online_head():
         ("0025_search_citations", 503),
         ("0026_search_usage", 503),
         ("0027_maps_jobs", 503),
-        ("0028_collaboration_defaults", 200),
+        ("0028_collaboration_defaults", 503),
+        ("0029_journal_intelligence", 200),
         ("0017_unreviewed", 503),
         ("9999_unknown", 503),
     ],

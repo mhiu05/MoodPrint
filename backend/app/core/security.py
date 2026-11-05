@@ -123,7 +123,7 @@ async def require_registered_actor(actor: Actor = Depends(require_actor)) -> Act
         raise DomainError(
             403,
             "REGISTERED_REQUIRED",
-            "Tạo tài khoản để dùng tính năng này. Lượt dùng thử không có tìm bạn và nhắn tin.",
+            "Tạo tài khoản để dùng tính năng này.",
         )
     return actor
 

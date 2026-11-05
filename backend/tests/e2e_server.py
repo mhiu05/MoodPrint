@@ -62,12 +62,13 @@ from tests.feedback_schema import install_feedback_functions
 from tests.guest_helpers import LIFETIME, add_guest, enable_paid_fixture
 from tests.guest_schema import install_auth_fixture, install_guest_guards
 from tests.mood_e2e_model import MoodE2EModel
+from tests.settings_baseline import ALL_FEATURES_OFF
 
 # Phase D-I features on, as in a beta deployment; focus phases shortened to seconds
 # (test env only). MATCHING_SCORER follows E2E_MATCHING_SCORER so the v2 spec can run
 # against both the default (v1) and the candidate scorer.
 app = create_app(
-    Settings(
+    Settings(**{**ALL_FEATURES_OFF, **dict(
         _env_file=None,
         app_env="test",
         database_url=url,
@@ -96,7 +97,7 @@ app = create_app(
         ai_smart_orchestration_enabled=os.environ.get("E2E_V3", "1") == "1",
         ai_group_chat_enabled=os.environ.get("E2E_V3", "1") == "1",
         ai_v3_rollout_user_ids=[UUID(f"00000000-0000-4000-8000-{number:012d}") for number in range(60, 70)],
-    )
+    )})
 )
 app.state.ai.model_override = MoodE2EModel([])
 # Only the disposable test entrypoint installs this transport. Production
@@ -106,6 +107,19 @@ app.state.settings.supabase_publishable_key = __import__("pydantic").SecretStr("
 app.state.auth_transport = httpx.MockTransport(LocalAuth(app.state.database).handle)
 enable_paid_fixture(app)
 
+# Synthetic journal indexing and query embedding for the real HTTP/DB journey.
+# Memory embeddings remain disabled. Neither worker can reach Voyage.
+from pydantic import SecretStr
+
+from tests.fakes import FakeEmbedder
+
+app.state.settings.journal_semantic_enabled = True
+app.state.settings.voyage_api_key = SecretStr("synthetic-no-network")
+app.state.settings.voyage_model = "synthetic"
+app.state.settings.voyage_dimensions = 256
+app.state.journal_embedder = FakeEmbedder(256)
+app.state.ai.journal_embedder = app.state.journal_embedder
+
 
 class SyntheticTranscriber:
     async def transcribe(self, data):
@@ -113,6 +127,27 @@ class SyntheticTranscriber:
 
 
 app.state.transcriber = SyntheticTranscriber()
+
+
+@app.post("/__test/moderation/seed-report", include_in_schema=False)
+async def seed_moderation_report():
+    """A historical report for queue/restriction UI coverage after social UI retirement."""
+    from fastapi import HTTPException
+
+    from app.modules.moderation.models import Report
+
+    if os.environ.get("APP_ENV") != "test" or app.state.settings.app_env != "test":
+        raise HTTPException(status_code=404)
+    async with app.state.database.sessions.begin() as db:
+        report = Report(
+            reporter_id=UUID("00000000-0000-4000-8000-000000000035"),
+            subject_id=UUID("00000000-0000-4000-8000-000000000036"),
+            reason="Quấy rối",
+            evidence=[{"kind": "message", "text": "LOI-LE-QUAY-ROI"}],
+        )
+        db.add(report)
+        await db.flush()
+        return {"id": str(report.id)}
 
 
 @app.post("/__test/reset-admission", include_in_schema=False)

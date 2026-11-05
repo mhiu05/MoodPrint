@@ -1,7 +1,7 @@
 import { artifactPath } from "../artifacts";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { call, noHorizontalOverflow, openRoom, session } from "./helpers";
+import { noHorizontalOverflow, session } from "./helpers";
 
 const SIZES = [
   [390, 844],
@@ -35,24 +35,14 @@ test("document branding and short pages stay at the top across all six sizes", a
   test.setTimeout(180_000);
   const context = await browser.newContext({ reducedMotion: "reduce" });
   await session(context, 44);
-  const state = await call(context, 44, "GET", "/session");
-  expect(
-    (
-      await call(context, 44, "PUT", "/consents/MATCH", {
-        enabled: true,
-        expectedVersion: state.body.consents.MATCH.version,
-        policyVersion: "v1",
-      })
-    ).status,
-  ).toBe(200);
   const page = await context.newPage();
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   try {
     for (const [width, height] of SIZES) {
       await page.setViewportSize({ width, height });
-      await page.goto("/#/messages");
-      const heading = page.getByRole("heading", { name: "Tin nhắn", level: 1 });
+      await page.goto("/#/assistants");
+      const heading = page.getByRole("heading", { name: "Chọn một trợ lý", level: 1 });
       await expect(heading).toBeVisible();
       await expect(page).toHaveTitle(/^MoodPrint/);
       await expect(page.getByRole("main")).not.toContainText(/Me2We/i);
@@ -60,7 +50,7 @@ test("document branding and short pages stay at the top across all six sizes", a
         page.getByRole("main").locator(".brand"),
       ).toHaveCount(0);
       expect((await heading.boundingBox())!.y).toBeLessThan(180);
-      await audit(page, "messages", width, height);
+      await audit(page, "assistants", width, height);
       await page.goto("/#/profile");
       await expect(
         page.getByRole("heading", { name: "Tài khoản", exact: true }),
@@ -73,7 +63,7 @@ test("document branding and short pages stay at the top across all six sizes", a
   }
 });
 
-test("all five assistants explain their purpose and link to the related real feature", async ({
+test("assistants link to remaining tools and retired social guides have no link", async ({
   browser,
 }) => {
   test.setTimeout(180_000);
@@ -90,14 +80,12 @@ test("all five assistants explain their purpose and link to the related real fea
         ["may", "Ghi lại cảm xúc hôm nay", "/self"],
         ["guong", "Xem ghi nhớ AI", "/memory"],
         ["nhip", "Mở nhật ký cảm xúc", "/self"],
-        ["rure", "Xem tin nhắn và hoạt động chung", "/messages"],
-        ["caunoi", "Xem hồ sơ tìm bạn", "/connect?tab=profile"],
       ]) {
         await page.goto(`/#/assistants/${id}`);
         const link = page.getByRole("link", { name: action, exact: true });
         await expect(link).toHaveAttribute("href", `#${destination}`);
         await expect(
-          page.getByText("Không chia sẻ với bạn kết nối", { exact: true }),
+          page.getByText("Chỉ bạn xem được", { exact: true }),
         ).toBeVisible();
         await link.focus();
         await expect(link).toBeFocused();
@@ -107,63 +95,14 @@ test("all five assistants explain their purpose and link to the related real fea
           new RegExp(`#${destination.replace("?", "\\?")}$`),
         );
       }
+      for (const [id, name] of [["rure", "Rủ Rê"], ["caunoi", "Cầu Nối"]]) {
+        await page.goto(`/#/assistants/${id}`);
+        await expect(page.getByRole("textbox", { name: `Tin nhắn cho ${name}` })).toBeVisible();
+        await expect(page.locator(".assistant-guide a")).toHaveCount(0);
+        await audit(page, `assistant-${id}`, width, height);
+      }
     }
   } finally {
     await context.close();
-  }
-});
-
-test("a conversation starter stays editable and reaches the other account only after Send", async ({
-  browser,
-}) => {
-  const { pageA, pageB, two, room, close } = await openRoom(browser, 70, 71);
-  try {
-    await pageA.setViewportSize({ width: 390, height: 480 });
-    const starter = pageA.getByRole("button", {
-      name: "Khi rảnh bạn thích làm gì nhất?",
-      exact: true,
-    });
-    await starter.click();
-    const composer = pageA.getByRole("textbox", {
-      name: "Nhắn tin cho người bạn kết nối",
-    });
-    await expect(composer).toHaveValue("Khi rảnh bạn thích làm gì nhất?");
-    await expect(composer).toBeFocused();
-    await expect(composer).toBeInViewport();
-    // The peer has the same starter buttons inside its empty log. Wait for that
-    // screen, then check persisted messages instead of mistaking a button for a send.
-    await expect(pageB.getByRole("group", { name: "Lời mở đầu" })).toBeVisible();
-    await expect(pageB.getByRole("log").locator(".message-row")).toHaveCount(0);
-    const beforeSend = await call(two, 71, "GET", `/connections/${room}/messages`);
-    expect(beforeSend.status).toBe(200);
-    expect(beforeSend.body.messages).toEqual([]);
-    await composer.fill("Chào bạn, mình rất vui được làm quen!");
-    await pageA
-      .getByRole("button", { name: "Gửi tin nhắn", exact: true })
-      .click();
-    await expect(pageB.getByRole("log")).toContainText(
-      "Chào bạn, mình rất vui được làm quen!",
-    );
-    await pageA.reload();
-    await expect(pageA.getByRole("log")).toContainText(
-      "Chào bạn, mình rất vui được làm quen!",
-    );
-    await expect(pageA.getByRole("log").getByText("Chào bạn, mình rất vui được làm quen!", { exact: true })).toBeInViewport();
-    await pageA.getByRole("log").focus();
-    await expect(pageA.getByRole("log")).toBeFocused();
-    await audit(pageA, "human-chat", 390, 480);
-    await pageA
-      .getByRole("button", { name: "Cùng làm gì đó?", exact: true })
-      .click();
-    const catalog = pageA.getByRole("dialog", { name: "Cùng làm gì đó?" });
-    await expect(catalog).toContainText("Mỗi người trả lời riêng");
-    await expect(catalog).toContainText("Năm vòng đố vui cùng một đội");
-    await expect(catalog).toContainText(
-      "Một người tạm dừng sẽ dừng đồng hồ của cả hai",
-    );
-    await audit(pageA, "activity-catalog", 390, 480);
-    await expect(catalog).toBeVisible();
-  } finally {
-    await close();
   }
 });
