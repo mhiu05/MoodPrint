@@ -118,8 +118,12 @@ async def test_web_after_maps_needs_twenty_seconds_and_never_claims_or_dispatche
         def __getattr__(self, name):
             raise AssertionError(f"no budget claim or provider call: {name}")
 
-    runtime = SimpleNamespace(settings=SimpleNamespace(ai_timeout_seconds=30), database=Unreachable(),
-                              web_search_adapter=Unreachable(), check=Unreachable())
+    runtime = SimpleNamespace(
+        settings=SimpleNamespace(ai_timeout_seconds=30, ai_dispatch_gate_enabled=False),
+        database=Unreachable(),
+        web_search_adapter=Unreachable(),
+        check=Unreachable(),
+    )
     run = SimpleNamespace(started=time.monotonic() - 11)  # Maps start/admission used 11 of 30 seconds.
     result = await WebSearchService(runtime).search("thời tiết tại Hà Nội", run)
     assert result.status == "unavailable" and result.sources == []
