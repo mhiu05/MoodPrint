@@ -11,6 +11,24 @@ Quy ước (giống `docs/implementation-plans/three-agent-orchestration-group-c
 
 ## Trạng thái hiện tại (cập nhật khi chốt checkpoint)
 
+**JI-51 — 05/11/2026 11:29 UTC+7: đã release code F** tại
+`0573af5b50c0584c523e5119755479fcf47fae74`, schema0029. PR40 C/PR41 F,
+exact-main Verify41963189843 và publish41966776352 success; pair/attestations
+đã xác minh, bốn service healthy/0restart, public homepage/live/ready200.
+ApprovedSQL0029 committed/PASS8checks,973hàng/62bảng giữ nguyên khi apply.
+Backup dữ liệu được chủ dự án miễn; rehearsal schema-only+synthetic PASS.
+Maintenance10:39:09–10:43:45 và11:20:50–11:29:25, tổng13phút11giây.
+Gate OFF, timer active/enabled, pollservice exit0. Trần1USD giữ nguyên;
+semantic/auto-memory false, paid smoke/backfill hoãn theo lựa chọn chủ dự án.
+QA thật: CRUD3entry, edit/reload, cancel/delete/404, settings restore,
+desktop1440/mobile390/nav/legacy redirect/logout và journal offline retry PASS;
+0uncaughtJSerror,0QApaidrequest,3/3entry dọn sạch,journalqueue0.
+Hybrid/citation/paid skills/auto-memory/consult/group/proactive chưa chạy hosted.
+Không gọi toàn bộ web/AI đã nghiệm thu. C rollback pair đã chạy0029;
+F→C rollback chưa thực hiện. Chi tiết/digests/chi phí và bảng10ca tại
+[evidence13](13-release-execution-evidence.md).
+Các trạng thái trước đó dưới đây là checkpoint lịch sử, không thay kết quả mới.
+
 **JI-51 — cập nhật 05/11 09:07 UTC+7:** credential từ file chủ dự án chỉ định đã
 qua target/TLS/owner check; vẫn schema0028. C ứng viên tại worktree riêng đã
 RED→GREEN readiness0028/0029,114backendpass,241frontendunit+2checks/type/buildpass,
@@ -53,7 +71,7 @@ Các kết quả/phạm vi JI-51 “ngoài phạm vi” bên dưới là lịch 
 | JI-30 + JI-31 | xong | `61469170`, đã push | 269/228 regression pass; precommit 68 pass; browser cuối 3 pass |
 | JI-25 | xong | `43d27e4c`, đã push | 51 regression pass; ranking/timeout/settings/dimensions guards |
 | JI-50 | xong local; live/snapshot chưa chạy | SQL `9f3c238e`, fixes `caf1ea82`, hold `1c916cc7` | 2128 pass/3 skip tổng hợp; fixture385/fullstack38/Linux37 pass; bảng15gates ở mục final |
-| JI-51 | preflight; chưa release, thiếu owner credential | nhánh `release/ji51-preflight` | bằng chứng mới tại13; SSM chỉ đọc/schema0028; chưa migration/deploy; backup được miễn trong chat |
+| JI-51 | code F đã release; paid smoke/backfill hoãn | main `0573af5b`, PR39/40/41 | exact-main CI/publish/attestations PASS; schema0029/8checks; QA miễn phí PASS, cleanup3/3; gateOFF/timeractive; chi tiết13 |
 
 ## Quyết định và preflight — 2026-11-04
 
