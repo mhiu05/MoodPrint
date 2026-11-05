@@ -210,9 +210,9 @@ class GroupTurn:
 
     async def speak(self, ordinal: int, bot: str, speakers: tuple[str, ...]) -> bool:
         from app.ai.journal import NhipReply, journal_instructions, render_journal_reply
-        from app.ai.prompts import MULTI_MESSAGE_GUIDANCE, V3_RETIRED_SOCIAL, instructions
+        from app.ai.prompts import MULTI_MESSAGE_GUIDANCE, instructions
         from app.ai.provider import _no_unreceipted_claim
-        from app.ai.schemas import AiOutput, CompanionReply, drop_retired_cards
+        from app.ai.schemas import AiOutput, CompanionReply
 
         async with self.runtime.database.require()() as db, db.begin():
             user = await lock_actor(db, self.run.actor)
@@ -263,8 +263,7 @@ class GroupTurn:
             agent = Agent[Any](
                 name=f"MoodPrint:{bot}:group",
                 instructions=instructions(bot) + (journal_instructions(self.run) if tools else "")
-                + GROUP_GUIDANCE.format(members=names, name=DISPLAY_NAMES[bot], order=order)
-                + MULTI_MESSAGE_GUIDANCE + V3_RETIRED_SOCIAL,
+                + GROUP_GUIDANCE.format(members=names, name=DISPLAY_NAMES[bot], order=order) + MULTI_MESSAGE_GUIDANCE,
                 model=self.model_for(bot),
                 tools=cast(list, tools),
                 output_type=NhipReply if tools else CompanionReply,
@@ -284,7 +283,6 @@ class GroupTurn:
                 if any(has_journal_link(part.text) for part in parts):
                     raise DomainError(409, "JOURNAL_EVIDENCE_REQUIRED", "Chưa đọc được nguồn nhật ký cho lượt này.")
             from app.ai.provider import search_free_reply
-            parts = drop_retired_cards(parts, bot)
             search_free_reply(parts)
             await self.publish(step, child, usage, bot, parts, journal=journal)
         except asyncio.CancelledError:

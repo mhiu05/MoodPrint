@@ -4,11 +4,6 @@ export type Slot = "morning" | "evening";
 export type RepeatKind = "daily" | "weekdays" | "weekend" | "custom";
 
 export const BOT_ORDER = ["nhip", "rure", "may", "guong", "caunoi"] as const;
-
-export function socialEligibilityText(reason: string | null | undefined): string | null {
-  return ["social_not_enabled", "teen_social_unavailable", "social_restricted"].includes(reason ?? "")
-    ? "Cầu Nối đã ngừng hỏi thăm." : null;
-}
 export const WEEKDAY_SHORT = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 const WEEKDAY_LONG = ["thứ Hai", "thứ Ba", "thứ Tư", "thứ Năm", "thứ Sáu", "thứ Bảy", "Chủ nhật"];
 const PRESETS: Record<Exclude<RepeatKind, "custom">, number[]> = {

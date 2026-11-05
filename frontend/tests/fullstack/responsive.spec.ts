@@ -1,9 +1,9 @@
 import { artifactPath } from "../artifacts";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { noHorizontalOverflow, session } from "./helpers";
+import { call, noHorizontalOverflow, openRoom, session } from "./helpers";
 
-// T-UX-02: journal and assistant screens at the 08 section 9 sizes, axe WCAG 2.1 AA, no sideways
+// T-UX-02: the social screens at the 08 section 9 sizes, axe WCAG 2.1 AA, no sideways
 // scroll; screenshots for review in docs/productization/screens/.
 const VIEWPORTS = [
   [390, 844],
@@ -32,37 +32,57 @@ async function audit(page: Page, name: string, width: number, height: number) {
   });
 }
 
-test("journal and assistant screens are responsive and pass axe at every acceptance size", async ({ browser }) => {
+test("social screens are responsive and pass axe at every acceptance size", async ({ browser }) => {
   test.setTimeout(300_000);
-  const context = await browser.newContext({ reducedMotion: "reduce" });
-  const staff = await browser.newContext({ reducedMotion: "reduce" });
-  await session(context, 38);
-  await session(staff, 37);
-  const page = await context.newPage();
-  const admin = await staff.newPage();
+  const { one, two, pageA, room, close } = await openRoom(browser, 38, 39);
+  const staff = await browser.newContext();
   try {
+    await pageA.emulateMedia({ reducedMotion: "reduce" });
+    const started = await call(one, 38, "POST", `/connections/${room}/activities`, {
+      kind: "icebreaker",
+    });
+    expect(started.status, started.text).toBe(201);
+    const accepted = await call(two, 39, "POST", `/activities/${started.body.id}/accept`, {
+      expectedVersion: started.body.version,
+    });
+    expect(accepted.status, accepted.text).toBe(200);
+    await session(staff, 37);
+    const admin = await staff.newPage();
+    await admin.emulateMedia({ reducedMotion: "reduce" });
     for (const [width, height] of VIEWPORTS) {
-      await page.setViewportSize({ width, height });
-      for (const [route, heading] of [["/self", "Nhật ký cảm xúc"], ["/assistants", "Chọn một trợ lý"], ["/assistants/may?new=1", "Mây AI"]]) {
-        await page.goto(`/#${route}`);
-        await expect(page.getByRole("heading", { level: 1, name: heading, exact: true })).toBeVisible();
-        await expect(page.getByText(/^Đang tải/)).toHaveCount(0);
-        await audit(page, route.startsWith("/self") ? "journal" : route.includes("may") ? "assistant-chat" : "assistants", width, height);
-      }
+      await pageA.setViewportSize({ width, height });
+      await pageA.goto("/#/connect?tab=suggestions");
+      await expect(pageA.getByRole("tab", { name: "Gợi ý" })).toHaveAttribute("aria-selected", "true");
+      // Audit and capture the settled screen, not its loading state.
+      await expect(pageA.getByText("Đang tải gợi ý kết nối…")).toHaveCount(0);
+      await audit(pageA, "connect", width, height);
+      await pageA.goto("/#/messages");
+      await expect(pageA.getByRole("heading", { level: 1, name: "Tin nhắn" })).toBeVisible();
+      await expect(pageA.locator(`a[href="#/chat/${room}"]`)).toBeVisible();
+      await expect(pageA.getByText("Đang tải kết nối…")).toHaveCount(0);
+      await audit(pageA, "messages", width, height);
+      await pageA.goto(`/#/chat/${room}`);
+      const dock = pageA.getByRole("region", { name: "Hoạt động chung: Câu hỏi làm quen" });
+      await expect(dock).toContainText("Câu 1/3");
+      await expect(pageA.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" })).toBeInViewport();
+      await audit(pageA, "chat-dock", width, height);
       await admin.setViewportSize({ width, height });
       await admin.goto("/#/admin/reports");
       await expect(admin.getByRole("heading", { level: 1, name: "Kiểm duyệt báo cáo" })).toBeVisible();
       await expect(admin.getByText("Đang tải báo cáo…")).toHaveCount(0);
       await audit(admin, "admin", width, height);
     }
-    await page.setViewportSize({ width: 390, height: 480 });
-    await page.goto("/#/assistants/may?new=1");
-    const composer = page.getByRole("textbox", { name: "Tin nhắn cho Mây" });
+    // Keyboard open on a phone: the composer stays reachable with the dock collapsed.
+    await pageA.setViewportSize({ width: 390, height: 480 });
+    await pageA.goto(`/#/chat/${room}`);
+    const dock = pageA.getByRole("region", { name: "Hoạt động chung: Câu hỏi làm quen" });
+    await dock.getByRole("button", { name: "Thu gọn hoạt động" }).click();
+    const composer = pageA.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" });
     await composer.focus();
     await expect(composer).toBeInViewport();
-    await audit(page, "assistant-keyboard", 390, 480);
+    await audit(pageA, "chat-dock-collapsed", 390, 480);
   } finally {
     await staff.close();
-    await context.close();
+    await close();
   }
 });

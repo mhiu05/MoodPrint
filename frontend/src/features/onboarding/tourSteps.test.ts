@@ -20,7 +20,7 @@ const registered = {
 const guest = { ...registered, accountKind: "guest" } as SessionView;
 
 describe("approved tour steps", () => {
-  it("guest has four personal steps without retired social guidance", () => {
+  it("guest has four steps and never matching even with optional opt-in", () => {
     expect(getTourSteps(guest).map((step) => step.id)).toEqual([
       "assistants",
       "mood",
@@ -28,19 +28,19 @@ describe("approved tour steps", () => {
       "profile",
     ]);
     expect(
-      getTourSteps(guest).map((step) => step.id),
-    ).not.toContain("matching");
+      getTourSteps(guest, true).some((step) => step.id === "matching"),
+    ).toBe(false);
     expect(getTourSteps(guest).at(-1)?.description).toContain(
       "không mở lại được sau khi hết giờ",
     );
   });
-  it("ineligible or teen sessions have no tour and eligible adults have four personal steps", () => {
+  it("ineligible or teen sessions have no tour and eligible adult has optional fifth", () => {
     expect(getTourSteps(registered)).toHaveLength(4);
-    expect(getTourSteps(registered).map((step) => step.id)).not.toContain("matching");
-    expect(getTourSteps({ ...registered, ageBand: "teen" })).toHaveLength(
+    expect(getTourSteps(registered, true)).toHaveLength(5);
+    expect(getTourSteps({ ...registered, ageBand: "teen" }, true)).toHaveLength(
       0,
     );
-    expect(getTourSteps({ ...registered, eligible: false })).toHaveLength(
+    expect(getTourSteps({ ...registered, eligible: false }, true)).toHaveLength(
       0,
     );
   });

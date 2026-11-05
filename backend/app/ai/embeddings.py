@@ -6,10 +6,9 @@ import logging
 import re
 import time
 import unicodedata
-from collections import defaultdict, deque
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import TYPE_CHECKING, Literal, cast
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import Float, and_, delete, exists, func, or_, select, update
@@ -36,14 +35,6 @@ from app.ai.agents import MEMORY_IDS as MEMORY_BOTS  # noqa: E402
 
 # Operational counters only: never memory text, owner IDs or job IDs.
 log = logging.getLogger("moodprint.embeddings")
-
-MemoryOrigin = Literal["approved", "journal_auto"]
-
-
-@dataclass(frozen=True)
-class MemoryText:
-    text: str
-    origin: MemoryOrigin
 
 
 @dataclass(frozen=True)
@@ -569,34 +560,31 @@ def _indexed_scope(user_id: UUID, bot_id: str, auth: Authorization, settings: Em
     )
 
 
-def _bounded(texts: list[MemoryText], settings: EmbeddingSettings) -> list[MemoryText]:
-    result: list[MemoryText] = []
+def _bounded(texts: list[str], settings: EmbeddingSettings) -> list[str]:
+    result: list[str] = []
     remaining = settings.memory_context_char_limit
     for value in texts[: settings.memory_retrieval_limit]:
-        if len(value.text) <= remaining:
+        if len(value) <= remaining:
             result.append(value)
-            remaining -= len(value.text)
+            remaining -= len(value)
     return result
 
 
 async def _fallback(
     db: AsyncSession, user_id: UUID, bot_id: str, query: str, settings: EmbeddingSettings
-) -> list[MemoryText]:
+) -> list[str]:
     rows = (
         await db.execute(
-            select(Memory.id, Memory.text, Memory.origin)
+            select(Memory.id, Memory.text)
             .where(*_memory_scope(user_id, bot_id))
             .order_by(Memory.version.desc(), Memory.id)
             .limit(settings.memory_fallback_limit)
         )
     ).all()
-    # Rank through the established lexical contract while retaining each row's
-    # origin, including identical text with different provenance.
-    by_text: dict[str, deque[MemoryText]] = defaultdict(deque)
-    for row in rows:
-        by_text[row.text].append(MemoryText(row.text, cast(MemoryOrigin, row.origin)))
-    ranked = lexical_rank([(row.id, row.text) for row in rows], query, settings.memory_retrieval_limit)
-    return _bounded([by_text[value].popleft() for value in ranked], settings)
+    return _bounded(
+        lexical_rank([(row.id, row.text) for row in rows], query, settings.memory_retrieval_limit),
+        settings,
+    )
 
 
 async def retrieve_memories(
@@ -609,7 +597,7 @@ async def retrieve_memories(
     *,
     provider: EmbeddingProvider | None = None,
     operation_key: str | None = None,
-) -> list[MemoryText]:
+) -> list[str]:
     if bot_id not in MEMORY_BOTS:
         return []
     ticket = None
@@ -656,7 +644,7 @@ async def retrieve_memories(
         rows = (
             (
                 await db.execute(
-                    select(Memory.text, Memory.origin)
+                    select(Memory.text)
                     .join(MemoryEmbedding, MemoryEmbedding.memory_id == Memory.id)
                     .where(
                         *_indexed_scope(actor.user_id, bot_id, auth, settings),
@@ -666,9 +654,10 @@ async def retrieve_memories(
                     .limit(settings.memory_retrieval_limit)
                 )
             )
+            .scalars()
             .all()
         )
-        return _bounded([MemoryText(row.text, cast(MemoryOrigin, row.origin)) for row in rows], settings)
+        return _bounded(list(rows), settings)
 
 
 def lexical_rank(rows: list[tuple[UUID, str]], query: str, limit: int) -> list[str]:

@@ -23,7 +23,6 @@ from app.core.config import Settings
 from app.infrastructure.database.connection import Database
 from app.jobs.proactive import proactive_tick
 from tests.fakes import ScriptedModel, message_output
-from tests.settings_baseline import ALL_FEATURES_OFF
 
 
 class SlowCheckInModel(ScriptedModel):
@@ -83,14 +82,14 @@ async def main() -> None:
 
     concurrency = int(sys.argv[1]) if len(sys.argv) > 1 else 1
     delay = float(sys.argv[2]) if len(sys.argv) > 2 else 1.5
-    settings = Settings(**{**ALL_FEATURES_OFF, **dict(
+    settings = Settings(
         _env_file=None, app_env="test", database_url=url,
         database_pool_size=int(os.environ.get("DATABASE_POOL_SIZE", "2")),
         database_pool_overflow=int(os.environ.get("DATABASE_POOL_OVERFLOW", "0")),
         proactive_enabled=True, proactive_worker_enabled=True,
         proactive_worker_concurrency=concurrency, proactive_daily_cap_per_user=6,
         ai_global_concurrency=int(os.environ.get("AI_GLOBAL_CONCURRENCY", "50")),
-    )})
+    )
     database = Database(settings)
     runtime = AiRuntime(settings, database)
     runtime.model_override = SlowCheckInModel(delay)

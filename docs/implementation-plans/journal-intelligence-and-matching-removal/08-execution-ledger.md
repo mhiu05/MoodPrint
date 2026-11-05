@@ -11,7 +11,15 @@ Quy ước (giống `docs/implementation-plans/three-agent-orchestration-group-c
 
 ## Trạng thái hiện tại (cập nhật khi chốt checkpoint)
 
-**JI-51 — 05/11/2026:** đang thực thi preflight trong worktree release riêng;
+**JI-51 — cập nhật 05/11 09:07 UTC+7:** credential từ file chủ dự án chỉ định đã
+qua target/TLS/owner check; vẫn schema0028. C ứng viên tại worktree riêng đã
+RED→GREEN readiness0028/0029,114backendpass,241frontendunit+2checks/type/buildpass,
+schema-only hosted rehearsal +synthetic rows/exactSQL0029/all8check/rollback/Cready
+đều PASS; review không còn Critical/Important. Đang chuẩn bị PR C, chưa deploy
+hay áp migration hosted. QA login bị lỗi tải CAPTCHA, đang kiểm tra. Chi tiết mới
+tại evidence13; các checkpoint blocker credential phía dưới đã được gỡ.
+
+**Checkpoint trước đó — 05/11/2026:** đang thực thi preflight trong worktree release riêng;
 **chưa release**. Đã kiểm lại PR38/main Verify success; hosted đang chạy
 `d6280561` trên schema0028, bốn service healthy/0restart, gate tắt, timer poller
 active/enabled. AWS login đã phục hồi. Blocker: thiếu credential owner DB qua kênh

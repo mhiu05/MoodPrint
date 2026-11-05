@@ -42,6 +42,8 @@ async function mock(page: Page, staff: string | null, posts: { path: string; bod
     const request = route.request(),
       path = new URL(request.url()).pathname.replace("/api/v1", "");
     if (path === "/session") return route.fulfill({ json: sessionFor(staff) });
+    if (path === "/social/summary")
+      return route.fulfill({ json: { pendingIncomingRequests: 0, unreadConnections: 0, activityInvites: 0 } });
     if (path === "/admin/reports")
       return route.fulfill({ json: current.status === "resolved" ? [] : [current] });
     if (request.method() === "POST" && path.startsWith("/admin/reports/r1/")) {

@@ -70,7 +70,6 @@ def check() -> list[str]:
                 node.target.id.upper()
                 for node in cls.body
                 if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name)
-                and not node.target.id.startswith("_")
             )
     documented_fields = set(re.findall(r"^\| `([A-Z0-9_]+)` \|", config_doc, re.MULTILINE))
     for field in sorted(fields ^ documented_fields):

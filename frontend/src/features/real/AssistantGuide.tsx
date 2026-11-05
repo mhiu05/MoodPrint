@@ -20,7 +20,18 @@ const GUIDES: Record<string, { purpose: string; to: string; action: string }> =
       to: "/self",
       action: "Mở nhật ký cảm xúc",
     },
-
+    rure: {
+      purpose:
+        "Thử câu đố hoặc học một điều mới cùng AI. Muốn chơi với người thật? Mở một cuộc trò chuyện đã kết nối để gửi lời mời.",
+      to: "/messages",
+      action: "Xem tin nhắn và hoạt động chung",
+    },
+    caunoi: {
+      purpose:
+        "Chọn thông tin bạn muốn chia sẻ trên hồ sơ tìm bạn. Cuộc trò chuyện với AI, tâm trạng và ghi nhớ không dùng để gợi ý kết nối.",
+      to: "/connect?tab=profile",
+      action: "Xem hồ sơ tìm bạn",
+    },
   };
 
 export function AssistantGuide({ botId }: { botId: string }) {

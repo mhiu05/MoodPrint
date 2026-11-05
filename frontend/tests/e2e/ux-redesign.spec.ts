@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { artifactPath } from "../artifacts";
 import AxeBuilder from "@axe-core/playwright";
-import { app, baseSession, sessionWith, type Routes } from "./ux-fixtures";
+import { app, baseSession, room, sessionWith, type Routes } from "./ux-fixtures";
 
 const pendingProposal = {
   id: "p-1",
@@ -27,6 +27,35 @@ test.describe("truthful consent recovery (F03)", () => {
     await page.goto("/#/memory");
     await expect(page.getByText("Bạn chưa lưu ghi nhớ nào. Khi trò chuyện, bạn có thể nhờ trợ lý đề xuất điều cần nhớ rồi duyệt tại đây.", { exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Xem quyền ghi nhớ" })).toHaveCount(0);
+  });
+
+  test("with MATCH withdrawn, messages lead to reviewing and showing the matching profile", async ({ page }) => {
+    await app(page, sessionWith({ MATCH: false }));
+    await page.goto("/#/messages");
+    await expect(page.getByRole("link", { name: "Mở hồ sơ tìm bạn" })).toHaveAttribute("href", "#/connect?tab=profile");
+    await expect(page.getByText(/Hiển thị hồ sơ/)).toBeVisible();
+    await expect(page.getByRole("link", { name: "Xem quyền tìm bạn" })).toHaveCount(0);
+  });
+});
+
+test.describe("truthful blocking (F04)", () => {
+  test("the chat block dialog states in-app irreversibility, focuses cancel and sends nothing on cancel", async ({ page }) => {
+    const writes: string[] = [];
+    page.on("request", (request) => {
+      if (request.method() === "POST" && request.url().includes("/block")) writes.push(request.url());
+    });
+    await app(page, sessionWith({ AI: false }));
+    await page.goto("/#/chat/room-1");
+    await page.getByRole("button", { name: "Chia sẻ và an toàn" }).click();
+    await page.getByRole("button", { name: "Chặn kết nối này", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Chặn kết nối này?" });
+    await expect(dialog).toContainText("Hai bạn sẽ không thể xem hoặc gửi tiếp tin nhắn trong kết nối này.");
+    await expect(dialog).toContainText("Việc chặn không thể hoàn tác trong ứng dụng.");
+    await expect(dialog).not.toContainText("Bỏ chặn");
+    await expect(dialog.getByRole("button", { name: "Giữ kết nối" })).toBeFocused();
+    await dialog.getByRole("button", { name: "Giữ kết nối" }).click();
+    await expect(dialog).toHaveCount(0);
+    expect(writes).toEqual([]);
   });
 });
 
@@ -105,7 +134,7 @@ test.describe("readable foundations (V-TOKENS / V-REFLOW)", () => {
     await app(page, baseSession, { "/bots": () => ({ json: longBots }) });
     for (const width of [320, 1280]) {
       await page.setViewportSize({ width, height: 844 });
-      await page.goto("/#/assistants");
+      await page.goto("/#/messages");
       const nav = page.getByRole("navigation", { name: "Điều hướng chính" });
       const sizes = await nav.getByRole("link").evaluateAll((links) =>
         links.map((link) => ({
@@ -154,13 +183,13 @@ test.describe("navigation and route focus (V-NAV / V-ROUTE-FOCUS)", () => {
     "/moods/summary": () => ({ json: { from: "2026-10-17", to: "2026-10-23", count: 0, mean: null, min: null, max: null, insightAvailable: false, buckets: [] } }),
   };
 
-  test("three primary destinations, with Nhật ký opening the mood journal directly", async ({ page }) => {
+  test("five primary destinations, with Nhật ký opening the mood journal directly", async ({ page }) => {
     await app(page, baseSession, moodRoutes);
     for (const width of [320, 768, 1280]) {
       await page.setViewportSize({ width, height: 844 });
-      await page.goto("/#/assistants");
+      await page.goto("/#/messages");
       const nav = page.getByRole("navigation", { name: "Điều hướng chính" });
-      await expect(nav.getByRole("link")).toHaveText(["Trợ lý", "Nhật ký", "Tài khoản"]);
+      await expect(nav.getByRole("link")).toHaveText(["Trợ lý", "Nhật ký", "Tìm bạn", "Tin nhắn", "Tài khoản"]);
       await nav.getByRole("link", { name: "Nhật ký" }).click();
       await expect(page).toHaveURL(/#\/self$/);
       await expect(nav.getByRole("link", { name: "Nhật ký" })).toHaveAttribute("aria-current", "page");
@@ -467,13 +496,13 @@ async function savedChat(page: Page, options: { session?: unknown; thread?: Reco
 const infoButton = (page: Page) => page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true });
 
 test.describe("compact agent chat", () => {
-  test("the account keeps the application palette after visiting the redesigned AI chat", async ({ page }) => {
+  test("human chat keeps the application palette after visiting the redesigned AI chat", async ({ page }) => {
     await app(page, baseSession);
     await page.goto("/#/assistants/may?new=1");
     await expect(page.locator(".bot-composer")).toBeVisible();
-    await page.goto("/#/profile");
-    await expect(page.getByRole("main")).toBeVisible();
-    const palette = await page.getByRole("main").evaluate((element) => {
+    await page.goto(`/#/chat/${room.id}`);
+    await expect(page.locator(".real-human-chat")).toBeVisible();
+    const palette = await page.locator(".real-human-chat").evaluate((element) => {
       const root = getComputedStyle(document.documentElement);
       const human = getComputedStyle(element);
       return ["--color-bg", "--color-ink", "--control-min"].map(token => ({ root: root.getPropertyValue(token).trim(), human: human.getPropertyValue(token).trim() }));
@@ -893,7 +922,7 @@ test.describe("personal account and memory comprehension", () => {
     await expect(waiting.getByRole("textbox", { name: "Nội dung sẽ lưu" })).toHaveValue("Thích trà buổi tối");
     await expect(waiting).toContainText("Chưa lưu");
     await expect(waiting).not.toContainText("Bạn đã chọn không lưu đề xuất này.");
-    await expect(page.getByRole("region", { name: "Ghi nhớ đã lưu" })).toContainText("Thích đi bộ");
+    await expect(page.getByRole("region", { name: "Đã duyệt" })).toContainText("Thích đi bộ");
   });
 
   test("a failed memory deletion keeps the item and explains the failure", async ({ page }) => {
@@ -913,6 +942,58 @@ test.describe("personal account and memory comprehension", () => {
     await page.goto("/#/settings");
     await page.getByRole("button", { name: "Xóa tài khoản", exact: true }).click();
     await expect(page.getByRole("button", { name: "Giữ tài khoản", exact: true })).toBeFocused();
+  });
+});
+
+// ---- Human chat continuity and safety access (V-CHAT-SCROLL / V-SAFETY) ----
+test.describe("human chat continuity and safety", () => {
+  const message = (seq: number, sender: "self" | "peer", text: string) => ({
+    id: `msg-${seq}`, connectionId: room.id, clientMessageId: `c-${seq}`, seq: String(seq), sender, text, acceptedAt: new Date(Date.UTC(2026, 9, 23, 8, 0, seq)).toISOString(),
+  });
+
+  test("a peer message arriving while reading older messages keeps the place and is not marked read", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 700 });
+    const messages = Array.from({ length: 40 }, (_, index) => message(index + 1, index % 2 ? "peer" : "self", `Tin số ${index + 1}. `.repeat(5)));
+    const reads: number[] = [];
+    await app(page, sessionWith({ AI: false }), {
+      [`/connections/${room.id}/messages`]: (request) => {
+        const after = BigInt(new URL(request.url()).searchParams.get("afterSeq") ?? "0");
+        return { json: { messages: messages.filter((item) => BigInt(item.seq) > after), highWaterSeq: messages.at(-1)!.seq } };
+      },
+    });
+    await page.route(`**/api/v1/connections/${room.id}/read`, (route) => { reads.push(Number(route.request().postDataJSON().seq)); return route.fulfill({ json: {} }); });
+    await page.goto(`/#/chat/${room.id}`);
+    const log = page.getByRole("log");
+    await expect(log.getByText(/Tin số 40\./)).toBeVisible();
+    await log.evaluate((element) => { element.scrollTop = 300; element.dispatchEvent(new Event("scroll")); });
+    const top = await log.evaluate((element) => element.scrollTop);
+    const before = reads.length ? Math.max(...reads) : 0;
+    messages.push(message(41, "peer", "Một tin mới từ bạn kia."));
+    await expect(page.getByRole("button", { name: "Về tin mới" })).toBeVisible({ timeout: 10_000 });
+    expect(await log.evaluate((element) => element.scrollTop)).toBe(top);
+    await page.waitForTimeout(1300);
+    expect(reads.filter((seq) => seq >= 41)).toEqual([]);
+    expect(before).toBeLessThan(41);
+    await page.getByRole("button", { name: "Về tin mới" }).click();
+    await expect.poll(() => reads.includes(41), { timeout: 5000 }).toBe(true);
+  });
+
+  test("safety actions open from the conversation header and stay away from Send", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await app(page, sessionWith({ AI: false }));
+    await page.goto(`/#/chat/${room.id}`);
+    await expect(page.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" })).toBeEnabled();
+    const composer = page.locator("form.bot-composer");
+    await expect(composer.getByRole("button", { name: /Kết thúc|Chặn/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Kết thúc kết nối" })).toHaveCount(0);
+    const open = page.locator(".conversation-header").getByRole("button", { name: "Chia sẻ và an toàn" });
+    await open.click();
+    const dialog = page.getByRole("dialog", { name: "Chia sẻ và an toàn" });
+    for (const name of ["Gửi báo cáo", "Chặn kết nối này", "Kết thúc kết nối"])
+      await expect(dialog.getByRole("button", { name, exact: true })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(open).toBeFocused();
   });
 });
 
@@ -1054,6 +1135,7 @@ test.describe("accessibility sweep", () => {
         [`/ai/conversations/${CONV}`]: () => ({ json: thread }),
         "/moods": () => ({ json: [] }),
         "/moods/summary": () => ({ json: { from: "2026-10-17", to: "2026-10-23", count: 0, mean: null, min: null, max: null, insightAvailable: false, buckets: [] } }),
+        "/connections": () => ({ json: [room] }),
       });
       const results: Record<string, string[]> = {};
       for (const [name, url, ready] of [
@@ -1061,7 +1143,9 @@ test.describe("accessibility sweep", () => {
         ["chat", `/#/assistants/may?conversation=${CONV}`, "Một điều nhỏ"],
         ["profile", "/#/profile", "Tài khoản"],
         ["memory", "/#/memory", "Đề xuất chờ duyệt"],
+        ["messages", "/#/messages", "Tin nhắn"],
         ["mood", "/#/self/daily", "Tâm trạng"],
+        ["human", `/#/chat/${room.id}`, "Bắt đầu cuộc trò chuyện"],
       ] as const) {
         await page.goto(url);
         await expect(page.getByText(ready).first()).toBeVisible();
@@ -1128,7 +1212,7 @@ test.describe("accessibility sweep", () => {
 
 test("the skip link stays hidden until focused, then appears and moves focus to main", async ({ page }) => {
   await app(page, baseSession);
-  await page.goto("/#/assistants");
+  await page.goto("/#/messages");
   const skip = page.getByRole("link", { name: "Đến nội dung chính" });
   await expect(skip).not.toBeInViewport();
   await skip.focus();

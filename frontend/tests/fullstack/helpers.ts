@@ -1,9 +1,11 @@
 import {
   expect,
+  type Browser,
   type BrowserContext,
   type Page,
 } from "@playwright/test";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import type { components } from "../../src/api/generated/schema";
 
 export const origin = "http://127.0.0.1:5174";
 export const api = `${origin}/api/v1`;
@@ -29,6 +31,14 @@ export async function session(context: BrowserContext, number: number) {
 
 export const userId = (number: number) =>
   `00000000-0000-4000-8000-${String(number).padStart(12, "0")}`;
+
+/** The pseudonymous card alias the server derives for a pair (social/routes.py). */
+export function pairAlias(a: number, b: number) {
+  const seed = createHash("sha256")
+    .update([userId(a), userId(b)].sort().join(":"))
+    .digest("hex");
+  return `Bạn đồng hành ${seed.slice(0, 6)}`;
+}
 
 /** A real API call as the given synthetic user, returning status and JSON. */
 export async function call(
@@ -57,6 +67,196 @@ export async function call(
   };
 }
 
+export async function disable(page: Page, name: string) {
+  // Social revocation is exercised through the retained API; personal switches are retired.
+  if (name !== "tìm bạn")
+    throw new Error("Personal feature switches have been retired");
+  const snapshot = await page.request.get(api + "/session");
+  expect(snapshot.ok()).toBe(true);
+  const session = await snapshot.json();
+  const response = await page.request.put(api + "/consents/MATCH", {
+    headers: {
+      "X-CSRF-Token": session.csrfToken,
+      "Idempotency-Key": randomUUID(),
+    },
+    data: {
+      enabled: false,
+      expectedVersion: session.consents.MATCH.version,
+      policyVersion: "v1",
+    },
+  });
+  expect(response.ok()).toBe(true);
+}
+
+/** Same explicit public profile journey at desktop and mobile widths. */
+export async function fillProfileEditor(page: Page) {
+  const edit = page.getByRole("button", {
+    name: "Chỉnh hồ sơ tìm bạn",
+    exact: true,
+  });
+  const firstQuestion = page.getByRole("radio", { name: "Có người tâm sự", exact: true });
+  // Loading initially renders a disabled edit button; it disappears when a new
+  // draft auto-opens. Wait for the usable surface before deciding to click it.
+  await expect.poll(async () =>
+    (await firstQuestion.isVisible()) || (await edit.isEnabled({ timeout: 100 }).catch(() => false)),
+  ).toBe(true);
+  if (!(await firstQuestion.isVisible())) await edit.click();
+  await page
+    .getByRole("radio", { name: "Có người tâm sự", exact: true })
+    .check();
+  const next = page.getByRole("button", { name: "Tiếp tục", exact: true });
+  if (await next.isVisible()) await next.click();
+  for (const name of ["Đọc sách", "Âm nhạc"]) {
+    const input = page.getByRole("checkbox", { name, exact: true });
+    if (!(await input.isChecked())) await input.check();
+  }
+  await page.getByRole("button", { name: /^Chọn sở thích thể thao/ }).click();
+  const picker = page.getByRole("dialog", {
+    name: "Chọn sở thích nổi bật",
+    exact: true,
+  });
+  if (
+    !(await picker
+      .getByRole("checkbox", { name: "Đi bộ", exact: true })
+      .isChecked())
+  )
+    await picker.getByRole("checkbox", { name: "Đi bộ", exact: true }).check();
+  await picker.getByRole("button", { name: "Xong", exact: true }).click();
+  if (await next.isVisible()) await next.click();
+  await page
+    .getByRole("radio", { name: "Từ từ làm quen", exact: true })
+    .check();
+  await page
+    .getByRole("button", { name: "Xem lại trước khi hiển thị", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Xem lại thông tin chia sẻ",
+      exact: true,
+    }),
+  ).toBeVisible();
+  const supplement = page.getByRole("region", {
+    name: "Bổ sung để ghép bạn chính xác hơn",
+    exact: true,
+  });
+  if (await supplement.isVisible()) {
+    for (const name of ["Tôn trọng", "Chân thành", "Tiếng Việt"]) {
+      const input = supplement.getByRole("checkbox", { name, exact: true });
+      if (!(await input.isChecked())) await input.check();
+    }
+    await page
+      .getByRole("button", { name: "Xem bản được chia sẻ", exact: true })
+      .click();
+  }
+  await page
+    .getByRole("button", { name: /^(Hiển thị hồ sơ|Cập nhật hồ sơ hiển thị)$/ })
+    .click();
+  await expect(
+    page.getByText("Đã hiển thị hồ sơ tìm bạn.", { exact: true }),
+  ).toBeVisible();
+}
+
+export async function publish(page: Page) {
+  await page.goto("/#/connect?tab=profile");
+  await fillProfileEditor(page);
+}
+
+// The frozen v1 vocabulary (backend scoring.py); the default v1 scorer ignores others.
+const V1_INTERESTS = [
+  "reading",
+  "music",
+  "walking",
+  "cooking",
+  "english",
+  "photography",
+  "puzzles",
+];
+const V1_TRIPLES = V1_INTERESTS.flatMap((a, i) =>
+  V1_INTERESTS.slice(i + 1).flatMap((b, j) =>
+    V1_INTERESTS.slice(i + j + 2).map((c) => [a, b, c]),
+  ),
+);
+
+/**
+ * Both members of a pair get an interest triple no other API pair has (keyed by the
+ * first user), so the partner outranks every other published synthetic profile.
+ */
+function pairInterests(first: number) {
+  return V1_TRIPLES[first % V1_TRIPLES.length];
+}
+
+/**
+ * Publishes both users through the API and connects them; returns the room id.
+ * English-only profiles keep these pairs out of the UI journeys' Vietnamese pool.
+ */
+export async function connectByApi(
+  a: BrowserContext,
+  aNumber: number,
+  b: BrowserContext,
+  bNumber: number,
+  goal: "friendship" | "shared-interests",
+) {
+  for (const [context, number] of [
+    [a, aNumber],
+    [b, bNumber],
+  ] as const) {
+    expect(
+      (
+        await call(context, number, "PUT", "/consents/MATCH", {
+          enabled: true,
+          expectedVersion: 1,
+          policyVersion: "v1",
+        })
+      ).status,
+    ).toBe(200);
+    await call(context, number, "PUT", "/profiles/matching-draft", {
+      interests: pairInterests(aNumber),
+      values: ["respect", "kindness"],
+      style: "balanced",
+      goal,
+      languages: ["en"],
+      expectedVersion: 0,
+    });
+    const preview = await call(
+      context,
+      number,
+      "POST",
+      "/profiles/matching-draft/preview",
+    );
+    const published = await call(
+      context,
+      number,
+      "POST",
+      "/profiles/published",
+      {
+        draftVersion: preview.body.draftVersion,
+        previewDigest: preview.body.previewDigest,
+        expectedPublishedVersion: 0,
+      },
+    );
+    expect(published.status, published.text).toBe(201);
+  }
+  const cards = await call(a, aNumber, "GET", "/matching/candidates");
+  const card = cards.body.candidates.find(
+    (item: { alias: string }) => item.alias === pairAlias(aNumber, bNumber),
+  );
+  expect(card, JSON.stringify(cards.body)).toBeTruthy();
+  const ref = card.candidateRef;
+  const pending = await call(a, aNumber, "POST", "/connection-requests", {
+    candidateRef: ref,
+  });
+  expect(pending.status, pending.text).toBe(201);
+  const accepted = await call(
+    b,
+    bNumber,
+    "POST",
+    `/connection-requests/${pending.body.id}/accept`,
+    { expectedVersion: pending.body.version },
+  );
+  expect(accepted.status, accepted.text).toBe(200);
+  return accepted.body.connectionId as string;
+}
+
 export async function noHorizontalOverflow(page: Page) {
   await expect
     .poll(() =>
@@ -65,4 +265,71 @@ export async function noHorizontalOverflow(page: Page) {
       ),
     )
     .toBe(true);
+}
+
+export type ProfileInput = {
+  interests: string[];
+  values: string[];
+  style: string;
+  goal: string;
+  languages: string[];
+  activities?: string[];
+  availability?: string[];
+  strictGoal?: boolean;
+  discovery?: components["schemas"]["FriendshipDiscovery"] | null;
+};
+
+/** Consents to matching and publishes a profile through the API. */
+export async function publishProfile(
+  context: BrowserContext,
+  number: number,
+  profile: ProfileInput,
+) {
+  const consent = await call(context, number, "PUT", "/consents/MATCH", {
+    enabled: true,
+    expectedVersion: 1,
+    policyVersion: "v1",
+  });
+  expect(consent.status, consent.text).toBe(200);
+  const draft = await call(context, number, "PUT", "/profiles/matching-draft", {
+    ...profile,
+    expectedVersion: 0,
+  });
+  expect(draft.status, draft.text).toBe(200);
+  const preview = await call(
+    context,
+    number,
+    "POST",
+    "/profiles/matching-draft/preview",
+  );
+  const published = await call(context, number, "POST", "/profiles/published", {
+    draftVersion: preview.body.draftVersion,
+    previewDigest: preview.body.previewDigest,
+    expectedPublishedVersion: 0,
+  });
+  expect(published.status, published.text).toBe(201);
+}
+
+/** Two signed-in browsers connected through the API, both on the shared chat. */
+export async function openRoom(browser: Browser, a: number, b: number) {
+  const one = await browser.newContext(),
+    two = await browser.newContext();
+  await session(one, a);
+  await session(two, b);
+  const room = await connectByApi(one, a, two, b, "friendship");
+  const pageA = await one.newPage(),
+    pageB = await two.newPage();
+  await pageA.goto(`/#/chat/${room}`);
+  await pageB.goto(`/#/chat/${room}`);
+  return {
+    one,
+    two,
+    pageA,
+    pageB,
+    room,
+    close: async () => {
+      await one.close();
+      await two.close();
+    },
+  };
 }

@@ -2,7 +2,7 @@
 id: hangout
 name: Đi chơi
 description: Gợi ý hoạt động vừa sức và địa điểm khi bạn cần.
-version: 2
+version: 1
 ---
 
 Bạn đang trả lời trong vai trợ lý hiện tại; không tự đổi trợ lý hoặc tạo bàn giao.
@@ -16,5 +16,5 @@ Nếu Maps chưa sẵn sàng, gợi ý hoạt động chung hoặc hỏi vùng, 
 địa điểm. Job pending chưa có kết quả; không hứa đang mở hay chắc còn phục vụ.
 
 SKILL này là workflow, không cấp quyền công cụ. Không tự tạo activity/session,
-mời bạn bè, ghi challenge receipt hay bật lịch hỏi thăm.
-Nếu người dùng muốn làm cùng người khác, gợi ý để họ tự rủ; MoodPrint không gửi lời mời.
+mời bạn bè, ghi challenge receipt hay bật lịch hỏi thăm. Nếu cần hoạt động cùng bạn,
+chỉ dẫn người dùng đến luồng activity hiện có.

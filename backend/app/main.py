@@ -25,7 +25,6 @@ from app.infrastructure.database.budget import has_deployment_headroom
 from app.infrastructure.database.connection import Database
 from app.infrastructure.database.models import AiRun
 from app.modules.guests.output import GuestOutputMiddleware
-from app.modules.journal import ai_models as journal_ai_models  # noqa: F401
 
 
 def warn_unenforced_budget(config) -> None:
@@ -59,8 +58,6 @@ def pool_counts(database) -> tuple[int | str, int | str]:
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     config = settings or Settings()
-    for flag, reason in config.degraded_features():
-        logging.getLogger("moodprint").warning("feature_degraded flag=%s reason=%s", flag, reason)
     warn_unenforced_budget(config)
     warn_pool_budget(config)
     shell_policy = content_security_policy(bool(config.guest_captcha_site_key),
@@ -144,14 +141,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 logging.getLogger("moodprint").error(
                     "embedding_worker_retry error_type=%s", type(error).__name__
                 )
-            from app.ai.journal_memory import extract_and_publish
-            from app.modules.journal.indexing import process_journal_jobs
-
-            try:
-                await process_journal_jobs(database, config, embedder=getattr(app.state, "journal_embedder", None),
-                    memory_runner=lambda job_id, token: extract_and_publish(app.state.ai, job_id, token))
-            except Exception as error:
-                logging.getLogger("moodprint").error("journal_index_retry error_type=%s", type(error).__name__)
 
         async def guest_pass() -> None:
             """Guest expiry cleanup and orphan reconciliation: always on, isolated per work class."""
@@ -208,9 +197,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     "journal_cleanup_failed error_type=%s", type(error).__name__
                 )
 
-        # Recovery and local cleanup precede traffic. Provider batches run only
-        # in the background worker; an existing queue must not hold readiness.
+        # Finish one pass before accepting traffic. Otherwise its pool checkouts
+        # share the event loop with the first requests.
         await sweep_pass()
+        await embedding_pass()
         await guest_pass()
         await journal_pass()
 
@@ -223,7 +213,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 await asyncio.sleep(1)
 
         async def embedding_worker():
-            # Give startup and the first requests their own pool window.
             await asyncio.sleep(3)
             while True:
                 await embedding_pass()
@@ -392,7 +381,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from app.modules.feedback.admin_routes import router as feedback_admin
     from app.modules.feedback.routes import router as feedback
     from app.modules.guests.routes import router as guests
-    from app.modules.journal.ai_settings import router as journal_ai
     from app.modules.journal.media_routes import router as journal_media
     from app.modules.journal.routes import router as journal
     from app.modules.moderation.admin_routes import router as moderation_admin
@@ -414,7 +402,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         profiles,
         mood,
         journal,
-        journal_ai,
         journal_media,
         ai,
         proactive,

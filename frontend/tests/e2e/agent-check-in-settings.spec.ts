@@ -82,6 +82,8 @@ async function mount(page: Page, options: { staleSettings?: boolean; view?: Retu
       "/ai/proactive": view,
       "/ai/inbox": { badgesEnabled: true, unreadTotal: 0, bots: [] },
       "/ai/conversations": options.handoff ? [thread] : [], [`/ai/conversations/${CONV}`]: thread, "/proposals": [], "/memories": [],
+      "/social/summary": { pendingIncomingRequests: 0, unreadConnections: 0, activityInvites: 0 },
+      "/connections": [], "/connection-requests": [], "/activities/catalog": [], "/profiles/published/current": null,
     };
     if (method === "GET" && path in fixed) return json(fixed[path]);
     return json({ error: { code: "NOT_FOUND", message: `Missing fixture ${path}` } }, 404);

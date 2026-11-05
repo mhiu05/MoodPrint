@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.ai.embeddings import enqueue_memory, invalidate_memory
 from app.ai.memory_models import MemoryProposal
 from app.ai.schemas import MemoryDTO, MemoryEdit, ProposalConfirm
-from app.contracts import DTO, ActionReceipt, BotId, EmptyInput, VersionInput
+from app.contracts import DTO, ActionReceipt, BotId, VersionInput
 from app.core.errors import DomainError
 from app.core.security import (
     Actor,
@@ -21,7 +21,6 @@ from app.core.security import (
     lock_actor,
     previous_receipt,
     require_actor,
-    require_registered_actor,
     save_receipt,
     transaction,
 )
@@ -132,44 +131,6 @@ def _changed(request: Request, actor: Actor):
     request.app.state.ai.invalidate(str(actor.user_id))
 
 
-async def _memory_views(db, user, rows):
-    from app.modules.journal.models import JournalEntry
-    from app.modules.journal.service import active_dates
-
-    source_ids = {row.source_entry_id for row in rows if row.origin == "journal_auto" and row.source_entry_id}
-    dates = {}
-    if source_ids:
-        first, last = active_dates(user)
-        dates = dict((await db.execute(select(JournalEntry.id, JournalEntry.local_date).where(
-            JournalEntry.id.in_(source_ids), JournalEntry.user_id == user.id,
-            JournalEntry.status == "saved", JournalEntry.local_date >= first, JournalEntry.local_date <= last,
-        ))).all())
-    return [MemoryDTO.model_validate(row).model_copy(update={
-        "source_entry_id": row.source_entry_id if row.source_entry_id in dates else None,
-        "source_local_date": dates.get(row.source_entry_id),
-    }) for row in rows]
-
-
-@router.delete("/memories/auto", response_model=ActionReceipt)
-async def delete_automatic_memories(body: EmptyInput, request: Request, actor: Actor = Depends(require_registered_actor)):
-    key, payload = idempotency_key(request), body.model_dump(mode="json")
-    async with transaction(request, actor) as (db, user):
-        old = await previous_receipt(db, user, "memory:auto-delete", key, payload)
-        if old:
-            return ActionReceipt.model_validate(old)
-        from app.ai.journal_memory import fence_deleted_memories
-
-        await fence_deleted_memories(db, user.id)
-        removed = list((await db.scalars(delete(Memory).where(
-            Memory.user_id == user.id, Memory.origin == "journal_auto",
-        ).returning(Memory.id))).all())
-        user.data_version += 1
-        receipt = ActionReceipt(action_id=uuid4(), resource_id="journal_auto", resource_version=len(removed))
-        save_receipt(db, user, "memory:auto-delete", key, payload, receipt.model_dump(mode="json", by_alias=True))
-    _changed(request, actor)
-    return receipt
-
-
 @router.get("/memories", response_model=list[MemoryDTO])
 async def memories(request: Request, actor: Actor = Depends(require_actor)):
     async with transaction(request, actor) as (db, user):
@@ -180,7 +141,7 @@ async def memories(request: Request, actor: Actor = Depends(require_actor)):
                 .order_by(Memory.id)
             )
         ).all()
-        return await _memory_views(db, user, rows)
+        return [MemoryDTO.model_validate(row) for row in rows]
 
 
 @router.get("/proposals", response_model=list[ProposalDTO])
@@ -376,7 +337,7 @@ async def edit_memory(
                 payload,
                 {"resourceId": str(item.id), "version": item.version},
             )
-        result = (await _memory_views(db, user, [item]))[0]
+        result = MemoryDTO.model_validate(item)
     _changed(request, actor)
     return result
 

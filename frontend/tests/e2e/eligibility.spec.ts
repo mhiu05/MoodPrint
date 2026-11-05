@@ -255,7 +255,7 @@ for (const width of [320, 390, 1280]) {
       eligible: false,
       birthYear: 2009,
     });
-    await page.goto("/#/profile");
+    await page.goto("/#/connect");
     await expect(
       page.getByRole("button", { name: "Xóa tài khoản", exact: true }),
     ).toBeVisible();

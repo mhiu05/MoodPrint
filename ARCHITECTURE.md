@@ -1,10 +1,10 @@
 # Kiến trúc kỹ thuật MoodPrint
 
-Cập nhật theo mã nguồn ngày **04/11/2026** trên nhánh journal intelligence. Tài liệu mô tả mã trong repository; trạng thái triển khai và giới hạn kiểm chứng nằm ở [docs/verification.md](docs/verification.md), hướng dẫn chi tiết ở [docs/](docs/README.md).
+Cập nhật theo mã nguồn ngày **28/10/2026**. Tài liệu này mô tả hệ thống đã được triển khai trong repository; kết quả kiểm chứng nằm ở [docs/verification.md](docs/verification.md), hướng dẫn chi tiết ở [docs/](docs/README.md).
 
 ## 1. Phạm vi và mô hình triển khai
 
-MoodPrint tập trung vào ba trợ lý Điều phối, Nhật ký, Hoạt động; nhật ký cảm xúc, ghi nhớ và kiểm duyệt. Frontend chỉ còn ba mục Trợ lý, Nhật ký, Tài khoản. Giao diện hồ sơ tìm bạn, lời mời, nhắn tin người với người và hoạt động chung đã gỡ; router và dữ liệu backend tương ứng vẫn được giữ. Lịch sử năm trợ lý cũ vẫn có đường đọc tương thích. Backend là **modular monolith** FastAPI. Frontend là SPA React 19/TypeScript/Vite, gọi BFF cùng origin qua `/api/v1`.
+MoodPrint hỗ trợ trò chuyện với năm trợ lý, nhật ký cảm xúc, ghi nhớ do người dùng duyệt, hồ sơ tìm bạn, lời mời kết nối, nhắn tin, hoạt động chung và kiểm duyệt. Backend là **modular monolith** FastAPI. Frontend là SPA React 19/TypeScript/Vite, gọi BFF cùng origin qua `/api/v1`.
 
 | Thành phần | Trách nhiệm | Nguồn |
 | --- | --- | --- |
@@ -13,7 +13,7 @@ MoodPrint tập trung vào ba trợ lý Điều phối, Nhật ký, Hoạt độ
 | PostgreSQL/pgvector | Dữ liệu ứng dụng bền vững, version, receipts, embedding | [ORM](backend/app/infrastructure/database/models.py), [migrations](backend/alembic/versions/) |
 | Supabase Auth | Kiểm tra mật khẩu, xác nhận email, khôi phục mật khẩu, provider session | [provider.py](backend/app/modules/auth/provider.py) |
 | OpenAI Agents SDK | Model/tool loop có giới hạn; structured output | [provider.py](backend/app/ai/provider.py) |
-| Voyage, tùy chọn | Embedding memory có quyền và nhật ký saved của chủ đủ điều kiện, dưới công tắc riêng | [voyage.py](backend/app/ai/voyage.py) |
+| Voyage, tùy chọn | Embedding cho memory đã được duyệt và cho phép xử lý ngoài | [voyage.py](backend/app/ai/voyage.py) |
 | Caddy/container | TLS, static SPA, reverse proxy, giới hạn topology | [compose staging](deploy/compose.staging.yml) |
 
 ```mermaid
@@ -37,7 +37,8 @@ frontend/src/
   components/               UI primitives, focus, motion policy
   companions/               Avatar và danh tính trình bày của trợ lý
   features/real/            Shell, AI chat, mood, memory, privacy, voice
-    journal/                Nhật ký, lịch cảm xúc, công tắc xử lý AI
+    social/                 Discovery, public profile, human messaging
+    activities/             Icebreaker, quiz, focus, activity dock
     admin/                  Moderation UI
   styles/                   Tokens, global CSS, shell styles
 backend/app/
@@ -115,23 +116,20 @@ sequenceDiagram
 
 - **Transcript:** persistent chat lưu trong `ai_conversations/ai_messages` khi người dùng bật preference và capability cho phép. Temporary chat giữ nội dung trong RAM. Không được mô tả mọi transcript là RAM-only.
 - **Model context:** là projection có version/policy, không phải toàn bộ transcript nhìn thấy. Giới hạn 24 message và 24.000 byte; cắt tại privacy boundary. Mood scope chỉ có hiệu lực trong lượt HTTP đã chọn.
-- **Memory:** `origin='approved'` vẫn cần người dùng confirm proposal. Lớp `journal_auto` chỉ do worker ngoài lượt chat tạo từ trang saved của chính tài khoản registered 18+, có công tắc riêng; evidence phải là trích đoạn thật, qua bộ lọc nội dung và cap/chi phí. Nó có nhãn “Tự động từ nhật ký”, nguồn trang, sửa/xóa riêng hoặc hàng loạt, không được gọi là đã duyệt. Context phân nhãn hai origin, giới hạn chung; tạo tự động không tăng data_version, thao tác sửa/xóa của người dùng vẫn tăng và invalidate. Mỗi trợ lý chỉ nhận memory của chính nó. Semantic index vẫn đòi opt-in riêng.
+- **Memory:** proposal cần người dùng confirm; memory active tách khỏi lịch sử. Semantic index chỉ xử lý memory đã được phép và có opt-in.
 - **Events:** SDK delta/tool text được buffer nội bộ; browser chỉ nhận output validated. UI cần `final` hợp lệ và terminal `completed` trước khi coi thành công.
 
 `store=False`, tracing disabled và no automatic provider retry là cấu hình client; không phải cam kết về retention hạ tầng của provider. Restart đánh dấu lượt đang chạy interrupted và không replay model call. Xem [runtime](docs/agents/runtime.md), [context-memory](docs/agents/context-memory.md).
 
 ### Trợ lý phối hợp (Phase 2)
 
-Một trợ lý có thể nhờ trợ lý khác **một** việc nhỏ trong lượt. Khi `AI_COLLABORATION_DEFAULTS_ENABLED=true`, tài khoản đủ điều kiện nhận quyền phối hợp hiệu lực mặc định; hàng preference cũ không bị sửa, và quyền dùng nhật ký cho check-in vẫn tách riêng. Khi cờ tắt, từng cạnh theo preference lịch sử: Nhịp → Rủ Rê (mức năng lượng từ khoảnh khắc đã lưu), Nhịp → Mây (một thói quen nhỏ), Rủ Rê → Gương (hoạt động theo sở thích). Cầu Nối không có cạnh; matching không dùng mood, nhật ký hay chat. Specialist là run con không tool, chỉ nhận dữ liệu có cấu trúc; dòng "đã gợi ý" do backend dựng từ receipt đã completed và đã dùng. Chi tiết: [runtime](docs/agents/runtime.md#trợ-lý-phối-hợp-phase-2), [operations](docs/backend/operations.md#trợ-lý-phối-hợp-phase-2), kế hoạch [phase-2](docs/implementation-plans/proactive-multi-agent-companion/phase-2/02-orchestration-architecture.md).
+Khi người dùng bật từng cạnh (mặc định tắt), một trợ lý có thể nhờ trợ lý khác **một** việc nhỏ trong lượt: Nhịp → Rủ Rê (mức năng lượng từ khoảnh khắc đã lưu, chat R1 và lời hỏi thăm sáng R2), Nhịp → Mây (một thói quen nhỏ, R3), Rủ Rê → Gương (một hoạt động theo sở thích, R4). Cầu Nối không có cạnh nào — matching không bao giờ dùng mood, nhật ký hay chat. Quyết định nhờ là luật trong code, không phải model; specialist là run con không tool, 1 model call, chỉ nhận trường có cấu trúc; câu "Nhịp đã gợi ý…" do backend dựng từ receipt `ai_collaborations` đã `completed` và đã dùng. Chi tiết: [runtime](docs/agents/runtime.md#trợ-lý-phối-hợp-phase-2), [operations](docs/backend/operations.md#trợ-lý-phối-hợp-phase-2), kế hoạch [phase-2](docs/implementation-plans/proactive-multi-agent-companion/phase-2/02-orchestration-architecture.md).
 
 ### Lời hỏi thăm chủ động (Phase 1)
 
 Người dùng tự hẹn giờ (sáng 05:00–11:30, tối 17:00–22:30, tối đa 4/ngày, giờ yên lặng) để trợ lý nhắn trước. Service Compose riêng `proactive` (cùng image) materialize lịch thành job PostgreSQL rồi chạy E1–E5 không giữ transaction quanh model; process API chỉ phục vụ `/ai/proactive`, `/ai/inbox` và read marker. Năm bảng mới (`ai_proactive_settings`, `ai_proactive_schedules`, `ai_proactive_jobs`, `ai_conversation_reads`, `ai_message_sources`) đều content-free trừ tin đã giao nằm trong `ai_messages`. Chi tiết: [runtime](docs/agents/runtime.md), [context](docs/agents/context-memory.md), [operations](docs/backend/operations.md).
 
 ## 6. Matching và social
-
-Phần này mô tả backend tương thích còn được mount. UI matching, hồ sơ public,
-human chat và activity dock đã được gỡ; không có mục điều hướng tới các flow này.
 
 Luồng public profile là draft → preview có hạn → publish có kiểm tra digest/version. Matching chỉ đọc payload của published profile hiện hành cùng eligibility/consent/counters. Không đọc private profile, mood, chat hoặc memory để chấm điểm.
 
@@ -143,7 +141,7 @@ Kết nối mở mới cho phép gửi human message có client message ID và s
 
 ## 7. Hoạt động chung và moderation
 
-Backend `activities` còn state machine thuần, handler riêng cho `icebreaker`, `coop_quiz`, `focus`. Route/service giữ lock, chạy transition, persist, tăng activity watermark; thời điểm kết thúc do server quyết định. UI activity dock và timer đã gỡ. Có active/invited/paused và terminal completed/ended/declined/cancelled/expired/aborted.
+`activities` có state machine thuần, handler riêng cho `icebreaker`, `coop_quiz`, `focus`. Route/service giữ lock, chạy transition, persist, tăng activity watermark. UI dùng server time cho focus timer; không quyết định thời điểm kết thúc bằng đồng hồ máy người dùng. Có active/invited/paused và terminal completed/ended/declined/cancelled/expired/aborted.
 
 Identity field và reveal grant là dữ liệu riêng: người dùng chủ động cho phép từng trường. Moderation lưu report/evidence theo workflow; staff role được kiểm tra phía server, không lấy quyền từ public profile. `MODERATION_ADMIN_ENABLED=false` làm admin route không khả dụng. Xem [backend lifecycle](docs/backend/data-lifecycle.md).
 
@@ -151,7 +149,7 @@ Identity field và reveal grant là dữ liệu riêng: người dùng chủ đ�
 
 Schema private `moodprint` ngoài Supabase Data API. Authorization hiện tại dựa backend ownership/purpose/pair gates và runtime role tối thiểu; không tuyên bố đã có bộ RLS end-user cho schema này. Role migration tách runtime. ORM đặt `hide_parameters=True`, psycopg `prepare_threshold=None`.
 
-Image journal intelligence chỉ chấp nhận `0029_journal_intelligence` và yêu cầu provider-session helper. Phải phát hành image tương thích (ORM 0028, readiness nhận 0028/0029) trước khi áp schema 0029; image đó là rollback target. Không tự migration khi startup. Alembic luôn tắt đọc dotenv và từ chối remote host; hosted DDL đi qua SQL review/approval riêng. [Runbook migration](docs/supabase/migrations.md) giải thích database disposable và hosted workflow; [kế hoạch 0029](docs/implementation-plans/journal-intelligence-and-matching-removal/06-verification-and-release.md) ghi thứ tự cụ thể.
+Ứng dụng journal chỉ chấp nhận `0019_journal` trong `READY_REVISIONS`, và yêu cầu provider-session helper. Image tương thích ngay trước đó chấp nhận cả `0018_app_feedback` lẫn `0019_journal` và không đọc bảng journal; đó là rollback target sau upgrade cộng thêm. Không tự migration khi startup. Local Alembic runner từ chối remote host; hosted DDL đi qua SQL review/approval riêng. [Runbook migration](docs/supabase/migrations.md) giải thích database disposable và hosted workflow.
 
 Góp ý tự nguyện lưu riêng trong `app_feedback`, không có FK/định danh người gửi. Receipt ngắn hạn dùng cho ownership/idempotency và bị xóa khi purge; góp ý còn lại tối đa180 ngày theo policy đang chờ D03. Admin review có cờ riêng, role hiện hành và reauthentication; không nối với lịch sử riêng. Hướng dẫn tùy chọn dùng inline controller theo route; guest giữ trạng thái trong RAM, spotlight chưa được chấp nhận. Xem [release gates](docs/guest-experience/implementation/evidence/release-readiness.md).
 

@@ -2,10 +2,10 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, Request
 
-from app.ai.agents import DISPLAY_NAMES, V3_IDS
+from app.ai.agents import V3_IDS
 from app.ai.collaboration.eligibility import collaboration_eligible
 from app.ai.search.policy import search_ready
-from app.ai.skills.registry import AGENTS, SPECS
+from app.ai.skills.registry import SPECS
 from app.contracts import DTO, BotId
 from app.core.security import Actor, assert_purpose, require_actor, transaction
 
@@ -39,15 +39,9 @@ async def prompt_capabilities(request: Request, bot_id: BotId = Query(alias="bot
         except Exception:
             # Capability view is advisory and content-free; send/dispatch reauthorize.
             allowed = False
-        skills = []
-        for identity, meta in SPECS.items():
-            for_agent = bot_id in AGENTS[identity]
-            available = allowed and settings.ai_agent_skills_enabled and identity in runtime.skills.load() and for_agent
-            reason = None if available else "Kỹ năng chưa sẵn sàng."
-            if not for_agent:
-                names = " và ".join(DISPLAY_NAMES[agent] for agent in AGENTS[identity])
-                reason = f"Kỹ năng này dành cho trợ lý {names}."
-            skills.append(Capability(id=identity, name=meta[0], description=meta[1], available=available, reason=reason))
+        skills = [Capability(id=identity, name=meta[0], description=meta[1],
+            available=allowed and settings.ai_agent_skills_enabled and identity in runtime.skills.load(),
+            reason=None if allowed and settings.ai_agent_skills_enabled and identity in runtime.skills.load() else "Kỹ năng chưa sẵn sàng.") for identity, meta in SPECS.items()]
         tools = [Capability(id=identity, name=name, description=description,
             available=allowed and search_ready(settings, provider),
             reason=None if allowed and search_ready(settings, provider) else "Tìm kiếm chưa sẵn sàng cho tài khoản này.")

@@ -102,7 +102,9 @@ async function mount(page: Page, handler?: Handler): Promise<Store> {
       "/bots": bots,
       "/ai/preferences": prefs,
       "/ai/conversations": [store.threads[A], store.threads[B]],
-      "/proposals": [], "/memories": [],
+      "/social/summary": { pendingIncomingRequests: 0, unreadConnections: 0, activityInvites: 0 },
+      "/proposals": [], "/memories": [], "/connections": [], "/connection-requests": [], "/activities/catalog": [],
+      "/profiles/published/current": null,
     };
     if (request.method() === "GET" && path in fixed) return json(fixed[path]);
     return json({ error: { code: "NOT_FOUND", message: `Missing synthetic fixture ${path}` } }, 404);
@@ -272,6 +274,100 @@ test.describe("draft ownership (MR01-MR03)", () => {
     store.finish[R].open();
     await expect.poll(() => store.count("GET", /\/events$/)).toBe(1);
     await expect(field(page)).toHaveValue("");
+  });
+});
+
+test.describe("human chat starters and receipts (MR01/MR02)", () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+  const posted = gate();
+  async function humanRoom(page: Page, hold?: Gate) {
+    const writes: string[] = [];
+    const bodies: any[] = [];
+    page.on("request", (request) => { if (request.method() !== "GET" && request.url().includes("/api/v1/")) writes.push(`${request.method()} ${new URL(request.url()).pathname}`); });
+    await app(page, baseSession);
+    await page.route("**/api/v1/connections/room-1/messages*", async (route) => {
+      if (route.request().method() !== "POST") return route.fallback();
+      bodies.push(route.request().postDataJSON());
+      await (hold ?? posted).promise;
+      const body = route.request().postDataJSON();
+      return route.fulfill({ status: 201, json: { id: "m-1", connectionId: "room-1", clientMessageId: body.clientMessageId, sender: "self", text: body.text, seq: "1", acceptedAt: "2026-10-23T08:00:01Z" } });
+    });
+    await page.goto("/#/chat/room-1");
+    const box = page.getByRole("textbox", { name: "Nhắn tin cho người bạn kết nối" });
+    await expect(page.locator(".conversation-starters button").first()).toBeVisible();
+    return { writes, bodies, box, starter: (index: number) => page.locator(".conversation-starters button").nth(index) };
+  }
+  test.beforeAll(() => posted.open());
+
+  test("MR01: a starter fills an empty draft and sends nothing", async ({ page }) => {
+    const { writes, box, starter } = await humanRoom(page);
+    const text = (await starter(0).textContent())!;
+    await starter(0).click();
+    await expect(box).toHaveValue(text);
+    await expect(box).toBeFocused();
+    await expect(page.getByText("Đã thêm gợi ý vào ô nhắn.", { exact: true })).toHaveCount(0);
+    expect(writes).toEqual([]);
+  });
+
+  test("MR01: a starter is inserted at the caret and keeps the existing draft", async ({ page }) => {
+    const { writes, box, starter } = await humanRoom(page);
+    const text = (await starter(1).textContent())!;
+    await box.fill("Xin chào bạn");
+    await box.evaluate((element: HTMLTextAreaElement) => element.setSelectionRange(8, 8));
+    await starter(1).click();
+    await expect(box).toHaveValue(`Xin chào ${text} bạn`);
+    await expect(box).toBeFocused();
+    expect(await box.evaluate((element: HTMLTextAreaElement) => element.selectionStart)).toBe(`Xin chào ${text}`.length);
+    expect(writes).toEqual([]);
+  });
+
+  test("MR01: a starter replaces only the selected range", async ({ page }) => {
+    const { box, starter } = await humanRoom(page);
+    const text = (await starter(1).textContent())!;
+    await box.fill("Xin chào XYZ nhé");
+    await box.evaluate((element: HTMLTextAreaElement) => element.setSelectionRange(9, 12));
+    await starter(1).click();
+    await expect(box).toHaveValue(`Xin chào ${text} nhé`);
+  });
+
+  test("MR01: an insertion past 500 characters keeps the draft and says so", async ({ page }) => {
+    const { writes, box, starter } = await humanRoom(page);
+    const long = "a".repeat(480);
+    await box.fill(long);
+    await starter(0).click();
+    await expect(box).toHaveValue(long);
+    await expect(page.getByText("Gợi ý này sẽ làm tin nhắn dài hơn 500 ký tự. Hãy rút gọn trước khi thêm.", { exact: true })).toBeVisible();
+    expect(writes).toEqual([]);
+  });
+
+  test("MR01: the contact-information advisory still guards a draft built from a starter", async ({ page }) => {
+    const { bodies, box, starter } = await humanRoom(page);
+    await box.fill("Gọi mình số 0912345678");
+    await starter(1).click();
+    await page.getByRole("button", { name: "Gửi tin nhắn", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "Tin nhắn có vẻ chứa thông tin liên hệ" })).toBeVisible();
+    expect(bodies).toEqual([]);
+  });
+
+  test("MR02: an edit made while a human-chat POST is pending survives its receipt", async ({ page }) => {
+    const hold = gate();
+    const { bodies, box } = await humanRoom(page, hold);
+    await box.fill("Tin gốc");
+    await page.getByRole("button", { name: "Gửi tin nhắn", exact: true }).click();
+    await expect.poll(() => bodies.length).toBe(1);
+    await box.fill("Tin mới đang gõ");
+    hold.open();
+    await expect(page.locator(".from-self .chat-bubble")).toHaveText("Tin gốc");
+    await expect(box).toHaveValue("Tin mới đang gõ");
+    expect(bodies.map((body) => body.text)).toEqual(["Tin gốc"]);
+  });
+
+  test("MR02: an unedited human-chat draft is cleared by its receipt", async ({ page }) => {
+    const { box } = await humanRoom(page);
+    await box.fill("Chỉ gửi một lần");
+    await page.getByRole("button", { name: "Gửi tin nhắn", exact: true }).click();
+    await expect(page.locator(".from-self .chat-bubble")).toHaveText("Chỉ gửi một lần");
+    await expect(box).toHaveValue("");
   });
 });
 
@@ -587,6 +683,106 @@ test.describe("conversation-scoped notices (MR08)", () => {
   });
 });
 
+// ---- Activity invitations (MR09 / MR10) ----
+const definitions = [
+  { kind: "icebreaker", definitionVersion: "icebreaker-v1", title: "Câu hỏi làm quen", description: "Ba câu hỏi nhẹ nhàng.", estimatedMinutes: 5, rounds: 3 },
+  { kind: "coop_quiz", definitionVersion: "coop_quiz-v1", title: "Đố vui đồng đội", description: "Năm câu đố vui.", estimatedMinutes: 7, rounds: 5 },
+  { kind: "focus", definitionVersion: "focus-v1", title: "Cùng tập trung", description: "Pomodoro chung.", estimatedMinutes: 30, focusPlans: [[25, 5], [15, 3], [50, 10]], maxCycles: 4 },
+];
+const invitationFor = (kind: string, options?: { plan?: number[]; cycles?: number }) => ({
+  id: "s1", connectionId: "room-1", kind, definitionVersion: `${kind}-v1`, state: "invited", version: 1, role: "inviter",
+  createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 600_000).toISOString(), serverTime: new Date().toISOString(),
+  self: { accepted: true, readyRound: 0, feedbackGiven: false }, peer: { accepted: false, readyRound: 0 },
+  progress: { round: 0, totalRounds: kind === "focus" ? null : 3, phase: "invited" }, current: null, history: [],
+  ...(kind === "focus" ? { timer: { phase: "focus", cycle: 0, cycles: options?.cycles ?? 1, plan: options?.plan ?? [25, 5], selfPresent: false, peerPresent: false } } : {}),
+});
+
+test.describe("activity invitations (MR09/MR10)", () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  /** `outcome` decides the answer to each invite POST; an idempotent server commits once per Idempotency-Key. */
+  async function inviteRoom(page: Page, outcome: (attempt: number) => "ok" | "commit-then-503" | "commit-then-abort" | "422", hold?: Gate) {
+    const committed = new Map<string, any>();
+    const keys: string[] = [];
+    let attempts = 0;
+    let current: unknown = null;
+    await app(page, baseSession);
+    await page.route("**/api/v1/**", async (route) => {
+      const request = route.request();
+      const path = new URL(request.url()).pathname.replace("/api/v1", "");
+      if (path === "/activities/catalog") return route.fulfill({ json: definitions });
+      if (path === "/connections/room-1/activities/current") return route.fulfill({ json: current });
+      if (path === "/connections/room-1/activities" && request.method() === "POST") {
+        attempts += 1;
+        const key = request.headers()["idempotency-key"];
+        keys.push(key);
+        await hold?.promise;
+        const answer = outcome(attempts);
+        if (answer === "422") return route.fulfill({ status: 422, json: { error: { code: "VALIDATION_ERROR", message: "Hoạt động này chưa mở cho hai bạn." } } });
+        const body = request.postDataJSON();
+        if (!committed.has(key)) committed.set(key, invitationFor(body.kind, body.options));
+        if (answer === "commit-then-503") return route.fulfill({ status: 503, json: { error: { code: "UNAVAILABLE", message: "Dịch vụ tạm gián đoạn." } } });
+        if (answer === "commit-then-abort") return route.abort("connectionreset");
+        current = committed.get(key);
+        return route.fulfill({ json: current });
+      }
+      return route.fallback();
+    });
+    await page.goto("/#/chat/room-1");
+    await page.getByRole("button", { name: "Cùng làm gì đó?", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Cùng làm gì đó?" });
+    await expect(dialog).toBeVisible();
+    return { dialog, committed, keys };
+  }
+  const inviteButton = (dialog: ReturnType<Page["getByRole"]>, title: string) => dialog.getByRole("button", { name: `Mời tham gia ${title}`, exact: true });
+
+  test("MR09: a committed-but-lost response is reported as unconfirmed, keeps the plan, and the retry creates one invitation", async ({ page }) => {
+    const { dialog, committed, keys } = await inviteRoom(page, (attempt) => (attempt === 1 ? "commit-then-503" : "ok"));
+    await dialog.getByLabel("Nhịp", { exact: true }).selectOption("15,3");
+    await dialog.getByLabel("Số lượt", { exact: true }).selectOption("2");
+    await inviteButton(dialog, "Cùng tập trung").click();
+    await expect(dialog.getByRole("alert")).toHaveText("Chưa xác nhận được lời mời. Lựa chọn của bạn vẫn được giữ. Bạn hãy thử lại.");
+    await expect(dialog.getByText("Chưa gửi được lời mời")).toHaveCount(0);
+    await expect(dialog.getByLabel("Nhịp", { exact: true })).toHaveValue("15,3");
+    await expect(dialog.getByLabel("Số lượt", { exact: true })).toHaveValue("2");
+    await inviteButton(dialog, "Cùng tập trung").click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByRole("group", { name: "Lời mời Cùng tập trung" })).toContainText("15 phút tập trung / 3 phút nghỉ · 2 lượt");
+    expect(keys).toHaveLength(2);
+    expect(keys[1]).toBe(keys[0]);
+    expect(committed.size).toBe(1);
+  });
+
+  test("MR09: a dropped connection is also unconfirmed, not a definite failure", async ({ page }) => {
+    const { dialog, committed } = await inviteRoom(page, (attempt) => (attempt === 1 ? "commit-then-abort" : "ok"));
+    await inviteButton(dialog, "Câu hỏi làm quen").click();
+    await expect(dialog.getByRole("alert")).toContainText("Chưa xác nhận được lời mời.");
+    await inviteButton(dialog, "Câu hỏi làm quen").click();
+    await expect(dialog).toHaveCount(0);
+    expect(committed.size).toBe(1);
+  });
+
+  test("MR09: a refusal keeps the server's own explanation", async ({ page }) => {
+    const { dialog } = await inviteRoom(page, () => "422");
+    await inviteButton(dialog, "Đố vui đồng đội").click();
+    await expect(dialog.getByRole("alert")).toHaveText("Hoạt động này chưa mở cho hai bạn.");
+    await expect(dialog.getByText("Chưa xác nhận được lời mời")).toHaveCount(0);
+  });
+
+  test("MR10: only the invitation being sent says it is sending", async ({ page }) => {
+    const hold = gate();
+    const { dialog } = await inviteRoom(page, () => "ok", hold);
+    await inviteButton(dialog, "Câu hỏi làm quen").click();
+    await expect(inviteButton(dialog, "Câu hỏi làm quen")).toHaveText("Đang gửi lời mời…");
+    for (const title of ["Đố vui đồng đội", "Cùng tập trung"]) {
+      await expect(inviteButton(dialog, title)).toHaveText("Mời tham gia");
+      await expect(inviteButton(dialog, title)).toBeDisabled();
+    }
+    hold.open();
+    await expect(dialog).toHaveCount(0);
+  });
+});
+
 // ---- Info panel ARIA (MR11) ----
 test.describe("aria-controls relationships (MR11)", () => {
   const trigger = (page: Page) => page.getByRole("button", { name: "Thông tin cuộc trò chuyện", exact: true });
@@ -657,5 +853,21 @@ test.describe("aria-controls relationships (MR11)", () => {
     await expect(trigger(page)).toHaveAttribute("aria-expanded", "false");
     await expect(trigger(page)).toBeFocused();
     await expect(trigger(page)).not.toHaveAttribute("aria-controls", /.+/);
+  });
+
+  test("MR11: every tab in the discovery tablist points at a panel that exists", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await app(page, baseSession);
+    await page.goto("/#/connect");
+    await expect(page.getByRole("tablist", { name: "Tìm bạn" })).toBeVisible();
+    expect(await danglingControls(page)).toEqual([]);
+    const tabs = page.getByRole("tab");
+    const count = await tabs.count();
+    expect(count).toBeGreaterThan(1);
+    for (let index = 0; index < count; index += 1) {
+      await tabs.nth(index).click();
+      await expect(tabs.nth(index)).toHaveAttribute("aria-selected", "true");
+      expect(await danglingControls(page)).toEqual([]);
+    }
   });
 });

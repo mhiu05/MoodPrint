@@ -58,6 +58,7 @@ export function guestSession(expiresInMs: number, patch: Record<string, unknown>
 export const bots = [
   { botId: "may", name: "Mây", role: "Lắng nghe & tâm sự", description: "Một khoảng nhỏ để được lắng nghe.", starters: ["Hôm nay mình hơi mệt"], avatarKey: "may" },
 ];
+export const room = { id: "room-1", alias: "Bạn đồng hành 3fa9c1", status: "open", version: 1, highWaterSeq: "0", unreadCount: 0 };
 
 export async function app(page: Page, session: unknown, routes: Routes = {}) {
   await page.route("**/api/v1/**", async (route) => {
@@ -74,10 +75,19 @@ export async function app(page: Page, session: unknown, routes: Routes = {}) {
       "/bots": bots,
       "/ai/preferences": { historyEnabled: false, semanticMemoryEnabled: false, version: 1, policyVersion: "ai-data-v1", retentionDays: 30, historyAvailable: true, semanticMemoryAvailable: true },
       "/ai/conversations": [],
+      "/social/summary": { pendingIncomingRequests: 0, unreadConnections: 0, activityInvites: 0 },
       "/proposals": [],
       "/memories": [],
+      "/connections": [],
+      "/connection-requests": [],
+      "/activities/catalog": [],
+      [`/connections/${room.id}`]: room,
+      [`/connections/${room.id}/messages`]: { messages: [], highWaterSeq: "0" },
+      [`/connections/${room.id}/activities`]: [],
+      [`/connections/${room.id}/activities/current`]: null,
+      [`/connections/${room.id}/reveal-requests`]: [],
+      "/profiles/published/current": null,
       "/journal/entries": { items: [], total: 0, offset: 0, limit: 12 },
-      "/journal/ai-settings": { embeddingEnabled: true, autoMemoryEnabled: true, embeddingAvailable: false, autoMemoryAvailable: false, noticeVersion: "journal-ai-v1", version: 1, indexedEntries: 0, pendingEntries: 0, autoMemories: 0 },
     };
     if (request.method() === "GET" && path in fixed) return route.fulfill({ json: fixed[path] });
     return route.fulfill({ status: 404, json: { error: { code: "NOT_FOUND", message: "Missing fixture" } } });
