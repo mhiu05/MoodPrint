@@ -301,3 +301,32 @@ Actions run rather than assuming the earlier failure or a local lane proves its
 status. [Original failed run](https://github.com/mhiu05/MoodPrint/actions/runs/42027966645),
 [normalization evidence](evidence/round2-ci-import-fix.json). Fullworkflow status may
 still be pending;it is not a release authorization.
+
+
+## Continuation handoff — 2026-11-05T15:35:36.210Z
+
+### Branch, CI and scope
+
+- The original pinned implementation `ed75c4a1fbef462f33ad5389e0615b9afaa4b6da` remains in branch ancestry. Three test-only corrections are present at code tip `fdb5dc9897562b0d8550058218f7579411b1c2c5`: commits `d655ee86`, `48a1df2f` and `fdb5dc98`. No runtime source behavior changed in those commits.
+- Documents 12–15 were updated on this authorized branch through direct GitHub edits; the 41 original task IDs were left intact. The pre-handoff-update branch tip was `7e6a7ba71893d9b34fbe0bc9614e0f011a1df825`; this document commit will advance it.
+- At capture time, code run [#365](https://github.com/mhiu05/MoodPrint/actions/runs/42051313537) and documentation runs [#366](https://github.com/mhiu05/MoodPrint/actions/runs/42055163060), [#367](https://github.com/mhiu05/MoodPrint/actions/runs/42055762077), [#368](https://github.com/mhiu05/MoodPrint/actions/runs/42056032936) and [#369](https://github.com/mhiu05/MoodPrint/actions/runs/42056338281) were IN_PROGRESS. Runs #363/#364 failed in backend checks; #362 is the reported 2,276-pass/3-fail/4-skip baseline. Read the newest run after this commit before reporting CI completion.
+- No merge, main-branch update, deployment, database migration or local test execution occurred. CI status is still unknown for the fixes.
+
+### Cloud facts to carry forward
+
+- AWS account ending 3536, `ap-southeast-2`: target EC2 `i-0664d6ea5930452db` is running as `m7i-flex.large`, health checks passed. CloudWatch has EC2 metric series but no alarms; no numeric sample was captured. Billing is denied. EBS snapshots, AWS Backup plans/protected resources/recovery points, and SNS topics are all zero.
+- SES is sandboxed at 200 recipients/day and 1/s; one Gmail sender identity is verified, no dedicated sending domain exists, and no production request was submitted. The paste-ready transactional request and quota proposal (5/s, 3,000/day) are in document 14.
+- Supabase target is project ref `roznanxbiyqybjpvtilq`, fingerprint `44a655e04517`, Pro/Tokyo/PostgreSQL 17.11. Despite the UI label `VDaAgent`, the fingerprint matches MoodPrint. Current Migrations view showed `0020_private_profile_retirement` only, inconsistent with the expected `0029_journal_intelligence`; do not apply a migration until reconciled.
+- Supabase compute/pooler: Micro/1 GB shared; pool size 15; max client connections 200. Daily DB backups were visible, latest observed at 2026-11-05 02:23:02 UTC; Storage object bytes are not covered, PITR is off, and `journal-media` is private. No DB/Auth/SMTP setting was changed. Auth currently has confirmation and Turnstile enabled, Auth IP forwarding off, and Leaked Password Protection off; personal Gmail SMTP is configured and its email-send-rate value was redacted.
+- OpenAI Platform exposed only Personal Organization → Default project, not a MoodPrint staging project. Model catalog visibility does not establish `gpt-6-luna` project access or RPM/TPM. No model call was made; the approved $3 cumulative staging budget was not spent.
+
+### Owner action and secure handoff
+
+- Rotation proposal is only for the active `postgres` migration-owner password in the fingerprint-matched Supabase project: Database → Settings → Database password → Reset password. Dashboard warns that resetting breaks existing connections. The owner must enter, confirm and submit the replacement directly into the dashboard and store it in their password manager. Approval is still required before opening that reset flow. Do not change `moodprint_backend` or its runtime SSM secret.
+- After an approved reset, update only inventoried migration/admin DSNs, verify new TLS login and old-password rejection, and check runtime role and readiness. Treat a network timeout as UNKNOWN, not rejection. Do not restart or terminate active app connections.
+- SES production access remains unsubmitted pending owner approval; SMTP activation, sender/DNS changes, Auth security/rate-limit changes, paid backups, EBS snapshots, CloudWatch alarms/SNS subscriptions and hosted restore also require specific approval. Billing access and data sizes must be resolved before cost approval.
+- Correct OpenAI staging project identification is still needed. Once confirmed, verify model access and project quotas without generating a paid response. The previously approved $3 staging campaign remains constrained to `gpt-6-luna`; no judge-model calls.
+
+### Release decision
+
+G00 remains PARTIAL; G01 PARTIAL; G02 BLOCKED; G03 PARTIAL; G04/G05 LOCAL_ADMISSION_ONLY; G06 FAILED/PARTIAL; G07 PARTIAL; G08 FAILED; G09 NOT_RUN; G10 NOT_RUN_FULL; G11 PARTIAL; G12 FAILED/UNKNOWN; G13 PARTIAL; G14 PARTIAL; G15 OPEN. Full descriptions remain in the updated document 15. Release remains **NO-GO** until evidence and the exact release approval close the gates.
