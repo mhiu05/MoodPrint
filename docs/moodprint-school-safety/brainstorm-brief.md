@@ -94,7 +94,7 @@ Có thể đổi tên tab thành "Sổ tay" để người xung quanh không nh�
 - Model chỉ dùng `gpt-6-luna`, loại nhanh và rẻ nhất của dòng GPT-6.
 - `max_turns=3`, tối đa 3 model call và 2 tool call mỗi lượt, input giới hạn 48.000 byte, output 4.000 token.
 - `reasoning.effort` chọn giữa `medium` và `high` theo kết quả eval.
-- Tool được cấp theo trạng thái, không cấp tất cả. Có khoảng 15 tool như `classify_situation`, `propose_event`, `search_knowledge`, `draft_message`, `build_111_card`.
+- Tool được cấp theo trạng thái, không cấp tất cả. Có 12 tool như `classify_situation`, `propose_event`, `search_knowledge`, `draft_message`, `build_111_card`.
 - Câu trả lời có cấu trúc: tin nhắn, tham chiếu nguồn, bước đề xuất, tối đa 3 gợi ý trả lời nhanh.
 
 **Vì dùng model nhỏ, độ thông minh phải đến từ**:
