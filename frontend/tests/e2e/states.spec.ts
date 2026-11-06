@@ -90,7 +90,7 @@ test("returning to a tab keeps the roster instead of loading it again", async ({
   await expect(page.getByRole("status").filter({ hasText: "Đang tải lịch sử trò chuyện" })).toHaveCount(0);
   expect(calls).toEqual(seen);
   await page.getByRole("link", { name: /Mây/ }).first().click();
-  await expect(page.getByRole("heading", { name: /Mây/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Mây AI", exact: true })).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: "Đang tải trợ lý" })).toHaveCount(0);
   expect(calls.bots).toBe(seen.bots);
 });
