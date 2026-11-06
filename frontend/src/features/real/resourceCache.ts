@@ -23,6 +23,13 @@ export function dropResource(key: string) {
   store.delete(key);
 }
 
+export function dropResourcesWithPrefix(userId: string, pathPrefix: string) {
+  const prefix = resourceKey(userId, pathPrefix);
+  for (const key of store.keys()) {
+    if (key.startsWith(prefix)) store.delete(key);
+  }
+}
+
 export function clearResources() {
   store.clear();
 }
