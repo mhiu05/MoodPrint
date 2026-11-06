@@ -43,7 +43,7 @@ Cổng tự động, chạy với `DO_NOT_TRACK=1`: `npx impeccable detect front
 
 **Phông chữ**: craft floor coi font hệ thống làm giọng hiển thị là thiếu quyết định, và CSP cho phép `font-src 'self'`. Đề xuất tự host **Be Vietnam Pro** dạng woff2 trong `frontend/public/fonts/`, vì được thiết kế cho tiếng Việt. Kèm file giấy phép; TO_VERIFY giấy phép OFL khi tải. Giữ `font-display: swap`, font hệ thống là dự phòng.
 
-**Sáng tối**: chọn từ bối cảnh dùng, không theo thói quen. Học sinh thường dùng lúc kín đáo, có thể buổi tối. Sáng là mặc định; tối theo `prefers-color-scheme` là P2, được quyết định ở bước `shape`.
+**Sáng tối**: chọn từ bối cảnh dùng, không theo thói quen. Học sinh thường dùng lúc kín đáo, có thể buổi tối. Sáng là mặc định; tối theo `prefers-color-scheme` là P1 (WS-09-T23), được quyết định ở bước `shape`.
 
 CSS phạm vi `.school-app` trong `frontend/src/features/school/school.css`. Dùng `tokens.css`, `Button`, `Dialog`, `StatePanel`, `ErrorNotice`, `useMotionPolicy`. Không dùng `real.css`, `agent-chat.css`.
 

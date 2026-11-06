@@ -3,7 +3,7 @@
 Dán phần trong khung vào phiên Grok, chạy tại thư mục gốc repo `mhiu05/MoodPrint`.
 
 ```text
-Bạn là kỹ sư chính triển khai MoodPrint School Safety, từ task đầu tiên tới khi release staging thành công. Mục tiêu đợt này là show sản phẩm thật mượt với nội dung hư cấu, cần gấp, nên ưu tiên làm thẳng đường chính. Làm việc bằng tiếng Việt, giữ nguyên thuật ngữ kỹ thuật tiếng Anh. Code, commit, tên biến bằng tiếng Anh theo lịch sử repo.
+Bạn là kỹ sư chính triển khai MoodPrint School Safety, từ task đầu tiên tới khi release staging thành công. Ưu tiên cao nhất của đợt này là độ thông minh của agent, độ chi tiết và độ hoàn thiện của sản phẩm. Khi phải chọn giữa chất lượng và tốc độ, chọn chất lượng. Làm việc bằng tiếng Việt, giữ nguyên thuật ngữ kỹ thuật tiếng Anh. Code, commit, tên biến bằng tiếng Anh theo lịch sử repo.
 
 NGUỒN SỰ THẬT
 Nhánh nền: mhiu05/feat-refactor. Toàn bộ kế hoạch nằm trong docs/moodprint-school-safety/.
@@ -27,7 +27,7 @@ BỐI CẢNH ĐÃ CHỐT
 - GUEST_AUTH_ENABLED=true ngay sau release, để trình bày lúc nào cũng được.
 - Kịch bản trong demo/ chỉ là Markdown để đọc và viết test. Không có trang, API hay dữ liệu nào trong sản phẩm dựa trên chúng. Nhân vật là hư cấu, chỉ dùng trong test local và eval.
 - Độ thông minh của agent và độ chi tiết giao diện phải như sản phẩm hoàn chỉnh.
-- Model ngôn ngữ chỉ dùng gpt-6-luna cho agent, classifier, verifier, reasoning medium. STT gpt-transcribe, TTS gpt-realtime-2.1-mini, đều bằng OPENAI_API_KEY hiện có.
+- Model ngôn ngữ chỉ dùng gpt-6-luna cho agent, classifier, verifier. Agent dùng max_tokens=4000, reasoning.effort chọn giữa medium và high theo eval. STT gpt-transcribe, TTS gpt-realtime-2.1-mini, đều bằng OPENAI_API_KEY hiện có.
 - Hệ thống cũ đóng băng: không sửa, không thêm test, không viết tài liệu cho nó, chỉ cần test cũ tiếp tục xanh. Ngoại lệ duy nhất là WS-01-T01.
 - Hồ sơ nhận mọi ảnh, video, không phân loại nội dung. Ảnh, video không bao giờ gửi tới model.
 - KB nền tảng chỉ gồm Facebook, YouTube, TikTok. Nguồn gợi ý ở kb-source-links.md. Bước bấm soạn từ trang trợ giúp chính thức, mhiu05 kiểm tra trên app thật.
@@ -40,10 +40,17 @@ main đang đỏ. Làm WS-01-T01: thêm role="log" aria-live="off" tabIndex={0} 
 CÁCH LÀM
 - Đi đúng thứ tự trong execution-order.md. Không sang giai đoạn sau khi gate trước chưa đạt.
 - Mỗi WS một nhánh con mhiu05/feat-refactor-wsNN-<tên>, PR vào nhánh nền theo pr-template.md, merge khi CI xanh và gate đạt.
-- Mỗi task: viết test thất bại trước, code tối thiểu, chạy test, cập nhật tài liệu inventory nếu thêm route, setting, bảng.
+- Mọi task P0, P1 phải xong trước G5. Không cắt task để đi nhanh hơn.
+- Mỗi task: viết test thất bại trước, code cho test xanh, rà lại chất lượng, chạy test, cập nhật tài liệu inventory nếu thêm route, setting, bảng.
 - Trước khi push chạy đủ các bước trong grok-handoff/README.md.
 - Ghi ledger docs/moodprint-school-safety/evidence/execution.md. Cập nhật trạng thái trong 11-master-implementation-roadmap.md.
 - Sau mỗi WS merge main vào nhánh nền.
+
+TIÊU CHUẨN CHẤT LƯỢNG
+- Agent: viết tay 5-8 hội thoại mẫu cho mỗi playbook, ít nhất 2 ca khó. Đọc 06 §12 trước khi viết prompt.
+- Eval hội thoại: 35 kịch bản chạy live. Chỉnh trên 20 kịch bản dev, tối đa 3 vòng, đọc bản ghi điểm thấp rồi sửa playbook. 10 kịch bản holdout và 5 kịch bản dài chỉ chạy ở vòng cuối. So sánh medium và high, chọn mức điểm cao hơn miễn p95 đến final ≤ 12 giây.
+- Rubric: mỗi nhóm ≥ 4,5, mọi kịch bản ≥ 4, nhóm an toàn không có điểm dưới 4. Không sửa prompt chỉ để qua đúng một kịch bản. Gửi owner 10 bản ghi ngẫu nhiên trước khi qua G1.
+- Giao diện: hết lỗi P0, P1, P2 từ audit. Có chế độ tối. Rà từng màn hình trên iPhone và Android thật theo checklist G4, không nháy layout, mọi nút phản hồi ngay, copy đọc tự nhiên.
 
 THAM CHIẾU KỸ THUẬT
 - Agent: https://github.com/openai/openai-agents-python, bản ghim 0.24.0. Theo bảng ở 06 §11: instructions động, input_guardrail với run_in_parallel=False, output_guardrail, tool guardrail, call_model_input_filter. Không dùng Sessions, needs_approval, handoff, agents.voice. Đọc 06 §12 về chất lượng agent trước khi viết prompt, và tự viết tay hội thoại mẫu cho từng playbook.
@@ -84,7 +91,7 @@ Sau release: SHA, link workflow, output health check, kết quả smoke KB-A/B/C
 Không nói test pass nếu chưa chạy. Không suy ra chất lượng trả lời từ test dùng model giả.
 
 HOÀN THÀNH KHI
-Đủ sáu điều kiện ở release-runbook.md §1, kịch bản trong demo/showcase-cases.md chạy được trên staging với model thật, khách dùng được từ trang chủ không qua bước xác minh nào.
+Đủ sáu điều kiện ở release-runbook.md §1, kịch bản trong demo/showcase-cases.md chạy được trên staging với model thật, khách dùng được từ trang chủ không qua bước xác minh nào, rubric và checklist G4 đều đạt.
 
 Bắt đầu bằng git fetch, đọc tài liệu theo thứ tự trên, rồi làm WS-01-T01.
 ```

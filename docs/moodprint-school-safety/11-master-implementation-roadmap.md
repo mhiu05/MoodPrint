@@ -70,6 +70,7 @@ Merge `main` vào `mhiu05/feat-refactor` sau mỗi WS. `main` có thể đổi (
 
 | Việc | Ai | Cần trước |
 | --- | --- | --- |
+| Đọc 10 bản ghi hội thoại ngẫu nhiên | mhiu05 | G1 |
 | Duyệt template khẩn cấp, thẻ KB | mhiu05 | G5 |
 | Thay ảnh mẫu bằng ảnh thật ở [assets/kb-screenshots](assets/kb-screenshots/README.md) | mhiu05 | Không chặn release |
 | Xác nhận CAPTCHA protection của Supabase đang bật | mhiu05 hoặc Grok | G5 |

@@ -39,9 +39,9 @@ agent = Agent[AssistantContext](
     input_guardrails=[safety_classifier_guardrail],   # run_in_parallel=False
     output_guardrails=[postcheck_guardrail, _no_unreceipted_claim, _no_output_artifacts],
     output_type=AssistantReply,
-    model_settings=ModelSettings(store=False, max_tokens=2000, timeout=40,
+    model_settings=ModelSettings(store=False, max_tokens=4000, timeout=40,
         parallel_tool_calls=False, retry=ModelRetrySettings(max_retries=0),
-        reasoning=Reasoning(effort="medium")),
+        reasoning=Reasoning(effort=REASONING_EFFORT)),  # hằng, eval truyền đè
 )
 ```
 
@@ -146,10 +146,10 @@ def tools_for(ctx: ToolContext) -> list[FunctionTool]: ...
 | WS-04-T10 | P0 | T06 | WF-06: `EMERGENCY_FOLLOW_UP`, `EmergencyCard` giữ trên mọi lời, route ack | Chỉ tool hỗ trợ; ack quay về `return_*` | `pytest -q tests/test_assistant_wf06.py` | Pass |
 | WS-04-T11 | P0 | T06 | Vàng: `caution.py` thêm hướng dẫn và chip Tìm hỗ trợ | Vàng không tắt agent | `pytest -q tests/test_assistant_caution.py` | Pass |
 | WS-04-T12 | P0 | T05 | `bounded_input` trong `assistant/context.py`: lọc tin của run có `skip_model` qua `safety_events`, thay ghi chú trung tính | Nội dung nhạy cảm không tới model ở mọi lượt sau | `pytest -q tests/test_assistant_context.py` | Pass: assert input model giả |
-| WS-04-T13 | P0 | T08 | `evals/assistant/`: 30 kịch bản chạy live, rubric hai nhóm, 40 câu đối kháng | Trung bình ≥ 4, không điểm 1 ở nhóm an toàn; trong trần | `python -m evals.assistant --live --confirm-live --max-usd 0.60 --output <file>` | Pass. Fail: sửa playbook, rồi nâng `reasoning.effort` lên `high` |
+| WS-04-T13 | P0 | T08 | `evals/assistant/`: 35 kịch bản chạy live, `dev`, `holdout`, 5 kịch bản dài, rubric hai nhóm, 40 câu đối kháng; so sánh `medium` và `high` | Mỗi nhóm ≥ 4,5, mọi kịch bản ≥ 4, nhóm an toàn không có điểm dưới 4; trong trần; owner đã đọc 10 bản ghi | `python -m evals.assistant --live --confirm-live --max-usd 1.40 --output <file>` | Pass. Fail: đọc bản ghi, sửa playbook, chạy lại tối đa 3 vòng, rồi báo owner |
 | WS-04-T14 | P0 | T01 | `ASSISTANT_RESERVATION_NANO`, tham số `reservation_nano`; biến thể `ai_upper` cho `troly`; `reserve_accounting` nhận upper thấp hơn của khách; `budget-safety.md` | Đúng công thức ở [06 §9](../06-ai-orchestration-and-safety.md#9-accounting-và-ngân-sách); bot cũ vẫn 2 USD; khoảng 50 lượt khách đồng thời trong trần 5 USD | `pytest -q tests/test_accounting*.py tests/test_budget*.py tests/test_guest*.py` | Pass |
 | WS-04-T15 | P0 | T06 | `LiveRun.activity`, hook phát giai đoạn, SSE `activity` trong `events`; `persistent_events` không đổi | Chỉ giai đoạn thật; client cũ không nhận; mất kết nối không ảnh hưởng `final` | `pytest -q tests/test_assistant_activity.py` | Pass |
-| WS-04-T16 | P0 | T04 | `AssistantContext`, `case_digest` (số lần lặp do backend tính), `suggested_replies`; viết tay 3–5 hội thoại mẫu mỗi playbook | Agent không hỏi lại điều đã biết; hồ sơ khóa PIN thì không có digest | `pytest -q tests/test_assistant_context_data.py`; đọc lại bằng mắt | Pass: có ví dụ cho teencode, nói giảm, từ chối kể |
+| WS-04-T16 | P0 | T04 | `AssistantContext`, `case_digest` (số lần lặp do backend tính), `suggested_replies`; viết tay 5–8 hội thoại mẫu mỗi playbook, ít nhất 2 ca khó | Agent không hỏi lại điều đã biết; hồ sơ khóa PIN thì không có digest | `pytest -q tests/test_assistant_context_data.py`; đọc lại bằng mắt | Pass: có ví dụ cho teencode, nói giảm, đổi ý, đính chính, từ chối kể |
 
 ## 11. An toàn và bảo mật
 
@@ -183,4 +183,4 @@ G1 đạt cùng WS-03.
 
 ## 17. Ghi chú cho Grok
 
-`ai_usage.prompt_version` là `varchar(60)`; giữ chuỗi ngắn. Chỉ dùng `gpt-6-luna`. Reasoning tính vào `max_output_tokens`; `max_tokens=2000` với `medium`, nếu không stream kết thúc incomplete như đã gặp với hangout. `is_enabled` chỉ ẩn tool, handler vẫn phải kiểm tra quyền. Chất lượng hội thoại đến từ ngữ cảnh và playbook: đọc [06 §12](../06-ai-orchestration-and-safety.md#12-chất-lượng-của-agent) trước khi viết prompt.
+`ai_usage.prompt_version` là `varchar(60)`; giữ chuỗi ngắn. Chỉ dùng `gpt-6-luna`. Reasoning tính vào `max_output_tokens`; `max_tokens=4000` đủ cho cả `medium` và `high`; thấp hơn thì stream kết thúc incomplete như đã gặp với hangout. `is_enabled` chỉ ẩn tool, handler vẫn phải kiểm tra quyền. Chất lượng hội thoại đến từ ngữ cảnh và playbook: đọc [06 §12](../06-ai-orchestration-and-safety.md#12-chất-lượng-của-agent) trước khi viết prompt.

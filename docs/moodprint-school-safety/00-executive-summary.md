@@ -22,7 +22,7 @@ Grok bắt đầu tại [GROK-PROMPT](grok-handoff/GROK-PROMPT.md).
 
 | Mục | Kết quả |
 | --- | --- |
-| Mục tiêu đợt này | Trình bày sản phẩm mượt bằng nội dung hư cấu |
+| Mục tiêu đợt này | Trình bày bằng nội dung hư cấu; [độ thông minh của agent và độ hoàn thiện đứng trước tốc độ](12-open-decisions.md#od-17--thứ-tự-ưu-tiên) |
 | Môi trường | Staging là bản release thật, không có chế độ demo, chạy model thật |
 | Khách | Một chạm, đủ tính năng, dữ liệu tự xóa sau 2 giờ |
 | Tài khoản | Đăng ký đóng; một tài khoản trình bày cho phần Hồ sơ |
@@ -68,7 +68,7 @@ Chi tiết: [11-master-implementation-roadmap](11-master-implementation-roadmap.
 
 ## Việc cần owner
 
-Duyệt nội dung (OD-02), xem ảnh giao diện, đăng nhập AWS nếu phiên hết hạn. Thay ảnh mẫu bằng ảnh thật khi có. Toàn bộ ở [11 §5](11-master-implementation-roadmap.md#5-việc-chỉ-con-người-làm-được).
+Đọc 10 bản ghi hội thoại ở G1, duyệt nội dung (OD-02), xem ảnh giao diện, đăng nhập AWS nếu phiên hết hạn. Thay ảnh mẫu bằng ảnh thật khi có. Toàn bộ ở [11 §5](11-master-implementation-roadmap.md#5-việc-chỉ-con-người-làm-được).
 
 ## Mục lục
 

@@ -20,6 +20,7 @@ Cập nhật sau trả lời của owner. Câu trả lời giữ nguyên ý, dư
 | OD-14 | Model | **Đã chốt, có lưu ý** | Chỉ `gpt-6-luna` cho agent, classifier, verifier |
 | OD-15 | Ai dùng sản phẩm | **Đã chốt** | Đợt này để trình bày, nội dung hư cấu; không cần ZDR, pháp lý, luồng đồng ý |
 | OD-16 | Đăng ký tài khoản | Mặc định | Đóng trong đợt này; dùng một tài khoản trình bày |
+| OD-17 | Thứ tự ưu tiên | **Đã chốt** | Độ thông minh của agent, độ chi tiết, độ hoàn thiện đứng trước tốc độ |
 
 ## OD-01 — Staging là bản release thật
 
@@ -129,7 +130,7 @@ Tóm tắt case và tóm tắt phiên luyện nói là lượt của chính agen
 
 ## OD-11 — Trần chi phí eval live
 
-Owner chốt: **dưới 3 USD**, cộng dồn qua các WS. Phân bổ ở [10](10-evaluation-and-quality-gates.md#ngân-sách-eval-live). Trần kỹ thuật 2,80 USD do `evals/budget.py` cưỡng chế. Dùng Luna làm ước tính giảm còn khoảng 0,60 USD, nên chạy live được nhiều kịch bản hơn.
+Owner chốt: **dưới 3 USD**, cộng dồn qua các WS. Phân bổ ở [10](10-evaluation-and-quality-gates.md#ngân-sách-eval-live). Trần kỹ thuật 2,80 USD do `evals/budget.py` cưỡng chế. Ước tính khoảng 1,40 USD sau khi mở rộng eval hội thoại theo OD-17.
 
 Smoke trên staging là vận hành, không phải eval. Nó nằm trong `AI_DAILY_BUDGET_USD`, ghi chi phí riêng ở release note.
 
@@ -166,7 +167,7 @@ Nếu MCP không chạy được SQL nguyên văn, hoặc AWS MCP không truy c�
 
 **Phạm vi**: câu này được hiểu là model ngôn ngữ. `gpt-transcribe`, `gpt-realtime-2.1-mini` (OD-04) và Voyage vẫn dùng, vì Luna không xử lý âm thanh hay embedding.
 
-**Lưu ý**: độ thông minh sẽ dựa vào ngữ cảnh, playbook viết tay và `reasoning.effort`. Nếu rubric không đạt, nâng `reasoning.effort` từ `medium` lên `high` trước. Đổi model phải hỏi owner.
+**Lưu ý**: độ thông minh sẽ dựa vào ngữ cảnh, playbook viết tay và `reasoning.effort`. Mức `reasoning.effort` chọn theo eval, xem OD-17. Đổi model phải hỏi owner.
 
 **Lưu ý khi có học sinh thật**: [hướng dẫn Under-18](https://developers.openai.com/api/docs/guides/safety-checks/under-18-api-guidance) khuyên dùng model flagship mới nhất khi phục vụ trẻ vị thành niên, vì có lớp an toàn mới nhất. `gpt-6-luna` là model nhanh và rẻ nhất; flagship hiện là `gpt-6-astra`. Đây là khuyến nghị, không phải điều kiện bắt buộc. Plan giữ Luna theo OD-14 và bù bằng các tầng an toàn ngoài model. Nếu eval an toàn hoặc rubric không đạt, đây là điều đầu tiên nên xem lại.
 
@@ -186,3 +187,22 @@ Nếu MCP không chạy được SQL nguyên văn, hoặc AWS MCP không truy c�
 
 **Mặc định**: đóng trong đợt này. Khách vào một chạm. Phần Hồ sơ nhiều ngày (SC-08, SC-10) dùng một tài khoản trình bày tạo sẵn trong Supabase, nhập dữ liệu hư cấu một lần qua giao diện. Cách này bỏ được API đăng ký, màn đăng ký và rủi ro email xác nhận, nên nhanh hơn và ít chỗ hỏng hơn khi trình bày.
 
+## OD-17 — Thứ tự ưu tiên
+
+**Trả lời**: Ưu tiên độ thông minh của agent, độ chi tiết, hoàn thiện của sản phẩm.
+
+**Áp dụng**: khi phải chọn, chất lượng đứng trước tốc độ. Câu này thay cho phần "cần gấp" ở OD-15; các hạng mục đã bỏ ở OD-15 vẫn bỏ.
+
+| Phần | Trước | Giờ |
+| --- | --- | --- |
+| `reasoning.effort` | `medium`, lên `high` khi không đạt | So sánh cả hai trên cùng bộ `dev`, chọn mức điểm cao hơn miễn p95 ≤ 12 giây; `max_tokens=4000` |
+| Hội thoại mẫu trong playbook | 3–5 đoạn mỗi WF | 5–8 đoạn mỗi WF, ít nhất 2 ca khó |
+| Eval hội thoại | 30 kịch bản | 35 kịch bản, có `dev`, `holdout`, kịch bản dài 12 lượt, 3 vòng sửa; trần 1,30 USD |
+| Rubric | Trung bình ≥ 4 | Mỗi nhóm ≥ 4,5, mọi kịch bản ≥ 4, nhóm an toàn không có điểm dưới 4 |
+| Người đọc | Không quy định | Owner đọc 10 bản ghi ngẫu nhiên trước G1 |
+| Giao diện | Hết lỗi P0, P1 | Hết P0, P1, P2; rà trên iPhone và Android thật; có chế độ tối |
+| Phạm vi | Task P2 có thể để sau | Chế độ `challenging`, soạn tin cho người chứng kiến, eval luyện nói lên P1; mọi task P0, P1 phải xong trước G5 |
+
+Tổng eval live vẫn dưới 3 USD.
+
+**Giới hạn**: đòn bẩy lớn nhất về độ thông minh là model. OD-14 giữ `gpt-6-luna`, nên bảng trên là mức tốt nhất trong ràng buộc đó. Đổi model cần owner quyết định.

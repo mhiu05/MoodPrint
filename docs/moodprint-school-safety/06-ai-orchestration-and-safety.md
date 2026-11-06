@@ -12,7 +12,7 @@ Tài liệu chuẩn cho kiến trúc một agent và engine an toàn. Task nằm
 | Prompt | `ASSISTANT_PROMPT_VERSION = "assistant-2026-11-a1"`, instructions động trong `assistant/prompt.py` |
 | Agent loop | `SdkProvider.run_assistant`, `Runner.run_streamed`, `max_turns=3` |
 | Giới hạn | `_BudgetHooks(3, 2)`: 3 model call, 2 tool call |
-| Model | `settings.openai_model` (`gpt-6-luna`), `reasoning.effort=medium`, `max_tokens=2000`, `store=False`, `max_retries=0`, tracing tắt |
+| Model | `settings.openai_model` (`gpt-6-luna`), `reasoning.effort` chọn giữa `medium` và `high` theo eval, `max_tokens=4000`, `store=False`, `max_retries=0`, tracing tắt |
 | Output | `AssistantReply`, schema nghiêm ngặt |
 | Chạy thật | Staging luôn dùng model thật. Model giả chỉ dùng trong CI |
 
@@ -351,10 +351,10 @@ Nhắc nghỉ: backend đếm lượt; sau 20 lượt hoặc 30 phút trong mộ
 ## 9. Accounting và ngân sách
 
 - Chỉ dùng `gpt-6-luna`, `CAPPED_RATES` không đổi. `budget_liability` không bị ảnh hưởng.
-- Trần input cứng: `call_model_input_filter` giữ tổng instructions và input ≤ 48.000 byte (token luôn ≤ byte), output 2.000.
-- `ASSISTANT_RESERVATION_NANO = 100_000_000` (0,10 USD): 3 × (48.000 × 550 + 2.000 × 1650) = 89,1 triệu nano, làm tròn lên. Thay cho 2 USD của bot cũ, vốn tính trên 922.000 token và chỉ cho 10 lượt song song.
+- Trần input cứng: `call_model_input_filter` giữ tổng instructions và input ≤ 48.000 byte (token luôn ≤ byte), output 4.000.
+- `ASSISTANT_RESERVATION_NANO = 100_000_000` (0,10 USD): 3 × (48.000 × 550 + 4.000 × 1650) = 99 triệu nano, làm tròn lên. Thay cho 2 USD của bot cũ, vốn tính trên 922.000 token và chỉ cho 10 lượt song song.
 - Classifier và verifier: run con `origin='agent'`, `parent_run_id` là run chính. Thêm tham số `reservation_nano` vào `reserve_accounting`. Hằng `BOUNDED_CALL_RESERVATION_NANO = 10_000_000` (0,01 USD): input ≤ 8.000 token × 550 nano + output ≤ 400 × 1650 = 5,06 triệu nano, làm tròn lên. Input phải bị cắt cứng trước khi gửi.
-- **Khách**: `reserve_accounting` từ chối guest thiếu `guest_reservation_id`, và `ai_upper` đang tính 1,53 USD. Lượt `troly` của khách dùng upper 0,10 USD, nên trần 5 USD giữ được khoảng 50 lượt cùng lúc; giới hạn thực tế là `GUEST_AI_GLOBAL_CONCURRENCY=30`, đo lại ở WS-10-T04. Classifier và verifier của khách có reservation riêng qua `reserve_guest_operation`, upper 0,01 USD. Hằng `AI_OUTPUT_TOKENS` giữ nguyên cho hệ thống cũ; biến thể của `troly` dùng 48.000 input, 2.000 output. Giữ `GuestGuardedModel`, `before_dispatch`, `deadline`.
+- **Khách**: `reserve_accounting` từ chối guest thiếu `guest_reservation_id`, và `ai_upper` đang tính 1,53 USD. Lượt `troly` của khách dùng upper 0,10 USD, nên trần 5 USD giữ được khoảng 50 lượt cùng lúc; giới hạn thực tế là `GUEST_AI_GLOBAL_CONCURRENCY=30`, đo lại ở WS-10-T04. Classifier và verifier của khách có reservation riêng qua `reserve_guest_operation`, upper 0,01 USD. Hằng `AI_OUTPUT_TOKENS` giữ nguyên cho hệ thống cũ; biến thể của `troly` dùng 48.000 input, 4.000 output. Giữ `GuestGuardedModel`, `before_dispatch`, `deadline`.
 - `persist_snapshot` đã đóng run theo chi phí thực.
 - Trần ngày: `AI_DAILY_BUDGET_USD` tối đa 20 USD. Với giá bảo thủ, một lượt khoảng 0,006 USD, tức khoảng 3.300 lượt mỗi ngày. Hết ngân sách: agent 503, classifier coi như vàng, tầng 1–2 vẫn chạy.
 - Cập nhật `docs/backend/budget-safety.md`.
@@ -398,7 +398,7 @@ Bản ghim `openai-agents==0.24.0`. Các tính năng dưới đây đã kiểm t
 
 ## 12. Chất lượng của agent
 
-Owner chốt chỉ dùng `gpt-6-luna`, nên độ thông minh phải đến từ ngữ cảnh đúng, công cụ tốt và playbook viết kỹ. Nếu rubric không đạt, nâng `reasoning.effort` lên `high` trước.
+Độ thông minh là ưu tiên cao nhất ([OD-17](12-open-decisions.md#od-17--thứ-tự-ưu-tiên)). Owner chốt chỉ dùng `gpt-6-luna`, nên nó phải đến từ ngữ cảnh đúng, công cụ tốt và playbook viết kỹ. `reasoning.effort` chọn giữa `medium` và `high` theo eval.
 
 **Ngữ cảnh** (`AssistantContext`, đưa vào instructions động dưới dạng dữ liệu):
 
@@ -424,9 +424,9 @@ Con số như "đây là lần thứ 4" do backend tính, model không tự đ�
 
 Thêm trường vào `AssistantReply`: `suggested_replies: list[str]`, tối đa 3 mục, mỗi mục ≤ 40 ký tự, qua postcheck.
 
-**Ví dụ trong playbook**: mỗi WF 3–5 đoạn hội thoại mẫu tiếng Việt, gồm ca khó. Đây là phần ảnh hưởng chất lượng nhiều nhất, phải viết tay và đọc lại, không sinh hàng loạt.
+**Ví dụ trong playbook**: mỗi WF 5–8 đoạn hội thoại mẫu tiếng Việt, ít nhất 2 đoạn là ca khó: nói giảm, không dấu, đổi ý, đính chính, im lặng, từ chối kể. Đây là phần ảnh hưởng chất lượng nhiều nhất, phải viết tay và đọc lại, không sinh hàng loạt.
 
-**Đo**: rubric ở [10](10-evaluation-and-quality-gates.md).
+**Đo**: rubric ở [10](10-evaluation-and-quality-gates.md#eval-hội-thoại). Đọc bản ghi điểm thấp, sửa playbook, chạy lại. Không sửa prompt để qua đúng một kịch bản.
 
 **Tool description** là một phần của prompt: nêu rõ khi nào dùng, khi nào không, ví dụ tham số. Kết quả tool trả đủ để model viết tiếp, gồm cả lý do khi `unavailable`.
 

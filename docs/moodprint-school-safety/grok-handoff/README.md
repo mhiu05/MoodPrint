@@ -1,6 +1,6 @@
 # Bàn giao cho Grok
 
-Mục tiêu: tự làm từ task đầu tiên tới khi release staging thành công. Chỉ dừng hỏi owner ở các điểm ghi dưới đây và trong [12-open-decisions](../12-open-decisions.md).
+Mục tiêu: tự làm từ task đầu tiên tới khi release staging thành công. Độ thông minh của agent, độ chi tiết và độ hoàn thiện của sản phẩm đứng trước tốc độ ([OD-17](../12-open-decisions.md#od-17--thứ-tự-ưu-tiên)). Chỉ dừng hỏi owner ở các điểm ghi dưới đây và trong [12-open-decisions](../12-open-decisions.md).
 
 Prompt khởi động: [GROK-PROMPT](GROK-PROMPT.md).
 

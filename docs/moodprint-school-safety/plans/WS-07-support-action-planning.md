@@ -71,7 +71,7 @@ class Card111(BaseModel):
 | WS-07-T05 | P1 | T02 | `list_trusted_adults`, `propose_trusted_adult`, nhánh `adult_unsafe`, `adult_perpetrator` | Người gây hại không được gợi ý; gợi ý người khác hoặc 111 | `pytest -q tests/test_assistant_wf04.py` | Pass |
 | WS-07-T06 | P1 | T05 | `draft_message` | Bản nháp qua postcheck; không có route gửi | `pytest -q tests/test_support_drafts.py` | Pass: `rg` không có client gửi tin |
 | WS-07-T07 | P1 | T05 | `build_111_card` từ dữ liệu đã lưu của case | Không tự thêm chi tiết; em sửa được | `pytest -q tests/test_support_card111.py` | Pass |
-| WS-07-T08 | P2 | T06 | WF-05 thêm soạn tin không lộ mình | Không hứa ẩn danh tuyệt đối | `pytest -q tests/test_assistant_wf05.py` | Pass |
+| WS-07-T08 | P1 | T06 | WF-05 thêm soạn tin không lộ mình | Không hứa ẩn danh tuyệt đối | `pytest -q tests/test_assistant_wf05.py` | Pass |
 | WS-07-T09 | P1 | T01 | Export, purge, access matrix | Như WS-06 | `pytest -q tests/test_school_access_matrix.py` | Pass |
 
 ## 11. An toàn và bảo mật

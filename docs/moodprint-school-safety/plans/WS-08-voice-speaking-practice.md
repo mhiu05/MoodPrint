@@ -68,11 +68,11 @@ Setting mới: `tts_provider` (`none`, `openai_realtime`), `tts_model` (mặc đ
 | WS-08-T07 | P1 | T06 | `OpenAIRealtimeSynthesizer` qua `AsyncOpenAI.realtime.connect`, đúng các bước ở [08 §6](../08-speaking-practice-design.md#cách-làm-realtime-thành-bộ-đọc); `FakeSynthesizer` | Timeout 10 giây; giới hạn 2 MB; đóng WebSocket mọi nhánh; ghi `speech_usage` từ `response.done` | `pytest -q tests/test_practice_tts.py` với server WS giả | Pass |
 | WS-08-T08 | P1 | T07 | Route speech | Chỉ đọc message của chính run; ≤ 400 ký tự; `verbatim_ok` sai → 503 `SPEECH_UNAVAILABLE`, audio bị bỏ; không lưu | `pytest -q tests/test_practice_speech.py` | Pass: client không truyền được text |
 | WS-08-T09 | P1 | T08 | Kiểm tra tự động 20 câu: tỷ lệ `verbatim_ok`, độ trễ, chi phí, kết quả vào `.tmp/tts-trial/` | `verbatim_ok` ≥ 95%; nếu thấp hơn báo owner | `python -m evals.practice.tts_trial --confirm-live --max-usd 0.25` | Pass |
-| WS-08-T10 | P2 | T04 | `challenging`: danh sách phản ứng duyệt sẵn, tối đa một lần; tắt khi nhãn nhạy cảm | Em tự bật; có câu gợi ý đáp | `pytest -q tests/test_practice_challenging.py` | Pass |
+| WS-08-T10 | P1 | T04 | `challenging`: danh sách phản ứng duyệt sẵn, tối đa một lần; tắt khi nhãn nhạy cảm | Em tự bật; có câu gợi ý đáp | `pytest -q tests/test_practice_challenging.py` | Pass |
 | WS-08-T11 | P1 | T04 | `summary.py`, proposal `practice_summary_save` | Lưu cần xác nhận | `pytest -q tests/test_practice_summary.py` | Pass |
 | WS-08-T12 | P1 | T03 | Semaphore 5, 429 `PRACTICE_BUSY` | Quá tải không làm hỏng chat | `pytest -q tests/test_practice_concurrency.py` | Pass |
 | WS-08-T13 | P1 | T03 | UI `HoldToTalk`, `Waveform`, `PracticeRoom`, dùng `encodeWav`, `pcm-worklet.js` | Pointer, Space, chế độ chạm; sóng âm theo RMS thật, tôn trọng reduced motion; orb `listening` 64; nhập chữ luôn có; thu lại, dừng, thoát | `npm test`; `npx playwright test tests/e2e/school-practice.spec.ts` | Pass với mic giả của Chromium |
-| WS-08-T14 | P2 | T04 | `evals/practice`: 20 kịch bản, 5 chạy live | Trong trần 0,40 USD | `python -m evals.practice --live --confirm-live --max-usd 0.40 --output <file>` | Pass |
+| WS-08-T14 | P1 | T04 | `evals/practice`: 20 kịch bản, 5 chạy live | Trong trần 0,40 USD | `python -m evals.practice --live --confirm-live --max-usd 0.40 --output <file>` | Pass |
 
 ## 11. An toàn và bảo mật
 

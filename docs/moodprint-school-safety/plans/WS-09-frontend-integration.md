@@ -79,10 +79,12 @@ Không.
 | WS-09-T16 | P0 | T15 | Axe mọi route, 360, 390, 768, 1280; cảnh báo chữ 200%; rà tên cũ | 0 violation; `rg` không còn Điều phối, Mây trong `features/school` | `npx playwright test tests/e2e/school-a11y.spec.ts` | Pass |
 | WS-09-T17 | P0 | T05–T13 | `motion.ts`: niêm phong bằng chứng, sheet, Flip cho proposal, đổi tab; mở rộng `motion.spec.ts` | Reduced motion vẫn đủ nội dung; không animation nào chặn nội dung; khẩn cấp hiện ngay | `npx playwright test tests/e2e/motion.spec.ts` | Pass |
 | WS-09-T18 | P0 | T13 | `SchoolLanding` mode Persuade, một chuỗi chuyển động; trang Giới hạn của AI | Trình chiếu được ở 1280 và 360 | `npx playwright test tests/e2e/school-entry.spec.ts` | Pass |
-| WS-09-T19 | P0 | T16, T17 | Chạy `critique`, `audit`, `harden`, `onboard`, `clarify`, `adapt`, `polish`; sửa đến khi không còn P0, P1 | `DO_NOT_TRACK=1 npx impeccable detect frontend/src/features/school --json` sạch; quét URL đang chạy sạch | Lệnh detect | Pass: exit 0 |
-| WS-09-T20 | P0 | T19 | `document` cập nhật `DESIGN.md`; ảnh 360 và 1280 mọi màn hình chính trong PR cho owner | Tài liệu khớp thứ đã dựng | Đọc lại | Owner xem |
+| WS-09-T19 | P0 | T16, T17 | Chạy `critique`, `audit`, `harden`, `onboard`, `clarify`, `adapt`, `polish`; sửa đến khi không còn P0, P1, P2; P3 ghi lý do nếu giữ | `DO_NOT_TRACK=1 npx impeccable detect frontend/src/features/school --json` sạch; quét URL đang chạy sạch | Lệnh detect | Pass: exit 0 |
+| WS-09-T20 | P0 | T24 | `document` cập nhật `DESIGN.md`; ảnh 360 và 1280, sáng và tối, mọi màn hình chính trong PR cho owner | Tài liệu khớp thứ đã dựng | Đọc lại | Owner xem |
 | WS-09-T21 | P0 | T05 | Luồng khách một chạm ở trang giới thiệu; thông báo khách không chặn; `useCaptcha.take()` chờ token thay vì báo `CAPTCHA_REQUIRED`, nút hiện trạng thái bận | Từ trang chủ tới tin nhắn đầu tiên không có bước xác minh nào; bấm sớm vẫn vào được; lỗi Turnstile có nút thử lại | `npx playwright test tests/e2e/school-guest.spec.ts` | Pass |
 | WS-09-T22 | P1 | T01 | `/quyen-rieng-tu` ngắn theo [09 §15](../09-ux-and-user-flows.md#15-trang-quyền-riêng-tư), có câu dẫn chiếu Turnstile Privacy Addendum; link ở chân trang giới thiệu | Đọc được khi chưa đăng nhập | `npx playwright test tests/e2e/school-entry.spec.ts` | Pass |
+| WS-09-T23 | P1 | T17 | Chế độ tối theo `prefers-color-scheme`: token trong phạm vi `.school-app`, mọi màn hình; `EmergencyCard` vẫn nổi bật | axe sạch ở cả hai chế độ; tương phản đạt AA | `npx playwright test tests/e2e/school-a11y.spec.ts` | Pass |
+| WS-09-T24 | P0 | T19, T23 | Lượt rà chi tiết theo checklist G4: từng màn hình trên iPhone và Android thật; sửa căn lề, nhịp chữ, trạng thái tải, phản hồi khi bấm, chuyển cảnh, copy | Không nháy layout; không còn chuỗi tạm; danh sách lỗi đã sửa ghi trong PR | Checklist G4, ảnh trước và sau | Owner xem |
 
 ## 11. An toàn và bảo mật
 

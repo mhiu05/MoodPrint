@@ -1,6 +1,6 @@
 # Thứ tự thực thi
 
-Nhánh nền `mhiu05/feat-refactor`. Mỗi giai đoạn: điều kiện, task, file dễ xung đột, lệnh bắt buộc, gate, tiêu chí xong, rollback. Không vào giai đoạn sau khi gate trước chưa đạt.
+Nhánh nền `mhiu05/feat-refactor`. Mỗi giai đoạn: điều kiện, task, file dễ xung đột, lệnh bắt buộc, gate, tiêu chí xong, rollback. Không vào giai đoạn sau khi gate trước chưa đạt. Mọi task P0, P1 phải xong trước G5; không cắt chúng để đi nhanh hơn.
 
 Lệnh CI đầy đủ trước khi push ở [README](README.md#lệnh-kiểm-tra-trước-khi-push).
 
@@ -78,7 +78,7 @@ Từ đây, mọi PR thêm bảng phải phân loại bảng đó trong `guests/
 | Mục | Nội dung |
 | --- | --- |
 | Điều kiện | G2, G3 |
-| Task | WS-02-T11; WS-09-T13 → T22; WS-10-T01 → T05 |
+| Task | WS-02-T11; WS-09-T13 → T24; WS-10-T01 → T05 |
 | Xung đột | `playwright.config.ts`, tài liệu |
 | Bắt buộc | E2E, fullstack, axe |
 | Gate | G4 |
