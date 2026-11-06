@@ -200,10 +200,12 @@ Không sửa trong phiên này. Grok xử lý trong WS-10.
 | --- | --- | --- |
 | Không có người duyệt KB và template | Cao | OD-02 chặn G5. Grok không được tự điền `reviewed_by` |
 | Flip staging khóa tài khoản 18+ hiện có | Đã chấp nhận | OD-01 đã chốt |
-| Hosted dùng chung với dữ liệu thật có thể có | Trung bình | Seed và reset chỉ chạm hàng có `sample_persona` |
+| Hosted dùng chung với dữ liệu cũ | Trung bình | Hệ thống cũ đóng băng; luật sư xem lại ở G6 |
 | Không có branch protection | Trung bình | Kỷ luật ở §8.3 của prompt; OD-09 đề xuất bật |
 | Giọng tiếng Việt của Realtime chưa kiểm chứng | Trung bình | `verbatim_ok` tự động; lỗi thì `TTS_PROVIDER=none` |
 | AWS chưa kiểm chứng trong phiên audit | Trung bình | Preflight ở runbook |
 | CI ~35 phút, main đổi thì release bỏ qua | Trung bình | Merge tuần tự, xem runbook |
-| OpenAI yêu cầu ZDR trước khi xử lý dữ liệu cá nhân trẻ dưới 13 | Cao nếu có học sinh thật | [OD-15](12-open-decisions.md#od-15--ai-được-dùng-bản-release-này) |
+| OpenAI yêu cầu ZDR trước khi xử lý dữ liệu cá nhân trẻ dưới 13 | Cao | Điều kiện G6, xem [OD-15](12-open-decisions.md#od-15--ai-dùng-sản-phẩm) |
+| Luật BVDLCN 2025, đồng ý của người đại diện | Cao | Điều kiện G6 |
+| Cloudflare báo chưa thấy siteverify | Cao nếu CAPTCHA Supabase chưa bật | WS-10-T00 |
 | Nhận mọi ảnh, video từ khách không xác minh | Cao | [OD-03](12-open-decisions.md#od-03--upload-ảnh-video) |

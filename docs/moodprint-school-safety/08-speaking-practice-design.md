@@ -174,6 +174,7 @@ Mọi route có owner check, CSRF, `Idempotency-Key` khi ghi, `assert_purpose("V
 - Nhãn "Giọng đọc do AI tạo" luôn hiện cạnh nút phát, theo chính sách OpenAI và yêu cầu sản phẩm.
 - Chỉ gửi lời của AI sang TTS, không gửi lời học sinh.
 - Không lưu audio ở server.
+- Giọng nói của học sinh chỉ gửi tới `gpt-transcribe`. Theo [bảng dữ liệu của OpenAI](https://developers.openai.com/api/docs/guides/your-data#storage-requirements-and-retention-controls-per-endpoint), endpoint này không có retention cho giám sát lạm dụng. Ghi rõ trong chính sách quyền riêng tư.
 
 ## 10. Đồng thời và chi phí
 

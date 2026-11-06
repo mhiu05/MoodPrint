@@ -84,15 +84,16 @@ class ClaimVerdict(BaseModel):
 | WS-05-T10 | P0 | T09 | Tool `search_knowledge`, `get_platform_guide` thay stub; ghi `run.retrieved_cards` | `query` qua kiểm tra độ dài; `Citation` dựng từ thẻ, `start`/`end` tìm bằng vị trí `ClaimRef.sentence` trong bubble, không thấy thì coi là thiếu ref; `source_backed=true` | `pytest -q tests/test_assistant_kb.py` | Pass |
 | WS-05-T11 | P0 | T10 | `verifier.py`, tích hợp `turn.py` | Thẻ không ủng hộ → câu dự phòng; ref tới thẻ chưa truy xuất → câu dự phòng; timeout → câu dự phòng; vẫn gắn nhãn | `pytest -q tests/test_kb_verifier.py` | Pass |
 | WS-05-T12 | P1 | T05 | Soạn nháp 50 thẻ `draft`, chia PR theo `action`, kèm trích dẫn | Tất cả qua `validate.py` ở mức draft | `validate.py` | Pass: chờ người duyệt, không tự approve |
-| WS-05-T13 | P1 | T12 | `evidence/content-review.md`: bảng duyệt mỗi thẻ một dòng, kèm nguồn. mhiu05 đánh dấu; Grok điền `reviewed_by: mhiu05` cho mục đã đánh dấu. Chuyển ảnh chụp của mhiu05 thành bước bằng chữ | ≥ 40 thẻ approved | `validate.py`; `build.py` | **Chặn G5**, không chặn phát triển |
+| WS-05-T13 | P1 | T12 | `evidence/content-review.md`: bảng duyệt mỗi thẻ một dòng, kèm nguồn. mhiu05 đánh dấu; Grok điền `reviewed_by: mhiu05` cho mục đã đánh dấu. Bước bấm trong thẻ `report` soạn từ [kb-source-links](../kb-source-links.md); mhiu05 kiểm tra trên app thật trước khi đánh dấu | ≥ 40 thẻ approved | `validate.py`; `build.py` | **Chặn G5**, không chặn phát triển |
 | WS-05-T14 | P0 | T09 | `kb/eval/queries.jsonl` ≥ 100, `evaluate.py`, cờ `--include-draft` chỉ cho eval | Báo Recall@4, MRR | `python ../scripts/kb/evaluate.py --embedder fake` | Pass runner |
 | WS-05-T15 | P0 | T12, T14 | Chạy với Voyage thật trên thẻ nháp, tối ưu theo thứ tự; chạy lại sau khi duyệt | Recall@4 ≥ 0,9 | `evaluate.py --live --include-draft --confirm-live --max-usd 0.05` | Pass: đạt. Fail: ghi lại từng biến đã đổi |
+| WS-05-T16 | P1 | T06 | Thêm `image`, `image_alt` vào schema thẻ; `build.py` đọc [assets/kb-screenshots](../assets/kb-screenshots/README.md), bỏ qua ảnh trùng hash trong `placeholders.json`, chép ảnh thật sang `frontend/public/kb-guides/` | Thẻ có ảnh mẫu vẫn build, chỉ mất ảnh; ảnh mẫu không có trong output; có ảnh thì bắt buộc `image_alt` | `pytest -q tests/test_kb_build.py` | Pass |
 
 ## 11. An toàn và bảo mật
 
 - Thẻ là dữ liệu, không phải chỉ dẫn; văn bản trong thẻ không thể đổi prompt.
 - Query gửi Voyage là cụm trung tính do model viết, không phải nguyên văn lời em.
-- Khách dùng KB như tài khoản mẫu. `kind_available` đóng `embed` của khách dưới cấu hình có trần; embedding truy vấn KB không đi qua cổng này, vì nằm trong phần miễn phí của Voyage và đã có nhánh lexical khi lỗi.
+- Khách dùng KB như tài khoản đăng ký. `kind_available` đóng `embed` của khách dưới cấu hình có trần; embedding truy vấn KB không đi qua cổng này, vì nằm trong phần miễn phí của Voyage và đã có nhánh lexical khi lỗi.
 - Fetch không chạy trong image, không có đường SSRF ở runtime.
 - Nguồn `foreign` không dùng cho `rights`.
 - Không phát hành lại snapshot.
@@ -121,4 +122,4 @@ G2 phần KB đạt.
 
 ## 17. Ghi chú cho Grok
 
-Bắt đầu từ [kb-source-links](../kb-source-links.md). Không điền `reviewed_by` cho mục mhiu05 chưa đánh dấu, kể cả để test staging. Không commit ảnh chụp vì repo công khai. Thẻ nháp chạy được trong eval local với `--include-draft`, nhưng `build.py` không có cờ này. Dùng thẻ fixture riêng cho test, đặt trong `backend/tests/fixtures/`, không trộn vào `kb/cards/`.
+Bắt đầu từ [kb-source-links](../kb-source-links.md). Không điền `reviewed_by` cho mục mhiu05 chưa đánh dấu, kể cả để test staging. Ảnh thật do mhiu05 đưa vào, đã che thông tin cá nhân vì repo công khai. Thẻ nháp chạy được trong eval local với `--include-draft`, nhưng `build.py` không có cờ này. Dùng thẻ fixture riêng cho test, đặt trong `backend/tests/fixtures/`, không trộn vào `kb/cards/`.

@@ -37,7 +37,7 @@ Khi soạn thẻ, trích từ văn bản gốc. Viết lại bằng lời cho h�
 
 ## Nền tảng
 
-Trang chính thức dùng làm `source_url`. Bước bấm cụ thể lấy từ ảnh chụp app thật của mhiu05, vì giao diện đổi theo phiên bản.
+Trang chính thức dùng làm `source_url`. Bước bấm soạn từ các trang này, mhiu05 kiểm tra trên app thật vì giao diện đổi theo phiên bản. Ảnh minh họa ở [assets/kb-screenshots](assets/kb-screenshots/README.md), hiện là ảnh mẫu.
 
 | `source_id` | Trang | Link | Trạng thái |
 | --- | --- | --- | --- |

@@ -1,6 +1,6 @@
 # MoodPrint School Safety — Tóm tắt
 
-Bộ kế hoạch để chuyển MoodPrint thành ứng dụng giúp học sinh đối mặt với bạo lực học đường và tìm tới được một người lớn tin cậy. Đây là **bản release thật trên staging cho P-Innovation 2027**, chạy **model thật**. Khách bấm một lần là dùng được đủ tính năng, có tình huống mẫu để đọc và thử. Chưa hướng tới học sinh thật: xem [OD-15](12-open-decisions.md#od-15--ai-được-dùng-bản-release-này).
+Bộ kế hoạch để chuyển MoodPrint thành ứng dụng giúp học sinh đối mặt với bạo lực học đường và tìm tới được một người lớn tin cậy. Đây là **sản phẩm thật cho học sinh 11–17**, release trên staging, dự thi P-Innovation 2027, chạy **model thật**. Khách bấm một lần là dùng được đủ tính năng. Sản phẩm mở cho học sinh sau khi qua [cổng G6](10-evaluation-and-quality-gates.md#cổng-g6-mở-cho-học-sinh-thật).
 
 Review tại nhánh `mhiu05/feat-refactor`, HEAD `2d00c8d25cfc07eb8cb6939e84ab19386bd72034`, ngày 06/11/2026.
 
@@ -15,14 +15,18 @@ Grok bắt đầu tại [GROK-PROMPT](grok-handoff/GROK-PROMPT.md).
 5. **TTS qua OpenAI cần cẩn thận.** Model TTS cũ tắt ngày 06/01/2027. Đường chính là `gpt-realtime-2.1-mini`, backend so transcript trước khi phát để đảm bảo đọc đúng văn bản đã duyệt.
 6. **Nội dung cần người duyệt** là điểm phụ thuộc lớn nhất. Không chặn phát triển nhưng chặn release.
 7. **Khách đang bị code giới hạn.** Dưới cấu hình có trần, guest không dùng được giọng nói và chỉ khoảng 3 lượt chạy đồng thời. Plan đã có task sửa.
-8. **Rủi ro lớn nhất là tổ hợp ba quyết định**: bản release thật, khách không xác minh, nhận mọi ảnh và video. Xem [OD-03](12-open-decisions.md#od-03--upload-ảnh-video).
+8. **Học sinh thật kéo theo hai điều kiện không bỏ được**: OpenAI yêu cầu zero data retention vì có trẻ dưới 13 tuổi, và Luật Bảo vệ dữ liệu cá nhân 2025 cần tư vấn pháp lý. Xem [OD-15](12-open-decisions.md#od-15--ai-dùng-sản-phẩm).
+9. **Rủi ro lớn nhất là tổ hợp ba quyết định**: học sinh thật, khách không xác minh, nhận mọi ảnh và video. Xem [OD-03](12-open-decisions.md#od-03--upload-ảnh-video).
 
 ## Đã chốt với owner
 
 | Mục | Kết quả |
 | --- | --- |
+| Người dùng | Học sinh thật 11–17; mở sau cổng G6 |
 | Môi trường | Staging là bản release thật, không có chế độ demo, chạy model thật |
 | Khách | Một chạm, đủ tính năng, dữ liệu tự xóa sau 2 giờ |
+| Tài khoản | Đăng ký mở sau G6 để giữ hồ sơ lâu dài |
+| Tình huống mẫu | Chỉ là kịch bản Markdown, không có trong sản phẩm |
 | Model | Chỉ `gpt-6-luna` cho agent, classifier, verifier |
 | STT, TTS | `gpt-transcribe`, `gpt-realtime-2.1-mini`, key OpenAI hiện có |
 | Hệ thống cũ | Đóng băng, ẩn trên staging, không vá |
@@ -58,13 +62,14 @@ flowchart LR
     G2 --> G4[G4 Tích hợp + UI]
     G3 --> G4
     G4 --> G5[G5 Release staging]
+    G5 --> G6[G6 Mở cho học sinh]
 ```
 
 Chi tiết: [11-master-implementation-roadmap](11-master-implementation-roadmap.md).
 
 ## Việc cần owner
 
-Duyệt nội dung (OD-02), chụp màn hình Facebook, YouTube, TikTok trên app thật, đổi Turnstile sang Invisible, trả lời OD-15, xem ảnh giao diện, đăng nhập AWS nếu phiên hết hạn. Toàn bộ ở [12-open-decisions](12-open-decisions.md).
+Đăng ký ZDR với OpenAI, tư vấn pháp lý, cử người lớn phụ trách sự cố, nhờ chuyên gia tâm lý học đường rà nội dung (G6). Duyệt nội dung (OD-02), thay ảnh mẫu bằng ảnh thật, xem ảnh giao diện, đăng nhập AWS nếu phiên hết hạn. Toàn bộ ở [11 §5](11-master-implementation-roadmap.md#5-việc-chỉ-con-người-làm-được).
 
 ## Mục lục
 
@@ -73,7 +78,7 @@ Duyệt nội dung (OD-02), chụp màn hình Facebook, YouTube, TikTok trên ap
 | [01](01-codebase-audit.md) | Audit, O1–O18 |
 | [02](02-current-architecture.md) | Kiến trúc hiện tại, trace |
 | [03](03-target-architecture.md) | Kiến trúc đích |
-| [04](04-feature-gap-analysis.md) | Khoảng trống, cổng trước thí điểm |
+| [04](04-feature-gap-analysis.md) | Khoảng trống, ngoài phạm vi |
 | [05](05-data-model-and-migrations.md) | Schema, migration |
 | [06](06-ai-orchestration-and-safety.md) | Agent, workflow, safety, cách dùng SDK |
 | [07](07-knowledge-base-design.md) | KB, pipeline, chi phí |
@@ -83,6 +88,6 @@ Duyệt nội dung (OD-02), chụp màn hình Facebook, YouTube, TikTok trên ap
 | [11](11-master-implementation-roadmap.md) | Roadmap |
 | [12](12-open-decisions.md) | Quyết định |
 | [kb-source-links](kb-source-links.md) | Link nguồn cho thẻ KB |
-| [demo/personas](demo/personas.md), [demo/scenarios](demo/scenarios-KB-A-B-C.md), [demo/showcase-cases](demo/showcase-cases.md) | Tài khoản mẫu, tình huống mẫu |
+| [demo/personas](demo/personas.md), [demo/scenarios](demo/scenarios-KB-A-B-C.md), [demo/showcase-cases](demo/showcase-cases.md) | Nhân vật, kịch bản mẫu |
 | [plans/](plans/WS-01-codebase-migration.md) | WS-01…WS-10 |
 | [grok-handoff/](grok-handoff/README.md) | Bàn giao, runbook, prompt |

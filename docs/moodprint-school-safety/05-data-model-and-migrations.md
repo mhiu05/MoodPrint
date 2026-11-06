@@ -27,7 +27,7 @@ Toàn bộ đi hosted **một artifact**: `deploy/supabase/reviewed-sql/0035-rev
 | `age_group` | varchar(8) | CHECK in (`'11-14'`, `'15-17'`) |
 | `terms_version` | varchar(32) NULL | |
 | `terms_accepted_at` | timestamptz NULL | Cùng NULL hoặc cùng có với `terms_version` |
-| `sample_persona` | varchar(32) NULL | Khóa persona hư cấu; NULL với guest |
+| `guardian_ack_at` | timestamptz NULL | Thời điểm em tự khai người giám hộ đã biết; NULL với guest |
 | `neutral_mode` | boolean | default false |
 | `version` | int | default 1, ≥ 1 |
 | `updated_at` | timestamptz | |
@@ -173,7 +173,7 @@ Append-only. UNIQUE (`event_id`, `revision`). Cột `narrative text` ≤ 4000 k�
 
 Trigger `case_evidence_guard`: khi `OLD.sha256 IS NOT NULL`, chặn đổi `sha256`, `object_path`, `size_bytes`, `mime_type`, `uploaded_at`.
 
-Bằng chứng dùng chung bucket `journal-media` với tiền tố `cases/{user_id}/{case_id}/{evidence_id}.{ext}`, nên không cần thao tác hạ tầng mới. Tách bucket ở giai đoạn thí điểm.
+Bằng chứng dùng chung bucket `journal-media` với tiền tố `cases/{user_id}/{case_id}/{evidence_id}.{ext}`, nên không cần thao tác hạ tầng mới. Tách bucket nếu luật sư yêu cầu ở G6.
 
 ### `case_summaries` (0034)
 

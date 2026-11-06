@@ -1,8 +1,8 @@
-# Tài khoản mẫu
+# Nhân vật trong kịch bản
 
-**Toàn bộ là hư cấu.** Không phải người thật, trường thật. Tên trường dùng dạng chung. Không dùng dữ liệu của trẻ em thật trong seed, eval hay ảnh chụp màn hình.
+**Toàn bộ là hư cấu.** Không phải người thật, trường thật. Tên trường dùng dạng chung. Không dùng dữ liệu của trẻ em thật trong fixture, eval hay ảnh chụp màn hình.
 
-Dữ liệu seed đọc từ `backend/app/modules/school/seed/personas.json` (WS-02). Mật khẩu không nằm trong repo.
+Chỉ dùng trong test local và eval, không tạo trên hosted. Fixture ở `frontend/tests/fullstack/fixtures/school-personas.json` (WS-02-T08).
 
 | Khóa | Tên | Tuổi | Lớp | Nhóm tuổi | Vai trò | Ca dùng |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -32,7 +32,7 @@ Học lớp 9. Bị một người quen trên mạng đe dọa tung ảnh riêng
 
 Học lớp 11. Bị một giáo viên quát mắng, đe dọa khi gọi ở lại riêng. Tin mẹ và cô tư vấn.
 
-## Dữ liệu seed cho hồ sơ
+## Dữ liệu fixture cho hồ sơ
 
 Ảnh mẫu là ảnh tổng hợp do nhóm tạo, không có khuôn mặt người thật, không có tên thật.
 

@@ -4,7 +4,7 @@
 
 ## 1. Mục tiêu và giá trị
 
-Khách bấm một lần là dùng được toàn bộ sản phẩm, dữ liệu tự xóa sau 2 giờ. Tài khoản mẫu có sẵn dữ liệu. Hệ thống cũ được đóng băng, ẩn hoàn toàn trên staging.
+Học sinh vào sản phẩm theo hai đường: khách một chạm, dữ liệu tự xóa sau 2 giờ; hoặc tài khoản để giữ hồ sơ lâu dài. Hệ thống cũ được đóng băng, ẩn hoàn toàn trên staging. Hai đường đều có công tắc riêng, chỉ bật lâu dài sau G6.
 
 ## 2. Hiện trạng đã xác minh
 
@@ -17,13 +17,13 @@ Khách bấm một lần là dùng được toàn bộ sản phẩm, dữ liệu
 
 ## 3. Khoảng trống
 
-Không có khái niệm profile, nhóm tuổi 11–17, điều khoản, route public cho hỗ trợ và tình huống mẫu.
+Không có khái niệm profile, nhóm tuổi 11–17, điều khoản, đăng ký cho học sinh, route public cho hỗ trợ và quyền riêng tư.
 
 ## 4. Kiến trúc đề xuất
 
 - `APP_PROFILE` trong `Settings`. Validator ép tắt các cờ, ghi vào `_clamped`, không raise.
 - `Database` truyền profile qua `async_sessionmaker(..., info={"app_profile": ...})`. `verify_actor` đọc `db.info`. Không dùng biến global, để nhiều app trong test không ảnh hưởng nhau.
-- `require_school_eligible`: khi profile `school_safety`, cần hàng `school_profiles`, thay cho adult. Tài khoản mẫu cần thêm `terms_accepted_at`; khách không cần. Hai cổng đổi: `verify_actor`, `_session_view`. 13 call site `is_adult_eligible` còn lại giữ nguyên, vì chúng thuộc tính năng cũ đã đóng băng.
+- `require_school_eligible`: khi profile `school_safety`, cần hàng `school_profiles`, thay cho adult. Tài khoản đăng ký cần thêm `terms_accepted_at`; khách không cần. Hai cổng đổi: `verify_actor`, `_session_view`. 13 call site `is_adult_eligible` còn lại giữ nguyên, vì chúng thuộc tính năng cũ đã đóng băng.
 - `ProfileRouteGuard`: middleware trả 404 envelope cho denylist khi profile `school_safety`.
 
 - Khách một chạm: dùng lại `create_guest` (Supabase anonymous, hạn 2 giờ, `guest_cleanup_jobs`), bỏ khai báo tuổi và disclosure chặn. Turnstile chạy nền vì Supabase cần token.
@@ -34,7 +34,7 @@ Không có khái niệm profile, nhóm tuổi 11–17, điều khoản, route pu
 
 ## 5. Phạm vi
 
-Trong: profile, cổng, điều khoản cho tài khoản mẫu, seed, khách một chạm, chọn shell. Ngoài: UI các tab (WS-09).
+Trong: profile, cổng, điều khoản, đăng ký cho học sinh, khách một chạm, chọn shell, fixture test. Ngoài: UI các tab (WS-09).
 
 ## 6. File và symbol bị ảnh hưởng
 
@@ -42,7 +42,7 @@ Trong: profile, cổng, điều khoản cho tài khoản mẫu, seed, khách m�
 
 ## 7. File mới
 
-`backend/app/core/profile.py`; `backend/app/modules/school/{__init__,models,schemas,service,routes,eligibility}.py`; `backend/app/modules/school/seed/personas.json`; `scripts/seed_school_samples.py`; `backend/alembic/versions/0030_school_profiles.py`; `frontend/src/features/school/{SchoolApp.tsx,school.css,useExperience.ts,TermsGate.tsx,SchoolLanding.tsx}`.
+`backend/app/core/profile.py`; `backend/app/modules/school/{__init__,models,schemas,service,routes,eligibility}.py`; `frontend/tests/fullstack/fixtures/school-personas.json`; `backend/alembic/versions/0030_school_profiles.py`; `frontend/src/features/school/{SchoolApp.tsx,school.css,useExperience.ts,TermsGate.tsx,SchoolLanding.tsx}`.
 
 ## 8. API contract
 
@@ -56,15 +56,21 @@ class TermsView(DTO):
 class TermsAccept(DTO):
     terms_version: str
     age_group: Literal["11-14", "15-17"]
+    guardian_ack: Literal[True]
     expected_version: int = Field(ge=1)
+
+class SchoolSignupInput(CaptchaInput):
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=8, max_length=1024, repr=False)
 ```
 
 | Route | Mô tả | Lỗi |
 | --- | --- | --- |
 | `GET /api/v1/school/terms` | Dùng `eligible=False` | 404 ở profile default |
 | `PUT /api/v1/school/terms` | Cần `Idempotency-Key` | `TERMS_VERSION_MISMATCH`, `STALE_VERSION` |
-| `GET /api/v1/public/experience` | Thêm `appProfile: "default" \| "school_safety"`, `termsVersion` | |
+| `GET /api/v1/public/experience` | Thêm `appProfile: "default" \| "school_safety"`, `termsVersion`, `signupAvailable` | |
 | `POST /api/v1/auth/signup` | Profile `school_safety`: 403 `SIGNUP_CLOSED` | |
+| `POST /api/v1/school/signup` | Đăng ký cho học sinh, không yêu cầu 18+; cần `SCHOOL_SIGNUP_ENABLED` | `SIGNUP_CLOSED`, `CAPTCHA_REQUIRED` |
 | `POST /api/v1/school/guest` | Vào thẳng, chỉ cần `captchaToken` từ Turnstile chạy nền | `GUEST_DISABLED`, `GUEST_ATTEMPT_PENDING` |
 
 `FeatureView` thêm `schoolSafety: bool`, `ageGroup`, `termsRequired: bool`.
@@ -83,18 +89,19 @@ Viết test thất bại trước, rồi code.
 
 | ID | Ưu tiên | Phụ thuộc | Thay đổi, ở đâu | Hành vi mong đợi | Lệnh test | Pass / fail |
 | --- | --- | --- | --- | --- | --- | --- |
-| WS-02-T01 | P0 | WS-01 | `app_profile`, `terms_version_current` trong `Settings`; validator `apply_profile`; `core/profile.py` với `FORCED_OFF`, `LEGACY_DENYLIST`, `is_school_safety()`; cập nhật 3 file env example, `docs/backend/configuration.md` | Profile `school_safety`: mọi cờ trong `FORCED_OFF` là false kể cả khi env đặt true; `degraded_features` liệt kê; default: không đổi | `pytest -q tests/test_school_settings.py tests/test_default_flags.py` | Pass: `Settings()` default bằng snapshot cũ. Fail: bất kỳ flag default đổi |
+| WS-02-T01 | P0 | WS-01 | `app_profile`, `terms_version_current`, `school_signup_enabled`, `school_contact_email` trong `Settings`; validator `apply_profile`; `core/profile.py` với `FORCED_OFF`, `LEGACY_DENYLIST`, `is_school_safety()`; cập nhật 3 file env example, `docs/backend/configuration.md` | Profile `school_safety`: mọi cờ trong `FORCED_OFF` là false kể cả khi env đặt true; `degraded_features` liệt kê; default: không đổi | `pytest -q tests/test_school_settings.py tests/test_default_flags.py` | Pass: `Settings()` default bằng snapshot cũ. Fail: bất kỳ flag default đổi |
 | WS-02-T02 | P0 | T01 | Migration 0030, ORM `SchoolProfile`, `troly` vào `ALL_IDS`, `BotId`, `DISPLAY_NAMES`, `RUNTIME_VARIANTS` (`assistant`), `VERSIONS`; frontend `BotId` | `alembic upgrade head`, `alembic check` sạch; `is_v3("troly")` false; `is_legacy("troly")` false; `/bots` không liệt kê `troly` ở default | `pytest -q tests/test_school_migration.py tests/test_foundation.py`; `alembic check` | Pass: head 0030. Fail: drift |
 | WS-02-T03 | P0 | T02 | `Database.__init__` thêm `info`; `school/eligibility.py::is_eligible(db, user)`; đổi `verify_actor`, `_session_view` | `school_safety` + đủ điều kiện: 200; `school_safety` + 18+ không có hàng: 403 `ELIGIBILITY_REQUIRED`; default + có hàng `school_profiles` nhưng `age_band=teen`: vẫn 403 | `pytest -q tests/test_school_eligibility.py tests/test_eligibility.py` | Pass: 4 tổ hợp đúng. Fail: default thay đổi |
 | WS-02-T04 | P0 | T01 | `ProfileRouteGuard` trong `main.py`, chạy trong `BodyLimitMiddleware` | Profile `school_safety`: route denylist 404 `NOT_FOUND`; route giữ lại không đổi; default: không có route nào bị chặn. Test sinh danh sách từ `app.routes` và so với bảng phân loại đầy đủ | `pytest -q tests/test_school_route_guard.py` | Pass: mọi route được phân loại. Fail: route chưa phân loại |
-| WS-02-T05 | P0 | T03 | `signup` 403 khi profile `school_safety`; `experience_view` thêm trường; `FeatureView` thêm trường; OpenAPI, schema.d.ts, api-reference | Đăng ký đóng; login tài khoản thường trả session với `eligible=false` | `pytest -q tests/test_school_auth.py`; `npm run contracts:generate` | Pass: không drift |
-| WS-02-T06 | P0 | T03 | `school/routes.py` terms; router trong `main.py` | Xác nhận lưu `terms_version`, thời điểm; đổi phiên bản bắt xác nhận lại; 404 ở default | `pytest -q tests/test_school_terms.py` | Pass: replay idempotent |
+| WS-02-T05 | P0 | T03 | `signup` người lớn 403 khi profile `school_safety`; `experience_view` thêm `signupAvailable`; `FeatureView` thêm trường; OpenAPI, schema.d.ts, api-reference | `POST /auth/signup` đóng; login tài khoản thường trả session với `eligible=false` | `pytest -q tests/test_school_auth.py`; `npm run contracts:generate` | Pass: không drift |
+| WS-02-T06 | P0 | T03 | `school/routes.py` terms, nhận `guardian_ack`; router trong `main.py` | Xác nhận lưu `terms_version`, thời điểm, `guardian_ack_at`; đổi phiên bản bắt xác nhận lại; 404 ở default | `pytest -q tests/test_school_terms.py` | Pass: replay idempotent |
 | WS-02-T07 | P0 | T06 | `SchoolGuestInput(captcha_token)` dùng lại `create_guest`; tạo `school_profiles` nhóm `11-14`, `terms` NULL; `is_eligible` với khách không cần terms; route mới không dùng `require_registered_actor`; nâng `GUEST_AI_TURNS=200`, `GUEST_AI_PER_MINUTE=20`, `GUEST_VOICE_CLIPS=60`, `GUEST_VOICE_SECONDS=1800`, `GUEST_VOICE_PER_MINUTE=6`, `GUEST_AI_GLOBAL_CONCURRENCY=30`, `GUEST_VOICE_GLOBAL_CONCURRENCY=5` | Bấm một lần là vào chat; không hỏi tuổi, không có màn điều khoản | `pytest -q tests/test_school_guest.py tests/test_guest*.py` | Pass: khách gọi được chat, cases, practice |
-| WS-02-T08 | P0 | T06 | `scripts/seed_school_samples.py --apply \| --reset \| --rotate`; Auth Admin qua `httpx`, key từ environment; năm persona ở [personas](../demo/personas.md), hồ sơ mẫu thêm ở WS-10-T12; email `*@sample.moodprint.invalid` hoặc miền owner chỉ định; `email_confirm=true`; mật khẩu ngẫu nhiên, không in, ghi vào file mode 600 do người chạy chỉ định | Idempotent; `--reset` chỉ xóa dữ liệu user có `sample_persona` không NULL; từ chối chạy nếu `SUPABASE_URL` không khớp project; `--rotate` đổi mật khẩu | `pytest -q tests/test_seed_school_samples.py` với transport giả | Pass: không chạm user khác |
-| WS-02-T09 | P0 | T05 | `classifyEntry` nhận `/vi-du`, `/ho-tro`, `/trung-tinh`; `useExperience`; `AppEntry` chọn `SchoolApp` khi profile `school_safety`; `TermsGate`; `SchoolLanding`; không tải `RealApp` ở profile này | Default: DOM giống cũ, test `appEntryRoute` cũ pass. Profile `school_safety`: landing mới, login, điều khoản | `npm test`; `npx playwright test tests/e2e/school-entry.spec.ts` | Pass: spec cũ không đổi |
+| WS-02-T08 | P0 | T06 | `frontend/tests/fullstack/fixtures/school-personas.json` và helper trong `frontend/tests/fullstack/helpers.ts` tạo năm nhân vật ở [personas](../demo/personas.md), hồ sơ có sẵn cho SC-08, SC-10. Chỉ chạy trên DB local | Không có script seed nào chạy được lên hosted; email `*@sample.moodprint.invalid` | `python ../scripts/test_fullstack.py school-` | Pass |
+| WS-02-T09 | P0 | T05 | `classifyEntry` nhận `/dang-ky`, `/ho-tro`, `/quyen-rieng-tu`, `/trung-tinh`; `useExperience`; `AppEntry` chọn `SchoolApp` khi profile `school_safety`; `TermsGate`; `SchoolLanding`; không tải `RealApp` ở profile này | Default: DOM giống cũ, test `appEntryRoute` cũ pass. Profile `school_safety`: landing mới, login, điều khoản; khi hai cổng tắt hiện trạng thái chưa mở | `npm test`; `npx playwright test tests/e2e/school-entry.spec.ts` | Pass: spec cũ không đổi |
 | WS-02-T10 | P1 | T02 | Thêm `school_profiles` vào `modules/users/export.py`; kiểm tra purge | Export có; xóa tài khoản xóa hàng | `pytest -q tests/test_data_lifecycle.py` | Pass |
 | WS-02-T11 | P0 | WS-06, WS-07, WS-08 | Rà cuối vòng đời khách: `_delete_owned` xóa đủ bảng mới, evidence đi qua `queue_media_deletion`. Mỗi PR thêm bảng đã phân loại bảng đó trong `INVENTORY` ngay, nếu không `test_inventory_classifies_every_orm_table` đỏ | Hết hạn: không còn hàng của khách, quyền đọc file bị thu hồi, object xóa sau `DELETE_DELAY` | `pytest -q tests/test_guest_cleanup.py tests/test_school_guest_purge.py` | Pass: quét mọi bảng có `user_id` |
 | WS-02-T12 | P0 | T07 | `pricing.kind_available` mở `voice` dưới cấu hình có trần; thêm mục `tts`; `GUEST_PRICING_JSON` theo giá bảo thủ (ai 550/550/1650, `max_input_tokens` 922000, `pricing_version` bằng `CAPPED_PRICING_VERSION`). Hằng `AI_OUTPUT_TOKENS` giữ nguyên | Khách dùng được Luyện nói; thiếu giá vẫn fail closed; trần 5 USD giữ nguyên | `pytest -q tests/test_guest_pricing*.py` | Pass |
+| WS-02-T13 | P0 | T05 | `POST /api/v1/school/signup` qua `SupabaseAuth.sign_up`, giữ `IP_LIMIT`, `EMAIL_LIMIT`, CAPTCHA; không qua `age_band`; tắt khi `SCHOOL_SIGNUP_ENABLED=false` | Cờ tắt: 403 `SIGNUP_CLOSED`; cờ bật: gửi email xác nhận; login xong vào `TermsGate`, tạo `school_profiles` | `pytest -q tests/test_school_signup.py` | Pass |
 
 ## 11. An toàn và bảo mật
 
@@ -102,7 +109,8 @@ Viết test thất bại trước, rồi code.
 - Mọi kiểm tra ở server, UI chỉ phản ánh.
 - Không hạ `AGE_POLICY_VERSION`, không sửa `is_adult_eligible`.
 - Điều khoản không nói "bí mật tuyệt đối".
-- Mật khẩu tài khoản mẫu không vào log, không vào repo.
+- Mật khẩu không vào log. `repr=False` ở mọi trường bí mật.
+- Không có script nào tạo dữ liệu mẫu trên hosted.
 
 ## 12. Test và dataset
 
@@ -112,13 +120,13 @@ Xem cột test. Thêm `school-entry.spec.ts` vào `testMatch`.
 
 - Toàn bộ test hiện có pass ở profile `default`.
 - Khách một chạm dùng được mọi tính năng, dữ liệu mất sau hạn.
-- Tài khoản mẫu đăng nhập, xác nhận điều khoản, vào shell rỗng.
+- Học sinh đăng ký, xác nhận điều khoản, vào shell rỗng.
 - Tài khoản 18+ ở profile `school_safety` không vào được app.
-- Đăng ký đóng.
+- `POST /auth/signup` đóng. `POST /school/signup` theo cờ. Hai cổng tắt thì không ai vào được Trợ lý, `/ho-tro` vẫn mở.
 
 ## 14. Phụ thuộc và blocker
 
-WS-01. Cấu hình guest và widget Turnstile trên staging ([OD-05](../12-open-decisions.md#od-05--chế-độ-khách)). Seed trên hosted cần khóa server (OD-12).
+WS-01. Cấu hình guest và widget Turnstile trên staging ([OD-05](../12-open-decisions.md#od-05--chế-độ-khách)).
 
 ## 15. Rollback
 

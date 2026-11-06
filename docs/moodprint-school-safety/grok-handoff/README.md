@@ -43,7 +43,7 @@ Theo §8.2 của prompt: sửa code, test, migration, config, CI, Dockerfile, do
 
 ## Giới hạn
 
-Không push thẳng hay force-push `main`. Không tắt, skip, nới CI. Không xóa test. Không đưa secret vào code, log, commit, PR. Không phá dữ liệu hosted. Không quảng bá tới học sinh khi OD-15 chưa trả lời. Không điền `reviewed_by` cho mục mhiu05 chưa đánh dấu. Eval live không vượt 2,80 USD tổng. Chỉ dùng `gpt-6-luna` cho model ngôn ngữ.
+Không push thẳng hay force-push `main`. Không tắt, skip, nới CI. Không xóa test. Không đưa secret vào code, log, commit, PR. Không phá dữ liệu hosted. Không tự mở cho học sinh: hai cổng chỉ bật lâu dài khi owner xác nhận G6. Không đọc nội dung của học sinh trên hosted. Không tạo dữ liệu mẫu trên hosted. Không điền `reviewed_by` cho mục mhiu05 chưa đánh dấu. Eval live không vượt 2,80 USD tổng. Chỉ dùng `gpt-6-luna` cho model ngôn ngữ.
 
 ## Hỏi owner khi
 
@@ -104,7 +104,10 @@ Dọn DB: `python scripts/disposable_postgres.py --remove <run_id>`.
 | `gpt-4o-mini-tts` | Tắt 06/01/2027 | Không dùng |
 | Thêm route mới bằng `require_registered_actor` | Khách bị chặn | Khách dùng được mọi tính năng |
 | Thêm bảng mà quên `guests/lifecycle.py` | Dữ liệu khách không tự xóa, test inventory đỏ | Cập nhật cùng PR |
-| Commit ảnh chụp app | Repo công khai | Giữ trong `.tmp/` |
+| Ảnh mẫu lên sản phẩm | Học sinh thấy khung xám | `build.py` bỏ ảnh trùng `placeholders.json` |
+| Commit ảnh chưa che thông tin cá nhân | Repo công khai | Chỉ ảnh mhiu05 đưa vào |
+| Coi Turnstile xong là bot đã bị chặn | Cloudflare báo chưa thấy siteverify | Xác nhận CAPTCHA của Supabase ở preflight |
+| `useCaptcha.take()` báo lỗi khi token chưa về | Bấm nhanh bị lỗi ở chế độ Invisible | Chờ token, WS-09-T21 |
 | Phát audio Realtime chưa kiểm tra | Nói khác văn bản đã duyệt | Luôn qua `verbatim_ok` trước |
 | Chế độ song song của `input_guardrail` | Agent chạy trước khi có kết quả an toàn | `run_in_parallel=False` |
 
@@ -112,6 +115,6 @@ Dọn DB: `python scripts/disposable_postgres.py --remove <run_id>`.
 
 **Sau mỗi PR merge**: link PR, link CI, test đã chạy và kết quả, gate đạt hay chưa, việc tiếp theo.
 
-**Sau release**: SHA, link workflow, output health check, smoke ba kịch bản, migration đã áp, flag đã bật, vấn đề tồn tại.
+**Sau release**: SHA, link workflow, output health check, smoke ba kịch bản, migration đã áp, flag đã bật, trạng thái hai cổng, vấn đề tồn tại.
 
 Không nói test pass nếu chưa chạy.

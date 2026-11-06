@@ -23,14 +23,14 @@ PR đầu đi thẳng vào `main`, vì `main` đang đỏ.
 | Mục | Nội dung |
 | --- | --- |
 | Điều kiện | G0 |
-| Task | WS-02-T01 → T10, T12; WS-09-T01 sau WS-02-T09 |
+| Task | WS-02-T01 → T10, T12, T13; WS-09-T01 sau WS-02-T09 |
 | Xung đột | `config.py`, `security.py`, `contracts.py`, `main.py`, `RealApp.tsx` (chỉ phần tách export) |
 | Bắt buộc | Toàn bộ backend, frontend; `alembic check` |
 | Gate | Toàn bộ test default pass |
-| Xong khi | Khách một chạm và tài khoản mẫu vào shell; 18+ bị từ chối |
+| Xong khi | Khách một chạm và tài khoản học sinh vào shell; 18+ bị từ chối |
 | Rollback | Bỏ `APP_PROFILE` |
 
-**Thứ tự PR**: T01 (settings) → T02 (migration + bot id) → T03–T06 → T07 → T12 → T08 → T09 → T10.
+**Thứ tự PR**: T01 (settings) → T02 (migration + bot id) → T03–T06 → T07 → T12 → T13 → T08 → T09 → T10.
 
 Từ đây, mọi PR thêm bảng phải phân loại bảng đó trong `guests/lifecycle.py::INVENTORY` ngay trong PR.
 
@@ -78,11 +78,11 @@ Từ đây, mọi PR thêm bảng phải phân loại bảng đó trong `guests/
 | Mục | Nội dung |
 | --- | --- |
 | Điều kiện | G2, G3 |
-| Task | WS-02-T11; WS-09-T13 → T21; WS-10-T01 → T05 |
+| Task | WS-02-T11; WS-09-T13 → T23; WS-10-T01 → T05, T15 |
 | Xung đột | `playwright.config.ts`, tài liệu |
 | Bắt buộc | E2E, fullstack, axe |
 | Gate | G4 |
-| Xong khi | KB-A/B/C và tình huống mẫu xanh; `impeccable detect` sạch; checklist thủ công xong; owner đã xem ảnh |
+| Xong khi | KB-A/B/C và kịch bản SC xanh; `impeccable detect` sạch; checklist thủ công xong; owner đã xem ảnh |
 | Rollback | Không áp dụng |
 
 ## Giai đoạn 6: release
@@ -92,16 +92,29 @@ Từ đây, mọi PR thêm bảng phải phân loại bảng đó trong `guests/
 | Điều kiện | G4; nội dung đã được owner duyệt (OD-02); preflight đạt |
 | Task | WS-10-T00, T06 → T14 theo [release-runbook](release-runbook.md) |
 | Gate | G5 |
-| Xong khi | Sáu điều kiện |
+| Xong khi | Sáu điều kiện; hai cổng đúng trạng thái |
 | Rollback | Theo runbook |
+
+## Giai đoạn 7: mở cho học sinh
+
+| Mục | Nội dung |
+| --- | --- |
+| Điều kiện | Owner xác nhận bằng văn bản đủ [cổng G6](../10-evaluation-and-quality-gates.md#cổng-g6-mở-cho-học-sinh-thật) |
+| Task | WS-10-T16 |
+| Gate | G6 |
+| Xong khi | Học sinh vào được, smoke ngắn đạt, có người đọc báo cáo an toàn |
+| Rollback | Đặt hai cổng về `false`, deploy lại |
+
+Grok không tự vào giai đoạn này.
 
 ## Ai làm gì ở mỗi điểm dừng
 
 | Điểm | Owner cần |
 | --- | --- |
 | Trước G4 | Xem ảnh giao diện, đọc copy |
-| Song song | Chụp màn hình Facebook, YouTube, TikTok |
-| Trước G5 | Đánh dấu duyệt template và thẻ KB; đổi Turnstile sang Invisible; đăng nhập AWS nếu phiên hết hạn |
+| Song song | Thay ảnh mẫu bằng ảnh thật; không chặn release |
+| Trước G5 | Đánh dấu duyệt template và thẻ KB; xem lại OD-16; đăng nhập AWS nếu phiên hết hạn |
+| Trước G6 | ZDR, pháp lý, người phụ trách sự cố, chuyên gia rà nội dung |
 | Sau G5 | Diễn tập lịch trình 8 phút |
 
 Các việc phát triển khác không cần chờ owner. Đã chốt ở [12-open-decisions](../12-open-decisions.md).

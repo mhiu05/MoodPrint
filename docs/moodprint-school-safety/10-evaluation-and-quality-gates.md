@@ -47,7 +47,25 @@ Nguyên nhân: `.conversation-log` trong `GroupChat.tsx` thiếu `tabIndex`, `ro
 | **G2** Knowledge và case | WS-05, WS-06, WS-07 | Recall@4 ≥ 0,9; claim-support; toàn vẹn bằng chứng; PDF; phân quyền | Báo cáo eval, test |
 | **G3** Luyện nói | WS-08 | STT/TTS, sửa transcript, `verbatim_ok`, an toàn role-play, quản lý phiên, fallback, khách dùng được | Test, báo cáo TTS |
 | **G4** MVP tích hợp | WS-09 | KB-A/B/C và tình huống mẫu bằng Playwright; khách một chạm dùng đủ tính năng; đủ trạng thái; mobile 360px; axe sạch; `impeccable detect` sạch; `audit` không còn P0, P1; checklist thủ công; owner xem ảnh | Run Playwright, ảnh, báo cáo |
-| **G5** Release | WS-10 | Sáu điều kiện ở [release-runbook](grok-handoff/release-runbook.md); nội dung đã được mhiu05 duyệt; tình huống mẫu chạy trên staging với model thật; dữ liệu khách tự xóa | Release note |
+| **G5** Release | WS-10 | Sáu điều kiện ở [release-runbook](grok-handoff/release-runbook.md); nội dung đã được mhiu05 duyệt; kịch bản chạy trên staging với model thật; dữ liệu khách tự xóa | Release note |
+| **G6** Mở cho học sinh | Owner, WS-10 | Đủ điều kiện ở [dưới](#cổng-g6-mở-cho-học-sinh-thật), owner xác nhận bằng văn bản | Bản ghi G6 trong `evidence/release.md` |
+
+## Cổng G6: mở cho học sinh thật
+
+Người dùng mặc định là học sinh thật ([OD-15](12-open-decisions.md#od-15--ai-dùng-sản-phẩm)). G5 chứng minh hệ thống chạy; G6 cho phép học sinh vào. Mỗi điều kiện ghi người làm, ngày, bằng chứng.
+
+| # | Điều kiện | Người làm | Vì sao |
+| --- | --- | --- | --- |
+| 1 | ZDR đã bật cho project OpenAI của staging | mhiu05 với OpenAI | Bắt buộc theo [Under-18 guidance](https://developers.openai.com/api/docs/guides/safety-checks/under-18-api-guidance): có trẻ dưới 13, khách không khai tuổi |
+| 2 | Luật sư rà Luật 91/2025/QH15: đồng ý của người đại diện, ngoại lệ, luồng khách, đánh giá tác động, chuyển dữ liệu ra nước ngoài, dùng chung database với dữ liệu cũ | mhiu05 | Nguồn đã đọc là thứ cấp |
+| 3 | Luật sư xác nhận lại OD-03 và nội dung `/quyen-rieng-tu` | mhiu05 | Trẻ có thể tải ảnh riêng tư của chính mình lên |
+| 4 | Có người lớn thật phụ trách sự cố: tên, kênh, thời gian phản hồi | mhiu05 | Under-18 guidance nêu đường leo thang cho tương tác rủi ro cao |
+| 5 | Chuyên gia tâm lý học đường rà template khẩn cấp và thẻ KB | mhiu05 | Sai nội dung ở đây gây hại trực tiếp |
+| 6 | Rà điều khoản Voyage, Supabase, Cloudflare với dữ liệu trẻ vị thành niên; tắt việc Voyage dùng dữ liệu để huấn luyện nếu có | mhiu05 | Chưa đọc được điều khoản chính thức của Voyage |
+| 7 | Diễn tập backup, restore, xóa dữ liệu | Grok, mhiu05 | Dữ liệu thật không phục hồi lại được |
+| 8 | `report_safety_events.py` chạy được, có người đọc báo cáo | Grok, mhiu05 | Under-18 guidance nêu giám sát và báo cáo |
+
+Không có điều kiện nào được thay bằng test. Chưa đủ thì `GUEST_AUTH_ENABLED` và `SCHOOL_SIGNUP_ENABLED` giữ `false`. Grok không tự mở.
 
 ## Eval an toàn
 

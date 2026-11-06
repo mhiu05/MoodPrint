@@ -71,9 +71,11 @@ Merge `main` vào `mhiu05/feat-refactor` sau mỗi WS. `main` có thể đổi (
 | Việc | Ai | Cần trước |
 | --- | --- | --- |
 | Duyệt template khẩn cấp, thẻ KB | mhiu05 | G5 |
-| Chụp màn hình Facebook, YouTube, TikTok trên app thật | mhiu05 | G5 |
-| Đổi widget Turnstile sang Invisible | mhiu05 | G5 |
-| Trả lời OD-15 | mhiu05 | Trước khi giới thiệu tới học sinh |
+| Thay ảnh mẫu bằng ảnh thật ở [assets/kb-screenshots](assets/kb-screenshots/README.md) | mhiu05 | Không chặn release |
+| Xác nhận CAPTCHA protection của Supabase đang bật | mhiu05 hoặc Grok | G5 |
+| Đăng ký ZDR với OpenAI | mhiu05 | G6 |
+| Thuê tư vấn pháp lý, cử người phụ trách sự cố, nhờ chuyên gia rà nội dung | mhiu05 | G6 |
+| Xem lại OD-16 | mhiu05 | G5 |
 | Xem ảnh giao diện, review copy | Owner | G4 |
 | Đăng nhập AWS nếu phiên hết hạn | Owner | G5 |
 | Diễn tập trình bày | Nhóm | Sau G5 |

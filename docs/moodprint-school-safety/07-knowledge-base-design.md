@@ -19,6 +19,7 @@ Quy mô: **40–60 thẻ approved** cho MVP, thiết kế tới 150–300 thẻ.
 ## 3. Cấu trúc thư mục
 
 ```text
+docs/moodprint-school-safety/assets/kb-screenshots/   # ảnh mẫu, owner ghi đè bằng ảnh thật
 kb/
   sources/registry.yaml
   sources/manifest.jsonl
@@ -28,6 +29,7 @@ kb/
 .tmp/kb/raw/<source_id>/<YYYY-MM-DD>.<ext>      # snapshot gốc, không commit
 scripts/kb/{fetch,normalize,diff,validate,build,evaluate}.py
 backend/app/knowledge/content/cards.json        # sinh ra, chỉ thẻ approved, có commit
+frontend/public/kb-guides/<platform>-<task>.png  # sinh ra, chỉ ảnh thật
 ```
 
 Snapshot gốc nằm trong `.tmp/`, đã được gitignore sẵn, nên **không cần sửa `.gitignore`**. Đổi lại snapshot không có trên repo: manifest giữ sha256 để đối chiếu. Xem [OD-07](12-open-decisions.md#od-07--snapshot-nguồn).
@@ -87,7 +89,7 @@ Công cụ offline, không chạy lúc runtime.
 | Kiểm tra | `python scripts/kb/validate.py` | Xem §7 |
 | Đóng gói | `python scripts/kb/build.py` | Sinh `cards.json` chỉ gồm thẻ approved, còn hạn |
 
-**Hướng dẫn nền tảng** chỉ gồm Facebook, YouTube, TikTok, dùng `manual_capture`: mhiu05 chụp màn hình trên app thật, giao diện tiếng Việt, đặt ở `.tmp/kb/manual/<platform>/`, không commit vì repo công khai. Grok chuyển thành các bước bằng chữ trong `kb/sources/manual/`, ghi ngày kiểm tra, phiên bản app. `source_url` là trang trợ giúp chính thức. Phần này **phụ thuộc người** ([OD-02](12-open-decisions.md#od-02--duyệt-nội-dung)).
+**Hướng dẫn nền tảng** chỉ gồm Facebook, YouTube, TikTok, dùng `manual_capture`: Grok soạn bước bằng chữ trong `kb/sources/manual/` từ trang trợ giúp ở [kb-source-links](kb-source-links.md), ghi ngày kiểm tra, phiên bản app; mhiu05 kiểm tra trên app thật trước khi duyệt. Ảnh minh họa nằm ở [assets/kb-screenshots](assets/kb-screenshots/README.md): hiện là ảnh mẫu, mhiu05 ghi đè bằng ảnh thật đã che thông tin cá nhân. `build.py` bỏ qua ảnh còn trùng hash trong `placeholders.json`. `source_url` là trang trợ giúp chính thức. Phần này **phụ thuộc người** ([OD-02](12-open-decisions.md#od-02--duyệt-nội-dung)).
 
 ## 6. Schema thẻ
 
@@ -111,6 +113,8 @@ supported_claims:
     locator: "manual:2026-11-10:android-38.2#b2"
     quote: "Giữ bình luận, chọn Báo cáo"
 limitations: Giao diện có thể khác theo phiên bản ứng dụng.
+image: tiktok-report.png
+image_alt: Menu chia sẻ của video, phần báo cáo
 student_phrasings: ["bị anti trên tiktok", "report cmt", "bao cao binh luan"]
 review_status: draft
 reviewed_by: null
