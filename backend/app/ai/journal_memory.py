@@ -140,7 +140,7 @@ async def reconcile_memory_jobs(database, settings) -> None:
             .where(cohort, User.account_kind == "registered", adult_eligibility_predicate(), User.status == "active", User.deletion_pending.is_(False),
                    JournalEntry.status == "saved", JournalEntry.local_date >= local_today-settings.journal_auto_memory_backfill_days,
                    JournalEntry.local_date <= local_today, func.char_length(func.btrim(JournalEntry.text, _STRIP_WHITESPACE)) >= settings.journal_auto_memory_min_chars,
-                   or_(JournalAiSettings.user_id.is_(None), JournalAiSettings.auto_memory_enabled.is_(True)), ~current)
+                   ~current)
             .order_by(JournalEntry.id).limit(settings.embedding_job_batch_size))).all()
     for entry_id, uid in candidates:
         async with database.require()() as db, db.begin():

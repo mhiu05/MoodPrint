@@ -14,8 +14,25 @@ describe("journal evidence links", () => {
     );
   });
 
+  it("renders a validated Google Maps search link", () => {
+    const target = "https://www.google.com/maps/search/?api=1&query=Ho+Van+Quan";
+    const html = renderToStaticMarkup(
+      createElement(MessageMarkdown, { text: `[Hồ Văn Quán](${target})` }),
+    );
+    expect(html).toContain(`href="${target.replaceAll("&", "&amp;")}"`);
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noopener noreferrer"');
+    expect(html).toContain('referrerPolicy="no-referrer"');
+    expect(html).toContain("Hồ Văn Quán");
+  });
+
   it.each([
     "https://example.com",
+    "https://www.google.com/search?q=maps",
+    "https://maps.google.com/maps/search/?api=1&query=Ho",
+    "http://www.google.com/maps/search/?api=1&query=Ho",
+    "https://user:pass@www.google.com/maps/search/?api=1&query=Ho",
+    "https://www.google.com/maps",
     "//example.com",
     "/self/entry/not-an-id",
     "/self/entry/7ceaa454-e73a-4dd6-aaaf-145914c8a416?token=secret",

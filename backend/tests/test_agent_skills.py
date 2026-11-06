@@ -7,8 +7,13 @@ def test_hangout_does_not_direct_users_to_retired_shared_activities():
     from app.ai.skills.registry import SkillRegistry
 
     registry = SkillRegistry()
-    assert "activity hiện có" not in registry.instructions("hangout")
-    assert registry.load()["hangout"].version == "2"
+    body = registry.instructions("hangout")
+    assert "activity hiện có" not in body
+    assert registry.load()["hangout"].version == "1"
+    assert "www.google.com/maps/search/?api=1&query=" in body
+    assert "Nhận xét:" in body
+    assert "Không dùng `#`" in body
+    assert "không phải một đoạn văn" in body
 
 
 def test_registry_loads_six_trusted_skills():

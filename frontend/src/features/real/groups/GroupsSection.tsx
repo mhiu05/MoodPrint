@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Plus } from "lucide-react";
 import type { components } from "../../../api/generated/schema";
 import { botById } from "../../../companions/registry";
 import { ErrorNotice, useSession } from "../RealApp";
+import { readResource, resourceIsFresh, resourceKey, writeResource } from "../resourceCache";
 import { AvatarStack } from "./GroupChat";
 import "./groups.css";
 
@@ -11,18 +12,32 @@ type Header = components["schemas"]["GroupHeader"];
 
 /** "Nhóm" in the assistant roster: the user's AI groups and the way to start one. */
 export function GroupsSection({ selected }: { selected?: string }) {
-  const { api } = useSession();
+  const { api, session } = useSession();
   const location = useLocation();
-  const [groups, setGroups] = useState<Header[]>();
+  const key = resourceKey(session.userId, "/ai/groups");
+  const cached = readResource<Header[]>(key);
+  const [groups, setGroups] = useState<Header[] | undefined>(cached?.data);
   const [error, setError] = useState<unknown>();
   const [revision, setRevision] = useState(0);
+  const place = useRef(cached ? location.pathname : "");
   useEffect(() => {
+    if (!location.pathname.startsWith("/assistants")) return;
+    const hit = readResource<Header[]>(key);
+    const samePlace = place.current === location.pathname;
+    if (hit) setGroups(hit.data);
+    if (revision === 0 && samePlace && resourceIsFresh(hit)) return;
     const controller = new AbortController();
     api.request<Header[]>("/ai/groups", { signal: controller.signal })
-      .then((value) => !controller.signal.aborted && (setGroups(value), setError(undefined)))
+      .then((value) => {
+        if (controller.signal.aborted) return;
+        place.current = location.pathname;
+        writeResource(key, value);
+        setGroups(value);
+        setError(undefined);
+      })
       .catch((reason) => !controller.signal.aborted && setError(reason));
     return () => controller.abort();
-  }, [api, location.pathname, revision]);
+  }, [api, key, location.pathname, revision]);
   return (
     <section className="group-roster" aria-labelledby="groups-heading">
       <div className="group-roster-head">

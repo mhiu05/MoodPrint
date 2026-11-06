@@ -153,7 +153,7 @@ export function JournalCalendar() {
           setRevision((value) => value + 1);
         }}
       />
-      {first.loading || moreLoading ? (
+      {(first.loading || moreLoading) && !first.data ? (
         <p role="status">Đang tải lịch nhật ký…</p>
       ) : null}
       <section
@@ -163,7 +163,7 @@ export function JournalCalendar() {
         <h2 id="journal-selected-day">
           Nhật ký ngày {formatJournalDate(selected)}
         </h2>
-        {!first.loading && !moreLoading && !first.error && !moreError ? (
+        {first.data && !first.error && !moreError ? (
           <>
             {(byDay.get(selected) || []).length ? (
               <>

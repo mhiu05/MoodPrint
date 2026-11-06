@@ -59,6 +59,38 @@ _DURABLE_CLAIM = re.compile(
     r"(?:have\s+)?(?:saved|published|sent\s+(?:the\s+)?invitation))\b",
     re.IGNORECASE,
 )
+# High-confidence output-channel artifacts, not a general English/JSON filter.
+_OUTPUT_ARTIFACT = re.compile(
+    r"</?(?:think|analysis|reasoning)>|"
+    r"(?:\[\s*\][}\]]{2,}|[}\]]{3,})[^\n]{0,100}"
+    r"(?:wait\b|schema\b|json\b|check actual\b)|"
+    r"\b(?:wait[, :]+schema malformed|but i accidentally rendered)\b",
+    re.IGNORECASE,
+)
+
+OUTPUT_CHANNEL_GUIDANCE = (
+    "\nMỗi trường text chỉ chứa lời nhắn hoàn chỉnh dành cho người dùng bằng tiếng Việt. "
+    "Không đưa ghi chú soạn thảo, suy luận nội bộ, kiểm tra/sửa JSON hoặc schema vào lời nhắn. "
+    "Nếu cần sửa định dạng, chỉ trả về kết quả cuối đúng schema.\n"
+)
+
+
+def chat_model_settings(context: Any) -> ModelSettings:
+    """A Đi chơi itinerary needs the reply itself, not a long reasoning trace.
+
+    On gpt-6-luna, reasoning tokens share the output cap. The default effort plus a
+    detailed plan hits that cap, the Responses stream ends incomplete, and the client
+    only sees an unfinished turn.
+    """
+    itinerary = getattr(context, "skill_id", None) == "hangout"
+    return ModelSettings(
+        store=False,
+        parallel_tool_calls=False,
+        max_tokens=2000 if itinerary else 1200,
+        timeout=30,
+        retry=ModelRetrySettings(max_retries=0),
+        **({"reasoning": Reasoning(effort="low")} if itinerary else {}),
+    )
 
 
 def output_texts(output: Any) -> list[str]:
@@ -73,6 +105,16 @@ def search_free_reply(parts: list[AiOutput]) -> AiReply:
     if any(part.citations or any(card.kind in ("maps_search", "places") for card in part.cards) for part in parts):
         raise DomainError(409, "SEARCH_PROVENANCE_REQUIRED", "Chưa có nguồn tìm kiếm đã xác minh cho lượt này.")
     return AiReply(parts=parts)
+
+
+@output_guardrail
+async def _no_output_artifacts(
+    context: RunContextWrapper[Any], agent: Agent[Any], output: Any
+) -> GuardrailFunctionOutput:
+    return GuardrailFunctionOutput(
+        output_info={"code": "OUTPUT_ARTIFACT"},
+        tripwire_triggered=any(_OUTPUT_ARTIFACT.search(text) for text in output_texts(output)),
+    )
 
 
 @output_guardrail
@@ -278,18 +320,12 @@ class SdkProvider:
             output_type = GroundedReply
         agent = Agent[Any](
             name=f"MoodPrint:{bot_id}",
-            instructions=instructions(bot_id, self.prompt_variant) + source_instructions(context, bot_id, mood_analysis=analytical) + (journal_instructions(context) if journal_mode else "") + runtime_guidance + (MULTI_MESSAGE_GUIDANCE if multi else "") + extra_instructions,
+            instructions=instructions(bot_id, self.prompt_variant) + source_instructions(context, bot_id, mood_analysis=analytical) + (journal_instructions(context) if journal_mode else "") + runtime_guidance + (MULTI_MESSAGE_GUIDANCE if multi else "") + extra_instructions + OUTPUT_CHANNEL_GUIDANCE,
             model=model,
             tools=selected_tools,
             output_type=output_type,
-            output_guardrails=[] if scoped_mood else [_no_unreceipted_claim],
-            model_settings=ModelSettings(
-                store=False,
-                parallel_tool_calls=False,
-                max_tokens=1200,
-                timeout=30,
-                retry=ModelRetrySettings(max_retries=0),
-            ),
+            output_guardrails=[] if scoped_mood else [_no_unreceipted_claim, _no_output_artifacts],
+            model_settings=chat_model_settings(context),
         )
         # Intent and refusal detection above read only the user's history. A collaboration data
         # item goes right before the newest user message, which stays the last thing read.
@@ -468,7 +504,8 @@ class SdkProvider:
         async with asyncio.timeout(RUN_TIMEOUT_SECONDS):
             result = Runner.run_streamed(
                 agent, input=cast(list[TResponseInputItem], history), context=context, max_turns=max_turns,
-                hooks=hooks, run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False),
+                hooks=hooks, run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False,
+                                                output_guardrails=[_no_output_artifacts]),
             )
             try:
                 async for _ in result.stream_events():

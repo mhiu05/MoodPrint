@@ -312,6 +312,10 @@
   outline-offset: 2px;
 }
 
+.ai-markdown a {
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
 .ai-markdown > :first-child {
   margin-top: 0;
 }

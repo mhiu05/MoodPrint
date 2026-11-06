@@ -670,7 +670,7 @@ class Workflow:
         from app.ai.evidence import source_instructions
         from app.ai.journal import NhipReply, journal_instructions
         from app.ai.prompts import MULTI_MESSAGE_GUIDANCE, conversation_instructions, instructions
-        from app.ai.provider import _no_unreceipted_claim
+        from app.ai.provider import OUTPUT_CHANNEL_GUIDANCE, _no_unreceipted_claim
         from app.ai.schemas import CompanionReply
 
         # Nhật ký reads the journal on a handoff only when the approved plan asked for entries.
@@ -680,7 +680,7 @@ class Workflow:
             instructions=instructions(target) + source_instructions(self.run, target, mood_analysis=False)
             + (journal_instructions(self.run) if journal else "")
             + conversation_instructions(target, "conversation" if journal else "activity")
-            + MULTI_MESSAGE_GUIDANCE + TARGET_GUIDANCE,
+            + MULTI_MESSAGE_GUIDANCE + TARGET_GUIDANCE + OUTPUT_CHANNEL_GUIDANCE,
             model=self.model_for(target),
             tools=context_tools,
             output_type=NhipReply if journal else CompanionReply,
@@ -721,7 +721,7 @@ class Workflow:
         from app.ai.evidence import source_instructions
         from app.ai.journal import NhipReply, has_journal_link, render_journal_reply
         from app.ai.prompts import MULTI_MESSAGE_GUIDANCE, conversation_instructions, instructions
-        from app.ai.provider import _no_unreceipted_claim
+        from app.ai.provider import OUTPUT_CHANNEL_GUIDANCE, _no_unreceipted_claim
         from app.ai.schemas import AiOutput, AiReply, CompanionReply
 
         decision = self.decision
@@ -744,7 +744,7 @@ class Workflow:
             name="MoodPrint:dieuphoi",
             instructions=instructions("dieuphoi") + source_instructions(self.run, "dieuphoi", mood_analysis=False)
             + conversation_instructions("dieuphoi", intent) + MULTI_MESSAGE_GUIDANCE
-            + (CONSULT_GUIDANCE if tools else HANDOFF_GUIDANCE),
+            + (CONSULT_GUIDANCE if tools else HANDOFF_GUIDANCE) + OUTPUT_CHANNEL_GUIDANCE,
             model=self.model_for("dieuphoi"),
             tools=cast(list, tools),
             handoffs=cast(list, handoffs),

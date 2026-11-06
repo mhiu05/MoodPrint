@@ -57,8 +57,26 @@ async def test_real_sdk_streams_typed_output_with_private_run_configuration(bot_
         1200,
     )
     assert settings.retry.max_retries == 0
+    assert settings.reasoning is None
     assert progress == ["progress"]
     assert "CANARY" not in caplog.text
+
+
+async def test_hangout_itinerary_gets_room_to_finish_without_a_long_reasoning_trace():
+    from types import SimpleNamespace
+
+    model = make_test_model("Một lịch ngắn.")
+    await SdkProvider(Settings(_env_file=None)).run(
+        bot_id="hoatdong",
+        history=[{"role": "user", "content": "lên lịch đi chơi"}],
+        tools=[],
+        context=SimpleNamespace(skill_id="hangout"),
+        on_progress=no_progress,
+        model_override=model,
+    )
+    settings = model.calls[0]["settings"]
+    assert settings.max_tokens == 2000
+    assert settings.reasoning.effort == "low"
 
 
 async def test_unknown_bot_fails_before_model_execution():

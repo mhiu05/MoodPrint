@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
   type ReactNode,
+  type SetStateAction,
 } from "react";
 import {
   HashRouter,
@@ -29,6 +30,7 @@ import {
   ArrowUpRight,
   Copy,
   Info,
+  LoaderCircle,
   LockKeyhole,
   Moon,
   NotebookPen,
@@ -77,7 +79,6 @@ import type { components } from "../../api/generated/schema";
 import { AIInboxProvider, inboxLabel, otherUnread, unreadFor, useAIInbox } from "./useAIInbox";
 import { NAV_ITEMS, badgeText } from "./navigation";
 import { renderableCards } from "./messageCards";
-import { JournalAiSettings } from "./journal/JournalAiSettings";
 import { OfflineBanner, useOnline } from "./OfflineBanner";
 import {
   SESSION_GRACE_MS,
@@ -98,6 +99,7 @@ import { CollaborationLine } from "./collaboration/CollaborationLine";
 import { AgentStepsLine, HandoffBanner, SpeakerTag } from "./orchestration/AgentLines";
 import { ConversationInfo, useInfoPanelMounted } from "./ConversationInfo";
 import { insertAtSelection } from "./draftInsert";
+import { clearResources, dropResource, readResource, resourceIsFresh, resourceKey, writeResource } from "./resourceCache";
 import { createMessageDateFormatter } from "./messageDates";
 import { groupMessages } from "./messageGroups";
 import { deriveAIActivity, type AIActivityPhase } from "./aiActivityView";
@@ -135,15 +137,35 @@ export function useSession() {
 export { ErrorNotice };
 
 export function useResource<T>(path: string, enabled = true) {
-  const { api, paused } = useSession();
-  const [data, setData] = useState<T>();
+  const { api, paused, session } = useSession();
+  const durable = enabled && !path.includes("/access");
+  const key = resourceKey(session.userId, path);
+  const cached = durable ? readResource<T>(key) : undefined;
+  const [data, setDataState] = useState<T | undefined>(cached?.data);
   const [error, setError] = useState<unknown>();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled && cached === undefined);
   const [revision, setRevision] = useState(0);
+  const seenKey = useRef(key);
+  if (seenKey.current !== key) {
+    seenKey.current = key;
+    const next = durable ? readResource<T>(key) : undefined;
+    setDataState(next?.data);
+    setError(undefined);
+    setLoading(enabled && next === undefined);
+  }
   const refresh = useCallback(() => setRevision((value) => value + 1), []);
+  const setData = useCallback((value: SetStateAction<T | undefined>) => {
+    setDataState((previous) => {
+      const next = typeof value === "function" ? value(previous) : value;
+      if (!durable) return next;
+      if (next === undefined) dropResource(key);
+      else writeResource(key, next);
+      return next;
+    });
+  }, [durable, key]);
   useEffect(() => {
     if (!enabled) {
-      setData(undefined);
+      setDataState(undefined);
       setError(undefined);
       setLoading(false);
       return;
@@ -152,13 +174,25 @@ export function useResource<T>(path: string, enabled = true) {
       setLoading(false);
       return;
     }
+    const hit = durable ? readResource<T>(key) : undefined;
+    const fresh = revision === 0 && resourceIsFresh(hit);
+    if (hit) {
+      setDataState(hit.data);
+      setLoading(false);
+      setError(undefined);
+    } else {
+      setLoading(true);
+      setError(undefined);
+    }
+    if (fresh) return;
     const controller = new AbortController();
-    setLoading(true);
-    setError(undefined);
     api
       .request<T>(path, { signal: controller.signal })
       .then((value) => {
-        if (!controller.signal.aborted) setData(value);
+        if (controller.signal.aborted) return;
+        if (durable) writeResource(key, value);
+        setDataState(value);
+        setError(undefined);
       })
       .catch((reason) => {
         if (!controller.signal.aborted) setError(reason);
@@ -167,7 +201,7 @@ export function useResource<T>(path: string, enabled = true) {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [api, path, revision, enabled, paused]);
+  }, [api, path, key, revision, enabled, paused, durable]);
   // A failed read retries by itself when the browser comes back online.
   useEffect(() => {
     if (!error || !enabled || paused) return;
@@ -243,6 +277,7 @@ function SessionRoot({ api, callback }: { api: ApiClient; callback: AuthCallback
     // Its finally callback only clears itself, so a replacement can start now.
     inflight.current = null;
     clearGrace();
+    clearResources();
     api.reset();
   }, [api, clearGrace]);
   const receive = useCallback(
@@ -746,6 +781,11 @@ function ConnectionBanner() {
 
 function Shell() {
   const { api, session } = useSession();
+  const seenUser = useRef(session.userId);
+  if (seenUser.current !== session.userId) {
+    clearResources();
+    seenUser.current = session.userId;
+  }
   const checkInsOpen = session.features.proactive && session.accountKind !== "guest";
   const [guideOpen, setGuideOpen] = useState(false);
   const activity = useTourActivity();
@@ -808,10 +848,12 @@ function Shell() {
               {session.staff && (
                 <Route path="/admin/reports" element={<Moderation />} />
               )}
-              <Route path="/assistants" element={<Assistants />} />
-              <Route path="/assistants/:botId" element={<Assistants />} />
-              <Route path="/assistants/groups/new" element={<Assistants group="new" />} />
-              <Route path="/assistants/groups/:groupId" element={<Assistants group="chat" />} />
+              <Route path="/assistants" element={<Assistants />}>
+                <Route index element={null} />
+                <Route path="groups/new" element={null} />
+                <Route path="groups/:groupId" element={null} />
+                <Route path=":botId" element={null} />
+              </Route>
               <Route path="/settings" element={<Navigate replace to="/profile" />} />
               <Route path="/self" element={<Suspense fallback={<p role="status">Đang mở nhật ký…</p>}><JournalPage /></Suspense>} />
               <Route path="/self/calendar" element={<Suspense fallback={<p role="status">Đang mở lịch nhật ký…</p>}><JournalCalendar /></Suspense>} />
@@ -867,9 +909,19 @@ function PublicAvatar({ bot, size }: { bot: BotPublicDTO; size?: number }) {
   );
 }
 
-function Assistants({ group }: { group?: "new" | "chat" }) {
+function assistantsRoute(pathname: string) {
+  if (pathname === "/assistants/groups/new") return { group: "new" as const, groupId: undefined, botId: undefined };
+  const group = /^\/assistants\/groups\/([^/]+)\/?$/.exec(pathname);
+  if (group) return { group: "chat" as const, groupId: decodeURIComponent(group[1]), botId: undefined };
+  const bot = /^\/assistants\/([^/]+)\/?$/.exec(pathname);
+  if (bot && bot[1] !== "groups") return { group: undefined, groupId: undefined, botId: decodeURIComponent(bot[1]) };
+  return { group: undefined, groupId: undefined, botId: undefined };
+}
+
+function Assistants() {
   const [rosterParams] = useSearchParams();
-  const { botId, groupId } = useParams();
+  const location = useLocation();
+  const { botId, groupId, group } = assistantsRoute(location.pathname);
   const resource = useResource<BotPublicDTO[]>("/bots");
   const [search, setSearch] = useState("");
   const bots = resource.data || [];
@@ -900,7 +952,7 @@ function Assistants({ group }: { group?: "new" | "chat" }) {
           <h1>Chọn một trợ lý</h1>
           {search.trim() && bots.length ? <span role="status">{filtered.length} kết quả</span> : null}
         </div>
-        {resource.loading ? <p role="status">Đang tải trợ lý…</p> : null}
+        {resource.loading && !resource.data ? <p role="status">Đang tải trợ lý…</p> : null}
         <ErrorNotice error={resource.error} retry={resource.refresh} />
         {rosterParams.has("manageCheckIns") ? <section aria-label="Quản lý lời hỏi thăm"><p>Mở thông tin của trợ lý để chỉnh lịch hỏi thăm.</p>{bots.map(agent => <Link key={agent.botId} to={`/assistants/${agent.botId}?panel=info&section=check-ins`}>Lịch của {agent.name} </Link>)}</section> : null}
         {inbox.unreadTotal > 0 ? (
@@ -980,7 +1032,7 @@ function Assistants({ group }: { group?: "new" | "chat" }) {
           <Conversation key={bot.botId} bot={bot} />
         ) : botId ? (
           <div className="conversation-welcome">
-            {resource.loading || legacy.loading ? (
+            {(resource.loading && !resource.data) || (legacy.loading && !legacy.data) ? (
               <p role="status">Đang mở trợ lý…</p>
             ) : (
               <>
@@ -1046,6 +1098,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedId = searchParams.get("conversation");
   const [conversation, setConversation] = useState<SavedConversation>();
+  const [pendingMessage, setPendingMessage] = useState<SavedConversation["messages"][number]>();
   const current = useRef<SavedConversation | undefined>(undefined);
   const [olderBusy, setOlderBusy] = useState(false), [manageBusy, setManageBusy] = useState(false), [deleteOpen, setDeleteOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false), [renameText, setRenameText] = useState(""), [renameError, setRenameError] = useState<unknown>();
@@ -1158,13 +1211,14 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   const datedMessages = useMemo(() => {
     const format = createMessageDateFormatter(session.timezone, new Date(messageClock));
     let previousDay: string | undefined;
-    return conversation?.messages.map(message => {
+    const messages = [...(conversation?.messages ?? []), ...(pendingMessage ? [pendingMessage] : [])];
+    return messages.map(message => {
       const date = format(message.createdAt);
       const showDate = date && date.dayKey !== previousDay;
       if (date) previousDay = date.dayKey;
       return { message, date, showDate };
     });
-  }, [conversation?.messages, session.timezone, messageClock]);
+  }, [conversation?.messages, pendingMessage, session.timezone, messageClock]);
   const messageGroupsView = useMemo(
     () => groupMessages(datedMessages ?? [], (row) => row.message),
     [datedMessages],
@@ -1380,6 +1434,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     viewGeneration.current += 1; recovery.current = undefined; settled.current = undefined; confirmTarget.current = undefined;
     setNewConfirmOpen(false);
     setLoading(true); setReady(false); setBusy(false); setRun(undefined); setError(undefined);
+    setPendingMessage(undefined);
     setNotice(""); setPreviousConversation(undefined);
     activeRun.current = undefined; cancelRequested.current = undefined; setStopRequested(false); setSyncing(false); setStopped(false);
     pendingNew.current = false; setAwaitingNew(false); setCopyStatus(undefined);
@@ -1478,7 +1533,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     )
       return;
     const signal = lifetime.current.signal;
-    const submittedRevision = draftRevision.current, generation = viewGeneration.current;
+    const generation = viewGeneration.current;
     setBusy(true);
     setStopped(false);
     setError(undefined);
@@ -1489,6 +1544,12 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     const scopeKey = (moodScope ? `${moodScope.fromDate}/${moodScope.toDate}` : "") + selectionKey(options);
     if (intent.current?.text !== text || intent.current?.scopeKey !== scopeKey)
       intent.current = { text, scopeKey, clientMessageId: crypto.randomUUID(), options, selectionRevision: submittedSelectionRevision };
+    // Move the submitted snapshot into the log before either network request.
+    editDraft("");
+    const submittedRevision = draftRevision.current;
+    setPendingMessage({ id: intent.current.clientMessageId, actor: "self", text,
+      sourceBacked: false, createdAt: new Date().toISOString(), partIndex: 0, partCount: 1, origin: "user" });
+    setAtBottom(true);
     try {
       let thread = current.current;
       if (!thread) {
@@ -1528,6 +1589,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
         },
       );
       if (signal.aborted) return;
+      setPendingMessage(undefined);
       update({
         ...thread,
         version: accepted.version,
@@ -1553,10 +1615,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       intent.current = null;
       if (moodScope) setLastMoodRange({ conversationId: thread.conversationId, ...moodScope });
       setShareMood(false);
-      // Only the snapshot that was submitted is cleared; anything typed while the
-      // request was pending (even text equal to the old draft) stays.
+      // Anything typed after submission belongs to the next message.
       const untouched = draftRevision.current === submittedRevision;
-      if (untouched) editDraft("");
       recovery.current = { requestKey, conversationId: thread.conversationId, generation, text, revision: untouched ? draftRevision.current : -1 };
       setAtBottom(true);
       await stream(
@@ -1568,6 +1628,8 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
       );
     } catch (reason) {
       if (signal.aborted) return;
+      setPendingMessage(undefined);
+      if (generation === viewGeneration.current && draftRevision.current === submittedRevision) editDraft(value);
       const thread = current.current;
       if (reason instanceof ApiError && reason.code === "STALE_VERSION" && thread) {
         // A newer message (for example a check-in) arrived first. The server accepted
@@ -1636,6 +1698,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
     lifetime.current = new AbortController();
     viewGeneration.current += 1; recovery.current = undefined; settled.current = undefined; confirmTarget.current = undefined;
     current.current = undefined; setConversation(undefined); editDraft(""); setDraftNotice(""); setManageError(undefined); setError(undefined); setNotice("");
+    setPendingMessage(undefined);
     setReady(true); setLoading(false); setBusy(false); setRun(undefined); intent.current = null; changeOptions({}); setShareMood(false); setLastMoodRange(undefined);
     activeRun.current = undefined; cancelRequested.current = undefined; setStopRequested(false); setSyncing(false); setStopped(false);
     pendingNew.current = false; setAwaitingNew(false); setPreviousConversation(undefined); setCopyStatus(undefined);
@@ -1868,6 +1931,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
   /** One message; inside a bubble group `part` names its position for screen readers. */
   const messageRow = ({ message, date }: DatedRow, part?: { index: number; count: number }) => (
           <div
+            aria-busy={message.id === pendingMessage?.id ? true : undefined}
             className={`message-row ai-message-row ${message.actor === "self" ? "from-self" : "from-bot"}${part ? " in-group" : ""} ${revealedMessage === message.id ? "message-details-open" : ""}`}
           >
             <div
@@ -1896,6 +1960,11 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
                   </Suspense>
                 ) : <p>{message.text}</p>}
               </div>
+              {message.id === pendingMessage?.id ? (
+                <small className="message-pending" role="status">
+                  <LoaderCircle size={14} aria-hidden="true" /> Đang gửi…
+                </small>
+              ) : null}
               {validCards(message.cards, 3) &&
                 renderableCards(message.cards).map((card, index) => (
                   <div className="inline-card" key={`${message.id}-${index}`}>
@@ -1912,7 +1981,7 @@ function ConversationBody({ bot }: { bot: BotPublicDTO }) {
                     ) : null}
                   </div>
                 ))}
-              {date || message.actor === "bot" ? (
+              {message.id !== pendingMessage?.id && (date || message.actor === "bot") ? (
                 <div className="message-actions">
                   {date ? <time dateTime={message.createdAt!}>{date.time}</time> : null}
                   {message.actor === "bot" ? <>
@@ -2258,7 +2327,6 @@ function AccountPage({ onGuide }: { onGuide: () => void }) {
     <div className={cx.reading}>
       <h1 tabIndex={-1} data-tour="personal-account">Tài khoản</h1>
       <AdultEligibility />
-      <JournalAiSettings />
       <AccountActions onGuide={onGuide} onDeleted={() => setAccountDeleted(true)} />
     </div>
   );

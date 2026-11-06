@@ -61,6 +61,40 @@ test("loading lists announce themselves", async ({ page }) => {
   await expect(page.getByRole("link", { name: /Mây/ }).first()).toBeVisible();
 });
 
+test("returning to a tab keeps the roster instead of loading it again", async ({ page }) => {
+  const calls = { bots: 0, groups: 0, history: 0 };
+  const session = { ...baseSession, features: { ...baseSession.features, groupChat: true } };
+  const group = {
+    groupId: "33333333-3333-4333-8333-333333333333",
+    name: "Nhóm chiều",
+    members: [{ botId: "dieuphoi", status: "active", journalAccess: false, sharesHistory: false, joinedAt: "2026-10-23T08:00:00Z" }],
+    version: 1, createdAt: "2026-10-23T08:00:00Z", updatedAt: "2026-10-23T08:00:00Z", expiresAt: "2026-11-23T08:00:00Z", unread: 0,
+  };
+  await app(page, session, { "/ai/groups": () => { calls.groups += 1; return { json: [group] }; } });
+  await page.route("**/api/v1/bots", async (route) => { calls.bots += 1; await route.fallback(); });
+  await page.route("**/api/v1/ai/conversations**", async (route) => { calls.history += 1; await route.fallback(); });
+  await page.goto("/#/assistants");
+  const nav = page.getByRole("navigation", { name: "Điều hướng chính" });
+  await expect(page.getByRole("link", { name: /Mây/ }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: /Nhóm chiều/ })).toBeVisible();
+  await expect(page.getByText("Chưa có cuộc trò chuyện nào. Chọn một trợ lý để bắt đầu.")).toBeVisible();
+  const seen = { ...calls };
+  await nav.getByRole("link", { name: "Tài khoản" }).click();
+  await expect(page.getByRole("heading", { name: "Tài khoản", exact: true })).toBeVisible();
+  await nav.getByRole("link", { name: "Trợ lý" }).click();
+  await expect(page.getByRole("link", { name: /Mây/ }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: /Nhóm chiều/ })).toBeVisible();
+  await expect(page.getByText("Chưa có cuộc trò chuyện nào. Chọn một trợ lý để bắt đầu.")).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Đang tải trợ lý" })).toHaveCount(0);
+  await expect(page.getByRole("status").filter({ hasText: "Đang tải nhóm" })).toHaveCount(0);
+  await expect(page.getByRole("status").filter({ hasText: "Đang tải lịch sử trò chuyện" })).toHaveCount(0);
+  expect(calls).toEqual(seen);
+  await page.getByRole("link", { name: /Mây/ }).first().click();
+  await expect(page.getByRole("heading", { name: /Mây/ })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Đang tải trợ lý" })).toHaveCount(0);
+  expect(calls.bots).toBe(seen.bots);
+});
+
 test("empty screens say so honestly and offer one next step", async ({ page }) => {
   await mock(page, (route, path) => path === "/bots" ? route.fulfill({ json: [] }) : false);
   await page.goto("/#/assistants");
