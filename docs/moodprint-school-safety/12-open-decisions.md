@@ -17,7 +17,7 @@ Cập nhật sau trả lời của owner. Câu trả lời giữ nguyên ý, dư
 | OD-11 | Trần chi phí eval live | **Đã chốt** | Dưới 3 USD tổng; trần kỹ thuật 2,80 USD |
 | OD-12 | Credential | **Đã chốt phần lớn** | Supabase MCP, AWS MCP, Cloudflare qua phiên trình duyệt của owner |
 | OD-13 | Hệ thống cũ | **Đã chốt** | Đóng băng, không vá, không tương thích ngược |
-| OD-14 | Model | **Đã chốt, có lưu ý** | Chỉ `gpt-6-luna` cho agent, classifier, verifier |
+| OD-14 | Model | **Đã chốt** | Chỉ `gpt-6-luna` cho agent, classifier, verifier; owner xác nhận lại sau khi xem chi phí Terra |
 | OD-15 | Ai dùng sản phẩm | **Đã chốt** | Đợt này để trình bày, nội dung hư cấu; không cần ZDR, pháp lý, luồng đồng ý |
 | OD-16 | Đăng ký tài khoản | Mặc định | Đóng trong đợt này; dùng một tài khoản trình bày |
 | OD-17 | Thứ tự ưu tiên | **Đã chốt** | Độ thông minh của agent, độ chi tiết, độ hoàn thiện đứng trước tốc độ |
@@ -163,6 +163,8 @@ Nếu MCP không chạy được SQL nguyên văn, hoặc AWS MCP không truy c�
 
 **Trả lời**: Chỉ sử dụng model `gpt-6-luna`, không sử dụng model khác.
 
+Owner xác nhận lại ngày 06/11/2026, sau khi xem so sánh với `gpt-6.1-terra`: chốt `gpt-6-luna`.
+
 **Áp dụng**: agent, classifier, verifier đều dùng `gpt-6-luna`. Bỏ `ASSISTANT_MODEL`, bỏ so sánh model, `CAPPED_RATES` không đổi. Chi phí giảm còn khoảng 13 USD/tháng cho 100 người dùng.
 
 **Phạm vi**: câu này được hiểu là model ngôn ngữ. `gpt-transcribe`, `gpt-realtime-2.1-mini` (OD-04) và Voyage vẫn dùng, vì Luna không xử lý âm thanh hay embedding.
@@ -199,10 +201,10 @@ Nếu MCP không chạy được SQL nguyên văn, hoặc AWS MCP không truy c�
 | Hội thoại mẫu trong playbook | 3–5 đoạn mỗi WF | 5–8 đoạn mỗi WF, ít nhất 2 ca khó |
 | Eval hội thoại | 30 kịch bản | 35 kịch bản, có `dev`, `holdout`, kịch bản dài 12 lượt, 3 vòng sửa; trần 1,30 USD |
 | Rubric | Trung bình ≥ 4 | Mỗi nhóm ≥ 4,5, mọi kịch bản ≥ 4, nhóm an toàn không có điểm dưới 4 |
-| Người đọc | Không quy định | Owner đọc 10 bản ghi ngẫu nhiên trước G1 |
+| Người đọc | Không quy định | Owner đọc 10 bản ghi chọn ngẫu nhiên từ vòng eval cuối, ở `evidence/g1-transcripts.md`, trước G1 |
 | Giao diện | Hết lỗi P0, P1 | Hết P0, P1, P2; rà trên iPhone và Android thật; có chế độ tối |
 | Phạm vi | Task P2 có thể để sau | Chế độ `challenging`, soạn tin cho người chứng kiến, eval luyện nói lên P1; mọi task P0, P1 phải xong trước G5 |
 
 Tổng eval live vẫn dưới 3 USD.
 
-**Giới hạn**: đòn bẩy lớn nhất về độ thông minh là model. OD-14 giữ `gpt-6-luna`, nên bảng trên là mức tốt nhất trong ràng buộc đó. Đổi model cần owner quyết định.
+**Giới hạn**: đòn bẩy lớn nhất về độ thông minh là model. Owner đã chốt giữ `gpt-6-luna` ở OD-14, nên bảng trên là mức tốt nhất trong ràng buộc đó.

@@ -49,7 +49,7 @@ CÁCH LÀM
 TIÊU CHUẨN CHẤT LƯỢNG
 - Agent: viết tay 5-8 hội thoại mẫu cho mỗi playbook, ít nhất 2 ca khó. Đọc 06 §12 trước khi viết prompt.
 - Eval hội thoại: 35 kịch bản chạy live. Chỉnh trên 20 kịch bản dev, tối đa 3 vòng, đọc bản ghi điểm thấp rồi sửa playbook. 10 kịch bản holdout và 5 kịch bản dài chỉ chạy ở vòng cuối. So sánh medium và high, chọn mức điểm cao hơn miễn p95 đến final ≤ 12 giây.
-- Rubric: mỗi nhóm ≥ 4,5, mọi kịch bản ≥ 4, nhóm an toàn không có điểm dưới 4. Không sửa prompt chỉ để qua đúng một kịch bản. Gửi owner 10 bản ghi ngẫu nhiên trước khi qua G1.
+- Rubric: mỗi nhóm ≥ 4,5, mọi kịch bản ≥ 4, nhóm an toàn không có điểm dưới 4. Không sửa prompt chỉ để qua đúng một kịch bản. Sau vòng cuối, chọn ngẫu nhiên 10 bản ghi theo 10-evaluation-and-quality-gates.md, ghi seed, lưu vào docs/moodprint-school-safety/evidence/g1-transcripts.md kèm điểm, không chọn tay, rồi dừng chờ owner đọc trước khi qua G1.
 - Giao diện: hết lỗi P0, P1, P2 từ audit. Có chế độ tối. Rà từng màn hình trên iPhone và Android thật theo checklist G4, không nháy layout, mọi nút phản hồi ngay, copy đọc tự nhiên.
 
 THAM CHIẾU KỸ THUẬT

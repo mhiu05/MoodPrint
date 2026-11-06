@@ -116,7 +116,9 @@ Chấm 1–5, người đọc chấm trên bản ghi. Mục tiêu: trung bình �
 
 Chia 20 kịch bản `dev` để chỉnh playbook. 10 kịch bản `holdout` và 5 kịch bản dài chỉ chạy ở vòng cuối, để điểm không khớp riêng vào bộ `dev`.
 
-Vòng làm việc: chạy `dev`, đọc bản ghi điểm thấp, sửa playbook, chạy lại, tối đa 3 vòng. So sánh `medium` và `high` trên cùng bộ `dev`; chọn mức điểm cao hơn, miễn lượt chat vẫn đạt p95 ≤ 12 giây. Chỉ dùng `gpt-6-luna`. Owner đọc 10 bản ghi ngẫu nhiên trước khi qua G1.
+Vòng làm việc: chạy `dev`, đọc bản ghi điểm thấp, sửa playbook, chạy lại, tối đa 3 vòng. So sánh `medium` và `high` trên cùng bộ `dev`; chọn mức điểm cao hơn, miễn lượt chat vẫn đạt p95 ≤ 12 giây. Chỉ dùng `gpt-6-luna`. 
+
+**Bản ghi cho owner**: sau vòng cuối, Grok chọn ngẫu nhiên 10 bản ghi, ít nhất 3 kịch bản `holdout` và 1 kịch bản dài, ghi seed để chọn lại được. Lưu vào `docs/moodprint-school-safety/evidence/g1-transcripts.md`, mỗi bản ghi kèm điểm rubric. Không chọn tay, không sửa lời agent. Owner đọc trước khi qua G1. Nội dung là hư cấu nên commit được.
 
 ## Eval truy xuất
 
