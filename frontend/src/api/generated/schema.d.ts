@@ -2192,7 +2192,7 @@ export interface components {
             proactiveSlot?: ("morning" | "evening") | null;
             collaboration?: components["schemas"]["CollaborationSummary"] | null;
             /** Speaker */
-            speaker?: ("may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong") | null;
+            speaker?: ("may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly") | null;
             /** Steps */
             steps?: components["schemas"]["ReplyStep"][] | null;
         };
@@ -2461,7 +2461,7 @@ export interface components {
              * Botid
              * @enum {string}
              */
-            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
+            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly";
             /** Name */
             name: string;
             /** Role */
@@ -2478,7 +2478,7 @@ export interface components {
              */
             legacy: boolean;
             /** Replacedby */
-            replacedBy?: ("may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong") | null;
+            replacedBy?: ("may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly") | null;
         };
         /** CandidateCardDTO */
         CandidateCardDTO: {
@@ -2569,7 +2569,7 @@ export interface components {
              */
             kind: "nhip_energy_for_rure" | "nhip_habit_for_may" | "rure_activity_for_guong";
             /** Companions */
-            companions: ("may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong")[];
+            companions: ("may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly")[];
             /** Summary */
             summary: string;
         };
@@ -2639,7 +2639,7 @@ export interface components {
              * Botid
              * @enum {string}
              */
-            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
+            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly";
             /** Version */
             version: number;
             /**
@@ -2675,7 +2675,7 @@ export interface components {
              * Botid
              * @enum {string}
              */
-            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
+            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly";
             /** Persistent */
             persistent?: boolean | null;
         };
@@ -2710,7 +2710,7 @@ export interface components {
              * Botid
              * @enum {string}
              */
-            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
+            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly";
             /** Version */
             version: number;
             /**
@@ -3383,7 +3383,7 @@ export interface components {
              * Botid
              * @enum {string}
              */
-            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
+            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly";
             /** Unread */
             unread: number;
             latest: components["schemas"]["InboxLatest"];
@@ -3722,7 +3722,7 @@ export interface components {
              * Botid
              * @enum {string}
              */
-            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
+            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly";
             /** Text */
             text: string;
             /** Version */
@@ -3904,7 +3904,7 @@ export interface components {
              * Botid
              * @enum {string}
              */
-            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
+            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly";
         };
         /** NoticeView */
         NoticeView: {
@@ -4133,7 +4133,7 @@ export interface components {
              * Botid
              * @enum {string}
              */
-            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
+            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly";
             /** Text */
             text: string;
             /** Version */
@@ -4429,7 +4429,7 @@ export interface components {
              * Botid
              * @enum {string}
              */
-            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
+            botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly";
             /**
              * Slot
              * @enum {string}
@@ -4459,7 +4459,7 @@ export interface components {
              */
             legacy: boolean;
             /** Migrateto */
-            migrateTo?: ("may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong") | null;
+            migrateTo?: ("may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly") | null;
         };
         /** ScoreView */
         ScoreView: {
@@ -4556,12 +4556,12 @@ export interface components {
              * Requester
              * @enum {string}
              */
-            requester: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
+            requester: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly";
             /**
              * Specialist
              * @enum {string}
              */
-            specialist: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
+            specialist: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly";
             /** Enabled */
             enabled: boolean;
             /** Version */
@@ -9144,7 +9144,7 @@ export interface operations {
             query?: {
                 limit?: number;
                 before?: string | null;
-                botId?: ("may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong") | null;
+                botId?: ("may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly") | null;
             };
             header?: never;
             path?: never;
@@ -10399,7 +10399,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                bot_id: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
+                bot_id: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly";
                 slot: "morning" | "evening";
             };
             cookie?: never;
@@ -10507,7 +10507,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                bot_id: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
+                bot_id: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly";
                 slot: "morning" | "evening";
             };
             cookie?: never;
@@ -10615,7 +10615,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                bot_id: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
+                bot_id: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly";
                 slot: "morning" | "evening";
             };
             cookie?: never;
@@ -11345,7 +11345,7 @@ export interface operations {
     prompt_capabilities_api_v1_ai_prompt_capabilities_get: {
         parameters: {
             query: {
-                botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong";
+                botId: "may" | "guong" | "nhip" | "rure" | "caunoi" | "dieuphoi" | "nhatky" | "hoatdong" | "troly";
             };
             header?: never;
             path?: never;

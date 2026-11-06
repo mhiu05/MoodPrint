@@ -130,4 +130,6 @@ Tất cả task xong; CI xanh; `check_docs.py` pass.
 
 ## 17. Ghi chú cho Grok
 
+`BOT_CHECK` của lịch proactive giữ bộ id cũ (`FROZEN_IDS` = legacy + V3). `ALL_IDS` có thêm `troly`, và chỉ `ck_ai_conversations_bot` được nới. Nếu gắn `troly` vào `BOT_CHECK`, `alembic check` đòi nới cả `ck_ai_proactive_schedules_bot`, ngoài [05 §2](../05-data-model-and-migrations.md#2-nhận-dạng-và-điều-khoản). Cặp swap ghi ở `SCHOOL_CONSTRAINT_SWAPS` trong `scripts/apply_supabase_review.py`. Chưa tạo `0030-review.sql`: hosted chỉ có một artifact `0035` ở WS-10. `READY_REVISIONS` chuyển sang `0030_school_profiles` vì ORM đã map bảng mới; test ghim head cũ được sửa theo quy tắc "tuple luôn là head hiện tại" trong `revisions.py`.
+
 `conftest` ép cờ false; khi test default dùng `Settings(_env_file=None)`. Đặt validator `apply_profile` **trước** các `model_validator` hiện có (Pydantic chạy theo thứ tự khai báo): `local_live_scope` sẽ raise nếu SSM đặt tường minh `PROACTIVE_WORKER_ENABLED=true` trong khi `proactive_enabled` đã bị ép tắt. `_dependent` raise nếu flag được đặt tường minh, nên profile dùng hàm riêng không raise, vì SSM có thể đang đặt tường minh các cờ.

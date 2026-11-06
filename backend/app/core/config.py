@@ -13,6 +13,9 @@ class Settings(EmbeddingSettings, BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", hide_input_in_errors=True)
     _clamped: list[tuple[str, str]] = PrivateAttr(default_factory=list)
     app_env: Literal["development", "test", "production"] = "development"
+    # default keeps the frozen product; school_safety is the staging release switch.
+    app_profile: Literal["default", "school_safety"] = "default"
+    terms_version_current: str = Field(default="school-terms-v1", min_length=1, max_length=32)
     database_url: SecretStr | None = None
     database_migration_url: SecretStr | None = None
     database_pool_mode: Literal["direct", "session", "transaction"] = "session"
@@ -169,6 +172,19 @@ class Settings(EmbeddingSettings, BaseSettings):
         if value.get_secret_value() and len(value.get_secret_value()) < 32:
             raise ValueError("GUEST_ABUSE_HMAC_KEY must hold at least 32 characters")
         return value
+
+    @model_validator(mode="after")
+    def apply_profile(self):
+        # Runs before the other model validators. SSM may set legacy flags explicitly;
+        # clamping here, without raising, keeps those processes bootable.
+        if self.app_profile != "school_safety":
+            return self
+        from app.core.profile import FORCED_OFF
+
+        for name in FORCED_OFF:
+            setattr(self, name, False)
+            self._clamped.append((name, "school_safety_profile"))
+        return self
 
     @model_validator(mode="after")
     def guest_capacity_within_global(self):

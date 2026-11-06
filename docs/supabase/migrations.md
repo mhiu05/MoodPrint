@@ -47,6 +47,9 @@ approval hash và transaction giữ nguyên. Review-only không cần credential
 | `0027_maps_jobs` | Private fenced async Maps jobs and provider cleanup coordination |
 | `0028_collaboration_defaults` | Add permission policy identity to collaboration/orchestration receipts; stored preferences unchanged |
 | `0029_journal_intelligence` | Journal AI settings, revision-fenced embedding/jobs, memory origin/source and journal run origin; expand-only, RLS/runtime-only; downgrade refuses new automatic-memory/journal-run data |
+| `0030_school_profiles` | `school_profiles`; widen `ck_ai_conversations_bot` to accept direct `troly`. Proactive and memory checks stay on the frozen bot set. Expand-only, RLS/runtime-only; downgrade refuses a profile or troly conversation |
+
+The working tree head is **0030_school_profiles**. `READY_REVISIONS` tracks that head because the ORM maps `school_profiles`.
 
 The journal-intelligence feature image requires **0029_journal_intelligence**.
 Its rollout requires a compatible 0028 ORM image accepting both 0028/0029 first;

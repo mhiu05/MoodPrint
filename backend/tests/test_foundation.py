@@ -21,9 +21,9 @@ async def test_live_works_without_configuration_but_ready_and_auth_fail_closed()
 def test_ready_revision_requires_the_journal_intelligence_head():
     from app.core.revisions import READY_REVISIONS
 
-    # Journal settings/provenance columns (0029) are mapped by the ORM.
+    # school_profiles and the widened conversation check (0030) are mapped by the ORM.
     assert READY_REVISIONS == (
-        "0029_journal_intelligence",
+        "0030_school_profiles",
     )
 
 
@@ -49,7 +49,8 @@ def test_ready_revision_requires_the_journal_intelligence_head():
         ("0026_search_usage", 503),
         ("0027_maps_jobs", 503),
         ("0028_collaboration_defaults", 503),
-        ("0029_journal_intelligence", 200),
+        ("0029_journal_intelligence", 503),
+        ("0030_school_profiles", 200),
         ("0017_unreviewed", 503),
         ("9999_unknown", 503),
     ],

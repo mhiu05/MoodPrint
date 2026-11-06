@@ -1,7 +1,9 @@
 export type LegacyBotId = "may" | "guong" | "nhip" | "rure" | "caunoi";
 /** V3 default agents (AI_THREE_AGENT_EXPERIENCE_ENABLED). */
 export type AgentId = "dieuphoi" | "nhatky" | "hoatdong";
-export type BotId = LegacyBotId | AgentId;
+export type SchoolBotId = "troly";
+// troly stays out of `bots` and `agents` so the frozen catalog does not offer it.
+export type BotId = LegacyBotId | AgentId | SchoolBotId;
 export const AGENT_IDS: readonly AgentId[] = ["dieuphoi", "nhatky", "hoatdong"];
 export const isAgentId = (id: unknown): id is AgentId =>
   typeof id === "string" && (AGENT_IDS as readonly string[]).includes(id);

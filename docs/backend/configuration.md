@@ -2,6 +2,8 @@
 
 Nguồn: [Settings](../../backend/app/core/config.py) và [EmbeddingSettings](../../backend/app/ai/embedding_config.py). Bảng lấy từ khai báo mã nguồn, không đọc `.env` hoặc giá trị runtime. Tên biến môi trường là tên field viết HOA. JSON list dùng cho trường danh sách.
 
+`APP_PROFILE=default` giữ sản phẩm cũ cho test. `school_safety` ép tắt các cờ legacy trong `FORCED_OFF` và ghi `school_safety_profile` vào `degraded_features()`, kể cả khi môi trường đặt tường minh `true`. `TERMS_VERSION_CURRENT` là phiên bản điều khoản tài khoản đăng nhập phải xác nhận.
+
 Global flag chỉ mở capability; người dùng vẫn cần eligibility, consent và preference tương ứng. `backend/local-mvp.env.example` có thể bật giá trị khác mặc định. Production validation yêu cầu HTTPS origin/Auth, publishable key và database. Thiếu OpenAI/STT/Voyage/Apify không chặn khởi động: runtime báo chưa khả dụng, `degraded_features()` và `check_config.py` chỉ xuất tên cờ/mã lý do. Khi thiếu tiền đề multi-message/ba trợ lý/accounting (và budget cho worker proactive production), cờ phụ thuộc đến từ mặc định được kẹp về false; cấu hình mâu thuẫn đặt tường minh vẫn raise. CAPTCHA bật tường minh mà thiếu site key vẫn bị từ chối.
 
 Search/Skills require V3, accounting, a positive global budget, verified pricing,
@@ -25,6 +27,8 @@ change shared timezone, quiet hours, daily caps, pause state or journal consent.
 | Biến | Kiểu Python | Mặc định trong mã |
 | --- | --- | --- |
 | `APP_ENV` | `Literal['development', 'test', 'production']` | `'development'` |
+| `APP_PROFILE` | `Literal['default', 'school_safety']` | `'default'` |
+| `TERMS_VERSION_CURRENT` | `str` | `'school-terms-v1'` |
 | `DATABASE_URL` | `SecretStr &#124; None` | `None` |
 | `DATABASE_MIGRATION_URL` | `SecretStr &#124; None` | `None` |
 | `DATABASE_POOL_MODE` | `Literal['direct', 'session', 'transaction']` | `'session'` |

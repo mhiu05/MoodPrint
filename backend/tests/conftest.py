@@ -88,6 +88,7 @@ async def database():
     from app.modules.journal import ai_models as journal_ai_models  # noqa: F401
     from app.modules.journal import models as journal_models  # noqa: F401
     from app.modules.moderation import models as safety_models  # noqa: F401
+    from app.modules.school import models as school_models  # noqa: F401
     from app.modules.social import models  # noqa: F401 -- register every table before reset
     from app.modules.users import models as lifecycle_models  # noqa: F401
     from tests.feedback_schema import install_feedback_functions

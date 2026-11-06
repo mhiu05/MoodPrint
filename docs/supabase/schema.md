@@ -7,6 +7,7 @@ ORM kế thừa `Base` trong [database/models.py](../../backend/app/infrastructu
 | Nhóm | Bảng | Vai trò |
 | --- | --- | --- |
 | Account | `users`, `auth_sessions`, `age_declarations` | Auth subject, age/status, session hash, version |
+| School safety (0030) | `school_profiles` | Nhóm tuổi 11–14 hoặc 15–17, phiên bản điều khoản và thời điểm xác nhận (cùng null hoặc cùng có), chế độ trung tính, version. FK user `ON DELETE CASCADE`, RLS và grant chỉ cho runtime. Không ghi `users.age_band`. |
 | Consent | `consents`, `consent_events` | Purpose state/version và lịch sử thay đổi |
 | Personal | `moods`, `memories` | Mood theo ngày; memory approved qua proposal và journal_auto có nguồn entry/version, nhãn riêng |
 | Journal | `journal_entries`, `journal_media`, `journal_storage_deletions` | Nhiều khoảnh khắc/ngày, metadata media riêng tư; hàng đợi xóa object tồn tại sau khi xóa tài khoản |

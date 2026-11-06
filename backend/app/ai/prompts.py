@@ -24,8 +24,13 @@ DEFAULT_VARIANT = "baseline"
 # Frozen evaluation contract of the five legacy companions (P0 datasets pin these keys).
 SELECTED_VARIANTS = {"may": "baseline", "guong": "A", "nhip": "B", "rure": "B", "caunoi": "A"}
 # Every companion the runtime can run: the legacy five plus the V3 agents' own personas.
-RUNTIME_VARIANTS = {**SELECTED_VARIANTS, "dieuphoi": "V3", "nhatky": "V3", "hoatdong": "V3"}
-VERSIONS = {"baseline": "legacy-v1", "A": "2026-10-30-a1", "B": "2026-10-24-b1", "V3": "three-agent-v1"}
+RUNTIME_VARIANTS = {
+    **SELECTED_VARIANTS, "dieuphoi": "V3", "nhatky": "V3", "hoatdong": "V3", "troly": "assistant",
+}
+VERSIONS = {
+    "baseline": "legacy-v1", "A": "2026-10-30-a1", "B": "2026-10-24-b1", "V3": "three-agent-v1",
+    "assistant": "school-assistant-v1",
+}
 
 SHARED = """
 Bạn là một người đồng hành AI trong MoodPrint, trò chuyện bằng tiếng Việt tự nhiên.

@@ -11,7 +11,11 @@ from typing import Literal
 
 LEGACY_IDS: tuple[str, ...] = ("may", "guong", "nhip", "rure", "caunoi")
 V3_IDS: tuple[str, ...] = ("dieuphoi", "nhatky", "hoatdong")
-ALL_IDS: tuple[str, ...] = LEGACY_IDS + V3_IDS
+SCHOOL_IDS: tuple[str, ...] = ("troly",)
+# Frozen checks stay on this set. Proactive schedules use BOT_CHECK, and that
+# constraint is not widened: only direct conversations accept troly.
+FROZEN_IDS: tuple[str, ...] = LEGACY_IDS + V3_IDS
+ALL_IDS: tuple[str, ...] = FROZEN_IDS + SCHOOL_IDS
 V3AgentId = Literal["dieuphoi", "nhatky", "hoatdong"]
 
 # Which V3 agent took over a legacy companion's purpose (None: Cầu Nối became the separate
@@ -22,6 +26,7 @@ REPLACED_BY: dict[str, str | None] = {
 DISPLAY_NAMES: dict[str, str] = {
     "may": "Mây", "guong": "Gương", "nhip": "Nhịp", "rure": "Rủ Rê", "caunoi": "Cầu Nối",
     "dieuphoi": "Điều phối", "nhatky": "Nhật ký", "hoatdong": "Hoạt động",
+    "troly": "Trợ lý",
 }
 
 
@@ -73,5 +78,5 @@ def sql_in(values: tuple[str, ...]) -> str:
 
 
 # Database CHECK expressions shared by the ORM and migration 0024.
-BOT_CHECK = "bot_id in " + sql_in(ALL_IDS)
+BOT_CHECK = "bot_id in " + sql_in(FROZEN_IDS)
 MEMORY_BOT_CHECK = "bot_id in " + sql_in(MEMORY_IDS)

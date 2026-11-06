@@ -26,6 +26,7 @@ from app.modules.guests import models as guest_models  # noqa: F401
 from app.modules.journal import ai_models as journal_ai_models  # noqa: F401
 from app.modules.journal import models as journal_models  # noqa: F401
 from app.modules.moderation import models as moderation_models  # noqa: F401
+from app.modules.school import models as school_models  # noqa: F401
 from app.modules.social import models  # noqa: F401 -- register all owned domain tables
 from app.modules.users import models as lifecycle_models  # noqa: F401
 

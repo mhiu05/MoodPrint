@@ -128,6 +128,11 @@ UPGRADES = {
         nullable_relaxations=(("memories", "proposal_id"),),
     ),
 }
+# Widened by 0030. Attached to the single 0035 hosted artifact in WS-10.
+# There is no separate 0030 review file: hosted SQL is one reviewed script.
+SCHOOL_CONSTRAINT_SWAPS: tuple[tuple[str, str], ...] = (
+    ("ai_conversations", "ck_ai_conversations_bot"),
+)
 SUPABASE_API_ROLES = ("anon", "authenticated", "service_role")
 
 

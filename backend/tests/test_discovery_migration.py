@@ -15,7 +15,7 @@ from tests.social_helpers import PROFILE
 
 pytestmark = pytest.mark.postgres
 BACKEND = Path(__file__).resolve().parents[1]
-HEAD = "0029_journal_intelligence"  # 0020 is exercised through the current full chain.
+HEAD = "0030_school_profiles"  # 0020 is exercised through the current full chain.
 
 
 def test_0020_preserves_journal_auth_matching_and_approved_memories():

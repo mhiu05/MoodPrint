@@ -6,8 +6,8 @@ Grok cập nhật cột **Trạng thái** sau mỗi WS. Thứ tự chạy ở [e
 
 | WS | Tên | Ưu tiên | Độ phức tạp | Lý do độ phức tạp | Phụ thuộc | Gate | Trạng thái |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| [WS-01](plans/WS-01-codebase-migration.md) | Audit và nền migration | P0 | S | Một lỗi CI và ledger | Không | G0 | Chưa bắt đầu |
-| [WS-02](plans/WS-02-product-shell-access.md) | Product shell và truy cập | P0 | M | Chạm cổng eligibility toàn cục | WS-01 | Một phần G1 | Chưa bắt đầu |
+| [WS-01](plans/WS-01-codebase-migration.md) | Audit và nền migration | P0 | S | Một lỗi CI và ledger | Không | G0 | G0 đạt (`1a3f488a`) |
+| [WS-02](plans/WS-02-product-shell-access.md) | Product shell và truy cập | P0 | M | Chạm cổng eligibility toàn cục | WS-01 | Một phần G1 | Đang làm (T01–T02) |
 | [WS-03](plans/WS-03-safety-engine.md) | Safety engine | P0 | L | Rule pack, 8 nhãn, eval 300 mẫu | WS-02 | G1 | Chưa bắt đầu |
 | [WS-04](plans/WS-04-single-agent-orchestration.md) | Một agent và state machine | P0 | L | Cắm vào `drive`, 6 workflow | WS-03 | G1 | Chưa bắt đầu |
 | [WS-05](plans/WS-05-knowledge-base.md) | Knowledge base | P1 | XL | Pipeline, 50 thẻ, phụ thuộc người duyệt | WS-04 contract | G2 | Chưa bắt đầu |

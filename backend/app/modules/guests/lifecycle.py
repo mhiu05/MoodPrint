@@ -48,6 +48,7 @@ from app.modules.moderation.models import (
     RevealAccess,
     StaffRole,
 )
+from app.modules.school.models import SchoolProfile
 from app.modules.social.models import (
     Block,
     CandidateReference,
@@ -75,6 +76,7 @@ INVENTORY: dict[str, str] = {
     "users": "owner",
     "auth_sessions": "purged",
     "age_declarations": "purged",
+    "school_profiles": "purged",
     "consents": "purged",
     "consent_events": "purged",
     "moods": "purged",
@@ -282,6 +284,7 @@ async def _delete_guest_only_social(db: AsyncSession, uid: UUID) -> None:
 async def _delete_owned(db: AsyncSession, uid: UUID) -> None:
     from app.modules.journal.ai_models import JournalAiSettings
 
+    await db.execute(delete(SchoolProfile).where(SchoolProfile.user_id == uid))
     await db.execute(delete(JournalAiSettings).where(JournalAiSettings.user_id == uid))
     from app.ai.proactive.lifecycle import purge_proactive
 

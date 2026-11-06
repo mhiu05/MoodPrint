@@ -5365,7 +5365,8 @@
                     "caunoi",
                     "dieuphoi",
                     "nhatky",
-                    "hoatdong"
+                    "hoatdong",
+                    "troly"
                   ],
                   "type": "string"
                 },
@@ -6883,7 +6884,8 @@
                 "caunoi",
                 "dieuphoi",
                 "nhatky",
-                "hoatdong"
+                "hoatdong",
+                "troly"
               ],
               "type": "string",
               "title": "Bot Id"
@@ -7033,7 +7035,8 @@
                 "caunoi",
                 "dieuphoi",
                 "nhatky",
-                "hoatdong"
+                "hoatdong",
+                "troly"
               ],
               "type": "string",
               "title": "Bot Id"
@@ -7186,7 +7189,8 @@
                 "caunoi",
                 "dieuphoi",
                 "nhatky",
-                "hoatdong"
+                "hoatdong",
+                "troly"
               ],
               "type": "string",
               "title": "Bot Id"
@@ -8052,7 +8056,8 @@
                 "caunoi",
                 "dieuphoi",
                 "nhatky",
-                "hoatdong"
+                "hoatdong",
+                "troly"
               ],
               "type": "string",
               "title": "Botid"
@@ -18379,7 +18384,8 @@
                   "caunoi",
                   "dieuphoi",
                   "nhatky",
-                  "hoatdong"
+                  "hoatdong",
+                  "troly"
                 ]
               },
               {
@@ -19139,7 +19145,8 @@
               "caunoi",
               "dieuphoi",
               "nhatky",
-              "hoatdong"
+              "hoatdong",
+              "troly"
             ],
             "title": "Botid"
           },
@@ -19183,7 +19190,8 @@
                   "caunoi",
                   "dieuphoi",
                   "nhatky",
-                  "hoatdong"
+                  "hoatdong",
+                  "troly"
                 ]
               },
               {
@@ -19432,7 +19440,8 @@
                 "caunoi",
                 "dieuphoi",
                 "nhatky",
-                "hoatdong"
+                "hoatdong",
+                "troly"
               ]
             },
             "type": "array",
@@ -19631,7 +19640,8 @@
               "caunoi",
               "dieuphoi",
               "nhatky",
-              "hoatdong"
+              "hoatdong",
+              "troly"
             ],
             "title": "Botid"
           },
@@ -19722,7 +19732,8 @@
               "caunoi",
               "dieuphoi",
               "nhatky",
-              "hoatdong"
+              "hoatdong",
+              "troly"
             ],
             "title": "Botid"
           },
@@ -19814,7 +19825,8 @@
               "caunoi",
               "dieuphoi",
               "nhatky",
-              "hoatdong"
+              "hoatdong",
+              "troly"
             ],
             "title": "Botid"
           },
@@ -21451,7 +21463,8 @@
               "caunoi",
               "dieuphoi",
               "nhatky",
-              "hoatdong"
+              "hoatdong",
+              "troly"
             ],
             "title": "Botid"
           },
@@ -22215,7 +22228,8 @@
               "caunoi",
               "dieuphoi",
               "nhatky",
-              "hoatdong"
+              "hoatdong",
+              "troly"
             ],
             "title": "Botid"
           },
@@ -22624,7 +22638,8 @@
               "caunoi",
               "dieuphoi",
               "nhatky",
-              "hoatdong"
+              "hoatdong",
+              "troly"
             ],
             "title": "Botid",
             "type": "string"
@@ -23271,7 +23286,8 @@
               "caunoi",
               "dieuphoi",
               "nhatky",
-              "hoatdong"
+              "hoatdong",
+              "troly"
             ],
             "title": "Botid"
           },
@@ -24013,7 +24029,8 @@
               "caunoi",
               "dieuphoi",
               "nhatky",
-              "hoatdong"
+              "hoatdong",
+              "troly"
             ],
             "title": "Botid"
           },
@@ -24093,7 +24110,8 @@
                   "caunoi",
                   "dieuphoi",
                   "nhatky",
-                  "hoatdong"
+                  "hoatdong",
+                  "troly"
                 ]
               },
               {
@@ -24379,7 +24397,8 @@
               "caunoi",
               "dieuphoi",
               "nhatky",
-              "hoatdong"
+              "hoatdong",
+              "troly"
             ],
             "title": "Requester"
           },
@@ -24393,7 +24412,8 @@
               "caunoi",
               "dieuphoi",
               "nhatky",
-              "hoatdong"
+              "hoatdong",
+              "troly"
             ],
             "title": "Specialist"
           },

@@ -7,7 +7,9 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool, StringConstraints
 from pydantic.alias_generators import to_camel
 
 Purpose = Literal["AI", "MEM", "MATCH", "VOICE"]
-BotId = Literal["may", "guong", "nhip", "rure", "caunoi", "dieuphoi", "nhatky", "hoatdong"]
+BotId = Literal[
+    "may", "guong", "nhip", "rure", "caunoi", "dieuphoi", "nhatky", "hoatdong", "troly",
+]
 ShortText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
 MessageText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
 

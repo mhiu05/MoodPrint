@@ -1,4 +1,9 @@
-"""Journal intelligence requires migration 0029 before traffic.
+"""School profiles require migration 0030 before traffic.
+
+The ORM maps ``school_profiles`` and the widened direct-conversation bot check.
+An image that imports those mappings is not ready on 0029.
+
+Journal intelligence requires migration 0029 before traffic.
 
 The ORM maps memory provenance on every memory read; 0029 adds journal settings,
 revision-fenced jobs and vectors. Rollback uses an image accepting 0028/0029;
@@ -25,5 +30,5 @@ head that predates the schema.
 """
 
 READY_REVISIONS: tuple[str, ...] = (
-    "0029_journal_intelligence",
+    "0030_school_profiles",
 )
