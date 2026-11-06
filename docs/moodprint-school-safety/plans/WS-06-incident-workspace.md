@@ -45,7 +45,6 @@ class EvidenceReserve(DTO):
     mime_type: Literal["image/jpeg", "image/png", "image/webp", "image/gif",
                        "video/mp4", "video/webm", "video/quicktime"]
     size_bytes: int = Field(gt=0, le=50 * 1024**2)   # ảnh ≤ 10 MiB
-    no_intimate_image: bool = False                  # chỉ cần theo WS-06-T13
     source_kind: Literal["self_screenshot", "self_photo", "friend_provided", "other"]
     source_note: str | None = Field(default=None, max_length=200)
     event_id: UUID | None = None
@@ -68,7 +67,7 @@ class EvidenceView(DTO):
 | `POST /api/v1/cases/{id}/events` | Thêm sự việc | |
 | `GET /api/v1/cases/{id}/events/{eventId}` | Có danh sách revision | |
 | `POST /api/v1/cases/{id}/events/{eventId}/revisions` | Sửa bằng bản mới | |
-| `POST /api/v1/cases/{id}/evidence` | Trả upload capability | `MEDIA_LIMIT`, `EVIDENCE_CONFIRM_REQUIRED` |
+| `POST /api/v1/cases/{id}/evidence` | Trả upload capability | `MEDIA_LIMIT` |
 | `POST /api/v1/cases/{id}/evidence/{eId}/complete` | Băm, niêm phong | `UPLOAD_INCOMPLETE`, `MEDIA_MISMATCH` |
 | `GET /api/v1/cases/{id}/evidence/{eId}/access` | Signed URL 60 giây | |
 | `POST /api/v1/cases/{id}/summaries` | Tạo nháp bằng agent | |
@@ -98,7 +97,6 @@ Mọi route: owner check, CSRF, 404 khi không phải chủ, `Idempotency-Key` k
 | WS-06-T10 | P1 | T09 | `summary.py`: lượt agent không tool, input chỉ từ dữ liệu đã lưu của case | Nháp ở `draft`; duyệt mới vào PDF | `pytest -q tests/test_case_summary.py` | Pass |
 | WS-06-T11 | P0 | T05 | `reportlab`, `pillow`, font; `pdf.py` | Ba phần nhãn rõ; tiếng Việt đúng dấu; ảnh được nhúng, video chỉ ghi tên, thời điểm, hash; dòng hash và câu giới hạn; ảnh tải lại và băm lại trước khi nhúng, sai thì đánh dấu; không ghi đĩa | `pytest -q tests/test_case_pdf.py` (đọc lại bằng `pypdf` từ group `kb`) | Pass: text trích ra chứa đủ nhãn tiếng Việt |
 | WS-06-T12 | P1 | T01 | Export, purge, retention | Export có case; xóa tài khoản xóa hết và xếp hàng xóa object | `pytest -q tests/test_data_lifecycle.py tests/test_case_lifecycle.py` | Pass |
-| WS-06-T13 | P0 | T05, WS-03 | Khi người dùng có `safety_events` nhãn `sexual_abuse_exploitation`: `POST /cases/{id}/evidence` cần `no_intimate_image=true`, thiếu thì 409 `EVIDENCE_CONFIRM_REQUIRED` | Chỉ nhóm này thấy câu hỏi; không đọc nội dung file; người dùng khác tải lên như thường | `pytest -q tests/test_case_evidence_confirm.py` | Pass. Lý do ở [OD-03](../12-open-decisions.md#od-03--upload-ảnh-video) |
 
 ## 11. An toàn và bảo mật
 

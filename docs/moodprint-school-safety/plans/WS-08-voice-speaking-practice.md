@@ -20,7 +20,7 @@ Theo [08](../08-speaking-practice-design.md). Mỗi lượt là một lượt `t
 
 ## 5. Phạm vi
 
-Trong: ba chế độ cho cả khách và tài khoản học sinh, push-to-talk, transcript sửa được, tổng kết, lưu có xác nhận, ca SC-09. Ngoài: GPT-Live, Realtime speech-to-speech, lưu audio.
+Trong: ba chế độ cho cả khách và tài khoản trình bày, push-to-talk, transcript sửa được, tổng kết, lưu có xác nhận, ca SC-09. Ngoài: GPT-Live, Realtime speech-to-speech, lưu audio.
 
 ## 6. File và symbol bị ảnh hưởng
 

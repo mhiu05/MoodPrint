@@ -53,8 +53,7 @@ Wireframe bên dưới mô tả bố cục và nội dung, không phải hình �
 
 ```text
 Public (không cần đăng nhập, đường dẫn thật)
-  /                 Trang giới thiệu: Dùng thử ngay, Tạo tài khoản, Đăng nhập
-  /dang-ky          Tạo tài khoản
+  /                 Trang giới thiệu: Dùng thử ngay, Đăng nhập
   /login            Đăng nhập
   /ho-tro           Tìm hỗ trợ
   /quyen-rieng-tu   Chính sách quyền riêng tư
@@ -76,7 +75,7 @@ App (HashRouter, cần phiên)
   #/cai-dat         Cài đặt, giới hạn của AI, xóa dữ liệu
 ```
 
-`classifyEntry` cần nhận thêm `/dang-ky`, `/ho-tro`, `/quyen-rieng-tu`, `/trung-tinh`. Shell chọn theo `appProfile` từ `GET /public/experience`.
+`classifyEntry` cần nhận thêm `/ho-tro`, `/quyen-rieng-tu`, `/trung-tinh`. Shell chọn theo `appProfile` từ `GET /public/experience`.
 
 ## 3. Khung ứng dụng
 
@@ -133,20 +132,17 @@ Từ 768px trở lên: rail bên trái, khẩn cấp và thoát nhanh ở đầu
 │ • Thông tin AI chỉ để tham khảo│
 │ • Nếu nguy hiểm, gọi 111/113/  │
 │   115.                         │
-│ [ ] Bố mẹ hoặc người giám hộ   │
-│     biết em dùng ứng dụng      │
 │ [ ] Em đã đọc và đồng ý        │
 │          [Bắt đầu]             │
 └────────────────────────────────┘
 ```
 
-Màn này dành cho tài khoản đăng ký. Lưu `terms_version`, thời điểm, `guardian_ack_at`. Dưới ô xác nhận có dòng: "Nếu em không hỏi được vì đang không an toàn ở nhà, hãy dùng chế độ khách hoặc gọi 111."
+Màn này dành cho tài khoản đăng nhập. Lưu `terms_version`, thời điểm.
 
 **Khách** không qua màn này. Bấm "Dùng thử ngay" là vào Trò chuyện, không hỏi tuổi, không thấy CAPTCHA. Nhóm tuổi mặc định `11-14`, đổi ở Cài đặt. Một thông báo gọn, không chặn, đóng được:
 
 ```text
 Đây là AI, không phải người. Dữ liệu tự xóa sau 2 giờ.
-Muốn giữ hồ sơ lâu hơn, hãy tạo tài khoản.
 Nếu đang nguy hiểm, bấm Khẩn cấp.
 ```
 
@@ -205,7 +201,7 @@ Nếu đang nguy hiểm, bấm Khẩn cấp.
 └────────────────────────────────┘
 ```
 
-**Thêm bằng chứng**: chọn ảnh hoặc video → tải lên có tiến trình → hiện kết quả. Không có bước hỏi về nội dung, trừ khi API trả `EVIDENCE_CONFIRM_REQUIRED` ([OD-03](12-open-decisions.md#od-03--upload-ảnh-video)). Dưới nút chọn file có một dòng cố định, không chặn:
+**Thêm bằng chứng**: chọn ảnh hoặc video → tải lên có tiến trình → hiện kết quả. Không có bước hỏi về nội dung. Dưới nút chọn file có một dòng cố định, không chặn:
 
 ```text
 Nếu nội dung liên quan tới hình ảnh tình dục của trẻ em,
@@ -413,18 +409,11 @@ Theo `reference/animate.md`, ở Operate và Read chuyển động phục vụ p
 
 Viết `features/school/motion.ts` gom các hàm hiệu ứng.
 
-## 15. Quyền riêng tư và trạng thái chưa mở
+## 15. Trang quyền riêng tư
 
-**Trang `/quyen-rieng-tu`** công khai, nội dung tĩnh, mode Read, viết dễ hiểu cho học sinh, có phần riêng cho cha mẹ:
+Trang `/quyen-rieng-tu` công khai, nội dung tĩnh, vài dòng. Đây là phần tối thiểu: Cloudflare yêu cầu chính sách quyền riêng tư dẫn chiếu [Turnstile Privacy Addendum](https://www.cloudflare.com/en-gb/turnstile-privacy-policy/) khi dùng chế độ Invisible, và owner đã đồng ý điều kiện đó.
 
-- Ứng dụng thu dữ liệu gì, lưu ở đâu, bao lâu. Khách: 2 giờ, file trong Storage trễ thêm tối đa 2 giờ 5 phút.
-- Đơn vị xử lý: OpenAI, Voyage, Supabase, AWS, Cloudflare.
-- Quyền của em và người đại diện: xem, xuất, xóa, rút đồng ý.
-- Kênh liên hệ `SCHOOL_CONTACT_EMAIL`.
-- AI không thay người thật và không tự báo cho ai.
-- Câu dẫn chiếu [Turnstile Privacy Addendum](https://www.cloudflare.com/en-gb/turnstile-privacy-policy/), điều kiện Cloudflare đặt ra cho chế độ Invisible.
-
-Nội dung do luật sư rà ở [G6](10-evaluation-and-quality-gates.md#cổng-g6-mở-cho-học-sinh-thật).
-
-**Trạng thái chưa mở**: khi `guestAvailable` và `signupAvailable` đều false, trang giới thiệu hiện "Trợ lý sắp mở", nút Tìm hỗ trợ và số 111, 113, 115. Không có form thu email.
+- Đây là AI, không phải người.
+- Dữ liệu của khách tự xóa sau 2 giờ.
+- Câu dẫn chiếu Addendum.
 

@@ -93,7 +93,7 @@ class ClaimVerdict(BaseModel):
 
 - Thẻ là dữ liệu, không phải chỉ dẫn; văn bản trong thẻ không thể đổi prompt.
 - Query gửi Voyage là cụm trung tính do model viết, không phải nguyên văn lời em.
-- Khách dùng KB như tài khoản đăng ký. `kind_available` đóng `embed` của khách dưới cấu hình có trần; embedding truy vấn KB không đi qua cổng này, vì nằm trong phần miễn phí của Voyage và đã có nhánh lexical khi lỗi.
+- Khách dùng KB như tài khoản đăng nhập. `kind_available` đóng `embed` của khách dưới cấu hình có trần; embedding truy vấn KB không đi qua cổng này, vì nằm trong phần miễn phí của Voyage và đã có nhánh lexical khi lỗi.
 - Fetch không chạy trong image, không có đường SSRF ở runtime.
 - Nguồn `foreign` không dùng cho `rights`.
 - Không phát hành lại snapshot.

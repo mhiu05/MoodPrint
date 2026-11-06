@@ -6,7 +6,7 @@ Cập nhật sau trả lời của owner. Câu trả lời giữ nguyên ý, dư
 | --- | --- | --- | --- |
 | OD-01 | Bản chất của staging | **Đã chốt** | Bản release thật, không có chế độ demo; tình huống mẫu chỉ là kịch bản Markdown |
 | OD-02 | Duyệt nội dung | **Đã chốt, chặn G5** | `reviewed_by: mhiu05`; chỉ Facebook, YouTube, TikTok; tạm dùng ảnh mẫu |
-| OD-03 | Upload ảnh, video | **Đã chốt, phải xác nhận lại ở G6** | Nhận mọi ảnh, video, không phân loại nội dung |
+| OD-03 | Upload ảnh, video | **Đã chốt** | Nhận mọi ảnh, video, không phân loại nội dung |
 | OD-04 | TTS, STT | **Đã chốt** | `gpt-realtime-2.1-mini`, `gpt-transcribe`, không cần nghe thử |
 | OD-05 | Chế độ khách | **Đã chốt, có điều chỉnh** | Vào thẳng, đủ tính năng, tự xóa sau 2 giờ; Turnstile đã đổi sang Invisible |
 | OD-06 | Hướng hình ảnh | Đã chốt quy trình | Làm theo impeccable; hướng A là brief khởi đầu |
@@ -18,8 +18,8 @@ Cập nhật sau trả lời của owner. Câu trả lời giữ nguyên ý, dư
 | OD-12 | Credential | **Đã chốt phần lớn** | Supabase MCP, AWS MCP, Cloudflare qua phiên trình duyệt của owner |
 | OD-13 | Hệ thống cũ | **Đã chốt** | Đóng băng, không vá, không tương thích ngược |
 | OD-14 | Model | **Đã chốt, có lưu ý** | Chỉ `gpt-6-luna` cho agent, classifier, verifier |
-| OD-15 | Ai dùng sản phẩm | **Đã chốt** | Học sinh thật; mở sau khi qua cổng G6 |
-| OD-16 | Đăng ký tài khoản | Mặc định, owner xem lại | Mở cho học sinh sau G6, vì khách chỉ giữ dữ liệu 2 giờ |
+| OD-15 | Ai dùng sản phẩm | **Đã chốt** | Đợt này để trình bày, nội dung hư cấu; không cần ZDR, pháp lý, luồng đồng ý |
+| OD-16 | Đăng ký tài khoản | Mặc định | Đóng trong đợt này; dùng một tài khoản trình bày |
 
 ## OD-01 — Staging là bản release thật
 
@@ -29,7 +29,7 @@ Cập nhật sau trả lời của owner. Câu trả lời giữ nguyên ý, dư
 
 - Bỏ khái niệm demo trong sản phẩm, UI và tài liệu vận hành.
 - `demo/*.md` là kịch bản chữ để đọc và để viết test. Không có trang, API hay dữ liệu nào trong sản phẩm dựa trên chúng.
-- Năm nhân vật hư cấu chỉ dùng trong test local và eval. Không tạo tài khoản mẫu trên hosted.
+- Năm nhân vật hư cấu dùng trong test local và eval. Trên hosted chỉ có một tài khoản trình bày, xem OD-16.
 - Staging chạy model thật.
 
 **Lưu ý**: vẫn giữ một công tắc kỹ thuật `APP_PROFILE=school_safety`, mặc định trong code là `default`. Đây không phải chế độ demo. Nó là cách rẻ nhất để đóng băng hệ thống cũ theo OD-13: hơn 2.000 test cũ tiếp tục xanh mà không phải sửa hay xóa. Đổi mặc định sẽ làm vỡ các test đó và trái quy tắc không xóa test.
@@ -67,11 +67,7 @@ Cập nhật sau trả lời của owner. Câu trả lời giữ nguyên ý, dư
 - Tầng rule của Safety Engine với lời kể bằng chữ giữ nguyên: template, không gọi model.
 - Một dòng nhắc cố định ở màn tải lên, không chặn gì: "Nếu nội dung liên quan tới hình ảnh tình dục của trẻ em, đừng lưu hay gửi đi. Hãy gọi 111."
 
-**Lưu ý rủi ro**: quyết định này đảo yêu cầu ở §4.3 của prompt gốc. Với học sinh thật (OD-15), rủi ro không còn là giả định: một em bị tống tiền bằng ảnh riêng tư có thể tải chính ảnh đó lên làm bằng chứng. Lưu nội dung xâm hại tình dục trẻ em có thể vi phạm pháp luật và điều khoản của nhà cung cấp, kể cả khi không cố ý. Với tài khoản đăng ký (OD-16), file không tự xóa sau 2 giờ.
-
-**Bước hẹp Claude thêm vào, owner bỏ được**: chỉ khi người dùng đã có sự kiện an toàn nhãn `sexual_abuse_exploitation`, trước khi tải file app hỏi một câu: "File này có hình ảnh riêng tư của em hoặc của bạn khác không?" Chọn có thì không tải lên và hiện hướng dẫn gọi 111. Bước này không đọc nội dung file, và người dùng khác không bao giờ thấy nó. Ảnh chụp tin nhắn đe dọa vẫn lưu được. Muốn bỏ, xóa WS-06-T13.
-
-Quyết định này phải được xác nhận lại với tư vấn pháp lý ở [G6](10-evaluation-and-quality-gates.md#cổng-g6-mở-cho-học-sinh-thật).
+**Lưu ý**: quyết định này đảo yêu cầu ở §4.3 của prompt gốc. Trong đợt này file do người trình bày tải lên nên rủi ro thấp. Phải xem lại trước khi có học sinh thật, vì một em bị tống tiền có thể tải chính ảnh riêng tư của mình lên.
 
 ## OD-04 — TTS và STT
 
@@ -100,15 +96,14 @@ Quyết định này phải được xác nhận lại với tư vấn pháp lý
 | Cloudflare Turnstile chạy nền | Supabase cần token CAPTCHA khi tạo phiên ẩn danh. Không có nó, bot gọi tốn tiền API không giới hạn | Không có ô bấm |
 | Trần `GUEST_DAILY_BUDGET_USD` tối đa 5 USD, code đang ép | Chặn chi phí mất kiểm soát | Hết trần: Trợ lý báo bận, khẩn cấp vẫn chạy |
 
-**Turnstile đã đổi sang Invisible ngày 06/11/2026**: widget `MoodPrint Guest`, hostnames `127.0.0.1`, `localhost`, `moodprint.duckdns.org`. Site key và secret giữ nguyên. Cloudflare đặt điều kiện: chính sách quyền riêng tư của app phải dẫn chiếu [Turnstile Privacy Addendum](https://www.cloudflare.com/en-gb/turnstile-privacy-policy/). Owner đã đồng ý; WS-09-T22 thực hiện.
+**Turnstile đã đổi sang Invisible ngày 06/11/2026**: widget `MoodPrint Guest`, hostnames `127.0.0.1`, `localhost`, `moodprint.duckdns.org`. Site key và secret giữ nguyên. Cloudflare đặt điều kiện: chính sách quyền riêng tư của app phải dẫn chiếu [Turnstile Privacy Addendum](https://www.cloudflare.com/en-gb/turnstile-privacy-policy/). Owner đã đồng ý; WS-09-T22 làm một trang ngắn cho việc này.
 
 **Cần kiểm tra**: Cloudflare đang báo "Siteverify isn't being called" cho widget này. Backend gửi token sang Supabase, nên Supabase là bên phải gọi siteverify. Nếu CAPTCHA protection của Supabase chưa bật, token không được kiểm tra và bot vào tự do. WS-10-T00 phải xác nhận trước release.
 
 **Phải sửa trong code** (đã thêm task): dưới cấu hình có trần, `kind_available` đang đóng giọng nói của guest; mỗi lượt guest giữ 1,53 USD nên chỉ khoảng 3 lượt chạy đồng thời. Trần input cứng hạ mức giữ còn 0,10 USD; `guest_ai_global_concurrency` mặc định 10 và `guest_voice_per_minute` mặc định 2 cũng được nâng lên 30 và 6. `useCaptcha.take()` đang báo lỗi nếu token chưa về, phải đổi sang chờ token.
 
-**Nói thật về "tự xóa sau 2 giờ"**: hàng trong database bị xóa và quyền truy cập file bị thu hồi khi hết giờ. Object trong Storage bị xóa theo hàng đợi, trễ thêm tối đa 2 giờ 5 phút (`DELETE_DELAY`, vì upload token sống 2 giờ), tức khoảng 4 giờ kể từ lúc vào. Hiện `store=False` chưa phải zero data retention: OpenAI giữ log giám sát lạm dụng tới 30 ngày. Sau khi bật ZDR ở G6, phần này không còn. Copy trong app không được hứa quá mức thực tế.
+**Nói thật về "tự xóa sau 2 giờ"**: hàng trong database bị xóa và quyền truy cập file bị thu hồi khi hết giờ. Object trong Storage bị xóa theo hàng đợi, trễ thêm tối đa 2 giờ 5 phút (`DELETE_DELAY`, vì upload token sống 2 giờ), tức khoảng 4 giờ kể từ lúc vào. Hiện `store=False` chưa phải zero data retention: OpenAI giữ log giám sát lạm dụng tới 30 ngày. Copy trong app không được hứa quá mức thực tế.
 
-**Liên quan tới học sinh thật**: khách không khai tuổi, nên phải coi như có trẻ dưới 13 tuổi, và khách không có bước đồng ý nào. Xem [OD-15](#od-15--ai-dùng-sản-phẩm).
 
 ## OD-06 — Hướng hình ảnh
 
@@ -177,25 +172,17 @@ Nếu MCP không chạy được SQL nguyên văn, hoặc AWS MCP không truy c�
 
 ## OD-15 — Ai dùng sản phẩm
 
-**Trả lời**: Mặc định luôn là học sinh thật dùng. Tình huống mẫu chỉ là kịch bản text dạng Markdown.
+**Trả lời mới nhất**: Cần sản phẩm gấp. Bỏ qua ZDR và các chính sách cá nhân, quyền riêng tư. Chỉ cần show demo sản phẩm mượt là được. Câu này thay cho câu trước "mặc định luôn là học sinh thật dùng".
 
-**Áp dụng**: mọi thiết kế, copy và test coi người dùng là trẻ 11–17 thật với dữ liệu thật. Không còn thông báo kiểu "đừng nhập thông tin thật". Không tạo dữ liệu mẫu trên hosted. Sau khi mở, Grok không đọc nội dung của học sinh trên hosted.
+**Áp dụng**: đợt này là **trình bày sản phẩm**. Người trình bày nhập nội dung hư cấu trong `demo/`. Không có dữ liệu thật của học sinh, nên không cần ZDR, tư vấn pháp lý, luồng đồng ý của người đại diện, hay bước kiểm duyệt sau release.
 
-**Khi nào mở**: sản phẩm được xây cho học sinh thật từ đầu, nhưng chỉ mở cho học sinh sau khi đủ các điều kiện ở [cổng G6](10-evaluation-and-quality-gates.md#cổng-g6-mở-cho-học-sinh-thật). Trước đó `GUEST_AUTH_ENABLED` và `SCHOOL_SIGNUP_ENABLED` để `false`, trang chủ hiện Tìm hỗ trợ và các số khẩn cấp. Hai điều kiện dưới đây không thể bỏ bằng quyết định sản phẩm.
+- Bỏ khỏi đợt này: ZDR, luật sư, chuyên gia rà nội dung bên ngoài, người phụ trách sự cố, báo cáo giám sát, API đăng ký, ô người giám hộ, câu hỏi trước khi tải file, bước đóng và mở cổng.
+- Sản phẩm vẫn chạy model thật, không có chế độ demo trong code, không có nhãn "bản thử".
+- `GUEST_AUTH_ENABLED=true` ngay sau release, để trình bày lúc nào cũng được.
 
-**1. OpenAI zero data retention.** [Hướng dẫn Under-18](https://developers.openai.com/api/docs/guides/safety-checks/under-18-api-guidance) yêu cầu không xử lý dữ liệu cá nhân của trẻ dưới 13 tuổi hoặc dưới tuổi đồng ý số khi chưa bật ZDR, và OpenAI có quyền kiểm tra, cảnh báo, đình chỉ API. Nhóm 11–14 có trẻ dưới 13, và khách không khai tuổi, nên ZDR là bắt buộc cho toàn bộ sản phẩm. ZDR [cần OpenAI duyệt trước](https://developers.openai.com/api/docs/guides/your-data#data-retention-controls-for-abuse-monitoring), qua đội sales, rồi bật tại Settings → Organization → Data controls → Data Retention. `/v1/responses`, `/v1/audio/transcriptions`, `/v1/realtime` đều thuộc danh sách hỗ trợ. Code không cần đổi vì đã dùng `store=False`.
-
-**2. Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15**, hiệu lực 01/01/2026. Theo [bài phân tích trên LSVN](https://lsvn.vn/cong-bo-du-lieu-ca-nhan-cua-tre-tu-07-tuoi-phai-duoc-nguoi-dai-dien-dong-y-a167752.html), người đại diện theo pháp luật thực hiện quyền của chủ thể dữ liệu là trẻ em, trừ các trường hợp không cần đồng ý ở khoản 1 Điều 19, và phải ngừng xử lý khi người đại diện rút đồng ý. Đây là nguồn thứ cấp, chưa đọc nguyên văn. Khách không có bước đồng ý nào (OD-05), nên đây là chỗ dễ va chạm nhất. Nếu luật sư kết luận cần đồng ý của người đại diện cả với khách, phải thêm một bước vào luồng khách. Đồng thời phải chú ý trường hợp người gây hại chính là cha mẹ.
+**Điều kiện duy nhất**: không phát đường dẫn cho học sinh thật hoặc trường học. ZDR là [quy định của OpenAI](https://developers.openai.com/api/docs/guides/safety-checks/under-18-api-guidance) khi xử lý dữ liệu cá nhân của trẻ dưới 13 tuổi, không phải lựa chọn của plan, và OpenAI có quyền đình chỉ API nếu vi phạm. Khi nào có học sinh thật dùng, làm theo [cổng G6](10-evaluation-and-quality-gates.md#cổng-g6-khi-có-học-sinh-thật).
 
 ## OD-16 — Đăng ký tài khoản
 
-**Mặc định, owner xem lại**: mở đăng ký cho học sinh sau G6. Khách chỉ giữ dữ liệu 2 giờ, nên Hồ sơ theo dõi nhiều ngày, là giá trị chính với học sinh thật, không dùng được nếu chỉ có chế độ khách.
-
-- `POST /api/v1/school/signup`: email, mật khẩu, nhóm tuổi tự khai, qua Supabase. Không yêu cầu 18+. `POST /auth/signup` của hệ thống cũ giữ 403.
-- Màn điều khoản có một ô xác nhận bố mẹ hoặc người giám hộ biết em dùng ứng dụng. Đây là tự khai, chưa phải xác minh đồng ý. Luật sư quyết định có đủ không ở G6.
-- Em không hỏi được người giám hộ vì đang không an toàn ở nhà vẫn có chế độ khách và 111.
-- Chưa chuyển dữ liệu khách sang tài khoản. Khách xuất PDF trước khi hết giờ.
-- WS-10-T00 kiểm tra giới hạn gửi email xác nhận của Supabase.
-
-Nếu muốn chỉ giữ chế độ khách, đặt `SCHOOL_SIGNUP_ENABLED=false`; khi đó Hồ sơ chỉ tồn tại 2 giờ.
+**Mặc định**: đóng trong đợt này. Khách vào một chạm. Phần Hồ sơ nhiều ngày (SC-08, SC-10) dùng một tài khoản trình bày tạo sẵn trong Supabase, nhập dữ liệu hư cấu một lần qua giao diện. Cách này bỏ được API đăng ký, màn đăng ký và rủi ro email xác nhận, nên nhanh hơn và ít chỗ hỏng hơn khi trình bày.
 

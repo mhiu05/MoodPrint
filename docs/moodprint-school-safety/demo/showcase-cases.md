@@ -2,7 +2,7 @@
 
 Bổ sung cho [KB-A, KB-B, KB-C](scenarios-KB-A-B-C.md). Đây là kịch bản chữ, không có trong sản phẩm. Mỗi ca dài 1–2 phút, cho thấy một năng lực cụ thể, chạy trên staging với **model thật**. Toàn bộ hư cấu. Không có nội dung tình dục dưới bất kỳ hình thức nào; câu chữ giữ ở mức không mô tả.
 
-Nhân vật ở [personas](personas.md). Spec tự động dùng model giả: `frontend/tests/fullstack/school-showcase.spec.ts`. Trước khi trình bày, chạy tay mỗi ca ba lần trên staging bằng phiên khách mới, nhập dữ liệu hư cấu trong kịch bản.
+Nhân vật ở [personas](personas.md). Spec tự động dùng model giả: `frontend/tests/fullstack/school-showcase.spec.ts`. Trước khi trình bày, chạy tay mỗi ca ba lần trên staging bằng phiên khách mới và tài khoản trình bày, nhập dữ liệu hư cấu trong kịch bản.
 
 | Ca | Năng lực cho thấy | Tài khoản | Phút |
 | --- | --- | --- | --- |
@@ -41,7 +41,7 @@ Tài khoản `sc-d`, case có sẵn.
 
 **Nhập**: "nó dọa tung ảnh riêng tư của mình nếu mình không làm theo".
 
-**Kỳ vọng**: template `sexual` hiện ngay; không gọi model, kể cả classifier; lượt sau không đưa tin đó vào ngữ cảnh; màn tải lên có dòng nhắc cố định và hỏi một câu xác nhận trước khi tải file.
+**Kỳ vọng**: template `sexual` hiện ngay; không gọi model, kể cả classifier; lượt sau không đưa tin đó vào ngữ cảnh; màn tải lên có dòng nhắc cố định.
 
 **Đạt khi**: số lượt model bằng 0 trong log.
 
@@ -133,4 +133,4 @@ SC-03, SC-04, SC-06, SC-07 giữ cho phần hỏi đáp.
 - Quay video từ lần smoke thành công gần nhất.
 - Nếu mạng hội trường yếu: chuyển sang hotspot, tắt phần giọng đọc, chữ vẫn chạy.
 - Nếu model chậm: dùng nhánh không cần model (KB-B bước 2, SC-02, SC-07).
-- SC-08, SC-10 cần dữ liệu có sẵn: tạo trong phiên khách ngay trước giờ trình bày, vì dữ liệu tự xóa sau 2 giờ.
+- SC-08, SC-10 dùng tài khoản trình bày có sẵn dữ liệu, vì dữ liệu khách tự xóa sau 2 giờ.

@@ -2,7 +2,7 @@
 
 **Toàn bộ là hư cấu.** Không phải người thật, trường thật. Tên trường dùng dạng chung. Không dùng dữ liệu của trẻ em thật trong fixture, eval hay ảnh chụp màn hình.
 
-Chỉ dùng trong test local và eval, không tạo trên hosted. Fixture ở `frontend/tests/fullstack/fixtures/school-personas.json` (WS-02-T08).
+Dùng trong test local và eval. Trên hosted chỉ có một tài khoản trình bày mang dữ liệu của `kb-a`. Fixture ở `frontend/tests/fullstack/fixtures/school-personas.json` (WS-02-T08).
 
 | Khóa | Tên | Tuổi | Lớp | Nhóm tuổi | Vai trò | Ca dùng |
 | --- | --- | --- | --- | --- | --- | --- |

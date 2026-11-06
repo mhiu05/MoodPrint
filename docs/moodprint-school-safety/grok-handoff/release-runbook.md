@@ -10,10 +10,8 @@ Chỉ coi là xong khi đủ sáu điều:
 2. PR `mhiu05/feat-refactor` → `main` có CI xanh và đã merge.
 3. CI trên push vào `main` xanh, và `Publish verified staging release` thành công cho đúng SHA đó.
 4. Poller trên EC2 đã triển khai `staging-<sha>`; `/api/v1/health/live` và `/api/v1/health/ready` trả OK.
-5. Smoke trên staging bằng phiên khách mới và nội dung hư cấu: KB-A/B/C chạy được, có ảnh hoặc Playwright.
+5. Smoke trên staging bằng phiên khách mới và tài khoản trình bày: KB-A/B/C chạy được, có ảnh hoặc Playwright.
 6. Có release note: SHA, migration đã áp, flag đã bật, giới hạn đã biết, cách rollback.
-
-"Released" chưa có nghĩa học sinh đã vào được. Mở cho học sinh là [Bước 11](#bước-11-mở-cho-học-sinh), sau [G6](../10-evaluation-and-quality-gates.md#cổng-g6-mở-cho-học-sinh-thật).
 
 ## 2. Pipeline thực tế
 
@@ -57,7 +55,6 @@ Chỉ coi là xong khi đủ sáu điều:
 | Cấu hình guest trên staging | Chưa rõ | UNKNOWN, kiểm ở preflight. Cần `GUEST_CAPTCHA_SITE_KEY`, `GUEST_ABUSE_HMAC_KEY` |
 | Widget Turnstile | `MoodPrint Guest`, Invisible từ 06/11/2026, hostnames `127.0.0.1`, `localhost`, `moodprint.duckdns.org` | VERIFIED trên Cloudflare |
 | CAPTCHA protection của Supabase | Cloudflare báo chưa thấy siteverify | UNKNOWN, kiểm ở preflight |
-| OpenAI ZDR | Chưa đăng ký | Điều kiện G6 |
 
 **Region**: xác nhận tại **AWS Settings > View all projects > Overview > Additional Info > Region**. Nếu không xác nhận được, xem `~/.aws/config`. Mọi tài nguyên Regional phải ở Region được chọn. MVP không tạo tài nguyên AWS mới. Nếu lệnh AWS đột nhiên trả "Access Denied", kiểm tra spend limit tại AWS Settings > Billing. Máy chủ MCP AWS không kết nối được trong phiên audit, nên phần này chưa đối chiếu với tài liệu AWS.
 
@@ -75,7 +72,6 @@ Lần 0029 thêm cột vào bảng đang map nên cần tách tree. Lần này c
 - [ ] G0–G4 đạt, ghi trong ledger.
 - [ ] OD-02 xong: có ít nhất 40 thẻ approved và template đã duyệt, `reviewed_by: mhiu05`.
 - [ ] Supabase Authentication > Attack Protection: CAPTCHA bật, nhà cung cấp Turnstile, đúng secret của widget. Chưa bật thì báo owner, vì token không được kiểm tra.
-- [ ] Giới hạn gửi email xác nhận của Supabase đủ cho đăng ký thật.
 - [ ] `main` CI xanh.
 - [ ] Supabase MCP: `select version_num from moodprint.alembic_version` trả `0029_journal_intelligence`.
 - [ ] AWS MCP: `aws sts get-caller-identity` thành công, không ghi Account hay ARN vào PR. Lỗi thì báo owner đăng nhập lại.
@@ -141,8 +137,6 @@ GUEST_VOICE_SECONDS=1800
 GUEST_VOICE_PER_MINUTE=6
 GUEST_AI_GLOBAL_CONCURRENCY=30
 GUEST_VOICE_GLOBAL_CONCURRENCY=5
-SCHOOL_SIGNUP_ENABLED=true
-SCHOOL_CONTACT_EMAIL=<owner cấp>
 ```
 
 Cách làm: tải giá trị vào file tạm mode 600 hoặc bộ nhớ, chỉnh, `put-parameter --type SecureString --overwrite`, xóa file tạm. Ghi lại số version cũ để khôi phục. So tên khóa trước và sau. Không in giá trị.
@@ -194,17 +188,18 @@ Sau đó: `/ready` phải vẫn 200 trên C.
 4. Chờ Publish, poller, `deploy.sh`.
 5. Kiểm tra health và log.
 
-### Bước 7: KB
+### Bước 7: KB và tài khoản trình bày
 
-Không tạo tài khoản mẫu hay dữ liệu test trên hosted. Worker tự sync KB sau khởi động. Kiểm tra `select count(*) from moodprint.kb_cards where review_status='approved'`.
+Worker tự sync KB sau khởi động. Kiểm tra `select count(*) from moodprint.kb_cards where review_status='approved'`.
+
+Tạo một tài khoản trình bày bằng `scripts/provision_auth_test_accounts.py` hoặc Supabase dashboard. Đăng nhập, xác nhận điều khoản, nhập hồ sơ "Nhóm chat lớp" của `kb-a` qua giao diện. Giao mật khẩu cho owner qua kênh riêng, không qua PR.
 
 ### Bước 8: smoke
 
-Theo [kịch bản](../demo/scenarios-KB-A-B-C.md) và [tình huống mẫu](../demo/showcase-cases.md), với **model thật**, bằng phiên khách mới và nội dung hư cấu trong kịch bản. Ca xác suất chạy 3 lần. Thêm:
+Theo [kịch bản](../demo/scenarios-KB-A-B-C.md) và [tình huống mẫu](../demo/showcase-cases.md), với **model thật**, bằng phiên khách mới và tài khoản trình bày. Ca xác suất chạy 3 lần. Thêm:
 
 - `POST /auth/signup` trả 403.
-- `POST /school/signup` tạo được tài khoản bằng email thử của owner; xóa tài khoản đó sau khi xong.
-- `/quyen-rieng-tu` mở được khi chưa đăng nhập, có link Turnstile Privacy Addendum.
+- `/quyen-rieng-tu` mở được, có câu dẫn chiếu Turnstile Privacy Addendum.
 - Route denylist trả 404.
 - Tài khoản 18+ không vào được app.
 - `/ho-tro` mở được khi chưa đăng nhập.
@@ -217,25 +212,7 @@ Theo [kịch bản](../demo/scenarios-KB-A-B-C.md) và [tình huống mẫu](../
 
 Ghi `docs/moodprint-school-safety/evidence/release.md`.
 
-### Bước 10: đóng cổng nếu G6 chưa đủ
 
-Smoke cần cổng mở trong thời gian ngắn. Xong smoke, nếu G6 chưa đủ: đặt `GUEST_AUTH_ENABLED=false`, `SCHOOL_SIGNUP_ENABLED=false` trong SSM, deploy lại, kiểm tra `GET /api/v1/public/experience` và trang chủ hiện trạng thái chưa mở. Không giới thiệu đường dẫn tới ai trong lúc smoke.
-
-### Bước 11: mở cho học sinh
-
-Chỉ làm khi owner xác nhận bằng văn bản đủ [G6](../10-evaluation-and-quality-gates.md#cổng-g6-mở-cho-học-sinh-thật).
-
-1. Xác nhận `OPENAI_API_KEY` trong SSM thuộc project đã bật ZDR. Chỉ xác nhận với owner, không in key.
-2. Đặt hai cổng về `true`, deploy lại.
-3. Chạy smoke ngắn: khách vào được, đăng ký được, khẩn cấp hiện ngay.
-4. Ghi ngày mở và bản ghi G6 vào `evidence/release.md`.
-
-### Sau khi mở
-
-- Có dữ liệu thật: backup trước mọi migration hosted, chỉ đi tiến.
-- Không đọc nội dung của học sinh trên hosted. Chỉ đếm và xem metadata.
-- Chạy `scripts/report_safety_events.py` theo lịch owner chọn.
-- Sự cố an toàn: báo người phụ trách ở G6 ngay. Có thể tắt tạm hai cổng; `/ho-tro` vẫn hoạt động.
 
 ## 6. Rollback
 
@@ -251,7 +228,7 @@ Chỉ làm khi owner xác nhận bằng văn bản đủ [G6](../10-evaluation-a
 
 ## 7. Giới hạn của Grok
 
-Theo §8.3 của prompt: không push thẳng hay force-push `main`; không tắt, skip, nới CI; không xóa test; không đưa secret vào code, log, commit, PR; không phá dữ liệu hosted; không tự mở cho học sinh; không tạo dữ liệu mẫu trên hosted; không đọc nội dung của học sinh trên hosted.
+Theo §8.3 của prompt: không push thẳng hay force-push `main`; không tắt, skip, nới CI; không xóa test; không đưa secret vào code, log, commit, PR; không phá dữ liệu hosted; không gửi đường dẫn staging cho học sinh hay trường học.
 
 Dừng và hỏi owner khi: cần credential chưa có; CI đỏ sau 3 lần thử theo 3 hướng; gate không đạt; gặp mục chưa trả lời trong [12-open-decisions](../12-open-decisions.md).
 

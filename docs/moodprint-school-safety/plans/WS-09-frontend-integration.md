@@ -4,7 +4,7 @@
 
 ## 1. Mục tiêu và giá trị
 
-Một giao diện yên tĩnh, rõ ràng, được đầu tư tới từng chi tiết, luôn có lối thoát và lối gọi giúp. Người dùng là học sinh thật, có thể đang trong lúc khó khăn, nên giao diện phải hoàn thiện.
+Một giao diện yên tĩnh, rõ ràng, được đầu tư tới từng chi tiết, luôn có lối thoát và lối gọi giúp. Đây là thứ người xem đánh giá trực tiếp, nên giao diện phải hoàn thiện và chạy mượt.
 
 ## 2. Hiện trạng đã xác minh
 
@@ -24,7 +24,6 @@ features/school/
   shell/{AppBar,TabBar,EmergencyButton,EmergencySheet,QuickExit,NeutralMode}.tsx
   chat/{ChatScreen,Composer,MessageList,EmergencyCardView,ProposalCardView,SourceSheet}.tsx
   cases/{CaseList,CaseTimeline,EventDetail,EvidenceUpload,PinGate,PdfPreview}.tsx
-  auth/{SignupPage,LoginPage}.tsx
   legal/PrivacyPage.tsx
   support/{SupportPage,PlatformGuide,TrustedAdults,SafetyPlan,Card111View}.tsx
   practice/...
@@ -70,7 +69,7 @@ Không.
 | WS-09-T06 | P0 | WS-05-T10 | Citation, `SourceSheet`, nhãn tham khảo | Nhãn hiện theo `sourceMarked`, không theo text | Spec trên | Pass |
 | WS-09-T07 | P1 | WS-03-T10 | Khi gửi lỗi mạng: chạy `screen.ts`; đỏ thì hiện template offline | Giữ nguyên tin đã gõ | `npm test`; spec offline | Pass |
 | WS-09-T08 | P1 | WS-06-T03 | `CaseList`, `CaseTimeline`, `EventDetail`, lịch sử phiên bản | Thời điểm xấp xỉ hiển thị đúng; bí danh | `npx playwright test tests/e2e/school-cases.spec.ts` | Pass |
-| WS-09-T09 | P1 | WS-06-T06, WS-06-T13 | `EvidenceUpload` ảnh và video, tiến trình, hash, dòng nhắc cố định, xem video, câu hỏi xác nhận khi API trả `EVIDENCE_CONFIRM_REQUIRED` | Người dùng thường không có bước hỏi nội dung; chọn có thì không tải lên và hiện hướng dẫn gọi 111; video > 6 MiB dùng tus | Spec trên | Pass |
+| WS-09-T09 | P1 | WS-06-T06 | `EvidenceUpload` ảnh và video, tiến trình, hash, dòng nhắc cố định, xem video | Không có bước hỏi nội dung; video > 6 MiB dùng tus | Spec trên | Pass |
 | WS-09-T10 | P1 | WS-06-T08 | `PinGate` | Không lộ tiêu đề khi khóa | Spec trên | Pass |
 | WS-09-T11 | P1 | WS-06-T11 | `PdfPreview`, chọn phần, tải về | Ba nhãn | Spec trên | Pass |
 | WS-09-T12 | P1 | WS-07, WS-05-T16 | `TrustedAdults`, `SafetyPlan`, `Card111View`, sao chép tin, `PlatformGuide` hiện ảnh khi thẻ có ảnh | Không có nút gửi; thiếu ảnh vẫn đọc được bước bằng chữ | `npx playwright test tests/e2e/school-support-plan.spec.ts` | Pass |
@@ -82,9 +81,8 @@ Không.
 | WS-09-T18 | P0 | T13 | `SchoolLanding` mode Persuade, một chuỗi chuyển động; trang Giới hạn của AI | Trình chiếu được ở 1280 và 360 | `npx playwright test tests/e2e/school-entry.spec.ts` | Pass |
 | WS-09-T19 | P0 | T16, T17 | Chạy `critique`, `audit`, `harden`, `onboard`, `clarify`, `adapt`, `polish`; sửa đến khi không còn P0, P1 | `DO_NOT_TRACK=1 npx impeccable detect frontend/src/features/school --json` sạch; quét URL đang chạy sạch | Lệnh detect | Pass: exit 0 |
 | WS-09-T20 | P0 | T19 | `document` cập nhật `DESIGN.md`; ảnh 360 và 1280 mọi màn hình chính trong PR cho owner | Tài liệu khớp thứ đã dựng | Đọc lại | Owner xem |
-| WS-09-T21 | P0 | T05 | Luồng khách một chạm ở trang giới thiệu; thông báo khách không chặn; `useCaptcha.take()` chờ token thay vì báo `CAPTCHA_REQUIRED`, nút hiện trạng thái bận; trạng thái chưa mở khi hai cổng tắt | Từ trang chủ tới tin nhắn đầu tiên không có bước xác minh nào; bấm sớm vẫn vào được; lỗi Turnstile có nút thử lại | `npx playwright test tests/e2e/school-guest.spec.ts` | Pass |
-| WS-09-T22 | P0 | T01 | `/quyen-rieng-tu` theo [09 §15](../09-ux-and-user-flows.md#15-quyền-riêng-tư-và-trạng-thái-chưa-mở), có link Turnstile Privacy Addendum; link từ trang giới thiệu, Cài đặt, màn điều khoản; kênh liên hệ `SCHOOL_CONTACT_EMAIL` | Đọc được khi chưa đăng nhập và khi API lỗi | `npx playwright test tests/e2e/school-privacy.spec.ts` | Pass |
-| WS-09-T23 | P0 | T01, WS-02-T13 | `/dang-ky`, `/login`, `TermsGate` có ô người giám hộ và dòng hướng dẫn cho em không an toàn ở nhà; khách thấy lời mời tạo tài khoản, không chặn | Đăng ký, xác nhận email, đăng nhập, điều khoản vào được shell; cờ tắt thì không hiện `/dang-ky` | `npx playwright test tests/e2e/school-signup.spec.ts` | Pass |
+| WS-09-T21 | P0 | T05 | Luồng khách một chạm ở trang giới thiệu; thông báo khách không chặn; `useCaptcha.take()` chờ token thay vì báo `CAPTCHA_REQUIRED`, nút hiện trạng thái bận | Từ trang chủ tới tin nhắn đầu tiên không có bước xác minh nào; bấm sớm vẫn vào được; lỗi Turnstile có nút thử lại | `npx playwright test tests/e2e/school-guest.spec.ts` | Pass |
+| WS-09-T22 | P1 | T01 | `/quyen-rieng-tu` ngắn theo [09 §15](../09-ux-and-user-flows.md#15-trang-quyền-riêng-tư), có câu dẫn chiếu Turnstile Privacy Addendum; link ở chân trang giới thiệu | Đọc được khi chưa đăng nhập | `npx playwright test tests/e2e/school-entry.spec.ts` | Pass |
 
 ## 11. An toàn và bảo mật
 

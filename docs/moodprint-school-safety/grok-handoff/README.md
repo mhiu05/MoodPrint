@@ -43,7 +43,7 @@ Theo §8.2 của prompt: sửa code, test, migration, config, CI, Dockerfile, do
 
 ## Giới hạn
 
-Không push thẳng hay force-push `main`. Không tắt, skip, nới CI. Không xóa test. Không đưa secret vào code, log, commit, PR. Không phá dữ liệu hosted. Không tự mở cho học sinh: hai cổng chỉ bật lâu dài khi owner xác nhận G6. Không đọc nội dung của học sinh trên hosted. Không tạo dữ liệu mẫu trên hosted. Không điền `reviewed_by` cho mục mhiu05 chưa đánh dấu. Eval live không vượt 2,80 USD tổng. Chỉ dùng `gpt-6-luna` cho model ngôn ngữ.
+Không push thẳng hay force-push `main`. Không tắt, skip, nới CI. Không xóa test. Không đưa secret vào code, log, commit, PR. Không phá dữ liệu hosted. Không gửi đường dẫn staging cho học sinh hay trường học. Không điền `reviewed_by` cho mục mhiu05 chưa đánh dấu. Eval live không vượt 2,80 USD tổng. Chỉ dùng `gpt-6-luna` cho model ngôn ngữ.
 
 ## Hỏi owner khi
 
@@ -115,6 +115,6 @@ Dọn DB: `python scripts/disposable_postgres.py --remove <run_id>`.
 
 **Sau mỗi PR merge**: link PR, link CI, test đã chạy và kết quả, gate đạt hay chưa, việc tiếp theo.
 
-**Sau release**: SHA, link workflow, output health check, smoke ba kịch bản, migration đã áp, flag đã bật, trạng thái hai cổng, vấn đề tồn tại.
+**Sau release**: SHA, link workflow, output health check, smoke ba kịch bản, migration đã áp, flag đã bật, vấn đề tồn tại.
 
 Không nói test pass nếu chưa chạy.

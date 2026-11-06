@@ -14,11 +14,11 @@ Tài liệu chuẩn cho kiến trúc một agent và engine an toàn. Task nằm
 | Giới hạn | `_BudgetHooks(3, 2)`: 3 model call, 2 tool call |
 | Model | `settings.openai_model` (`gpt-6-luna`), `reasoning.effort=medium`, `max_tokens=2000`, `store=False`, `max_retries=0`, tracing tắt |
 | Output | `AssistantReply`, schema nghiêm ngặt |
-| Chạy thật | Staging luôn dùng model thật, trên project OpenAI đã bật ZDR trước khi mở cho học sinh. Model giả chỉ dùng trong CI |
+| Chạy thật | Staging luôn dùng model thật. Model giả chỉ dùng trong CI |
 
 Không dùng `handoff`, `as_tool`, specialist, planner. `run.workflow` (V3) giữ `None`.
 
-**Lịch sử cũ**: tài khoản học sinh và khách đều mới, không có lịch sử bot cũ. Tài khoản 18+ không vào được shell mới. Đề xuất không hiển thị "Trợ lý (phiên bản cũ)" trong MVP. Dữ liệu cũ giữ nguyên, đọc qua UI cũ ở profile `default`.
+**Lịch sử cũ**: tài khoản trình bày và khách đều mới, không có lịch sử bot cũ. Tài khoản 18+ không vào được shell mới. Đề xuất không hiển thị "Trợ lý (phiên bản cũ)" trong MVP. Dữ liệu cũ giữ nguyên, đọc qua UI cũ ở profile `default`.
 
 ## 2. Các lượt gọi model
 
@@ -335,7 +335,6 @@ Card này chỉ do backend tạo. `AssistantReply` không có trường `cards`,
 | Văn bản | Tầng 1 khớp `sexual_abuse_exploitation` → template `sexual`, **không gửi nội dung tới model**, kể cả classifier |
 | Lịch sử | Tin đó bị loại khỏi input của các lượt sau, thay bằng ghi chú trung tính |
 | Ảnh, video | Nhận mọi file đúng định dạng và kích thước. **Không bao giờ gửi tới model** |
-| Sau nhãn này | Người dùng đã có sự kiện `sexual_abuse_exploitation` phải trả lời một câu trước khi tải file (WS-06-T13). Không đọc nội dung file |
 | Màn tải lên | Một dòng nhắc cố định, không chặn: "Nếu nội dung liên quan tới hình ảnh tình dục của trẻ em, đừng lưu hay gửi đi. Hãy gọi 111." |
 | Hướng dẫn | Template nhắc không gửi đi, liên hệ 111/113 |
 

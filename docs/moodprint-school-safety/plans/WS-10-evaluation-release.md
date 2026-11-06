@@ -4,7 +4,7 @@
 
 ## 1. Mục tiêu và giá trị
 
-Bản release thật chạy trên staging, sẵn sàng cho học sinh thật, có đường rollback. Mở cho học sinh là bước riêng sau G6.
+Bản release thật chạy trên staging, trình bày mượt với model thật, có đường rollback.
 
 ## 2. Hiện trạng đã xác minh
 
@@ -12,7 +12,7 @@ Pipeline release hoạt động (lần cuối 05/11/2026). Hosted 0029. Không c
 
 ## 3. Khoảng trống
 
-E2E ba kịch bản, access matrix, artifact SQL 0035, image C, cấu hình SSM, giám sát tổng hợp, cổng mở, release note.
+E2E ba kịch bản, access matrix, artifact SQL 0035, image C, cấu hình SSM, tài khoản trình bày, release note.
 
 ## 4. Kiến trúc đề xuất
 
@@ -20,7 +20,7 @@ Thứ tự **C → SQL → F**, đơn giản hơn lần 0029 vì schema mới ch
 
 ## 5. Phạm vi
 
-Trong: eval cuối, hiệu năng, tài liệu, release, giám sát, mở cổng. Ngoài: các việc của owner ở G6.
+Trong: eval cuối, hiệu năng, tài liệu, release. Ngoài: các điều kiện khi có học sinh thật ở G6.
 
 ## 6. File và symbol bị ảnh hưởng
 
@@ -28,7 +28,7 @@ Trong: eval cuối, hiệu năng, tài liệu, release, giám sát, mở cổng.
 
 ## 7. File mới
 
-`deploy/supabase/reviewed-sql/0035-review.sql`; `scripts/report_safety_events.py`; `docs/moodprint-school-safety/evidence/release.md`.
+`deploy/supabase/reviewed-sql/0035-review.sql`; `docs/moodprint-school-safety/evidence/release.md`.
 
 ## 8. API contract
 
@@ -42,7 +42,7 @@ Không đổi.
 
 | ID | Ưu tiên | Phụ thuộc | Thay đổi, ở đâu | Hành vi mong đợi | Lệnh test | Pass / fail |
 | --- | --- | --- | --- | --- | --- | --- |
-| WS-10-T00 | P0 | Trước giai đoạn 6 | Preflight ở [runbook](../grok-handoff/release-runbook.md#bước-0-điều-kiện-trước): Supabase MCP, AWS MCP, Region, tên khóa SSM, CAPTCHA protection của Supabase, giới hạn email xác nhận | Biết rõ thiếu gì trước khi đụng hosted | Theo runbook | Pass. Fail: báo owner |
+| WS-10-T00 | P0 | Trước giai đoạn 6 | Preflight ở [runbook](../grok-handoff/release-runbook.md#bước-0-điều-kiện-trước): Supabase MCP, AWS MCP, Region, tên khóa SSM, CAPTCHA protection của Supabase | Biết rõ thiếu gì trước khi đụng hosted | Theo runbook | Pass. Fail: báo owner |
 | WS-10-T01 | P0 | WS-09 | `tests/fullstack/school-kb-{a,b,c}.spec.ts`, `school-showcase.spec.ts` | Chạy đúng [kịch bản](../demo/scenarios-KB-A-B-C.md) và [tình huống mẫu](../demo/showcase-cases.md) với model giả | `python ../scripts/test_fullstack.py school-` | Pass: tất cả, gồm luồng khách |
 | WS-10-T02 | P0 | WS-03…08 | `tests/test_school_access_matrix.py` | Mọi route mới đủ 6 vai | `pytest -q tests/test_school_access_matrix.py` | Pass |
 | WS-10-T03 | P0 | T01 | Chạy lại eval trên `holdout` bằng phần ngân sách còn lại | Đạt ngưỡng; tổng chi dưới 2,80 USD; lưu báo cáo | Runner live; `live-eval-spend.jsonl` | Pass |
@@ -54,15 +54,13 @@ Không đổi.
 | WS-10-T09 | P0 | T08 | Cập nhật SSM qua AWS MCP theo runbook, ghi số version cũ | Chưa có hiệu lực tới khi deploy; không in giá trị | So tên khóa trước và sau | Pass |
 | WS-10-T10 | P0 | T09 | Áp SQL nguyên văn qua Supabase MCP theo runbook, chạy bộ truy vấn kiểm tra, ghi `0035-execution.json` | Revision 0035; `/ready` 200 trên C | Runbook bước 5 | Pass: mọi kiểm tra đúng. Lỗi: báo owner |
 | WS-10-T11 | P0 | T10 | Sync `main`, PR `mhiu05/feat-refactor` → `main`; `READY_REVISIONS` chỉ 0035 | CI xanh; merge; Publish; poller deploy; `/ready` 200 | `gh run watch`; `curl` | Pass. Fail: rollback |
-| WS-10-T12 | P0 | T11 | Chờ `sync` KB; không tạo tài khoản mẫu trên hosted | Thẻ đủ | Kiểm tra `kb_cards` count | Pass |
-| WS-10-T13 | P0 | T12 | Smoke KB-A/B/C và SC-01…SC-10 trên staging với **model thật**, bằng phiên khách mới và nội dung hư cấu; video dự phòng; chạy tay vì CAPTCHA chặn trình duyệt tự động; kiểm tra dữ liệu khách mất sau hạn; đăng ký thử bằng email owner rồi xóa | Mọi ca đạt; ca xác suất chạy 3 lần; ghi chi phí | Playwright live hoặc checklist | Pass |
-| WS-10-T14 | P0 | T13 | `evidence/release.md`: SHA, migration, flag, giới hạn, rollback; báo cáo cho owner. Nếu G6 chưa đủ: đặt hai cổng về `false`, deploy lại | Đủ sáu điều kiện; học sinh chưa vào được khi G6 chưa đủ | Đọc lại; `curl /public/experience` | Pass |
-| WS-10-T15 | P0 | T12 | `scripts/report_safety_events.py`: đếm theo ngày, mức, nhãn, tầng; cảnh báo khi đỏ tăng đột biến hoặc postcheck chặn nhiều | Không in nội dung, không in `user_id`; chạy qua Supabase MCP hoặc DSN chỉ đọc | `pytest -q tests/test_report_safety_events.py` | Pass |
-| WS-10-T16 | P0 | G6, owner xác nhận bằng văn bản | Đặt `GUEST_AUTH_ENABLED=true`, `SCHOOL_SIGNUP_ENABLED=true` trong SSM, deploy lại, chạy lại smoke ngắn | Học sinh vào được; OpenAI project dùng đúng project có ZDR | `curl /public/experience`; checklist | Pass |
+| WS-10-T12 | P0 | T11 | Chờ `sync` KB. Tạo một tài khoản trình bày bằng `scripts/provision_auth_test_accounts.py` hoặc Supabase dashboard; nhập hồ sơ "Nhóm chat lớp" của `kb-a` qua giao diện | Thẻ đủ; SC-08, SC-10 chạy được trên tài khoản này; mật khẩu giao owner, không vào repo | Kiểm tra `kb_cards` count | Pass |
+| WS-10-T13 | P0 | T12 | Smoke KB-A/B/C và SC-01…SC-10 trên staging với **model thật**, bằng phiên khách mới và tài khoản trình bày; video dự phòng; chạy tay vì CAPTCHA chặn trình duyệt tự động; kiểm tra dữ liệu khách mất sau hạn | Mọi ca đạt; ca xác suất chạy 3 lần; ghi chi phí | Playwright live hoặc checklist | Pass |
+| WS-10-T14 | P0 | T13 | `evidence/release.md`: SHA, migration, flag, giới hạn, rollback; báo cáo cho owner | Đủ sáu điều kiện | Đọc lại | Pass |
 
 ## 11. An toàn và bảo mật
 
-Không in DSN. Không đọc `backend/.env`. Không đưa SSM ra log. Không tạo dữ liệu mẫu trên hosted. Staging chạy model thật, trong trần `AI_DAILY_BUDGET_USD`. Grok không tự mở cho học sinh. Sau khi mở, không đọc nội dung của học sinh trên hosted; chỉ đếm và xem metadata.
+Không in DSN. Không đọc `backend/.env`. Không đưa SSM ra log. Trên hosted chỉ có tài khoản trình bày, nội dung hư cấu. Staging chạy model thật, trong trần `AI_DAILY_BUDGET_USD`. Không gửi đường dẫn cho học sinh hay trường học.
 
 ## 12. Test và dataset
 
@@ -70,11 +68,11 @@ Như trên.
 
 ## 13. Acceptance criteria
 
-Sáu điều kiện "Released" ở [runbook](../grok-handoff/release-runbook.md#1-released-nghĩa-là-gì). Mở cho học sinh theo [G6](../10-evaluation-and-quality-gates.md#cổng-g6-mở-cho-học-sinh-thật).
+Sáu điều kiện "Released" ở [runbook](../grok-handoff/release-runbook.md#1-released-nghĩa-là-gì).
 
 ## 14. Phụ thuộc và blocker
 
-OD-02 (nội dung đã duyệt). AWS MCP phải hoạt động. G6 chặn T16.
+OD-02 (nội dung đã duyệt). AWS MCP phải hoạt động.
 
 ## 15. Rollback
 
@@ -82,7 +80,7 @@ Theo runbook. Image C là đích rollback sau F.
 
 ## 16. Definition of Done
 
-G5 đạt. G6 và T16 khi owner xác nhận.
+G5 đạt.
 
 ## 17. Ghi chú cho Grok
 

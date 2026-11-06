@@ -27,10 +27,9 @@ Mỗi dòng ánh xạ yêu cầu sang hiện trạng và workstream. Trạng th�
 | Nhãn tham khảo do backend gắn | Có `source_backed` | Dùng đúng nghĩa | WS-04 |
 | Tuổi 11–14, 15–17 | Chỉ 18+ | `school_profiles` | WS-02 |
 | Điều khoản ngắn | Disclosure guest | Màn hình + `terms_version` | WS-02 |
-| Đăng ký cho học sinh | Chỉ 18+ | `POST /api/v1/school/signup`, cờ bật | WS-02 |
-| Chính sách quyền riêng tư | Không có trang riêng | `/quyen-rieng-tu`, dẫn chiếu Turnstile Addendum | WS-09 |
+| Đóng đăng ký | Mở | Cổng `/auth/signup` | WS-02 |
+| Trang quyền riêng tư ngắn | Không có | `/quyen-rieng-tu`, dẫn chiếu Turnstile Addendum | WS-09 |
 | Khách đủ tính năng, tự xóa sau 2 giờ | Chỉ chat | Purge bảng mới, giá giọng nói, giảm mức giữ ngân sách | WS-02, WS-04 |
-| Giám sát tổng hợp | Không có | `scripts/report_safety_events.py` | WS-10 |
 | Eval an toàn ≥ 300 mẫu | Không có | Dataset + runner | WS-03, WS-10 |
 | Eval truy xuất ≥ 100 câu | Có khung journal | Dataset + runner | WS-05 |
 | Ba kịch bản E2E | Không có | Spec Playwright | WS-10 |
@@ -47,12 +46,12 @@ Mỗi dòng ánh xạ yêu cầu sang hiện trạng và workstream. Trạng th�
 | Hỏi thăm sau khi kể | Hoãn; `proactive` sẵn nền |
 | Realtime speech | Hoãn |
 | Chia sẻ có link | Hoãn; MVP xuất PDF |
-| Luồng xác minh đồng ý của người đại diện | Chờ kết luận pháp lý ở G6 |
+| Luồng đồng ý của người đại diện, Luật BVDLCN, ZDR | Chỉ cần khi có học sinh thật |
 | Reranker | Chỉ khi eval chứng minh cần |
 | Đọc nội dung ảnh bằng model | Rủi ro pháp lý và an toàn |
 | Audio làm bằng chứng | Hồ sơ nhận ảnh và video; audio để sau |
 
 ## Cổng bắt buộc trước khi mở cho học sinh thật
 
-Danh sách đầy đủ ở [cổng G6](10-evaluation-and-quality-gates.md#cổng-g6-mở-cho-học-sinh-thật). Người dùng mặc định là học sinh thật ([OD-15](12-open-decisions.md#od-15--ai-dùng-sản-phẩm)), nên các điều kiện đó thuộc đợt này. Pass G0–G5 chưa đủ để mở.
+Không thuộc đợt này ([OD-15](12-open-decisions.md#od-15--ai-dùng-sản-phẩm)). Danh sách ở [cổng G6](10-evaluation-and-quality-gates.md#cổng-g6-khi-có-học-sinh-thật), để dùng khi có học sinh thật.
 

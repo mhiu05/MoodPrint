@@ -60,9 +60,8 @@ Profile `school_safety`:
 
 - **Ép tắt** (ghi cảnh báo, không làm boot lỗi): `ai_three_agent_experience_enabled`, `ai_smart_orchestration_enabled`, `ai_group_chat_enabled`, `ai_collaboration_enabled`, `ai_collaboration_defaults_enabled`, `proactive_enabled`, `proactive_worker_enabled`, `ai_web_search_enabled`, `ai_maps_search_enabled`, `maps_search_worker_enabled`, `ai_agent_skills_enabled`, `activities_enabled`, `semantic_memory_enabled`, `journal_semantic_enabled`, `journal_auto_memory_enabled`, `product_tour_enabled`.
 - **Chặn route**: trả 404 cho nhóm social, matching, profiles, activities, groups, collaboration, proactive, inbox, maps, skills, journal, mood, memories (danh sách chính xác trong [WS-02](plans/WS-02-product-shell-access.md)).
-- **Eligibility**: cần hàng `school_profiles`, thay cho 18+. Tài khoản đăng ký cần thêm `terms_accepted_at`; khách không cần.
-- **Đăng ký**: `POST /auth/signup` của hệ thống cũ trả 403 `SIGNUP_CLOSED`. Học sinh đăng ký qua `POST /api/v1/school/signup`, bật bằng `SCHOOL_SIGNUP_ENABLED`.
-- **Cổng mở**: `GUEST_AUTH_ENABLED` và `SCHOOL_SIGNUP_ENABLED` chỉ bật lâu dài sau [G6](10-evaluation-and-quality-gates.md#cổng-g6-mở-cho-học-sinh-thật). Khi cả hai tắt, chỉ `/ho-tro`, `/quyen-rieng-tu` và các số khẩn cấp dùng được.
+- **Eligibility**: cần hàng `school_profiles`, thay cho 18+. Tài khoản đăng nhập cần thêm `terms_accepted_at`; khách không cần.
+- **Đăng ký**: `POST /auth/signup` trả 403 `SIGNUP_CLOSED`. Khách vào thẳng; phần Hồ sơ nhiều ngày dùng một tài khoản trình bày.
 
 Profile `default` là hệ thống cũ được **đóng băng** ([OD-13](12-open-decisions.md#od-13--hệ-thống-cũ)): không môi trường nào chạy nó, chỉ giữ để test cũ tiếp tục xanh. Route mới vẫn có trong OpenAPI nhưng trả 404 khi không ở profile `school_safety`. Nhờ vậy contract sinh ra không phụ thuộc profile.
 
