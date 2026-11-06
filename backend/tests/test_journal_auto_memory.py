@@ -254,7 +254,7 @@ async def test_memory_deletion_fences_pending_extraction_without_resurrecting_ol
     assert len(model.calls) == calls and await memories(app) == []
 
 
-async def test_switch_off_cancels_pending_extraction_and_keeps_existing(auto_memory):
+async def test_stored_disable_keeps_existing_memory_and_requeues_extraction(auto_memory):
     app, actors = auto_memory
     client, uid = actors[0]
     row = await create(client, text=TEXT)
@@ -267,7 +267,9 @@ async def test_switch_off_cancels_pending_extraction_and_keeps_existing(auto_mem
     await due(app)
     await tick(app)
     assert len(await memories(app)) == 1 and not app.state.ai.model_override.calls
-    assert all(job.status == "cancelled" for job in await jobs(app))
+    queued = await jobs(app)
+    assert any(job.status == "cancelled" and job.settings_version == 1 for job in queued)
+    assert any(job.status == "pending" and job.settings_version == 2 for job in queued)
 
 
 @pytest.mark.parametrize("limit", ["daily", "budget_share"])
