@@ -1,10 +1,10 @@
 # WS-09 — Tích hợp frontend
 
-Ưu tiên P1. Độ phức tạp XL: toàn bộ UI mới, nhiều trạng thái, hai nhóm tuổi. Nhánh `mhiu05/feat-refactor-ws09-ui`. Đặc tả ở [09](../09-ux-and-user-flows.md).
+Ưu tiên P0. Độ phức tạp XL: toàn bộ UI mới theo quy trình impeccable, thinking, chuyển động, nhiều trạng thái, hai nhóm tuổi. Nhánh `mhiu05/feat-refactor-ws09-ui`. Đặc tả ở [09](../09-ux-and-user-flows.md).
 
 ## 1. Mục tiêu và giá trị
 
-Một giao diện yên tĩnh, rõ ràng, luôn có lối thoát và lối gọi giúp.
+Một giao diện yên tĩnh, rõ ràng, được đầu tư tới từng chi tiết, luôn có lối thoát và lối gọi giúp. Demo là nơi người xem đánh giá sản phẩm, nên giao diện phải hoàn thiện như bản thật.
 
 ## 2. Hiện trạng đã xác minh
 
@@ -33,6 +33,8 @@ features/school/
 
 Copy tập trung trong `copy/`, chọn theo `ageGroup`.
 
+Quy trình thiết kế bắt buộc theo [09 §1](../09-ux-and-user-flows.md#1-hướng-hình-ảnh-và-quy-trình-impeccable). Thinking theo [09 §13](../09-ux-and-user-flows.md#13-giao-diện-thinking). Chuyển động theo [09 §14](../09-ux-and-user-flows.md#14-chuyển-động).
+
 ## 5. Phạm vi
 
 Trong: mọi màn hình ở [09](../09-ux-and-user-flows.md). Ngoài: thay đổi giao diện của profile default.
@@ -57,11 +59,12 @@ Không.
 
 | ID | Ưu tiên | Phụ thuộc | Thay đổi, ở đâu | Hành vi mong đợi | Lệnh test | Pass / fail |
 | --- | --- | --- | --- | --- | --- | --- |
-| WS-09-T01 | P0 | WS-02-T09 | Tách `useResource`, `useSession` sang `features/shared`; shell, 4 tab, route | Spec cũ không đổi; 360px không tràn | `npm test`; `npm run test:e2e` | Pass: toàn bộ fixture suite cũ |
+| WS-09-T00 | P0 | WS-02-T09 | `impeccable init` viết lại `PRODUCT.md`; `shape` cho landing, chat, cases, practice, support; brief vào `.impeccable/surfaces/`; tự host Be Vietnam Pro | Mỗi surface có brief, mode, luận điểm chuyển động trước khi code | Đọc lại brief | Pass: đủ 5 brief |
+| WS-09-T01 | P0 | T00 | Tách `useResource`, `useSession` sang `features/shared`; shell, 4 tab, route | Spec cũ không đổi; 360px không tràn | `npm test`; `npm run test:e2e` | Pass: toàn bộ fixture suite cũ |
 | WS-09-T02 | P0 | T01 | `EmergencyButton`, `EmergencySheet`, tĩnh, không API | Mở được khi API chết; `tel:`; focus trap của `Dialog` | `npx playwright test tests/e2e/school-emergency.spec.ts` | Pass với mọi route API trả 500 |
 | WS-09-T03 | P0 | T01 | `QuickExit`, `/trung-tinh`, xóa cache, `location.replace` | Back không hiện nội dung; drafts mất | `npx playwright test tests/e2e/school-quick-exit.spec.ts` | Pass |
 | WS-09-T04 | P0 | T02 | `/ho-tro` public, dùng `public-cards.generated.json` | Không gọi API; đọc được khi chưa đăng nhập | `npx playwright test tests/e2e/school-support.spec.ts` | Pass |
-| WS-09-T05 | P0 | WS-04-T07 | `ChatScreen`, stream, `AIActivity` thân thiện, `EmergencyCardView`, `ProposalCardView`, dừng | Đủ trạng thái; không lộ tên tool; không có tên bot cũ | `npx playwright test tests/e2e/school-chat.spec.ts` | Pass |
+| WS-09-T05 | P0 | WS-04-T07 | `ChatScreen`, stream, `ThinkingStatus` (WS-04-T15), `EmergencyCardView`, `ProposalCardView`, chip `suggested_replies`, dừng | Đủ trạng thái; orb đúng giai đoạn thật, không có orb ở khẩn cấp; không lộ tên tool; không có tên bot cũ | `npx playwright test tests/e2e/school-chat.spec.ts` | Pass |
 | WS-09-T06 | P0 | WS-05-T10 | Citation, `SourceSheet`, nhãn tham khảo | Nhãn hiện theo `sourceMarked`, không theo text | Spec trên | Pass |
 | WS-09-T07 | P1 | WS-03-T10 | Khi gửi lỗi mạng: chạy `screen.ts`; đỏ thì hiện template offline | Giữ nguyên tin đã gõ | `npm test`; spec offline | Pass |
 | WS-09-T08 | P1 | WS-06-T03 | `CaseList`, `CaseTimeline`, `EventDetail`, lịch sử phiên bản | Thời điểm xấp xỉ hiển thị đúng; bí danh | `npx playwright test tests/e2e/school-cases.spec.ts` | Pass |
@@ -73,7 +76,10 @@ Không.
 | WS-09-T14 | P1 | T05–T13 | Copy hai nhóm tuổi trong `copy/` | Không còn chuỗi cứng trong component; test so khóa hai file | `npm test` | Pass |
 | WS-09-T15 | P0 | T05–T13 | Ma trận trạng thái: loading, empty, error, offline, timeout, denied, quota | Mỗi màn hình có test | `npx playwright test tests/e2e/school-states.spec.ts` | Pass |
 | WS-09-T16 | P0 | T15 | Axe mọi route, 360, 390, 768, 1280; cảnh báo chữ 200%; rà tên cũ | 0 violation; `rg` không còn Điều phối, Mây trong `features/school` | `npx playwright test tests/e2e/school-a11y.spec.ts` | Pass |
-| WS-09-T17 | P2 | OD-06 | Tinh chỉnh hình ảnh theo hướng được chọn | Screenshot mobile, desktop trong PR | Visual config | Owner xem |
+| WS-09-T17 | P0 | T05–T13 | `motion.ts`: niêm phong bằng chứng, sheet, Flip cho proposal, đổi tab; mở rộng `motion.spec.ts` | Reduced motion vẫn đủ nội dung; không animation nào chặn nội dung; khẩn cấp hiện ngay | `npx playwright test tests/e2e/motion.spec.ts` | Pass |
+| WS-09-T18 | P0 | T13 | `SchoolLanding` mode Persuade, một chuỗi chuyển động; trang Giới hạn của AI | Trình chiếu được ở 1280 và 360 | `npx playwright test tests/e2e/school-entry.spec.ts` | Pass |
+| WS-09-T19 | P0 | T16, T17 | Chạy `critique`, `audit`, `harden`, `onboard`, `clarify`, `adapt`, `polish`; sửa đến khi không còn P0, P1 | `DO_NOT_TRACK=1 npx impeccable detect frontend/src/features/school --json` sạch; quét URL đang chạy sạch | Lệnh detect | Pass: exit 0 |
+| WS-09-T20 | P0 | T19 | `document` cập nhật `DESIGN.md`; ảnh 360 và 1280 mọi màn hình chính trong PR cho owner | Tài liệu khớp thứ đã dựng | Đọc lại | Owner xem |
 
 ## 11. An toàn và bảo mật
 
@@ -89,7 +95,7 @@ G4 đạt: [10](../10-evaluation-and-quality-gates.md).
 
 ## 14. Phụ thuộc và blocker
 
-API các WS; OD-06. Không sửa `frontend/` khi fullstack đang chạy: Vite HMR tải lại trang.
+API các WS. Không sửa `frontend/` khi fullstack đang chạy: Vite HMR tải lại trang.
 
 ## 15. Rollback
 
@@ -101,4 +107,4 @@ G4 đạt, ảnh mobile và desktop trong PR.
 
 ## 17. Ghi chú cho Grok
 
-Không dựng lại group chat nhiều bot. Không thêm thư viện state hay UI. CSP chặn inline style: dùng class.
+Không dựng lại group chat nhiều bot. Không thêm thư viện state hay UI. CSP chặn inline style: dùng class; GSAP đặt style qua CSSOM nên không vướng, `thinking-orbs` vẽ canvas. Impeccable có hook cho Grok Build, xem `.agents/skills/impeccable/reference/hooks.md`. Tắt telemetry bằng `DO_NOT_TRACK=1`.

@@ -13,8 +13,8 @@ Grok cập nhật cột **Trạng thái** sau mỗi PR merge. Thứ tự chạy 
 | [WS-05](plans/WS-05-knowledge-base.md) | Knowledge base | P1 | XL | Pipeline, 50 thẻ, phụ thuộc người duyệt | WS-04 contract | G2 | Chưa bắt đầu |
 | [WS-06](plans/WS-06-incident-workspace.md) | Hồ sơ sự việc | P1 | L | Bất biến, hash, PDF tiếng Việt | WS-04 contract | G2 | Chưa bắt đầu |
 | [WS-07](plans/WS-07-support-action-planning.md) | Hỗ trợ và hành động | P1 | M | Dùng lại khung tool | WS-04, WS-05, WS-06 | G2 | Chưa bắt đầu |
-| [WS-08](plans/WS-08-voice-speaking-practice.md) | Luyện nói | P2 | L | Provider mới, audio trên mobile | WS-04 | G3 | Chưa bắt đầu |
-| [WS-09](plans/WS-09-frontend-integration.md) | Frontend | P1 | XL | Toàn bộ UI, song song các WS | WS-02, API từng WS | G4 | Chưa bắt đầu |
+| [WS-08](plans/WS-08-voice-speaking-practice.md) | Luyện nói | P1 | L | Realtime làm bộ đọc, audio trên mobile | WS-04 | G3 | Chưa bắt đầu |
+| [WS-09](plans/WS-09-frontend-integration.md) | Frontend | P0 | XL | Toàn bộ UI theo quy trình impeccable, thinking, chuyển động | WS-02, API từng WS | G4 | Chưa bắt đầu |
 | [WS-10](plans/WS-10-evaluation-release.md) | Đánh giá và release | P0 | L | Hosted, SSM, phụ thuộc credential | Tất cả | G5 | Chưa bắt đầu |
 
 ## 2. Phụ thuộc
@@ -70,14 +70,12 @@ Merge `main` vào `mhiu05/feat-refactor` sau mỗi WS. `main` có thể đổi (
 
 | Việc | Ai | Cần trước |
 | --- | --- | --- |
-| Duyệt template khẩn cấp | Người có chuyên môn | G1 |
-| Duyệt thẻ KB, điền `reviewed_by` | Người được owner chỉ định | G2 |
-| `manual_capture` hướng dẫn nền tảng trên app thật | Thành viên nhóm | G2 |
-| Bake-off TTS/STT | Nhóm | G3 |
-| Review copy theo nhóm tuổi | Người lớn có kinh nghiệm | G4 |
-| Chọn hướng hình ảnh | Owner | WS-09 |
-| Cấp credential | Owner | G5 |
-| Trả lời [12-open-decisions](12-open-decisions.md) | Owner | Theo từng mục |
+| Duyệt template khẩn cấp, thẻ KB | Owner | G5 |
+| `manual_capture` hướng dẫn nền tảng trên app thật | Thành viên nhóm | G5 |
+| Nghe thử giọng đọc | Owner | G3 |
+| Xem ảnh giao diện, review copy | Owner | G4 |
+| Đăng nhập AWS nếu phiên hết hạn | Owner | G5 |
+| Diễn tập trình diễn | Nhóm | Sau G5 |
 
 ## 6. Rollback theo giai đoạn
 

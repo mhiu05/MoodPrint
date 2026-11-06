@@ -84,7 +84,7 @@ Bổ sung eval WF-03, WF-04 trong `evals/assistant`.
 
 ## 13. Acceptance criteria
 
-Bước KB-A 8, 11 và KB-B 6, 8 chạy được.
+Bước KB-A 8, 11, KB-B 6, 8 và SC-04 chạy được.
 
 ## 14. Phụ thuộc và blocker
 

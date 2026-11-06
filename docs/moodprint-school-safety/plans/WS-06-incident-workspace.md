@@ -116,6 +116,7 @@ Mọi route: owner check, CSRF, 404 khi không phải chủ, `Idempotency-Key` k
 - Hash khớp `sha256sum` trên file gốc.
 - Không có đường nào sửa bằng chứng đã niêm phong.
 - PDF đọc được, đúng dấu tiếng Việt.
+- SC-03 và SC-08 chạy được.
 
 ## 14. Phụ thuộc và blocker
 

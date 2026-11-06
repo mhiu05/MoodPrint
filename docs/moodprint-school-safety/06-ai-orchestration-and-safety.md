@@ -9,11 +9,12 @@ Tài liệu chuẩn cho kiến trúc một agent và engine an toàn. Task nằm
 | Tên hiển thị | "Trợ lý", icon trung tính |
 | `bot_id` | `troly`. Không thuộc `V3_IDS`, `LEGACY_IDS`, `MEMORY_IDS` |
 | Module | `backend/app/ai/assistant/` |
-| Prompt | `ASSISTANT_PROMPT_VERSION = "assistant-2026-11-a1"`, trong `assistant/prompt.py` |
+| Prompt | `ASSISTANT_PROMPT_VERSION = "assistant-2026-11-a1"`, instructions động trong `assistant/prompt.py` |
 | Agent loop | `SdkProvider.run_assistant`, `Runner.run_streamed`, `max_turns=3` |
 | Giới hạn | `_BudgetHooks(3, 2)`: 3 model call, 2 tool call |
-| Model | `settings.openai_model` (`gpt-6-luna`), `store=False`, `max_retries=0`, tracing tắt |
+| Model | `settings.assistant_model` (`gpt-6.1-terra`), `reasoning.effort=medium`, `max_tokens=2000`, `store=False`, `max_retries=0`, tracing tắt |
 | Output | `AssistantReply`, schema nghiêm ngặt |
+| Chạy thật | Staging luôn dùng model thật. Model giả chỉ dùng trong CI |
 
 Không dùng `handoff`, `as_tool`, specialist, planner. `run.workflow` (V3) giữ `None`.
 
@@ -23,11 +24,11 @@ Không dùng `handoff`, `as_tool`, specialist, planner. `run.workflow` (V3) gi�
 
 | Lượt | Agent? | Tool | Output | Timeout | Fallback | Ngân sách |
 | --- | --- | --- | --- | --- | --- | --- |
-| Trợ lý | Có | Có | `AssistantReply` | `ai_timeout_seconds` | Câu lỗi xác định; nút khẩn cấp vẫn có | Run chính |
-| Semantic classifier | Không | Không | `SafetyAssessment` | 3 giây | Coi như **vàng** | Hạn mức nhỏ |
-| Claim verifier | Không | Không | `ClaimVerdict` | 4 giây | Thay bằng câu dự phòng | Hạn mức nhỏ |
-| STT | Không | Không | Văn bản | 35 giây | Nhập chữ | `speech_usage` |
-| TTS | Không | Không | Audio | 10 giây | Chỉ hiện chữ | `speech_usage` |
+| Trợ lý | Có | Có | `AssistantReply` | 40 giây | Câu lỗi xác định; nút khẩn cấp vẫn có | Run chính, `gpt-6.1-terra` |
+| Semantic classifier | Không | Không | `SafetyAssessment` | 3 giây | Coi như **vàng** | Hạn mức nhỏ, `gpt-6-luna` |
+| Claim verifier | Không | Không | `ClaimVerdict` | 4 giây | Thay bằng câu dự phòng | Hạn mức nhỏ, `gpt-6-luna` |
+| STT | Không | Không | Văn bản | 35 giây | Nhập chữ | `speech_usage`, `gpt-transcribe` |
+| TTS | Không | Không | Audio | 10 giây | Chỉ hiện chữ | `speech_usage`, `gpt-realtime-2.1-mini` |
 | Embedding | Không | Không | Vector | 3 giây | Chỉ keyword | Không ghi ledger (dưới 1 đơn vị) |
 
 Lượt thêm cần owner duyệt: **tóm tắt cuối phiên luyện nói** và **tóm tắt case nháp** dùng chính agent `troly` chứ không phải lượt riêng, nên không phát sinh loại lượt gọi mới. Xem [OD-10](12-open-decisions.md#od-10--tóm-tắt-nháp-chạy-qua-agent).
@@ -39,16 +40,18 @@ Hàm vào: `app.ai.assistant.turn.run_turn(runtime, run, conversation, history, 
 `drive` gọi hàm này khi `bot == "troly"`, thay nhánh `provider.run_reply`. Không chèn logic khác vào `drive`.
 
 ```text
-1. state = load_state(...)                      # WF hiện tại
-2. assessment = classifier (nếu cần)             # §6 tầng 3
-3. decision = decide(rule_hits, assessment, context)
-4. if decision.level == "red": return emergency_result(...)
-5. reply = provider.run_assistant(instructions(state, decision), tools(state), history)
-6. check = postcheck(reply, decision, retrieved_cards)
-7. if check.blocked: reply = safe_fallback(...)
-8. if reply có claim KB: verdict = verifier(...); không đạt → câu dự phòng
-9. next_state = workflow.transition(state, reply.proposed_step, facts)
-10. return parts, cards, citations, source_backed, next_state
+1. ctx = AssistantContext(state, age_group, case_digest, adults, ...)
+2. agent = build_agent(ctx)                      # instructions động, tool theo trạng thái
+3. Runner.run_streamed(agent, ...)
+     input_guardrail blocking: classifier        # §6 tầng 3; tripwire khi đỏ
+     call_model_input_filter: trần input, lọc tin nhạy cảm
+     tool guardrail: kiểm tra query và output tool
+     output_guardrail: postcheck                 # §6 tầng 4
+4. Tripwire đỏ → emergency_result(...)
+5. Tripwire postcheck → safe_fallback(...)
+6. Có claim KB → verifier; không đạt → câu dự phòng
+7. next_state = workflow.transition(state, reply.proposed_step, facts)
+8. return parts, cards, citations, source_backed, next_state
 ```
 
 Tầng 1–2 chạy trước đó trong `chat_routes.send`, trước `available_for` và `admission`.
@@ -261,7 +264,7 @@ Rule pack JSON có `version`, `teencode`, `rules[]`. Mỗi rule:
 
 ### Tầng 3: classifier
 
-`classify(run, text, recent) -> SafetyAssessment` dùng `provider.run_once`, `max_tokens=400`, reasoning thấp.
+`classify(run, text, recent) -> SafetyAssessment` dùng `provider.run_once` trên `gpt-6-luna`, `max_tokens=400`, reasoning thấp. Được bọc thành `input_guardrail(run_in_parallel=False)`, nên chạy xong mới tới agent và agent không tốn token khi đỏ.
 
 ```python
 class SafetyAssessment(BaseModel):
@@ -278,7 +281,7 @@ Không dùng trường lý do tự do để tránh trích dẫn. Input là văn 
 
 ### Tầng 4: postcheck
 
-`postcheck(texts, ctx) -> PostCheckResult`, chạy trên mọi bubble:
+`postcheck(texts, ctx) -> PostCheckResult`, chạy trên mọi bubble, được gắn thành `output_guardrail` của agent:
 
 | Kiểm tra | Cách làm | Khi vi phạm |
 | --- | --- | --- |
@@ -333,7 +336,7 @@ Card này chỉ do backend tạo. `AssistantReply` không có trường `cards`,
 | Ảnh | Không gửi ảnh tới bất kỳ model nào trong MVP |
 | Hướng dẫn | Không lưu, không gửi đi, liên hệ 111/113 |
 
-Không có phân tích ảnh tự động, nên bước tự kiểm tra là biện pháp giảm rủi ro, không phải đảm bảo. Phải nói rõ trong tài liệu dự thi. Xem [OD-03](12-open-decisions.md#od-03--ranh-giới-chặn-upload-nội-dung-tình-dục).
+Không có phân tích ảnh tự động, nên bước tự kiểm tra là biện pháp giảm rủi ro, không phải đảm bảo. Phải nói rõ trong tài liệu dự thi. Xem [OD-03](12-open-decisions.md#od-03--ranh-giới-chặn-upload).
 
 ## 8. Prompt
 
@@ -345,11 +348,14 @@ Nhắc nghỉ: backend đếm lượt; sau 20 lượt hoặc 30 phút trong mộ
 
 ## 9. Accounting và ngân sách
 
-- Agent: run bình thường, giữ 2 USD như hiện tại.
+- `CAPPED_RATES` thêm `gpt-6.1-terra: (5500, 5500, 16500)` và `gpt-6.1-sol: (11000, 11000, 33000)`, theo đúng công thức đang dùng cho Luna: input × 2 × 1,25 × 1,1 × 2, output × 1,5 × 1,1 × 2. `RATES` thêm giá chuẩn tương ứng.
+- `RUN_RESERVATION_NANO` 2 USD tính trên 922.000 token input. Với Terra con số đó là 15,3 USD, nên **không dùng được làm trần**. Thay bằng trần input cứng: `call_model_input_filter` giữ tổng instructions và input ≤ 48.000 byte (token luôn ≤ byte), output 2.000. Hằng `assistant_reservation_nano(model) = 3 × (48.000 × in + 2.000 × out)`, làm tròn lên: Terra 1 USD, Sol 2 USD.
+- `_check_capped_model` cho phép cả `openai_model` và `assistant_model`. `reserve_usage` dùng model thật của run.
 - Classifier và verifier: run con `origin='agent'`, `parent_run_id` là run chính, model `gpt-6-luna`.
 - Thêm tham số `reservation_nano` vào `reserve_accounting`. Hằng `BOUNDED_CALL_RESERVATION_NANO = 10_000_000` (0,01 USD): input ≤ 8.000 token × 550 nano + output ≤ 400 × 1650 = 5,06 triệu nano, làm tròn lên. Input phải bị cắt cứng trước khi gửi.
 - `persist_snapshot` đã đóng run theo chi phí thực.
-- Trần ngày: `AI_DAILY_BUDGET_USD` tối đa 20 USD. Hết ngân sách: agent 503, classifier coi như vàng, tầng 1–2 vẫn chạy.
+- Trần ngày: `AI_DAILY_BUDGET_USD` tối đa 20 USD. Với giá bảo thủ, một lượt Terra khoảng 0,06 USD, tức khoảng 330 lượt mỗi ngày. Hết ngân sách: agent 503, classifier coi như vàng, tầng 1–2 vẫn chạy.
+- Cập nhật `docs/backend/budget-safety.md`.
 - Không ghi STT/TTS vào `ai_usage`.
 
 ## 10. Ánh xạ nguyên tắc sang kiểm soát
@@ -364,3 +370,77 @@ Nhắc nghỉ: backend đếm lượt; sau 20 lượt hoặc 30 phút trong mộ
 | Có căn cứ | Verifier, câu dự phòng, nhãn do `source_backed` |
 | Không phán xử | Prompt, postcheck, eval |
 | Bảo vệ người bị nêu tên | Bí danh mặc định, không đăng công khai |
+
+## 11. Dùng openai-agents-python thế nào
+
+Bản ghim `openai-agents==0.24.0`. Các tính năng dưới đây đã kiểm tra có trong package cài đặt. Nguồn: [repo](https://github.com/openai/openai-agents-python), [guardrails](https://openai.github.io/openai-agents-python/guardrails/), [context](https://openai.github.io/openai-agents-python/context/), [tools](https://openai.github.io/openai-agents-python/tools/), [human in the loop](https://openai.github.io/openai-agents-python/human_in_the_loop/).
+
+| Nhu cầu | Primitive | Quyết định |
+| --- | --- | --- |
+| Dữ liệu cho code, không gửi LLM | `RunContextWrapper[AssistantContext]` | Dùng. Owner, state, nhóm tuổi nằm ở đây |
+| Prompt theo trạng thái | `instructions` là hàm nhận context | Dùng thay vì nối chuỗi trong `provider` |
+| Công cụ | `function_tool`, Pydantic, `strict_mode=True` | Dùng. `timeout`, `failure_error_function` trả câu trung tính; không dùng `None` |
+| Ẩn tool theo workflow | `is_enabled` nhận context | Dùng. Đây chỉ là hiển thị, **không phải** phân quyền; handler vẫn kiểm tra |
+| Classifier | `input_guardrail(run_in_parallel=False)` | Dùng. Chế độ song song mặc định sẽ để agent chạy trước khi có kết quả |
+| Postcheck | `output_guardrail` | Dùng, bắt `OutputGuardrailTripwireTriggered` để thay câu dự phòng |
+| Kiểm tra tham số và kết quả tool | `tool_input_guardrail`, `tool_output_guardrail` | Dùng cho `search_knowledge`, `draft_message` |
+| Trần input, lọc tin nhạy cảm | `RunConfig.call_model_input_filter` | Dùng, áp cho mọi lượt model trong một run |
+| Reasoning, độ dài | `ModelSettings.reasoning`, `verbosity`, `max_tokens` | Dùng |
+| `safety_identifier` | `ModelSettings.extra_args` | Giá trị băm từ `user_id`. TO_VERIFY cách truyền với Responses |
+| Prompt caching | Phần đầu prompt ổn định | Để trạng thái động ở cuối instructions |
+| Phê duyệt tool | `needs_approval`, `RunState` | **Không dùng**. Tài liệu nêu snapshot không được xác thực và không đảm bảo exactly-once; xác nhận của em có thể đến sau nhiều giờ. Giữ mẫu proposal của repo |
+| Lịch sử | Sessions | **Không dùng**. Repo có `ai_messages`, retention, context projection riêng |
+| Handoff, `as_tool` | | **Không dùng**. Một agent |
+| Tracing | | **Tắt**, vì nội dung nhạy cảm |
+| Voice | `agents.voice`, Realtime agents | **Không dùng**, xem [08](08-speaking-practice-design.md) |
+
+## 12. Chất lượng của agent
+
+Demo vẫn phải thông minh thật. Độ thông minh đến từ ngữ cảnh đúng và công cụ tốt, không chỉ từ model.
+
+**Ngữ cảnh** (`AssistantContext`, đưa vào instructions động dưới dạng dữ liệu):
+
+| Dữ liệu | Nguồn | Điều kiện |
+| --- | --- | --- |
+| Nhóm tuổi, vai trò, workflow, ô còn thiếu | `school_profiles`, state | Luôn có |
+| Tóm tắt có cấu trúc đã hiểu | `slots` | Luôn có, để không hỏi lại |
+| Tiêu đề hồ sơ, số sự việc, lần gần nhất, số lần lặp | Truy vấn xác định | Chỉ khi Hồ sơ không khóa PIN |
+| Bí danh người lớn tin cậy, cờ `is_safe` | `trusted_adults` | Luôn có |
+| Mức an toàn, nhãn của phiên | `SafetyDecision` | Luôn có |
+
+Con số như "đây là lần thứ 4" do backend tính, model không tự đếm.
+
+**Hành vi hội thoại** (viết vào playbook, có ví dụ):
+
+- Mỗi lượt: phản chiếu đúng chi tiết em nói, rồi một bước tiếp theo. Tối đa một câu hỏi.
+- Hiểu teencode, câu cụt, không dấu, nói giảm. Không sửa cách em viết.
+- Biết khi nào **không** hỏi thêm: em mệt, em không muốn kể.
+- Gợi ý bước tiếp bằng `suggested_replies`, tối đa 3 câu ngắn, thành chip bấm được.
+- Dùng tool khi có giá trị thật, không gọi cho có.
+- Nhớ điều đã biết trong phiên, sửa ngay khi em đính chính.
+- Viết theo nhóm tuổi, không kể lể, không sáo rỗng.
+
+Thêm trường vào `AssistantReply`: `suggested_replies: list[str]`, tối đa 3 mục, mỗi mục ≤ 40 ký tự, qua postcheck.
+
+**Ví dụ trong playbook**: mỗi WF 3–5 đoạn hội thoại mẫu tiếng Việt, gồm ca khó. Đây là phần ảnh hưởng chất lượng nhiều nhất, phải viết tay và đọc lại, không sinh hàng loạt.
+
+**Đo**: rubric ở [10](10-evaluation-and-quality-gates.md), so Luna và Terra trên cùng kịch bản.
+
+**Tool description** là một phần của prompt: nêu rõ khi nào dùng, khi nào không, ví dụ tham số. Kết quả tool trả đủ để model viết tiếp, gồm cả lý do khi `unavailable`.
+
+## 13. Trạng thái thinking
+
+Giao diện chỉ hiện giai đoạn **có thật**. Backend suy ra từ hook, không suy diễn.
+
+| Giai đoạn | Sự kiện backend | Nhãn 11–14 |
+| --- | --- | --- |
+| `reading` | Bắt đầu lượt, classifier đang chạy | Đang đọc tin của em |
+| `composing` | Agent đang gọi model, chưa có tool | Đang nghĩ cách trả lời |
+| `searching` | `on_tool_start` của `search_knowledge`, `get_platform_guide` | Đang tìm thông tin đã kiểm duyệt |
+| `drafting` | `on_tool_start` của tool tạo proposal | Đang chuẩn bị bản nháp |
+| `checking` | Verifier đang chạy | Đang kiểm tra lại nguồn |
+
+`LiveRun.activity` đổi theo hook. `chat_routes.events` phát thêm `event: activity` cho `troly`, không có `id`, không lưu, không vào `persistent_events`, vì đó là hàm forward-only. Mất kết nối thì chỉ mất nhãn, không mất nội dung.
+
+Ánh xạ sang orb ở [09 §13](09-ux-and-user-flows.md#13-giao-diện-thinking).
+

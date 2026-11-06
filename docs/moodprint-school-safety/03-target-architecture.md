@@ -142,12 +142,24 @@ Giới hạn phiên luyện nói đồng thời: `practice_global_concurrency = 
 | Log | Chỉ request ID, nhãn, mức, phiên bản rule |
 | Model | `store=False`, tracing tắt, `safety_identifier` băm |
 
-## 8. Những gì cố ý không làm
+## 8. Chọn công nghệ
+
+| Hạng mục | Chọn | Tài liệu |
+| --- | --- | --- |
+| Agent | `openai-agents==0.24.0`, `gpt-6.1-terra`; lượt phụ `gpt-6-luna` | [06 §11](06-ai-orchestration-and-safety.md#11-dùng-openai-agents-python-thế-nào) |
+| STT, TTS | `OPENAI_API_KEY` hiện có: `gpt-transcribe`, `gpt-realtime-2.1-mini` | [08](08-speaking-practice-design.md) |
+| Thiết kế | Quy trình impeccable, kỹ năng trong `.agents/skills/impeccable` | [09 §1](09-ux-and-user-flows.md#1-hướng-hình-ảnh-và-quy-trình-impeccable) |
+| Chuyển động | `gsap` 3.15, `@gsap/react`, `useMotionPolicy` | [09 §14](09-ux-and-user-flows.md#14-chuyển-động) |
+| Thinking | `thinking-orbs` 0.3.2 | [09 §13](09-ux-and-user-flows.md#13-giao-diện-thinking) |
+
+Staging giữ tên, bản chất là môi trường demo, luôn chạy model thật.
+
+## 9. Những gì cố ý không làm
 
 - Không multi-agent, handoff, specialist, group chat.
 - Không web search mở trong luồng học sinh.
 - Không reranker trong MVP.
-- Không realtime speech.
+- Không hội thoại giọng nói thời gian thực; Realtime API chỉ dùng làm bộ đọc.
 - Không đăng công khai, không chia sẻ tự động, không báo cho bên thứ ba.
 - Không console tổ tư vấn; `case_shares` chỉ chừa chỗ.
 - Không service worker cho toàn app; chỉ đảm bảo trang hỗ trợ dùng được khi bundle đã tải.

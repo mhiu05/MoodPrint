@@ -37,12 +37,12 @@ PR đầu đi thẳng vào `main`, vì `main` đang đỏ.
 | Mục | Nội dung |
 | --- | --- |
 | Điều kiện | Giai đoạn 1 |
-| Task | WS-03-T01 → T13; song song WS-09-T02, T03, T04 |
-| Sau đó | WS-04-T01 (PR contract) → T02 → ... → T13; WS-09-T05 |
+| Task | WS-03-T14 trước, rồi T01 → T13; song song WS-09-T02, T03, T04 |
+| Sau đó | WS-04-T01 (PR contract) → T14 → T02 → ... → T16, T13 chạy cuối; WS-09-T05 |
 | Xung đột | `chat_routes.py`, `schemas.py`, `runtime.py`, `provider.py`, `accounting.py` |
 | Bắt buộc | Regression chat, `test_accounting*`, eval offline |
 | Gate | G1 |
-| Xong khi | KB-B bước 1–5 chạy với model giả; eval đạt; template duyệt |
+| Xong khi | KB-B bước 1–5 chạy với model giả; eval an toàn và hội thoại đạt với model thật |
 | Rollback | Revert PR con; `troly` chỉ chạy ở demo |
 
 ## Giai đoạn 3: năng lực
@@ -64,11 +64,11 @@ PR đầu đi thẳng vào `main`, vì `main` đang đỏ.
 | Mục | Nội dung |
 | --- | --- |
 | Điều kiện | WS-04 xong; có thể song song giai đoạn 3 |
-| Task | WS-08-T01 → T12 |
+| Task | WS-08-T01 → T14 |
 | Xung đột | `voice/routes.py`, `accounting.py`, `config.py` |
 | Bắt buộc | `test_voice*`, `test_accounting*`, spec mic giả |
 | Gate | G3 |
-| Xong khi | Ba chế độ chạy; TTS theo OD-04 hoặc chữ |
+| Xong khi | Ba chế độ chạy; owner đã nghe thử giọng đọc |
 | Rollback | `TTS_PROVIDER=none` |
 
 ## Giai đoạn 5: tích hợp
@@ -76,19 +76,19 @@ PR đầu đi thẳng vào `main`, vì `main` đang đỏ.
 | Mục | Nội dung |
 | --- | --- |
 | Điều kiện | G2, G3 |
-| Task | WS-09-T13 → T17; WS-10-T01 → T05 |
+| Task | WS-09-T13 → T20; WS-10-T01 → T05 |
 | Xung đột | `playwright.config.ts`, tài liệu |
 | Bắt buộc | E2E, fullstack, axe |
 | Gate | G4 |
-| Xong khi | KB-A/B/C xanh; checklist thủ công xong |
+| Xong khi | KB-A/B/C và ca trình diễn xanh; `impeccable detect` sạch; checklist thủ công xong; owner đã xem ảnh |
 | Rollback | Không áp dụng |
 
 ## Giai đoạn 6: release
 
 | Mục | Nội dung |
 | --- | --- |
-| Điều kiện | G4; OD-01, OD-02, OD-05, OD-11, OD-12 đã trả lời |
-| Task | WS-10-T06 → T14 theo [release-runbook](release-runbook.md) |
+| Điều kiện | G4; nội dung đã được owner duyệt (OD-02); preflight đạt |
+| Task | WS-10-T00, T06 → T14 theo [release-runbook](release-runbook.md) |
 | Gate | G5 |
 | Xong khi | Sáu điều kiện |
 | Rollback | Theo runbook |
@@ -97,8 +97,9 @@ PR đầu đi thẳng vào `main`, vì `main` đang đỏ.
 
 | Điểm | Owner cần |
 | --- | --- |
-| Trước G1 | Chỉ định người duyệt template, chốt ngưỡng, trần chi phí |
-| Trước G2 | Người duyệt thẻ, `manual_capture` |
-| Trước G3 | API key TTS, bake-off |
-| Trước WS-09 hoàn thiện | Chọn hướng hình ảnh |
-| Trước G5 | Credential, xác nhận chuyển staging |
+| Trước G3 | Nghe thử giọng đọc |
+| Trước G4 | Xem ảnh giao diện, đọc copy |
+| Trước G5 | Duyệt template và thẻ KB; `manual_capture`; đăng nhập AWS nếu phiên hết hạn |
+| Sau G5 | Diễn tập lịch trình 8 phút |
+
+Các việc phát triển khác không cần chờ owner. Đã chốt: staging là demo, STT và TTS dùng key OpenAI, eval live dưới 3 USD.

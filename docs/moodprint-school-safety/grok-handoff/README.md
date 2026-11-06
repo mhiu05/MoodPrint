@@ -2,6 +2,8 @@
 
 Mục tiêu: tự làm từ task đầu tiên tới khi release staging thành công. Chỉ dừng hỏi owner ở các điểm ghi dưới đây và trong [12-open-decisions](../12-open-decisions.md).
 
+Prompt khởi động: [GROK-PROMPT](GROK-PROMPT.md).
+
 ## Đọc theo thứ tự
 
 1. [00-executive-summary](../00-executive-summary.md)
@@ -27,9 +29,21 @@ Theo §8.2 của prompt: sửa code, test, migration, config, CI, Dockerfile, do
 
 `.gitignore` chỉ sửa khi task nêu rõ. Hiện không task nào cần.
 
+## Công cụ
+
+| Việc | Công cụ | Ghi chú |
+| --- | --- | --- |
+| Database hosted | Supabase MCP | Role `postgres`. SQL hosted chỉ theo runbook, nguyên văn, đúng hash. Không dùng `apply_migration` |
+| SSM, EC2, log | AWS MCP | Kiểm tra phiên ở preflight. Không in giá trị bí mật |
+| Thiết kế | `.agents/skills/impeccable` | Quy trình ở [09 §1](../09-ux-and-user-flows.md#1-hướng-hình-ảnh-và-quy-trình-impeccable) |
+| Agent | `openai-agents==0.24.0` | Xem [06 §11](../06-ai-orchestration-and-safety.md#11-dùng-openai-agents-python-thế-nào). Không nâng phiên bản nếu không cần |
+| Chuyển động | `gsap`, `@gsap/react` | Đã cài. Xem [09 §14](../09-ux-and-user-flows.md#14-chuyển-động) |
+| Thinking | `thinking-orbs` | Đã cài. Xem [09 §13](../09-ux-and-user-flows.md#13-giao-diện-thinking) |
+| Eval live | `evals/budget.py` | Tổng dưới 3 USD |
+
 ## Giới hạn
 
-Không push thẳng hay force-push `main`. Không tắt, skip, nới CI. Không xóa test. Không đưa secret vào code, log, commit, PR. Không phá dữ liệu hosted. Staging không mở cho người dùng thật. Không tự điền `reviewed_by`.
+Không push thẳng hay force-push `main`. Không tắt, skip, nới CI. Không xóa test. Không đưa secret vào code, log, commit, PR. Không phá dữ liệu hosted. Staging không mở cho người dùng thật. Không tự điền `reviewed_by`. Eval live không vượt 2,80 USD tổng.
 
 ## Hỏi owner khi
 
@@ -87,7 +101,9 @@ Dọn DB: `python scripts/disposable_postgres.py --remove <run_id>`.
 | `%%` trong SQL offline | PL/pgSQL lỗi | Dùng `'...' \|\| quote_ident(r)` |
 | Tool lỗi `reasoning` chiếm `max_output_tokens` | Stream incomplete | `reasoning` thấp, `max_tokens` đủ |
 | Merge `main` liên tiếp | Publish bị bỏ qua | Chờ CI của lần trước |
-| `gpt-4o-mini-tts` | Tắt 06/01/2027 | Không dùng |
+| `gpt-4o-mini-tts` | Tắt 06/01/2027 | Chỉ là phương án phụ, đường chính là Realtime |
+| Phát audio Realtime chưa kiểm tra | Nói khác văn bản đã duyệt | Luôn qua `verbatim_ok` trước |
+| Chế độ song song của `input_guardrail` | Agent chạy trước khi có kết quả an toàn | `run_in_parallel=False` |
 
 ## Báo cáo
 

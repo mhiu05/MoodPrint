@@ -2,21 +2,52 @@
 
 Đủ để dựng UI mà không phải tự thiết kế. Task ở [WS-09](plans/WS-09-frontend-integration.md).
 
-## 1. Hướng hình ảnh
+## 1. Hướng hình ảnh và quy trình impeccable
 
-Bỏ trải nghiệm nhiều bot là đã chốt. Phong cách là quyết định của owner ([OD-06](12-open-decisions.md#od-06--hướng-hình-ảnh)).
+Bỏ trải nghiệm nhiều bot là đã chốt. Giao diện được đầu tư như sản phẩm thật dù là demo. Owner yêu cầu đi theo [impeccable](https://github.com/pbakaus/impeccable). Kỹ năng đã có trong repo tại `.agents/skills/impeccable` (phiên bản 4.7.0), kèm CLI phát hiện lỗi thiết kế bằng 62 rule xác định, không cần LLM.
 
-| | A. Góc yên (đề xuất) | B. Bảng rõ ràng |
+**Quy trình bắt buộc**
+
+| Bước | Lệnh | Kết quả |
 | --- | --- | --- |
-| Cảm giác | Sổ tay yên tĩnh, ấm, ít viền | Trắng, thẻ rõ, thông tin dày hơn |
-| Nền | `--color-bg` #f8f9f6 | #ffffff |
-| Nhấn | `--color-primary` #285c4b | Trung tính + một màu xanh |
-| Khẩn cấp | `--color-danger` #9c352c, duy nhất trên màn hình | Như A |
-| Lý do | Dùng lại nguyên token, không gây áp lực, khẩn cấp nổi bật vì là điểm màu mạnh duy nhất | Dễ đọc số liệu nhưng giống công cụ hành chính |
+| 1 | `init` | Viết lại `PRODUCT.md` cho sản phẩm mới, giữ dòng "không tự ý sửa .gitignore" |
+| 2 | `shape <surface>` | Brief trong `.impeccable/surfaces/<surface>.md`, trước khi code |
+| 3 | Build, đọc `reference/craft-floor.md` trước mỗi lần sửa UI | Code |
+| 4 | `critique`, `audit` | Điểm UX, danh sách P0–P3 |
+| 5 | `harden`, `onboard`, `clarify`, `adapt` | Lỗi, lần đầu, copy, cỡ màn hình |
+| 6 | `polish` | Lượt cuối |
+| 7 | `document` | `DESIGN.md` mô tả đúng thứ đã dựng |
 
-Quy tắc chung: một màu mạnh duy nhất dành cho khẩn cấp. Không minh họa nhân vật. Không dùng màu đỏ cho lỗi thường (dùng `--color-warning`). Icon `lucide-react`, biểu tượng Trợ lý là một hình tròn trung tính, không có mặt.
+Cổng tự động, chạy với `DO_NOT_TRACK=1`: `npx impeccable detect frontend/src/features/school --json` và quét URL đang chạy cho các rule cần render. Exit 2 là còn lỗi.
+
+**Mode theo surface**
+
+| Surface | Mode | Hệ quả |
+| --- | --- | --- |
+| Trang giới thiệu | Persuade | Có quan điểm rõ, một khoảnh khắc được đầu tư |
+| Trò chuyện, Hồ sơ, Luyện nói, Cài đặt | Operate | Chính xác, tiết chế, không biểu diễn |
+| Tìm hỗ trợ, thẻ nguồn, Giới hạn của AI | Read | Dễ đọc trước hết |
+
+**Brief khởi đầu: "Góc yên"**. Sổ tay yên tĩnh, ấm, ít viền. Dùng `tokens.css`: nền `--color-bg` #f8f9f6, nhấn `--color-primary` #285c4b. `--color-danger` #9c352c chỉ dành cho khẩn cấp và là màu mạnh duy nhất. Lỗi thường dùng `--color-warning`. Biểu tượng Trợ lý là hình tròn trung tính, không có mặt, không nhân vật.
+
+**Quy tắc từ craft floor áp vào đây**
+
+- Không eyebrow phía trên tiêu đề. Không đánh số mục trang trí.
+- Không lấy lưới thẻ cùng cỡ làm cấu trúc trang. Không lồng thẻ trong thẻ.
+- Không viền màu dày một bên cho cảnh báo. `EmergencyCard` dùng viền đều hoặc nền.
+- Không chữ gradient, không glass trang trí, không emoji thay icon. Icon `lucide-react`, cùng nét.
+- Thẻ bo 12–16px. Chọn viền hoặc bóng, không cả hai.
+- Cỡ đo đọc 65–75 ký tự. Tiêu đề chênh rõ về cỡ và độ đậm.
+- Mã SHA-256 dùng font mono và chữ số đều cỡ, vì là dữ liệu.
+- Chăm cả phần trình duyệt: focus ring, vùng chọn, caret, thanh cuộn.
+
+**Phông chữ**: craft floor coi font hệ thống làm giọng hiển thị là thiếu quyết định, và CSP cho phép `font-src 'self'`. Đề xuất tự host **Be Vietnam Pro** dạng woff2 trong `frontend/public/fonts/`, vì được thiết kế cho tiếng Việt. Kèm file giấy phép; TO_VERIFY giấy phép OFL khi tải. Giữ `font-display: swap`, font hệ thống là dự phòng.
+
+**Sáng tối**: chọn từ bối cảnh dùng, không theo thói quen. Học sinh thường dùng lúc kín đáo, có thể buổi tối. Sáng là mặc định; tối theo `prefers-color-scheme` là P2, được quyết định ở bước `shape`.
 
 CSS phạm vi `.school-app` trong `frontend/src/features/school/school.css`. Dùng `tokens.css`, `Button`, `Dialog`, `StatePanel`, `ErrorNotice`, `useMotionPolicy`. Không dùng `real.css`, `agent-chat.css`.
+
+Wireframe bên dưới mô tả bố cục và nội dung, không phải hình ảnh cuối.
 
 ## 2. Sitemap
 
@@ -128,7 +159,7 @@ Lưu `terms_version`, thời điểm. Tài khoản demo seed sẵn nhóm tuổi 
 │ │ [Xem và sửa] [Lưu] [Bỏ]    │ │
 │ └────────────────────────────┘ │
 ├────────────────────────────────┤
-│ Nhập tin nhắn...      [🎤] [↑] │
+│ Nhập tin nhắn...      [Mic] [↑] │
 └────────────────────────────────┘
 ```
 
@@ -156,7 +187,7 @@ Lưu `terms_version`, thời điểm. Tài khoản demo seed sẵn nhóm tuổi 
 │ [+ Thêm sự việc]               │
 │ ──●── Khoảng đầu tuần trước    │
 │   │  Nhóm chat lớp bị đổi tên..│
-│   │  🖼 2 ảnh · Em kể          │
+│   │  Ảnh: 2 ảnh · Em kể          │
 │ ──●── 12/10 (không rõ giờ)     │
 │   │  ...                       │
 └────────────────────────────────┘
@@ -220,9 +251,9 @@ Giữ để nói bằng pointer và phím Space. Thả là dừng. Bộ đếm 3
 ```text
 ┌────────────────────────────────┐
 │ Tìm hỗ trợ                     │
-│ [📞 111 Bảo vệ trẻ em · 24/24] │
-│ [📞 113 Công an]               │
-│ [📞 115 Cấp cứu]               │
+│ [111 Bảo vệ trẻ em · 24/24] │
+│ [113 Công an]               │
+│ [115 Cấp cứu]               │
 │ Tổ tư vấn của trường           │
 │  Hỏi thầy cô chủ nhiệm...      │
 │ Báo cáo trên mạng              │
@@ -308,3 +339,73 @@ Mục tiêu WCAG 2.2 AA.
 - Reduced motion qua `useMotionPolicy`.
 
 Axe chạy trên mọi route trong Playwright. Checklist thủ công ở [10](10-evaluation-and-quality-gates.md).
+
+## 13. Giao diện thinking
+
+Dùng [thinking-orbs](https://github.com/Jakubantalik/thinking-orbs) 0.3.2, đã có trong `package.json`, canvas 2D, MIT. Mẫu hiện có: `AIActivityStatus.tsx` tải lười, `OrbBoundary` rơi về icon tĩnh, chữ nằm trong live region riêng.
+
+Backend phát giai đoạn thật ([06 §13](06-ai-orchestration-and-safety.md#13-trạng-thái-thinking)). Frontend ánh xạ:
+
+| Giai đoạn | `state` | `size` | Nhãn 15–17 |
+| --- | --- | --- | --- |
+| `reading` | `working` | 20 | Đang đọc tin của bạn |
+| `composing` | `composing` | 20 | Đang nghĩ cách trả lời |
+| `searching` | `searching` | 20 | Đang tìm thông tin đã kiểm duyệt |
+| `drafting` | `shaping` | 20 | Đang chuẩn bị bản nháp |
+| `checking` | `solving` | 20 | Đang kiểm tra lại nguồn |
+| Đang thu âm | `listening` | 64 | Đang nghe |
+| Đang tạo giọng đọc | `weaving` | 20 | Đang tạo giọng đọc |
+| Chờ kết nối quá 5 giây | `connecting` | 20 | Kết nối hơi chậm |
+
+Chỉ dùng hai preset 20 và 64, không scale CSS.
+
+**Quy tắc**
+
+- Không bịa giai đoạn. Không có sự kiện thì giữ nhãn hiện tại.
+- Mỗi màn hình tối đa một orb.
+- Canvas `aria-hidden`. Thông tin nằm ở chữ, `role="status"`, `aria-live="polite"`.
+- `useMotionPolicy.animate` sai thì dùng icon tĩnh. Thư viện cũng tự hiển thị khung tĩnh khi reduced motion.
+- Orb biến mất ngay khi có kết quả. Không giữ lại để cho đẹp, không làm chậm nội dung.
+- **Không có orb trong luồng khẩn cấp.** Template hiện ngay.
+- `theme`: `light`, hoặc `auto` nếu làm giao diện tối.
+- Không dùng `breathing` như lời hứa trấn an hay bài tập thở.
+
+Tạo `features/school/chat/ThinkingStatus.tsx` theo mẫu `AIActivityStatus`, không sửa file cũ.
+
+## 14. Chuyển động
+
+Dùng [GSAP](https://github.com/greensock/gsap) 3.15 và `useGSAP` từ `@gsap/react`, đã có trong dự án. GSAP hiện miễn phí kể cả plugin. Mẫu chuẩn trong repo: `useGSAP` với `scope` và `revertOnUpdate`, `gsap.matchMedia()` cho `prefers-reduced-motion: no-preference`, `useMotionPolicy` để dừng khi tab ẩn, `clearProps` sau khi xong.
+
+Theo `reference/animate.md`, ở Operate và Read chuyển động phục vụ phản hồi, trạng thái, tính liên tục; không có vũ đạo lúc tải trang.
+
+**Luận điểm chuyển động**
+
+| Mục | Quyết định |
+| --- | --- |
+| Khoảnh khắc chính | **Niêm phong bằng chứng**: tải xong, thanh tiến trình thu lại thành dấu niêm phong, mã SHA-256 hiện ra. Khoảng 600 ms. Mỗi file một lần |
+| Trang giới thiệu | Một chuỗi duy nhất: một tin nhắn đi tới một người lớn thật. Không lặp hiệu ứng theo từng mục |
+| Liên tục | Proposal đã lưu thu lại thành dòng biên nhận (GSAP Flip). Sheet khẩn cấp trượt từ dưới lên |
+| Phản hồi | Nút 100 ms. Giữ để nói: nút thu nhẹ, vòng theo âm lượng thật |
+| Ngân sách | `transform`, `opacity`, `clip-path`. Một vòng lặp cho sóng âm. Không ScrollTrigger, không stagger khi tải |
+
+**Thông số**, lấy từ `tokens.css`:
+
+| Loại | Thời lượng | Ease |
+| --- | --- | --- |
+| Phản hồi nút | `--duration-feedback` 100 ms | `--ease-state` |
+| Tin nhắn mới | `--duration-state` 160 ms, dịch tối đa 4 px | `power2.out` |
+| Đổi tab | 120 ms, chỉ opacity | `power2.out` |
+| Sheet, dialog | `--duration-overlay` 220 ms | `expo.out` |
+| Niêm phong | 600 ms | `expo.out` |
+
+**Quy tắc**
+
+- Nội dung render trước, chuyển động theo sau. Không bao giờ chờ animation.
+- **Khẩn cấp không chờ**: `EmergencyCard`, `EmergencySheet` có DOM và focus ngay; `role="alert"` phát ngay; chuyển động chỉ là lớp phủ, tắt được.
+- Không animate chiều cao transcript, không theo từng token, không auto-scroll bằng timeline.
+- Reduced motion: thay bằng đổi trạng thái tức thời hoặc 80 ms (`--duration-reduced`). Niêm phong vẫn hiện kết quả.
+- Mỗi hiệu ứng dọn dẹp qua `useGSAP`, không để timeline sống sau unmount.
+- Mở rộng `tests/e2e/motion.spec.ts` cho shell mới.
+
+Viết `features/school/motion.ts` gom các hàm hiệu ứng.
+

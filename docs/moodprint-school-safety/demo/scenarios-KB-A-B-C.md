@@ -1,6 +1,6 @@
 # Kịch bản demo KB-A, KB-B, KB-C
 
-Dùng cho Gate G4 và smoke staging. Dữ liệu hư cấu, xem [personas](personas.md). Playwright: `frontend/tests/fullstack/school-kb-{a,b,c}.spec.ts` với model giả; bản live chạy tay trên staging.
+Dùng cho Gate G4 và smoke staging. Ca ngắn để trình diễn nằm ở [showcase-cases](showcase-cases.md). Dữ liệu hư cấu, xem [personas](personas.md). Playwright: `frontend/tests/fullstack/school-kb-{a,b,c}.spec.ts` với model giả; bản live chạy tay trên staging.
 
 Mỗi bước có **hành động**, **kỳ vọng** và **loại kiểm tra**. "Xác định" nghĩa là kết quả do backend quyết định, phải assert chính xác. "Mô hình" nghĩa là chỉ kiểm tra tính chất.
 

@@ -30,7 +30,7 @@ scripts/kb/{fetch,normalize,diff,validate,build,evaluate}.py
 backend/app/knowledge/content/cards.json        # sinh ra, chỉ thẻ approved, có commit
 ```
 
-Snapshot gốc nằm trong `.tmp/`, đã được gitignore sẵn, nên **không cần sửa `.gitignore`**. Đổi lại snapshot không có trên repo: manifest giữ sha256 để đối chiếu. Xem [OD-07](12-open-decisions.md#od-07--snapshot-nguồn-để-ở-đâu).
+Snapshot gốc nằm trong `.tmp/`, đã được gitignore sẵn, nên **không cần sửa `.gitignore`**. Đổi lại snapshot không có trên repo: manifest giữ sha256 để đối chiếu. Xem [OD-07](12-open-decisions.md#od-07--snapshot-nguồn).
 
 `cards.json` phải nằm dưới `backend/` vì image API build từ thư mục đó. Dùng JSON để runtime không cần thêm thư viện YAML; `pyyaml` hiện không có trong `uv.lock`.
 
@@ -198,13 +198,12 @@ Giá tra ngày 06/11/2026:
 
 | Hạng mục | Giá | Nguồn |
 | --- | --- | --- |
-| `gpt-6-luna` | 0,10 USD/1M input, 0,01 cached, 0,50 output (short context) | [OpenAI pricing](https://developers.openai.com/api/docs/pricing) |
+| `gpt-6.1-terra` | 1,00 USD/1M input, 0,05 cached, 5,00 output (short context) | [OpenAI pricing](https://developers.openai.com/api/docs/pricing) |
+| `gpt-6-luna` | 0,10 USD/1M input, 0,01 cached, 0,50 output (short context) | Cùng trang |
 | `voyage-4-lite` | 0,02 USD/1M, 200M token miễn phí; Batch giảm 33%, không dùng được phần miễn phí | [Voyage pricing](https://docs.voyageai.com/docs/pricing) (trang cập nhật 29/09/2026) |
 | `rerank-3-lite` | 0,02 USD/1M, 200M token miễn phí | Cùng trang |
 | `gpt-transcribe` | 0,0045 USD/phút | OpenAI pricing |
-| FPT.AI TTS | 500.000 VND cho 1,5M ký tự (kèm 100.000 ký tự/tháng miễn phí) | [FPT TTS pricing](https://docs.fpt.ai/docs/en/speech/documentation/tts-pricing) |
-| Azure neural | Khoảng 15 USD/1M ký tự; nguồn thứ cấp, trang giá chính thức chưa đọc được | TO_VERIFY |
-| Google Chirp 3 HD | 30 USD/1M ký tự, 1M miễn phí/tháng; chưa xác nhận vi-VN | [Google TTS pricing](https://cloud.google.com/text-to-speech/pricing) |
+| `gpt-realtime-2.1-mini` | 20 USD/1M audio token ra, 0,60 USD/1M text vào; 1 audio token mỗi 50 ms | OpenAI pricing, [voice cost](https://developers.openai.com/api/docs/guides/voice-latency-cost) |
 
 **Xác nhận ước tính cũ**
 
@@ -216,21 +215,23 @@ Giá tra ngày 06/11/2026:
 
 Ở quy mô MVP, rerank gần như miễn phí, nên **chi phí không phải lý do bỏ reranker**. Lý do đúng: thêm một lượt mạng, thêm một nơi dữ liệu đi qua, và chưa có eval chứng minh cần.
 
-**Giả định**: mỗi người dùng/tháng có 40 lượt chat, 10 lượt luyện nói. 30% lượt chat truy xuất KB. Một call: prompt 1.800 + lịch sử 1.500 token, 4 thẻ thêm 1.800 token, output 350 token. Classifier 900/120. Verifier 1.500/120. Luyện nói 20 giây STT, 250 ký tự TTS. Tỷ giá giả định 26.000 VND/USD. Số token là ước lượng; phải đo lại khi có prompt thật.
+**Giả định**: mỗi người dùng/tháng có 40 lượt chat, 10 lượt luyện nói. 30% lượt chat truy xuất KB, mỗi lượt này có 2 call model. Agent chạy `gpt-6.1-terra`: prompt 1.800 + lịch sử 1.500 token, 4 thẻ thêm 1.800 token, output 600 token gồm reasoning. Classifier và verifier chạy `gpt-6-luna`. Luyện nói 20 giây STT, 17 giây TTS. Chưa tính giảm giá prompt caching. Số token là ước lượng; phải đo lại khi có prompt thật.
 
 | Hạng mục | Đơn giá lượt | 100 người dùng | 1.000 người dùng |
 | --- | --- | --- | --- |
 | Lượt trong tháng | | 4.000 chat + 1.000 luyện nói | 40.000 + 10.000 |
-| Agent | 0,00068 USD/chat; 0,00051 USD/luyện nói | 3,21 USD | 32,1 USD |
-| Trong đó ngữ cảnh KB | 0,00017 USD/chat | 0,68 USD | 6,8 USD |
-| Classifier | 0,00015 USD | 0,75 USD | 7,5 USD |
-| Verifier | 0,00021 USD × 30% | 0,25 USD | 2,5 USD |
+| Agent (Terra) | 0,0081 USD/chat; 0,0063 USD/luyện nói | 38,7 USD | 387 USD |
+| Trong đó ngữ cảnh KB | 0,0018 USD/chat | 7,3 USD | 73 USD |
+| Classifier (Luna) | 0,00015 USD | 0,75 USD | 7,5 USD |
+| Verifier (Luna) | 0,00021 USD × 30% | 0,25 USD | 2,5 USD |
 | Embedding truy vấn | 40 token | Dưới 0,01 USD | 0,01 USD |
 | STT | 0,0015 USD | 1,50 USD | 15 USD |
-| TTS (giá gói FPT, chưa trừ miễn phí) | 0,0032 USD | 3,20 USD | 32 USD |
-| **Tổng** | | **≈ 8,9 USD/tháng** | **≈ 89 USD/tháng** |
+| TTS (Realtime mini) | 0,0069 USD | 6,90 USD | 69 USD |
+| **Tổng** | | **≈ 48 USD/tháng** | **≈ 480 USD/tháng** |
 
-Ledger nội bộ dùng giá bảo thủ (550/1650 nano-USD mỗi token, gấp 5,5 và 3,3 lần giá niêm yết), nên trần 20 USD/ngày đạt sớm hơn chi phí thật.
+Nếu `ASSISTANT_MODEL=gpt-6-luna`, tổng giảm còn khoảng 13 USD và 130 USD. Quy mô demo thấp hơn nhiều so với bảng này.
+
+Ledger nội bộ dùng giá bảo thủ, gấp 5,5 lần input và 3,3 lần output, nên trần 20 USD/ngày đạt sớm hơn chi phí thật.
 
 ## 11. Eval
 
@@ -242,4 +243,4 @@ Ledger nội bộ dùng giá bảo thủ (550/1650 nano-USD mỗi token, gấp 5
 | MRR | Báo cáo, chốt sau baseline |
 | Claim-support | 100% câu pháp lý trong bộ eval có ref hợp lệ |
 
-Tối ưu từng biến một: `student_phrasings` → trọng số hybrid → reranker nếu vẫn thiếu. Mỗi lần ghi kết quả trước và sau. Chạy `python scripts/kb/evaluate.py` với embedder thật cần `--confirm-live --max-usd`.
+Tối ưu từng biến một: `student_phrasings` → trọng số hybrid → reranker nếu vẫn thiếu. Mỗi lần ghi kết quả trước và sau. Chạy `python scripts/kb/evaluate.py` với embedder thật cần `--confirm-live --max-usd`. Voyage nằm trong 200M token miễn phí; verifier tính vào trần chung ở [10](10-evaluation-and-quality-gates.md#ngân-sách-eval-live). Trong lúc chưa có người duyệt, eval dùng `--include-draft`; cờ này không có ở bước đóng gói.

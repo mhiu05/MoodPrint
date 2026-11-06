@@ -49,8 +49,10 @@ Chỉ coi là xong khi đủ sáu điều:
 | Domain | `moodprint.duckdns.org` | VERIFIED |
 | Marker hold | Không có | VERIFIED |
 | Model | `gpt-6-luna`, ngân sách 20 USD/ngày theo tài liệu 05/11/2026 | INFERRED |
-| `JOURNAL_STORAGE_KEY` trên staging | Chưa rõ | UNKNOWN |
-| Cấu hình guest trên staging | Chưa rõ | UNKNOWN |
+| Supabase MCP | Chạy bằng role `postgres`, chủ bảng `moodprint`, có quyền CREATE | VERIFIED |
+| AWS MCP | Owner xác nhận có. Phiên audit chưa kiểm chứng: `aws-mcp` timeout, `aws sts` trên máy audit exit 253 | UNKNOWN |
+| `JOURNAL_STORAGE_KEY` trên staging | Chưa rõ | UNKNOWN, kiểm ở preflight |
+| Cấu hình guest trên staging | Chưa rõ | UNKNOWN, kiểm ở preflight |
 
 **Region**: xác nhận tại **AWS Settings > View all projects > Overview > Additional Info > Region**. Nếu không xác nhận được, xem `~/.aws/config`. Mọi tài nguyên Regional phải ở Region được chọn. MVP không tạo tài nguyên AWS mới. Nếu lệnh AWS đột nhiên trả "Access Denied", kiểm tra spend limit tại AWS Settings > Billing. Máy chủ MCP AWS không kết nối được trong phiên audit, nên phần này chưa đối chiếu với tài liệu AWS.
 
@@ -66,9 +68,12 @@ Lần 0029 thêm cột vào bảng đang map nên cần tách tree. Lần này c
 ### Bước 0: điều kiện trước
 
 - [ ] G0–G4 đạt, ghi trong ledger.
-- [ ] OD-01, OD-05, OD-12 đã trả lời. OD-02 xong: có thẻ approved và template đã duyệt.
+- [ ] OD-02 xong: có ít nhất 40 thẻ approved và template đã duyệt.
 - [ ] `main` CI xanh.
-- [ ] Hỏi owner xem có chuyện gì đang chạy trên staging không.
+- [ ] Supabase MCP: `select version_num from moodprint.alembic_version` trả `0029_journal_intelligence`.
+- [ ] AWS MCP: `aws sts get-caller-identity` thành công, không ghi Account hay ARN vào PR. Lỗi thì báo owner đăng nhập lại.
+- [ ] Region khớp `ap-southeast-2`, xác nhận theo [OD-12](../12-open-decisions.md#od-12--credential).
+- [ ] Đọc `/moodprint/staging/runtime` vào bộ nhớ, **chỉ in tên khóa**. Kiểm tra có `OPENAI_API_KEY`, `OPENAI_MODEL`, `AI_DAILY_BUDGET_USD`, `VOYAGE_API_KEY`, `JOURNAL_STORAGE_KEY`, `STT_MODEL`, và nhóm `GUEST_*`, `AUTH_CAPTCHA_ENABLED`. Thiếu `JOURNAL_STORAGE_KEY` hoặc `VOYAGE_API_KEY` thì báo owner.
 
 ### Bước 1: chuẩn bị SQL (trên nhánh)
 
@@ -105,36 +110,62 @@ gh release view staging-<sha>
 
 Ghi lại digest API và web của C: đây là đích rollback.
 
-### Bước 4: cấu hình SSM (owner, hoặc Grok nếu được cấp quyền)
+### Bước 4: cấu hình SSM qua AWS MCP
 
 Thêm vào `/moodprint/staging/runtime`, không xóa dòng có sẵn:
 
 ```text
 APP_PROFILE=school_safety_demo
-AI_TIMEOUT_SECONDS=45
+ASSISTANT_MODEL=gpt-6.1-terra
+ASSISTANT_REASONING_EFFORT=medium
+AI_TIMEOUT_SECONDS=60
 AI_DAILY_BUDGET_USD=20
-TTS_PROVIDER=<theo OD-04>
-TTS_API_KEY=<secret>
-TTS_VOICE=<theo bake-off>
+TTS_PROVIDER=openai_realtime
+TTS_MODEL=gpt-realtime-2.1-mini
+TTS_VOICE=<giọng owner đã chọn>
 STT_MODEL=gpt-transcribe
 ```
 
-C bỏ qua biến lạ (`extra="ignore"`), nên thêm trước là an toàn. Không in giá trị. Không gửi qua chat.
+Cách làm: tải giá trị vào file tạm mode 600 hoặc bộ nhớ, chỉnh, `put-parameter --type SecureString --overwrite`, xóa file tạm. Ghi lại số version cũ để khôi phục. So tên khóa trước và sau. Không in giá trị.
+
+C bỏ qua biến lạ (`extra="ignore"`), nên thêm trước là an toàn. Cấu hình chỉ có hiệu lực ở lần deploy tiếp theo.
 
 ### Bước 5: áp SQL hosted
 
-Credential qua environment của process, không qua command line, không đọc `backend/.env`:
+**Đường chính: Supabase MCP.** Project `roznanxbiyqybjpvtilq`, role `postgres`.
 
-```bash
-# Đặt DATABASE_MIGRATION_URL, SUPABASE_URL trong environment
-python scripts/apply_supabase_review.py --upgrade 0035 --apply --approved-sha256 <sha>
+1. Đếm hàng toàn bộ bảng `moodprint`, lưu làm mốc.
+2. Đọc `deploy/supabase/reviewed-sql/0035-review.sql`, tính SHA-256, so với `MANIFEST.json`.
+3. Gửi **nguyên văn** nội dung file qua `execute_sql`, một lần. Không sửa byte nào. File đã có `BEGIN`, `COMMIT`, cập nhật `alembic_version`.
+4. Chạy kiểm tra:
+
+```sql
+select version_num from moodprint.alembic_version;
+
+select c.relname, c.relrowsecurity
+from pg_class c join pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'moodprint' and c.relname = any(:new_tables);
+
+select tablename, policyname, roles from pg_policies
+where schemaname = 'moodprint' and tablename = any(:new_tables);
+
+select t, has_table_privilege('moodprint_app', 'moodprint.' || t, 'SELECT,INSERT,UPDATE,DELETE') as runtime_dml,
+       has_table_privilege('anon', 'moodprint.' || t, 'SELECT') as anon_select,
+       has_table_privilege('authenticated', 'moodprint.' || t, 'SELECT') as auth_select
+from unnest(:new_tables) t;
+
+select has_schema_privilege('moodprint_app', 'moodprint', 'CREATE');
 ```
 
-Script kiểm tra project, endpoint, owner, TLS; chạy trong một giao dịch; kiểm tra revision, số hàng, RLS, policy, DML, quyền API role; ghi report vào `deploy/supabase/reports/0035-execution.json`.
+Kỳ vọng: revision `0035_support_practice`; 18 bảng có RLS và policy `backend_access`; runtime có DML; `anon`, `authenticated` không có quyền; runtime không CREATE; số hàng bảng cũ không đổi. `:new_tables` là 18 bảng ở [05](../05-data-model-and-migrations.md).
+
+5. Ghi `deploy/supabase/reports/0035-execution.json` theo định dạng report của script: sha256, thời điểm, từng kiểm tra, không có thông tin nhận dạng.
+
+**Không** dùng `apply_migration` của MCP: nó ghi vào lịch sử migration của Supabase, còn nguồn sự thật ở đây là Alembic. Không chạy `alembic upgrade` lên hosted.
+
+**Nếu `execute_sql` không chạy được nguyên văn** (ví dụ từ chối điều khiển giao dịch): dừng. Không tách câu lệnh, không sửa file. Báo owner để cấp `DATABASE_MIGRATION_URL`, rồi chạy `python scripts/apply_supabase_review.py --upgrade 0035 --apply --approved-sha256 <sha>` với credential trong environment.
 
 Sau đó: `/ready` phải vẫn 200 trên C.
-
-Không chạy `alembic upgrade` lên hosted. Không dùng MCP `apply_migration`. Lấy lệnh `select version_num from moodprint.alembic_version` để kiểm tra.
 
 ### Bước 6: image F
 
@@ -147,22 +178,25 @@ Không chạy `alembic upgrade` lên hosted. Không dùng MCP `apply_migration`.
 ### Bước 7: seed và KB
 
 ```bash
-# Đặt Auth Admin key trong environment
-python scripts/seed_school_demo.py --apply --credentials-file <path mode 600>
+# Khóa server lấy từ SSM vào environment của process, không in, không ghi file trong repo
+python scripts/seed_school_demo.py --apply --credentials-file <path mode 600, ngoài repo>
 ```
+
+Nếu khóa server không có quyền Auth Admin, báo owner. Giao file mật khẩu cho owner qua kênh riêng, không qua PR.
 
 Worker tự sync KB sau khởi động. Kiểm tra `select count(*) from moodprint.kb_cards where review_status='approved'`.
 
 ### Bước 8: smoke
 
-Theo [kịch bản](../demo/scenarios-KB-A-B-C.md). Thêm:
+Theo [kịch bản](../demo/scenarios-KB-A-B-C.md) và [ca trình diễn](../demo/showcase-cases.md), với **model thật**. Ca xác suất chạy 3 lần. Thêm:
 
 - `POST /auth/signup` trả 403.
 - Route denylist trả 404.
 - Tài khoản 18+ không vào được app.
 - `/ho-tro` mở được khi chưa đăng nhập.
 - Không có nội dung tin nhắn trong log: `journalctl`, `docker logs`.
-- Smoke chi phí nằm trong trần OD-11.
+- Ghi chi phí smoke vào release note. Không tính vào trần eval live.
+- Xác nhận `ai_usage.model` là `gpt-6.1-terra` cho lượt agent, TTS phát được trên điện thoại thật.
 
 ### Bước 9: release note
 
@@ -176,7 +210,7 @@ Ghi `docs/moodprint-school-safety/evidence/release.md`.
 | Smoke fail sau khi F đã healthy | Chạy SSM document `ssm-document.json` với `apiImage`, `webImage` của C (digest), `releaseSha` của C. Không đổi schema. Báo owner kèm chẩn đoán |
 | Poller sẽ deploy lại F? | Poller so `main` với state; sau rollback tay, tạm dừng timer hoặc đẩy bản sửa. Hỏi owner |
 | SQL fail | Giao dịch tự rollback; revision giữ 0029; C vẫn chạy |
-| Cần tắt demo | Bỏ `APP_PROFILE` trong SSM, deploy lại |
+| Cần tắt demo | Khôi phục version SSM cũ, deploy lại |
 
 **Không** downgrade schema trên hosted. Không chạy `DROP`, `TRUNCATE`. Trên hệ thống có rollback image, luôn xác nhận `READY_REVISIONS` của image đó nhận revision hiện tại.
 
@@ -202,3 +236,4 @@ Nếu ai đó thêm lại marker: Publish bị bỏ qua, CI vẫn chạy. Điề
 | `workflow_dispatch` có approval | Đúng, thêm điều kiện actor là chủ repo |
 | CI xanh là tiền đề | **Hiện đỏ** ở hai commit gần nhất. Sửa ở WS-01-T01 |
 | Runtime grants | Migration cấp qua `protect(table)`, không có bước riêng |
+| Áp SQL bằng `apply_supabase_review.py --apply` | Vẫn dùng được nếu có DSN. Đường chính là Supabase MCP theo chốt của owner |

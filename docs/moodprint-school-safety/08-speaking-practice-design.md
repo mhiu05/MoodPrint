@@ -1,24 +1,30 @@
 # 08 — Luyện nói
 
-Ngày tra cứu: **06/11/2026**. Task ở [WS-08](plans/WS-08-voice-speaking-practice.md).
+Ngày tra cứu: **06/11/2026**. Task ở [WS-08](plans/WS-08-voice-speaking-practice.md). Owner chốt: **STT và TTS đều dùng `OPENAI_API_KEY` hiện có** ([OD-04](12-open-decisions.md#od-04--tts-và-stt-dùng-openai)).
 
-## 1. Phát hiện quyết định thiết kế
+## 1. Ràng buộc từ OpenAI
 
-**OpenAI đã deprecate `tts-1`, `tts-1-hd`, `gpt-4o-mini-tts`. Shutdown 06/01/2027.** Hướng thay thế là `gpt-realtime-2.1-mini` qua Realtime API; model này không dùng được với `/v1/audio/speech`. Nguồn: [deprecations](https://developers.openai.com/api/docs/deprecations), [TTS guide](https://developers.openai.com/api/docs/guides/text-to-speech).
+- `tts-1`, `tts-1-hd`, `gpt-4o-mini-tts` shutdown **06/01/2027**, thay bằng `gpt-realtime-2.1-mini` qua Realtime API. Model này không dùng với `/v1/audio/speech`. Nguồn: [deprecations](https://developers.openai.com/api/docs/deprecations), [TTS guide](https://developers.openai.com/api/docs/guides/text-to-speech).
+- Realtime là **mô hình sinh giọng**, không phải bộ đọc. Nó có thể nói khác văn bản đã duyệt.
+- Voice được tối ưu cho tiếng Anh; tiếng Việt phải nghe thử.
+- OpenAI khuyến nghị đường **chained** khi cần "chạy policy check trước khi agent phản hồi, rồi chỉ sinh giọng sau khi workflow có câu trả lời đã duyệt" ([Voice agents](https://developers.openai.com/api/docs/guides/voice-agents#build-a-chained-voice-workflow)). Đúng với yêu cầu của sản phẩm.
 
-Hệ quả cho sản phẩm an toàn: Realtime là **mô hình sinh giọng**, không phải bộ đọc nguyên văn. Văn bản đã qua postcheck có thể được nói khác đi. Tài liệu cũng ghi voice được tối ưu cho tiếng Anh. Vì vậy **không dùng Realtime làm TTS**. Chọn engine TTS đọc đúng từng chữ.
+**Không dùng GPT-Live, Realtime speech-to-speech**: transcript phải sửa được và qua safety trước agent.
+
+**Không dùng `agents.voice.VoicePipeline`**: cần extra `voice` kéo theo `numpy` (hiện không có trong runtime), và không cho chèn bước sửa transcript.
 
 ## 2. Tái dùng
 
 | Thành phần | Quyết định |
 | --- | --- |
 | `pcm-worklet.js`, `encodeWav`, AudioContext 16 kHz | Tái dùng |
-| `validate_audio`, WAV mono ≤ 30 giây | Tái dùng; 30 giây đủ cho một lượt nói |
+| `validate_audio`, WAV mono ≤ 30 giây | Tái dùng |
 | `POST /voice/transcriptions` | Tái dùng; thêm `language`, `prompt` |
 | `OpenAITranscriber` | Bọc sau `SpeechTranscriber` |
-| Giới hạn 6/phút, 60/ngày, 1 slot | Giữ; profile demo nâng ngày lên 120 |
+| Giới hạn 6/phút, 60/ngày, 1 slot | Giữ; demo nâng ngày lên 120 |
 | `TranscriptionPreview.text` ≤ 500 | Giữ, khớp `MessageText` |
-| Giới hạn body 3.000.000 byte, Caddy 3 MB | Giữ; không cần đổi Caddy |
+| Giới hạn body 3.000.000 byte, Caddy 3 MB | Giữ; không đổi host |
+| `websockets` | Đã có trong runtime qua `openai-agents`, không thêm dependency |
 | `VoiceRecorder` | Không tái dùng UI; viết `HoldToTalk` |
 
 ## 3. Pipeline
@@ -31,6 +37,7 @@ sequenceDiagram
     participant S as app.safety
     participant A as Agent troly
     participant TTS as /practice/.../speech
+    participant R as Realtime
     UI->>UI: Giữ để nói, tối đa 30 giây
     UI->>STT: WAV
     STT-->>UI: Bản chép lời
@@ -42,14 +49,20 @@ sequenceDiagram
     else
         T->>A: lượt role-play, không tool ghi
         A-->>T: Lời đáp đã postcheck
-        T-->>UI: SSE final
+        T-->>UI: SSE final, chữ hiện ngay
         UI->>TTS: messageId
-        TTS-->>UI: Audio hoặc 503
-        UI->>UI: Phát; lỗi thì chỉ hiện chữ
+        TTS->>R: Đọc nguyên văn, chỉ audio
+        R-->>TTS: Audio + transcript
+        TTS->>TTS: So transcript với văn bản đã duyệt
+        alt khớp
+            TTS-->>UI: audio/wav
+        else lệch hoặc lỗi
+            TTS-->>UI: 503 SPEECH_UNAVAILABLE, giữ chữ
+        end
     end
 ```
 
-Không có token streaming. Luôn có ô nhập chữ. Audio không lưu.
+Chữ luôn hiện trước, tiếng đến sau. Không có token streaming. Audio không lưu.
 
 ## 4. Ba chế độ
 
@@ -61,7 +74,7 @@ Không có token streaming. Luôn có ô nhập chữ. Audio không lưu.
 
 Mọi phiên mở đầu bằng câu xác định: AI, không phải người thật, luyện tập không thay cho cuộc nói thật.
 
-**Độ khó**: `gentle` mặc định. `challenging` là tùy chọn, em tự bật, tối đa một phản ứng khó mỗi phiên, lấy từ danh sách duyệt sẵn (ví dụ "Chắc con cũng có lỗi gì đó"), kèm gợi ý cách đáp lại. Không dùng cho nhãn tình dục, tự hại, hoặc khi `adult_perpetrator`. Phải có eval an toàn riêng.
+**Độ khó**: `gentle` mặc định. `challenging` là tùy chọn, em tự bật, tối đa một phản ứng khó mỗi phiên, lấy từ danh sách duyệt sẵn (ví dụ "Chắc con cũng có lỗi gì đó"), kèm gợi ý cách đáp lại. Không dùng khi có nhãn tình dục, tự hại, hoặc `adult_perpetrator`.
 
 ## 5. Trạng thái phiên
 
@@ -83,47 +96,46 @@ stateDiagram-v2
 
 Giới hạn: 20 lượt, 20 phút, hết hạn sau 2 giờ. `retry` thu lại, `pause` dừng phát, `stop` kết thúc, `exit` thoát không lưu.
 
-**Tóm tắt cuối phiên**: một lượt agent trả `PracticeSummary(strengths[], next_tries[], draft_message?)`. Hiện cho em xem. Lưu vào case là proposal `practice_summary_save`, cần bấm xác nhận.
+**Tóm tắt cuối phiên**: một lượt agent trả `PracticeSummary(strengths[], next_tries[], draft_message?)`. Lưu vào case là proposal `practice_summary_save`, cần bấm xác nhận.
 
 ## 6. Nhà cung cấp
 
-**Không có benchmark công khai** so sánh các dịch vụ này trên tiếng Việt theo vùng miền, và không có dữ liệu giọng trẻ em. Nghiên cứu năm 2026 về tiếng Việt hội thoại cho thấy WER thường tăng đáng kể khi mô hình huấn luyện trên giọng đọc gặp hội thoại thật ([VietSuperSpeech](https://arxiv.org/pdf/2603.01894)). Chất lượng phải đo bằng bake-off.
-
 ### STT
 
-| Nhà cung cấp | Giá | Vòng đời | Ghi chú | Nhãn |
-| --- | --- | --- | --- | --- |
-| OpenAI `gpt-transcribe` | 0,0045 USD/phút | Hiện hành | Có `language`, `prompt`; đã tích hợp | VERIFIED |
-| OpenAI `gpt-4o-mini-transcribe` | 0,003 USD/phút | Hiện hành | Rẻ hơn | VERIFIED |
-| FPT.AI | 540–700 VND/phút theo gói; 60 phút/năm miễn phí | Hiện hành | Trang giá không ghi ngôn ngữ | VERIFIED giá |
-| Google STT V2 | Khoảng 0,016 USD/phút | Hiện hành | Nguồn thứ cấp | TO_VERIFY |
-| Azure Speech | Chưa có giá thời gian thực đáng tin | Hiện hành | | TO_VERIFY |
-| Viettel AI, Zalo AI | Không có giá công khai | | Cần liên hệ | UNKNOWN |
-
-**Chọn**: `gpt-transcribe`, `language="vi"`, `prompt` chứa từ vựng ("bị anti", "bóc phốt", "cô chủ nhiệm", "Tổng đài 111"). Lý do: đã tích hợp, không cần credential mới, rẻ nhất trong nhóm có API rõ.
+`gpt-transcribe`, 0,0045 USD/phút, `language="vi"`, `prompt` chứa từ vựng ("bị anti", "bóc phốt", "cô chủ nhiệm", "Tổng đài 111"). API reference xác nhận model và tham số `prompt`.
 
 ### TTS
 
-| Nhà cung cấp | Giá | Đọc nguyên văn | Tiếng Việt | Nhãn |
+| Tùy chọn | Giá | Đọc đúng chữ | Vòng đời | Vai trò |
 | --- | --- | --- | --- | --- |
-| FPT.AI | 500.000 VND / 1,5M ký tự; 100.000 ký tự/tháng miễn phí | Có | Nhà cung cấp Việt Nam; giọng theo vùng TO_VERIFY | VERIFIED giá |
-| Azure neural | Khoảng 15 USD/1M ký tự | Có | Giọng vi-VN TO_VERIFY | TO_VERIFY |
-| Google Chirp 3 HD | 30 USD/1M ký tự; 1M miễn phí/tháng | Có | vi-VN chưa xác nhận | TO_VERIFY |
-| OpenAI `gpt-4o-mini-tts` | 12 USD/1M audio token | Có | Tắt 06/01/2027 | **Loại** |
-| OpenAI `gpt-realtime-2.1-mini` | 20 USD/1M audio token | **Không đảm bảo** | Voice tối ưu cho tiếng Anh | **Loại** cho TTS |
-| Viettel AI, Zalo AI | Không có giá công khai | | Thư viện Zalo tìm được là không chính thức | UNKNOWN |
+| `gpt-realtime-2.1-mini` | 20 USD/1M audio token ra, 0,60 USD/1M text vào. Audio ra 1 token mỗi 50 ms, tức khoảng 0,024 USD/phút | Không đảm bảo, cần so transcript | Hiện hành, được OpenAI chỉ định thay thế | **Đường chính** |
+| `gpt-4o-mini-tts` | 12 USD/1M audio token | Là model TTS | Tắt 06/01/2027 | Phụ, chỉ tới shutdown |
 
-**Đề xuất**: FPT.AI nếu bake-off đạt. Lý do: giá công khai, có phần miễn phí đủ cho demo, nhà cung cấp trong nước. Cần owner cấp API key ([OD-04](12-open-decisions.md#od-04--nhà-cung-cấp-tts)).
+`TTS_PROVIDER`: `openai_realtime` (mặc định demo), `openai_speech`, `none`. Sau 06/01/2027, `openai_speech` tự coi như `none` và ghi cảnh báo.
 
-**TO_VERIFY FPT**: API có trả link bất đồng bộ không; nếu có, adapter poll tối đa 8 giây rồi fallback chữ. Điều khoản dữ liệu chưa đọc. Chỉ gửi lời của AI sang TTS, không gửi lời học sinh.
+### Cách làm Realtime thành bộ đọc
 
-**Bake-off** (owner hoặc nhóm thực hiện vì cần tai nghe):
+`OpenAIRealtimeSynthesizer` mở WebSocket từ server qua `AsyncOpenAI.realtime.connect`, một kết nối mỗi lượt đọc:
 
-- 30 câu cố định theo ba chế độ, nghe trên điện thoại.
-- 40 đoạn STT do thành viên trưởng thành thu, chia Bắc/Trung/Nam; **không thu giọng trẻ em thật**.
-- Tiêu chí: dễ nghe, tự nhiên, đọc đúng số và tên riêng, độ trễ đầu tiên ≤ 3 giây, WER.
+1. `session.update`: `type="realtime"`, `output_modalities=["audio"]`, `audio.output.voice`, instructions cố định: "Bạn là công cụ đọc. Đọc đúng từng chữ văn bản trong tin tiếp theo bằng tiếng Việt, giọng bình tĩnh. Không thêm, không bớt, không trả lời." Không tool.
+2. `conversation.item.create` chứa văn bản, bọc là dữ liệu cần đọc.
+3. `response.create`.
+4. Gom `response.output_audio.delta` vào bộ đệm, đọc `response.output_audio_transcript.done`, lấy `usage` từ `response.done`.
+5. Giới hạn 10 giây tổng, 45 giây âm thanh, 2 MB.
 
-Giới hạn còn lại: không kiểm chứng được giọng trẻ em.
+**Kiểm tra bắt buộc** `verbatim_ok(expected, transcript) -> bool`: chuẩn hóa bằng `normalize_text`, so `difflib.SequenceMatcher` ≥ 0,92; mọi chữ số trong văn bản gốc phải xuất hiện; transcript qua `postcheck`. Không đạt: bỏ audio, trả 503, UI giữ chữ. Không phát audio chưa kiểm tra, nên không stream tới browser.
+
+Audio trả về `audio/wav` từ PCM 24 kHz. TO_VERIFY định dạng mặc định và tốc độ sinh ở T06; nếu độ trễ quá 5 giây cho câu 250 ký tự, báo owner kèm số đo.
+
+Transcript do chính model sinh, nên đây là kiểm tra mạnh chứ không tuyệt đối. Ghi rõ trong tài liệu dự thi.
+
+### Nghe thử
+
+- 20 câu cố định theo ba chế độ, chạy trên hai tùy chọn, kết quả lưu `.tmp/tts-trial/`, không commit audio.
+- Grok đo tỷ lệ `verbatim_ok`, độ trễ, chi phí.
+- Owner nghe và chọn, một lần trước G3. Không thu giọng trẻ em thật.
+
+Chưa kiểm chứng được chất lượng trên giọng trẻ em và theo vùng miền. Ghi vào giới hạn đã biết.
 
 ## 7. Abstraction
 
@@ -139,11 +151,13 @@ class SpeechSynthesizer(Protocol):
 @dataclass(frozen=True)
 class SynthesizedAudio:
     audio: bytes
-    mime_type: Literal["audio/mpeg", "audio/wav"]
+    mime_type: Literal["audio/wav", "audio/mpeg"]
     characters: int
+    input_tokens: int
+    output_audio_tokens: int
 ```
 
-Adapter: `OpenAISpeechTranscriber`, `FptSpeechSynthesizer`, `FakeSynthesizer` cho test. Chọn qua `TTS_PROVIDER` (`none`, `fpt`, `azure`, `google`). `none`: UI chỉ hiện chữ.
+Adapter: `OpenAISpeechTranscriber`, `OpenAIRealtimeSynthesizer`, `OpenAISpeechApiSynthesizer`, `FakeSynthesizer`.
 
 ## 8. API
 
@@ -160,15 +174,16 @@ Mọi route có owner check, CSRF, `Idempotency-Key` khi ghi, `assert_purpose("V
 ## 9. An toàn
 
 - Transcript đi qua **cùng** pipeline safety với chat.
-- Đỏ: dừng phiên, hiện template.
+- Đỏ: dừng phiên, hiện template, không gọi TTS.
 - Role-play không có tool ghi. Postcheck thêm: không nhận là người thật; không phản ứng làm em thấy có lỗi ngoài danh sách duyệt.
-- Công bố: nhãn "Giọng đọc do AI tạo" luôn hiện cạnh nút phát, theo yêu cầu của chính sách OpenAI và của sản phẩm.
-- Không lưu audio ở server; `audio.clear()` như `transcribe`.
+- Nhãn "Giọng đọc do AI tạo" luôn hiện cạnh nút phát, theo chính sách OpenAI và yêu cầu sản phẩm.
+- Chỉ gửi lời của AI sang TTS, không gửi lời học sinh.
+- Không lưu audio ở server.
 
 ## 10. Đồng thời và chi phí
 
-Một worker. `practice_global_concurrency = 5`; quá giới hạn trả 429 `PRACTICE_BUSY` kèm gợi ý nhập chữ. `speech_usage` ghi mỗi call; `speech_liability` cộng vào `budget_liability`. STT reservation theo `duration_seconds`, TTS theo ký tự. Khi hết ngân sách: tắt TTS trước, rồi STT, chữ vẫn chạy.
+Một worker. `practice_global_concurrency = 5`; quá giới hạn trả 429 `PRACTICE_BUSY` kèm gợi ý nhập chữ. WebSocket chỉ mở trong lúc đọc. `speech_usage` ghi mỗi call; `speech_liability` cộng vào `budget_liability`. Khi hết ngân sách: tắt TTS trước, rồi STT, chữ vẫn chạy.
 
 ## 11. Ngoài phạm vi
 
-Realtime speech, GPT-Live, barge-in, chọn giọng theo vùng do người dùng, lưu audio, phân tích cảm xúc giọng nói.
+GPT-Live, Realtime speech-to-speech, barge-in, chọn giọng theo vùng, lưu audio, phân tích cảm xúc giọng nói.

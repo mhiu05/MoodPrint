@@ -16,7 +16,7 @@ Tên nhánh trong prompt là `feat/refactor`, nhưng owner đã chốt dùng `mh
 | A4 | Eligibility 18+ tập trung ở `verify_actor`, nên profile demo chỉ cần đổi 2 cổng thay vì 15 call site. | VERIFIED |
 | A5 | Bot id mới `troly` tự tách khỏi V3: `prepare_turn`, `orchestrates`, skills, web/Maps đều chỉ mở cho `V3_IDS`. | VERIFIED |
 | A6 | `ai_messages.citations/source_backed`, `Citation` và `CitationText.tsx` dùng lại được cho nhãn tham khảo và trích dẫn KB. | VERIFIED |
-| A7 | OpenAI đã deprecate `tts-1`, `tts-1-hd`, `gpt-4o-mini-tts`; shutdown **06/01/2027**. Không được xây Luyện nói trên các model này. | VERIFIED (docs OpenAI, tra 06/11/2026) |
+| A7 | OpenAI đã deprecate `tts-1`, `tts-1-hd`, `gpt-4o-mini-tts`; shutdown **06/01/2027**. Đường chính của Luyện nói phải là `gpt-realtime-2.1-mini`. | VERIFIED (docs OpenAI, tra 06/11/2026) |
 | A8 | Hosted đang ở `0029_journal_intelligence`. `deploy/guest-experience.release-hold` đã bị gỡ khỏi `main`. | VERIFIED |
 | A9 | Compose và Caddyfile trên EC2 **không** được cập nhật theo release (chỉ `install-release-poller.sh` chép). Thiết kế tránh đổi hai file này. | VERIFIED |
 | A10 | Không có PDF, TTS, safety engine, KB, case workspace, workflow state machine. | VERIFIED |
@@ -153,7 +153,7 @@ Kết luận: tạo bảng riêng, chỉ tái dùng tầng Storage và upload. K
 | Transcript khi `persistent=false` | RAM (`ConversationStore`) | Hết hạn, restart | VERIFIED |
 | Nội dung gửi model | OpenAI, `store=False`; không phải zero data retention | Theo chính sách nhà cung cấp | VERIFIED |
 
-Trong code, API không ép guest dùng hội thoại tạm. Profile demo phải ép `persistent=False` phía server. "Không lưu dữ liệu" phải được nói thật là **không lưu nội dung**; metadata vẫn tồn tại tới khi cleanup. Guest cũng cần CAPTCHA và ngân sách guest; nếu chưa cấu hình thì chế độ khách đóng. Xem [OD-05](12-open-decisions.md#od-05--chế-độ-khách-trên-staging).
+Trong code, API không ép guest dùng hội thoại tạm. Profile demo phải ép `persistent=False` phía server. "Không lưu dữ liệu" phải được nói thật là **không lưu nội dung**; metadata vẫn tồn tại tới khi cleanup. Guest cũng cần CAPTCHA và ngân sách guest; nếu chưa cấu hình thì chế độ khách đóng. Xem [OD-05](12-open-decisions.md#od-05--chế-độ-khách).
 
 ## 8. Bẫy accounting (O17)
 
@@ -196,10 +196,11 @@ Không sửa trong phiên này. Grok xử lý trong WS-10.
 
 | Rủi ro | Mức | Xử lý |
 | --- | --- | --- |
-| Không có người duyệt KB và template | Cao | OD-02. Grok không được tự điền `reviewed_by` |
-| Flip staging sang demo khóa tài khoản 18+ hiện có | Cao | OD-01 |
+| Không có người duyệt KB và template | Cao | OD-02 chặn G5. Grok không được tự điền `reviewed_by` |
+| Flip staging sang demo khóa tài khoản 18+ hiện có | Đã chấp nhận | OD-01 đã chốt |
 | Hosted dùng chung với dữ liệu thật có thể có | Trung bình | Seed và reset chỉ chạm hàng demo |
 | Không có branch protection | Trung bình | Kỷ luật ở §8.3 của prompt; OD-09 đề xuất bật |
-| TTS tiếng Việt chưa nghe thử | Trung bình | OD-04 bake-off |
+| TTS tiếng Việt chưa nghe thử | Trung bình | Owner nghe thử trước G3; `verbatim_ok` kiểm tra tự động |
+| AWS chưa kiểm chứng trong phiên audit | Trung bình | Preflight ở runbook |
 | CI ~35 phút, main đổi thì release bỏ qua | Trung bình | Merge tuần tự, xem runbook |
 | OpenAI yêu cầu ZDR trước khi xử lý dữ liệu cá nhân trẻ dưới 13 | Cao khi thí điểm | Demo hư cấu không vướng; ghi vào cổng trước thí điểm |

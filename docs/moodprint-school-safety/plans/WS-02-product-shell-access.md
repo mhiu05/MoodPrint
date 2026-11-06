@@ -85,7 +85,7 @@ Viết test thất bại trước, rồi code.
 | WS-02-T05 | P0 | T03 | `signup` 403 khi demo; `experience_view` thêm trường; `FeatureView` thêm trường; OpenAPI, schema.d.ts, api-reference | Đăng ký đóng; login tài khoản thường trả session với `eligible=false` | `pytest -q tests/test_school_auth.py`; `npm run contracts:generate` | Pass: không drift |
 | WS-02-T06 | P0 | T03 | `school/routes.py` terms; router trong `main.py` | Xác nhận lưu `terms_version`, thời điểm; đổi phiên bản bắt xác nhận lại; 404 ở default | `pytest -q tests/test_school_terms.py` | Pass: replay idempotent |
 | WS-02-T07 | P1 | T06 | Guest demo: `GuestEligibility` nhận `school-terms-v1` với `age_group` (không dùng `birth_year`); `create_conversation` ép `persistent=False` cho guest khi demo; từ chối `case`, `practice` | Không có `ai_messages` của guest; disclosure nói thật. `/auth/guest` giữ nguyên ở default | `pytest -q tests/test_school_guest.py tests/test_guest*.py` | Pass: 0 hàng `ai_messages`. Fail: có hàng |
-| WS-02-T08 | P0 | T06 | `scripts/seed_school_demo.py --apply \| --reset \| --rotate`; Auth Admin qua `httpx`, key từ environment; email `*@demo.moodprint.invalid` hoặc miền owner chỉ định; `email_confirm=true`; mật khẩu ngẫu nhiên, không in, ghi vào file mode 600 do người chạy chỉ định | Idempotent; `--reset` chỉ xóa dữ liệu user có `demo_persona` không NULL; từ chối chạy nếu `SUPABASE_URL` không khớp project; `--rotate` đổi mật khẩu | `pytest -q tests/test_seed_school_demo.py` với transport giả | Pass: không chạm user khác |
+| WS-02-T08 | P0 | T06 | `scripts/seed_school_demo.py --apply \| --reset \| --rotate`; Auth Admin qua `httpx`, key từ environment; năm persona ở [personas](../demo/personas.md), hồ sơ mẫu thêm ở WS-10-T12; email `*@demo.moodprint.invalid` hoặc miền owner chỉ định; `email_confirm=true`; mật khẩu ngẫu nhiên, không in, ghi vào file mode 600 do người chạy chỉ định | Idempotent; `--reset` chỉ xóa dữ liệu user có `demo_persona` không NULL; từ chối chạy nếu `SUPABASE_URL` không khớp project; `--rotate` đổi mật khẩu | `pytest -q tests/test_seed_school_demo.py` với transport giả | Pass: không chạm user khác |
 | WS-02-T09 | P0 | T05 | `classifyEntry` nhận `/ho-tro`, `/trung-tinh`; `useExperience`; `AppEntry` chọn `SchoolApp` khi demo; `TermsGate`; `SchoolLanding`; không tải `RealApp` trong demo | Default: DOM giống cũ, test `appEntryRoute` cũ pass. Demo: landing mới, login, điều khoản | `npm test`; `npx playwright test tests/e2e/school-entry.spec.ts` | Pass: spec cũ không đổi |
 | WS-02-T10 | P1 | T02 | Thêm `school_profiles` vào `modules/users/export.py`; kiểm tra purge | Export có; xóa tài khoản xóa hàng | `pytest -q tests/test_data_lifecycle.py` | Pass |
 
@@ -110,7 +110,7 @@ Xem cột test. Thêm `school-entry.spec.ts` vào `testMatch`.
 
 ## 14. Phụ thuộc và blocker
 
-WS-01. OD-05 quyết định guest. Seed trên hosted cần Auth Admin key (OD-12).
+WS-01. OD-05 quyết định guest. Seed trên hosted cần khóa server (OD-12).
 
 ## 15. Rollback
 
