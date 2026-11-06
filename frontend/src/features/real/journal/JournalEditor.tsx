@@ -13,6 +13,7 @@ import { Button } from "../../../components/UI";
 import { ApiError } from "../../../api/client";
 import type { JournalEntry, JournalInput } from "../../../api/journal";
 import { ErrorNotice, useSession } from "../RealApp";
+import { dropResourcesWithPrefix } from "../resourceCache";
 import { useTourBlocker } from "../../onboarding/tourActivity";
 import {
   JournalAttachments,
@@ -54,7 +55,7 @@ export function JournalEditor({
   prompt,
   onSaved,
 }: Props) {
-  const { api, paused } = useSession();
+  const { api, paused, session } = useSession();
   const { earliest } = journalDateWindow(today);
   const [date, setDate] = useState(initial?.localDate || seedDate || today);
   const [mood, setMood] = useState(initial?.mood || 3);
@@ -171,6 +172,7 @@ export function JournalEditor({
       },
     );
     receive(saved);
+    dropResourcesWithPrefix(session.userId, "/journal/timeline");
     setSavedFingerprint(fingerprint);
     onSaved?.(saved);
     return saved;

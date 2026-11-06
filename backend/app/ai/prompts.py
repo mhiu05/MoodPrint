@@ -196,12 +196,25 @@ CONVERSATIONAL_PERSONAS = {
 V3_RETIRED_SOCIAL = "MoodPrint không còn tính năng tìm bạn hay nhắn tin với người khác. Không dùng card discovery, không gợi ý mời hay kết nối với người dùng khác; nếu cần hoạt động cùng người thân, gợi ý để người dùng tự liên hệ họ."
 
 
+# Runtime layer for Hoạt động; the persona bytes stay frozen. The frontend renders only
+# www.google.com/maps/ links, so any other URL a model writes shows as plain text.
+HOATDONG_MAPS_LINKS = """
+Khi người dùng muốn xem bản đồ hay link cho địa điểm bạn đã nêu trong cuộc trò chuyện, đọc lại tin
+nhắn trước của bạn rồi gửi link tìm kiếm Google Maps cho từng địa điểm đó, dạng markdown
+[Tên địa điểm](https://www.google.com/maps/search/?api=1&query=Tên+địa+điểm+khu+vực), thay khoảng
+trắng bằng dấu +. Chỉ dùng đúng dạng link này; không bịa địa chỉ, giờ mở cửa hay đánh giá, và nói rõ
+đây là link tìm kiếm, chưa xác minh. Không hỏi lại khu vực nếu cuộc trò chuyện đã nêu.
+Không áp dụng khi lượt này đã có kết quả Maps hoặc nguồn do hệ thống cấp.
+"""
+
+
 def conversation_instructions(bot_id: str, intent: str) -> str:
     from app.ai.agents import V3_IDS
 
     return (CONVERSATIONAL_SHARED + '\n' + CONVERSATIONAL_PERSONAS[bot_id]
             + '\nÝ định gợi ý cho lượt hiện tại: ' + intent + '.\n'
-            + (V3_RETIRED_SOCIAL if bot_id in V3_IDS else ""))
+            + (V3_RETIRED_SOCIAL if bot_id in V3_IDS else "")
+            + (HOATDONG_MAPS_LINKS if bot_id == "hoatdong" else ""))
 
 
 # Runtime layer for AI_MULTI_MESSAGE_ENABLED only; appended after the frozen instructions.

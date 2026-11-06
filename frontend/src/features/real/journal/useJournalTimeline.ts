@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { JournalCollection, JournalEntry } from "../../../api/journal";
 import { useSession } from "../RealApp";
+import { readResource, resourceIsFresh, resourceKey, writeResource } from "../resourceCache";
 import { entryQuery, mergeTimelineEntries } from "./journalModel";
 import { useJournalToday } from "./JournalPage";
 
@@ -15,14 +16,18 @@ function initialDepth() {
     : pageSize;
 }
 
+type TimelineCache = { items: JournalEntry[]; total: number; depth: number };
+
 export function useJournalTimeline() {
-  const { api, paused } = useSession();
+  const { api, paused, session } = useSession();
   const today = useJournalToday();
-  const [depth, setDepth] = useState(initialDepth);
+  const key = resourceKey(session.userId, `/journal/timeline?day=${today}`);
+  const cached = readResource<TimelineCache>(key);
+  const [depth, setDepth] = useState(cached ? Math.max(initialDepth(), cached.data.depth) : initialDepth);
   const [revision, setRevision] = useState(0);
-  const [items, setItems] = useState<JournalEntry[]>([]);
-  const [total, setTotal] = useState<number>();
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<JournalEntry[]>(cached?.data.items ?? []);
+  const [total, setTotal] = useState<number | undefined>(cached?.data.total);
+  const [loading, setLoading] = useState(cached === undefined);
   const [error, setError] = useState<unknown>();
 
   useEffect(() => {
@@ -30,8 +35,18 @@ export function useJournalTimeline() {
       setLoading(false);
       return;
     }
+    const hit = readResource<TimelineCache>(key);
+    const reusable = revision === 0 && hit !== undefined && hit.data.depth >= depth && resourceIsFresh(hit);
+    if (hit) {
+      setItems(hit.data.items);
+      setTotal(hit.data.total);
+      setLoading(false);
+      setError(undefined);
+    }
+    if (reusable) return;
     const controller = new AbortController();
-    setLoading(true);
+    if (!hit) setLoading(true);
+    else if (hit.data.depth < depth) setLoading(true);
     setError(undefined);
     async function read() {
       // Reconcile the visible prefix: insertions/deletions between clicks must
@@ -52,6 +67,7 @@ export function useJournalTimeline() {
       if (!controller.signal.aborted) {
         setItems(collected);
         setTotal(count);
+        writeResource(key, { items: collected, total: count, depth });
       }
     }
     void read()
@@ -62,7 +78,7 @@ export function useJournalTimeline() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [api, paused, depth, revision, today]);
+  }, [api, paused, depth, revision, today, key]);
 
   useEffect(() => {
     if (!error || paused) return;
@@ -72,7 +88,12 @@ export function useJournalTimeline() {
   }, [error, paused]);
 
   function remove(id: string) {
-    setItems((previous) => previous.filter((entry) => entry.id !== id));
+    setItems((previous) => {
+      const next = previous.filter((entry) => entry.id !== id);
+      const hit = readResource<TimelineCache>(key);
+      if (hit) writeResource(key, { ...hit.data, items: next, total: Math.max(0, hit.data.total - 1) });
+      return next;
+    });
     setTotal((previous) =>
       previous === undefined ? previous : Math.max(0, previous - 1),
     );

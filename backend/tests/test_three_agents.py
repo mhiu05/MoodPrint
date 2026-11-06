@@ -104,6 +104,7 @@ async def test_each_agent_has_its_own_persona_tools_and_no_borrowed_prompt(clien
     from app.ai.evidence import source_instructions
     from app.ai.journal import journal_instructions
     from app.ai.prompts import V3_PERSONAS, conversation_instructions, instructions
+    from app.ai.provider import OUTPUT_CHANNEL_GUIDANCE
 
     app, [(client, _uid), _] = clients
     await enable(client)
@@ -119,6 +120,7 @@ async def test_each_agent_has_its_own_persona_tools_and_no_borrowed_prompt(clien
         instructions(bot_id) + source_instructions(run, bot_id, mood_analysis=False)
         + (journal_instructions(run) if bot_id == "nhatky" else "")
         + conversation_instructions(bot_id, intent)
+        + OUTPUT_CHANNEL_GUIDANCE
     )
     assert V3_PERSONAS[bot_id].split("\n")[0] in call["instructions"]
     for legacy_name in ("Bạn là Mây", "Bạn là Gương", "Bạn là Nhịp", "Bạn là Rủ Rê", "Bạn là Cầu Nối"):

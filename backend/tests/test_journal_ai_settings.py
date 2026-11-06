@@ -88,6 +88,22 @@ async def test_guest_is_refused(journal_configured):
         assert response.json()["error"]["code"] == "REGISTERED_REQUIRED"
 
 
+async def test_stored_disable_does_not_turn_semantic_search_off(journal_configured):
+    from app.modules.journal.ai_settings import journal_ai_allowed
+
+    app, actors = journal_configured
+    client, uid = actors[0]
+    response = await client.put(
+        "/api/v1/journal/ai-settings",
+        json=body(embeddingEnabled=False, autoMemoryEnabled=False),
+        headers=key(),
+    )
+    assert response.status_code == 200, response.text
+    async with app.state.database.sessions() as db:
+        user = await db.get(User, uid)
+        assert await journal_ai_allowed(db, user, app.state.settings, "embed") == 2
+
+
 async def test_unavailable_embedding_still_saves_user_preference(journal_configured):
     app, actors = journal_configured
     app.state.settings.voyage_api_key = SecretStr("")

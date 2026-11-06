@@ -105,6 +105,46 @@ async def test_flag_on_guardrail_checks_every_bubble():
         )
 
 
+@pytest.mark.parametrize("multi", [False, True])
+@pytest.mark.parametrize("bad_text", [
+    'Bạn muốn đi cùng ai?[]}}} karto? Wait schema malformed? JSON: messages array object text, cards omitted okay. But I accidentally rendered []}}} ? Check actual: {',
+    'Chào bạn. <think>I need to fix the JSON schema.</think>',
+])
+async def test_output_rejects_format_repair_notes(multi, bad_text):
+    payload = bubbles("Chào bạn.", bad_text) if multi else {"text": bad_text, "cards": []}
+    with pytest.raises(OutputGuardrailTripwireTriggered):
+        await SdkProvider(Settings(_env_file=None, ai_multi_message_enabled=multi)).run_reply(
+            bot_id="dieuphoi", history=[], tools=[], context=None, on_progress=no_progress,
+            model_override=scripted(payload),
+        )
+
+
+async def test_output_allows_user_facing_technical_explanations():
+    text = 'JSON có thể chứa messages là một mảng. Ví dụ: {"text": "Chào"}.'
+    reply = await SdkProvider(multi_settings()).run_reply(
+        bot_id="dieuphoi", history=[], tools=[], context=None, on_progress=no_progress,
+        model_override=scripted(bubbles(text)),
+    )
+    assert reply.parts[0].text == text
+
+
+@pytest.mark.parametrize("transfer", [False, True])
+async def test_workflow_final_output_is_checked_even_after_handoff(transfer):
+    from agents import Agent, RunHooks, handoff
+
+    from tests.fakes import tool_output
+
+    target = Agent(name="target", model=scripted(bubbles("Chào. <think>fix JSON</think>")), output_type=CompanionReply)
+    main = Agent(name="main", model=scripted(bubbles("Chào. <think>fix JSON</think>")), output_type=CompanionReply)
+    if transfer:
+        main.model = ScriptedModel([[tool_output("transfer_to_target", "handoff")]])
+        main.handoffs = [handoff(target, tool_name_override="transfer_to_target")]
+    with pytest.raises(OutputGuardrailTripwireTriggered):
+        await SdkProvider(multi_settings()).run_agents(
+            main, [], context=None, hooks=RunHooks(), max_turns=3,
+        )
+
+
 async def test_flag_on_rejects_model_written_journal_link_in_any_bubble():
     with pytest.raises(DomainError) as error:
         await SdkProvider(multi_settings()).run_reply(

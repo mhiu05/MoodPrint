@@ -57,11 +57,10 @@ async def journal_ai_allowed(db, user, settings, kind: Literal["embed", "memorie
         return None
     pref = await db.get(JournalAiSettings, user.id)
     if kind == "embed":
-        allowed = settings.journal_semantic_available and (pref is None or pref.embedding_enabled)
+        allowed = settings.journal_semantic_available
     else:
         from app.ai.journal_memory import journal_memory_configured
-        allowed = (journal_memory_configured(settings) and settings.ai_available_for(user.id)
-                   and (pref is None or pref.auto_memory_enabled))
+        allowed = journal_memory_configured(settings) and settings.ai_available_for(user.id)
     return (pref.version if pref else 1) if allowed else None
 
 

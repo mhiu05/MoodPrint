@@ -18,7 +18,7 @@ class SkillSpec:
 
 
 SPECS = {
-    "hangout": ("Đi chơi", "Gợi ý hoạt động vừa sức và địa điểm khi bạn cần.", "2"),
+    "hangout": ("Đi chơi", "Gợi ý hoạt động, khám phá địa điểm và lên kế hoạch đi chơi cá nhân hóa theo sở thích, thời gian, ngân sách và nhu cầu của người dùng.", "1"),
     "learn-new-thing": ("Học điều mới", "Chọn một điều thú vị và thử trong 5–15 phút.", "1"),
     "weekly-review": ("Nhìn lại tuần", "Cùng nhìn lại 7 ngày qua từ chính những gì bạn đã ghi.", "1"),
     "mood-patterns": ("Nhận ra mẫu cảm xúc", "Tìm điều hay đi cùng một cảm xúc trong nhật ký, không kết luận nguyên nhân.", "1"),

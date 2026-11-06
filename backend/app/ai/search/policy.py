@@ -106,9 +106,26 @@ class SearchIntent:
     area: str | None = None
 
 
+BACK_REFERENCE = re.compile(
+    r"\b(?:dia diem|noi|quan|cho|chang)\s+(?:nhu\s+|o\s+)?(?:tren|do|kia|nay)\b|"
+    r"\b(?:dia diem|noi|quan|cho|chang)\s+ban\s+(?:vua\s+|da\s+)?(?:goi y|de xuat|nhac|noi|liet ke|dua)\b|"
+    r"\bban\s+(?:vua|da)\s+(?:goi y|de xuat|nhac|noi|liet ke|dua)\b|"
+    r"\b(?:nhu|phia|danh sach)\s+tren\b"
+)
+
+
+def refers_to_prior(prompt: str) -> bool:
+    """True when the prompt points at places already in this conversation ("các địa điểm trên").
+
+    That answer needs the transcript. A public search turn drops it, so it is not a search.
+    """
+    return bool(BACK_REFERENCE.search(folded(prompt)))
+
+
 def search_intent(prompt: str, options: PromptOptions) -> SearchIntent:
     text = folded(prompt)
-    negated = any(p in text for p in ("khong tim", "dung tim", "khong muon di", "khong can tra"))
+    negated = any(p in text for p in ("khong tim", "dung tim", "khong muon di", "khong can tra")) or (
+        "maps_search" not in options.tools and refers_to_prior(prompt))
     maps = "maps_search" in options.tools or (not negated and any(p in text for p in (
         "tim quan", "quan ca phe", "dia diem", "google maps", "nha hang", "cong vien gan")))
     web = "web_search" in options.tools or (not negated and any(p in text for p in (

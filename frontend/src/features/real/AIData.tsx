@@ -10,6 +10,7 @@ import {
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "../../components/UI";
 import { ErrorNotice, useSession } from "./RealApp";
+import { readResource, resourceIsFresh, resourceKey, writeResource } from "./resourceCache";
 import { botById } from "../../companions/registry";
 import type { ConversationHeader, ConversationView } from "../../api/contracts";
 import type { components } from "../../api/generated/schema";
@@ -103,25 +104,36 @@ export function ConversationHistory({ onSelect }: { onSelect?: () => void }) {
   const { historyRevision } = useAIData();
   const location = useLocation();
   const selected = new URLSearchParams(location.search).get("conversation");
-  const [items, setItems] = useState<SavedConversationHeader[]>([]),
-    [loading, setLoading] = useState(true);
+  const key = resourceKey(session.userId, "/ai/conversations?limit=30");
+  const cached = readResource<{ items: SavedConversationHeader[]; hasMore: boolean }>(key);
+  const [items, setItems] = useState<SavedConversationHeader[]>(cached?.data.items ?? []),
+    [loading, setLoading] = useState(cached === undefined);
   const [error, setError] = useState<unknown>(),
-    [hasMore, setHasMore] = useState(false),
+    [hasMore, setHasMore] = useState(cached?.data.hasMore ?? false),
     [revision, setRevision] = useState(0);
   const [olderBusy, setOlderBusy] = useState(false);
   useEffect(() => {
+    const hit = readResource<{ items: SavedConversationHeader[]; hasMore: boolean }>(key);
+    const fresh = revision === 0 && resourceIsFresh(hit, historyRevision);
+    if (hit) {
+      setItems(hit.data.items);
+      setHasMore(hit.data.hasMore);
+      setLoading(false);
+      setError(undefined);
+    } else setLoading(true);
+    if (fresh) return;
     const controller = new AbortController();
-    setLoading(true);
     setError(undefined);
     void api
       .request<SavedConversationHeader[]>("/ai/conversations?limit=30", {
         signal: controller.signal,
       })
       .then((value) => {
-        if (!controller.signal.aborted) {
-          setItems(value);
-          setHasMore(value.length === 30);
-        }
+        if (controller.signal.aborted) return;
+        const page = { items: value, hasMore: value.length === 30 };
+        writeResource(key, page, historyRevision);
+        setItems(value);
+        setHasMore(page.hasMore);
       })
       .catch((reason) => {
         if (!controller.signal.aborted) setError(reason);
@@ -130,7 +142,7 @@ export function ConversationHistory({ onSelect }: { onSelect?: () => void }) {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [api, historyRevision, revision]);
+  }, [api, historyRevision, revision, key]);
   async function older() {
     if (olderBusy || !items.length) return;
     setOlderBusy(true);
@@ -139,15 +151,19 @@ export function ConversationHistory({ onSelect }: { onSelect?: () => void }) {
       const page = await api.request<SavedConversationHeader[]>(
         `/ai/conversations?limit=30&before=${encodeURIComponent(items[items.length - 1].conversationId)}`,
       );
-      setItems((previous) => [
-        ...previous,
-        ...page.filter(
-          (value) =>
-            !previous.some(
-              (item) => item.conversationId === value.conversationId,
-            ),
-        ),
-      ]);
+      setItems((previous) => {
+        const next = [
+          ...previous,
+          ...page.filter(
+            (value) =>
+              !previous.some(
+                (item) => item.conversationId === value.conversationId,
+              ),
+          ),
+        ];
+        writeResource(key, { items: next, hasMore: page.length === 30 }, historyRevision);
+        return next;
+      });
       setHasMore(page.length === 30);
     } catch (reason) {
       setError(reason);
@@ -178,7 +194,7 @@ export function ConversationHistory({ onSelect }: { onSelect?: () => void }) {
           Làm mới
         </Button>
       </div>
-      {loading ? <p role="status">Đang tải lịch sử trò chuyện…</p> : null}
+      {loading && !items.length ? <p role="status">Đang tải lịch sử trò chuyện…</p> : null}
       <ErrorNotice
         error={error}
         retry={() => setRevision((value) => value + 1)}

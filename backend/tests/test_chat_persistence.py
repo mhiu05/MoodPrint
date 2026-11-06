@@ -106,6 +106,7 @@ async def test_every_assistant_rebuilds_context_from_postgres_after_runtime_rest
     from app.ai.evidence import source_instructions
     from app.ai.journal import journal_instructions
     from app.ai.prompts import conversation_instructions, instructions
+    from app.ai.provider import OUTPUT_CHANNEL_GUIDANCE
     from app.ai.runtime import AiRuntime
     from tests.test_memory import enable as enable_memory
     from tests.test_memory import seed_proposal
@@ -142,6 +143,7 @@ async def test_every_assistant_rebuilds_context_from_postgres_after_runtime_rest
         instructions(bot_id) + source_instructions(restored_run, bot_id, mood_analysis=False)
         + (journal_instructions(restored_run) if bot_id == "nhip" else "")
         + conversation_instructions(bot_id, expected_intent)
+        + OUTPUT_CHANNEL_GUIDANCE
     )
     history = json.dumps(model.calls[0]["input"])
     assert "First synthetic watercolor input" in history

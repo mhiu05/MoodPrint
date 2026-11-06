@@ -76,7 +76,7 @@ async def reconcile_journal_jobs(database, settings) -> int:
             .join(Consent, and_(Consent.user_id == User.id, Consent.purpose == "AI", Consent.policy_version == "v1"))
             .where(User.account_kind == "registered", adult_eligibility_predicate(), User.status == "active", User.deletion_pending.is_(False),
                    JournalEntry.status == "saved", JournalEntry.local_date >= local_today-89, JournalEntry.local_date <= local_today,
-                   or_(JournalAiSettings.user_id.is_(None), JournalAiSettings.embedding_enabled.is_(True)), ~current_job)
+                   ~current_job)
             .order_by(JournalEntry.id).limit(settings.embedding_job_batch_size))).all()
     count = 0
     for entry_id, uid in candidates:
