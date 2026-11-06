@@ -127,7 +127,9 @@ async def clients(database):
     # Using the injected engine keeps test teardown and application queries on the same event loop.
     await app.state.database.engine.dispose()
     app.state.database.engine = database
-    app.state.database.sessions = async_sessionmaker(database, expire_on_commit=False)
+    app.state.database.sessions = async_sessionmaker(
+        database, expire_on_commit=False, info={"app_profile": app.state.settings.app_profile}
+    )
     actors = [await add_actor(app, index) for index in range(2)]
     app.state.test_clients = [client for client, _ in actors]
     yield app, actors
@@ -151,7 +153,9 @@ async def clients_defaults(database, monkeypatch):
     app = create_app(Settings(_env_file=None, database_url=database.url.render_as_string(hide_password=False)))
     await app.state.database.engine.dispose()
     app.state.database.engine = database
-    app.state.database.sessions = async_sessionmaker(database, expire_on_commit=False)
+    app.state.database.sessions = async_sessionmaker(
+        database, expire_on_commit=False, info={"app_profile": app.state.settings.app_profile}
+    )
     actors = [await add_actor(app, index) for index in range(2)]
     app.state.test_clients = [client for client, _ in actors]
     yield app, actors

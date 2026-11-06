@@ -34,10 +34,11 @@ from app.core.security import (
     transaction,
 )
 from app.infrastructure.database.models import AgeDeclaration, AuthSession, Consent, User, now
-from app.modules.auth.age import AGE_REQUIRED_MESSAGE, adult_eligible, age_band, record_age
+from app.modules.auth.age import AGE_REQUIRED_MESSAGE, age_band, record_age
 from app.modules.auth.provider import SupabaseAuth
 from app.modules.consent.policy import consent_enabled
 from app.modules.feedback.policy import feedback_open
+from app.modules.school.eligibility import is_eligible
 
 router = APIRouter()
 
@@ -46,7 +47,7 @@ async def _session_view(request: Request, db, user, user_id, csrf: str | None = 
     settings = request.app.state.settings
     consents = (await db.scalars(select(Consent).where(Consent.user_id == user.id))).all()
     declaration = await db.get(AgeDeclaration, user.id)
-    eligible = adult_eligible(user, declaration)
+    eligible = await is_eligible(db, user)
     guest = user.account_kind == "guest"
     staff = None
     notices = []

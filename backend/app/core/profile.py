@@ -26,7 +26,7 @@ FORCED_OFF: tuple[str, ...] = (
     "product_tour_enabled",
 )
 
-# Path prefixes after ``/api/v1``. Compared by prefix in the route guard.
+# Path prefixes after ``/api/v1``. The route guard matches the prefix or a child path.
 LEGACY_DENYLIST: tuple[str, ...] = (
     "/activities",
     "/admin",
@@ -52,6 +52,59 @@ LEGACY_DENYLIST: tuple[str, ...] = (
     "/social",
     "/taxonomy",
 )
+
+# Routes the school safety release still serves. A new API route must be added
+# here or to LEGACY_DENYLIST; the classification test fails when one is missing.
+KEPT_PREFIXES: tuple[str, ...] = (
+    "/ai/conversations",
+    "/ai/preferences",
+    "/ai/runs",
+    "/auth",
+    "/bots",
+    "/consents",
+    "/data-deletions",
+    "/exports",
+    "/health",
+    "/public/experience",
+    "/session",
+    "/users/me",
+    "/voice",
+)
+
+API_PREFIX = "/api/v1"
+
+
+def resource_path(path: str) -> str | None:
+    if path == API_PREFIX:
+        return "/"
+    marker = API_PREFIX + "/"
+    if path.startswith(marker):
+        return path[len(API_PREFIX):]
+    return None
+
+
+def _matches(resource: str, prefixes: tuple[str, ...]) -> bool:
+    return any(resource == prefix or resource.startswith(prefix + "/") for prefix in prefixes)
+
+
+def route_disposition(path: str) -> str:
+    """deny, keep, conflict, unknown, or outside for non-API paths."""
+    resource = resource_path(path)
+    if resource is None:
+        return "outside"
+    denied = _matches(resource, LEGACY_DENYLIST)
+    kept = _matches(resource, KEPT_PREFIXES)
+    if denied and kept:
+        return "conflict"
+    if denied:
+        return "deny"
+    if kept:
+        return "keep"
+    return "unknown"
+
+
+def legacy_route_denied(path: str) -> bool:
+    return route_disposition(path) == "deny"
 
 
 class _Profiled(Protocol):

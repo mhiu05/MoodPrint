@@ -26,11 +26,11 @@ T01 và T02 đi cùng commit với ledger này. Chưa push, nên chưa có CI ch
 Đã chạy local, đều exit 0:
 
 - `ruff check` trên các file đã sửa: pass
-- `mypy` trên `app/core/config.py`, `app/core/profile.py`, `app/modules/school`, `app/ai/agents.py`, `app/core/revisions.py`, `app/modules/guests/lifecycle.py`: pass
-- `pytest -q tests/test_school_settings.py tests/test_default_flags.py -k "not app_with_pure and not admin_routes"`: 12 passed, 2 deselected
-- `pytest -q tests/test_school_migration.py tests/test_school_settings.py tests/test_foundation.py tests/test_default_flags.py -k "not app_with_pure and not admin_routes"`: 48 passed, 2 deselected
-- `pytest -q tests/test_guest_cleanup.py::test_inventory_classifies_every_orm_table tests/test_school_migration.py tests/test_school_settings.py`: 10 passed
+- `mypy` trên các module profile, eligibility, security, auth routes, database connection: pass
+- `pytest` profile/migration/foundation/default flags (bỏ 2 test cần Postgres của `test_default_flags`): 48 passed, 2 deselected
+- `pytest` inventory + school settings + migration: 10 passed
+- `pytest tests/test_school_route_guard.py tests/test_school_settings.py`: 7 passed
 - `python scripts/check_docs.py`: PASS (217 markdown, 144 API, 132 settings, 65 tables)
 - `npm run typecheck` sau `contracts:generate`: pass
 
-Chưa chạy trên máy này: full `pytest -q`, `alembic check` trên DB disposable, `npm test`, e2e. CI của SHA sau khi push sẽ chạy các bước đó.
+Chưa chạy vì Docker daemon chưa sẵn trên máy này: `tests/test_school_eligibility.py`, `tests/test_eligibility.py`, `alembic check`. CI sau khi push sẽ chạy chúng.

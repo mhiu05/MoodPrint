@@ -27,7 +27,11 @@ class Database:
                 hide_parameters=True,
                 connect_args={"prepare_threshold": None, "connect_timeout": 5},
             )
-            self.sessions = async_sessionmaker(self.engine, expire_on_commit=False)
+            self.sessions = async_sessionmaker(
+                self.engine,
+                expire_on_commit=False,
+                info={"app_profile": settings.app_profile},
+            )
 
     def occupancy(self) -> tuple[int | None, int | None]:
         engine = self.engine

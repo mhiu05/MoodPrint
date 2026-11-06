@@ -18,6 +18,7 @@ from app.modules.consent.policy import consent_enabled
 from app.modules.guests import policy as guest_policy
 from app.modules.guests.deadlines import final_guest_authorization, guest_deadline
 from app.modules.guests.policy import assert_guest_active
+from app.modules.school.eligibility import SCHOOL_REQUIRED_MESSAGE, is_eligible
 
 
 def digest(value: str) -> str:
@@ -156,10 +157,13 @@ async def verify_actor(
     ):
         raise DomainError(401, "SESSION_EXPIRED", "Phiên đã kết thúc.")
     await verify_session(db, session, user)
-    if eligible and not await is_adult_eligible(db, user):
-        raise DomainError(
-            403, "ELIGIBILITY_REQUIRED", AGE_REQUIRED_MESSAGE
+    if eligible and not await is_eligible(db, user):
+        message = (
+            SCHOOL_REQUIRED_MESSAGE
+            if db.info.get("app_profile") == "school_safety"
+            else AGE_REQUIRED_MESSAGE
         )
+        raise DomainError(403, "ELIGIBILITY_REQUIRED", message)
     if eligible and user.deletion_pending:
         raise DomainError(
             409,
