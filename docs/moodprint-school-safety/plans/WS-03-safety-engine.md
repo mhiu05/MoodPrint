@@ -20,7 +20,7 @@ Toàn bộ.
 
 ## 5. Phạm vi
 
-Trong: engine, template, sự kiện, nhánh đỏ, classifier, postcheck, rule phía client, eval. Ngoài: áp cho bot cũ (OD-13).
+Trong: engine, template, sự kiện, nhánh đỏ, classifier, postcheck, rule phía client, eval. Ngoài: áp cho hệ thống cũ, theo OD-13. Đây là trọng tâm của sản phẩm.
 
 ## 6. File và symbol bị ảnh hưởng
 
@@ -82,11 +82,11 @@ Không có route mới. `final` của SSE mang `EmergencyCard` trong `cards`.
 | WS-03-T05 | P0 | T04 | `templates.py`, `vi-v1.json`, `EmergencyCard` vào `Card`; `validCards`, TS | Mọi cặp nhóm × tuổi có template; số chỉ thuộc allowlist; `troly` output không tạo được card này | `pytest -q tests/test_safety_templates.py`; `npm test` | Pass |
 | WS-03-T06 | P0 | T04 | Migration 0031, `models.py`, `recorder.py`, retention 90 ngày, `docs/supabase/schema.md` | Hàng không có nội dung; test quét mọi cột | `pytest -q tests/test_safety_events.py` | Pass: văn bản nhập không xuất hiện trong bảng và log |
 | WS-03-T07 | P0 | T05, T06 | `assistant/admission.py::screen_turn`, `emergency_accept`; `send` gọi ngay sau kiểm tra `previous`, trước `available_for`. `create_conversation` bỏ cổng `available_for` cho `troly`. Hỗ trợ cả hội thoại lưu và tạm | Đỏ: 202, run `completed`, tin người dùng và template được lưu, SSE đủ `final` `completed`, không `ai_usage`, không gọi provider. Hoạt động khi `AI_ENABLED=false`, khi hết ngân sách, khi hết lượt ngày | `pytest -q tests/test_safety_red_path.py` | Pass: provider giả bị gọi 0 lần ở mọi tổ hợp lỗi. Replay idempotent |
-| WS-03-T08 | P0 | T07 | `classifier.py` qua `provider.run_once` trên `settings.openai_model`, cắt input 8.000 token ước lượng, `reasoning.effort` thấp, `max_tokens=400`; bọc thành `input_guardrail(run_in_parallel=False)` để WS-04 gắn vào agent; `BOUNDED_CALL_RESERVATION_NANO`, tham số `reservation_nano` trong `reserve_accounting` | Timeout → vàng trong ≤ 3 giây; lỗi → vàng; không gọi khi `skip_model`; dùng `settings.openai_model` | `pytest -q tests/test_safety_classifier.py tests/test_accounting*.py` | Pass: `budget_liability` không fail closed |
+| WS-03-T08 | P0 | T07 | `classifier.py` qua `provider.run_once`, cắt input 8.000 token ước lượng, `reasoning.effort` thấp, `max_tokens=400`; bọc thành `input_guardrail(run_in_parallel=False)` để WS-04 gắn vào agent; khách dùng reservation riêng qua `reserve_guest_operation`; `BOUNDED_CALL_RESERVATION_NANO`, tham số `reservation_nano` trong `reserve_accounting` | Timeout → vàng trong ≤ 3 giây; lỗi → vàng; không gọi khi `skip_model`; dùng `settings.openai_model` | `pytest -q tests/test_safety_classifier.py tests/test_accounting*.py` | Pass: `budget_liability` không fail closed |
 | WS-03-T09 | P0 | T05 | `postcheck.py` | Mỗi dòng bảng postcheck có ≥ 5 mẫu xấu bị chặn, ≥ 3 mẫu lành không bị chặn | `pytest -q tests/test_safety_postcheck.py` | Pass |
 | WS-03-T10 | P1 | T02 | `scripts/export_safety_rules.py`, `screen.ts`, `golden-vectors.json`, bước drift trong `verify.yml` | Python và TS cho cùng kết quả trên golden vectors | `python ../scripts/export_safety_rules.py`; `npm test` | Pass: drift = 0 |
 | WS-03-T11 | P0 | T02 | `evals/safety/dataset.jsonl` ≥ 300 mẫu, runner `--offline` | Báo cáo theo nhãn, nhóm tuổi, không nội dung; test CI giữ recall tầng 0–2 không giảm so với baseline ghi trong repo | `python -m evals.safety --offline` | Pass: chạy được, có số |
-| WS-03-T12 | P0 | T08, T11, T14 | `--live --confirm-live --max-usd 0.20`, chạy `dev` rồi `holdout` | Đạt ngưỡng OD-08 trong trần | Lệnh live | Pass: đạt. Fail: sửa rule trên `dev`, không chạm `holdout`; hết trần thì báo owner |
+| WS-03-T12 | P0 | T08, T11, T14 | `--live --confirm-live --max-usd 0.20`, chạy `dev` rồi `holdout`, trên toàn bộ 7 tầng | Đạt ngưỡng OD-08 trong trần | Lệnh live | Pass: đạt. Fail: sửa rule trên `dev`, không chạm `holdout`; hết trần thì báo owner |
 | WS-03-T13 | P0 | T07 | Test log: bắt mọi record logging trong nhánh đỏ và lượt thường | Không record nào chứa nội dung | `pytest -q tests/test_safety_logging.py` | Pass |
 | WS-03-T14 | P0 | Không | `evals/budget.py`: trần tổng 2,80 USD, ghi `evidence/live-eval-spend.jsonl`, từ chối khi dự kiến vượt; mọi runner live gọi hàm này | Vượt trần thì không gọi provider; tổng cộng dồn qua các lần chạy | `pytest -q tests/test_eval_budget.py` | Pass |
 

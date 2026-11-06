@@ -27,7 +27,7 @@ Toàn bộ đi hosted **một artifact**: `deploy/supabase/reviewed-sql/0035-rev
 | `age_group` | varchar(8) | CHECK in (`'11-14'`, `'15-17'`) |
 | `terms_version` | varchar(32) NULL | |
 | `terms_accepted_at` | timestamptz NULL | Cùng NULL hoặc cùng có với `terms_version` |
-| `demo_persona` | varchar(32) NULL | Khóa persona hư cấu; NULL với guest |
+| `sample_persona` | varchar(32) NULL | Khóa persona hư cấu; NULL với guest |
 | `neutral_mode` | boolean | default false |
 | `version` | int | default 1, ≥ 1 |
 | `updated_at` | timestamptz | |
@@ -75,7 +75,7 @@ Retention 90 ngày trong `jobs/retention.py`.
 | `version` | int | ≥ 1 |
 | `updated_at` | timestamptz | |
 
-Hội thoại tạm (guest) giữ state này trong RAM trên `Conversation`.
+Hội thoại tạm của phiên luyện nói giữ state này trong RAM trên `Conversation`. Hội thoại của khách là hội thoại lưu, hết hạn theo vòng đời 2 giờ.
 
 ### `assistant_proposals` (0032)
 
@@ -162,17 +162,16 @@ Append-only. UNIQUE (`event_id`, `revision`). Cột `narrative text` ≤ 4000 k�
 | `case_id` | uuid | FK CASCADE |
 | `event_id` | uuid NULL | FK `incident_events` SET NULL |
 | `object_path` | varchar(512) | UNIQUE |
-| `mime_type` | varchar(32) | `image/jpeg`, `image/png`, `image/webp` |
-| `size_bytes` | bigint | > 0, ≤ 10 MiB |
+| `mime_type` | varchar(32) | Ảnh: `image/jpeg`, `image/png`, `image/webp`, `image/gif`. Video: `video/mp4`, `video/webm`, `video/quicktime` |
+| `size_bytes` | bigint | > 0; ảnh ≤ 10 MiB, video ≤ 50 MiB |
 | `label` | varchar(120) NULL | |
 | `source_kind` | varchar(16) | `self_screenshot`, `self_photo`, `friend_provided`, `other` |
 | `source_note` | varchar(200) NULL | |
 | `status` | varchar(8) | `pending`, `ready` |
 | `sha256` | char(64) NULL | Server tính |
 | `uploaded_at` | timestamptz NULL | `clock_timestamp()` lúc xác nhận |
-| `self_check_at` | timestamptz | Lúc người dùng xác nhận tự kiểm tra |
 
-Trigger `case_evidence_guard`: khi `OLD.sha256 IS NOT NULL`, chặn đổi `sha256`, `object_path`, `size_bytes`, `mime_type`, `uploaded_at`, `self_check_at`.
+Trigger `case_evidence_guard`: khi `OLD.sha256 IS NOT NULL`, chặn đổi `sha256`, `object_path`, `size_bytes`, `mime_type`, `uploaded_at`.
 
 Bằng chứng dùng chung bucket `journal-media` với tiền tố `cases/{user_id}/{case_id}/{evidence_id}.{ext}`, nên không cần thao tác hạ tầng mới. Tách bucket ở giai đoạn thí điểm.
 
@@ -226,7 +225,7 @@ Mẫu theo `ai_search_usage`. `user_id` FK **SET NULL** (nghĩa vụ chi phí s�
 | `speech_usage` | Không | SET NULL | 90 ngày |
 | `kb_*` | Không | Không liên quan | Theo git |
 
-Xóa case là hành động của người dùng, cần xác nhận. "Bất biến" nghĩa là không sửa, không có nghĩa là không xóa được.
+Dữ liệu của khách tự xóa theo vòng đời 2 giờ: `guests/lifecycle.py` phải biết mọi bảng trên. Xóa case là hành động của người dùng, cần xác nhận. "Bất biến" nghĩa là không sửa, không có nghĩa là không xóa được.
 
 ## 9. Quy trình
 

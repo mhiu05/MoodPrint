@@ -1,71 +1,110 @@
 # 12 — Quyết định của owner
 
-Cập nhật 06/11/2026 sau phản hồi của owner. Mỗi mục có trạng thái và mặc định. Grok đi theo mặc định khi chưa có trả lời, trừ mục ghi **Chặn**.
+Cập nhật sau trả lời của owner. Câu trả lời giữ nguyên ý, dưới mỗi câu là cách áp dụng vào plan. Mục **Lưu ý** ghi chỗ plan giữ lại hoặc điều chỉnh, kèm lý do, để owner quyết định lại nếu muốn.
 
-| ID | Quyết định | Trạng thái | Kết quả hoặc mặc định |
+| ID | Quyết định | Trạng thái | Kết quả |
 | --- | --- | --- | --- |
-| OD-01 | Chuyển staging hiện tại sang demo | **Đã chốt** | Giữ tên staging, bản chất là demo, chạy model thật |
-| OD-02 | Ai duyệt template và thẻ KB | **Mở, chặn G5** | Owner duyệt một lượt; Grok chuẩn bị bảng duyệt, không tự duyệt |
-| OD-03 | Ranh giới chặn upload nội dung tình dục | Mặc định | Chặn khi tự khai, hoặc phiên/case có nhãn |
-| OD-04 | Nhà cung cấp TTS, STT | **Đã chốt** | Dùng `OPENAI_API_KEY` hiện có cho cả hai |
-| OD-05 | Chế độ khách trên staging | Mặc định | Bật nếu SSM đủ cấu hình guest; nếu không, chỉ Tìm hỗ trợ |
-| OD-06 | Hướng hình ảnh | **Đã chốt quy trình** | Làm theo impeccable; hướng A là brief khởi đầu |
-| OD-07 | Snapshot nguồn để ở đâu | Mặc định | `.tmp/`, không sửa `.gitignore` |
+| OD-01 | Bản chất của staging | **Đã chốt** | Bản release thật, không có chế độ demo; ví dụ mẫu để khách đọc và thử |
+| OD-02 | Duyệt nội dung | **Đã chốt, chặn G5** | `reviewed_by: mhiu05`; chỉ Facebook, YouTube, TikTok |
+| OD-03 | Upload ảnh, video | **Đã chốt, có rủi ro** | Nhận mọi ảnh, video, không phân loại nội dung |
+| OD-04 | TTS, STT | **Đã chốt** | `gpt-realtime-2.1-mini`, `gpt-transcribe`, không cần nghe thử |
+| OD-05 | Chế độ khách | **Đã chốt, có điều chỉnh** | Vào thẳng, đủ tính năng, dữ liệu tự xóa sau 2 giờ |
+| OD-06 | Hướng hình ảnh | Đã chốt quy trình | Làm theo impeccable; hướng A là brief khởi đầu |
+| OD-07 | Snapshot nguồn | Mặc định | `.tmp/`, không sửa `.gitignore` |
 | OD-08 | Ngưỡng eval an toàn | Mặc định | Dùng ngưỡng đề xuất; không đạt thì báo owner |
-| OD-09 | Bật branch protection | Mặc định | Giữ nguyên, Grok tuân thủ quy tắc |
+| OD-09 | Quy tắc merge | **Đã chốt** | CI xanh ở nhánh con, PR, CI xanh trên `main`, release thành công |
 | OD-10 | Tóm tắt nháp chạy qua agent | Mặc định | Đồng ý |
 | OD-11 | Trần chi phí eval live | **Đã chốt** | Dưới 3 USD tổng; trần kỹ thuật 2,80 USD |
-| OD-12 | Bàn giao credential | **Đã chốt phần lớn** | Supabase MCP, AWS MCP; xem bên dưới |
-| OD-13 | Áp engine an toàn cho chat production | Mặc định | Không đổi; làm sau MVP |
-| OD-14 | Model của agent | Mặc định, đổi được qua env | `gpt-6.1-terra` cho agent, `gpt-6-luna` cho lượt phụ |
+| OD-12 | Credential | **Đã chốt phần lớn** | Supabase MCP, AWS MCP |
+| OD-13 | Hệ thống cũ | **Đã chốt** | Đóng băng, không vá, không tương thích ngược |
+| OD-14 | Model | **Đã chốt** | Chỉ `gpt-6-luna` cho agent, classifier, verifier |
+| OD-15 | Ai được dùng bản release | **Mở, cần owner trả lời** | Mặc định: khách đánh giá, chưa hướng tới học sinh thật |
 
-## OD-01 — Staging là môi trường demo
+## OD-01 — Staging là bản release thật
 
-Owner chốt: giữ tên staging, bản chất là demo, vẫn chạy model thật.
+**Trả lời**: Chốt lại staging và bản chất cũng giống staging, loại bỏ chế độ demo, luôn là bản release thật. Phần kịch bản demo coi như một số ví dụ chi tiết cụ thể để khách hàng đọc qua, thử nghiệm.
 
-Hệ quả: tài khoản hiện có không vào được app khi profile demo bật, dữ liệu của họ không bị xóa. Dữ liệu demo nằm chung database. Hạng mục tách database thuộc cổng trước thí điểm thật ở [04](04-feature-gap-analysis.md).
+**Áp dụng**:
 
-## OD-02 — Ai duyệt template và thẻ KB
+- Bỏ khái niệm demo trong sản phẩm, UI và tài liệu vận hành.
+- `demo/` trở thành **tình huống mẫu**: khách đọc được trên trang `/vi-du` và bấm "Thử tình huống này" ([09 §15](09-ux-and-user-flows.md#15-tình-huống-mẫu)).
+- Năm persona hư cấu thành **tài khoản mẫu** có sẵn dữ liệu. Dùng cho smoke và minh họa.
+- Staging chạy model thật.
 
-Grok không được tự điền `reviewed_by`. Vì đây là demo, đề xuất **owner tự duyệt** và ghi rõ giới hạn trong tài liệu dự thi. Duyệt bởi chuyên gia là việc của giai đoạn thí điểm.
+**Lưu ý**: vẫn giữ một công tắc kỹ thuật `APP_PROFILE=school_safety`, mặc định trong code là `default`. Đây không phải chế độ demo. Nó là cách rẻ nhất để đóng băng hệ thống cũ theo OD-13: hơn 2.000 test cũ tiếp tục xanh mà không phải sửa hay xóa. Đổi mặc định sẽ làm vỡ các test đó và trái quy tắc không xóa test.
 
-Để không chặn phát triển:
+**Đăng ký tài khoản vẫn đóng.** Khách đã dùng được đầy đủ nên chưa cần đăng ký, lại tránh thu email của trẻ vị thành niên. Muốn mở thì quyết định ở OD-15.
 
-- WS-03, WS-05 phát triển và eval được với nội dung `draft`, cờ `--include-draft` chỉ dùng trong eval local.
-- Grok chuẩn bị `evidence/content-review.md`: mỗi template và thẻ một dòng, kèm nguồn.
-- **Chặn G5**: image chỉ đóng gói nội dung đã duyệt. Cần ít nhất 40 thẻ approved và toàn bộ template khẩn cấp.
+## OD-02 — Duyệt nội dung
 
-Việc thu thập `manual_capture` trên TikTok, Zalo, Facebook, Messenger, Instagram, YouTube, Discord cần người thao tác trên app thật. Nếu nhóm không kịp đủ 7 nền tảng, tối thiểu Zalo, TikTok, Facebook phục vụ demo.
+**Trả lời**: Hiện tại chỉ cần xét Facebook, YouTube, TikTok. Reviewed by: mhiu05. mhiu05 sẽ trực tiếp chụp màn hình app thật; việc research tài liệu để lưu thẻ KB dạng text thì Claude gợi ý chi tiết một số link nguồn uy tín.
 
-## OD-03 — Ranh giới chặn upload
+**Áp dụng**:
 
-Spec cấm upload ảnh hoặc video nội dung tình dục liên quan trẻ em. Không có công cụ tự động nhận diện, không được gửi ảnh như vậy tới model.
+- Link nguồn đã tra ở [kb-source-links](kb-source-links.md).
+- Thẻ `report` giảm còn 3 nền tảng, tổng khoảng 47 thẻ, vẫn đạt mức 40–60.
+- Grok soạn nháp và lập `evidence/content-review.md`. mhiu05 đánh dấu từng mục. Grok chỉ điền `reviewed_by: mhiu05` cho mục đã được đánh dấu, không tự duyệt.
+- WS-03, WS-05 vẫn phát triển và eval được với nội dung `draft`, cờ `--include-draft` chỉ dùng trong eval local.
+- **Chặn G5**: image chỉ đóng gói nội dung đã duyệt, cần ít nhất 40 thẻ và toàn bộ template khẩn cấp.
+- Ảnh chụp đặt ở `.tmp/kb/manual/<platform>/`, **không commit**, vì repo công khai và ảnh có thể lộ tài khoản. Grok chuyển thành các bước bằng chữ trong `kb/sources/manual/`.
 
-| Phương án | Hành vi |
-| --- | --- |
-| A | Chặn khi tự khai có nội dung hình ảnh tình dục, hoặc phiên/case có nhãn `sexual_abuse_exploitation`. Vẫn lưu được tin nhắn quấy rối bằng chữ ở case khác |
-| B | Chặn mọi upload trong case có hành vi `sexual_harassment` |
+**Lưu ý**: bỏ Zalo tạo một khoảng trống, vì persona `kb-a` và thực tế học sinh Việt Nam dùng Zalo nhiều. Khi được hỏi về Zalo, Trợ lý trả lời "mình chưa chắc" và hướng tới người lớn thay vì đoán. KB-A đổi sang Facebook. Thêm Zalo sau chỉ cần thêm thẻ.
 
-**Mặc định**: A. Tài liệu dự thi phải nói đây là biện pháp giảm rủi ro, không phải đảm bảo.
+## OD-03 — Upload ảnh, video
 
-## OD-04 — TTS và STT dùng OpenAI
+**Trả lời**: Tạm thời bỏ qua phần phân biệt nội dung ảnh, video có liên quan tới tình dục hay không. Chấp nhận mọi input ảnh, video.
 
-Owner chốt dùng key OpenAI hiện có, không thêm nhà cung cấp. Ràng buộc kỹ thuật và cách xử lý ở [08](08-speaking-practice-design.md):
+**Áp dụng**:
 
-- `gpt-4o-mini-tts` shutdown 06/01/2027 nên chỉ là phương án phụ.
-- Đường chính là `gpt-realtime-2.1-mini`. Đây là model sinh giọng nên backend so transcript với văn bản đã duyệt trước khi phát.
+- Bỏ bước tự kiểm tra, bỏ `EVIDENCE_BLOCKED`.
+- Hồ sơ nhận ảnh và video theo danh sách MIME của bucket hiện có: ảnh ≤ 10 MiB, video ≤ 50 MiB. Tính SHA-256 cho cả hai.
+- PDF nhúng ảnh; video chỉ ghi tên, thời điểm, mã SHA-256.
 
-Cần owner nghe thử giọng tiếng Việt một lần trước G3.
+**Giữ lại, không làm tăng ma sát**:
+
+- Ảnh, video **không bao giờ** gửi tới model. Plan chưa từng cần việc này.
+- Bucket private, chỉ chủ sở hữu đọc được qua signed URL 60 giây.
+- Tầng rule của Safety Engine với lời kể bằng chữ giữ nguyên: template, không gọi model.
+- Một dòng nhắc cố định ở màn tải lên, không chặn gì: "Nếu nội dung liên quan tới hình ảnh tình dục của trẻ em, đừng lưu hay gửi đi. Hãy gọi 111."
+
+**Lưu ý rủi ro**: quyết định này đảo yêu cầu ở §4.3 của prompt gốc. Ở bản release thật, kết hợp với khách vào thẳng (OD-05), bất kỳ ai cũng có thể tải file lên mà không ai kiểm tra. Lưu trữ nội dung xâm hại tình dục trẻ em có thể vi phạm pháp luật và điều khoản của nhà cung cấp, kể cả khi không cố ý. Rủi ro hiện được giới hạn vì đăng ký đóng, nên file của người ngoài chỉ đến từ khách và bị xóa theo vòng đời 2 giờ. Phải xem lại quyết định này trước khi hướng tới học sinh thật hoặc mở đăng ký (OD-15).
+
+## OD-04 — TTS và STT
+
+**Trả lời**: Dùng model `gpt-realtime-2.1-mini` là chính luôn, không cần nghe thử giọng Việt một lần trước G3.
+
+**Áp dụng**: bỏ phương án `gpt-4o-mini-tts`, bỏ bước owner nghe thử. Giọng mặc định `marin`, TO_VERIFY với Realtime.
+
+**Giữ lại**: kiểm tra tự động `verbatim_ok` trước khi phát. Đây không phải nghe thử: Realtime là model sinh giọng, có thể nói khác văn bản đã qua kiểm duyệt an toàn. Chất lượng giọng tiếng Việt sẽ chỉ được biết ở bước smoke; lỗi thì tắt TTS bằng `TTS_PROVIDER=none`, chữ vẫn chạy.
 
 ## OD-05 — Chế độ khách
 
-Guest cần CAPTCHA, `GUEST_ABUSE_HMAC_KEY`, `GUEST_DAILY_BUDGET_USD`, `GUEST_PRICING_JSON`. Grok kiểm tra **tên khóa** trong SSM qua AWS MCP, không in giá trị. Guest ép hội thoại tạm; metadata vẫn lưu tới khi cleanup, phải nói thật như [01 §7](01-codebase-audit.md#7-guest-thật-sự-lưu-gì-o10).
+**Trả lời**: Guest không cần xác minh gì cả, cứ thế vào trải nghiệm, chỉ khác là dữ liệu tự xóa sau 2 giờ. Không ràng buộc cho guest, để guest thoải mái sử dụng, ưu tiên trải nghiệm thay vì hạn chế về quyền dữ liệu.
 
-**Mặc định**: đủ cấu hình thì bật; thiếu thì chỉ có Tìm hỗ trợ công khai và tài khoản demo.
+**Áp dụng**:
+
+- Một chạm "Dùng thử ngay": không hỏi tuổi, không có màn điều khoản chặn.
+- Khách có đủ Trợ lý, Hồ sơ, Luyện nói, xuất PDF.
+- Nhóm tuổi mặc định `11-14` (ngôn ngữ dễ nhất), đổi được ở Cài đặt.
+- Một thông báo không chặn: đây là AI, dữ liệu tự xóa sau 2 giờ.
+- Nâng hạn mức tới mức người dùng thật không chạm tới trong 2 giờ: 200 lượt chat, 20 lượt/phút, 60 bản ghi, 30 phút thu âm, 6 bản ghi/phút.
+
+**Giữ lại hai lớp người dùng không nhìn thấy**, vì đây là tiền thật và không có tài khoản:
+
+| Lớp | Vì sao | Trải nghiệm |
+| --- | --- | --- |
+| Cloudflare Turnstile chạy nền | Supabase cần token CAPTCHA khi tạo phiên ẩn danh. Không có nó, bot gọi tốn tiền API không giới hạn | Không có ô bấm nếu widget đặt Invisible |
+| Trần `GUEST_DAILY_BUDGET_USD` tối đa 5 USD, code đang ép | Chặn chi phí mất kiểm soát | Hết trần: Trợ lý báo bận, khẩn cấp vẫn chạy |
+
+**Việc của mhiu05**: đổi widget Turnstile sang Invisible trên Cloudflare. Nếu không, thỉnh thoảng người dùng thấy một ô kiểm tra.
+
+**Phải sửa trong code** (đã thêm task): dưới cấu hình có trần, `kind_available` đang đóng giọng nói của guest; mỗi lượt guest giữ 1,53 USD nên chỉ khoảng 3 lượt chạy đồng thời. Trần input cứng hạ mức giữ còn 0,10 USD; `guest_ai_global_concurrency` mặc định 10 và `guest_voice_per_minute` mặc định 2 cũng được nâng lên 30 và 6.
+
+**Nói thật về "tự xóa sau 2 giờ"**: hàng trong database bị xóa và quyền truy cập file bị thu hồi khi hết giờ. Object trong Storage bị xóa theo hàng đợi, trễ thêm tối đa 2 giờ 5 phút (`DELETE_DELAY`, vì upload token sống 2 giờ), tức khoảng 4 giờ kể từ lúc vào. Nội dung đã gửi OpenAI theo chính sách của họ (`store=False`, chưa phải zero data retention). Copy trong app không được hứa quá mức này.
 
 ## OD-06 — Hướng hình ảnh
 
-Owner yêu cầu tham khảo impeccable. Quy trình ở [09 §1](09-ux-and-user-flows.md#1-hướng-hình-ảnh-và-quy-trình-impeccable). Brief khởi đầu là hướng A "Góc yên". Owner xem ảnh chụp ở G4.
+Quy trình ở [09 §1](09-ux-and-user-flows.md#1-hướng-hình-ảnh-và-quy-trình-impeccable). Brief khởi đầu là hướng A "Góc yên". Owner xem ảnh chụp ở G4.
 
 ## OD-07 — Snapshot nguồn
 
@@ -75,44 +114,66 @@ Owner yêu cầu tham khảo impeccable. Quy trình ở [09 §1](09-ux-and-user-
 
 **Mặc định**: áp ngưỡng ở [10](10-evaluation-and-quality-gates.md). Grok chạy baseline, chỉnh rule trên `dev`. Nếu `holdout` không đạt sau khi đã dùng hết phần ngân sách cho hạng mục này, dừng và báo owner kèm số thật.
 
-## OD-09 — Branch protection
+## OD-09 — Quy tắc merge
 
-`main` không có protection. Giới hạn của Grok dựa vào kỷ luật. Nên bật yêu cầu PR và check `verify`. **Mặc định**: không đổi.
+**Trả lời**: CI pass ở nhánh con, rồi PR merge CI pass ở nhánh `main`, release thành công là được.
+
+**Áp dụng**: đúng quy trình trong [grok-handoff/README](grok-handoff/README.md). Không bật branch protection. Grok vẫn không push thẳng vào `main`.
 
 ## OD-10 — Tóm tắt nháp chạy qua agent
 
-Prompt chỉ cho phép bốn loại lượt gọi không phải agent. Tóm tắt case và tóm tắt phiên luyện nói là lượt của chính agent `troly`, không tool ghi, đi qua postcheck, nên không phát sinh loại lượt mới. **Mặc định**: đồng ý.
+Tóm tắt case và tóm tắt phiên luyện nói là lượt của chính agent `troly`, không tool ghi, đi qua postcheck, nên không phát sinh loại lượt mới. **Mặc định**: đồng ý.
 
 ## OD-11 — Trần chi phí eval live
 
-Owner chốt: **dưới 3 USD**. Áp dụng cho mọi lần chạy eval tốn tiền, cộng dồn qua các WS. Phân bổ ở [10 §Ngân sách](10-evaluation-and-quality-gates.md#ngân-sách-eval-live). Trần kỹ thuật 2,80 USD do `evals/budget.py` cưỡng chế.
+Owner chốt: **dưới 3 USD**, cộng dồn qua các WS. Phân bổ ở [10](10-evaluation-and-quality-gates.md#ngân-sách-eval-live). Trần kỹ thuật 2,80 USD do `evals/budget.py` cưỡng chế. Dùng Luna làm ước tính giảm còn khoảng 0,60 USD, nên chạy live được nhiều kịch bản hơn.
 
-Smoke trên staging và diễn tập demo là vận hành, không phải eval. Chúng nằm trong `AI_DAILY_BUDGET_USD`, được ghi chi phí riêng ở release note.
+Smoke trên staging là vận hành, không phải eval. Nó nằm trong `AI_DAILY_BUDGET_USD`, ghi chi phí riêng ở release note.
 
 ## OD-12 — Credential
 
 | Việc | Đường đi | Trạng thái |
 | --- | --- | --- |
-| SQL hosted | Supabase MCP. Đã kiểm tra: chạy bằng role `postgres`, là chủ các bảng `moodprint`, có quyền CREATE | Sẵn sàng |
-| SSM, EC2, log | AWS MCP theo owner xác nhận | **Chưa kiểm chứng trong phiên audit**: `aws-mcp` timeout, `aws sts` trên máy audit trả exit 253 |
-| Auth Admin cho seed | Khóa server trong SSM, đọc vào RAM, không in | Cần kiểm tra `JOURNAL_STORAGE_KEY` có phải khóa server đủ quyền Auth Admin không |
+| SQL hosted | Supabase MCP. Đã kiểm tra: role `postgres`, chủ các bảng `moodprint`, có quyền CREATE | Sẵn sàng |
+| SSM, EC2, log | AWS MCP theo owner xác nhận | **Chưa kiểm chứng**: `aws-mcp` lỗi kết nối ở cả hai phiên, `aws sts` trên máy audit trả exit 253 |
+| Auth Admin cho seed | Khóa server trong SSM, đọc vào RAM, không in | Cần kiểm tra `JOURNAL_STORAGE_KEY` có đủ quyền Auth Admin không |
 | OpenAI, Voyage | Đã có trong SSM theo tài liệu release 05/11/2026 | Grok kiểm tra tên khóa |
 
 Region của project xác nhận tại **AWS Settings > View all projects > Overview > Additional Info > Region**. Nếu không xác nhận được, kiểm tra `~/.aws/config`. Code và `deployment.conf.example` ghi `ap-southeast-2`.
 
 Nếu MCP không chạy được SQL nguyên văn, hoặc AWS MCP không truy cập được SSM: dừng và báo owner, không tìm đường vòng.
 
-## OD-13 — Engine an toàn cho chat production
+## OD-13 — Hệ thống cũ
 
-Lỗ hổng ở [01 §4](01-codebase-audit.md#4-lỗ-hổng-an-toàn-ưu-tiên-số-1-o4) vẫn còn trong profile `default`. Nên mở workstream riêng sau MVP. **Mặc định**: không đổi.
+**Trả lời**: Ưu tiên tuyệt đối hệ thống mới. Đóng băng, cô lập hoàn toàn chat cũ, không tốn tài nguyên vá hay tương thích ngược.
 
-## OD-14 — Model của agent
+1. Phạm vi an toàn: Safety Engine mới là trọng tâm duy nhất. Không đem engine mới vá cho chat cũ, không duy trì song song luồng chat cũ trong đợt này.
+2. Kiến trúc và giao diện: được bỏ qua hoặc ẩn hoàn toàn tính năng cũ (bot cũ, nhóm chat, proactive, social...). Staging trỏ 100% vào giao diện mới và `troly`.
+3. Mục tiêu: tập trung toàn bộ thời gian, công sức và ngân sách eval để hoàn thiện 7 tầng an toàn, bộ thẻ KB và các luồng nghiệp vụ.
 
-Owner yêu cầu độ thông minh cao. `gpt-6-luna` là model tối ưu cho tác vụ khối lượng lớn. `gpt-6.1-terra` được mô tả là nhanh, viết rõ và tự nhiên, giá cao hơn 10 lần ở input và output.
+**Áp dụng**: code cũ giữ nguyên, ẩn hoàn toàn trên staging qua `APP_PROFILE=school_safety`. Không thêm test, không sửa lỗi, không viết tài liệu cho nó. Ràng buộc còn lại duy nhất: test cũ phải tiếp tục xanh, vì CI là điều kiện release theo OD-09.
 
-| Vai trò | Model | Lý do |
+**Lưu ý**: WS-01-T01 sửa một lỗi nhỏ ở `GroupChat.tsx`, là code cũ. Vẫn phải làm vì nó đang làm CI đỏ và chặn mọi release. Đây là ngoại lệ duy nhất.
+
+## OD-14 — Model
+
+**Trả lời**: Chỉ sử dụng model `gpt-6-luna`, không sử dụng model khác.
+
+**Áp dụng**: agent, classifier, verifier đều dùng `gpt-6-luna`. Bỏ `ASSISTANT_MODEL`, bỏ so sánh model, `CAPPED_RATES` không đổi. Chi phí giảm còn khoảng 13 USD/tháng cho 100 người dùng.
+
+**Phạm vi**: câu này được hiểu là model ngôn ngữ. `gpt-transcribe`, `gpt-realtime-2.1-mini` (OD-04) và Voyage vẫn dùng, vì Luna không xử lý âm thanh hay embedding.
+
+**Lưu ý**: độ thông minh sẽ dựa vào ngữ cảnh, playbook viết tay và `reasoning.effort`. Nếu rubric không đạt, nâng `reasoning.effort` từ `medium` lên `high` trước. Đổi model phải hỏi owner.
+
+## OD-15 — Ai được dùng bản release này
+
+**Cần owner trả lời.** OD-01 chuyển sản phẩm từ demo hư cấu sang bản release thật. Nhiều việc từng được hoãn vì lý do "chỉ dùng persona hư cấu". Phải làm rõ "khách hàng" là ai.
+
+| Phương án | Ý nghĩa | Hệ quả |
 | --- | --- | --- |
-| Agent `troly` | `gpt-6.1-terra`, `reasoning.effort=medium` | Chất lượng hội thoại tiếng Việt, gọi tool |
-| Classifier, verifier | `gpt-6-luna` | Cấu trúc đơn giản, rẻ, nhanh |
+| A. Khách đánh giá | Ban giám khảo, nhà trường, phụ huynh, giáo viên xem và thử bằng tình huống mẫu | Release được theo plan hiện tại |
+| B. Học sinh thật dùng | Trẻ 11–17 nhập chuyện thật của mình | Phải qua toàn bộ cổng ở [04](04-feature-gap-analysis.md#cổng-bắt-buộc-trước-khi-mở-cho-học-sinh-thật) trước |
 
-`ASSISTANT_MODEL` đổi qua env sang `gpt-6-luna` hoặc `gpt-6.1-sol` mà không sửa code. Eval so sánh Luna và Terra trên cùng kịch bản trong trần chi phí. Chọn cuối theo kết quả, không theo tên model.
+Điểm bắt buộc nếu chọn B, không thể bỏ qua bằng quyết định sản phẩm: [hướng dẫn Under-18 của OpenAI](https://developers.openai.com/api/docs/guides/safety-checks/under-18-api-guidance) yêu cầu bật zero data retention trước khi xử lý dữ liệu cá nhân của trẻ dưới 13 tuổi, và OpenAI có quyền đình chỉ API nếu vi phạm. Nhóm 11-14 có trẻ dưới 13.
+
+**Mặc định**: A. Trang chủ và thông báo khách ghi: đây là bản trải nghiệm, hãy dùng tình huống mẫu, đừng nhập thông tin thật. Thông báo không chặn. Grok không quảng bá sản phẩm tới học sinh.

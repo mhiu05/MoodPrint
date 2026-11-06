@@ -70,12 +70,13 @@ Merge `main` vào `mhiu05/feat-refactor` sau mỗi WS. `main` có thể đổi (
 
 | Việc | Ai | Cần trước |
 | --- | --- | --- |
-| Duyệt template khẩn cấp, thẻ KB | Owner | G5 |
-| `manual_capture` hướng dẫn nền tảng trên app thật | Thành viên nhóm | G5 |
-| Nghe thử giọng đọc | Owner | G3 |
+| Duyệt template khẩn cấp, thẻ KB | mhiu05 | G5 |
+| Chụp màn hình Facebook, YouTube, TikTok trên app thật | mhiu05 | G5 |
+| Đổi widget Turnstile sang Invisible | mhiu05 | G5 |
+| Trả lời OD-15 | mhiu05 | Trước khi giới thiệu tới học sinh |
 | Xem ảnh giao diện, review copy | Owner | G4 |
 | Đăng nhập AWS nếu phiên hết hạn | Owner | G5 |
-| Diễn tập trình diễn | Nhóm | Sau G5 |
+| Diễn tập trình bày | Nhóm | Sau G5 |
 
 ## 6. Rollback theo giai đoạn
 

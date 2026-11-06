@@ -67,7 +67,7 @@ sequenceDiagram
 | Publish một giao dịch | `drive` | Message, run, usage commit cùng nhau. Template đỏ dùng cùng cách. |
 | Sự kiện SSE của run lưu | `persistent_events` | Hàm thuần từ DB, forward-only. Template đỏ không cần `drive`. |
 | Giới hạn | `_BudgetHooks(3, 2)`, `MAX_MODEL_CALLS = 7` | 3 model call, 2 tool call mỗi lượt. |
-| Thời gian | `ai_timeout_seconds = 30`, `RUN_TIMEOUT_SECONDS = 30` | Thêm classifier và verifier cần nới trong profile demo. |
+| Thời gian | `ai_timeout_seconds = 30`, `RUN_TIMEOUT_SECONDS = 30` | Thêm classifier và verifier cần nới trong profile `school_safety`. |
 
 ## 3. Upload attachment
 
@@ -136,7 +136,7 @@ sequenceDiagram
     E->>DB: publish ai_messages, ai_message_sources
 ```
 
-Bị tắt hoàn toàn trong profile demo. Worker vẫn chạy heartbeat để `deploy.sh` báo healthy.
+Bị tắt hoàn toàn trong profile `school_safety`. Worker vẫn chạy heartbeat để `deploy.sh` báo healthy.
 
 ## 6. Guest turn
 

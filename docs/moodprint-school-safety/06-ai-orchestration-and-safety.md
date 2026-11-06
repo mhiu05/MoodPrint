@@ -12,21 +12,21 @@ Tài liệu chuẩn cho kiến trúc một agent và engine an toàn. Task nằm
 | Prompt | `ASSISTANT_PROMPT_VERSION = "assistant-2026-11-a1"`, instructions động trong `assistant/prompt.py` |
 | Agent loop | `SdkProvider.run_assistant`, `Runner.run_streamed`, `max_turns=3` |
 | Giới hạn | `_BudgetHooks(3, 2)`: 3 model call, 2 tool call |
-| Model | `settings.assistant_model` (`gpt-6.1-terra`), `reasoning.effort=medium`, `max_tokens=2000`, `store=False`, `max_retries=0`, tracing tắt |
+| Model | `settings.openai_model` (`gpt-6-luna`), `reasoning.effort=medium`, `max_tokens=2000`, `store=False`, `max_retries=0`, tracing tắt |
 | Output | `AssistantReply`, schema nghiêm ngặt |
 | Chạy thật | Staging luôn dùng model thật. Model giả chỉ dùng trong CI |
 
 Không dùng `handoff`, `as_tool`, specialist, planner. `run.workflow` (V3) giữ `None`.
 
-**Lịch sử cũ**: tài khoản demo là tài khoản mới, không có lịch sử bot cũ. Tài khoản 18+ không đăng nhập được vào shell demo. Đề xuất không hiển thị "Trợ lý (phiên bản cũ)" trong MVP. Dữ liệu cũ giữ nguyên, đọc qua UI cũ ở profile `default`.
+**Lịch sử cũ**: tài khoản mẫu và khách đều mới, không có lịch sử bot cũ. Tài khoản 18+ không vào được shell mới. Đề xuất không hiển thị "Trợ lý (phiên bản cũ)" trong MVP. Dữ liệu cũ giữ nguyên, đọc qua UI cũ ở profile `default`.
 
 ## 2. Các lượt gọi model
 
 | Lượt | Agent? | Tool | Output | Timeout | Fallback | Ngân sách |
 | --- | --- | --- | --- | --- | --- | --- |
-| Trợ lý | Có | Có | `AssistantReply` | 40 giây | Câu lỗi xác định; nút khẩn cấp vẫn có | Run chính, `gpt-6.1-terra` |
-| Semantic classifier | Không | Không | `SafetyAssessment` | 3 giây | Coi như **vàng** | Hạn mức nhỏ, `gpt-6-luna` |
-| Claim verifier | Không | Không | `ClaimVerdict` | 4 giây | Thay bằng câu dự phòng | Hạn mức nhỏ, `gpt-6-luna` |
+| Trợ lý | Có | Có | `AssistantReply` | 40 giây | Câu lỗi xác định; nút khẩn cấp vẫn có | Run chính |
+| Semantic classifier | Không | Không | `SafetyAssessment` | 3 giây | Coi như **vàng** | Hạn mức nhỏ |
+| Claim verifier | Không | Không | `ClaimVerdict` | 4 giây | Thay bằng câu dự phòng | Hạn mức nhỏ |
 | STT | Không | Không | Văn bản | 35 giây | Nhập chữ | `speech_usage`, `gpt-transcribe` |
 | TTS | Không | Không | Audio | 10 giây | Chỉ hiện chữ | `speech_usage`, `gpt-realtime-2.1-mini` |
 | Embedding | Không | Không | Vector | 3 giây | Chỉ keyword | Không ghi ledger (dưới 1 đơn vị) |
@@ -298,7 +298,7 @@ Chặn nghĩa là thay bằng câu dự phòng xác định, ghi `safety_events`
 
 ### Template
 
-Theo cặp (nhóm nhãn, nhóm tuổi). Nhóm: `violence`, `sexual`, `self_harm`, `extortion`. Mỗi template có `template_id`, `text`, `numbers`. Bản nháp ở [09 §10](09-ux-and-user-flows.md#10-copy-mẫu). **Cần người có chuyên môn duyệt** trước G1 ([OD-02](12-open-decisions.md#od-02--ai-duyệt-template-và-thẻ-kb)).
+Theo cặp (nhóm nhãn, nhóm tuổi). Nhóm: `violence`, `sexual`, `self_harm`, `extortion`. Mỗi template có `template_id`, `text`, `numbers`. Bản nháp ở [09 §10](09-ux-and-user-flows.md#10-copy-mẫu). **Cần người có chuyên môn duyệt** trước G1 ([OD-02](12-open-decisions.md#od-02--duyệt-nội-dung)).
 
 `EmergencyCard`:
 
@@ -328,15 +328,17 @@ Card này chỉ do backend tạo. `AssistantReply` không có trường `cards`,
 
 ## 7. Nội dung tình dục liên quan trẻ em
 
+Áp dụng theo [OD-03](12-open-decisions.md#od-03--upload-ảnh-video): upload không chặn và không phân loại.
+
 | Bước | Hành vi |
 | --- | --- |
 | Văn bản | Tầng 1 khớp `sexual_abuse_exploitation` → template `sexual`, **không gửi nội dung tới model**, kể cả classifier |
-| Lịch sử | Tin đó bị loại khỏi `model_messages` của các lượt sau, thay bằng ghi chú trung tính |
-| Upload | Chỉ nhận ảnh; bước tự kiểm tra bắt buộc; có sự kiện tình dục trong phiên hoặc case → chặn upload, giải thích |
-| Ảnh | Không gửi ảnh tới bất kỳ model nào trong MVP |
-| Hướng dẫn | Không lưu, không gửi đi, liên hệ 111/113 |
+| Lịch sử | Tin đó bị loại khỏi input của các lượt sau, thay bằng ghi chú trung tính |
+| Ảnh, video | Nhận mọi file đúng định dạng và kích thước. **Không bao giờ gửi tới model** |
+| Màn tải lên | Một dòng nhắc cố định, không chặn: "Nếu nội dung liên quan tới hình ảnh tình dục của trẻ em, đừng lưu hay gửi đi. Hãy gọi 111." |
+| Hướng dẫn | Template nhắc không gửi đi, liên hệ 111/113 |
 
-Không có phân tích ảnh tự động, nên bước tự kiểm tra là biện pháp giảm rủi ro, không phải đảm bảo. Phải nói rõ trong tài liệu dự thi. Xem [OD-03](12-open-decisions.md#od-03--ranh-giới-chặn-upload).
+Không có phân tích ảnh tự động. Tài liệu dự thi phải nói rõ hệ thống không kiểm tra nội dung file.
 
 ## 8. Prompt
 
@@ -348,13 +350,13 @@ Nhắc nghỉ: backend đếm lượt; sau 20 lượt hoặc 30 phút trong mộ
 
 ## 9. Accounting và ngân sách
 
-- `CAPPED_RATES` thêm `gpt-6.1-terra: (5500, 5500, 16500)` và `gpt-6.1-sol: (11000, 11000, 33000)`, theo đúng công thức đang dùng cho Luna: input × 2 × 1,25 × 1,1 × 2, output × 1,5 × 1,1 × 2. `RATES` thêm giá chuẩn tương ứng.
-- `RUN_RESERVATION_NANO` 2 USD tính trên 922.000 token input. Với Terra con số đó là 15,3 USD, nên **không dùng được làm trần**. Thay bằng trần input cứng: `call_model_input_filter` giữ tổng instructions và input ≤ 48.000 byte (token luôn ≤ byte), output 2.000. Hằng `assistant_reservation_nano(model) = 3 × (48.000 × in + 2.000 × out)`, làm tròn lên: Terra 1 USD, Sol 2 USD.
-- `_check_capped_model` cho phép cả `openai_model` và `assistant_model`. `reserve_usage` dùng model thật của run.
-- Classifier và verifier: run con `origin='agent'`, `parent_run_id` là run chính, model `gpt-6-luna`.
-- Thêm tham số `reservation_nano` vào `reserve_accounting`. Hằng `BOUNDED_CALL_RESERVATION_NANO = 10_000_000` (0,01 USD): input ≤ 8.000 token × 550 nano + output ≤ 400 × 1650 = 5,06 triệu nano, làm tròn lên. Input phải bị cắt cứng trước khi gửi.
+- Chỉ dùng `gpt-6-luna`, `CAPPED_RATES` không đổi. `budget_liability` không bị ảnh hưởng.
+- Trần input cứng: `call_model_input_filter` giữ tổng instructions và input ≤ 48.000 byte (token luôn ≤ byte), output 2.000.
+- `ASSISTANT_RESERVATION_NANO = 100_000_000` (0,10 USD): 3 × (48.000 × 550 + 2.000 × 1650) = 89,1 triệu nano, làm tròn lên. Thay cho 2 USD của bot cũ, vốn tính trên 922.000 token và chỉ cho 10 lượt song song.
+- Classifier và verifier: run con `origin='agent'`, `parent_run_id` là run chính. Thêm tham số `reservation_nano` vào `reserve_accounting`. Hằng `BOUNDED_CALL_RESERVATION_NANO = 10_000_000` (0,01 USD): input ≤ 8.000 token × 550 nano + output ≤ 400 × 1650 = 5,06 triệu nano, làm tròn lên. Input phải bị cắt cứng trước khi gửi.
+- **Khách**: `reserve_accounting` từ chối guest thiếu `guest_reservation_id`, và `ai_upper` đang tính 1,53 USD. Lượt `troly` của khách dùng upper 0,10 USD, nên trần 5 USD giữ được khoảng 50 lượt cùng lúc; giới hạn thực tế là `GUEST_AI_GLOBAL_CONCURRENCY=30`, đo lại ở WS-10-T04. Classifier và verifier của khách có reservation riêng qua `reserve_guest_operation`, upper 0,01 USD. Hằng `AI_OUTPUT_TOKENS` giữ nguyên cho hệ thống cũ; biến thể của `troly` dùng 48.000 input, 2.000 output. Giữ `GuestGuardedModel`, `before_dispatch`, `deadline`.
 - `persist_snapshot` đã đóng run theo chi phí thực.
-- Trần ngày: `AI_DAILY_BUDGET_USD` tối đa 20 USD. Với giá bảo thủ, một lượt Terra khoảng 0,06 USD, tức khoảng 330 lượt mỗi ngày. Hết ngân sách: agent 503, classifier coi như vàng, tầng 1–2 vẫn chạy.
+- Trần ngày: `AI_DAILY_BUDGET_USD` tối đa 20 USD. Với giá bảo thủ, một lượt khoảng 0,006 USD, tức khoảng 3.300 lượt mỗi ngày. Hết ngân sách: agent 503, classifier coi như vàng, tầng 1–2 vẫn chạy.
 - Cập nhật `docs/backend/budget-safety.md`.
 - Không ghi STT/TTS vào `ai_usage`.
 
@@ -396,7 +398,7 @@ Bản ghim `openai-agents==0.24.0`. Các tính năng dưới đây đã kiểm t
 
 ## 12. Chất lượng của agent
 
-Demo vẫn phải thông minh thật. Độ thông minh đến từ ngữ cảnh đúng và công cụ tốt, không chỉ từ model.
+Owner chốt chỉ dùng `gpt-6-luna`, nên độ thông minh phải đến từ ngữ cảnh đúng, công cụ tốt và playbook viết kỹ. Nếu rubric không đạt, nâng `reasoning.effort` lên `high` trước.
 
 **Ngữ cảnh** (`AssistantContext`, đưa vào instructions động dưới dạng dữ liệu):
 
@@ -424,7 +426,7 @@ Thêm trường vào `AssistantReply`: `suggested_replies: list[str]`, tối đa
 
 **Ví dụ trong playbook**: mỗi WF 3–5 đoạn hội thoại mẫu tiếng Việt, gồm ca khó. Đây là phần ảnh hưởng chất lượng nhiều nhất, phải viết tay và đọc lại, không sinh hàng loạt.
 
-**Đo**: rubric ở [10](10-evaluation-and-quality-gates.md), so Luna và Terra trên cùng kịch bản.
+**Đo**: rubric ở [10](10-evaluation-and-quality-gates.md).
 
 **Tool description** là một phần của prompt: nêu rõ khi nào dùng, khi nào không, ví dụ tham số. Kết quả tool trả đủ để model viết tiếp, gồm cả lý do khi `unavailable`.
 

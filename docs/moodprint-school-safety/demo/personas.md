@@ -1,6 +1,6 @@
-# Persona demo
+# Tài khoản mẫu
 
-**Toàn bộ là hư cấu.** Không phải người thật, trường thật. Tên trường dùng dạng chung. Không dùng dữ liệu của trẻ em thật trong demo, seed, eval hay ảnh chụp màn hình.
+**Toàn bộ là hư cấu.** Không phải người thật, trường thật. Tên trường dùng dạng chung. Không dùng dữ liệu của trẻ em thật trong seed, eval hay ảnh chụp màn hình.
 
 Dữ liệu seed đọc từ `backend/app/modules/school/seed/personas.json` (WS-02). Mật khẩu không nằm trong repo.
 
@@ -14,7 +14,7 @@ Dữ liệu seed đọc từ `backend/app/modules/school/seed/personas.json` (WS
 
 ## Minh An (`kb-a`)
 
-Học lớp 7, sống với bố mẹ, thân với một bạn cùng lớp. Một nhóm bạn lập nhóm chat nói xấu và chế ảnh An. Tin cô chủ nhiệm, ngại nói với bố mẹ. Dùng Zalo và TikTok trên điện thoại của mẹ. Giọng viết ngắn, có teencode nhẹ, không dấu khi vội.
+Học lớp 7, sống với bố mẹ, thân với một bạn cùng lớp. Một nhóm bạn lập nhóm chat nói xấu và chế ảnh An. Tin cô chủ nhiệm, ngại nói với bố mẹ. Dùng Facebook và TikTok trên điện thoại của mẹ. Giọng viết ngắn, có teencode nhẹ, không dấu khi vội.
 
 ## Tuấn Khang (`kb-b`)
 
@@ -46,4 +46,4 @@ Học lớp 11. Bị một giáo viên quát mắng, đe dọa khi gọi ở l�
 
 ## Tài khoản khách
 
-Chế độ khách chỉ có hội thoại tạm. Xem [OD-05](../12-open-decisions.md#od-05--chế-độ-khách).
+Khách có đủ tính năng, dữ liệu tự xóa sau 2 giờ. Xem [OD-05](../12-open-decisions.md#od-05--chế-độ-khách).

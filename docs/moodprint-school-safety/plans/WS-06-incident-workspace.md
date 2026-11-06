@@ -4,7 +4,7 @@
 
 ## 1. Mục tiêu và giá trị
 
-Em ghi lại nhiều lần xảy ra, giữ ảnh chụp màn hình nguyên vẹn, và có một bản PDF để đưa cho người lớn khi em muốn.
+Em ghi lại nhiều lần xảy ra, giữ ảnh và video nguyên vẹn, và có một bản PDF để đưa cho người lớn khi em muốn.
 
 ## 2. Hiện trạng đã xác minh
 
@@ -16,7 +16,7 @@ Toàn bộ schema, API, hash, PDF, PIN.
 
 ## 4. Kiến trúc đề xuất
 
-**Upload bằng chứng**: tái dùng luồng trực tiếp. Sau khi client upload xong, `complete` **tải object về bằng khóa server**, băm SHA-256 theo luồng, kiểm tra magic bytes và kích thước, rồi ghi `sha256` và `uploaded_at = clock_timestamp()`.
+**Upload bằng chứng**: tái dùng luồng trực tiếp. Sau khi client upload xong, `complete` **tải object về bằng khóa server**, băm SHA-256 theo luồng (video tới 50 MiB, không đọc hết vào RAM), kiểm tra magic bytes và kích thước, rồi ghi `sha256` và `uploaded_at = clock_timestamp()`.
 
 **Vì sao không proxy qua API**: cần đổi Caddyfile trên EC2, tăng tải cho một worker. **Vì sao không để client tự băm**: yêu cầu là server ghi.
 
@@ -28,7 +28,7 @@ Toàn bộ schema, API, hash, PDF, PIN.
 
 ## 5. Phạm vi
 
-Trong: case, sự việc, phiên bản, ảnh, tóm tắt nháp, PDF, PIN, bí danh, xóa case. Ngoài: chia sẻ qua link, video, audio, đọc nội dung ảnh.
+Trong: case, sự việc, phiên bản, ảnh, video, tóm tắt nháp, PDF, PIN, bí danh, xóa case, hồ sơ mẫu. Ngoài: chia sẻ qua link, audio, đọc nội dung ảnh hoặc video.
 
 ## 6. File và symbol bị ảnh hưởng
 
@@ -42,12 +42,12 @@ Trong: case, sự việc, phiên bản, ảnh, tóm tắt nháp, PDF, PIN, bí d
 
 ```python
 class EvidenceReserve(DTO):
-    mime_type: Literal["image/jpeg", "image/png", "image/webp"]
-    size_bytes: int = Field(gt=0, le=10 * 1024**2)
+    mime_type: Literal["image/jpeg", "image/png", "image/webp", "image/gif",
+                       "video/mp4", "video/webm", "video/quicktime"]
+    size_bytes: int = Field(gt=0, le=50 * 1024**2)   # ảnh ≤ 10 MiB
     source_kind: Literal["self_screenshot", "self_photo", "friend_provided", "other"]
     source_note: str | None = Field(default=None, max_length=200)
     event_id: UUID | None = None
-    self_check: Literal["no_sexual_content"]   # bắt buộc
 
 class EvidenceView(DTO):
     id: UUID
@@ -67,7 +67,7 @@ class EvidenceView(DTO):
 | `POST /api/v1/cases/{id}/events` | Thêm sự việc | |
 | `GET /api/v1/cases/{id}/events/{eventId}` | Có danh sách revision | |
 | `POST /api/v1/cases/{id}/events/{eventId}/revisions` | Sửa bằng bản mới | |
-| `POST /api/v1/cases/{id}/evidence` | Trả upload capability | `EVIDENCE_BLOCKED`, `MEDIA_LIMIT` |
+| `POST /api/v1/cases/{id}/evidence` | Trả upload capability | `MEDIA_LIMIT` |
 | `POST /api/v1/cases/{id}/evidence/{eId}/complete` | Băm, niêm phong | `UPLOAD_INCOMPLETE`, `MEDIA_MISMATCH` |
 | `GET /api/v1/cases/{id}/evidence/{eId}/access` | Signed URL 60 giây | |
 | `POST /api/v1/cases/{id}/summaries` | Tạo nháp bằng agent | |
@@ -75,7 +75,7 @@ class EvidenceView(DTO):
 | `POST /api/v1/cases/{id}/exports` | Trả PDF, `Content-Disposition: attachment` | `EXPORT_BUSY` |
 | `PUT /api/v1/cases/pin`, `POST /api/v1/cases/pin/unlock`, `DELETE /api/v1/cases/pin` | PIN | `PIN_LOCKED`, `PIN_INVALID` |
 
-Mọi route: owner check, CSRF, 404 khi không phải chủ, `Idempotency-Key` khi ghi, `require_school_registered`.
+Mọi route: owner check, CSRF, 404 khi không phải chủ, `Idempotency-Key` khi ghi. Khách dùng được mọi route.
 
 ## 9. Dữ liệu và migration
 
@@ -90,13 +90,14 @@ Mọi route: owner check, CSRF, 404 khi không phải chủ, `Idempotency-Key` k
 | WS-06-T03 | P0 | T02 | Routes revision | Sửa tạo bản mới; bản đầu còn nguyên; `current_revision` tăng | `pytest -q tests/test_case_revisions.py` | Pass |
 | WS-06-T04 | P0 | T01 | `SupabaseObjectStorage`, `download(path, max_bytes)` streaming | `SupabaseJournalStorage` không đổi hành vi, test journal pass; quá `max_bytes` dừng | `pytest -q tests/test_journal_storage*.py tests/test_object_storage.py` | Pass |
 | WS-06-T05 | P0 | T04 | `evidence.py`: reserve, complete; path `cases/{user_id}/{case_id}/{id}.{ext}` | Hash đúng trên byte thật; magic bytes sai → xóa, 422; size sai → xóa, 422; complete hai lần idempotent; `uploaded_at` từ DB | `pytest -q tests/test_case_evidence.py` | Pass với Storage giả |
-| WS-06-T06 | P0 | T05 | Chặn: có `sexual_abuse_exploitation` trong phiên hoặc case, hoặc `self_check` sai | 422 `EVIDENCE_BLOCKED`; không tạo capability; ghi `safety_events` surface `upload` | `pytest -q tests/test_case_evidence_block.py` | Pass |
+| WS-06-T06 | P0 | T05 | Video: magic bytes mp4, webm, mov; băm tới 50 MiB; dòng nhắc cố định trả về từ API để UI hiện | Nhận mọi file đúng định dạng và kích thước, không phân loại nội dung; ảnh, video không tới model | `pytest -q tests/test_case_evidence_video.py` | Pass: assert không có đường nào gửi file tới provider |
 | WS-06-T07 | P0 | T05 | Access, abandon cleanup, thêm vào `journal_storage_deletions` khi xóa case | Đọc 60 giây; pending quá 24 giờ bị dọn | `pytest -q tests/test_case_storage_cleanup.py` | Pass |
 | WS-06-T08 | P0 | T02 | `pin.py`, dependency `require_case_unlock` | 5 lần sai khóa 5 phút; restart phải nhập lại; quên PIN qua `/auth/reauthenticate` | `pytest -q tests/test_case_pin.py` | Pass |
 | WS-06-T09 | P0 | WS-04-T07, T02 | `register_proposal` cho `case_create`, `event_add`, `event_revise`; tool `propose_case`, `propose_event`, `list_my_cases` | Confirm mới ghi; bí danh được áp | `pytest -q tests/test_case_proposals.py` | Pass |
 | WS-06-T10 | P1 | T09 | `summary.py`: lượt agent không tool, input chỉ từ dữ liệu đã lưu của case | Nháp ở `draft`; duyệt mới vào PDF | `pytest -q tests/test_case_summary.py` | Pass |
-| WS-06-T11 | P0 | T05 | `reportlab`, `pillow`, font; `pdf.py` | Ba phần nhãn rõ; tiếng Việt đúng dấu; dòng hash và câu giới hạn; ảnh tải lại và băm lại trước khi nhúng, sai thì đánh dấu; không ghi đĩa | `pytest -q tests/test_case_pdf.py` (đọc lại bằng `pypdf` từ group `kb`) | Pass: text trích ra chứa đủ nhãn tiếng Việt |
+| WS-06-T11 | P0 | T05 | `reportlab`, `pillow`, font; `pdf.py` | Ba phần nhãn rõ; tiếng Việt đúng dấu; ảnh được nhúng, video chỉ ghi tên, thời điểm, hash; dòng hash và câu giới hạn; ảnh tải lại và băm lại trước khi nhúng, sai thì đánh dấu; không ghi đĩa | `pytest -q tests/test_case_pdf.py` (đọc lại bằng `pypdf` từ group `kb`) | Pass: text trích ra chứa đủ nhãn tiếng Việt |
 | WS-06-T12 | P1 | T01 | Export, purge, retention | Export có case; xóa tài khoản xóa hết và xếp hàng xóa object | `pytest -q tests/test_data_lifecycle.py tests/test_case_lifecycle.py` | Pass |
+| WS-06-T13 | P1 | T09 | `POST /api/v1/school/samples/{id}/apply`: tạo hồ sơ mẫu trong tài khoản hiện tại từ `school/seed/samples.json` | Dữ liệu hư cấu, tự xóa theo khách; gọi lại không nhân đôi | `pytest -q tests/test_school_samples.py` | Pass |
 
 ## 11. An toàn và bảo mật
 
@@ -116,11 +117,11 @@ Mọi route: owner check, CSRF, 404 khi không phải chủ, `Idempotency-Key` k
 - Hash khớp `sha256sum` trên file gốc.
 - Không có đường nào sửa bằng chứng đã niêm phong.
 - PDF đọc được, đúng dấu tiếng Việt.
-- SC-03 và SC-08 chạy được.
+- SC-08 chạy được.
 
 ## 14. Phụ thuộc và blocker
 
-OD-03. `JOURNAL_STORAGE_KEY` phải có trên staging (UNKNOWN, OD-12).
+`JOURNAL_STORAGE_KEY` phải có trên staging (UNKNOWN, OD-12).
 
 **TO_VERIFY**: endpoint tải object bằng khóa server (`GET /storage/v1/object/{bucket}/{path}`); token upload không cho upsert khi ký không có `x-upsert` (test trên hosted với object thử).
 

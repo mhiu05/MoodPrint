@@ -44,13 +44,13 @@ Phiên bản ghim do Grok chọn và khóa trong `uv.lock`.
 
 ## 4. Nguồn ưu tiên
 
-Thẩm quyền và độ mới dưới đây là kết quả tra cứu; văn bản pháp luật phải đối chiếu với cổng chính thức khi thu thập. Trang tổng hợp luật chỉ dùng để định hướng, không dùng làm `source_url`.
+Link cụ thể ở [kb-source-links](kb-source-links.md). Thẩm quyền và độ mới dưới đây là kết quả tra cứu; văn bản pháp luật phải đối chiếu với cổng chính thức khi thu thập. Trang tổng hợp luật chỉ dùng để định hướng, không dùng làm `source_url`.
 
 | `source_id` | Nguồn | `source_type` | Thẩm quyền, độ mới | Phương thức | Kiểm tra lại |
 | --- | --- | --- | --- | --- | --- |
 | `vn-tongdai111-site` | tongdai111.vn | government | Trang ghi "Tổng đài Điện thoại quốc gia Bảo vệ Trẻ em, Cục Bà mẹ và Trẻ em", hoạt động 24/24, miễn phí. VERIFIED | `fetch_html` | 30 ngày |
 | `vn-tongdai111-report-2025` | Báo cáo Tổng đài 111 năm 2025 (PDF trên site) | government | Có trên site. VERIFIED tồn tại | `fetch_pdf` | Một lần |
-| `vn-luat-tre-em-2016` | Luật Trẻ em 2016 | law | Chưa tìm thấy bản sửa đổi; TO_VERIFY | `fetch_doc` | 90 ngày |
+| `vn-luat-tre-em-vbhn` | Luật Trẻ em, bản hợp nhất VBHN 108 (2025) | law | Dùng bản này; bản gốc 2016 đã hết hiệu lực một phần. Trẻ em là người dưới 16 tuổi | `fetch_pdf` | 90 ngày |
 | `vn-luat-giao-duc-2019` | Luật Giáo dục 2019 | law | Đã được sửa đổi bởi Luật 123/2025/QH15 | `fetch_doc` | 90 ngày |
 | `vn-luat-giao-duc-2025` | Luật 123/2025/QH15, thông qua 10/12/2025, hiệu lực 01/01/2026 | law | Nguồn thứ cấp. TO_VERIFY trên cổng chính thức | `fetch_doc` | 90 ngày |
 | `vn-tt-18-2025` | Thông tư 18/2025/TT-BGDĐT, ban hành 15/09/2025, hiệu lực 31/10/2025; thay TT 31/2017 và TT 33/2018 | law | VBPL liệt kê; chưa thấy sửa đổi | `fetch_doc` | 90 ngày |
@@ -61,13 +61,14 @@ Thẩm quyền và độ mới dưới đây là kết quả tra cứu; văn b�
 | `unicef-vn` | UNICEF Việt Nam | ngo | TO_VERIFY trang cụ thể | `fetch_html` | 180 ngày |
 | `foreign-stopbullying` | StopBullying.gov | expert | `jurisdiction: foreign`, chỉ kỹ năng ứng phó | `fetch_html` | 180 ngày |
 | `foreign-esafety` | eSafety Commissioner (Úc) | expert | `jurisdiction: foreign`, chỉ kỹ năng ứng phó | `fetch_html` | 180 ngày |
-| `platform-tiktok`, `platform-zalo`, `platform-meta`, `platform-youtube`, `platform-discord` | Trung tâm trợ giúp chính thức | platform | Bước bấm thu thập tay | `manual_capture` | 60 ngày |
+| `platform-facebook`, `platform-youtube`, `platform-tiktok` | Trung tâm trợ giúp chính thức | platform | Bước bấm do mhiu05 chụp từ app thật | `manual_capture` | 60 ngày |
 
 Báo chí không vào KB.
 
 **Lưu ý thực tế**:
 
 - Tổ chức quản lý Tổng đài 111 đã đổi. Nhiều bài cũ ghi Cục Trẻ em, Bộ LĐ-TB&XH. Thẻ phải theo trang chính thức hiện tại.
+- Cổng `vbpl.vn`, `vanban.chinhphu.vn`, StopBullying, eSafety chặn hoặc timeout với công cụ tự động trong phiên tra cứu. Nếu fetch bị chặn thì lấy thủ công, không vượt chặn.
 - Trang 111 còn phục vụ phòng chống mua bán người. Thẻ chỉ nói phần bảo vệ trẻ em.
 - `tongdai111.vn/robots.txt` chặn `/Admins/Login`, `/Home/Index`; cho phép `/upload/`. Không có crawl-delay. VERIFIED.
 - Cổng `vbpl.vn` có trang văn bản Bộ GD-ĐT. Điều khoản crawl và robots TO_VERIFY trước khi fetch.
@@ -86,7 +87,7 @@ Công cụ offline, không chạy lúc runtime.
 | Kiểm tra | `python scripts/kb/validate.py` | Xem §7 |
 | Đóng gói | `python scripts/kb/build.py` | Sinh `cards.json` chỉ gồm thẻ approved, còn hạn |
 
-**Hướng dẫn nền tảng** dùng `manual_capture`: thành viên nhóm thao tác trên app thật, giao diện tiếng Việt, ghi từng bước, ngày kiểm tra, phiên bản app. `source_url` là trang trợ giúp chính thức. Tra cứu tự động không tìm thấy trang Zalo và các phiên bản tiếng Việt, nên phần này **phụ thuộc người** ([OD-02](12-open-decisions.md#od-02--ai-duyệt-template-và-thẻ-kb)).
+**Hướng dẫn nền tảng** chỉ gồm Facebook, YouTube, TikTok, dùng `manual_capture`: mhiu05 chụp màn hình trên app thật, giao diện tiếng Việt, đặt ở `.tmp/kb/manual/<platform>/`, không commit vì repo công khai. Grok chuyển thành các bước bằng chữ trong `kb/sources/manual/`, ghi ngày kiểm tra, phiên bản app. `source_url` là trang trợ giúp chính thức. Phần này **phụ thuộc người** ([OD-02](12-open-decisions.md#od-02--duyệt-nội-dung)).
 
 ## 6. Schema thẻ
 
@@ -198,8 +199,7 @@ Giá tra ngày 06/11/2026:
 
 | Hạng mục | Giá | Nguồn |
 | --- | --- | --- |
-| `gpt-6.1-terra` | 1,00 USD/1M input, 0,05 cached, 5,00 output (short context) | [OpenAI pricing](https://developers.openai.com/api/docs/pricing) |
-| `gpt-6-luna` | 0,10 USD/1M input, 0,01 cached, 0,50 output (short context) | Cùng trang |
+| `gpt-6-luna` | 0,10 USD/1M input, 0,01 cached, 0,50 output (short context) | [OpenAI pricing](https://developers.openai.com/api/docs/pricing) |
 | `voyage-4-lite` | 0,02 USD/1M, 200M token miễn phí; Batch giảm 33%, không dùng được phần miễn phí | [Voyage pricing](https://docs.voyageai.com/docs/pricing) (trang cập nhật 29/09/2026) |
 | `rerank-3-lite` | 0,02 USD/1M, 200M token miễn phí | Cùng trang |
 | `gpt-transcribe` | 0,0045 USD/phút | OpenAI pricing |
@@ -215,23 +215,21 @@ Giá tra ngày 06/11/2026:
 
 Ở quy mô MVP, rerank gần như miễn phí, nên **chi phí không phải lý do bỏ reranker**. Lý do đúng: thêm một lượt mạng, thêm một nơi dữ liệu đi qua, và chưa có eval chứng minh cần.
 
-**Giả định**: mỗi người dùng/tháng có 40 lượt chat, 10 lượt luyện nói. 30% lượt chat truy xuất KB, mỗi lượt này có 2 call model. Agent chạy `gpt-6.1-terra`: prompt 1.800 + lịch sử 1.500 token, 4 thẻ thêm 1.800 token, output 600 token gồm reasoning. Classifier và verifier chạy `gpt-6-luna`. Luyện nói 20 giây STT, 17 giây TTS. Chưa tính giảm giá prompt caching. Số token là ước lượng; phải đo lại khi có prompt thật.
+**Giả định**: mỗi người dùng/tháng có 40 lượt chat, 10 lượt luyện nói. 30% lượt chat truy xuất KB, mỗi lượt này có 2 call model. Mọi lượt dùng `gpt-6-luna`: prompt 1.800 + lịch sử 1.500 token, 4 thẻ thêm 1.800 token, output 600 token gồm reasoning. Luyện nói 20 giây STT, 17 giây TTS. Chưa tính giảm giá prompt caching. Số token là ước lượng; phải đo lại khi có prompt thật.
 
 | Hạng mục | Đơn giá lượt | 100 người dùng | 1.000 người dùng |
 | --- | --- | --- | --- |
 | Lượt trong tháng | | 4.000 chat + 1.000 luyện nói | 40.000 + 10.000 |
-| Agent (Terra) | 0,0081 USD/chat; 0,0063 USD/luyện nói | 38,7 USD | 387 USD |
-| Trong đó ngữ cảnh KB | 0,0018 USD/chat | 7,3 USD | 73 USD |
-| Classifier (Luna) | 0,00015 USD | 0,75 USD | 7,5 USD |
-| Verifier (Luna) | 0,00021 USD × 30% | 0,25 USD | 2,5 USD |
+| Agent | 0,00081 USD/chat; 0,00063 USD/luyện nói | 3,87 USD | 38,7 USD |
+| Trong đó ngữ cảnh KB | 0,00018 USD/chat | 0,73 USD | 7,3 USD |
+| Classifier | 0,00015 USD | 0,75 USD | 7,5 USD |
+| Verifier | 0,00021 USD × 30% | 0,25 USD | 2,5 USD |
 | Embedding truy vấn | 40 token | Dưới 0,01 USD | 0,01 USD |
 | STT | 0,0015 USD | 1,50 USD | 15 USD |
 | TTS (Realtime mini) | 0,0069 USD | 6,90 USD | 69 USD |
-| **Tổng** | | **≈ 48 USD/tháng** | **≈ 480 USD/tháng** |
+| **Tổng** | | **≈ 13 USD/tháng** | **≈ 133 USD/tháng** |
 
-Nếu `ASSISTANT_MODEL=gpt-6-luna`, tổng giảm còn khoảng 13 USD và 130 USD. Quy mô demo thấp hơn nhiều so với bảng này.
-
-Ledger nội bộ dùng giá bảo thủ, gấp 5,5 lần input và 3,3 lần output, nên trần 20 USD/ngày đạt sớm hơn chi phí thật.
+TTS chiếm phần lớn chi phí. Ledger nội bộ dùng giá bảo thủ, gấp 5,5 lần input và 3,3 lần output, nên trần 20 USD/ngày đạt sớm hơn chi phí thật.
 
 ## 11. Eval
 

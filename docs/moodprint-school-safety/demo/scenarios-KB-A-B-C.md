@@ -1,6 +1,6 @@
-# Kịch bản demo KB-A, KB-B, KB-C
+# Tình huống mẫu KB-A, KB-B, KB-C
 
-Dùng cho Gate G4 và smoke staging. Ca ngắn để trình diễn nằm ở [showcase-cases](showcase-cases.md). Dữ liệu hư cấu, xem [personas](personas.md). Playwright: `frontend/tests/fullstack/school-kb-{a,b,c}.spec.ts` với model giả; bản live chạy tay trên staging.
+Khách đọc và thử trên trang `/vi-du`; đồng thời dùng cho Gate G4 và smoke staging. Tình huống ngắn nằm ở [showcase-cases](showcase-cases.md). Dữ liệu hư cấu, xem [personas](personas.md). Playwright: `frontend/tests/fullstack/school-kb-{a,b,c}.spec.ts` với model giả; bản live chạy tay trên staging.
 
 Mỗi bước có **hành động**, **kỳ vọng** và **loại kiểm tra**. "Xác định" nghĩa là kết quả do backend quyết định, phải assert chính xác. "Mô hình" nghĩa là chỉ kiểm tra tính chất.
 
@@ -15,8 +15,8 @@ Persona `kb-a`, nhóm 11-14, đăng nhập, đã xác nhận điều khoản.
 | 3 | Xác nhận tóm tắt | `behaviors` gồm `online`, `verbal`; WF-01 → `summarized` | Xác định |
 | 4 | Chọn "Lưu lại" | Vào WF-02; proposal card hiện đúng nội dung | Xác định |
 | 5 | Bấm Lưu | Có case; biên nhận từ server; chưa bấm thì không có hàng trong `cases` | Xác định |
-| 6 | Thêm ảnh giả lập, chọn "Không có" ở bước tự kiểm tra | Tiến trình; `sha256` và `uploaded_at` hiện ra; câu giải thích hash | Xác định |
-| 7 | Hỏi: "report group trên zalo kiểu gì" | Có `[1]`, nhãn tham khảo; câu nhắc lưu bằng chứng trước khi chặn | Xác định phần nhãn |
+| 6 | Thêm ảnh giả lập | Tiến trình; `sha256` và `uploaded_at` hiện ra; câu giải thích hash | Xác định |
+| 7 | Hỏi: "report nhóm trên facebook kiểu gì" | Có `[1]`, nhãn tham khảo; câu nhắc lưu bằng chứng trước khi chặn | Xác định phần nhãn |
 | 8 | Vào Người lớn tin cậy, thêm "Cô chủ nhiệm" | Lưu sau xác nhận | Xác định |
 | 9 | Mở Luyện nói, chế độ "Nói với người lớn", 2 lượt | Có câu công bố AI; transcript sửa được; có nút phát hoặc chữ | Xác định |
 | 10 | Kết thúc phiên | Tóm tắt nháp; lưu cần xác nhận | Xác định |

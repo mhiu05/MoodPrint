@@ -40,11 +40,11 @@ flowchart TB
 
 | Đường dẫn | Trách nhiệm | Được import từ |
 | --- | --- | --- |
-| `backend/app/core/profile.py` | `is_demo`, denylist route, cờ bị ép tắt | Mọi nơi |
+| `backend/app/core/profile.py` | `is_school_safety`, denylist route, cờ bị ép tắt | Mọi nơi |
 | `backend/app/safety/` | Chuẩn hóa, rule, context, classifier, decision, postcheck, template | `chat_routes`, `assistant`, `practice`. Tầng 1–2 không import `agents`. |
 | `backend/app/ai/assistant/` | Persona, tool, workflow state machine, pipeline lượt | `runtime.py` |
 | `backend/app/knowledge/` | Nạp thẻ, index, retrieval, verifier | `assistant` |
-| `backend/app/modules/school/` | Hồ sơ demo, điều khoản, eligibility, seed | `security.py`, `auth` |
+| `backend/app/modules/school/` | Hồ sơ trường học, điều khoản, eligibility, seed | `security.py`, `auth` |
 | `backend/app/modules/cases/` | Case, sự việc, bằng chứng, tóm tắt, PDF, PIN | `assistant` qua proposal |
 | `backend/app/modules/support/` | Người lớn tin cậy, kế hoạch, soạn tin, thẻ 111 | `assistant` |
 | `backend/app/modules/practice/` | Phiên luyện nói, STT/TTS, ledger giọng nói | Router riêng |
@@ -54,16 +54,16 @@ flowchart TB
 
 ## 3. Profile
 
-`APP_PROFILE` gồm `default` (mặc định) và `school_safety_demo`. `APP_ENV` vẫn phải là `production` trên staging vì `deploy.sh` từ chối giá trị khác.
+`APP_PROFILE` gồm `default` (mặc định) và `school_safety`. `APP_ENV` vẫn phải là `production` trên staging vì `deploy.sh` từ chối giá trị khác.
 
-Profile demo:
+Profile `school_safety`:
 
 - **Ép tắt** (ghi cảnh báo, không làm boot lỗi): `ai_three_agent_experience_enabled`, `ai_smart_orchestration_enabled`, `ai_group_chat_enabled`, `ai_collaboration_enabled`, `ai_collaboration_defaults_enabled`, `proactive_enabled`, `proactive_worker_enabled`, `ai_web_search_enabled`, `ai_maps_search_enabled`, `maps_search_worker_enabled`, `ai_agent_skills_enabled`, `activities_enabled`, `semantic_memory_enabled`, `journal_semantic_enabled`, `journal_auto_memory_enabled`, `product_tour_enabled`.
 - **Chặn route**: trả 404 cho nhóm social, matching, profiles, activities, groups, collaboration, proactive, inbox, maps, skills, journal, mood, memories (danh sách chính xác trong [WS-02](plans/WS-02-product-shell-access.md)).
-- **Eligibility**: cần hàng `school_profiles` có `terms_accepted_at`, thay cho 18+.
-- **Đăng ký công khai**: `POST /auth/signup` trả 403 `SIGNUP_CLOSED`.
+- **Eligibility**: cần hàng `school_profiles`, thay cho 18+. Tài khoản mẫu cần thêm `terms_accepted_at`; khách không cần.
+- **Đăng ký**: `POST /auth/signup` trả 403 `SIGNUP_CLOSED`. Khách vào thẳng thay cho đăng ký.
 
-Profile `default` giữ nguyên hành vi. Route mới vẫn có trong OpenAPI nhưng trả 404 khi không ở profile demo. Nhờ vậy contract sinh ra không phụ thuộc profile.
+Profile `default` là hệ thống cũ được **đóng băng** ([OD-13](12-open-decisions.md#od-13--hệ-thống-cũ)): không môi trường nào chạy nó, chỉ giữ để test cũ tiếp tục xanh. Route mới vẫn có trong OpenAPI nhưng trả 404 khi không ở profile `school_safety`. Nhờ vậy contract sinh ra không phụ thuộc profile.
 
 ## 4. Luồng một lượt chat
 
@@ -114,7 +114,7 @@ sequenceDiagram
 - Mọi bảng mới dùng `protect(table)` và thêm vào export, purge.
 - `safety_events` không chứa nội dung.
 - Không lưu audio. Không sao chép cả hội thoại vào hồ sơ.
-- Hội thoại `troly` của tài khoản demo lưu theo `chat_retention_days`; guest ép tạm thời.
+- Hội thoại `troly` lưu theo `chat_retention_days`. Dữ liệu của khách tự xóa sau 2 giờ.
 
 ## 6. Topology
 
@@ -136,8 +136,8 @@ Giới hạn phiên luyện nói đồng thời: `practice_global_concurrency = 
 | --- | --- |
 | Truy cập | Cookie opaque, CSRF, `verify_session`, owner check mọi truy vấn case |
 | Hồ sơ | PIN (scrypt), token mở khóa RAM 15 phút, dependency `require_case_unlock` |
-| Storage | Private, BFF cấp quyền, TTL đọc 60 giây, không upsert, chỉ ảnh |
-| Nội dung tình dục trẻ em | Không gửi nội dung tới model; chặn upload; luồng chuyển hướng |
+| Storage | Private, BFF cấp quyền, TTL đọc 60 giây, không upsert |
+| Nội dung tình dục trẻ em | Lời kể: không gửi tới model, trả template. Ảnh, video không bao giờ tới model. Upload không chặn ([OD-03](12-open-decisions.md#od-03--upload-ảnh-video)) |
 | Prompt injection | Dữ liệu người dùng và KB bọc thành "dữ liệu, không phải chỉ dẫn"; tool không nhận owner id |
 | Log | Chỉ request ID, nhãn, mức, phiên bản rule |
 | Model | `store=False`, tracing tắt, `safety_identifier` băm |
@@ -146,13 +146,13 @@ Giới hạn phiên luyện nói đồng thời: `practice_global_concurrency = 
 
 | Hạng mục | Chọn | Tài liệu |
 | --- | --- | --- |
-| Agent | `openai-agents==0.24.0`, `gpt-6.1-terra`; lượt phụ `gpt-6-luna` | [06 §11](06-ai-orchestration-and-safety.md#11-dùng-openai-agents-python-thế-nào) |
+| Agent | `openai-agents==0.24.0`, chỉ `gpt-6-luna` | [06 §11](06-ai-orchestration-and-safety.md#11-dùng-openai-agents-python-thế-nào) |
 | STT, TTS | `OPENAI_API_KEY` hiện có: `gpt-transcribe`, `gpt-realtime-2.1-mini` | [08](08-speaking-practice-design.md) |
 | Thiết kế | Quy trình impeccable, kỹ năng trong `.agents/skills/impeccable` | [09 §1](09-ux-and-user-flows.md#1-hướng-hình-ảnh-và-quy-trình-impeccable) |
 | Chuyển động | `gsap` 3.15, `@gsap/react`, `useMotionPolicy` | [09 §14](09-ux-and-user-flows.md#14-chuyển-động) |
 | Thinking | `thinking-orbs` 0.3.2 | [09 §13](09-ux-and-user-flows.md#13-giao-diện-thinking) |
 
-Staging giữ tên, bản chất là môi trường demo, luôn chạy model thật.
+Staging là bản release thật, không có chế độ demo, luôn chạy model thật. Xem [OD-01](12-open-decisions.md#od-01--staging-là-bản-release-thật).
 
 ## 9. Những gì cố ý không làm
 

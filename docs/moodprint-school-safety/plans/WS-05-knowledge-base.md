@@ -29,7 +29,7 @@ Trong: pipeline, 40–60 thẻ, retrieval, verifier, tool, eval, bản public ch
 | `understand` | 8 | Bị anti là gì, cô lập, bạo lực trên mạng, tống tiền |
 | `safety` | 8 | Đi học an toàn, khi bị đe dọa |
 | `evidence` | 5 | Chụp màn hình, lưu trước khi chặn, hash nói gì |
-| `report` | 14 | TikTok, Zalo, Facebook, Messenger, Instagram, YouTube, Discord × báo cáo, chặn |
+| `report` | 9 | Facebook, YouTube, TikTok × báo cáo, chặn, lưu bằng chứng |
 | `rights` | 8 | Trường phải làm gì, tư vấn học đường, kỷ luật |
 | `support` | 9 | 111 hoạt động thế nào, nói với người lớn, người chứng kiến |
 
@@ -72,7 +72,7 @@ class ClaimVerdict(BaseModel):
 
 | ID | Ưu tiên | Phụ thuộc | Thay đổi, ở đâu | Hành vi mong đợi | Lệnh test | Pass / fail |
 | --- | --- | --- | --- | --- | --- | --- |
-| WS-05-T01 | P1 | WS-04-T01 | Group `kb`, `registry.yaml` theo [07 §4](../07-knowledge-base-design.md#4-nguồn-ưu-tiên); tra lại hiệu lực trên cổng chính thức, đổi TO_VERIFY thành kết quả | Registry hợp lệ; mỗi nguồn có `jurisdiction`; nguồn hết hiệu lực bị bỏ | `uv run --group kb python ../scripts/kb/validate.py --registry-only` | Pass |
+| WS-05-T01 | P1 | WS-04-T01 | Group `kb`, `registry.yaml` từ [kb-source-links](../kb-source-links.md); tra lại hiệu lực, đổi TO_VERIFY thành kết quả | Registry hợp lệ; mỗi nguồn có `jurisdiction`; nguồn hết hiệu lực hoặc link chết bị bỏ | `uv run --group kb python ../scripts/kb/validate.py --registry-only` | Pass |
 | WS-05-T02 | P1 | T01 | `fetch.py`: allowlist, robots, rate limit, 3 lần thử, snapshot vào `.tmp/kb/raw`, `manifest.jsonl`, User-Agent không chứa email | Domain ngoài registry bị từ chối; robots chặn thì dừng; không theo redirect ra ngoài allowlist | `pytest -q tests/test_kb_fetch.py` với transport giả | Pass |
 | WS-05-T03 | P1 | T02 | `normalize.py`, `legal_parser.py` | Giữ Điều, khoản, điểm; locator ổn định; bảng và chú thích không vỡ | `pytest -q tests/test_kb_legal_parser.py` với mẫu tổng hợp | Pass |
 | WS-05-T04 | P1 | T03 | `diff.py` | sha đổi → thẻ phụ thuộc `needs_review` | `pytest -q tests/test_kb_diff.py` | Pass |
@@ -84,7 +84,7 @@ class ClaimVerdict(BaseModel):
 | WS-05-T10 | P0 | T09 | Tool `search_knowledge`, `get_platform_guide` thay stub; ghi `run.retrieved_cards` | `query` qua kiểm tra độ dài; `Citation` dựng từ thẻ, `start`/`end` tìm bằng vị trí `ClaimRef.sentence` trong bubble, không thấy thì coi là thiếu ref; `source_backed=true` | `pytest -q tests/test_assistant_kb.py` | Pass |
 | WS-05-T11 | P0 | T10 | `verifier.py`, tích hợp `turn.py` | Thẻ không ủng hộ → câu dự phòng; ref tới thẻ chưa truy xuất → câu dự phòng; timeout → câu dự phòng; vẫn gắn nhãn | `pytest -q tests/test_kb_verifier.py` | Pass |
 | WS-05-T12 | P1 | T05 | Soạn nháp 50 thẻ `draft`, chia PR theo `action`, kèm trích dẫn | Tất cả qua `validate.py` ở mức draft | `validate.py` | Pass: chờ người duyệt, không tự approve |
-| WS-05-T13 | P1 | T12 | `evidence/content-review.md`: bảng duyệt mỗi thẻ một dòng, kèm nguồn. Owner đổi `approved`; nhóm làm `manual_capture` | ≥ 40 thẻ approved, tối thiểu Zalo, TikTok, Facebook | `validate.py`; `build.py` | **Chặn G5**, không chặn phát triển |
+| WS-05-T13 | P1 | T12 | `evidence/content-review.md`: bảng duyệt mỗi thẻ một dòng, kèm nguồn. mhiu05 đánh dấu; Grok điền `reviewed_by: mhiu05` cho mục đã đánh dấu. Chuyển ảnh chụp của mhiu05 thành bước bằng chữ | ≥ 40 thẻ approved | `validate.py`; `build.py` | **Chặn G5**, không chặn phát triển |
 | WS-05-T14 | P0 | T09 | `kb/eval/queries.jsonl` ≥ 100, `evaluate.py`, cờ `--include-draft` chỉ cho eval | Báo Recall@4, MRR | `python ../scripts/kb/evaluate.py --embedder fake` | Pass runner |
 | WS-05-T15 | P0 | T12, T14 | Chạy với Voyage thật trên thẻ nháp, tối ưu theo thứ tự; chạy lại sau khi duyệt | Recall@4 ≥ 0,9 | `evaluate.py --live --include-draft --confirm-live --max-usd 0.05` | Pass: đạt. Fail: ghi lại từng biến đã đổi |
 
@@ -92,6 +92,7 @@ class ClaimVerdict(BaseModel):
 
 - Thẻ là dữ liệu, không phải chỉ dẫn; văn bản trong thẻ không thể đổi prompt.
 - Query gửi Voyage là cụm trung tính do model viết, không phải nguyên văn lời em.
+- Khách dùng KB như tài khoản mẫu. `kind_available` đóng `embed` của khách dưới cấu hình có trần; embedding truy vấn KB không đi qua cổng này, vì nằm trong phần miễn phí của Voyage và đã có nhánh lexical khi lỗi.
 - Fetch không chạy trong image, không có đường SSRF ở runtime.
 - Nguồn `foreign` không dùng cho `rights`.
 - Không phát hành lại snapshot.
@@ -120,4 +121,4 @@ G2 phần KB đạt.
 
 ## 17. Ghi chú cho Grok
 
-Không tự điền `reviewed_by`, kể cả để test staging. Thẻ nháp chạy được trong eval local với `--include-draft`, nhưng `build.py` không có cờ này. Dùng thẻ fixture riêng cho test, đặt trong `backend/tests/fixtures/`, không trộn vào `kb/cards/`.
+Bắt đầu từ [kb-source-links](../kb-source-links.md). Không điền `reviewed_by` cho mục mhiu05 chưa đánh dấu, kể cả để test staging. Không commit ảnh chụp vì repo công khai. Thẻ nháp chạy được trong eval local với `--include-draft`, nhưng `build.py` không có cờ này. Dùng thẻ fixture riêng cho test, đặt trong `backend/tests/fixtures/`, không trộn vào `kb/cards/`.

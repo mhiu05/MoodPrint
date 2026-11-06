@@ -4,7 +4,7 @@
 
 ## 1. Hướng hình ảnh và quy trình impeccable
 
-Bỏ trải nghiệm nhiều bot là đã chốt. Giao diện được đầu tư như sản phẩm thật dù là demo. Owner yêu cầu đi theo [impeccable](https://github.com/pbakaus/impeccable). Kỹ năng đã có trong repo tại `.agents/skills/impeccable` (phiên bản 4.7.0), kèm CLI phát hiện lỗi thiết kế bằng 62 rule xác định, không cần LLM.
+Bỏ trải nghiệm nhiều bot là đã chốt. Giao diện được đầu tư như một bản release thật. Owner yêu cầu đi theo [impeccable](https://github.com/pbakaus/impeccable). Kỹ năng đã có trong repo tại `.agents/skills/impeccable` (phiên bản 4.7.0), kèm CLI phát hiện lỗi thiết kế bằng 62 rule xác định, không cần LLM.
 
 **Quy trình bắt buộc**
 
@@ -53,8 +53,9 @@ Wireframe bên dưới mô tả bố cục và nội dung, không phải hình �
 
 ```text
 Public (không cần đăng nhập, đường dẫn thật)
-  /                 Trang giới thiệu demo
-  /login            Đăng nhập tài khoản demo + chế độ khách
+  /                 Trang giới thiệu: Dùng thử ngay, Xem tình huống mẫu
+  /vi-du            Tình huống mẫu để đọc và thử
+  /login            Đăng nhập tài khoản mẫu
   /ho-tro           Tìm hỗ trợ
   /trung-tinh       Trang trung tính cho thoát nhanh
 
@@ -74,7 +75,7 @@ App (HashRouter, cần phiên)
   #/cai-dat         Cài đặt, giới hạn của AI, xóa dữ liệu
 ```
 
-`classifyEntry` cần nhận thêm `/ho-tro`, `/trung-tinh`. Shell chọn theo `appProfile` từ `GET /public/experience`.
+`classifyEntry` cần nhận thêm `/vi-du`, `/ho-tro`, `/trung-tinh`. Shell chọn theo `appProfile` từ `GET /public/experience`.
 
 ## 3. Khung ứng dụng
 
@@ -136,7 +137,15 @@ Từ 768px trở lên: rail bên trái, khẩn cấp và thoát nhanh ở đầu
 └────────────────────────────────┘
 ```
 
-Lưu `terms_version`, thời điểm. Tài khoản demo seed sẵn nhóm tuổi nhưng vẫn phải bấm xác nhận.
+Màn này chỉ dành cho tài khoản mẫu. Lưu `terms_version`, thời điểm.
+
+**Khách** không qua màn này. Bấm "Dùng thử ngay" là vào Trò chuyện, không hỏi tuổi, không thấy CAPTCHA. Nhóm tuổi mặc định `11-14`, đổi ở Cài đặt. Một thông báo gọn, không chặn, đóng được:
+
+```text
+Đây là AI, không phải người. Dữ liệu tự xóa sau 2 giờ.
+Bản trải nghiệm: hãy dùng tình huống mẫu, đừng nhập thông tin thật.
+Nếu đang nguy hiểm, bấm Khẩn cấp.
+```
 
 ## 5. Trò chuyện
 
@@ -193,18 +202,12 @@ Lưu `terms_version`, thời điểm. Tài khoản demo seed sẵn nhóm tuổi 
 └────────────────────────────────┘
 ```
 
-**Thêm bằng chứng**: chọn ảnh → màn tự kiểm tra bắt buộc → tải lên có tiến trình → hiện kết quả.
+**Thêm bằng chứng**: chọn ảnh hoặc video → tải lên có tiến trình → hiện kết quả. Không có bước hỏi về nội dung. Dưới nút chọn file có một dòng cố định, không chặn:
 
 ```text
-┌────────────────────────────────┐
-│ Kiểm tra trước khi tải lên     │
-│ Ảnh có cảnh khỏa thân hoặc     │
-│ nội dung tình dục của ai không?│
-│ [Không có]  [Có hoặc không chắc]│
-└────────────────────────────────┘
+Nếu nội dung liên quan tới hình ảnh tình dục của trẻ em,
+đừng lưu hay gửi đi. Hãy gọi 111.
 ```
-
-Chọn "Có hoặc không chắc": không tải lên, hiện luồng chuyển hướng: không lưu, không gửi đi, liên hệ 111 hoặc công an, kèm lý do ngắn.
 
 **Thông tin file**
 
@@ -219,7 +222,7 @@ Nó không chứng minh chuyện đã xảy ra.
 
 **Xem trước PDF**: ba phần có nhãn rõ: "Em kể", "File em tải lên", "AI diễn giải (bản nháp đã được em xem)". Chọn phần muốn xuất. Tải về là hành động của em.
 
-**PIN**: đặt ở lần đầu mở Hồ sơ, tùy chọn trong demo. 4–6 chữ số. 5 lần sai khóa 5 phút. Quên PIN: nhập lại mật khẩu.
+**PIN**: tùy chọn, đặt ở Cài đặt. 4–6 chữ số. 5 lần sai khóa 5 phút. Quên PIN: nhập lại mật khẩu.
 
 ## 7. Luyện nói
 
@@ -257,9 +260,7 @@ Giữ để nói bằng pointer và phím Space. Thả là dừng. Bộ đếm 3
 │ Tổ tư vấn của trường           │
 │  Hỏi thầy cô chủ nhiệm...      │
 │ Báo cáo trên mạng              │
-│  TikTok · Zalo · Facebook ·    │
-│  Messenger · Instagram ·       │
-│  YouTube · Discord             │
+│  Facebook · YouTube · TikTok   │
 └────────────────────────────────┘
 ```
 
@@ -408,4 +409,28 @@ Theo `reference/animate.md`, ở Operate và Read chuyển động phục vụ p
 - Mở rộng `tests/e2e/motion.spec.ts` cho shell mới.
 
 Viết `features/school/motion.ts` gom các hàm hiệu ứng.
+
+## 15. Tình huống mẫu
+
+Theo [OD-01](12-open-decisions.md#od-01--staging-là-bản-release-thật), các kịch bản là ví dụ để khách đọc và thử. Trang `/vi-du` công khai, nội dung tĩnh trong bundle, mode Read.
+
+```text
+┌────────────────────────────────┐
+│ Tình huống mẫu                 │
+│ Mọi nhân vật đều là hư cấu.    │
+│                                │
+│ Bị lập nhóm nói xấu            │
+│ Minh An, lớp 7. Xem cách Trợ   │
+│ lý giúp em lưu lại và nói với  │
+│ cô chủ nhiệm.                  │
+│ [Đọc] [Thử tình huống này]     │
+│ ─────────────────────────────  │
+│ Bị chặn đường đòi tiền         │
+│ ...                            │
+└────────────────────────────────┘
+```
+
+Mỗi tình huống gồm phần đọc (chuyện gì xảy ra, Trợ lý làm gì, vì sao) và nút thử. Bấm thử: tạo phiên khách nếu chưa có, điền sẵn câu mở đầu vào ô nhập, **chờ người dùng bấm gửi**. Với tình huống có hồ sơ, tạo sẵn hồ sơ mẫu trong tài khoản khách, tự xóa sau 2 giờ.
+
+Tình huống có nội dung nhạy cảm chỉ ở mức không mô tả. Không lưới thẻ cùng cỡ: danh sách đọc có nhịp, theo craft floor.
 

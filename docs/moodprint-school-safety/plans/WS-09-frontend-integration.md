@@ -4,7 +4,7 @@
 
 ## 1. Mục tiêu và giá trị
 
-Một giao diện yên tĩnh, rõ ràng, được đầu tư tới từng chi tiết, luôn có lối thoát và lối gọi giúp. Demo là nơi người xem đánh giá sản phẩm, nên giao diện phải hoàn thiện như bản thật.
+Một giao diện yên tĩnh, rõ ràng, được đầu tư tới từng chi tiết, luôn có lối thoát và lối gọi giúp. Đây là bản release thật, khách tự trải nghiệm, nên giao diện phải hoàn thiện.
 
 ## 2. Hiện trạng đã xác minh
 
@@ -23,7 +23,8 @@ features/school/
   SchoolApp.tsx  school.css  routes.ts
   shell/{AppBar,TabBar,EmergencyButton,EmergencySheet,QuickExit,NeutralMode}.tsx
   chat/{ChatScreen,Composer,MessageList,EmergencyCardView,ProposalCardView,SourceSheet}.tsx
-  cases/{CaseList,CaseTimeline,EventDetail,EvidenceUpload,SelfCheck,PinGate,PdfPreview}.tsx
+  cases/{CaseList,CaseTimeline,EventDetail,EvidenceUpload,PinGate,PdfPreview}.tsx
+  samples/{SamplesPage,SampleDetail}.tsx
   support/{SupportPage,PlatformGuide,TrustedAdults,SafetyPlan,Card111View}.tsx
   practice/...
   settings/SettingsPage.tsx
@@ -68,7 +69,7 @@ Không.
 | WS-09-T06 | P0 | WS-05-T10 | Citation, `SourceSheet`, nhãn tham khảo | Nhãn hiện theo `sourceMarked`, không theo text | Spec trên | Pass |
 | WS-09-T07 | P1 | WS-03-T10 | Khi gửi lỗi mạng: chạy `screen.ts`; đỏ thì hiện template offline | Giữ nguyên tin đã gõ | `npm test`; spec offline | Pass |
 | WS-09-T08 | P1 | WS-06-T03 | `CaseList`, `CaseTimeline`, `EventDetail`, lịch sử phiên bản | Thời điểm xấp xỉ hiển thị đúng; bí danh | `npx playwright test tests/e2e/school-cases.spec.ts` | Pass |
-| WS-09-T09 | P1 | WS-06-T06 | `EvidenceUpload`, `SelfCheck`, tiến trình, hash | Chọn "Có hoặc không chắc" không gọi API upload | Spec trên | Pass |
+| WS-09-T09 | P1 | WS-06-T06 | `EvidenceUpload` ảnh và video, tiến trình, hash, dòng nhắc cố định, xem video | Không có bước hỏi nội dung; video > 6 MiB dùng tus | Spec trên | Pass |
 | WS-09-T10 | P1 | WS-06-T08 | `PinGate` | Không lộ tiêu đề khi khóa | Spec trên | Pass |
 | WS-09-T11 | P1 | WS-06-T11 | `PdfPreview`, chọn phần, tải về | Ba nhãn | Spec trên | Pass |
 | WS-09-T12 | P1 | WS-07 | `TrustedAdults`, `SafetyPlan`, `Card111View`, sao chép tin | Không có nút gửi | `npx playwright test tests/e2e/school-support-plan.spec.ts` | Pass |
@@ -80,6 +81,7 @@ Không.
 | WS-09-T18 | P0 | T13 | `SchoolLanding` mode Persuade, một chuỗi chuyển động; trang Giới hạn của AI | Trình chiếu được ở 1280 và 360 | `npx playwright test tests/e2e/school-entry.spec.ts` | Pass |
 | WS-09-T19 | P0 | T16, T17 | Chạy `critique`, `audit`, `harden`, `onboard`, `clarify`, `adapt`, `polish`; sửa đến khi không còn P0, P1 | `DO_NOT_TRACK=1 npx impeccable detect frontend/src/features/school --json` sạch; quét URL đang chạy sạch | Lệnh detect | Pass: exit 0 |
 | WS-09-T20 | P0 | T19 | `document` cập nhật `DESIGN.md`; ảnh 360 và 1280 mọi màn hình chính trong PR cho owner | Tài liệu khớp thứ đã dựng | Đọc lại | Owner xem |
+| WS-09-T21 | P0 | T05, WS-06-T13 | `/vi-du`, phần đọc, nút "Thử tình huống này"; luồng khách một chạm ở trang giới thiệu; thông báo khách không chặn; `CaptchaChallenge` chạy nền | Từ trang chủ tới tin nhắn đầu tiên không có bước xác minh nào; câu mẫu chờ người dùng bấm gửi | `npx playwright test tests/e2e/school-guest.spec.ts` | Pass |
 
 ## 11. An toàn và bảo mật
 
@@ -99,7 +101,7 @@ API các WS. Không sửa `frontend/` khi fullstack đang chạy: Vite HMR tải
 
 ## 15. Rollback
 
-Shell chỉ tải khi `appProfile=school_safety_demo`.
+Shell chỉ tải khi `appProfile=school_safety`.
 
 ## 16. Definition of Done
 

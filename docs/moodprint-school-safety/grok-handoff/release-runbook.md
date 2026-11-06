@@ -10,7 +10,7 @@ Chỉ coi là xong khi đủ sáu điều:
 2. PR `mhiu05/feat-refactor` → `main` có CI xanh và đã merge.
 3. CI trên push vào `main` xanh, và `Publish verified staging release` thành công cho đúng SHA đó.
 4. Poller trên EC2 đã triển khai `staging-<sha>`; `/api/v1/health/live` và `/api/v1/health/ready` trả OK.
-5. Smoke trên staging bằng tài khoản demo: KB-A/B/C chạy được, có ảnh hoặc Playwright.
+5. Smoke trên staging bằng tài khoản mẫu và khách: KB-A/B/C chạy được, có ảnh hoặc Playwright.
 6. Có release note: SHA, migration đã áp, flag đã bật, giới hạn đã biết, cách rollback.
 
 ## 2. Pipeline thực tế
@@ -52,7 +52,7 @@ Chỉ coi là xong khi đủ sáu điều:
 | Supabase MCP | Chạy bằng role `postgres`, chủ bảng `moodprint`, có quyền CREATE | VERIFIED |
 | AWS MCP | Owner xác nhận có. Phiên audit chưa kiểm chứng: `aws-mcp` timeout, `aws sts` trên máy audit exit 253 | UNKNOWN |
 | `JOURNAL_STORAGE_KEY` trên staging | Chưa rõ | UNKNOWN, kiểm ở preflight |
-| Cấu hình guest trên staging | Chưa rõ | UNKNOWN, kiểm ở preflight |
+| Cấu hình guest trên staging | Chưa rõ | UNKNOWN, kiểm ở preflight. Cần `GUEST_CAPTCHA_SITE_KEY`, `GUEST_ABUSE_HMAC_KEY` |
 
 **Region**: xác nhận tại **AWS Settings > View all projects > Overview > Additional Info > Region**. Nếu không xác nhận được, xem `~/.aws/config`. Mọi tài nguyên Regional phải ở Region được chọn. MVP không tạo tài nguyên AWS mới. Nếu lệnh AWS đột nhiên trả "Access Denied", kiểm tra spend limit tại AWS Settings > Billing. Máy chủ MCP AWS không kết nối được trong phiên audit, nên phần này chưa đối chiếu với tài liệu AWS.
 
@@ -68,7 +68,8 @@ Lần 0029 thêm cột vào bảng đang map nên cần tách tree. Lần này c
 ### Bước 0: điều kiện trước
 
 - [ ] G0–G4 đạt, ghi trong ledger.
-- [ ] OD-02 xong: có ít nhất 40 thẻ approved và template đã duyệt.
+- [ ] OD-02 xong: có ít nhất 40 thẻ approved và template đã duyệt, `reviewed_by: mhiu05`.
+- [ ] Widget Turnstile đã đổi sang Invisible.
 - [ ] `main` CI xanh.
 - [ ] Supabase MCP: `select version_num from moodprint.alembic_version` trả `0029_journal_intelligence`.
 - [ ] AWS MCP: `aws sts get-caller-identity` thành công, không ghi Account hay ARN vào PR. Lỗi thì báo owner đăng nhập lại.
@@ -115,15 +116,25 @@ Ghi lại digest API và web của C: đây là đích rollback.
 Thêm vào `/moodprint/staging/runtime`, không xóa dòng có sẵn:
 
 ```text
-APP_PROFILE=school_safety_demo
-ASSISTANT_MODEL=gpt-6.1-terra
-ASSISTANT_REASONING_EFFORT=medium
+APP_PROFILE=school_safety
+OPENAI_MODEL=gpt-6-luna
 AI_TIMEOUT_SECONDS=60
 AI_DAILY_BUDGET_USD=20
 TTS_PROVIDER=openai_realtime
 TTS_MODEL=gpt-realtime-2.1-mini
-TTS_VOICE=<giọng owner đã chọn>
+TTS_VOICE=marin
 STT_MODEL=gpt-transcribe
+GUEST_AUTH_ENABLED=true
+GUEST_PAID_ENABLED=true
+GUEST_DAILY_BUDGET_USD=5
+GUEST_PRICING_JSON=<theo WS-02-T12>
+GUEST_AI_TURNS=200
+GUEST_AI_PER_MINUTE=20
+GUEST_VOICE_CLIPS=60
+GUEST_VOICE_SECONDS=1800
+GUEST_VOICE_PER_MINUTE=6
+GUEST_AI_GLOBAL_CONCURRENCY=30
+GUEST_VOICE_GLOBAL_CONCURRENCY=5
 ```
 
 Cách làm: tải giá trị vào file tạm mode 600 hoặc bộ nhớ, chỉnh, `put-parameter --type SecureString --overwrite`, xóa file tạm. Ghi lại số version cũ để khôi phục. So tên khóa trước và sau. Không in giá trị.
@@ -179,7 +190,7 @@ Sau đó: `/ready` phải vẫn 200 trên C.
 
 ```bash
 # Khóa server lấy từ SSM vào environment của process, không in, không ghi file trong repo
-python scripts/seed_school_demo.py --apply --credentials-file <path mode 600, ngoài repo>
+python scripts/seed_school_samples.py --apply --credentials-file <path mode 600, ngoài repo>
 ```
 
 Nếu khóa server không có quyền Auth Admin, báo owner. Giao file mật khẩu cho owner qua kênh riêng, không qua PR.
@@ -188,15 +199,17 @@ Worker tự sync KB sau khởi động. Kiểm tra `select count(*) from moodpri
 
 ### Bước 8: smoke
 
-Theo [kịch bản](../demo/scenarios-KB-A-B-C.md) và [ca trình diễn](../demo/showcase-cases.md), với **model thật**. Ca xác suất chạy 3 lần. Thêm:
+Theo [kịch bản](../demo/scenarios-KB-A-B-C.md) và [tình huống mẫu](../demo/showcase-cases.md), với **model thật**. Ca xác suất chạy 3 lần. Thêm:
 
 - `POST /auth/signup` trả 403.
+- `/vi-du` mở được, nút thử tạo phiên khách.
 - Route denylist trả 404.
 - Tài khoản 18+ không vào được app.
 - `/ho-tro` mở được khi chưa đăng nhập.
 - Không có nội dung tin nhắn trong log: `journalctl`, `docker logs`.
 - Ghi chi phí smoke vào release note. Không tính vào trần eval live.
-- Xác nhận `ai_usage.model` là `gpt-6.1-terra` cho lượt agent, TTS phát được trên điện thoại thật.
+- Xác nhận `ai_usage.model` là `gpt-6-luna`, TTS phát được trên điện thoại thật.
+- Luồng khách chạy tay bằng trình duyệt thật: CAPTCHA từng chặn trình duyệt tự động. Từ trang chủ tới tin đầu tiên không có bước xác minh. Sau hạn, dữ liệu khách không còn.
 
 ### Bước 9: release note
 
@@ -210,13 +223,13 @@ Ghi `docs/moodprint-school-safety/evidence/release.md`.
 | Smoke fail sau khi F đã healthy | Chạy SSM document `ssm-document.json` với `apiImage`, `webImage` của C (digest), `releaseSha` của C. Không đổi schema. Báo owner kèm chẩn đoán |
 | Poller sẽ deploy lại F? | Poller so `main` với state; sau rollback tay, tạm dừng timer hoặc đẩy bản sửa. Hỏi owner |
 | SQL fail | Giao dịch tự rollback; revision giữ 0029; C vẫn chạy |
-| Cần tắt demo | Khôi phục version SSM cũ, deploy lại |
+| Cần quay về bản cũ | Khôi phục version SSM cũ, deploy lại |
 
 **Không** downgrade schema trên hosted. Không chạy `DROP`, `TRUNCATE`. Trên hệ thống có rollback image, luôn xác nhận `READY_REVISIONS` của image đó nhận revision hiện tại.
 
 ## 7. Giới hạn của Grok
 
-Theo §8.3 của prompt: không push thẳng hay force-push `main`; không tắt, skip, nới CI; không xóa test; không đưa secret vào code, log, commit, PR; không phá dữ liệu hosted; staging không mở cho người dùng thật.
+Theo §8.3 của prompt: không push thẳng hay force-push `main`; không tắt, skip, nới CI; không xóa test; không đưa secret vào code, log, commit, PR; không phá dữ liệu hosted; không quảng bá tới học sinh khi OD-15 chưa trả lời.
 
 Dừng và hỏi owner khi: cần credential chưa có; CI đỏ sau 3 lần thử theo 3 hướng; gate không đạt; gặp mục chưa trả lời trong [12-open-decisions](../12-open-decisions.md).
 

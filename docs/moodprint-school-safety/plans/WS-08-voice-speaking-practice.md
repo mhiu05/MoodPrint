@@ -20,7 +20,7 @@ Theo [08](../08-speaking-practice-design.md). Mỗi lượt là một lượt `t
 
 ## 5. Phạm vi
 
-Trong: ba chế độ, push-to-talk, transcript sửa được, tổng kết, lưu có xác nhận, ca SC-09. Ngoài: GPT-Live, Realtime speech-to-speech, lưu audio.
+Trong: ba chế độ cho cả khách và tài khoản mẫu, push-to-talk, transcript sửa được, tổng kết, lưu có xác nhận, ca SC-09. Ngoài: GPT-Live, Realtime speech-to-speech, lưu audio.
 
 ## 6. File và symbol bị ảnh hưởng
 
@@ -49,7 +49,7 @@ class SpeechRequest(DTO):
     message_id: UUID
 ```
 
-Setting mới: `tts_provider` (`none`, `openai_realtime`, `openai_speech`), `tts_model` (mặc định `gpt-realtime-2.1-mini`), `tts_voice` (mặc định `marin`, TO_VERIFY với Realtime), `practice_global_concurrency`, `practice_max_turns`, `practice_tts_max_chars`. Không có key mới: dùng `openai_api_key`.
+Setting mới: `tts_provider` (`none`, `openai_realtime`), `tts_model` (mặc định `gpt-realtime-2.1-mini`), `tts_voice` (mặc định `marin`, TO_VERIFY với Realtime), `practice_global_concurrency`, `practice_max_turns`, `practice_tts_max_chars`. Không có key mới: dùng `openai_api_key`.
 
 ## 9. Dữ liệu và migration
 
@@ -65,14 +65,14 @@ Setting mới: `tts_provider` (`none`, `openai_realtime`, `openai_speech`), `tts
 | WS-08-T04 | P1 | T03 | `scenarios`, prompt theo chế độ, không tool ghi | Luôn công bố AI; `call_111` không xưng tổng đài viên | `pytest -q tests/test_practice_prompt.py` | Pass |
 | WS-08-T05 | P1 | T03, WS-03 | Turn đi qua safety; đỏ dừng phiên | Template hiện; phiên `ended`; không gọi TTS | `pytest -q tests/test_practice_safety.py` | Pass |
 | WS-08-T06 | P1 | T02 | `verbatim.py`: `verbatim_ok(expected, transcript)` | Khớp sau chuẩn hóa ≥ 0,92; thiếu chữ số là fail; câu thêm lời ngoài văn bản là fail; postcheck trên transcript | `pytest -q tests/test_practice_verbatim.py` | Pass: bảng mẫu đúng và lệch |
-| WS-08-T07 | P1 | T06 | `OpenAIRealtimeSynthesizer` qua `AsyncOpenAI.realtime.connect`, đúng các bước ở [08 §6](../08-speaking-practice-design.md#cách-làm-realtime-thành-bộ-đọc); `OpenAISpeechApiSynthesizer`; `FakeSynthesizer` | Timeout 10 giây; giới hạn 2 MB; đóng WebSocket mọi nhánh; ghi `speech_usage` từ `response.done`; sau 06/01/2027 `openai_speech` thành `none` | `pytest -q tests/test_practice_tts.py` với server WS giả | Pass |
+| WS-08-T07 | P1 | T06 | `OpenAIRealtimeSynthesizer` qua `AsyncOpenAI.realtime.connect`, đúng các bước ở [08 §6](../08-speaking-practice-design.md#cách-làm-realtime-thành-bộ-đọc); `FakeSynthesizer` | Timeout 10 giây; giới hạn 2 MB; đóng WebSocket mọi nhánh; ghi `speech_usage` từ `response.done` | `pytest -q tests/test_practice_tts.py` với server WS giả | Pass |
 | WS-08-T08 | P1 | T07 | Route speech | Chỉ đọc message của chính run; ≤ 400 ký tự; `verbatim_ok` sai → 503 `SPEECH_UNAVAILABLE`, audio bị bỏ; không lưu | `pytest -q tests/test_practice_speech.py` | Pass: client không truyền được text |
-| WS-08-T09 | P1 | T08 | Nghe thử 20 câu trên hai tùy chọn, kết quả vào `.tmp/tts-trial/`; báo cáo `verbatim_ok`, độ trễ, chi phí | Owner nghe, chọn giọng | `python -m evals.practice.tts_trial --confirm-live --max-usd 0.35` | **Cần owner nghe** |
+| WS-08-T09 | P1 | T08 | Kiểm tra tự động 20 câu: tỷ lệ `verbatim_ok`, độ trễ, chi phí, kết quả vào `.tmp/tts-trial/` | `verbatim_ok` ≥ 95%; nếu thấp hơn báo owner | `python -m evals.practice.tts_trial --confirm-live --max-usd 0.25` | Pass |
 | WS-08-T10 | P2 | T04 | `challenging`: danh sách phản ứng duyệt sẵn, tối đa một lần; tắt khi nhãn nhạy cảm | Em tự bật; có câu gợi ý đáp | `pytest -q tests/test_practice_challenging.py` | Pass |
 | WS-08-T11 | P1 | T04 | `summary.py`, proposal `practice_summary_save` | Lưu cần xác nhận | `pytest -q tests/test_practice_summary.py` | Pass |
 | WS-08-T12 | P1 | T03 | Semaphore 5, 429 `PRACTICE_BUSY` | Quá tải không làm hỏng chat | `pytest -q tests/test_practice_concurrency.py` | Pass |
 | WS-08-T13 | P1 | T03 | UI `HoldToTalk`, `Waveform`, `PracticeRoom`, dùng `encodeWav`, `pcm-worklet.js` | Pointer, Space, chế độ chạm; sóng âm theo RMS thật, tôn trọng reduced motion; orb `listening` 64; nhập chữ luôn có; thu lại, dừng, thoát | `npm test`; `npx playwright test tests/e2e/school-practice.spec.ts` | Pass với mic giả của Chromium |
-| WS-08-T14 | P2 | T04 | `evals/practice`: 20 kịch bản, 5 chạy live | Trong trần 0,50 USD | `python -m evals.practice --live --confirm-live --max-usd 0.50 --output <file>` | Pass |
+| WS-08-T14 | P2 | T04 | `evals/practice`: 20 kịch bản, 5 chạy live | Trong trần 0,40 USD | `python -m evals.practice --live --confirm-live --max-usd 0.40 --output <file>` | Pass |
 
 ## 11. An toàn và bảo mật
 
@@ -88,7 +88,7 @@ Ba chế độ chạy với model thật trên staging; TTS lỗi vẫn dùng đ
 
 ## 14. Phụ thuộc và blocker
 
-Owner nghe thử. iOS Safari có quy tắc phát audio theo tương tác; nút phát phải do người dùng bấm. Nếu độ trễ hoặc tiếng Việt của Realtime không đạt, dùng `openai_speech` trước 06/01/2027 và báo owner về ngày thi.
+WS-02-T12 mở giọng nói cho khách. iOS Safari có quy tắc phát audio theo tương tác; nút phát phải do người dùng bấm. Nếu độ trễ hoặc tiếng Việt của Realtime không đạt, đặt `TTS_PROVIDER=none` và báo owner.
 
 ## 15. Rollback
 

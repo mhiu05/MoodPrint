@@ -43,7 +43,7 @@ Theo §8.2 của prompt: sửa code, test, migration, config, CI, Dockerfile, do
 
 ## Giới hạn
 
-Không push thẳng hay force-push `main`. Không tắt, skip, nới CI. Không xóa test. Không đưa secret vào code, log, commit, PR. Không phá dữ liệu hosted. Staging không mở cho người dùng thật. Không tự điền `reviewed_by`. Eval live không vượt 2,80 USD tổng.
+Không push thẳng hay force-push `main`. Không tắt, skip, nới CI. Không xóa test. Không đưa secret vào code, log, commit, PR. Không phá dữ liệu hosted. Không quảng bá tới học sinh khi OD-15 chưa trả lời. Không điền `reviewed_by` cho mục mhiu05 chưa đánh dấu. Eval live không vượt 2,80 USD tổng. Chỉ dùng `gpt-6-luna` cho model ngôn ngữ.
 
 ## Hỏi owner khi
 
@@ -101,7 +101,10 @@ Dọn DB: `python scripts/disposable_postgres.py --remove <run_id>`.
 | `%%` trong SQL offline | PL/pgSQL lỗi | Dùng `'...' \|\| quote_ident(r)` |
 | Tool lỗi `reasoning` chiếm `max_output_tokens` | Stream incomplete | `reasoning` thấp, `max_tokens` đủ |
 | Merge `main` liên tiếp | Publish bị bỏ qua | Chờ CI của lần trước |
-| `gpt-4o-mini-tts` | Tắt 06/01/2027 | Chỉ là phương án phụ, đường chính là Realtime |
+| `gpt-4o-mini-tts` | Tắt 06/01/2027 | Không dùng |
+| Thêm route mới bằng `require_registered_actor` | Khách bị chặn | Khách dùng được mọi tính năng |
+| Thêm bảng mà quên `guests/lifecycle.py` | Dữ liệu khách không tự xóa, test inventory đỏ | Cập nhật cùng PR |
+| Commit ảnh chụp app | Repo công khai | Giữ trong `.tmp/` |
 | Phát audio Realtime chưa kiểm tra | Nói khác văn bản đã duyệt | Luôn qua `verbatim_ok` trước |
 | Chế độ song song của `input_guardrail` | Agent chạy trước khi có kết quả an toàn | `run_in_parallel=False` |
 

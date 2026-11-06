@@ -13,7 +13,7 @@ Tên nhánh trong prompt là `feat/refactor`, nhưng owner đã chốt dùng `mh
 | A1 | Chat hiện **không có** luồng khẩn cấp: khi có distress, turn vẫn đi thẳng tới LLM, không template, không nút gọi. Không có số 111/113/115 trong `backend/app` lẫn `frontend/src`. | VERIFIED |
 | A2 | Trên bộ thử 15 câu, `distress_screen` bắt đúng 2 câu, báo nhầm 2 câu (phủ định, trong phim) và bỏ sót 9 câu nguy hiểm, gồm toàn bộ 5 câu về vũ khí, tống tiền, xâm hại, thương tích. | VERIFIED |
 | A3 | Hạ tầng run, accounting, SSE, idempotency, receipt và proposal đủ tốt để tái dùng cho một agent có tool. Không cần viết lại runtime. | VERIFIED |
-| A4 | Eligibility 18+ tập trung ở `verify_actor`, nên profile demo chỉ cần đổi 2 cổng thay vì 15 call site. | VERIFIED |
+| A4 | Eligibility 18+ tập trung ở `verify_actor`, nên profile `school_safety` chỉ cần đổi 2 cổng thay vì 15 call site. | VERIFIED |
 | A5 | Bot id mới `troly` tự tách khỏi V3: `prepare_turn`, `orchestrates`, skills, web/Maps đều chỉ mở cho `V3_IDS`. | VERIFIED |
 | A6 | `ai_messages.citations/source_backed`, `Citation` và `CitationText.tsx` dùng lại được cho nhãn tham khảo và trích dẫn KB. | VERIFIED |
 | A7 | OpenAI đã deprecate `tts-1`, `tts-1-hd`, `gpt-4o-mini-tts`; shutdown **06/01/2027**. Đường chính của Luyện nói phải là `gpt-realtime-2.1-mini`. | VERIFIED (docs OpenAI, tra 06/11/2026) |
@@ -42,14 +42,14 @@ Tên nhánh trong prompt là `feat/refactor`, nhưng owner đã chốt dùng `mh
 
 | # | Kết quả | Chi tiết | Nhãn |
 | --- | --- | --- | --- |
-| O1 | Đúng | `AiRuntime.runs/store/proposals/slots/streams`, `AttemptLimiter`, `VOICE_SLOTS` đều trong RAM process. Compose có đúng một `api`. Hệ quả: khóa Hồ sơ, phiên luyện nói và rate limit mất khi restart. Chấp nhận được cho demo; không scale được. | VERIFIED |
+| O1 | Đúng | `AiRuntime.runs/store/proposals/slots/streams`, `AttemptLimiter`, `VOICE_SLOTS` đều trong RAM process. Compose có đúng một `api`. Hệ quả: khóa Hồ sơ, phiên luyện nói và rate limit mất khi restart. Chấp nhận được ở quy mô hiện tại; không scale được. | VERIFIED |
 | O2 | Đúng | `V3_PERSONAS`, `SHARED`, `STRATEGY`, `VERSIONS`, `LEGACY_BOTS` trong `ai/prompts.py`. Năm bot cũ đọc được qua `/bots/legacy`, ghi bị `assert_companion_open` chặn. Gộp bằng id mới `troly`, không sửa prompt cũ (bytes bị đóng băng cho eval). | VERIFIED |
 | O3 | Đúng | Thêm `Workflow` (874 dòng) dùng `Agent.as_tool` và handoff thật. Không dùng trong kiến trúc mới. Chỉ giữ ý tưởng: policy thuần, receipt, hook kiểm tra quyền trước mỗi model call. | VERIFIED |
 | O4 | Đúng, và nặng hơn mô tả | Xem §4. | VERIFIED |
 | O5 | Đúng | 6 skill; `SkillRegistry` whitelist theo `SPECS`, giới hạn 16 KiB, kiểm tra symlink và frontmatter, tính SHA-256. Tái dùng cơ chế nạp cho playbook. `resolve_skill` chỉ chạy cho `V3_IDS`. | VERIFIED |
 | O6 | Đúng | So sánh semantics ở §6. `deploy/supabase/journal-media.sql` chưa áp lên hosted theo `docs/supabase/journal-storage.md`; default deny đã kiểm chứng lúc đó. | VERIFIED |
 | O7 | Đúng, có sai khác | Có `EmbeddingJob`, `JournalEntryEmbedding`, `VoyageProvider`. Tìm kiếm hiện tại **không phải RRF**: gộp theo thứ tự semantic → keyword → recent; keyword dùng `icontains`, không FTS. `ai/search/citations.py` tồn tại (`render_grounded_reply`). | VERIFIED |
-| O8 | Đúng | `prepare_turn` trả `[]` nếu bot không thuộc `V3_IDS`. Với `troly` web/Maps tắt mặc định; profile demo tắt thêm cờ. | VERIFIED |
+| O8 | Đúng | `prepare_turn` trả `[]` nếu bot không thuộc `V3_IDS`. Với `troly` web/Maps tắt mặc định; profile `school_safety` tắt thêm cờ. | VERIFIED |
 | O9 | Đúng | `AGE_POLICY_VERSION = self-declared-age-v2-18plus`. `users.age_band` có CHECK `('unknown','under16','teen','adult')`, nên không thêm giá trị mới vào cột này. | VERIFIED |
 | O10 | **Sai một phần** | Câu "guest giữ trạng thái trong RAM" ở `ARCHITECTURE.md` §8 nói về trạng thái tour. Guest thật là anonymous Supabase + hàng `users` (`account_kind='guest'`), hạn 2 giờ. Frontend gửi `persistent: !!preferences?.historyAvailable`, nên transcript guest **xuống** `ai_messages` tới khi cleanup. Xem §7. | VERIFIED |
 | O11 | Đúng | Router được mount trong `create_app`. | VERIFIED |
@@ -153,7 +153,9 @@ Kết luận: tạo bảng riêng, chỉ tái dùng tầng Storage và upload. K
 | Transcript khi `persistent=false` | RAM (`ConversationStore`) | Hết hạn, restart | VERIFIED |
 | Nội dung gửi model | OpenAI, `store=False`; không phải zero data retention | Theo chính sách nhà cung cấp | VERIFIED |
 
-Trong code, API không ép guest dùng hội thoại tạm. Profile demo phải ép `persistent=False` phía server. "Không lưu dữ liệu" phải được nói thật là **không lưu nội dung**; metadata vẫn tồn tại tới khi cleanup. Guest cũng cần CAPTCHA và ngân sách guest; nếu chưa cấu hình thì chế độ khách đóng. Xem [OD-05](12-open-decisions.md#od-05--chế-độ-khách).
+Trong code, API không ép guest dùng hội thoại tạm. Theo [OD-05](12-open-decisions.md#od-05--chế-độ-khách), khách có đủ tính năng và dữ liệu tự xóa sau 2 giờ, nên không ép hội thoại tạm. Guest cần token CAPTCHA và ngân sách guest; thiếu cấu hình thì chế độ khách đóng.
+
+**Hai giới hạn trong code phải sửa để khách dùng thoải mái**: dưới cấu hình có trần, `kind_available` trả sai với mọi loại trừ `ai`, nên guest không dùng được giọng nói; `ai_upper` giữ 1,53 USD mỗi lượt trên trần 5 USD, nên chỉ khoảng 3 lượt guest chạy đồng thời. Xem [OD-05](12-open-decisions.md#od-05--chế-độ-khách).
 
 ## 8. Bẫy accounting (O17)
 
@@ -197,10 +199,11 @@ Không sửa trong phiên này. Grok xử lý trong WS-10.
 | Rủi ro | Mức | Xử lý |
 | --- | --- | --- |
 | Không có người duyệt KB và template | Cao | OD-02 chặn G5. Grok không được tự điền `reviewed_by` |
-| Flip staging sang demo khóa tài khoản 18+ hiện có | Đã chấp nhận | OD-01 đã chốt |
-| Hosted dùng chung với dữ liệu thật có thể có | Trung bình | Seed và reset chỉ chạm hàng demo |
+| Flip staging khóa tài khoản 18+ hiện có | Đã chấp nhận | OD-01 đã chốt |
+| Hosted dùng chung với dữ liệu thật có thể có | Trung bình | Seed và reset chỉ chạm hàng có `sample_persona` |
 | Không có branch protection | Trung bình | Kỷ luật ở §8.3 của prompt; OD-09 đề xuất bật |
-| TTS tiếng Việt chưa nghe thử | Trung bình | Owner nghe thử trước G3; `verbatim_ok` kiểm tra tự động |
+| Giọng tiếng Việt của Realtime chưa kiểm chứng | Trung bình | `verbatim_ok` tự động; lỗi thì `TTS_PROVIDER=none` |
 | AWS chưa kiểm chứng trong phiên audit | Trung bình | Preflight ở runbook |
 | CI ~35 phút, main đổi thì release bỏ qua | Trung bình | Merge tuần tự, xem runbook |
-| OpenAI yêu cầu ZDR trước khi xử lý dữ liệu cá nhân trẻ dưới 13 | Cao khi thí điểm | Demo hư cấu không vướng; ghi vào cổng trước thí điểm |
+| OpenAI yêu cầu ZDR trước khi xử lý dữ liệu cá nhân trẻ dưới 13 | Cao nếu có học sinh thật | [OD-15](12-open-decisions.md#od-15--ai-được-dùng-bản-release-này) |
+| Nhận mọi ảnh, video từ khách không xác minh | Cao | [OD-03](12-open-decisions.md#od-03--upload-ảnh-video) |

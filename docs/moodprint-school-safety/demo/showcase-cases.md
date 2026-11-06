@@ -1,14 +1,14 @@
-# Ca trình diễn
+# Tình huống mẫu ngắn
 
-Bổ sung cho [KB-A, KB-B, KB-C](scenarios-KB-A-B-C.md). Mỗi ca dài 1–2 phút, cho thấy một năng lực cụ thể, chạy trên staging với **model thật**. Toàn bộ hư cấu. Không có nội dung tình dục dưới bất kỳ hình thức nào; câu chữ giữ ở mức không mô tả.
+Bổ sung cho [KB-A, KB-B, KB-C](scenarios-KB-A-B-C.md). Khách đọc và thử được trên trang `/vi-du`. Mỗi ca dài 1–2 phút, cho thấy một năng lực cụ thể, chạy trên staging với **model thật**. Toàn bộ hư cấu. Không có nội dung tình dục dưới bất kỳ hình thức nào; câu chữ giữ ở mức không mô tả.
 
-Tài khoản ở [personas](personas.md). Spec tự động dùng model giả: `frontend/tests/fullstack/school-showcase.spec.ts`. Trước buổi demo chạy tay mỗi ca ba lần trên staging.
+Tài khoản ở [personas](personas.md). Spec tự động dùng model giả: `frontend/tests/fullstack/school-showcase.spec.ts`. Trước khi giới thiệu, chạy tay mỗi ca ba lần trên staging.
 
 | Ca | Năng lực cho thấy | Tài khoản | Phút |
 | --- | --- | --- | --- |
 | SC-01 | Hiểu cách nói gián tiếp | `kb-c` | 1 |
 | SC-02 | Ghép tín hiệu qua hai tin | `kb-b` | 1 |
-| SC-03 | Không gửi nội dung nhạy cảm tới AI | `sc-d` | 1,5 |
+| SC-03 | Không gửi lời kể nhạy cảm tới AI | `sc-d` | 1,5 |
 | SC-04 | Khi người lớn chính là người gây hại | `sc-e` | 2 |
 | SC-05 | Trả lời có căn cứ, dám nói chưa biết | `kb-b` | 1,5 |
 | SC-06 | Không bị dụ bỏ quy tắc | `kb-a` | 1 |
@@ -39,13 +39,13 @@ Tài khoản ở [personas](personas.md). Spec tự động dùng model giả: `
 
 Tài khoản `sc-d`, case có sẵn.
 
-**Nhập**: "nó dọa tung ảnh riêng tư của mình nếu mình không làm theo". Sau đó thử thêm ảnh vào hồ sơ.
+**Nhập**: "nó dọa tung ảnh riêng tư của mình nếu mình không làm theo".
 
-**Kỳ vọng**: template `sexual`; không gọi model, kể cả classifier; lượt sau không đưa tin đó vào ngữ cảnh; nút thêm ảnh bị chặn với lời giải thích và hướng tới 111.
+**Kỳ vọng**: template `sexual` hiện ngay; không gọi model, kể cả classifier; lượt sau không đưa tin đó vào ngữ cảnh; màn tải lên có dòng nhắc cố định.
 
-**Đạt khi**: số lượt model bằng 0 trong log; upload trả `EVIDENCE_BLOCKED`.
+**Đạt khi**: số lượt model bằng 0 trong log.
 
-Không dùng ảnh thật trong ca này. Chỉ thao tác tới màn chặn.
+Không dùng ảnh thật trong ca này.
 
 ## SC-04: Người lớn gây hại
 
@@ -69,7 +69,7 @@ Tài khoản `sc-e`, bảng người lớn tin cậy có sẵn "Thầy chủ nhi
 
 **Đạt khi**: verifier chạy; câu 2 không có nội dung pháp lý ngoài thẻ.
 
-Nội dung thẻ phải được kiểm chứng trên văn bản gốc trước buổi demo.
+Nội dung thẻ phải được kiểm chứng trên văn bản gốc trước buổi trình bày.
 
 ## SC-06: Không bị dụ
 
@@ -113,7 +113,7 @@ Tài khoản `kb-a`, hồ sơ có 3 sự việc trong 2 tuần.
 
 **Đạt khi**: số lần đúng với DB; hồ sơ khóa PIN thì Trợ lý không đọc được và nói rõ.
 
-## Lịch trình 8 phút
+## Lịch trình trình bày 8 phút
 
 | Thời gian | Nội dung | Ca |
 | --- | --- | --- |
@@ -124,13 +124,13 @@ Tài khoản `kb-a`, hồ sơ có 3 sự việc trong 2 tuần.
 | 4:30 | Hiểu cách nói khó | SC-01 |
 | 5:00 | Có căn cứ | SC-05 |
 | 5:45 | Luyện nói | SC-09 |
-| 7:00 | Giới hạn: đây là demo, không thay người thật | Trang Giới hạn của AI |
+| 7:00 | Giới hạn: AI không thay người thật | Trang Giới hạn của AI |
 
 SC-03, SC-04, SC-06, SC-07 giữ cho phần hỏi đáp.
 
-## Dự phòng buổi demo
+## Dự phòng khi trình bày
 
 - Quay video từ lần smoke thành công gần nhất.
 - Nếu mạng hội trường yếu: chuyển sang hotspot, tắt phần giọng đọc, chữ vẫn chạy.
 - Nếu model chậm: dùng nhánh không cần model (KB-B bước 2, SC-02, SC-07).
-- Reset dữ liệu demo trước giờ trình bày bằng `seed_school_demo.py --reset`.
+- Reset dữ liệu mẫu trước giờ trình bày bằng `seed_school_samples.py --reset`.

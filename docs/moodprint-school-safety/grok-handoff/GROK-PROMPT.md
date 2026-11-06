@@ -12,7 +12,7 @@ Nhánh nền: mhiu05/feat-refactor. Toàn bộ kế hoạch nằm trong docs/moo
 2. docs/moodprint-school-safety/grok-handoff/README.md
 3. docs/moodprint-school-safety/grok-handoff/execution-order.md
 4. docs/moodprint-school-safety/grok-handoff/release-runbook.md
-5. docs/moodprint-school-safety/12-open-decisions.md
+5. docs/moodprint-school-safety/12-open-decisions.md (đọc kỹ phần Trả lời và Lưu ý)
 Mỗi workstream: đọc plans/WS-xx-*.md và tài liệu thiết kế nó trỏ tới. Không tự thiết kế lại sản phẩm hay kiến trúc. Nếu plan sai so với code thật, sửa theo code, cập nhật plan trong cùng PR và ghi lý do.
 
 BỐI CẢNH ĐÃ CHỐT
@@ -20,10 +20,14 @@ BỐI CẢNH ĐÃ CHỐT
 - Một agent duy nhất tên hiển thị "Trợ lý", bot_id troly. Không multi-agent, không handoff.
 - An toàn cứng nằm ngoài model. Nhánh đỏ chạy bằng rule, trước mọi cổng AI.
 - Tool chỉ tạo proposal. Người dùng bấm xác nhận mới lưu.
-- Staging giữ tên, bản chất là demo với persona hư cấu, nhưng chạy model thật. Không mở cho người dùng thật. Không dùng dữ liệu trẻ em thật.
-- Demo không có nghĩa làm qua loa: độ thông minh của agent và độ chi tiết giao diện phải như sản phẩm thật.
-- Agent dùng gpt-6.1-terra, reasoning medium. Classifier và verifier dùng gpt-6-luna. STT gpt-transcribe, TTS gpt-realtime-2.1-mini, đều bằng OPENAI_API_KEY hiện có.
-- Profile default và hành vi 18+ production không đổi.
+- Staging là bản release thật, không có chế độ demo, chạy model thật. APP_PROFILE=school_safety chỉ là công tắc kỹ thuật để cô lập hệ thống cũ.
+- Khách vào thẳng một chạm: không hỏi tuổi, không có màn điều khoản, đủ tính năng, dữ liệu tự xóa sau 2 giờ. Turnstile chạy nền, người dùng không thấy. Đăng ký tài khoản vẫn đóng.
+- Kịch bản trong demo/ là tình huống mẫu để khách đọc và thử trên trang /vi-du. Persona là hư cấu. Không dùng dữ liệu trẻ em thật.
+- Độ thông minh của agent và độ chi tiết giao diện phải như sản phẩm hoàn chỉnh.
+- Model ngôn ngữ chỉ dùng gpt-6-luna cho agent, classifier, verifier, reasoning medium. STT gpt-transcribe, TTS gpt-realtime-2.1-mini, đều bằng OPENAI_API_KEY hiện có.
+- Hệ thống cũ đóng băng: không sửa, không thêm test, không viết tài liệu cho nó, chỉ cần test cũ tiếp tục xanh. Ngoại lệ duy nhất là WS-01-T01.
+- Hồ sơ nhận mọi ảnh, video, không phân loại nội dung. Ảnh, video không bao giờ gửi tới model.
+- KB nền tảng chỉ gồm Facebook, YouTube, TikTok. Nguồn gợi ý ở kb-source-links.md.
 
 VIỆC ĐẦU TIÊN
 main đang đỏ. Làm WS-01-T01: thêm role="log" aria-live="off" tabIndex={0} aria-label vào .conversation-log ở frontend/src/features/real/groups/GroupChat.tsx dòng 304, PR vào main, chờ CI xanh, merge main vào mhiu05/feat-refactor. Trước đó git fetch và kiểm tra main có đổi không.
@@ -54,7 +58,9 @@ GIỚI HẠN
 - Không tắt, skip, nới CI. Không xóa test, không đánh dấu skip. Test chỉ sửa khi hành vi đổi theo plan, ghi lý do trong PR.
 - Không đưa secret vào code, log, commit, PR. Không đọc backend/.env.
 - Không chạy lệnh phá dữ liệu trên hosted. Migration chỉ đi tiến.
-- Không tự điền reviewed_by, không tự duyệt thẻ KB hay template khẩn cấp.
+- Không tự duyệt thẻ KB hay template khẩn cấp. Chỉ điền reviewed_by: mhiu05 cho mục mhiu05 đã đánh dấu.
+- Không commit ảnh chụp app, vì repo công khai.
+- Không quảng bá sản phẩm tới học sinh khi OD-15 chưa được trả lời.
 - .gitignore chỉ sửa khi task nêu rõ. Hiện không task nào cần.
 - Không dùng người thật, trường thật trong fixture. Không tạo nội dung tình dục dưới bất kỳ hình thức nào.
 
@@ -62,17 +68,17 @@ HỎI OWNER KHI
 - Cần quyền hoặc credential chưa có, kể cả phiên AWS hết hạn.
 - CI đỏ sau 3 lần thử theo 3 hướng khác nhau.
 - Một gate không đạt, hoặc eval hết trần chi phí.
-- Tới các việc cần người: nghe thử giọng đọc, xem ảnh giao diện, duyệt thẻ và template, thu thập hướng dẫn trên app thật.
-- Hành vi profile default có nguy cơ đổi.
+- Tới các việc cần người: xem ảnh giao diện, duyệt thẻ và template, ảnh chụp app thật, đổi Turnstile sang Invisible.
+- Test cũ đỏ vì thay đổi của bạn mà không sửa được trong phạm vi plan.
 Trước khi dừng, hoàn tất mọi việc không phụ thuộc vào câu trả lời đó. Nội dung chưa duyệt không chặn phát triển, chỉ chặn G5.
 
 BÁO CÁO
 Sau mỗi PR merge: link PR, link CI, test đã chạy và kết quả thật, gate đạt hay chưa, việc tiếp theo.
-Sau release: SHA, link workflow, output health check, kết quả smoke KB-A/B/C và SC-01 đến SC-10 với model thật, migration đã áp, cờ đã bật, chi phí, vấn đề còn tồn tại.
+Sau release: SHA, link workflow, output health check, kết quả smoke KB-A/B/C, SC-01 đến SC-10 và luồng khách với model thật, migration đã áp, cờ đã bật, chi phí, vấn đề còn tồn tại.
 Không nói test pass nếu chưa chạy. Không suy ra chất lượng trả lời từ test dùng model giả.
 
 HOÀN THÀNH KHI
-Đủ sáu điều kiện ở release-runbook.md §1 và ca trình diễn trong demo/showcase-cases.md chạy được trên staging với model thật.
+Đủ sáu điều kiện ở release-runbook.md §1, tình huống mẫu trong demo/showcase-cases.md chạy được trên staging với model thật, khách dùng được từ trang chủ không qua bước xác minh nào.
 
 Bắt đầu bằng git fetch, đọc tài liệu theo thứ tự trên, rồi làm WS-01-T01.
 ```

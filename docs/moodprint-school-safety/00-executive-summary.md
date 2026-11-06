@@ -1,6 +1,6 @@
 # MoodPrint School Safety — Tóm tắt
 
-Bộ kế hoạch để chuyển MoodPrint thành ứng dụng giúp học sinh đối mặt với bạo lực học đường và tìm tới được một người lớn tin cậy. Đây là **MVP demo cho P-Innovation 2027**, chạy bằng persona hư cấu nhưng dùng **model thật** trên môi trường staging. Không phải giấy phép phát hành cho trẻ vị thành niên thật.
+Bộ kế hoạch để chuyển MoodPrint thành ứng dụng giúp học sinh đối mặt với bạo lực học đường và tìm tới được một người lớn tin cậy. Đây là **bản release thật trên staging cho P-Innovation 2027**, chạy **model thật**. Khách bấm một lần là dùng được đủ tính năng, có tình huống mẫu để đọc và thử. Chưa hướng tới học sinh thật: xem [OD-15](12-open-decisions.md#od-15--ai-được-dùng-bản-release-này).
 
 Review tại nhánh `mhiu05/feat-refactor`, HEAD `2d00c8d25cfc07eb8cb6939e84ab19386bd72034`, ngày 06/11/2026.
 
@@ -14,14 +14,20 @@ Grok bắt đầu tại [GROK-PROMPT](grok-handoff/GROK-PROMPT.md).
 4. **Bot id mới `troly` tự tách khỏi code cũ.** Skills, web search, Maps, orchestration, collaboration đều không chạy với id này.
 5. **TTS qua OpenAI cần cẩn thận.** Model TTS cũ tắt ngày 06/01/2027. Đường chính là `gpt-realtime-2.1-mini`, backend so transcript trước khi phát để đảm bảo đọc đúng văn bản đã duyệt.
 6. **Nội dung cần người duyệt** là điểm phụ thuộc lớn nhất. Không chặn phát triển nhưng chặn release.
+7. **Khách đang bị code giới hạn.** Dưới cấu hình có trần, guest không dùng được giọng nói và chỉ khoảng 3 lượt chạy đồng thời. Plan đã có task sửa.
+8. **Rủi ro lớn nhất là tổ hợp ba quyết định**: bản release thật, khách không xác minh, nhận mọi ảnh và video. Xem [OD-03](12-open-decisions.md#od-03--upload-ảnh-video).
 
 ## Đã chốt với owner
 
 | Mục | Kết quả |
 | --- | --- |
-| Môi trường | Giữ tên staging, bản chất là demo, chạy model thật |
-| Agent | `gpt-6.1-terra` để đảm bảo độ thông minh; lượt phụ `gpt-6-luna` |
-| STT, TTS | Key OpenAI hiện có |
+| Môi trường | Staging là bản release thật, không có chế độ demo, chạy model thật |
+| Khách | Một chạm, đủ tính năng, dữ liệu tự xóa sau 2 giờ |
+| Model | Chỉ `gpt-6-luna` cho agent, classifier, verifier |
+| STT, TTS | `gpt-transcribe`, `gpt-realtime-2.1-mini`, key OpenAI hiện có |
+| Hệ thống cũ | Đóng băng, ẩn trên staging, không vá |
+| Upload | Nhận mọi ảnh, video, không phân loại nội dung |
+| Nội dung KB | Nền tảng Facebook, YouTube, TikTok; `reviewed_by: mhiu05` |
 | Eval live | Tổng dưới 3 USD |
 | Hosted | Supabase MCP, AWS MCP |
 | Thiết kế | Quy trình impeccable, chuyển động GSAP, thinking bằng thinking-orbs |
@@ -33,14 +39,14 @@ Grok bắt đầu tại [GROK-PROMPT](grok-handoff/GROK-PROMPT.md).
 - Safety engine nhiều tầng nằm ngoài model; nhánh đỏ chạy trước mọi cổng AI.
 - Workflow là state machine phía backend; model chỉ đề xuất.
 - Tool chỉ tạo proposal; người dùng bấm mới lưu.
-- Profile `school_safety_demo` tách biệt; production 18+ không đổi.
+- Profile `school_safety` cô lập hệ thống cũ đã đóng băng; test cũ vẫn xanh.
 - Chỉ thêm bảng mới, nên release và rollback đơn giản.
 
 Chi tiết: [03-target-architecture](03-target-architecture.md), [06-ai-orchestration-and-safety](06-ai-orchestration-and-safety.md).
 
 ## Chi phí ước tính
 
-Khoảng **48 USD/tháng cho 100 người dùng**, **480 USD/tháng cho 1.000 người dùng** với `gpt-6.1-terra`, theo giả định ở [07 §10](07-knowledge-base-design.md#10-chi-phí). Quy mô demo thấp hơn nhiều. Trần vận hành 20 USD/ngày.
+Khoảng **13 USD/tháng cho 100 người dùng**, **133 USD/tháng cho 1.000 người dùng** với `gpt-6-luna`, theo giả định ở [07 §10](07-knowledge-base-design.md#10-chi-phí). Trần vận hành 20 USD/ngày, riêng khách 5 USD/ngày.
 
 ## Lộ trình
 
@@ -58,7 +64,7 @@ Chi tiết: [11-master-implementation-roadmap](11-master-implementation-roadmap.
 
 ## Việc cần owner
 
-Duyệt nội dung (OD-02), nghe thử giọng đọc, xem ảnh giao diện, thu thập hướng dẫn nền tảng trên app thật, đăng nhập AWS nếu phiên hết hạn. Toàn bộ ở [12-open-decisions](12-open-decisions.md).
+Duyệt nội dung (OD-02), chụp màn hình Facebook, YouTube, TikTok trên app thật, đổi Turnstile sang Invisible, trả lời OD-15, xem ảnh giao diện, đăng nhập AWS nếu phiên hết hạn. Toàn bộ ở [12-open-decisions](12-open-decisions.md).
 
 ## Mục lục
 
@@ -76,6 +82,7 @@ Duyệt nội dung (OD-02), nghe thử giọng đọc, xem ảnh giao diện, th
 | [10](10-evaluation-and-quality-gates.md) | Eval, ngân sách, gate, kết quả G0 |
 | [11](11-master-implementation-roadmap.md) | Roadmap |
 | [12](12-open-decisions.md) | Quyết định |
-| [demo/personas](demo/personas.md), [demo/scenarios](demo/scenarios-KB-A-B-C.md), [demo/showcase-cases](demo/showcase-cases.md) | Persona, kịch bản, ca trình diễn |
+| [kb-source-links](kb-source-links.md) | Link nguồn cho thẻ KB |
+| [demo/personas](demo/personas.md), [demo/scenarios](demo/scenarios-KB-A-B-C.md), [demo/showcase-cases](demo/showcase-cases.md) | Tài khoản mẫu, tình huống mẫu |
 | [plans/](plans/WS-01-codebase-migration.md) | WS-01…WS-10 |
 | [grok-handoff/](grok-handoff/README.md) | Bàn giao, runbook, prompt |

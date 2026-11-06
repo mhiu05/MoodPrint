@@ -1,12 +1,12 @@
 # 08 — Luyện nói
 
-Ngày tra cứu: **06/11/2026**. Task ở [WS-08](plans/WS-08-voice-speaking-practice.md). Owner chốt: **STT và TTS đều dùng `OPENAI_API_KEY` hiện có** ([OD-04](12-open-decisions.md#od-04--tts-và-stt-dùng-openai)).
+Ngày tra cứu: **06/11/2026**. Task ở [WS-08](plans/WS-08-voice-speaking-practice.md). Owner chốt: **STT và TTS đều dùng `OPENAI_API_KEY` hiện có** ([OD-04](12-open-decisions.md#od-04--tts-và-stt)).
 
 ## 1. Ràng buộc từ OpenAI
 
 - `tts-1`, `tts-1-hd`, `gpt-4o-mini-tts` shutdown **06/01/2027**, thay bằng `gpt-realtime-2.1-mini` qua Realtime API. Model này không dùng với `/v1/audio/speech`. Nguồn: [deprecations](https://developers.openai.com/api/docs/deprecations), [TTS guide](https://developers.openai.com/api/docs/guides/text-to-speech).
 - Realtime là **mô hình sinh giọng**, không phải bộ đọc. Nó có thể nói khác văn bản đã duyệt.
-- Voice được tối ưu cho tiếng Anh; tiếng Việt phải nghe thử.
+- Voice được tối ưu cho tiếng Anh; chất lượng tiếng Việt sẽ biết ở bước smoke.
 - OpenAI khuyến nghị đường **chained** khi cần "chạy policy check trước khi agent phản hồi, rồi chỉ sinh giọng sau khi workflow có câu trả lời đã duyệt" ([Voice agents](https://developers.openai.com/api/docs/guides/voice-agents#build-a-chained-voice-workflow)). Đúng với yêu cầu của sản phẩm.
 
 **Không dùng GPT-Live, Realtime speech-to-speech**: transcript phải sửa được và qua safety trước agent.
@@ -21,7 +21,7 @@ Ngày tra cứu: **06/11/2026**. Task ở [WS-08](plans/WS-08-voice-speaking-pra
 | `validate_audio`, WAV mono ≤ 30 giây | Tái dùng |
 | `POST /voice/transcriptions` | Tái dùng; thêm `language`, `prompt` |
 | `OpenAITranscriber` | Bọc sau `SpeechTranscriber` |
-| Giới hạn 6/phút, 60/ngày, 1 slot | Giữ; demo nâng ngày lên 120 |
+| Giới hạn 6/phút, 60/ngày, 1 slot | Giữ; profile `school_safety` nâng ngày lên 120 |
 | `TranscriptionPreview.text` ≤ 500 | Giữ, khớp `MessageText` |
 | Giới hạn body 3.000.000 byte, Caddy 3 MB | Giữ; không đổi host |
 | `websockets` | Đã có trong runtime qua `openai-agents`, không thêm dependency |
@@ -106,12 +106,9 @@ Giới hạn: 20 lượt, 20 phút, hết hạn sau 2 giờ. `retry` thu lại, 
 
 ### TTS
 
-| Tùy chọn | Giá | Đọc đúng chữ | Vòng đời | Vai trò |
-| --- | --- | --- | --- | --- |
-| `gpt-realtime-2.1-mini` | 20 USD/1M audio token ra, 0,60 USD/1M text vào. Audio ra 1 token mỗi 50 ms, tức khoảng 0,024 USD/phút | Không đảm bảo, cần so transcript | Hiện hành, được OpenAI chỉ định thay thế | **Đường chính** |
-| `gpt-4o-mini-tts` | 12 USD/1M audio token | Là model TTS | Tắt 06/01/2027 | Phụ, chỉ tới shutdown |
+`gpt-realtime-2.1-mini`: 20 USD/1M audio token ra, 0,60 USD/1M text vào; audio ra 1 token mỗi 50 ms, tức khoảng 0,024 USD/phút. Owner chốt đây là đường chính, không cần nghe thử ([OD-04](12-open-decisions.md#od-04--tts-và-stt)). Không đảm bảo đọc đúng chữ, nên cần so transcript.
 
-`TTS_PROVIDER`: `openai_realtime` (mặc định demo), `openai_speech`, `none`. Sau 06/01/2027, `openai_speech` tự coi như `none` và ghi cảnh báo.
+`TTS_PROVIDER`: `openai_realtime` hoặc `none`.
 
 ### Cách làm Realtime thành bộ đọc
 
@@ -129,11 +126,9 @@ Audio trả về `audio/wav` từ PCM 24 kHz. TO_VERIFY định dạng mặc đ�
 
 Transcript do chính model sinh, nên đây là kiểm tra mạnh chứ không tuyệt đối. Ghi rõ trong tài liệu dự thi.
 
-### Nghe thử
+### Kiểm tra tự động
 
-- 20 câu cố định theo ba chế độ, chạy trên hai tùy chọn, kết quả lưu `.tmp/tts-trial/`, không commit audio.
-- Grok đo tỷ lệ `verbatim_ok`, độ trễ, chi phí.
-- Owner nghe và chọn, một lần trước G3. Không thu giọng trẻ em thật.
+20 câu cố định theo ba chế độ. Grok đo tỷ lệ `verbatim_ok`, độ trễ, chi phí, kết quả lưu `.tmp/tts-trial/`, không commit audio. Không thu giọng trẻ em thật.
 
 Chưa kiểm chứng được chất lượng trên giọng trẻ em và theo vùng miền. Ghi vào giới hạn đã biết.
 
@@ -157,7 +152,7 @@ class SynthesizedAudio:
     output_audio_tokens: int
 ```
 
-Adapter: `OpenAISpeechTranscriber`, `OpenAIRealtimeSynthesizer`, `OpenAISpeechApiSynthesizer`, `FakeSynthesizer`.
+Adapter: `OpenAISpeechTranscriber`, `OpenAIRealtimeSynthesizer`, `FakeSynthesizer`.
 
 ## 8. API
 
@@ -181,6 +176,8 @@ Mọi route có owner check, CSRF, `Idempotency-Key` khi ghi, `assert_purpose("V
 - Không lưu audio ở server.
 
 ## 10. Đồng thời và chi phí
+
+Khách dùng được Luyện nói: `pricing.kind_available` phải mở `voice` dưới cấu hình có trần, `GUEST_PRICING_JSON` thêm giá STT và TTS (WS-02-T12).
 
 Một worker. `practice_global_concurrency = 5`; quá giới hạn trả 429 `PRACTICE_BUSY` kèm gợi ý nhập chữ. WebSocket chỉ mở trong lúc đọc. `speech_usage` ghi mỗi call; `speech_liability` cộng vào `budget_liability`. Khi hết ngân sách: tắt TTS trước, rồi STT, chữ vẫn chạy.
 

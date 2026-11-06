@@ -23,14 +23,16 @@ PR đầu đi thẳng vào `main`, vì `main` đang đỏ.
 | Mục | Nội dung |
 | --- | --- |
 | Điều kiện | G0 |
-| Task | WS-02-T01 → T10; WS-09-T01 sau WS-02-T09 |
+| Task | WS-02-T01 → T10, T12; WS-09-T01 sau WS-02-T09 |
 | Xung đột | `config.py`, `security.py`, `contracts.py`, `main.py`, `RealApp.tsx` (chỉ phần tách export) |
 | Bắt buộc | Toàn bộ backend, frontend; `alembic check` |
 | Gate | Toàn bộ test default pass |
-| Xong khi | Tài khoản demo vào shell rỗng; 18+ bị từ chối ở demo |
+| Xong khi | Khách một chạm và tài khoản mẫu vào shell; 18+ bị từ chối |
 | Rollback | Bỏ `APP_PROFILE` |
 
-**Thứ tự PR**: T01 (settings) → T02 (migration + bot id) → T03–T06 → T07 → T08 → T09 → T10.
+**Thứ tự PR**: T01 (settings) → T02 (migration + bot id) → T03–T06 → T07 → T12 → T08 → T09 → T10.
+
+Từ đây, mọi PR thêm bảng phải phân loại bảng đó trong `guests/lifecycle.py::INVENTORY` ngay trong PR.
 
 ## Giai đoạn 2: an toàn và agent
 
@@ -43,14 +45,14 @@ PR đầu đi thẳng vào `main`, vì `main` đang đỏ.
 | Bắt buộc | Regression chat, `test_accounting*`, eval offline |
 | Gate | G1 |
 | Xong khi | KB-B bước 1–5 chạy với model giả; eval an toàn và hội thoại đạt với model thật |
-| Rollback | Revert PR con; `troly` chỉ chạy ở demo |
+| Rollback | Revert PR con |
 
 ## Giai đoạn 3: năng lực
 
 | Mục | Nội dung |
 | --- | --- |
 | Điều kiện | WS-04-T01 merge để có contract; WS-04 xong để tích hợp |
-| Task | WS-05 và WS-06 song song; WS-07 sau `WS-05-T10`, `WS-06-T09`; WS-09-T06, T08–T12 theo API |
+| Task | WS-05 và WS-06, gồm WS-06-T13, song song; WS-07 sau `WS-05-T10`, `WS-06-T09`; WS-09-T06, T08–T12 theo API |
 | Xung đột | `main.py`, migration, `pyproject.toml`, `uv.lock`, `tools.py` |
 | Bắt buộc | Test mỗi WS, `alembic check`, eval KB |
 | Gate | G2 |
@@ -68,7 +70,7 @@ PR đầu đi thẳng vào `main`, vì `main` đang đỏ.
 | Xung đột | `voice/routes.py`, `accounting.py`, `config.py` |
 | Bắt buộc | `test_voice*`, `test_accounting*`, spec mic giả |
 | Gate | G3 |
-| Xong khi | Ba chế độ chạy; owner đã nghe thử giọng đọc |
+| Xong khi | Ba chế độ chạy, kể cả với khách; `verbatim_ok` đạt |
 | Rollback | `TTS_PROVIDER=none` |
 
 ## Giai đoạn 5: tích hợp
@@ -76,11 +78,11 @@ PR đầu đi thẳng vào `main`, vì `main` đang đỏ.
 | Mục | Nội dung |
 | --- | --- |
 | Điều kiện | G2, G3 |
-| Task | WS-09-T13 → T20; WS-10-T01 → T05 |
+| Task | WS-02-T11; WS-09-T13 → T21; WS-10-T01 → T05 |
 | Xung đột | `playwright.config.ts`, tài liệu |
 | Bắt buộc | E2E, fullstack, axe |
 | Gate | G4 |
-| Xong khi | KB-A/B/C và ca trình diễn xanh; `impeccable detect` sạch; checklist thủ công xong; owner đã xem ảnh |
+| Xong khi | KB-A/B/C và tình huống mẫu xanh; `impeccable detect` sạch; checklist thủ công xong; owner đã xem ảnh |
 | Rollback | Không áp dụng |
 
 ## Giai đoạn 6: release
@@ -97,9 +99,9 @@ PR đầu đi thẳng vào `main`, vì `main` đang đỏ.
 
 | Điểm | Owner cần |
 | --- | --- |
-| Trước G3 | Nghe thử giọng đọc |
 | Trước G4 | Xem ảnh giao diện, đọc copy |
-| Trước G5 | Duyệt template và thẻ KB; `manual_capture`; đăng nhập AWS nếu phiên hết hạn |
+| Song song | Chụp màn hình Facebook, YouTube, TikTok |
+| Trước G5 | Đánh dấu duyệt template và thẻ KB; đổi Turnstile sang Invisible; đăng nhập AWS nếu phiên hết hạn |
 | Sau G5 | Diễn tập lịch trình 8 phút |
 
-Các việc phát triển khác không cần chờ owner. Đã chốt: staging là demo, STT và TTS dùng key OpenAI, eval live dưới 3 USD.
+Các việc phát triển khác không cần chờ owner. Đã chốt ở [12-open-decisions](../12-open-decisions.md).

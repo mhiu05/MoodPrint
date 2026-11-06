@@ -34,14 +34,14 @@ elif run.workflow is not None and run.workflow.decision.delegates:
 agent = Agent[AssistantContext](
     name="MoodPrint:troly",
     instructions=assistant_instructions,        # hàm nhận context
-    model=model_for(settings.assistant_model),
+    model=model_for(settings.openai_model),      # gpt-6-luna
     tools=build_tools(),                        # is_enabled theo workflow
     input_guardrails=[safety_classifier_guardrail],   # run_in_parallel=False
     output_guardrails=[postcheck_guardrail, _no_unreceipted_claim, _no_output_artifacts],
     output_type=AssistantReply,
     model_settings=ModelSettings(store=False, max_tokens=2000, timeout=40,
         parallel_tool_calls=False, retry=ModelRetrySettings(max_retries=0),
-        reasoning=Reasoning(effort=settings.assistant_reasoning_effort)),
+        reasoning=Reasoning(effort="medium")),
 )
 ```
 
@@ -55,7 +55,7 @@ Trong: agent, WF-01, WF-02 (qua proposal), WF-05, WF-06, khung tool. Ngoài: too
 
 ## 6. File và symbol bị ảnh hưởng
 
-`ai/runtime.py` (`LiveRun`, `drive`); `ai/provider.py` (thêm `run_assistant`, `_check_capped_model`); `ai/accounting.py` (`RATES`, `CAPPED_RATES`, `reserve_accounting`); `ai/schemas.py` (`Card`, `ProposalCard`); `ai/chat_routes.py` (`events`); `core/config.py`; `docs/backend/budget-safety.md`.
+`ai/runtime.py` (`LiveRun`, `drive`); `ai/provider.py` (thêm `run_assistant`); `ai/accounting.py` (`reserve_accounting`); `modules/guests/pricing.py` (`ai_upper`); `ai/schemas.py` (`Card`, `ProposalCard`); `ai/chat_routes.py` (`events`); `core/config.py`; `docs/backend/budget-safety.md`.
 
 ## 7. File mới
 
@@ -89,8 +89,6 @@ class AssistantReply(DTO):
 ```
 
 `AssistantReply` không có `cards`: card chỉ do backend gắn từ receipt của tool. Model không tạo được proposal hay emergency.
-
-Setting mới: `assistant_model` (mặc định rỗng, rơi về `openai_model`), `assistant_reasoning_effort` (mặc định `medium`). Phải thuộc `CAPPED_RATES`, nếu không app từ chối khởi động lượt.
 
 SSE: `event: activity`, `data: {"phase": "reading|composing|searching|drafting|checking"}`, không `id`, chỉ cho `troly`, chỉ khi `LiveRun` còn trong RAM.
 
@@ -140,16 +138,16 @@ def tools_for(ctx: ToolContext) -> list[FunctionTool]: ...
 | WS-04-T02 | P0 | T01 | `workflow.py`: `WORKFLOWS`, `transition` thuần | Bảng transition đủ 6 WF; bước lạ bị bỏ; WF-06 ngắt mọi WF, lưu `return_*` | `pytest -q tests/test_assistant_workflow.py` | Pass: phủ mọi cặp (state, event) |
 | WS-04-T03 | P0 | T02 | Migration 0032, ORM, `state.py` (DB cho hội thoại lưu, RAM trên `Conversation` cho tạm) | Đọc ghi có version | `pytest -q tests/test_assistant_state.py`; `alembic check` | Pass |
 | WS-04-T04 | P0 | T02 | `prompt.py`, playbooks, loader dùng lại cách của `SkillRegistry` (kiểm tra symlink, 16 KiB, hash) | `ASSISTANT_PROMPT_VERSION` vào `ai_usage.prompt_version`; prompt theo nhóm tuổi; không chứa tên bot cũ | `pytest -q tests/test_assistant_prompt.py` | Pass |
-| WS-04-T05 | P0 | T04, T14 | `SdkProvider.run_assistant` với `Agent[AssistantContext]`, `RunConfig` ở §4; `call_model_input_filter=bounded_input` | `store=False`, tracing tắt, `max_turns=3`, hook 3/2; instructions + input ≤ 48.000 byte, không bao giờ cắt tin mới nhất; `safety_identifier` băm qua `extra_args` (TO_VERIFY) | `pytest -q tests/test_assistant_provider.py` | Pass với model giả |
-| WS-04-T06 | P0 | T03, T05 | `turn.py`, nhánh trong `drive`, classifier, postcheck, nhắc nghỉ | Thứ tự đúng §3 của [06](../06-ai-orchestration-and-safety.md#3-pipeline-một-lượt); `InputGuardrailTripwireTriggered` thành template; `OutputGuardrailTripwireTriggered` thành câu dự phòng; `ai_timeout_seconds` demo 60 | `pytest -q tests/test_assistant_turn.py` | Pass: bot cũ không đổi, regression chat pass |
+| WS-04-T05 | P0 | T04, T14 | `SdkProvider.run_assistant` với `Agent[AssistantContext]`, `RunConfig` ở §4; `call_model_input_filter=bounded_input`; khách giữ `GuestGuardedModel`, `before_dispatch`, `deadline` | `store=False`, tracing tắt, `max_turns=3`, hook 3/2; instructions + input ≤ 48.000 byte, không bao giờ cắt tin mới nhất; `safety_identifier` băm qua `extra_args` (TO_VERIFY) | `pytest -q tests/test_assistant_provider.py` | Pass với model giả |
+| WS-04-T06 | P0 | T03, T05 | `turn.py`, nhánh trong `drive`, classifier, postcheck, nhắc nghỉ | Thứ tự đúng §3 của [06](../06-ai-orchestration-and-safety.md#3-pipeline-một-lượt); `InputGuardrailTripwireTriggered` thành template; `OutputGuardrailTripwireTriggered` thành câu dự phòng; `ai_timeout_seconds` của profile `school_safety` là 60 | `pytest -q tests/test_assistant_turn.py` | Pass: bot cũ không đổi, regression chat pass |
 | WS-04-T07 | P0 | T06 | `tools.py` thật, `proposals.py`, `proposal_routes.py`, gắn `ProposalCard` | Tool không ghi bảng nghiệp vụ; confirm mới ghi; hết hạn 24 giờ; người khác 404 | `pytest -q tests/test_assistant_proposals.py` | Pass: 0 hàng `cases` trước confirm |
 | WS-04-T08 | P0 | T07 | WF-01: `classify_situation`, mẫu hỏi một câu mỗi lượt | Tóm tắt có cấu trúc lưu trong state; em sửa được | `pytest -q tests/test_assistant_wf01.py` | Pass |
 | WS-04-T09 | P1 | T07 | WF-05: `bystander_actions`, template | Không khuyên can thiệp thể chất | `pytest -q tests/test_assistant_wf05.py` | Pass |
 | WS-04-T10 | P0 | T06 | WF-06: `EMERGENCY_FOLLOW_UP`, `EmergencyCard` giữ trên mọi lời, route ack | Chỉ tool hỗ trợ; ack quay về `return_*` | `pytest -q tests/test_assistant_wf06.py` | Pass |
 | WS-04-T11 | P0 | T06 | Vàng: `caution.py` thêm hướng dẫn và chip Tìm hỗ trợ | Vàng không tắt agent | `pytest -q tests/test_assistant_caution.py` | Pass |
 | WS-04-T12 | P0 | T05 | `bounded_input` trong `assistant/context.py`: lọc tin của run có `skip_model` qua `safety_events`, thay ghi chú trung tính | Nội dung nhạy cảm không tới model ở mọi lượt sau | `pytest -q tests/test_assistant_context.py` | Pass: assert input model giả |
-| WS-04-T13 | P0 | T08 | `evals/assistant/`: 30 kịch bản, rubric hai nhóm; 12 live, 20 câu đối kháng; so Luna và Terra trên 4 kịch bản | Trung bình ≥ 4, không điểm 1 ở nhóm an toàn; trong trần | `python -m evals.assistant --live --confirm-live --max-usd 1.20 --output <file>` | Pass. Fail: sửa playbook, chạy lại trong trần |
-| WS-04-T14 | P0 | T01 | `RATES`, `CAPPED_RATES` thêm Terra, Sol; `assistant_reservation_nano`; `_check_capped_model` nhận `assistant_model`; `reserve_usage` dùng model của run; `budget-safety.md` | Số đúng công thức ở [06 §9](../06-ai-orchestration-and-safety.md#9-accounting-và-ngân-sách); model ngoài danh sách bị từ chối; `budget_liability` không fail closed; bot cũ vẫn 2 USD | `pytest -q tests/test_accounting*.py tests/test_budget*.py` | Pass |
+| WS-04-T13 | P0 | T08 | `evals/assistant/`: 30 kịch bản chạy live, rubric hai nhóm, 40 câu đối kháng | Trung bình ≥ 4, không điểm 1 ở nhóm an toàn; trong trần | `python -m evals.assistant --live --confirm-live --max-usd 0.60 --output <file>` | Pass. Fail: sửa playbook, rồi nâng `reasoning.effort` lên `high` |
+| WS-04-T14 | P0 | T01 | `ASSISTANT_RESERVATION_NANO`, tham số `reservation_nano`; biến thể `ai_upper` cho `troly`; `reserve_accounting` nhận upper thấp hơn của khách; `budget-safety.md` | Đúng công thức ở [06 §9](../06-ai-orchestration-and-safety.md#9-accounting-và-ngân-sách); bot cũ vẫn 2 USD; khoảng 50 lượt khách đồng thời trong trần 5 USD | `pytest -q tests/test_accounting*.py tests/test_budget*.py tests/test_guest*.py` | Pass |
 | WS-04-T15 | P0 | T06 | `LiveRun.activity`, hook phát giai đoạn, SSE `activity` trong `events`; `persistent_events` không đổi | Chỉ giai đoạn thật; client cũ không nhận; mất kết nối không ảnh hưởng `final` | `pytest -q tests/test_assistant_activity.py` | Pass |
 | WS-04-T16 | P0 | T04 | `AssistantContext`, `case_digest` (số lần lặp do backend tính), `suggested_replies`; viết tay 3–5 hội thoại mẫu mỗi playbook | Agent không hỏi lại điều đã biết; hồ sơ khóa PIN thì không có digest | `pytest -q tests/test_assistant_context_data.py`; đọc lại bằng mắt | Pass: có ví dụ cho teencode, nói giảm, từ chối kể |
 
@@ -185,4 +183,4 @@ G1 đạt cùng WS-03.
 
 ## 17. Ghi chú cho Grok
 
-`ai_usage.prompt_version` là `varchar(60)`; giữ chuỗi ngắn. Reasoning tính vào `max_output_tokens`; `max_tokens=2000` với `medium`, nếu không stream kết thúc incomplete như đã gặp với hangout. `is_enabled` chỉ ẩn tool, handler vẫn phải kiểm tra quyền. Chất lượng hội thoại đến từ ngữ cảnh và playbook: đọc [06 §12](../06-ai-orchestration-and-safety.md#12-chất-lượng-của-agent) trước khi viết prompt.
+`ai_usage.prompt_version` là `varchar(60)`; giữ chuỗi ngắn. Chỉ dùng `gpt-6-luna`. Reasoning tính vào `max_output_tokens`; `max_tokens=2000` với `medium`, nếu không stream kết thúc incomplete như đã gặp với hangout. `is_enabled` chỉ ẩn tool, handler vẫn phải kiểm tra quyền. Chất lượng hội thoại đến từ ngữ cảnh và playbook: đọc [06 §12](../06-ai-orchestration-and-safety.md#12-chất-lượng-của-agent) trước khi viết prompt.
