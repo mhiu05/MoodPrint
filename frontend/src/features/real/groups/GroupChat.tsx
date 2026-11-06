@@ -301,7 +301,14 @@ export function GroupChat({ groupId }: { groupId: string }) {
         <GroupInfo view={view} busy={busy} onChange={setView} onClose={() => { setInfoOpen(false); infoTrigger.current?.focus(); }}
           onDeleted={() => { sessionStorage.removeItem(draftKey(groupId)); navigate("/assistants", { replace: true }); }} />
       ) : null}
-      <div className="conversation-log" ref={log}>
+      <div
+        className="conversation-log"
+        ref={log}
+        role="log"
+        aria-live="off"
+        tabIndex={0}
+        aria-label="Cuộc trò chuyện nhóm"
+      >
         {view.messages.length === 0 ? (
           <div className="group-empty-state">
             <AvatarStack ids={members.map((member) => member.botId)} size={44} />
