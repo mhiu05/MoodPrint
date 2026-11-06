@@ -1,6 +1,6 @@
 # WS-06 — Hồ sơ sự việc
 
-Ưu tiên P1. Độ phức tạp L: bất biến ở tầng DB, tải về để băm, PDF tiếng Việt. Nhánh `mhiu05/feat-refactor-ws06-cases`.
+Ưu tiên P1. Độ phức tạp L: bất biến ở tầng DB, tải về để băm, PDF tiếng Việt. Nhánh `mhiu05/feat-refactor`.
 
 ## 1. Mục tiêu và giá trị
 

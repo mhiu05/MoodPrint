@@ -1,6 +1,6 @@
 # Mẫu PR
 
-Nhánh con tách từ `mhiu05/feat-refactor` mới nhất, ví dụ `mhiu05/feat-refactor-ws03-safety`. PR vào `mhiu05/feat-refactor`, trừ PR sửa `main` ở WS-01 và các bước release.
+Chỉ dùng ở giai đoạn 6, sau G4: PR image C và PR `mhiu05/feat-refactor` → `main`. Trước đó không mở PR.
 
 ```markdown
 ## Task

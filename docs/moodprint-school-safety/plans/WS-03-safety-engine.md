@@ -1,6 +1,6 @@
 # WS-03 — Safety engine
 
-Ưu tiên P0. Độ phức tạp L: 8 nhãn, ngôn ngữ phi chuẩn, eval 300 mẫu, nhánh đỏ trước mọi cổng. Nhánh `mhiu05/feat-refactor-ws03-safety`. Thiết kế chuẩn ở [06](../06-ai-orchestration-and-safety.md).
+Ưu tiên P0. Độ phức tạp L: 8 nhãn, ngôn ngữ phi chuẩn, eval 300 mẫu, nhánh đỏ trước mọi cổng. Nhánh `mhiu05/feat-refactor`. Thiết kế chuẩn ở [06](../06-ai-orchestration-and-safety.md).
 
 ## 1. Mục tiêu và giá trị
 

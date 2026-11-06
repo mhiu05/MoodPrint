@@ -10,7 +10,7 @@ Grok bắt đầu tại [GROK-PROMPT](grok-handoff/GROK-PROMPT.md).
 
 1. **Nền tảng tốt, thiếu lớp an toàn.** Runtime, accounting, SSE, idempotency, Storage dùng lại được. Không cần viết lại backend.
 2. **Chat hiện không có luồng khẩn cấp.** Regex hiện tại bỏ sót "nó bảo mai mang dao đến" và mọi câu về xâm hại, tống tiền, thương tích trong bộ thử. Đây là việc ưu tiên số 1.
-3. **`main` đang đỏ.** Hai commit gần nhất lỗi cùng một test accessibility, nên không có release mới. Sửa vài thuộc tính ở `GroupChat.tsx`. Đây là task đầu tiên.
+3. **CI của nhánh làm việc đang đỏ.** Bản sửa một lỗi accessibility đã vào `main` qua PR #45; `mhiu05/feat-refactor` cần merge `main` một lần. Đây là task đầu tiên. Sau đó mọi việc nằm trên nhánh này cho tới khi sản phẩm xong.
 4. **Bot id mới `troly` tự tách khỏi code cũ.** Skills, web search, Maps, orchestration, collaboration đều không chạy với id này.
 5. **TTS qua OpenAI cần cẩn thận.** Model TTS cũ tắt ngày 06/01/2027. Đường chính là `gpt-realtime-2.1-mini`, backend so transcript trước khi phát để đảm bảo đọc đúng văn bản đã duyệt.
 6. **Nội dung cần người duyệt** là điểm phụ thuộc lớn nhất. Không chặn phát triển nhưng chặn release.

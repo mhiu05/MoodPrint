@@ -12,7 +12,7 @@ Cập nhật sau trả lời của owner. Câu trả lời giữ nguyên ý, dư
 | OD-06 | Hướng hình ảnh | Đã chốt quy trình | Làm theo impeccable; hướng A là brief khởi đầu |
 | OD-07 | Snapshot nguồn | Mặc định | `.tmp/`, không sửa `.gitignore` |
 | OD-08 | Ngưỡng eval an toàn | Mặc định | Dùng ngưỡng đề xuất; không đạt thì báo owner |
-| OD-09 | Quy tắc merge | **Đã chốt** | CI xanh ở nhánh con, PR, CI xanh trên `main`, release thành công |
+| OD-09 | Quy tắc nhánh và merge | **Đã chốt** | Code và CI xanh ngay trên `mhiu05/feat-refactor`; sản phẩm xong mới merge vào `main` để release |
 | OD-10 | Tóm tắt nháp chạy qua agent | Mặc định | Đồng ý |
 | OD-11 | Trần chi phí eval live | **Đã chốt** | Dưới 3 USD tổng; trần kỹ thuật 2,80 USD |
 | OD-12 | Credential | **Đã chốt phần lớn** | Supabase MCP, AWS MCP, Cloudflare qua phiên trình duyệt của owner |
@@ -118,11 +118,21 @@ Quy trình ở [09 §1](09-ux-and-user-flows.md#1-hướng-hình-ảnh-và-quy-t
 
 **Mặc định**: áp ngưỡng ở [10](10-evaluation-and-quality-gates.md). Grok chạy baseline, chỉnh rule trên `dev`. Nếu `holdout` không đạt sau khi đã dùng hết phần ngân sách cho hạng mục này, dừng và báo owner kèm số thật.
 
-## OD-09 — Quy tắc merge
+## OD-09 — Quy tắc nhánh và merge
 
-**Trả lời**: CI pass ở nhánh con, rồi PR merge CI pass ở nhánh `main`, release thành công là được.
+**Trả lời mới nhất, 07/11/2026**: Grok cứ code hoàn thiện sản phẩm trước, CI pass trên nhánh `mhiu05/feat-refactor` luôn, rồi merge vào `main` để release sau khi đã hoàn thiện sản phẩm trên nhánh phụ. Câu này thay cho câu trước "CI pass ở nhánh con, rồi PR merge CI pass ở nhánh `main`".
 
-**Áp dụng**: đúng quy trình trong [grok-handoff/README](grok-handoff/README.md). Không bật branch protection. Grok vẫn không push thẳng vào `main`.
+**Áp dụng**:
+
+- Chỉ có một nhánh làm việc: `mhiu05/feat-refactor`. Commit và push thẳng lên nhánh này.
+- Không tạo nhánh con, không tạo nhánh fix, không mở PR cho tới giai đoạn 6.
+- CI chạy trên mọi push. CI đỏ thì sửa ngay trên nhánh.
+- `main` có commit mới thì merge `main` vào nhánh. Chiều ngược lại chỉ xảy ra ở giai đoạn 6.
+- Không bật branch protection. Grok vẫn không push thẳng vào `main`.
+
+**Ở giai đoạn 6 có hai PR vào `main`, đều sau G4**: image C chỉ đổi `READY_REVISIONS`, rồi tới nhánh `mhiu05/feat-refactor`. Image C là đích rollback trước khi áp SQL lên hosted. Thiếu nó, nếu bản mới lỗi thì không còn image nào chạy được với schema mới.
+
+**Sự cố ngày 06/11/2026**: plan cũ yêu cầu sửa CI bằng PR vào `main`, nên Grok đã merge PR #45 (`8b329980`). Đây là lỗi của plan, không phải của Grok. Bản sửa chỉ thêm thuộc tính accessibility, được giữ lại. `mhiu05/feat-refactor` lấy nó bằng cách merge `main` một lần.
 
 ## OD-10 — Tóm tắt nháp chạy qua agent
 

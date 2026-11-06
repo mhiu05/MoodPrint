@@ -51,7 +51,7 @@ Sản phẩm có một trợ lý AI duy nhất tên "Trợ lý", một hồ sơ 
 **Đang thiếu**:
 
 - Chat hiện chỉ có regex tự hại. Bộ thử cho thấy nó bỏ sót "nó bảo mai mang dao đến" và mọi câu về xâm hại, tống tiền, thương tích.
-- CI trên nhánh chính đang đỏ vì một lỗi accessibility nhỏ ở code cũ, chặn mọi release. Đây là việc đầu tiên.
+- CI của nhánh làm việc đang đỏ vì một lỗi accessibility nhỏ ở code cũ. Bản sửa đã có, chỉ cần đưa vào nhánh.
 - Chưa có hồ sơ sự việc, knowledge base, TTS, nút khẩn cấp, người lớn tin cậy, kế hoạch an toàn.
 - Trạng thái runtime nằm trong RAM của một process, nên không scale ngang được. Ở quy mô hiện tại thì chấp nhận được.
 - Dưới cấu hình có trần chi phí, khách không dùng được giọng nói và chỉ khoảng 3 lượt chạy đồng thời. Plan đã có task sửa.

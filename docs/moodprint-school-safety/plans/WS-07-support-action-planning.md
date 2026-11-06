@@ -1,6 +1,6 @@
 # WS-07 — Hỗ trợ và hành động
 
-Ưu tiên P1. Độ phức tạp M: dùng lại khung tool, nội dung nhiều hơn kỹ thuật. Nhánh `mhiu05/feat-refactor-ws07-support`.
+Ưu tiên P1. Độ phức tạp M: dùng lại khung tool, nội dung nhiều hơn kỹ thuật. Nhánh `mhiu05/feat-refactor`.
 
 ## 1. Mục tiêu và giá trị
 

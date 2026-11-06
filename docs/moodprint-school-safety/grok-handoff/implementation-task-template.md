@@ -31,5 +31,5 @@ Dùng khi Grok cần chia nhỏ thêm một task hoặc thêm task mới. Task p
 - Task mơ hồ như "refactor hệ thống AI", "cải thiện UX".
 - Sửa test để qua CI mà không có thay đổi hành vi theo plan.
 - `skip`, `xfail`, nới ngưỡng, xóa assert.
-- Thêm thư viện ngoài danh sách trong plan mà không ghi lý do ở PR.
+- Thêm thư viện ngoài danh sách trong plan mà không ghi lý do trong commit.
 - Ghi tên hoặc dữ liệu người thật vào fixture.

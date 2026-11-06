@@ -144,7 +144,7 @@ Ví dụ trên chỉ minh họa định dạng; nội dung và locator chưa đ�
 
 CI chạy lệnh này. Grok thêm bước vào `verify.yml` (không nới bước nào có sẵn).
 
-**Grok không được tự điền `reviewed_by`.** Thẻ nháp đi vào PR với `review_status: draft`; người duyệt đổi trạng thái.
+**Grok không được tự điền `reviewed_by`.** Thẻ nháp được commit với `review_status: draft`; người duyệt đổi trạng thái.
 
 ## 8. Index và truy xuất
 

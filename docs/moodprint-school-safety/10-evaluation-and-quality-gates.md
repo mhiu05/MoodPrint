@@ -42,8 +42,8 @@ Nguyên nhân: `.conversation-log` trong `GroupChat.tsx` thiếu `tabIndex`, `ro
 
 | Gate | Sau WS | Điều kiện đạt | Bằng chứng |
 | --- | --- | --- | --- |
-| **G0** Baseline | WS-01 | `Verify local application` xanh trên `main`; hiểu test và migration | Link CI run |
-| **G1** Safety và orchestration | WS-03, WS-04 | Route khẩn cấp, fallback, contract workflow có test; bộ eval an toàn đạt ngưỡng; hội thoại đạt rubric với model thật; owner đã đọc 10 bản ghi ngẫu nhiên | Báo cáo eval, PR |
+| **G0** Baseline | WS-01 | `Verify local application` xanh trên `mhiu05/feat-refactor`; hiểu test và migration | Link CI run |
+| **G1** Safety và orchestration | WS-03, WS-04 | Route khẩn cấp, fallback, contract workflow có test; bộ eval an toàn đạt ngưỡng; hội thoại đạt rubric với model thật; owner đã đọc 10 bản ghi ngẫu nhiên | Báo cáo eval, commit |
 | **G2** Knowledge và case | WS-05, WS-06, WS-07 | Recall@4 ≥ 0,9; claim-support; toàn vẹn bằng chứng; PDF; phân quyền | Báo cáo eval, test |
 | **G3** Luyện nói | WS-08 | STT/TTS, sửa transcript, `verbatim_ok`, an toàn role-play, quản lý phiên, fallback, khách dùng được | Test, báo cáo TTS |
 | **G4** MVP tích hợp | WS-09 | KB-A/B/C và tình huống mẫu bằng Playwright; khách một chạm dùng đủ tính năng; đủ trạng thái; mobile 360px; axe sạch; `impeccable detect` sạch; `audit` không còn P0, P1, P2; mọi task P0, P1 đã xong; chạy trên iPhone và Android thật; checklist thủ công; owner xem ảnh | Run Playwright, ảnh, báo cáo |

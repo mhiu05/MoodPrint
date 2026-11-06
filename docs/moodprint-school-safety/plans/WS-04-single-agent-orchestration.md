@@ -1,6 +1,6 @@
 # WS-04 — Một agent và state machine
 
-Ưu tiên P0. Độ phức tạp L: cắm vào `drive`, 6 workflow, proposal. Nhánh `mhiu05/feat-refactor-ws04-agent`. PR đầu là **contract** (T01). Thiết kế ở [06](../06-ai-orchestration-and-safety.md).
+Ưu tiên P0. Độ phức tạp L: cắm vào `drive`, 6 workflow, proposal. Nhánh `mhiu05/feat-refactor`. Commit đầu là **contract** (T01). Thiết kế ở [06](../06-ai-orchestration-and-safety.md).
 
 ## 1. Mục tiêu và giá trị
 
@@ -134,7 +134,7 @@ def tools_for(ctx: ToolContext) -> list[FunctionTool]: ...
 
 | ID | Ưu tiên | Phụ thuộc | Thay đổi, ở đâu | Hành vi mong đợi | Lệnh test | Pass / fail |
 | --- | --- | --- | --- | --- | --- | --- |
-| WS-04-T01 | P0 | WS-03 | **PR contract**: `assistant/schemas.py`, `ProposalCard`, tool interface, `register_proposal`, OpenAPI, TS | Compile, không hành vi mới | `mypy app`; `npm run typecheck` | Pass: merge trước WS-05, WS-06 |
+| WS-04-T01 | P0 | WS-03 | **Contract**: `assistant/schemas.py`, `ProposalCard`, tool interface, `register_proposal`, OpenAPI, TS | Compile, không hành vi mới | `mypy app`; `npm run typecheck` | Pass: merge trước WS-05, WS-06 |
 | WS-04-T02 | P0 | T01 | `workflow.py`: `WORKFLOWS`, `transition` thuần | Bảng transition đủ 6 WF; bước lạ bị bỏ; WF-06 ngắt mọi WF, lưu `return_*` | `pytest -q tests/test_assistant_workflow.py` | Pass: phủ mọi cặp (state, event) |
 | WS-04-T03 | P0 | T02 | Migration 0032, ORM, `state.py` (DB cho hội thoại lưu, RAM trên `Conversation` cho tạm) | Đọc ghi có version | `pytest -q tests/test_assistant_state.py`; `alembic check` | Pass |
 | WS-04-T04 | P0 | T02 | `prompt.py`, playbooks, loader dùng lại cách của `SkillRegistry` (kiểm tra symlink, 16 KiB, hash) | `ASSISTANT_PROMPT_VERSION` vào `ai_usage.prompt_version`; prompt theo nhóm tuổi; không chứa tên bot cũ | `pytest -q tests/test_assistant_prompt.py` | Pass |

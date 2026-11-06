@@ -1,6 +1,6 @@
 # Thứ tự thực thi
 
-Nhánh nền `mhiu05/feat-refactor`. Mỗi giai đoạn: điều kiện, task, file dễ xung đột, lệnh bắt buộc, gate, tiêu chí xong, rollback. Không vào giai đoạn sau khi gate trước chưa đạt. Mọi task P0, P1 phải xong trước G5; không cắt chúng để đi nhanh hơn.
+Mọi giai đoạn làm trên một nhánh `mhiu05/feat-refactor`. Không có gì vào `main` trước giai đoạn 6. Mỗi giai đoạn: điều kiện, task, file dễ xung đột, lệnh bắt buộc, gate, tiêu chí xong, rollback. Không vào giai đoạn sau khi gate trước chưa đạt. Mọi task P0, P1 phải xong trước G5; không cắt chúng để đi nhanh hơn.
 
 Lệnh CI đầy đủ trước khi push ở [README](README.md#lệnh-kiểm-tra-trước-khi-push).
 
@@ -9,14 +9,14 @@ Lệnh CI đầy đủ trước khi push ở [README](README.md#lệnh-kiểm-tr
 | Mục | Nội dung |
 | --- | --- |
 | Điều kiện | Không |
-| Task | WS-01-T01 → T02 → T03 → T04 → T05 |
+| Task | WS-01-T02 → T03 → T04 → T05. T01 đã xong qua PR #45 |
 | Xung đột | Thấp |
 | Bắt buộc | Fullstack `v3.spec.ts`, CI |
 | Gate | G0 |
-| Xong khi | `main` xanh, nhánh đồng bộ |
+| Xong khi | CI xanh trên `mhiu05/feat-refactor` |
 | Rollback | Revert |
 
-PR đầu đi thẳng vào `main`, vì `main` đang đỏ.
+Merge `origin/main` vào nhánh một lần để lấy bản sửa. Không tạo nhánh mới, không mở PR.
 
 ## Giai đoạn 1: khung truy cập
 
@@ -30,9 +30,9 @@ PR đầu đi thẳng vào `main`, vì `main` đang đỏ.
 | Xong khi | Khách một chạm và tài khoản đăng nhập vào shell; 18+ bị từ chối |
 | Rollback | Bỏ `APP_PROFILE` |
 
-**Thứ tự PR**: T01 (settings) → T02 (migration + bot id) → T03–T06 → T07 → T12 → T08 → T09 → T10.
+**Thứ tự làm**: T01 (settings) → T02 (migration + bot id) → T03–T06 → T07 → T12 → T08 → T09 → T10.
 
-Từ đây, mọi PR thêm bảng phải phân loại bảng đó trong `guests/lifecycle.py::INVENTORY` ngay trong PR.
+Từ đây, mọi commit thêm bảng phải phân loại bảng đó trong `guests/lifecycle.py::INVENTORY` ngay trong commit đó.
 
 ## Giai đoạn 2: an toàn và agent
 
@@ -40,26 +40,26 @@ Từ đây, mọi PR thêm bảng phải phân loại bảng đó trong `guests/
 | --- | --- |
 | Điều kiện | Giai đoạn 1 |
 | Task | WS-03-T14 trước, rồi T01 → T13; song song WS-09-T02, T03, T04 |
-| Sau đó | WS-04-T01 (PR contract) → T14 → T02 → ... → T16, T13 chạy cuối; WS-09-T05 |
+| Sau đó | WS-04-T01 (contract) → T14 → T02 → ... → T16, T13 chạy cuối; WS-09-T05 |
 | Xung đột | `chat_routes.py`, `schemas.py`, `runtime.py`, `provider.py`, `accounting.py` |
 | Bắt buộc | Regression chat, `test_accounting*`, eval offline |
 | Gate | G1 |
 | Xong khi | KB-B bước 1–5 chạy với model giả; eval an toàn và hội thoại đạt với model thật |
-| Rollback | Revert PR con |
+| Rollback | Revert commit |
 
 ## Giai đoạn 3: năng lực
 
 | Mục | Nội dung |
 | --- | --- |
-| Điều kiện | WS-04-T01 merge để có contract; WS-04 xong để tích hợp |
+| Điều kiện | WS-04-T01 xong để có contract; WS-04 xong để tích hợp |
 | Task | WS-05 và WS-06 song song; WS-07 sau `WS-05-T10`, `WS-06-T09`; WS-09-T06, T08–T12 theo API |
 | Xung đột | `main.py`, migration, `pyproject.toml`, `uv.lock`, `tools.py` |
 | Bắt buộc | Test mỗi WS, `alembic check`, eval KB |
 | Gate | G2 |
 | Xong khi | Bước KB-A 1–8 và KB-B 6–8 chạy |
-| Rollback | Revert PR con |
+| Rollback | Revert commit |
 
-**Migration theo thứ tự**: 0033 (WS-05), 0034 (WS-06), 0035 (WS-07, WS-08). Nếu WS-06 merge trước WS-05, đổi số để chuỗi thẳng. Không tạo hai head.
+**Migration theo thứ tự**: 0033 (WS-05), 0034 (WS-06), 0035 (WS-07, WS-08). Nếu WS-06 xong trước WS-05, đổi số để chuỗi thẳng. Không tạo hai head.
 
 ## Giai đoạn 4: giọng nói
 
@@ -89,7 +89,7 @@ Từ đây, mọi PR thêm bảng phải phân loại bảng đó trong `guests/
 
 | Mục | Nội dung |
 | --- | --- |
-| Điều kiện | G4; nội dung đã được owner duyệt (OD-02); preflight đạt |
+| Điều kiện | G0–G4 xanh trên `mhiu05/feat-refactor`; nội dung đã được owner duyệt (OD-02); preflight đạt. Đây là lúc code của chương trình mới vào `main` |
 | Task | WS-10-T00, T06 → T14 theo [release-runbook](release-runbook.md) |
 | Gate | G5 |
 | Xong khi | Sáu điều kiện |

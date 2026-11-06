@@ -1,6 +1,6 @@
 # WS-10 — Đánh giá, hiệu năng và release
 
-Ưu tiên P0. Độ phức tạp L: phụ thuộc credential và thao tác hosted. Nhánh `mhiu05/feat-refactor-ws10-release`. Quy trình ở [release-runbook](../grok-handoff/release-runbook.md).
+Ưu tiên P0. Độ phức tạp L: phụ thuộc credential và thao tác hosted. Nhánh `mhiu05/feat-refactor`. Quy trình ở [release-runbook](../grok-handoff/release-runbook.md).
 
 ## 1. Mục tiêu và giá trị
 

@@ -1,6 +1,6 @@
 # WS-02 — Product shell và truy cập
 
-Ưu tiên P0. Độ phức tạp M: thay đổi nhỏ nhưng chạm cổng eligibility toàn cục. Nhánh `mhiu05/feat-refactor-ws02-access`.
+Ưu tiên P0. Độ phức tạp M: thay đổi nhỏ nhưng chạm cổng eligibility toàn cục. Nhánh `mhiu05/feat-refactor`.
 
 ## 1. Mục tiêu và giá trị
 
@@ -93,7 +93,7 @@ Viết test thất bại trước, rồi code.
 | WS-02-T08 | P0 | T06 | `frontend/tests/fullstack/fixtures/school-personas.json` và helper trong `frontend/tests/fullstack/helpers.ts` tạo năm nhân vật ở [personas](../demo/personas.md), hồ sơ có sẵn cho SC-08, SC-10. Chỉ chạy trên DB local | Không có script seed nào chạy được lên hosted; email `*@sample.moodprint.invalid` | `python ../scripts/test_fullstack.py school-` | Pass |
 | WS-02-T09 | P0 | T05 | `classifyEntry` nhận `/ho-tro`, `/quyen-rieng-tu`, `/trung-tinh`; `useExperience`; `AppEntry` chọn `SchoolApp` khi profile `school_safety`; `TermsGate`; `SchoolLanding`; không tải `RealApp` ở profile này | Default: DOM giống cũ, test `appEntryRoute` cũ pass. Profile `school_safety`: landing mới, login, điều khoản | `npm test`; `npx playwright test tests/e2e/school-entry.spec.ts` | Pass: spec cũ không đổi |
 | WS-02-T10 | P1 | T02 | Thêm `school_profiles` vào `modules/users/export.py`; kiểm tra purge | Export có; xóa tài khoản xóa hàng | `pytest -q tests/test_data_lifecycle.py` | Pass |
-| WS-02-T11 | P0 | WS-06, WS-07, WS-08 | Rà cuối vòng đời khách: `_delete_owned` xóa đủ bảng mới, evidence đi qua `queue_media_deletion`. Mỗi PR thêm bảng đã phân loại bảng đó trong `INVENTORY` ngay, nếu không `test_inventory_classifies_every_orm_table` đỏ | Hết hạn: không còn hàng của khách, quyền đọc file bị thu hồi, object xóa sau `DELETE_DELAY` | `pytest -q tests/test_guest_cleanup.py tests/test_school_guest_purge.py` | Pass: quét mọi bảng có `user_id` |
+| WS-02-T11 | P0 | WS-06, WS-07, WS-08 | Rà cuối vòng đời khách: `_delete_owned` xóa đủ bảng mới, evidence đi qua `queue_media_deletion`. Mỗi commit thêm bảng đã phân loại bảng đó trong `INVENTORY` ngay, nếu không `test_inventory_classifies_every_orm_table` đỏ | Hết hạn: không còn hàng của khách, quyền đọc file bị thu hồi, object xóa sau `DELETE_DELAY` | `pytest -q tests/test_guest_cleanup.py tests/test_school_guest_purge.py` | Pass: quét mọi bảng có `user_id` |
 | WS-02-T12 | P0 | T07 | `pricing.kind_available` mở `voice` dưới cấu hình có trần; thêm mục `tts`; `GUEST_PRICING_JSON` theo giá bảo thủ (ai 550/550/1650, `max_input_tokens` 922000, `pricing_version` bằng `CAPPED_PRICING_VERSION`). Hằng `AI_OUTPUT_TOKENS` giữ nguyên | Khách dùng được Luyện nói; thiếu giá vẫn fail closed; trần 5 USD giữ nguyên | `pytest -q tests/test_guest_pricing*.py` | Pass |
 
 ## 11. An toàn và bảo mật

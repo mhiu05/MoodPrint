@@ -14,18 +14,19 @@ Prompt khởi động: [GROK-PROMPT](GROK-PROMPT.md).
 
 ## Việc đầu tiên
 
-`main` đang đỏ. Làm ngay [WS-01-T01](../plans/WS-01-codebase-migration.md).
+Làm [WS-01-T02](../plans/WS-01-codebase-migration.md): merge `origin/main` vào `mhiu05/feat-refactor` để lấy bản sửa CI từ PR #45.
 
 ## Quy tắc nhánh
 
-- Nhánh nền: `mhiu05/feat-refactor`.
-- Nhánh con: `mhiu05/feat-refactor-wsNN-<tên>`.
-- Sau mỗi WS: merge `main` vào nhánh nền, chạy lại test.
-- PR dùng [pr-template](pr-template.md).
+- Chỉ có một nhánh làm việc: `mhiu05/feat-refactor`. Commit và push thẳng lên nhánh này.
+- Không tạo nhánh con hay nhánh fix, không mở PR cho tới giai đoạn 6.
+- CI chạy trên mọi push, khoảng 35 phút. Gom theo nhóm task rồi push. CI đỏ thì sửa ngay trên nhánh.
+- `main` có commit mới thì merge `main` vào nhánh, rồi chạy lại test. Chiều ngược lại chỉ xảy ra ở giai đoạn 6, sau G4.
+- PR dùng [pr-template](pr-template.md), chỉ ở giai đoạn 6.
 
 ## Quyền
 
-Theo §8.2 của prompt: sửa code, test, migration, config, CI, Dockerfile, docs mà plan yêu cầu; tạo nhánh, commit, push, PR; merge khi CI xanh và gate đạt; đồng bộ với `main`; tạo migration và SQL review; áp hosted khi có credential; kích hoạt release.
+Theo §8.2 của prompt: sửa code, test, migration, config, CI, Dockerfile, docs mà plan yêu cầu; commit, push lên `mhiu05/feat-refactor`; đồng bộ từ `main` về nhánh; ở giai đoạn 6 mở PR vào `main`, merge khi CI xanh và gate đạt; tạo migration và SQL review; áp hosted khi có credential; kích hoạt release.
 
 `.gitignore` chỉ sửa khi task nêu rõ. Hiện không task nào cần.
 
@@ -52,6 +53,7 @@ Không push thẳng hay force-push `main`. Không tắt, skip, nới CI. Không 
 - Một gate không đạt.
 - Tới mục chưa trả lời trong [12-open-decisions](../12-open-decisions.md).
 - Hành vi production ở profile `default` có nguy cơ đổi.
+- Có vẻ cần đưa gì vào `main` trước giai đoạn 6.
 
 ## Lệnh kiểm tra trước khi push
 
@@ -82,7 +84,7 @@ python scripts/check_docs.py
 python3 -m unittest discover -s deploy/aws/tests -v    # cần Linux
 ```
 
-Backend chạy lâu: trên Windows có thể tới một giờ. Có thể chạy test liên quan khi phát triển, nhưng trước PR phải chạy đủ.
+Backend chạy lâu: trên Windows có thể tới một giờ. Có thể chạy test liên quan khi phát triển, nhưng trước khi sang gate tiếp theo phải chạy đủ.
 
 Dọn DB: `python scripts/disposable_postgres.py --remove <run_id>`.
 
@@ -90,7 +92,7 @@ Dọn DB: `python scripts/disposable_postgres.py --remove <run_id>`.
 
 | Bẫy | Hậu quả | Cách tránh |
 | --- | --- | --- |
-| Thiếu cập nhật `api-reference.md`, `configuration.md`, `schema.md` | `check_docs.py` đỏ | Cập nhật cùng PR |
+| Thiếu cập nhật `api-reference.md`, `configuration.md`, `schema.md` | `check_docs.py` đỏ | Cập nhật cùng commit |
 | Link Markdown tới file chưa có trong `docs/` | `check_docs.py` đỏ | Dùng backtick cho đường dẫn chưa có |
 | Spec Playwright không có trong `testMatch` | Không chạy mà không báo | Thêm vào config |
 | `model` lạ trong `ai_usage` | **Mọi lượt chat bị từ chối** | Chỉ dùng `settings.openai_model` |
@@ -103,7 +105,7 @@ Dọn DB: `python scripts/disposable_postgres.py --remove <run_id>`.
 | Merge `main` liên tiếp | Publish bị bỏ qua | Chờ CI của lần trước |
 | `gpt-4o-mini-tts` | Tắt 06/01/2027 | Không dùng |
 | Thêm route mới bằng `require_registered_actor` | Khách bị chặn | Khách dùng được mọi tính năng |
-| Thêm bảng mà quên `guests/lifecycle.py` | Dữ liệu khách không tự xóa, test inventory đỏ | Cập nhật cùng PR |
+| Thêm bảng mà quên `guests/lifecycle.py` | Dữ liệu khách không tự xóa, test inventory đỏ | Cập nhật cùng commit |
 | Ảnh mẫu lên sản phẩm | Học sinh thấy khung xám | `build.py` bỏ ảnh trùng `placeholders.json` |
 | Commit ảnh chưa che thông tin cá nhân | Repo công khai | Chỉ ảnh mhiu05 đưa vào |
 | Coi Turnstile xong là bot đã bị chặn | Cloudflare báo chưa thấy siteverify | Xác nhận CAPTCHA của Supabase ở preflight |
@@ -113,7 +115,7 @@ Dọn DB: `python scripts/disposable_postgres.py --remove <run_id>`.
 
 ## Báo cáo
 
-**Sau mỗi PR merge**: link PR, link CI, test đã chạy và kết quả, gate đạt hay chưa, việc tiếp theo.
+**Sau mỗi WS**: SHA, link CI, test đã chạy và kết quả, gate đạt hay chưa, việc tiếp theo.
 
 **Sau release**: SHA, link workflow, output health check, smoke ba kịch bản, migration đã áp, flag đã bật, vấn đề tồn tại.
 

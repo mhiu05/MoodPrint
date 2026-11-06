@@ -6,7 +6,7 @@ Xác minh trên `main` tại `2d00c8d2`, ngày 06/11/2026. Mô tả trong prompt
 
 Chỉ coi là xong khi đủ sáu điều:
 
-1. Mọi WS trong phạm vi MVP đã vào `mhiu05/feat-refactor` qua PR; mỗi PR có CI `Verify local application` xanh.
+1. Mọi WS trong phạm vi MVP đã nằm trên `mhiu05/feat-refactor`; CI `Verify local application` xanh trên commit cuối của nhánh.
 2. PR `mhiu05/feat-refactor` → `main` có CI xanh và đã merge.
 3. CI trên push vào `main` xanh, và `Publish verified staging release` thành công cho đúng SHA đó.
 4. Poller trên EC2 đã triển khai `staging-<sha>`; `/api/v1/health/live` và `/api/v1/health/ready` trả OK.
@@ -36,7 +36,7 @@ Chỉ coi là xong khi đủ sáu điều:
 - `READY_REVISIONS` quyết định `/ready`. Giữ đúng theo `backend/app/core/revisions.py`.
 - `/ready` kiểm tra `alembic_version` và helper `is_provider_session_active`.
 - Không auto-migrate khi startup. Alembic online từ chối host remote.
-- Hiện không có branch protection; xem [OD-09](../12-open-decisions.md#od-09--quy-tắc-merge).
+- Hiện không có branch protection; xem [OD-09](../12-open-decisions.md#od-09--quy-tắc-nhánh-và-merge).
 
 ## 3. Trạng thái đã biết
 
@@ -72,7 +72,7 @@ Lần 0029 thêm cột vào bảng đang map nên cần tách tree. Lần này c
 - [ ] G0–G4 đạt, ghi trong ledger.
 - [ ] OD-02 xong: có ít nhất 40 thẻ approved và template đã duyệt, `reviewed_by: mhiu05`.
 - [ ] Supabase Authentication > Attack Protection: CAPTCHA bật, nhà cung cấp Turnstile, đúng secret của widget. Chưa bật thì báo owner, vì token không được kiểm tra.
-- [ ] `main` CI xanh.
+- [ ] CI xanh trên cả `mhiu05/feat-refactor` và `main`.
 - [ ] Supabase MCP: `select version_num from moodprint.alembic_version` trả `0029_journal_intelligence`.
 - [ ] AWS MCP: `aws sts get-caller-identity` thành công, không ghi Account hay ARN vào PR. Lỗi thì báo owner đăng nhập lại.
 - [ ] Region khớp `ap-southeast-2`, xác nhận theo [OD-12](../12-open-decisions.md#od-12--credential).
@@ -99,6 +99,8 @@ python scripts/apply_supabase_review.py --upgrade 0035 --approved-sha256 <sha> -
 Dùng cả image C: ASGI trả `/ready` 200 trên 0029 và 0035.
 
 ### Bước 3: image C
+
+Chỉ làm sau G4. Đây là PR đầu tiên của chương trình vào `main`. Nó chỉ đổi `READY_REVISIONS`, để có đích rollback trước khi áp SQL.
 
 1. Từ `main`, nhánh `release/school-safety-c`.
 2. Đổi `READY_REVISIONS`, sửa test ghim tuple.
@@ -246,6 +248,6 @@ Nếu ai đó thêm lại marker: Publish bị bỏ qua, CI vẫn chạy. Điề
 | Có thể có marker hold | Không có |
 | Workflow chạy trên push `main` | Đúng, thêm điều kiện `main` không đổi trong suốt quá trình |
 | `workflow_dispatch` có approval | Đúng, thêm điều kiện actor là chủ repo |
-| CI xanh là tiền đề | **Hiện đỏ** ở hai commit gần nhất. Sửa ở WS-01-T01 |
+| CI xanh là tiền đề | Từng đỏ ở hai commit; đã sửa ở PR #45 |
 | Runtime grants | Migration cấp qua `protect(table)`, không có bước riêng |
 | Áp SQL bằng `apply_supabase_review.py --apply` | Vẫn dùng được nếu có DSN. Đường chính là Supabase MCP theo chốt của owner |

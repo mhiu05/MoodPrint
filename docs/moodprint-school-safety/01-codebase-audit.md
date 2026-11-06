@@ -20,7 +20,7 @@ Tên nhánh trong prompt là `feat/refactor`, nhưng owner đã chốt dùng `mh
 | A8 | Hosted đang ở `0029_journal_intelligence`. `deploy/guest-experience.release-hold` đã bị gỡ khỏi `main`. | VERIFIED |
 | A9 | Compose và Caddyfile trên EC2 **không** được cập nhật theo release (chỉ `install-release-poller.sh` chép). Thiết kế tránh đổi hai file này. | VERIFIED |
 | A10 | Không có PDF, TTS, safety engine, KB, case workspace, workflow state machine. | VERIFIED |
-| A11 | `main` đang đỏ vì một test accessibility của group chat, nên không có release mới. Phải sửa trước mọi việc khác. | VERIFIED |
+| A11 | `main` từng đỏ vì một test accessibility của group chat. Đã sửa ở PR #45 ngày 06/11/2026; `mhiu05/feat-refactor` chưa có bản sửa. | VERIFIED |
 
 ## 2. Trạng thái repo (§3.1)
 
@@ -168,7 +168,7 @@ Trong code, API không ép guest dùng hội thoại tạm. Theo [OD-05](12-open
 
 | Nếu thay đổi | Sẽ ảnh hưởng | Cách xử lý |
 | --- | --- | --- |
-| Thêm bot id | `BotId`, `ALL_IDS`, `RUNTIME_VARIANTS`, `CONVERSATION_BOT_CHECK`, `frontend/src/companions/registry.ts`, OpenAPI | Làm trọn trong một PR contract |
+| Thêm bot id | `BotId`, `ALL_IDS`, `RUNTIME_VARIANTS`, `CONVERSATION_BOT_CHECK`, `frontend/src/companions/registry.ts`, OpenAPI | Làm trọn trong một commit contract |
 | Thêm route | `docs/backend/api-reference.md` | `check_docs.py` fail nếu thiếu |
 | Thêm setting | `docs/backend/configuration.md` | `check_docs.py` fail nếu thiếu |
 | Thêm bảng | `docs/supabase/schema.md`; test purge và export | `check_docs.py` fail nếu thiếu |

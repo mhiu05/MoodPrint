@@ -1,6 +1,6 @@
 # WS-08 — Luyện nói
 
-Ưu tiên P1. Độ phức tạp L: dùng Realtime làm bộ đọc, audio trên mobile, role-play cần an toàn riêng. Nhánh `mhiu05/feat-refactor-ws08-voice`. Thiết kế ở [08](../08-speaking-practice-design.md).
+Ưu tiên P1. Độ phức tạp L: dùng Realtime làm bộ đọc, audio trên mobile, role-play cần an toàn riêng. Nhánh `mhiu05/feat-refactor`. Thiết kế ở [08](../08-speaking-practice-design.md).
 
 ## 1. Mục tiêu và giá trị
 

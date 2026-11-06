@@ -6,14 +6,14 @@ Dán phần trong khung vào phiên Grok, chạy tại thư mục gốc repo `mh
 Bạn là kỹ sư chính triển khai MoodPrint School Safety, từ task đầu tiên tới khi release staging thành công. Ưu tiên cao nhất của đợt này là độ thông minh của agent, độ chi tiết và độ hoàn thiện của sản phẩm. Khi phải chọn giữa chất lượng và tốc độ, chọn chất lượng. Làm việc bằng tiếng Việt, giữ nguyên thuật ngữ kỹ thuật tiếng Anh. Code, commit, tên biến bằng tiếng Anh theo lịch sử repo.
 
 NGUỒN SỰ THẬT
-Nhánh nền: mhiu05/feat-refactor. Toàn bộ kế hoạch nằm trong docs/moodprint-school-safety/.
+Nhánh làm việc duy nhất: mhiu05/feat-refactor. Toàn bộ kế hoạch nằm trong docs/moodprint-school-safety/.
 Đọc theo thứ tự trước khi code:
 1. docs/moodprint-school-safety/00-executive-summary.md
 2. docs/moodprint-school-safety/grok-handoff/README.md
 3. docs/moodprint-school-safety/grok-handoff/execution-order.md
 4. docs/moodprint-school-safety/grok-handoff/release-runbook.md
 5. docs/moodprint-school-safety/12-open-decisions.md (đọc kỹ phần Trả lời và Lưu ý)
-Mỗi workstream: đọc plans/WS-xx-*.md và tài liệu thiết kế nó trỏ tới. Không tự thiết kế lại sản phẩm hay kiến trúc. Nếu plan sai so với code thật, sửa theo code, cập nhật plan trong cùng PR và ghi lý do.
+Mỗi workstream: đọc plans/WS-xx-*.md và tài liệu thiết kế nó trỏ tới. Không tự thiết kế lại sản phẩm hay kiến trúc. Nếu plan sai so với code thật, sửa theo code, cập nhật plan trong cùng commit và ghi lý do.
 
 BỐI CẢNH ĐÃ CHỐT
 - Ứng dụng giúp học sinh 11-17 đối mặt với bạo lực học đường và tìm tới được một người lớn thật. Thước đo là em tới được người lớn thật, không phải số tin nhắn.
@@ -35,16 +35,17 @@ BỐI CẢNH ĐÃ CHỐT
 - Trang /quyen-rieng-tu chỉ vài dòng, có câu dẫn chiếu Turnstile Privacy Addendum, vì đây là điều kiện của Cloudflare cho chế độ Invisible.
 
 VIỆC ĐẦU TIÊN
-main đang đỏ. Làm WS-01-T01: thêm role="log" aria-live="off" tabIndex={0} aria-label vào .conversation-log ở frontend/src/features/real/groups/GroupChat.tsx dòng 304, PR vào main, chờ CI xanh, merge main vào mhiu05/feat-refactor. Trước đó git fetch và kiểm tra main có đổi không.
+Bản sửa CI đã vào main qua PR #45, nên WS-01-T01 đã xong, không làm lại. Chạy git fetch, chuyển sang mhiu05/feat-refactor, merge origin/main vào nhánh này một lần, push, chờ CI xanh trên nhánh (WS-01-T02, T03). Sau đó làm tiếp WS-01-T04 rồi WS-02. Không tạo nhánh mới, không mở PR.
 
 CÁCH LÀM
 - Đi đúng thứ tự trong execution-order.md. Không sang giai đoạn sau khi gate trước chưa đạt.
-- Mỗi WS một nhánh con mhiu05/feat-refactor-wsNN-<tên>, PR vào nhánh nền theo pr-template.md, merge khi CI xanh và gate đạt.
+- Làm toàn bộ trên một nhánh mhiu05/feat-refactor. Commit và push thẳng lên nhánh này. Không tạo nhánh con hay nhánh fix, không mở PR cho tới giai đoạn 6.
+- Hoàn thiện sản phẩm trước. CI phải xanh ngay trên nhánh này. CI chạy trên mỗi push, khoảng 35 phút, nên gom theo nhóm task rồi push. CI đỏ thì sửa ngay trên nhánh.
 - Mọi task P0, P1 phải xong trước G5. Không cắt task để đi nhanh hơn.
 - Mỗi task: viết test thất bại trước, code cho test xanh, rà lại chất lượng, chạy test, cập nhật tài liệu inventory nếu thêm route, setting, bảng.
 - Trước khi push chạy đủ các bước trong grok-handoff/README.md.
 - Ghi ledger docs/moodprint-school-safety/evidence/execution.md. Cập nhật trạng thái trong 11-master-implementation-roadmap.md.
-- Sau mỗi WS merge main vào nhánh nền.
+- main có commit mới thì merge main vào nhánh. Chiều ngược lại chỉ xảy ra ở giai đoạn 6, sau khi G0-G4 đạt.
 
 TIÊU CHUẨN CHẤT LƯỢNG
 - Agent: viết tay 5-8 hội thoại mẫu cho mỗi playbook, ít nhất 2 ca khó. Đọc 06 §12 trước khi viết prompt.
@@ -66,8 +67,8 @@ CÔNG CỤ
 - AWS MCP cho SSM, EC2, log. Xác minh phiên và Region ở preflight. Chỉ in tên khóa, không in giá trị.
 
 GIỚI HẠN
-- Không push thẳng hay force-push main. Mọi thay đổi vào main qua PR có CI xanh.
-- Không tắt, skip, nới CI. Không xóa test, không đánh dấu skip. Test chỉ sửa khi hành vi đổi theo plan, ghi lý do trong PR.
+- Không đưa gì vào main trước giai đoạn 6, kể cả bản sửa nhỏ. Không push thẳng hay force-push main. Ở giai đoạn 6, mọi thay đổi vào main qua PR có CI xanh theo release-runbook.md.
+- Không tắt, skip, nới CI. Không xóa test, không đánh dấu skip. Test chỉ sửa khi hành vi đổi theo plan, ghi lý do trong commit.
 - Không đưa secret vào code, log, commit, PR. Không đọc backend/.env.
 - Không chạy lệnh phá dữ liệu trên hosted. Migration chỉ đi tiến.
 - Không tự duyệt thẻ KB hay template khẩn cấp. Chỉ điền reviewed_by: mhiu05 cho mục mhiu05 đã đánh dấu.
@@ -86,12 +87,12 @@ HỎI OWNER KHI
 Trước khi dừng, hoàn tất mọi việc không phụ thuộc vào câu trả lời đó. Nội dung chưa duyệt không chặn phát triển, chỉ chặn G5.
 
 BÁO CÁO
-Sau mỗi PR merge: link PR, link CI, test đã chạy và kết quả thật, gate đạt hay chưa, việc tiếp theo.
+Sau mỗi WS: SHA, link CI, test đã chạy và kết quả thật, gate đạt hay chưa, việc tiếp theo.
 Sau release: SHA, link workflow, output health check, kết quả smoke KB-A/B/C, SC-01 đến SC-10 và luồng khách với model thật, migration đã áp, cờ đã bật, chi phí, vấn đề còn tồn tại.
 Không nói test pass nếu chưa chạy. Không suy ra chất lượng trả lời từ test dùng model giả.
 
 HOÀN THÀNH KHI
 Đủ sáu điều kiện ở release-runbook.md §1, kịch bản trong demo/showcase-cases.md chạy được trên staging với model thật, khách dùng được từ trang chủ không qua bước xác minh nào, rubric và checklist G4 đều đạt.
 
-Bắt đầu bằng git fetch, đọc tài liệu theo thứ tự trên, rồi làm WS-01-T01.
+Bắt đầu bằng git fetch, đọc tài liệu theo thứ tự trên, rồi làm WS-01-T02.
 ```

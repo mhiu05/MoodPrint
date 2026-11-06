@@ -1,6 +1,6 @@
 # 11 — Roadmap tổng
 
-Grok cập nhật cột **Trạng thái** sau mỗi PR merge. Thứ tự chạy ở [execution-order](grok-handoff/execution-order.md). Nhánh nền: `mhiu05/feat-refactor`.
+Grok cập nhật cột **Trạng thái** sau mỗi WS. Thứ tự chạy ở [execution-order](grok-handoff/execution-order.md). Nhánh làm việc duy nhất: `mhiu05/feat-refactor`.
 
 ## 1. Workstream
 
@@ -47,7 +47,7 @@ flowchart LR
 | 5. Tích hợp | Hoàn thiện WS-09 | G4 | Không |
 | 6. Release | WS-10 | G5 | Không |
 
-WS-03 đi trước vì an toàn phải có trước mọi tính năng trả lời. WS-04 và WS-07 dùng chung interface tool, nên WS-04 ra **PR contract** trước.
+WS-03 đi trước vì an toàn phải có trước mọi tính năng trả lời. WS-04 và WS-07 dùng chung interface tool, nên WS-04 làm **contract** trước.
 
 ## 4. File dễ xung đột
 
@@ -57,14 +57,14 @@ WS-03 đi trước vì an toàn phải có trước mọi tính năng trả lờ
 | `backend/app/ai/chat_routes.py` | WS-02, WS-03, WS-04 | Tách hàm vào `assistant/admission.py` |
 | `backend/app/core/config.py` | Mọi WS | Thêm vào cuối theo khối, merge thường xuyên |
 | `backend/app/main.py` | WS-02, WS-05, WS-06, WS-07, WS-08 | Thêm một dòng router mỗi WS |
-| `backend/app/ai/schemas.py` | WS-03, WS-04 | Card mới vào PR contract |
+| `backend/app/ai/schemas.py` | WS-03, WS-04 | Card mới vào contract |
 | `backend/openapi.json`, `schema.d.ts` | Mọi WS | Sinh lại sau merge, không sửa tay |
-| `docs/backend/api-reference.md`, `configuration.md`, `docs/supabase/schema.md` | Mọi WS | Cập nhật cùng PR |
+| `docs/backend/api-reference.md`, `configuration.md`, `docs/supabase/schema.md` | Mọi WS | Cập nhật cùng commit |
 | `backend/alembic/versions/` | Mọi WS | Số revision theo [05](05-data-model-and-migrations.md); merge theo đúng thứ tự |
 | Test ghim head | Mọi WS có migration | `rg` chuỗi revision cũ |
 | `frontend/playwright.config.ts` | WS-09, WS-10 | Thêm từng dòng spec |
 
-Merge `main` vào `mhiu05/feat-refactor` sau mỗi WS. `main` có thể đổi (hiện còn nhánh khác đang làm).
+`main` có thể đổi vì còn nhánh khác đang làm. Khi đó merge `main` vào `mhiu05/feat-refactor`. Chiều ngược lại chỉ xảy ra ở giai đoạn 6.
 
 ## 5. Việc chỉ con người làm được
 
@@ -81,4 +81,4 @@ Merge `main` vào `mhiu05/feat-refactor` sau mỗi WS. `main` có thể đổi (
 
 ## 6. Rollback theo giai đoạn
 
-Mọi thay đổi nằm trên `mhiu05/feat-refactor` đến WS-10. Trước khi vào `main`, rollback là revert PR con. Sau khi vào `main`, xem [release-runbook](grok-handoff/release-runbook.md).
+Mọi thay đổi nằm trên `mhiu05/feat-refactor` đến WS-10. Trước khi vào `main`, rollback là revert commit. Sau khi vào `main`, xem [release-runbook](grok-handoff/release-runbook.md).
