@@ -156,7 +156,7 @@ export function useResource<T>(path: string, enabled = true) {
   const refresh = useCallback(() => setRevision((value) => value + 1), []);
   const setData = useCallback((value: SetStateAction<T | undefined>) => {
     setDataState((previous) => {
-      const next = typeof value === "function" ? value(previous) : value;
+      const next = typeof value === "function" ? (value as (current: T | undefined) => T | undefined)(previous) : value;
       if (!durable) return next;
       if (next === undefined) dropResource(key);
       else writeResource(key, next);

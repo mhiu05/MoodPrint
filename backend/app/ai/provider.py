@@ -82,14 +82,21 @@ def chat_model_settings(context: Any) -> ModelSettings:
     detailed plan hits that cap, the Responses stream ends incomplete, and the client
     only sees an unfinished turn.
     """
-    itinerary = getattr(context, "skill_id", None) == "hangout"
+    if getattr(context, "skill_id", None) == "hangout":
+        return ModelSettings(
+            store=False,
+            parallel_tool_calls=False,
+            max_tokens=2000,
+            timeout=30,
+            retry=ModelRetrySettings(max_retries=0),
+            reasoning=Reasoning(effort="low"),
+        )
     return ModelSettings(
         store=False,
         parallel_tool_calls=False,
-        max_tokens=2000 if itinerary else 1200,
+        max_tokens=1200,
         timeout=30,
         retry=ModelRetrySettings(max_retries=0),
-        **({"reasoning": Reasoning(effort="low")} if itinerary else {}),
     )
 
 
