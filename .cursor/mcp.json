@@ -1,0 +1,42 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "url": "https://mcp.supabase.com/mcp?project_ref=roznanxbiyqybjpvtilq&features=docs%2Caccount%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions%2Cbranching"
+    },
+    "promptfoo": {
+      "command": "npx",
+      "args": [
+        "--yes",
+        "promptfoo@0.125.1",
+        "mcp",
+        "--transport",
+        "stdio"
+      ]
+    },
+    "openaiDeveloperDocs": {
+      "url": "https://developers.openai.com/mcp"
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"]
+    },
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${env:GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    },
+    "aws-mcp": {
+      "command": "uvx",
+      "args": [
+        "mcp-proxy-for-aws@latest",
+        "https://aws-mcp.us-east-1.api.aws/mcp",
+        "--metadata",
+        "INSTALL_SOURCE=aws-cli"
+      ],
+      "env": {
+        "AWS_MCP_PROXY_PROFILES": "moodprint"
+      }
+    }
+  }
+}

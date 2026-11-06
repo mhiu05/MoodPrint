@@ -1,9 +1,0 @@
-
-> The default HTTP request method is `GET` normally and `POST` if any parameters
-  were added. Override the method with `--method`.
-
-> `-F/--field` below. Note that adding request parameters will automatically switch the
-> request method to `POST`. To send the parameters as a `GET` query string instead, use
-> `--method GET`.
-
-  The `-F/--field` flag has magic type conversion based on the format of the value:
