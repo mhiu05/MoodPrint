@@ -62,7 +62,8 @@ def ai_result():
             "measured_window_seconds": 900, "mean_parent_occupancy": 45,
             "peaks": {"parent_turns": 50}, "attempts": 1900, "completed": 1900,
             "errors": {}, "measurement_errors": {}, "statuses": {"202": 1900}, "financial_invariant": True,
-            "pool_acquisition_recent_window": {"p95_ms": 99, "timeouts": 0},
+            "pool_acquisition_recent_window": {"p95_ms": 99, "p99_ms": 499, "timeouts": 0, "acquisitions": 10000,
+                "whole_run": {"samples": 10000, "p95_lt_100ms": True, "p99_lt_500ms": True}},
             "latency_including_rejections": {"p95_ms": 30000, "p99_ms": 60000},
             "event_loop_lag": {"p95_ms": 99}}
 
@@ -73,6 +74,7 @@ def ai_result():
     (("latency_including_rejections", "p95_ms"), None, "completion_latency"),
     (("latency_including_rejections", "p95_ms"), float("nan"), "completion_latency"),
     (("pool_acquisition_recent_window", "p95_ms"), 100, "pool_recent_window"),
+    (("pool_acquisition_recent_window", "p99_ms"), 500, "pool_recent_window"),
     (("pool_acquisition_recent_window", "timeouts"), 1, "pool_recent_window"),
     (("event_loop_lag", "p95_ms"), 100, "event_loop_lag"),
     (("measured_window_seconds",), 899.9996, "full_measurement_window"),
@@ -96,6 +98,13 @@ def test_ai_probe_rejects_local_slo_failure_even_with_fifty_parents(path, value,
 
 def test_ai_probe_accepts_exact_local_boundaries_without_claiming_release_readiness():
     assert all(load_cli().ai_local_gates(ai_result()).values())
+
+
+@pytest.mark.parametrize("field", ["p95_lt_100ms", "p99_lt_500ms"])
+def test_recent_pool_window_cannot_hide_whole_run_checkout_pressure(field):
+    result = ai_result()
+    result["pool_acquisition_recent_window"]["whole_run"][field] = False
+    assert load_cli().ai_local_gates(result)["pool_whole_run"] is False
 
 
 def test_latency_percentile_must_not_round_an_slo_failure_into_a_pass():

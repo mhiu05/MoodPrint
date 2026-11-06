@@ -59,6 +59,11 @@ async def test_pool_acquisition_wait_and_timeout_are_measured_without_credential
                         pytest.fail("Pool cap was bypassed")
         metrics = measured.pool_metrics()
         assert metrics["timeouts"] == 1 and metrics["p95_ms"] >= 900
+        assert metrics["p99_ms"] >= 900
+        assert metrics["whole_run"]["samples"] == metrics["acquisitions"]
+        assert metrics["whole_run"]["max_ms"] >= 900
+        assert metrics["whole_run"]["p95_lt_100ms"] is False
+        assert metrics["whole_run"]["p99_lt_500ms"] is False
         assert "postgres" not in json.dumps(metrics)
         assert measured.occupancy()[0] == 0
     finally:

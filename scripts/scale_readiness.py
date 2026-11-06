@@ -100,7 +100,8 @@ async def finish_measurements(stop, tasks):
 def ai_local_gates(result):
     """Assess measured single-agent L0 gates; this never proves release readiness.
 
-    Pool p95 is explicitly the bounded recent window, not a whole-run percentile.
+    Pool percentile values describe the bounded recent window. Exact whole-run
+    threshold counters additionally prevent window eviction from hiding pressure.
     The single-agent completion thresholds come from the capacity plan (02/07).
     """
     def within(value, limit, *, inclusive=True):
@@ -108,6 +109,7 @@ def ai_local_gates(result):
                 and (value <= limit if inclusive else value < limit))
 
     pool = result["pool_acquisition_recent_window"]
+    whole_pool = pool.get("whole_run", {})
     latency = result["latency_including_rejections"]
     attempts = result["attempts"]
     return {
@@ -119,7 +121,10 @@ def ai_local_gates(result):
                                 and result["statuses"] == {"202": attempts}),
         "financial_invariant": result["financial_invariant"] is True,
         "completion_latency": within(latency.get("p95_ms"), 30000) and within(latency.get("p99_ms"), 60000),
-        "pool_recent_window": pool.get("timeouts") == 0 and within(pool.get("p95_ms"), 100, inclusive=False),
+        "pool_recent_window": (pool.get("timeouts") == 0 and within(pool.get("p95_ms"), 100, inclusive=False)
+                               and within(pool.get("p99_ms"), 500, inclusive=False)),
+        "pool_whole_run": (whole_pool.get("samples", 0) > 0 and whole_pool.get("samples") == pool.get("acquisitions")
+                           and whole_pool.get("p95_lt_100ms") is True and whole_pool.get("p99_lt_500ms") is True),
         "event_loop_lag": within(result["event_loop_lag"].get("p95_ms"), 100, inclusive=False),
     }
 
@@ -366,7 +371,7 @@ async def ai_probe(data):
         result["local_gates"] = ai_local_gates(result)
         result["status"] = "LOCAL_SYNTHETIC_PASS" if all(result["local_gates"].values()) else "FAILED"
         result["unmeasured_release_gates"] = [
-            "whole-run pool wait distribution", "network/Caddy and non-AI endpoint latency",
+            "whole-run pool percentile values (exact threshold decisions are measured)", "network/Caddy and non-AI endpoint latency",
             "multi-agent and complete mixed profile", "real provider TTFT/quota/pricing",
             "target CPU/RSS/cgroups and recovery/rollback",
         ]

@@ -1,0 +1,157 @@
+{
+  "base_commit": "07486b8384256e3ea3d4dd3de4e8717cd7bc329d",
+  "decision": "FAILED_NO_GO",
+  "runtime_optimizations_retained": false,
+  "retained_changes": [
+    "recent pool p99",
+    "exact constant-memory pool-lifetime threshold decisions",
+    "stronger runner gates",
+    "monitor/lease/ownership/reconnect accounting regressions"
+  ],
+  "focused_tests": {
+    "passed": 112,
+    "seconds": 148.39
+  },
+  "ruff": "PASS",
+  "mypy": {
+    "status": "PASS",
+    "files": 195
+  },
+  "full_backend_regression": "INTERRUPTED; local Docker daemon unavailable; saved log ends near18%; no full-suite pass claimed. Exact-SHA CI pending.",
+  "benchmark": {
+    "at_utc": "2026-11-06T03:58:36.833556+00:00",
+    "run_id": "d5baf3df4bfb41bda329405d294cb10f",
+    "case": "T4",
+    "environment": "L0",
+    "real_generation_calls": 0,
+    "external_generation_spend_usd": 0,
+    "head": "UNKNOWN",
+    "working_tree_dirty": "UNKNOWN",
+    "source_sha256": "065ac49a3c24c49e7e1b6d2935ea45c441458cb9cf200f359215f3cf0db9b4f2",
+    "result": {
+      "scope": "single-agent saved turns + ASGI SSE; real PostgreSQL/financial guards, fake SDK Model/embeddings; exact-count HTTP guard is separately unit-tested with mock transport, NOT exercised by this Model override; no socket/Caddy, multi-agent or production proof",
+      "requested_users": 50,
+      "requested_duration_seconds": 900,
+      "measured_wall_seconds": 187.047,
+      "completed": 209,
+      "mean_parent_occupancy": 34.66170466151589,
+      "occupancy_samples": 58,
+      "measured_window_seconds": 126.958498942,
+      "measurement_errors": {},
+      "measurement_method": "time-weighted sampled parent count; warmup/drain excluded",
+      "event_loop_lag": {
+        "count": 1563,
+        "p50_ms": 11.11604099914984,
+        "p95_ms": 53.290430999732045,
+        "p99_ms": 132.60327000025427
+      },
+      "process_cpu_seconds": 183.023,
+      "pool_acquisition_recent_window": {
+        "acquisitions": 11503,
+        "timeouts": 8,
+        "window_samples": 2048,
+        "p95_ms": 4998.482834999777,
+        "p99_ms": 8254.595017999236,
+        "max_ms": 10069.361320999633,
+        "whole_run": {
+          "samples": 11503,
+          "mean_ms": 1127.5031176046202,
+          "max_ms": 10069.361320999633,
+          "below_100ms": 2593,
+          "below_500ms": 3824,
+          "p95_lt_100ms": false,
+          "p99_lt_500ms": false
+        }
+      },
+      "simulated_provider_usage": {
+        "input_tokens": 8000,
+        "output_tokens": 600
+      },
+      "attempts": 217,
+      "statuses": {
+        "202": 217
+      },
+      "errors": {
+        "exception:sqlalchemy.exc.TimeoutError": 6,
+        "noncompleted_stream": 2
+      },
+      "peaks": {
+        "parent_turns": 50,
+        "sse_streams": 50,
+        "provider_active": 50,
+        "liability_nano": 6429780000,
+        "pool_checked_out": 5,
+        "rss_bytes": 199811072
+      },
+      "latency_including_rejections": {
+        "count": 211,
+        "p50_ms": 34272.981170000094,
+        "p95_ms": 48846.22232399943,
+        "p99_ms": 53987.336433000564
+      },
+      "fingerprint": {
+        "ai_global_concurrency": 50,
+        "ai_user_concurrency": 2,
+        "ai_requests_per_minute": 20,
+        "ai_timeout_seconds": 60,
+        "ai_daily_budget_usd": 50,
+        "ai_daily_turns_per_user": 60,
+        "ai_accounting_enabled": true,
+        "database_pool_size": 4,
+        "database_pool_overflow": 1,
+        "ai_bounded_reservations_enabled": true,
+        "ai_dispatch_gate_enabled": true,
+        "ai_dispatch_queue_limit": 100,
+        "auth_nat_policy_enabled": false,
+        "database_pool_metrics_enabled": true,
+        "database_transaction_timeouts_enabled": false,
+        "database_statement_timeout_ms": 15000,
+        "database_lock_timeout_ms": 2000,
+        "database_pool_timeout": 10.0,
+        "database_pool_mode": "session",
+        "proactive_worker_enabled": false,
+        "proactive_worker_concurrency": 1,
+        "journal_auto_memory_enabled": false,
+        "ai_collaboration_enabled": false,
+        "ai_smart_orchestration_enabled": false,
+        "ai_group_chat_enabled": false,
+        "auth_captcha_enabled": false,
+        "openai_model": "gpt-6-luna",
+        "pricing_version": "openai-conservative-64k-2026-11-05-v2",
+        "supported_api_processes": 1,
+        "source": "resolved_settings"
+      },
+      "financial_invariant": true,
+      "soak_stopped_on_failed_first_cohort": true,
+      "mixed_auth": null,
+      "local_gates": {
+        "measurement_health": true,
+        "full_measurement_window": false,
+        "parent_occupancy": false,
+        "all_turns_completed": false,
+        "financial_invariant": true,
+        "completion_latency": false,
+        "pool_recent_window": false,
+        "pool_whole_run": false,
+        "event_loop_lag": true
+      },
+      "status": "FAILED",
+      "unmeasured_release_gates": [
+        "whole-run pool percentile values (exact threshold decisions are measured)",
+        "network/Caddy and non-AI endpoint latency",
+        "multi-agent and complete mixed profile",
+        "real provider TTFT/quota/pricing",
+        "target CPU/RSS/cgroups and recovery/rollback"
+      ]
+    }
+  },
+  "real_generation_calls": 0,
+  "paid_judge_calls": 0,
+  "external_generation_spend_usd": 0,
+  "original_gitignore_sha256": "29c5056035d81043baeffb583bf60c398a7681c48a08fce4c0bd33130d81dff6",
+  "limitations": [
+    "Current tested single-event-loop topology misses pool SLO under constrained local simulation. This is not proof of an absolute EC2 resource ceiling.",
+    "Configured app2CPU/8GiB; actual Docker physical RAM7.61GiB; separate local DB2CPU/4GiB. No targetEC2/network/background topology proof.",
+    "Global registeredVoyage/STT/count-fee/campaign integration and mixed50-parent socket/fault matrix remain open."
+  ]
+}

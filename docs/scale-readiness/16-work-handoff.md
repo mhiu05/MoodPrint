@@ -355,3 +355,35 @@ still be pending;it is not a release authorization.
 ### Release decision
 
 G00 remains PARTIAL; G01 PARTIAL; G02 BLOCKED; G03 PARTIAL; G04/G05 LOCAL_ADMISSION_ONLY; G06 FAILED/PARTIAL; G07 PARTIAL; G08 FAILED; G09 NOT_RUN; G10 NOT_RUN_FULL; G11 PARTIAL; G12 FAILED/UNKNOWN; G13 PARTIAL; G14 PARTIAL; G15 OPEN. Full descriptions remain in the updated document 15. Release remains **NO-GO** until evidence and the exact release approval close the gates.
+
+## Codex engineering continuation — 2026-11-06
+
+Codex continues independently; Work owns cloud/browser/domain/SES/SMTP/SNS/billing and
+backup/monitoring. No cloud change, production migration, merge, deployment, production
+budget activation, credential reset/rotation or paid generation/judge test occurred.
+
+All measured regressing runtime experiments were removed. The retained application
+runtime matches verified07486b83 except privacy-safe pool instrumentation. The delivery
+strengthens poolSLO decisions and authority/lease/replay regressions; it does not fix
+or promote P3-I07.112 focused tests, exact CI Ruff and mypy195 files pass. The exact
+retained-source900s request failed early; post-push exact-SHA CI is assessed separately.
+
+Keep P3-I07 FAILED and releaseNO-GO. Evidence identifies single-loop CPU saturation,
+pool hold/checkout and admission contention in the current topology. Local app2CPU/
+configured8GiB with separately resourced DB is not EC2/network proof; host physical
+RAM is7.61GiB. Full dedicated-background/mixed50-parent/socket/crash/drain coverage
+and global Voyage/STT/count-fee/campaign integration remain open.
+
+The original divergent root044da35d and all user edits/deletions are preserved. Normal
+push only the isolated reviewed descendant of07486b83 to `feat/upgrade-user`; no force
+push. `.gitignore` was not edited; original SHA256 remains
+29c5056035d81043baeffb583bf60c398a7681c48a08fce4c0bd33130d81dff6.
+See [results](15-test-results.md), [financial gaps](evidence/p3-financial-coverage.json)
+and [measurement qualifications](evidence/p3-experiment-qualifications.json).
+
+
+Local full bare pytest interruption: the Docker daemon became unavailable again;
+the persisted log ends near18% with no completion/exit artifact. This run is
+**INTERRUPTED**, not a full regression PASS. The retained112focusedPASS, lint and
+typing results remain their stated scopes. Exact feature-commit GitHub CI is the
+full regression authority and must complete independently.

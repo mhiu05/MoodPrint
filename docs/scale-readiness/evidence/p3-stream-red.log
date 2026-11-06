@@ -1,0 +1,125 @@
+F                                                                        [100%]
+
+=================================== FAILURES ===================================
+
+__ test_running_saved_poll_keeps_authorization_and_has_a_bounded_query_budget __
+
+
+
+clients = (<fastapi.applications.FastAPI object at 0x7ac18936bd10>, [(<httpx.AsyncClient object at 0x7ac18936aab0>, UUID('2b2c81...fe-84fb-2458a8181348')), (<httpx.AsyncClient object at 0x7ac1893cc050>, UUID('a24340fc-f6a7-4772-a8ed-4b07d7e213d4'))])
+
+
+
+    @pytest.mark.postgres
+
+    async def test_running_saved_poll_keeps_authorization_and_has_a_bounded_query_budget(clients):
+
+        app, actors = clients
+
+        client = actors[0][0]
+
+        model = make_test_model("Synthetic reply")
+
+        model.hold = True
+
+        app.state.ai.model_override = model
+
+        await enable(client)
+
+        created = await client.post("/api/v1/ai/conversations", json={"botId": "may", "persistent": True}, headers=key())
+
+        cid = created.json()["conversationId"]
+
+        accepted = await client.post(f"/api/v1/ai/conversations/{cid}/messages", headers=key(),
+
+                                     json={"text": "Synthetic", "clientMessageId": str(__import__('uuid').uuid4()), "expectedConversationVersion": 1})
+
+        run_id = UUID(accepted.json()["runId"])
+
+        run = app.state.ai.runs[run_id]
+
+        await asyncio.wait_for(model.started.wait(), timeout=5)
+
+        query_count = 0
+
+
+
+        def count(*args):
+
+            nonlocal query_count
+
+            query_count += 1
+
+
+
+        engine = app.state.database.engine.sync_engine
+
+        event.listen(engine, "before_cursor_execute", count)
+
+        try:
+
+            app.state.settings.ai_dispatch_gate_enabled = True
+
+            found = await durable_run(Request({"type": "http", "app": app, "headers": []}),
+
+                                      run.actor, run_id, poll=True, recover=False)
+
+            assert found[0].status == "running" and found[2] == []
+
+>           assert query_count == 1
+
+E           assert 3 == 1
+
+
+
+tests/test_scale_polling.py:111: AssertionError
+
+------------------------------ Captured log setup ------------------------------
+
+WARNING  moodprint:main.py:43 database_pool_exceeds_headroom size=5 overflow=2
+
+WARNING  moodprint:main.py:43 database_pool_exceeds_headroom size=5 overflow=2
+
+=========================== short test summary info ============================
+
+FAILED tests/test_scale_polling.py::test_running_saved_poll_keeps_authorization_and_has_a_bounded_query_budget
+
+1 failed in 3.85s
+
+python.exe : Traceback (most recent call last):
+
+At line:2 char:93
+
++ ... polling.py; & backend/.venv/Scripts/python.exe .tmp/p3-ops.py exec -m ...
+
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)::String) [], RemoteException
+
+    + FullyQualifiedErrorId : NativeCommandError
+
+
+
+  File "E:\MoodPrint\.tmp\p3-ops.py", line 36, in <module>
+
+    call('docker', 'exec', '-w', '/tmp/p3-source/backend', APP, '/srv/moodprint/.venv/bin/python', *sys.argv[2:])
+
+  File "E:\MoodPrint\.tmp\p3-ops.py", line 13, in call
+
+    return subprocess.run(list(args), check=True, text=True, capture_output=capture)
+
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  File "C:\Users\minhh\AppData\Roaming\uv\python\cpython-3.12.13-windows-x86_64-none\Lib\subprocess.py", line 571, in
+
+run
+
+    raise CalledProcessError(retcode, process.args,
+
+subprocess.CalledProcessError: Command '['docker', 'exec', '-w', '/tmp/p3-source/backend',
+
+'moodprint-p3-17f0ecd784834134b1ae988eda1d6d42', '/srv/moodprint/.venv/bin/python', '-m', 'pytest', '-q',
+
+'tests/test_scale_polling.py::test_running_saved_poll_keeps_authorization_and_has_a_bounded_query_budget']' returned
+
+non-zero exit status 1.

@@ -1,0 +1,455 @@
+diff --git a/backend/app/ai/chat_routes.py b/backend/app/ai/chat_routes.py
+index def3fc4a..6fc2425d 100644
+--- a/backend/app/ai/chat_routes.py
++++ b/backend/app/ai/chat_routes.py
+@@ -652,6 +652,15 @@ async def run_steps(db, run_id, user_id):
+
+
+ async def durable_run(request, actor, run_id, *, poll=False, recover=True, with_receipt=False, with_steps=False):
++    settings = request.app.state.settings
++    if (poll and not recover and not with_receipt and not with_steps
++            and settings.ai_dispatch_gate_enabled and actor.account_kind == "registered"
++            and not settings.database_transaction_timeouts_enabled):
++        from app.ai.polling import running_snapshot
++
++        snapshot = await running_snapshot(request.app.state.database, actor, run_id)
++        if snapshot is not None:
++            return snapshot
+     # Polling reads never take the account row lock; lease recovery runs only on
+     # every few ticks rather than on each 0.25 s read.
+     async with transaction(request, actor, lock=not poll) as (db, user):
+diff --git a/backend/app/ai/runtime.py b/backend/app/ai/runtime.py
+index 075b0168..1b2a8fc3 100644
+--- a/backend/app/ai/runtime.py
++++ b/backend/app/ai/runtime.py
+@@ -379,6 +379,23 @@ class AiRuntime:
+                 if usage is None or usage.worker_id != self.worker_id or usage.lease_until <= now():
+                     raise DomainError(410, "WORKER_FENCED", "LÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Â£t trÃƒÆ’Ã‚Â² chuyÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡n Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ kÃƒÂ¡Ã‚ÂºÃ‚Â¿t thÃƒÆ’Ã‚Âºc.")
+
++    async def monitor_check(self, run: LiveRun) -> None:
++        # Periodic monitoring reads authority; it never dispatches, publishes,
++        # renews a lease or mutates a turn. Those operations keep check() and its
++        # post-lock provider revalidation. Avoid taking their write locks here.
++        if not self.settings.ai_dispatch_gate_enabled or run.actor.account_kind != "registered" or run.responder:
++            await self.check(run, completed_ok=True)
++            return
++        if run.deadline is not None and run.deadline.remaining() <= 0:
++            raise guest_expired()
++        if run.terminal or time.monotonic() - run.started > self.settings.ai_timeout_seconds:
++            raise DomainError(410, "RUN_ENDED", "LÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Â£t trÃƒÆ’Ã‚Â² chuyÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡n Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â£ kÃƒÂ¡Ã‚ÂºÃ‚Â¿t thÃƒÆ’Ã‚Âºc.")
++        self.store.get(run.conversation_id, str(run.actor.user_id), str(run.actor.session_id))
++        from app.ai.policy_monitor import check_policy_snapshot
++
++        async with self.database.readonly_snapshot() as db:
++            await check_policy_snapshot(db, run, self.worker_id, accounting=self.settings.ai_accounting_enabled)
++
+     async def revalidate_check_ins(self, db, user, run: LiveRun, c) -> frozenset[UUID]:
+         """ADR-08: recent journal-derived check-ins join context only after revalidation.
+
+@@ -852,7 +869,7 @@ class AiRuntime:
+                             # Our publication may have committed while its return
+                             # is still queued. Fresh policy/lease checks still run,
+                             # but our own completion must not cancel the publisher.
+-                            await self.check(run, completed_ok=True)
++                            await self.monitor_check(run)
+                         except Exception:
+                             if run.task and not run.task.done():
+                                 run.task.cancel()
+diff --git a/backend/app/infrastructure/database/connection.py b/backend/app/infrastructure/database/connection.py
+index e9deaae8..80e62e1d 100644
+--- a/backend/app/infrastructure/database/connection.py
++++ b/backend/app/infrastructure/database/connection.py
+@@ -4,7 +4,12 @@ import time
+ from collections import deque
+
+ from sqlalchemy.exc import TimeoutError as PoolTimeout
+-from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
++from sqlalchemy.ext.asyncio import (
++    AsyncEngine,
++    AsyncSession,
++    async_sessionmaker,
++    create_async_engine,
++)
+ from sqlalchemy.pool import AsyncAdaptedQueuePool
+
+ from app.core.config import Settings
+@@ -20,6 +25,8 @@ class TimedQueuePool(AsyncAdaptedQueuePool):
+     def __init__(self, *args, **kwargs):
+         self.acquire_samples: deque[float] = deque(maxlen=2048)
+         self.acquire_count = self.acquire_timeouts = 0
++        self.acquire_lt_100 = self.acquire_lt_500 = 0
++        self.acquire_total_ms = self.acquire_max_ms = 0.0
+         super().__init__(*args, **kwargs)
+
+     def _do_get(self):
+@@ -30,21 +37,37 @@ class TimedQueuePool(AsyncAdaptedQueuePool):
+             self.acquire_timeouts += 1
+             raise
+         finally:
++            elapsed = (time.monotonic() - started) * 1000
+             self.acquire_count += 1
+-            self.acquire_samples.append((time.monotonic() - started) * 1000)
++            self.acquire_samples.append(elapsed)
++            self.acquire_lt_100 += int(elapsed < 100)
++            self.acquire_lt_500 += int(elapsed < 500)
++            self.acquire_total_ms += elapsed
++            self.acquire_max_ms = max(self.acquire_max_ms, elapsed)
+
+     def measurements(self):
+         values = sorted(self.acquire_samples)
+         return {"acquisitions": self.acquire_count, "timeouts": self.acquire_timeouts,
+                 "window_samples": len(values),
+                 "p95_ms": values[max(0, math.ceil(len(values)*0.95)-1)] if values else None,
+-                "max_ms": max(values) if values else None}
++                "p99_ms": values[max(0, math.ceil(len(values)*0.99)-1)] if values else None,
++                "max_ms": max(values) if values else None,
++                # Exact nearest-rank threshold decisions across every acquisition,
++                # without retaining unbounded samples or estimating a percentile.
++                "whole_run": {"samples": self.acquire_count,
++                    "mean_ms": self.acquire_total_ms / self.acquire_count if self.acquire_count else None,
++                    "max_ms": self.acquire_max_ms if self.acquire_count else None,
++                    "below_100ms": self.acquire_lt_100, "below_500ms": self.acquire_lt_500,
++                    "p95_lt_100ms": bool(self.acquire_count and self.acquire_lt_100 >= math.ceil(self.acquire_count * 0.95)),
++                    "p99_lt_500ms": bool(self.acquire_count and self.acquire_lt_500 >= math.ceil(self.acquire_count * 0.99))}}
+
+
+ class Database:
+     def __init__(self, settings: Settings):
+         self.engine: AsyncEngine | None = None
+         self.sessions: async_sessionmaker | None = None
++        self._snapshot_source: AsyncEngine | None = None
++        self._snapshot_sessions: async_sessionmaker | None = None
+         if settings.database_url and settings.database_url.get_secret_value():
+             raw = settings.database_url.get_secret_value()
+             url = raw.replace("postgres://", "postgresql+psycopg://", 1).replace(
+@@ -65,6 +88,24 @@ class Database:
+             )
+             self.sessions = async_sessionmaker(self.engine, expire_on_commit=False)
+
++    def readonly_snapshot(self) -> AsyncSession:
++        """A single-statement reader on the same pool, without BEGIN/ROLLBACK I/O.
++
++        Never use this for locks, writes, recovery or multi-statement decisions.
++        The derived engine shares the physical pool; SQLAlchemy restores isolation
++        on return before a transactional writer can reuse the connection.
++        """
++        engine = self.engine
++        if engine is None:
++            raise DomainError(503, "DATABASE_UNAVAILABLE", "KÃƒÂ¡Ã‚ÂºÃ‚Â¿t nÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi dÃƒÂ¡Ã‚Â»Ã‚Â¯ liÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡u chÃƒâ€ Ã‚Â°a sÃƒÂ¡Ã‚ÂºÃ‚Âµn sÃƒÆ’Ã‚Â ng.", True)
++        if self._snapshot_source is not engine or self._snapshot_sessions is None:
++            self._snapshot_sessions = async_sessionmaker(
++                engine.execution_options(isolation_level="AUTOCOMMIT"),
++                expire_on_commit=False, autoflush=False,
++            )
++            self._snapshot_source = engine
++        return self._snapshot_sessions()
++
+     def pool_metrics(self) -> dict:
+         pool = self.engine.pool if self.engine else None
+         return pool.measurements() if isinstance(pool, TimedQueuePool) else {}
+diff --git a/backend/tests/test_scale_polling.py b/backend/tests/test_scale_polling.py
+index 0775cc41..11e75c3e 100644
+--- a/backend/tests/test_scale_polling.py
++++ b/backend/tests/test_scale_polling.py
+@@ -104,13 +104,18 @@ async def test_running_saved_poll_keeps_authorization_and_has_a_bounded_query_bu
+     engine = app.state.database.engine.sync_engine
+     event.listen(engine, "before_cursor_execute", count)
+     try:
++        app.state.settings.ai_dispatch_gate_enabled = True
+         found = await durable_run(Request({"type": "http", "app": app, "headers": []}),
+                                   run.actor, run_id, poll=True, recover=False)
+         assert found[0].status == "running" and found[2] == []
+-        assert query_count <= 3
++        assert query_count == 1
+         query_count = 0
+         await app.state.ai.check(run)
+         assert query_count <= 5
++        app.state.settings.ai_dispatch_gate_enabled = True
++        query_count = 0
++        await app.state.ai.monitor_check(run)
++        assert query_count == 1
+     finally:
+         event.remove(engine, "before_cursor_execute", count)
+         model.release.set()
+@@ -118,6 +123,7 @@ async def test_running_saved_poll_keeps_authorization_and_has_a_bounded_query_bu
+
+
+ @pytest.mark.postgres
++@pytest.mark.parametrize("reader", ["stream", "monitor"])
+ @pytest.mark.parametrize(("change", "code"), [
+     ("provider_session", "SESSION_EXPIRED"),
+     ("application_session", "SESSION_EXPIRED"),
+@@ -130,7 +136,7 @@ async def test_running_saved_poll_keeps_authorization_and_has_a_bounded_query_bu
+     ("data_version", "CONTEXT_CHANGED"),
+     ("conversation", "NOT_FOUND"),
+ ])
+-async def test_running_poll_revalidates_each_authority_on_the_next_snapshot(clients, change, code):
++async def test_running_poll_revalidates_each_authority_on_the_next_snapshot(clients, change, code, reader):
+     from datetime import timedelta
+     from uuid import uuid4
+
+@@ -155,8 +161,16 @@ async def test_running_poll_revalidates_each_authority_on_the_next_snapshot(clie
+     run = app.state.ai.runs[UUID(accepted.json()["runId"])]
+     await asyncio.wait_for(model.started.wait(), 5)
+     request = Request({"type": "http", "app": app, "headers": []})
++
++    async def read():
++        app.state.settings.ai_dispatch_gate_enabled = True
++        if reader == "monitor":
++            await app.state.ai.monitor_check(run)
++        else:
++            assert (await durable_run(request, run.actor, run.id, poll=True, recover=False))[0].id == run.id
++
+     try:
+-        assert (await durable_run(request, run.actor, run.id, poll=True, recover=False))[0].id == run.id
++        await read()
+         async with app.state.database.sessions.begin() as db:
+             user = await db.get(User, uid)
+             session = await db.scalar(select(AuthSession).where(AuthSession.user_id == uid))
+@@ -181,8 +195,172 @@ async def test_running_poll_revalidates_each_authority_on_the_next_snapshot(clie
+             else:
+                 (await db.get(AiConversation, cid)).expires_at = now() - timedelta(seconds=1)
+         with pytest.raises(DomainError) as denied:
+-            await durable_run(request, run.actor, run.id, poll=True, recover=False)
+-        assert denied.value.code == code
++            await read()
++        assert denied.value.code == ("CONVERSATION_EXPIRED" if reader == "monitor" and change == "conversation" else code)
++    finally:
++        model.release.set()
++        await run.task
++
++
++@pytest.mark.postgres
++@pytest.mark.parametrize("change", ["turn_worker", "turn_lease", "usage_worker", "usage_lease", "run_status", "run_owner"])
++async def test_monitor_does_not_accept_changed_worker_or_run_authority(clients, change):
++    from datetime import timedelta
++    from uuid import uuid4
++
++    from app.ai.models import AiTurn
++    from app.core.errors import DomainError
++    from app.infrastructure.database.models import AiRun, AiUsage, now
++
++    app, actors = clients
++    client = actors[0][0]
++    app.state.settings.ai_dispatch_gate_enabled = True
++    app.state.settings.ai_accounting_enabled = True
++    model = make_test_model("Synthetic reply")
++    model.hold = True
++    app.state.ai.model_override = model
++    await enable(client)
++    created = await client.post("/api/v1/ai/conversations", headers=key(), json={"botId": "may", "persistent": True})
++    accepted = await client.post(f"/api/v1/ai/conversations/{created.json()['conversationId']}/messages", headers=key(), json={
++        "text": "Synthetic", "clientMessageId": str(uuid4()), "expectedConversationVersion": 1,
++    })
++    assert accepted.status_code == 202, accepted.text
++    run = app.state.ai.runs[UUID(accepted.json()["runId"])]
++    await asyncio.wait_for(model.started.wait(), 5)
++    try:
++        await app.state.ai.monitor_check(run)
++        async with app.state.database.sessions.begin() as db:
++            if change.startswith("turn_"):
++                row = await db.get(AiTurn, run.id)
++            elif change.startswith("usage_"):
++                row = await db.get(AiUsage, run.id)
++            else:
++                row = await db.get(AiRun, run.id)
++            if change.endswith("worker"):
++                row.worker_id = uuid4()
++            elif change.endswith("lease"):
++                row.lease_until = now() - timedelta(seconds=1)
++            elif change == "run_status":
++                row.status = "cancelled"
++            else:
++                row.user_id = actors[1][1]
++        with pytest.raises(DomainError) as denied:
++            await app.state.ai.monitor_check(run)
++        assert denied.value.code == (
++            "WORKER_FENCED" if change.startswith(("turn_", "usage_"))
++            else "RUN_ENDED" if change == "run_status" else "CONVERSATION_EXPIRED"
++        )
++    finally:
++        model.release.set()
++        await run.task
++
++
++@pytest.mark.postgres
++async def test_monitor_rejects_conversation_expiring_while_waiting_for_checkout(clients):
++    from datetime import timedelta
++    from uuid import uuid4
++
++    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
++
++    from app.ai.models import AiConversation
++    from app.ai.policy_monitor import check_policy_snapshot
++    from app.core.errors import DomainError
++    from app.infrastructure.database.models import now
++
++    app, actors = clients
++    client = actors[0][0]
++    model = make_test_model("Synthetic reply")
++    model.hold = True
++    app.state.ai.model_override = model
++    await enable(client)
++    created = await client.post("/api/v1/ai/conversations", headers=key(), json={"botId": "may", "persistent": True})
++    cid = UUID(created.json()["conversationId"])
++    accepted = await client.post(f"/api/v1/ai/conversations/{cid}/messages", headers=key(), json={
++        "text": "Synthetic", "clientMessageId": str(uuid4()), "expectedConversationVersion": 1,
++    })
++    run = app.state.ai.runs[UUID(accepted.json()["runId"])]
++    await asyncio.wait_for(model.started.wait(), 5)
++    engine = create_async_engine(app.state.database.engine.url, pool_size=1, max_overflow=0)
++    sessions = async_sessionmaker(engine, expire_on_commit=False)
++    task = None
++    try:
++        started = asyncio.get_running_loop().create_future()
++
++        async def read():
++            async with sessions() as db:
++                started.set_result(now())
++                await check_policy_snapshot(db, run, app.state.ai.worker_id, accounting=False)
++
++        async with engine.connect():
++            # Open the blocker before setting expiry; connection startup must
++            # not consume the interval and accidentally make the old code pass.
++            async with app.state.database.sessions.begin() as db:
++                expiry = now() + timedelta(seconds=1)
++                (await db.get(AiConversation, cid)).expires_at = expiry
++            task = asyncio.create_task(read())
++            assert await asyncio.wait_for(started, 5) < expiry
++            async with asyncio.timeout(5):
++                while True:
++                    async with app.state.database.sessions() as db:
++                        if await db.scalar(text("select clock_timestamp() >= :expiry"), {"expiry": expiry}):
++                            break
++                    await asyncio.sleep(0.01)
++            assert not task.done()
++        with pytest.raises(DomainError) as denied:
++            await asyncio.wait_for(task, 5)
++        assert denied.value.code == "CONVERSATION_EXPIRED"
++    finally:
++        if task is not None and not task.done():
++            task.cancel()
++            await asyncio.gather(task, return_exceptions=True)
++        await engine.dispose()
++        model.release.set()
++        await run.task
++
++
++@pytest.mark.postgres
++@pytest.mark.parametrize("cancel", [False, True])
++async def test_candidate_terminal_reconnect_replays_without_another_paid_attempt(clients, cancel):
++    from uuid import uuid4
++
++    from sqlalchemy import func, select
++
++    from app.infrastructure.database.models import AiRun, AiUsage
++
++    app, actors = clients
++    client, uid = actors[0]
++    app.state.settings.ai_dispatch_gate_enabled = True
++    app.state.settings.ai_accounting_enabled = True
++    model = make_test_model("Synthetic persisted answer")
++    model.hold = True
++    app.state.ai.model_override = model
++    await enable(client)
++    created = await client.post("/api/v1/ai/conversations", headers=key(), json={"botId": "may", "persistent": True})
++    accepted = await client.post(f"/api/v1/ai/conversations/{created.json()['conversationId']}/messages", headers=key(), json={
++        "text": "Synthetic", "clientMessageId": str(uuid4()), "expectedConversationVersion": 1,
++    })
++    assert accepted.status_code == 202, accepted.text
++    run = app.state.ai.runs[UUID(accepted.json()["runId"])]
++    await asyncio.wait_for(model.started.wait(), 5)
++    try:
++        if cancel:
++            stopped = await client.post(f"/api/v1/ai/runs/{run.id}/cancel", json={"expectedVersion": 1})
++            assert stopped.status_code == 200, stopped.text
++        else:
++            model.release.set()
++        await asyncio.wait_for(run.task, 5)
++        found = await durable_run(Request({"type": "http", "app": app, "headers": []}), run.actor, run.id, poll=True, recover=False)
++        assert found[0].status == ("cancelled" if cancel else "completed")
++        assert len(found[2]) == (0 if cancel else 1)
++        for _ in range(2):
++            replay = await client.get(accepted.json()["eventsUrl"], headers={"Last-Event-ID": "1"})
++            assert replay.status_code == 200
++            assert ('"cancelled"' if cancel else '"completed"') in replay.text
++            assert ("Synthetic persisted answer" in replay.text) is (not cancel)
++            assert "UNVALIDATED-RAW-CANARY" not in replay.text
++        async with app.state.database.sessions() as db:
++            assert await db.scalar(select(func.count()).select_from(AiRun).where(AiRun.user_id == uid)) == 1
++            assert (await db.get(AiUsage, run.id)).requests_started == 1
+     finally:
+         model.release.set()
+         await run.task
+diff --git a/backend/tests/test_scale_resource_guards.py b/backend/tests/test_scale_resource_guards.py
+index 0a045590..637b79c0 100644
+--- a/backend/tests/test_scale_resource_guards.py
++++ b/backend/tests/test_scale_resource_guards.py
+@@ -59,7 +59,67 @@ async def test_pool_acquisition_wait_and_timeout_are_measured_without_credential
+                         pytest.fail("Pool cap was bypassed")
+         metrics = measured.pool_metrics()
+         assert metrics["timeouts"] == 1 and metrics["p95_ms"] >= 900
++        assert metrics["p99_ms"] >= 900
++        assert metrics["whole_run"]["samples"] == metrics["acquisitions"]
++        assert metrics["whole_run"]["max_ms"] >= 900
++        assert metrics["whole_run"]["p95_lt_100ms"] is False
++        assert metrics["whole_run"]["p99_lt_500ms"] is False
+         assert "postgres" not in json.dumps(metrics)
+         assert measured.occupancy()[0] == 0
+     finally:
+         await measured.engine.dispose()
++
++
++@pytest.mark.postgres
++@pytest.mark.parametrize("cancel_read", [False, True])
++async def test_single_statement_read_does_not_hold_transaction_or_leak_autocommit_to_writers(clients, cancel_read):
++    from sqlalchemy import select, text
++
++    from app.infrastructure.database.connection import Database
++    from app.infrastructure.database.models import User
++
++    app, actors = clients
++    uid = actors[0][1]
++    settings = Settings(_env_file=None, database_url=app.state.database.engine.url.render_as_string(hide_password=False),
++                        database_pool_size=1, database_pool_overflow=0)
++    measured = Database(settings)
++    async with app.state.database.sessions() as observer:
++        original_alias = (await observer.get(User, uid)).alias
++    try:
++        if cancel_read:
++            started = asyncio.get_running_loop().create_future()
++
++            async def blocked_read():
++                async with measured.readonly_snapshot() as reader:
++                    started.set_result(await reader.scalar(text("select pg_backend_pid()")))
++                    await reader.scalar(text("select pg_sleep(10)"))
++
++            task = asyncio.create_task(blocked_read())
++            try:
++                pid = await asyncio.wait_for(started, 5)
++                async with asyncio.timeout(5):
++                    while True:
++                        async with app.state.database.sessions() as observer:
++                            if await observer.scalar(text("select wait_event from pg_stat_activity where pid=:pid"), {"pid": pid}) == "PgSleep":
++                                break
++                        await asyncio.sleep(0.01)
++            finally:
++                task.cancel()
++                with pytest.raises(asyncio.CancelledError):
++                    await task
++        else:
++            async with measured.readonly_snapshot() as reader:
++                pid = await reader.scalar(text("select pg_backend_pid()"))
++                async with app.state.database.sessions() as observer:
++                    assert await observer.scalar(text("select state from pg_stat_activity where pid=:pid"), {"pid": pid}) == "idle"
++        with pytest.raises(RuntimeError, match="force rollback"):
++            async with measured.require()() as writer, writer.begin():
++                user = await writer.get(User, uid)
++                user.alias = "MUST ROLLBACK"
++                await writer.flush()
++                raise RuntimeError("force rollback")
++        async with app.state.database.sessions() as observer:
++            assert await observer.scalar(select(User.alias).where(User.id == uid)) == original_alias
++        assert measured.occupancy()[0] == 0
++    finally:
++        await measured.engine.dispose()

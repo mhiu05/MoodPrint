@@ -202,3 +202,19 @@ limits still apply. No approval is needed for the feature-branch fix/evidence pu
 The new load experiments failed and were removed;their failure does not authorize
 a larger pool,timeout,instance or spend limit. Account/project facts and hosted
 recovery/load gates remain open;working CLI credentials are currently unavailable.
+
+## Codex engineering continuation — 2026-11-06
+
+The current user instruction authorizes independent source engineering, synthetic local
+tests, feature-branch commits and normal pushes. No further owner confirmation is needed
+for these steps. It explicitly forbids production migration/merge/deployment, production
+budget activation, paid model tests before campaign gates, credential resets/rotation,
+and Codex changes to the cloud services assigned to Work. No such operation occurred.
+
+The source audit does not establish complete global paid-operation accounting:
+registered Voyage embeddings, registered speech transcription, exact-count preflight
+fees/binding, full group/background coverage and the canonical live campaign adapter
+remain gaps. Existing child-transfer/retry/unknown/restart tests cover their stated
+ledger scopes only. The$50 target is not an activation decision. The$3 campaign gates
+have not passed; no paid generation/judge tests were run.
+[Financial coverage and blockers](evidence/p3-financial-coverage.json).

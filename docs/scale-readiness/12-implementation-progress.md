@@ -239,3 +239,36 @@ Cost of rollback:the original measured database pressure remains unresolved.
 - Cloud review confirmed the running Sydney EC2 target and account/project fingerprints; billing permission, OpenAI staging-project selection, Supabase email-send rate, and complete recovery readiness remain unresolved. Detailed read-only values and gaps are recorded in documents 13–16.
 - The exposed `postgres` migration-owner credential was not rotated. The project Database Settings page confirms reset will break existing connections. Rotation remains blocked pending owner approval and a secure owner-entered reset; the separate runtime credential was not changed.
 - Release remains **NO-GO**. No hosted Auth/SMTP/security setting, database migration, SES request, paid backup, alarm, deployment, restart, resize, or merge was performed.
+
+## Codex engineering continuation — 2026-11-06
+
+**P3-I07 remains FAILED.** The fresh-monitor, running-SSE and autocommit reader
+experiments were rejected and removed after actual workload failures. No experimental
+reader, isolation mode, cached authority or new admission queue is delivered. The
+application polling/provider/publication runtime is restored to verified07486b83.
+
+Delivered implementation: recent poolp99, constant-memory exact pool-lifetime threshold
+counters, and fail-closed runner gates for recentp95<100ms/p99<500ms plus whole-run
+threshold decisions. New regressions cover monitor authority/lease/ownership and
+completed/cancelled reconnect without another paid attempt. Original query budgets,
+pool4+1, deadlines, polling frequency, model/context and workload are preserved.
+
+Retained-source focused verification:112PASS; exact CI Ruff scope PASS; mypy195 files
+PASS. The exact retained-source900s request stopped early with8pool timeouts. This work does
+not claim an SLO or release PASS. The completed failed900s variant produced2441/2441,
+occupancy46.08 and completionp9523.83s, but poolp95838.175ms and failed lifetime gates.
+The autocommit variant stopped at42/50 with8pool timeouts and was removed despite
+passing unit/isolation/cancellation tests. [Detailed evidence](15-test-results.md).
+
+Measured limitation: the current single API event loop approaches one saturated CPU,
+with pooled checkouts and serialized admission contention, while the database quota
+is not throttled and application RSS is modest. This demonstrates a limitation of the
+tested topology; it does not establish an EC2-wide ceiling or prove a proposed
+architecture will pass. Further dispatch/read architecture work remains required.
+
+
+Local full bare pytest interruption: the Docker daemon became unavailable again;
+the persisted log ends near18% with no completion/exit artifact. This run is
+**INTERRUPTED**, not a full regression PASS. The retained112focusedPASS, lint and
+typing results remain their stated scopes. Exact feature-commit GitHub CI is the
+full regression authority and must complete independently.

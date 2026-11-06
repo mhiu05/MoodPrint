@@ -1,0 +1,73 @@
+"""Fresh read-only policy snapshots; never a dispatch or publication authority."""
+
+from functools import lru_cache
+
+from sqlalchemy import bindparam, func, select
+
+from app.ai.models import AiConversation, AiTurn
+from app.core.errors import DomainError
+from app.core.security import verify_actor
+from app.infrastructure.database.models import (
+    AgeDeclaration,
+    AiRun,
+    AiUsage,
+    AuthSession,
+    Consent,
+    User,
+    now,
+)
+from app.modules.consent.policy import consent_enabled
+
+
+@lru_cache(maxsize=1)
+def _statement():
+    # Only immutable SQL structure is reused. Every authority, clock bound and
+    # provider-session function is evaluated in a new database snapshot per tick.
+    return (
+        select(User, AuthSession, AgeDeclaration,
+               func.moodprint.is_provider_session_active(AuthSession.id, User.id),
+               Consent, AiRun.id, AiRun.status, AiTurn, AiUsage, AiConversation.id)
+        .select_from(User)
+        .join(AuthSession, (AuthSession.user_id == User.id)
+              & (AuthSession.id == bindparam("monitor_session")))
+        .outerjoin(AgeDeclaration, AgeDeclaration.user_id == User.id)
+        .outerjoin(Consent, (Consent.user_id == User.id) & (Consent.purpose == "AI"))
+        .outerjoin(AiRun, (AiRun.id == bindparam("monitor_run"))
+                   & (AiRun.user_id == User.id)
+                   & (AiRun.conversation_id == bindparam("monitor_conversation")))
+        .outerjoin(AiTurn, AiTurn.run_id == AiRun.id)
+        .outerjoin(AiUsage, AiUsage.run_id == AiRun.id)
+        .outerjoin(AiConversation, (AiConversation.id == AiRun.conversation_id)
+                   & (AiConversation.user_id == User.id)
+                   & (AiConversation.kind == bindparam("monitor_kind"))
+                   & (AiConversation.expires_at > func.clock_timestamp()))
+        .where(User.id == bindparam("monitor_user"))
+    )
+
+
+async def check_policy_snapshot(db, run, worker_id, *, accounting):
+    found = (await db.execute(_statement(), {
+        "monitor_session": run.actor.session_id, "monitor_user": run.actor.user_id,
+        "monitor_run": run.id, "monitor_conversation": run.conversation_id,
+        "monitor_kind": run.kind,
+    })).one_or_none()
+    if found is None:
+        raise DomainError(401, "SESSION_EXPIRED", "Phiên đã kết thúc.")
+    # Keep the result tuple alive: verify_actor's session/age reads use these
+    # transaction-local ORM instances. No identity or result survives this tick.
+    user = await verify_actor(db, run.actor, found[0], provider_active=found[3])
+    consent, run_id, status, turn, usage, conversation_id = found[4:]
+    if consent is None or not consent_enabled("AI", consent.enabled):
+        raise DomainError(403, "CONSENT_REQUIRED", "Bạn chưa bật quyền cần thiết.")
+    if user.data_version != run.data_version:
+        raise DomainError(409, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
+    if turn is not None and (turn.worker_id != worker_id or turn.lease_until <= now()):
+        raise DomainError(410, "WORKER_FENCED", "Lượt trò chuyện đã kết thúc.")
+    if run.persistent and conversation_id is None:
+        # A missing run is always denied; the locked operation check retains the
+        # legacy error distinction. This monitor never releases user content.
+        raise DomainError(410, "CONVERSATION_EXPIRED", "Cuộc trò chuyện đã kết thúc.")
+    if run_id is None or status not in ("running", "completed"):
+        raise DomainError(410, "RUN_ENDED", "Lượt trò chuyện đã kết thúc.")
+    if accounting and (usage is None or usage.worker_id != worker_id or usage.lease_until <= now()):
+        raise DomainError(410, "WORKER_FENCED", "Lượt trò chuyện đã kết thúc.")

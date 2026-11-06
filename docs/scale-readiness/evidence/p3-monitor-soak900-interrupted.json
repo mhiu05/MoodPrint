@@ -1,0 +1,13 @@
+{
+  "status": "INTERRUPTED_NOT_ACCEPTANCE_EVIDENCE",
+  "run_id": "d6e64c7af0484760b52c5fe853532369",
+  "final_workload_report_recovered": false,
+  "resource_samples_recovered": 676,
+  "last_observed_elapsed_seconds": 682.352,
+  "required_measured_seconds": 900,
+  "container_oom_killed": false,
+  "container_exit_codes_after_daemon_restart": [255, 255],
+  "reason": "Execution interrupted; local Docker daemon subsequently unavailable. Raw resource samples recovered after restarting the local runtime. No completed-turn, occupancy or SLO conclusion is supported.",
+  "real_generation_calls": 0,
+  "external_generation_spend_usd": 0
+}

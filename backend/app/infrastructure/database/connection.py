@@ -20,6 +20,8 @@ class TimedQueuePool(AsyncAdaptedQueuePool):
     def __init__(self, *args, **kwargs):
         self.acquire_samples: deque[float] = deque(maxlen=2048)
         self.acquire_count = self.acquire_timeouts = 0
+        self.acquire_lt_100 = self.acquire_lt_500 = 0
+        self.acquire_total_ms = self.acquire_max_ms = 0.0
         super().__init__(*args, **kwargs)
 
     def _do_get(self):
@@ -30,15 +32,29 @@ class TimedQueuePool(AsyncAdaptedQueuePool):
             self.acquire_timeouts += 1
             raise
         finally:
+            elapsed = (time.monotonic() - started) * 1000
             self.acquire_count += 1
-            self.acquire_samples.append((time.monotonic() - started) * 1000)
+            self.acquire_samples.append(elapsed)
+            self.acquire_lt_100 += int(elapsed < 100)
+            self.acquire_lt_500 += int(elapsed < 500)
+            self.acquire_total_ms += elapsed
+            self.acquire_max_ms = max(self.acquire_max_ms, elapsed)
 
     def measurements(self):
         values = sorted(self.acquire_samples)
         return {"acquisitions": self.acquire_count, "timeouts": self.acquire_timeouts,
                 "window_samples": len(values),
                 "p95_ms": values[max(0, math.ceil(len(values)*0.95)-1)] if values else None,
-                "max_ms": max(values) if values else None}
+                "p99_ms": values[max(0, math.ceil(len(values)*0.99)-1)] if values else None,
+                "max_ms": max(values) if values else None,
+                # Exact nearest-rank threshold decisions across every acquisition,
+                # without retaining unbounded samples or estimating a percentile.
+                "whole_run": {"samples": self.acquire_count,
+                    "mean_ms": self.acquire_total_ms / self.acquire_count if self.acquire_count else None,
+                    "max_ms": self.acquire_max_ms if self.acquire_count else None,
+                    "below_100ms": self.acquire_lt_100, "below_500ms": self.acquire_lt_500,
+                    "p95_lt_100ms": bool(self.acquire_count and self.acquire_lt_100 >= math.ceil(self.acquire_count * 0.95)),
+                    "p99_lt_500ms": bool(self.acquire_count and self.acquire_lt_500 >= math.ceil(self.acquire_count * 0.99))}}
 
 
 class Database:

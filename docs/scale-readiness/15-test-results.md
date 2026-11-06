@@ -477,3 +477,133 @@ including scale_readiness.py;mypy passed195 files;docs208 Markdown/1446 links an
 blocker after both runner findings were fixed. These tests overlap prior scopes;
 the post-push full GitHub workflow,matched to the exact remote SHA,is the final
 suite authority. No merge or deployment follows a green feature-branch workflow.
+
+## Codex engineering continuation — 2026-11-06
+
+**Current retained-source decision: P3-I07 FAILED; all runtime experiments below were rejected and removed. Only stronger pool measurements/SLO gates and additional regressions are retained.**
+
+Measured baseline profiling found substantial repeated SQL/client work:37,965 instrumented
+SQL events; periodic policy monitors alone held connections for128.251aggregate seconds
+over2,453checkouts (mean52.283ms,p95102.802ms). Instrumentation overhead invalidates this
+as an acceptance comparison. [Content-free profile](evidence/p3-baseline-profile.json),
+[profile workload](evidence/p3-baseline-profile-workload.json).
+
+Focused REDs: monitor resource contract5SQL versus the reduced target, running SSE3SQL
+versus1, missing poolp99/whole-run gates (3failures), and a delayed-checkout expiry test
+that failed DID NOT RAISE DomainError. Final focused scope **113passed in69.26s** includes
+polling/authority, persistence/replay, cancellation/drain, legacy/pooled accounting,
+resource guards and runner safety. These counts overlap prior scopes and are not a
+full-suite aggregate. [SSE RED](evidence/p3-stream-red.log),
+[expiry RED](evidence/p3-monitor-expiry-red.log),
+[pool RED](evidence/p3-pool-metrics-red.log),
+[GREEN](evidence/p3-combined-green.log).
+Exact Linux CI Ruff scope passed; full `mypy app` passed197 files. Independent reviews
+found no remaining Critical/Important issue after the expiry fix and test hardening.
+
+Corrected isolated short baseline (60s measurement/15s warmup):161/161 completed,
+0errors/timeouts, mean occupancy44.8643, pool recentp95368.248ms, completionp9529546.205ms:
+**FAILED**. [Report](evidence/p3-baseline-v2.json).
+
+Combined short diagnostic:207/207 completed,0errors/timeouts, occupancy45.7506,
+completionp9524287.809ms, looplagp9511.327ms, final pool windowp9538.465ms/p9997.930ms.
+It overlapped the end of cold typing and is **not a comparable acceptance run**.
+Its whole-run pool thresholds failed, and the strengthened runner correctly returned
+**FAILED** despite the healthy final window. [Report](evidence/p3-combined-short.json).
+
+Measurement scope: `whole_run` means pool lifetime through collection, including fixture
+setup/warmup/drain. Its counters exactly decide nearest-rank p95<100ms/p99<500ms; they
+do not invent lifetime percentile values. `_do_get` times queue/create work and excludes
+pre-ping/SQL. Occupancy excludes warmup/drain. No report here proves network/EC2 capacity,
+the full mixed workload, real-provider pricing/quota/quality or all-provider accounting.
+
+An interrupted900s attempt has no final workload result; its676 resource samples end
+at682.352s. A separate0.5GiB disposable-DB cap caused confirmed fixture OOM during resets;
+that44PASS/33setup-error run is invalid for implementation comparison. Both limitations
+are retained in [qualifications](evidence/p3-experiment-qualifications.json) and
+[interruption record](evidence/p3-monitor-soak900-interrupted.json).
+
+The completed replacement was isolated from other local test/typecheck workloads and
+persisted artifacts directly to the workspace. Its failed decision is recorded below;
+P3-I07 is not promoted. Baseline source07486b83 CI attempt2 was re-read as completedSUCCESS;
+the new feature push must obtain its own exact-SHA completed workflow. No merge/deploy
+follows a successful feature workflow. External generation/judge spend remains0.
+
+### Full-soak finding and transaction follow-up
+
+The first completed isolated900s candidate **FAILED**:2441/2441 completed,0errors and
+0pool timeouts, occupancy46.08085/50, completionp9523829.625ms/p9925526.455ms, but pool
+recentp95838.175ms/p991431.516ms and both exact lifetime thresholds failed. Lifetime
+counts:213874 acquisitions,132214 below100ms,199484 below500ms. Peak parents/SSE/provider
+were50/50/50; RSS200552448bytes; simulated ledger liability18423660000nano. Process
+CPU950.655s over982.418s wall shows a nearly saturated single application CPU despite
+its2CPU quota. The database quota was not throttled. This is not a P3-I07 PASS, and the
+SSE/monitor-only variant does not qualify for shipping as a completed contention fix.
+[Full report](evidence/p3-combined-soak900.json),
+[resource samples](evidence/p3-combined-soak900-resources.json).
+
+Native sequential cold EXPLAIN timings are recorded separately; they are not workload
+latencies. A physical-driver control-command probe identified avoidable transaction
+traffic:20 single-statement reads sent20BEGIN+20ROLLBACK; autocommit reads sent neither.
+[Sanitized plans](evidence/p3-explain.json), [wire-command probe](evidence/p3-protocol.json).
+
+The follow-up confines autocommit to the two read-only snapshot helpers. A cached derived
+engine shares the existing pool and restores isolation before reuse; fresh AsyncSessions
+and all writer/provider/publication/recovery transactions are retained. Pre-ping, pool
+limits, model/context, polling intervals and deadlines are unchanged. No global rollback
+reset is disabled. This uses the documented [SQLAlchemy shared-pool isolation pattern](https://docs.sqlalchemy.org/en/20/core/connections.html#maintaining-multiple-isolation-levels-for-a-single-engine).
+
+RED:missing snapshot reader. GREEN:114 focusedPASS; then2 focused normal/cancelled-reader
+reuse cases PASS, including cancellation of an active PostgreSQL query and a subsequent
+writer UPDATE that must roll back. Counts overlap. Ruff passed and full mypy197 files
+passed before the next isolated900s run started. Independent review found no
+Critical/Important issue. [Cancellation/reuse verification](evidence/p3-autocommit-cancel-green.log).
+Historical checkpoint: that follow-up was pending here. Its failed outcome and rejection are recorded below; none of that runtime variant is retained.
+
+
+### Rejection and retained-source decision
+
+The autocommit replacement failed its first cohort:42/50 completed,8pool timeouts,
+4DATABASE_BUSY and4unfinished streams; completionp9550529.996ms. It stopped before
+warmup completed (0s acceptance window). No OOM or CPU-quota throttle explains it;
+the isolated micro-probe and114unitPASS/2cancel-reusePASS did not predict the actual
+workload. The concurrency failure was not resolved, and the experiment was removed.
+[Report](evidence/p3-autocommit-soak900.json),
+[resources](evidence/p3-autocommit-soak900-resources.json).
+
+The SSE/monitor-only variant also did not satisfy the pool SLO and is absent from the
+retained source. Original3/5query-budget contracts and all original tests remain;
+experiment-only contracts/APIs were removed with their implementations. Historical
+RED/GREEN results above describe discarded candidates, not the delivered runtime.
+Retained112tests PASS; exact CI Ruff PASS and mypy195files PASS. The retained-source900s request subsequently failed; its actual result is recorded below and is not inferred from these variants.
+
+Measured topology limitation: nearly one full application CPU with no2CPU-quota
+throttling, modest RSS, frequent client/idle-in-transaction waits and sampled admission
+lock queues. This supports further application/read/dispatch architecture work, not a
+larger pool/deadline or a claimed EC2 capacity ceiling. Financial and mixed/network
+gates remain open. All external generation/judge spend remains0.
+
+### Exact retained-source benchmark and delivery status
+
+
+The exact retained-source900s request stopped on workload failure:209/217 completed,
+8pool timeouts (6exception outcomes and2unfinished streams),126.9585s measured window,
+187.047s workload wall, occupancy34.6617, completionp9548846.222ms/p9953987.336ms,
+recent poolp954998.483ms/p998254.595ms. Process CPU183.023s/187.047s wall again approaches
+one saturated application CPU without quota throttling/OOM. This is **FAILED**, not a
+completed900s soak. The existing fail-closed runner was not weakened to continue past
+errors or manufacture success. [Exact report](evidence/p3-retained-soak900.json),
+[resource samples](evidence/p3-retained-soak900-resources.json),
+[delivery summary](evidence/p3-retained-summary.json).
+
+No experimental performance variant is retained. All original authorization/privacy/
+cancellation/runtime code and original3/5query-budget tests remain. Retained112focused
+tests passed in148.39s; Ruff and mypy195files passed. Full bare backend pytest is running;
+the exact feature-push CI must complete before its conclusion is reported. A green CI
+does not turn these failed performance, financial or mixed-workload gates into PASS.
+
+
+Local full bare pytest interruption: the Docker daemon became unavailable again;
+the persisted log ends near18% with no completion/exit artifact. This run is
+**INTERRUPTED**, not a full regression PASS. The retained112focusedPASS, lint and
+typing results remain their stated scopes. Exact feature-commit GitHub CI is the
+full regression authority and must complete independently.

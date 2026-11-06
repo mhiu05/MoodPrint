@@ -205,3 +205,22 @@ and local AWS CLI `sts get-caller-identity` returned `NoCredentials`. No credent
 were created,read,rotated or requested. The successful14:30–14:43UTC API records
 above remain historical facts;do not relabel them as a later snapshot. No target
 load,cloud setting,instance state or paid operation changed during this continuation.
+
+## Codex engineering continuation — 2026-11-06
+
+No new cloud configuration or cloud-state assertion is made by this engineering
+increment. Work retains domain/Cloudflare/SES/SMTP/SNS/billing/backup/monitoring ownership.
+
+Local simulation: one API process, app CPU affinity0,1 with quota2 and configured8GiB
+memory cap; separate disposable PostgreSQL affinity2,3/quota2/cap4GiB. This keeps database
+resources outside the application envelope, as with the hosted production database.
+Docker reports12 logical CPUs and8171655168bytes physical RAM (~7.61GiB). An8GiB cgroup
+cap does not prove8GiB physically available RAM. The fake-provider ASGI workload has
+neither EC2-to-Supabase network latency nor Caddy/socket/complete background topology.
+P4-E01 therefore remains partial even if local application gates improve.
+
+The earlier shared2CPU/app7.5GiB/DB0.5GiB setup was corrected after a confirmed disposable
+DB OOM during repeated schema resets (exit137/OOMKilled=true). Its44PASS/33setup errors
+are fixture failure evidence, not an implementation regression or an EC2 memory limit.
+The interrupted first900s attempt recovered676 resource samples through682.352s but no
+final workload report; it is not acceptance evidence. [Qualifications](evidence/p3-experiment-qualifications.json).

@@ -1,0 +1,61 @@
+"""One fresh snapshot for running direct-chat SSE reads; no output/result cache."""
+
+from functools import lru_cache
+
+from sqlalchemy import bindparam, func, select
+
+from app.ai.models import AiConversation, AiTurn
+from app.core.errors import DomainError
+from app.core.security import verify_actor
+from app.infrastructure.database.models import (
+    AgeDeclaration,
+    AiRun,
+    AuthSession,
+    Consent,
+    User,
+)
+from app.modules.consent.policy import consent_enabled
+
+
+@lru_cache(maxsize=1)
+def _running_statement():
+    return (
+        select(User, AuthSession, AgeDeclaration,
+               func.moodprint.is_provider_session_active(AuthSession.id, User.id),
+               Consent, AiRun, AiTurn, AiConversation.id)
+        .select_from(User)
+        .join(AuthSession, (AuthSession.user_id == User.id)
+              & (AuthSession.id == bindparam("poll_session")))
+        .outerjoin(AgeDeclaration, AgeDeclaration.user_id == User.id)
+        .outerjoin(Consent, (Consent.user_id == User.id) & (Consent.purpose == "AI"))
+        .outerjoin(AiRun, (AiRun.id == bindparam("poll_run"))
+                   & (AiRun.user_id == User.id) & (AiRun.origin == "user"))
+        .outerjoin(AiTurn, (AiTurn.run_id == AiRun.id) & (AiTurn.user_id == User.id))
+        .outerjoin(AiConversation, (AiConversation.id == AiTurn.conversation_id)
+                   & (AiConversation.user_id == User.id) & (AiConversation.kind == "direct")
+                   & (AiConversation.expires_at > func.clock_timestamp()))
+        .where(User.id == bindparam("poll_user"))
+    )
+
+
+async def running_snapshot(database, actor, run_id):
+    async with database.readonly_snapshot() as db:
+        found = (await db.execute(_running_statement(), {
+            "poll_session": actor.session_id, "poll_user": actor.user_id, "poll_run": run_id,
+        })).one_or_none()
+        if found is None:
+            return None
+        user, _session, _age, provider_active, consent, row, turn, conversation_id = found
+        # Terminal, missing, guest and exceptional states use the complete legacy
+        # transaction, including its error ordering and atomic answer projection.
+        if (user.account_kind != "registered" or row is None or row.status != "running"
+                or turn is None or conversation_id is None):
+            return None
+        await verify_actor(db, actor, user, provider_active=provider_active)
+        if consent is None or not consent_enabled("AI", consent.enabled):
+            raise DomainError(403, "CONSENT_REQUIRED", "Bạn chưa bật quyền cần thiết.")
+        if user.data_version != turn.data_version:
+            raise DomainError(410, "CONTEXT_CHANGED", "Quyền hoặc dữ liệu đã thay đổi.")
+        # Running turns cannot publish a partial answer. A later terminal poll
+        # rechecks authorization and loads committed bubbles in its transaction.
+        return row, turn, []

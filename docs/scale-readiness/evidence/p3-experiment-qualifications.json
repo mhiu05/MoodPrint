@@ -1,0 +1,9 @@
+{
+  "corrected_baseline": "p3-baseline-v2.json: app2CPU/8GiB configured cap; separate DB2CPU/4GiB; no concurrent typecheck",
+  "combined_short": "Diagnostic only: overlapped final cold mypy process; no comparable acceptance claim. Whole-run pool gates failed despite a healthy final window.",
+  "initial_soak": "Interrupted after676 resource samples/682.352s; no final workload report. Not acceptance evidence.",
+  "fixture_oom": "Initial 512MiB DB cap caused confirmed exit137/OOMKilled=true and44pass/33setup errors; invalid as implementation regression evidence. Replaced with separately resourced DB to reflect production ownership.",
+  "full_soak": "p3-combined-soak900 is isolated from local test/typecheck workloads; output persisted directly to workspace.",
+  "pool_scope": "Acquisition queue/create time excludes pre-ping and SQL. whole_run means pool lifetime including fixture setup, warmup and drain; exact threshold decisions, not invented lifetime percentile values.",
+  "physical_memory": "Docker host total8171655168bytes (~7.61GiB). Configured8GiB cap does not establish8GiB physically available RAM or EC2/network evidence."
+}

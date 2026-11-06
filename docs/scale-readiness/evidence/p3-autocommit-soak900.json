@@ -1,0 +1,128 @@
+{
+  "at_utc": "2026-11-06T03:38:34.769085+00:00",
+  "run_id": "d5baf3df4bfb41bda329405d294cb10f",
+  "case": "T4",
+  "environment": "L0",
+  "real_generation_calls": 0,
+  "external_generation_spend_usd": 0,
+  "head": "UNKNOWN",
+  "working_tree_dirty": "UNKNOWN",
+  "source_sha256": "0301c7343462f0ecf6c6673f6fdc2c368968612f6925d549bae6d66869e4bff8",
+  "result": {
+    "scope": "single-agent saved turns + ASGI SSE; real PostgreSQL/financial guards, fake SDK Model/embeddings; exact-count HTTP guard is separately unit-tested with mock transport, NOT exercised by this Model override; no socket/Caddy, multi-agent or production proof",
+    "requested_users": 50,
+    "requested_duration_seconds": 900,
+    "measured_wall_seconds": 58.084,
+    "completed": 42,
+    "mean_parent_occupancy": 0,
+    "occupancy_samples": 0,
+    "measured_window_seconds": 0,
+    "measurement_errors": {},
+    "measurement_method": "time-weighted sampled parent count; warmup/drain excluded",
+    "event_loop_lag": {
+      "count": 432,
+      "p50_ms": 15.023630999985466,
+      "p95_ms": 72.56208699973286,
+      "p99_ms": 206.9647970000915
+    },
+    "process_cpu_seconds": 57.161,
+    "pool_acquisition_recent_window": {
+      "acquisitions": 3971,
+      "timeouts": 8,
+      "window_samples": 2048,
+      "p95_ms": 541.9962460000534,
+      "p99_ms": 893.9238430002661,
+      "max_ms": 2067.2875259997454,
+      "whole_run": {
+        "samples": 3971,
+        "mean_ms": 640.6276762951404,
+        "max_ms": 10284.917753999707,
+        "below_100ms": 2510,
+        "below_500ms": 3212,
+        "p95_lt_100ms": false,
+        "p99_lt_500ms": false
+      }
+    },
+    "simulated_provider_usage": {
+      "input_tokens": 8000,
+      "output_tokens": 600
+    },
+    "attempts": 50,
+    "statuses": {
+      "202": 46,
+      "503": 4
+    },
+    "errors": {
+      "DATABASE_BUSY": 4,
+      "noncompleted_stream": 4
+    },
+    "peaks": {
+      "parent_turns": 44,
+      "sse_streams": 45,
+      "provider_active": 42,
+      "liability_nano": 5280000000,
+      "pool_checked_out": 5,
+      "rss_bytes": 196849664
+    },
+    "latency_including_rejections": {
+      "count": 50,
+      "p50_ms": 44950.81993800022,
+      "p95_ms": 50529.99562800005,
+      "p99_ms": 51999.12636399995
+    },
+    "fingerprint": {
+      "ai_global_concurrency": 50,
+      "ai_user_concurrency": 2,
+      "ai_requests_per_minute": 20,
+      "ai_timeout_seconds": 60,
+      "ai_daily_budget_usd": 50,
+      "ai_daily_turns_per_user": 60,
+      "ai_accounting_enabled": true,
+      "database_pool_size": 4,
+      "database_pool_overflow": 1,
+      "ai_bounded_reservations_enabled": true,
+      "ai_dispatch_gate_enabled": true,
+      "ai_dispatch_queue_limit": 100,
+      "auth_nat_policy_enabled": false,
+      "database_pool_metrics_enabled": true,
+      "database_transaction_timeouts_enabled": false,
+      "database_statement_timeout_ms": 15000,
+      "database_lock_timeout_ms": 2000,
+      "database_pool_timeout": 10.0,
+      "database_pool_mode": "session",
+      "proactive_worker_enabled": false,
+      "proactive_worker_concurrency": 1,
+      "journal_auto_memory_enabled": false,
+      "ai_collaboration_enabled": false,
+      "ai_smart_orchestration_enabled": false,
+      "ai_group_chat_enabled": false,
+      "auth_captcha_enabled": false,
+      "openai_model": "gpt-6-luna",
+      "pricing_version": "openai-conservative-64k-2026-11-05-v2",
+      "supported_api_processes": 1,
+      "source": "resolved_settings"
+    },
+    "financial_invariant": true,
+    "soak_stopped_on_failed_first_cohort": true,
+    "mixed_auth": null,
+    "local_gates": {
+      "measurement_health": true,
+      "full_measurement_window": false,
+      "parent_occupancy": false,
+      "all_turns_completed": false,
+      "financial_invariant": true,
+      "completion_latency": false,
+      "pool_recent_window": false,
+      "pool_whole_run": false,
+      "event_loop_lag": true
+    },
+    "status": "FAILED",
+    "unmeasured_release_gates": [
+      "whole-run pool percentile values (exact threshold decisions are measured)",
+      "network/Caddy and non-AI endpoint latency",
+      "multi-agent and complete mixed profile",
+      "real provider TTFT/quota/pricing",
+      "target CPU/RSS/cgroups and recovery/rollback"
+    ]
+  }
+}

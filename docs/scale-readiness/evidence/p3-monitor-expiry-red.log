@@ -1,0 +1,165 @@
+F                                                                        [100%]
+
+=================================== FAILURES ===================================
+
+____ test_monitor_rejects_conversation_expiring_while_waiting_for_checkout _____
+
+
+
+clients = (<fastapi.applications.FastAPI object at 0x7cd372d9aea0>, [(<httpx.AsyncClient object at 0x7cd372f9d8b0>, UUID('fb546b...ac-bceb-c65d88eff686')), (<httpx.AsyncClient object at 0x7cd372b06c90>, UUID('11d22f1f-ad6a-4919-8e0c-c1b6dce18e02'))])
+
+
+
+    @pytest.mark.postgres
+
+    async def test_monitor_rejects_conversation_expiring_while_waiting_for_checkout(clients):
+
+        from datetime import timedelta
+
+        from uuid import uuid4
+
+
+
+        from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+
+
+        from app.ai.models import AiConversation
+
+        from app.ai.policy_monitor import check_policy_snapshot
+
+        from app.core.errors import DomainError
+
+        from app.infrastructure.database.models import now
+
+
+
+        app, actors = clients
+
+        client = actors[0][0]
+
+        model = make_test_model("Synthetic reply")
+
+        model.hold = True
+
+        app.state.ai.model_override = model
+
+        await enable(client)
+
+        created = await client.post("/api/v1/ai/conversations", headers=key(), json={"botId": "may", "persistent": True})
+
+        cid = UUID(created.json()["conversationId"])
+
+        accepted = await client.post(f"/api/v1/ai/conversations/{cid}/messages", headers=key(), json={
+
+            "text": "Synthetic", "clientMessageId": str(uuid4()), "expectedConversationVersion": 1,
+
+        })
+
+        run = app.state.ai.runs[UUID(accepted.json()["runId"])]
+
+        await asyncio.wait_for(model.started.wait(), 5)
+
+        engine = create_async_engine(app.state.database.engine.url, pool_size=1, max_overflow=0)
+
+        sessions = async_sessionmaker(engine, expire_on_commit=False)
+
+        task = None
+
+        try:
+
+            async with app.state.database.sessions.begin() as db:
+
+                expiry = now() + timedelta(seconds=0.3)
+
+                (await db.get(AiConversation, cid)).expires_at = expiry
+
+
+
+            async def read():
+
+                async with sessions() as db:
+
+                    await check_policy_snapshot(db, run, app.state.ai.worker_id, accounting=False)
+
+
+
+            async with engine.connect():
+
+                task = asyncio.create_task(read())
+
+                await asyncio.sleep(0)
+
+                async with asyncio.timeout(5):
+
+                    while True:
+
+                        async with app.state.database.sessions() as db:
+
+                            if await db.scalar(text("select clock_timestamp() >= :expiry"), {"expiry": expiry}):
+
+                                break
+
+                        await asyncio.sleep(0.01)
+
+                assert not task.done()
+
+>           with pytest.raises(DomainError) as denied:
+
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+E           Failed: DID NOT RAISE DomainError
+
+
+
+tests/test_scale_polling.py:304: Failed
+
+------------------------------ Captured log setup ------------------------------
+
+WARNING  moodprint:main.py:43 database_pool_exceeds_headroom size=5 overflow=2
+
+WARNING  moodprint:main.py:43 database_pool_exceeds_headroom size=5 overflow=2
+
+=========================== short test summary info ============================
+
+FAILED tests/test_scale_polling.py::test_monitor_rejects_conversation_expiring_while_waiting_for_checkout
+
+1 failed in 7.36s
+
+python.exe : Traceback (most recent call last):
+
+At line:2 char:93
+
++ ... polling.py; & backend/.venv/Scripts/python.exe .tmp/p3-ops.py exec -m ...
+
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)::String) [], RemoteException
+
+    + FullyQualifiedErrorId : NativeCommandError
+
+
+
+  File "E:\MoodPrint\.tmp\p3-ops.py", line 33, in <module>
+
+    call('docker', 'exec', '-w', '/tmp/p3-source/backend', APP, '/srv/moodprint/.venv/bin/python', *sys.argv[2:])
+
+  File "E:\MoodPrint\.tmp\p3-ops.py", line 13, in call
+
+    return subprocess.run(list(args), check=True, text=True, capture_output=capture)
+
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  File "C:\Users\minhh\AppData\Roaming\uv\python\cpython-3.12.13-windows-x86_64-none\Lib\subprocess.py", line 571, in
+
+run
+
+    raise CalledProcessError(retcode, process.args,
+
+subprocess.CalledProcessError: Command '['docker', 'exec', '-w', '/tmp/p3-source/backend',
+
+'moodprint-p3-d6e64c7af0484760b52c5fe853532369', '/srv/moodprint/.venv/bin/python', '-m', 'pytest', '-q',
+
+'tests/test_scale_polling.py::test_monitor_rejects_conversation_expiring_while_waiting_for_checkout']' returned
+
+non-zero exit status 1.

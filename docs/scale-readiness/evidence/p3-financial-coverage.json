@@ -1,0 +1,58 @@
+{
+  "scope": "Source audit only; paid execution prohibited and not performed",
+  "global_target_usd_per_day": 50,
+  "production_budget_activated": false,
+  "real_generation_calls": 0,
+  "paid_judge_calls": 0,
+  "external_generation_spend_usd": 0,
+  "release_status": "BLOCKED",
+  "covered": [
+    {
+      "area": "Coordinator and direct V3 descendants",
+      "authority": "AiUsage under shared PostgreSQL advisory transaction lock",
+      "evidence": "backend/app/ai/accounting.py; backend/app/ai/pooled_accounting.py; tests/test_pooled_accounting.py",
+      "limitations": "The pooled whitelist covers direct planner/consult/handoff only; other scopes reserve independently."
+    },
+    {
+      "area": "Unknown, cancellation and restart liabilities",
+      "authority": "open/uncertain AiUsage holds; detached guest reservations",
+      "evidence": "backend/app/ai/accounting.py:persist_snapshot,recover_expired; tests/test_budget_reservations.py",
+      "limitations": "No new physical provider or invoice reconciliation evidence."
+    },
+    {
+      "area": "Group/background OpenAI calls",
+      "authority": "reserve_accounting and usage observers",
+      "evidence": "backend/app/ai/groups/turn.py; backend/app/ai/proactive/executor.py",
+      "limitations": "Full mixed workload and pooled group integration remain unverified."
+    },
+    {
+      "area": "SDK retries",
+      "authority": "max_retries=0 and ModelRetrySettings(max_retries=0)",
+      "evidence": "backend/app/ai/provider.py; backend/app/core/outbound.py",
+      "limitations": "Global proof still requires every paid wire operation to be integrated."
+    }
+  ],
+  "gaps": [
+    {
+      "area": "Registered Voyage query/document/background embeddings",
+      "evidence": "backend/app/ai/voyage.py; backend/app/ai/embeddings.py; backend/app/ai/journal_memory.py",
+      "finding": "Guest embedding tickets exist, but registered provider HTTP calls have no demonstrated shared paid-operation reservation authority."
+    },
+    {
+      "area": "Registered speech transcription",
+      "evidence": "backend/app/modules/voice/routes.py; backend/app/modules/voice/service.py",
+      "finding": "Per-user concurrency/rate and guest accounting do not establish global paid-operation coverage."
+    },
+    {
+      "area": "Exact-count preflight",
+      "evidence": "backend/app/ai/envelope.py; docs/scale-readiness/19-paid-campaign-runbook.md",
+      "finding": "Input-token count wire request is separate; account-specific billing/count fees and campaign binding remain unverified."
+    },
+    {
+      "area": "USD 3 campaign",
+      "evidence": "scripts/paid_campaign.py; backend/tests/test_paid_campaign.py; docs/scale-readiness/19-paid-campaign-runbook.md",
+      "finding": "Durable local controller exists; no reviewed live adapter/account-price/quota attestation or distributed canonical ledger proof. Gates have not passed."
+    }
+  ],
+  "conclusion": "Do not activate the production cap or run paid tests. This increment optimizes monitoring; it does not claim complete financial accounting."
+}

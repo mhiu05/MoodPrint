@@ -1,0 +1,8 @@
+{
+  "scope": "Physical driver control commands for20 single-statement reads; no paid provider or workload latency claim",
+  "normal": {
+    "BEGIN": 20,
+    "ROLLBACK": 20
+  },
+  "autocommit": {}
+}

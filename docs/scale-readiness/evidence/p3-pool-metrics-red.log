@@ -1,0 +1,155 @@
+FFF                                                                      [100%]
+
+=================================== FAILURES ===================================
+
+___ test_pool_acquisition_wait_and_timeout_are_measured_without_credentials ____
+
+
+
+database = <sqlalchemy.ext.asyncio.engine.AsyncEngine object at 0x7280ba074810>
+
+
+
+    @pytest.mark.postgres
+
+    async def test_pool_acquisition_wait_and_timeout_are_measured_without_credentials(database):
+
+        from app.infrastructure.database.connection import Database
+
+
+
+        settings = Settings(_env_file=None, database_url=database.url.render_as_string(hide_password=False),
+
+                            database_pool_size=1, database_pool_overflow=0, database_pool_timeout=1,
+
+                            database_pool_metrics_enabled=True)
+
+        measured = Database(settings)
+
+        try:
+
+            async with measured.engine.connect():
+
+                with pytest.raises(PoolTimeout):
+
+                    async with asyncio.timeout(3):
+
+                        async with measured.engine.connect():
+
+                            pytest.fail("Pool cap was bypassed")
+
+            metrics = measured.pool_metrics()
+
+            assert metrics["timeouts"] == 1 and metrics["p95_ms"] >= 900
+
+>           assert metrics["p99_ms"] >= 900
+
+                   ^^^^^^^^^^^^^^^^^
+
+E           KeyError: 'p99_ms'
+
+
+
+tests/test_scale_resource_guards.py:62: KeyError
+
+_ test_recent_pool_window_cannot_hide_whole_run_checkout_pressure[p95_lt_100ms] _
+
+
+
+field = 'p95_lt_100ms'
+
+
+
+    @pytest.mark.parametrize("field", ["p95_lt_100ms", "p99_lt_500ms"])
+
+    def test_recent_pool_window_cannot_hide_whole_run_checkout_pressure(field):
+
+        result = ai_result()
+
+        result["pool_acquisition_recent_window"]["whole_run"][field] = False
+
+>       assert load_cli().ai_local_gates(result)["pool_whole_run"] is False
+
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+E       KeyError: 'pool_whole_run'
+
+
+
+tests/test_scale_readiness_safety.py:107: KeyError
+
+_ test_recent_pool_window_cannot_hide_whole_run_checkout_pressure[p99_lt_500ms] _
+
+
+
+field = 'p99_lt_500ms'
+
+
+
+    @pytest.mark.parametrize("field", ["p95_lt_100ms", "p99_lt_500ms"])
+
+    def test_recent_pool_window_cannot_hide_whole_run_checkout_pressure(field):
+
+        result = ai_result()
+
+        result["pool_acquisition_recent_window"]["whole_run"][field] = False
+
+>       assert load_cli().ai_local_gates(result)["pool_whole_run"] is False
+
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+E       KeyError: 'pool_whole_run'
+
+
+
+tests/test_scale_readiness_safety.py:107: KeyError
+
+=========================== short test summary info ============================
+
+FAILED tests/test_scale_resource_guards.py::test_pool_acquisition_wait_and_timeout_are_measured_without_credentials
+
+FAILED tests/test_scale_readiness_safety.py::test_recent_pool_window_cannot_hide_whole_run_checkout_pressure[p95_lt_100ms]
+
+FAILED tests/test_scale_readiness_safety.py::test_recent_pool_window_cannot_hide_whole_run_checkout_pressure[p99_lt_500ms]
+
+3 failed in 2.14s
+
+python.exe : Traceback (most recent call last):
+
+At line:2 char:146
+
++ ... _safety.py; & backend/.venv/Scripts/python.exe .tmp/p3-ops.py exec -m ...
+
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)::String) [], RemoteException
+
+    + FullyQualifiedErrorId : NativeCommandError
+
+
+
+  File "E:\MoodPrint\.tmp\p3-ops.py", line 36, in <module>
+
+    call('docker', 'exec', '-w', '/tmp/p3-source/backend', APP, '/srv/moodprint/.venv/bin/python', *sys.argv[2:])
+
+  File "E:\MoodPrint\.tmp\p3-ops.py", line 13, in call
+
+    return subprocess.run(list(args), check=True, text=True, capture_output=capture)
+
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  File "C:\Users\minhh\AppData\Roaming\uv\python\cpython-3.12.13-windows-x86_64-none\Lib\subprocess.py", line 571, in
+
+run
+
+    raise CalledProcessError(retcode, process.args,
+
+subprocess.CalledProcessError: Command '['docker', 'exec', '-w', '/tmp/p3-source/backend',
+
+'moodprint-p3-d5baf3df4bfb41bda329405d294cb10f', '/srv/moodprint/.venv/bin/python', '-m', 'pytest', '-q',
+
+'tests/test_scale_resource_guards.py::test_pool_acquisition_wait_and_timeout_are_measured_without_credentials',
+
+'tests/test_scale_readiness_safety.py::test_recent_pool_window_cannot_hide_whole_run_checkout_pressure']' returned
+
+non-zero exit status 1.
