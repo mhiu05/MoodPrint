@@ -4,7 +4,12 @@ export function mergePlanDraft(
   draft: ActionPlan,
   latest: ActionPlan,
 ): ActionPlan {
-  const merged = { ...latest, ...draft, lastUpdated: latest.lastUpdated };
+  const merged = {
+    ...latest,
+    ...draft,
+    version: latest.version,
+    lastUpdated: latest.lastUpdated,
+  };
   for (const key of [
     "goal",
     "chosenOptionId",

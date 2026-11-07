@@ -1,5 +1,6 @@
-import { uid, useDemoStore } from "../../app/store";
+import { uid, useWorkspaceStore } from "../../app/store";
 import type { Analysis } from "../../types";
+import { getServices } from "../../services/composition";
 import { createFixtureEvidence } from "./analysis-model";
 import type { AnalysisVariant } from "./analysis-model";
 
@@ -7,7 +8,7 @@ export function startFixtureAnalysis(
   variant: AnalysisVariant,
   chatId?: string,
 ): Analysis {
-  const store = useDemoStore.getState();
+  const store = useWorkspaceStore.getState();
   const id = uid("ANALYSIS");
   const evidence = createFixtureEvidence(id, variant);
   const analysis: Analysis = {
@@ -23,14 +24,14 @@ export function startFixtureAnalysis(
         : "",
     status: "idle",
   };
-  evidence.forEach(store.putEvidence);
-  store.putAnalysis(analysis);
+  evidence.forEach((item) => void getServices().analysis.saveEvidence(item));
+  void getServices().analysis.save(analysis);
   if (chatId) {
     const chat = store.chats.find(
       (item) => item.id === chatId && item.ownerId === store.user?.id,
     );
     if (chat)
-      store.putChat({
+      void getServices().chat.save({
         ...chat,
         messages: [
           ...chat.messages,

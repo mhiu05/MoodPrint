@@ -1,12 +1,40 @@
 import { Suspense, useEffect } from "react";
-import { Navigate, Outlet, useLocation, useRouteError } from "react-router-dom";
-import { useDemoStore } from "./store";
+import {
+  Navigate,
+  Outlet,
+  useLocation,
+  useNavigate,
+  useRouteError,
+} from "react-router-dom";
+import { useWorkspaceStore } from "./store";
 import { useVisualViewport } from "../hooks/useVisualViewport";
 import { Toast } from "../components/layout/StudentShell";
-import { EmptyState, LinkButton, Skeleton } from "../components/ui";
+import {
+  Button,
+  EmptyState,
+  LinkButton,
+  Notice,
+  Skeleton,
+} from "../components/ui";
+import { hydrateWorkspace, initializeWorkspace } from "../services/workspace";
 export function Root() {
   useVisualViewport();
-  const reduced = useDemoStore((s) => s.preferences.reducedMotion);
+  const reduced = useWorkspaceStore((s) => s.preferences.reducedMotion);
+  const navigate = useNavigate();
+  const location = useLocation();
+  useEffect(() => {
+    void initializeWorkspace();
+  }, []);
+  useEffect(() => {
+    const expired = () =>
+      navigate("/auth", {
+        state: { from: location.pathname + location.search },
+        replace: true,
+      });
+    window.addEventListener("moodprint:unauthenticated", expired);
+    return () =>
+      window.removeEventListener("moodprint:unauthenticated", expired);
+  }, [navigate, location.pathname, location.search]);
   useEffect(() => {
     document.documentElement.dataset.reducedMotion = String(reduced);
   }, [reduced]);
@@ -20,8 +48,32 @@ export function Root() {
   );
 }
 export function Guard() {
-  const user = useDemoStore((s) => s.user);
+  const user = useWorkspaceStore((s) => s.user);
+  const hydration = useWorkspaceStore((s) => s.hydration);
   const location = useLocation();
+  if (hydration.status === "initializing" || hydration.status === "loading")
+    return <Skeleton />;
+  if (hydration.status === "error")
+    return (
+      <main className="page-content">
+        <Notice tone="error">{hydration.error}</Notice>
+        <Button
+          onClick={() => {
+            const state = useWorkspaceStore.getState();
+            void (
+              state.workspace.kind === "real" && state.workspace.userId
+                ? hydrateWorkspace()
+                : initializeWorkspace()
+            ).catch(() => {});
+          }}
+        >
+          Thử lại
+        </Button>
+        <LinkButton to="/auth" variant="secondary">
+          Đăng nhập
+        </LinkButton>
+      </main>
+    );
   return user ? (
     <Outlet />
   ) : (
@@ -33,7 +85,10 @@ export function Guard() {
   );
 }
 export function Entry() {
-  const user = useDemoStore((s) => s.user);
+  const user = useWorkspaceStore((s) => s.user);
+  const hydration = useWorkspaceStore((s) => s.hydration);
+  if (hydration.status === "initializing" || hydration.status === "loading")
+    return <Skeleton />;
   return <Navigate to={user ? "/home" : "/welcome/1"} replace />;
 }
 export function NotFound() {
@@ -50,11 +105,11 @@ export function RouteError() {
   return (
     <main className="page-content">
       <EmptyState
-        title="Trang demo cần được mở lại"
+        title="Trang cần được mở lại"
         description={
           error instanceof Error
             ? error.message
-            : "Có lỗi khi tải trang. Dữ liệu demo vẫn được giữ trên trình duyệt."
+            : "Có lỗi khi tải trang. Hãy mở lại để tiếp tục."
         }
         action={<LinkButton to="/">Mở lại MoodPrint</LinkButton>}
       />

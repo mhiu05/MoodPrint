@@ -10,9 +10,10 @@ import {
   MemoryRouter,
   RouterProvider,
 } from "react-router-dom";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SupportPreparePage, UrgentPage, FindHelpPage } from "./index";
 import { useDemoStore } from "../../app/store";
+import { getServices } from "../../services/composition";
 
 beforeEach(() => {
   cleanup();
@@ -26,6 +27,10 @@ beforeEach(() => {
   HTMLDialogElement.prototype.close = function () {
     this.open = false;
   };
+});
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
 });
 function renderComposer(
   entry:
@@ -46,6 +51,63 @@ function renderComposer(
   return { ...render(<RouterProvider router={router} />), router };
 }
 describe("support preparation", () => {
+  it("keeps a failed trusted-contact save editable without claiming it was added", async () => {
+    vi.spyOn(getServices().contacts, "save").mockRejectedValue(
+      new Error("Chưa lưu được người tin cậy."),
+    );
+    render(
+      <MemoryRouter>
+        <FindHelpPage />
+      </MemoryRouter>,
+    );
+    fireEvent.change(screen.getByLabelText("Tên gọi dễ nhớ"), {
+      target: { value: "Cô mới" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Thêm người tin cậy" }));
+    await screen.findByText("Chưa lưu được người tin cậy.");
+    expect(screen.getByLabelText("Tên gọi dễ nhớ")).toHaveValue("Cô mới");
+    expect(
+      screen.queryByRole("button", { name: "Xóa Cô mới" }),
+    ).not.toBeInTheDocument();
+  });
+  it("shows an empty connected-school state in a real workspace and saves a server draft without demo status", async () => {
+    const demoUser = useDemoStore.getState().user!;
+    useDemoStore.setState({
+      workspace: { kind: "real", userId: demoUser.id },
+      cases: [],
+      plans: [],
+      drafts: [],
+      trustedPeople: [],
+    });
+    vi.spyOn(getServices().support, "listSchools").mockResolvedValue([]);
+    const save = vi
+      .spyOn(getServices().support, "save")
+      .mockImplementation(async (draft) => {
+        const canonical = { ...draft, version: 1 };
+        useDemoStore.getState().putDraft(canonical);
+        return canonical;
+      });
+    renderComposer();
+    await screen.findByText("Chưa có trường kết nối");
+    expect(
+      screen.queryByRole("button", { name: "Lưu báo cáo demo" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: "Trường Mẫu A (demo)" }),
+    ).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Nội dung xem trước"), {
+      target: { value: "Lời nhắn thật đã chuẩn bị" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu bản nháp" }));
+    await screen.findByText(
+      "Đã lưu bản nháp trong tài khoản. Chưa gửi cho ai.",
+    );
+    expect(save.mock.calls[0][0]).toMatchObject({
+      status: "draft",
+      demo: false,
+      content: "Lời nhắn thật đã chuẩn bị",
+    });
+  });
   it("shows urgent contacts with no signed-in user", () => {
     useDemoStore.getState().logout();
     render(
@@ -59,7 +121,7 @@ describe("support preparation", () => {
     );
     expect(screen.getByText(/24\/24/)).toBeInTheDocument();
   });
-  it("adds and removes a trusted adult locally", () => {
+  it("adds and removes a trusted adult locally", async () => {
     render(
       <MemoryRouter>
         <FindHelpPage />
@@ -69,17 +131,21 @@ describe("support preparation", () => {
       target: { value: "Cô thư viện" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Thêm người tin cậy" }));
-    expect(
-      useDemoStore
-        .getState()
-        .trustedPeople.some((p) => p.label === "Cô thư viện"),
-    ).toBe(true);
+    await waitFor(() =>
+      expect(
+        useDemoStore
+          .getState()
+          .trustedPeople.some((p) => p.label === "Cô thư viện"),
+      ).toBe(true),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Xóa Cô thư viện" }));
-    expect(
-      useDemoStore
-        .getState()
-        .trustedPeople.some((p) => p.label === "Cô thư viện"),
-    ).toBe(false);
+    await waitFor(() =>
+      expect(
+        useDemoStore
+          .getState()
+          .trustedPeople.some((p) => p.label === "Cô thư viện"),
+      ).toBe(false),
+    );
   });
   it("preserves an editable roleplay draft after a failed save, then saves with its owner", async () => {
     useDemoStore.getState().setFailNextSave(true);

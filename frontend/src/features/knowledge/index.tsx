@@ -11,7 +11,7 @@ import {
   Search,
   Sparkles,
 } from "lucide-react";
-import { useDemoStore } from "../../app/store";
+import { useWorkspaceStore } from "../../app/store";
 import {
   Badge,
   Button,
@@ -24,20 +24,44 @@ import {
 import {
   filterKnowledge,
   formatLabels,
-  knowledgeArticles,
   knowledgeTopics,
 } from "../../mocks/data/knowledge";
 import { knowledgeSources } from "../../mocks/data/sources";
-import { demoService } from "../../mocks/services/demo";
+import { getServices } from "../../services/composition";
 import type { KnowledgeArticle } from "../../types";
 import "./knowledge.css";
 
 const reviewDate = (date: string) =>
   new Date(`${date}T12:00:00`).toLocaleDateString("vi-VN");
+function useArticleActions(id: string) {
+  const [pending, setPending] = useState<string[]>([]);
+  const [error, setError] = useState("");
+  async function write(action: "toggleBookmark" | "markRead") {
+    if (pending.includes(action)) return;
+    setPending((current) => [...current, action]);
+    setError("");
+    try {
+      await getServices().knowledgeState[action](id);
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Chưa lưu được. Hãy thử lại.",
+      );
+    } finally {
+      setPending((current) => current.filter((item) => item !== action));
+    }
+  }
+  return {
+    bookmarkBusy: pending.includes("toggleBookmark"),
+    readBusy: pending.includes("markRead"),
+    error,
+    toggleBookmark: () => write("toggleBookmark"),
+    markRead: () => write("markRead"),
+  };
+}
 function KnowledgeRow({ article }: { article: KnowledgeArticle }) {
-  const saved = useDemoStore((s) => s.bookmarks.includes(article.id));
-  const read = useDemoStore((s) => s.readIds.includes(article.id));
-  const toggleBookmark = useDemoStore((s) => s.toggleBookmark);
+  const saved = useWorkspaceStore((s) => s.bookmarks.includes(article.id));
+  const read = useWorkspaceStore((s) => s.readIds.includes(article.id));
+  const { bookmarkBusy, error, toggleBookmark } = useArticleActions(article.id);
   return (
     <article className="knowledge-row">
       <div className={`knowledge-format ${article.format}`}>
@@ -55,6 +79,7 @@ function KnowledgeRow({ article }: { article: KnowledgeArticle }) {
             </span>
           )}
         </div>
+        {error && <Notice tone="error">{error}</Notice>}
         <h3>
           <Link to={`/knowledge/${article.slug}`}>{article.title}</Link>
         </h3>
@@ -68,7 +93,8 @@ function KnowledgeRow({ article }: { article: KnowledgeArticle }) {
         variant="ghost"
         aria-label={`${saved ? "Bỏ lưu" : "Lưu"}: ${article.title}`}
         aria-pressed={saved}
-        onClick={() => toggleBookmark(article.id)}
+        disabled={bookmarkBusy}
+        onClick={toggleBookmark}
       >
         <Bookmark size={18} fill={saved ? "currentColor" : "none"} />
       </Button>
@@ -107,9 +133,9 @@ export function KnowledgeHub() {
   const [collection, setCollection] = useState("all");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const bookmarks = useDemoStore((s) => s.bookmarks);
-  const readIds = useDemoStore((s) => s.readIds);
-  const results = filterKnowledge(knowledgeArticles, {
+  const bookmarks = useWorkspaceStore((s) => s.bookmarks);
+  const readIds = useWorkspaceStore((s) => s.readIds);
+  const results = filterKnowledge(getServices().knowledgeCatalog.list(), {
     query,
     topic,
     age,
@@ -133,7 +159,7 @@ export function KnowledgeHub() {
     setLoading(true);
     setError("");
     try {
-      await demoService.run(() => true);
+      await getServices().run(() => getServices().knowledgeCatalog.list());
     } catch (e) {
       setError(
         e instanceof Error
@@ -300,7 +326,9 @@ export function KnowledgeHub() {
 
 export function ArticlePage() {
   const { slug } = useParams();
-  const article = knowledgeArticles.find((a) => a.slug === slug);
+  const article = getServices()
+    .knowledgeCatalog.list()
+    .find((a) => a.slug === slug);
   return article ? (
     <ArticleReading key={article.id} article={article} />
   ) : (
@@ -316,13 +344,14 @@ export function ArticlePage() {
 }
 
 function ArticleReading({ article }: { article: KnowledgeArticle }) {
-  const saved = useDemoStore((s) => s.bookmarks.includes(article.id));
-  const read = useDemoStore((s) => s.readIds.includes(article.id));
-  const toggleBookmark = useDemoStore((s) => s.toggleBookmark);
-  const markRead = useDemoStore((s) => s.markRead);
+  const saved = useWorkspaceStore((s) => s.bookmarks.includes(article.id));
+  const read = useWorkspaceStore((s) => s.readIds.includes(article.id));
+  const { bookmarkBusy, readBusy, error, toggleBookmark, markRead } =
+    useArticleActions(article.id);
   const [choice, setChoice] = useState<number | null>(null);
   const [quizChoice, setQuizChoice] = useState<number | null>(null);
-  const related = knowledgeArticles
+  const related = getServices()
+    .knowledgeCatalog.list()
     .filter(
       (a) =>
         a.id !== article.id &&
@@ -351,7 +380,8 @@ function ArticleReading({ article }: { article: KnowledgeArticle }) {
       <div className="knowledge-article-actions">
         <Button
           variant="secondary"
-          onClick={() => toggleBookmark(article.id)}
+          disabled={bookmarkBusy}
+          onClick={toggleBookmark}
           aria-pressed={saved}
         >
           <Bookmark size={17} fill={saved ? "currentColor" : "none"} />
@@ -361,6 +391,7 @@ function ArticleReading({ article }: { article: KnowledgeArticle }) {
           Rà soát {reviewDate(article.lastReviewed)}
         </span>
       </div>
+      {error && <Notice tone="error">{error}</Notice>}
       <div className="knowledge-summary">
         <strong>Trong 30 giây</strong>
         <p>{article.sections[0].body}</p>
@@ -480,7 +511,8 @@ function ArticleReading({ article }: { article: KnowledgeArticle }) {
       <div className="actions">
         <Button
           variant={read ? "secondary" : "primary"}
-          onClick={() => markRead(article.id)}
+          disabled={readBusy}
+          onClick={markRead}
         >
           <CheckCircle2 size={18} />
           {read ? "Đã đọc bài này" : "Đánh dấu đã đọc"}

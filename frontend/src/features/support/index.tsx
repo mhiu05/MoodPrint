@@ -18,6 +18,7 @@ import {
   Heart,
   LifeBuoy,
   MessageCircle,
+  Pencil,
   Phone,
   School,
   Settings,
@@ -25,7 +26,7 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
-import { uid, useDemoStore } from "../../app/store";
+import { uid, useWorkspaceStore } from "../../app/store";
 import {
   Badge,
   Button,
@@ -38,7 +39,8 @@ import {
   SectionHeading,
 } from "../../components/ui";
 import { knowledgeSources, supportSources } from "../../mocks/data/sources";
-import { demoService } from "../../mocks/services/demo";
+import { getServices } from "../../services/composition";
+import type { School as ConnectedSchool } from "../../services/ports";
 import type { SupportDraft } from "../../types";
 import "./support.css";
 
@@ -75,8 +77,9 @@ function UrgentEntry() {
   );
 }
 export function SupportHome() {
-  const user = useDemoStore((s) => s.user);
-  const drafts = useDemoStore((s) => s.drafts);
+  const demo = useWorkspaceStore((s) => s.workspace.kind === "demo");
+  const user = useWorkspaceStore((s) => s.user);
+  const drafts = useWorkspaceStore((s) => s.drafts);
   const ownDrafts = drafts.filter((d) => d.ownerId === user?.id);
   const routes = [
     {
@@ -140,7 +143,7 @@ export function SupportHome() {
         <SectionHeading
           title="Lời nhắn của bạn"
           to="/support/requests"
-          label="Xem bản nháp & demo"
+          label={demo ? "Xem bản nháp & demo" : "Xem bản nháp"}
         />
         {ownDrafts.length ? (
           ownDrafts
@@ -168,8 +171,10 @@ export function SupportHome() {
             <div>
               <h3>Bạn có thể bắt đầu bằng một câu.</h3>
               <p>
-                Bản nháp được giữ trong trình duyệt demo này. Chưa có gì được
-                gửi cho người khác.
+                {demo
+                  ? "Bản nháp được giữ trong trình duyệt demo này."
+                  : "Bản nháp đã lưu được giữ trong tài khoản của bạn."}{" "}
+                Chưa có gì được gửi cho người khác.
               </p>
             </div>
             <Link to="/support/prepare">
@@ -191,13 +196,14 @@ export function SupportHome() {
 }
 
 export function FindHelpPage() {
-  const people = useDemoStore((s) => s.trustedPeople);
-  const addPerson = useDemoStore((s) => s.addTrustedPerson);
-  const removePerson = useDemoStore((s) => s.removeTrustedPerson);
+  const people = useWorkspaceStore((s) => s.trustedPeople);
+  const demo = useWorkspaceStore((s) => s.workspace.kind === "demo");
+  const [editingId, setEditingId] = useState("");
+  const [busy, setBusy] = useState(false);
   const [label, setLabel] = useState("");
   const [role, setRole] = useState("Giáo viên");
   const [error, setError] = useState("");
-  function add(e: FormEvent) {
+  async function add(e: FormEvent) {
     e.preventDefault();
     if (!label.trim()) {
       setError("Điền một tên gọi để bạn dễ nhớ.");
@@ -205,15 +211,40 @@ export function FindHelpPage() {
     }
     if (
       people.some(
-        (p) => p.label.toLocaleLowerCase() === label.trim().toLocaleLowerCase(),
+        (p) =>
+          p.id !== editingId &&
+          p.label.toLocaleLowerCase() === label.trim().toLocaleLowerCase(),
       )
     ) {
       setError("Tên gọi này đã có trong danh sách của bạn.");
       return;
     }
-    addPerson({ id: uid("TRUST"), label: label.trim(), role });
-    setLabel("");
+    setBusy(true);
     setError("");
+    try {
+      await getServices().contacts.save({
+        id: editingId || (demo ? uid("TRUST") : crypto.randomUUID()),
+        label: label.trim(),
+        role,
+      });
+      setLabel("");
+      setEditingId("");
+    } catch (cause) {
+      setError(errorMessage(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function removePerson(id: string) {
+    setBusy(true);
+    setError("");
+    try {
+      await getServices().contacts.remove(id);
+    } catch (cause) {
+      setError(errorMessage(cause));
+    } finally {
+      setBusy(false);
+    }
   }
   return (
     <div className="support-page stack">
@@ -303,6 +334,20 @@ export function FindHelpPage() {
                   </div>
                   <Button
                     variant="ghost"
+                    disabled={busy}
+                    aria-label={`Sửa ${person.label}`}
+                    onClick={() => {
+                      setEditingId(person.id);
+                      setLabel(person.label);
+                      setRole(person.role);
+                      setError("");
+                    }}
+                  >
+                    <Pencil size={16} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    disabled={busy}
                     aria-label={`Xóa ${person.label}`}
                     onClick={() => removePerson(person.id)}
                   >
@@ -338,9 +383,25 @@ export function FindHelpPage() {
                 <option>Người lớn khác</option>
               </select>
             </div>
-            <Button type="submit" variant="secondary">
-              Thêm người tin cậy
+            <Button type="submit" variant="secondary" disabled={busy}>
+              {busy
+                ? "Đang lưu…"
+                : editingId
+                  ? "Lưu người tin cậy"
+                  : "Thêm người tin cậy"}
             </Button>
+            {editingId && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setEditingId("");
+                  setLabel("");
+                  setError("");
+                }}
+              >
+                Hủy chỉnh sửa
+              </Button>
+            )}
           </form>
         </div>
       </section>
@@ -363,7 +424,7 @@ type ComposerValues = {
 const displayName = (values: ComposerValues, nickname: string) =>
   values.identity === "alias"
     ? values.alias.trim() || "Một học sinh"
-    : `${nickname} (tên hiển thị demo)`;
+    : `${nickname} (tên hiển thị${useWorkspaceStore.getState().workspace.kind === "demo" ? " demo" : ""})`;
 function compose(values: ComposerValues, nickname: string) {
   const name = displayName(values, nickname);
   return `Chào ${values.recipient.toLowerCase()},\n\nMình là ${name}. ${values.purpose}.\n\n${values.detail.trim() || "Mình muốn có một lúc nói chuyện riêng về việc đang khiến mình lo lắng."}\n\nMình mong được nghe trước, rồi cùng bàn một bước an toàn tiếp theo. Mình muốn trao đổi riêng về những thông tin nào sẽ được chia sẻ thêm.\n\nCảm ơn vì đã dành thời gian lắng nghe.`;
@@ -428,7 +489,7 @@ function readRecovery(key: string, fallback: RecoveryDraft) {
 
 export function SupportPreparePage() {
   const location = useLocation();
-  const ownerId = useDemoStore((s) => s.user?.id);
+  const ownerId = useWorkspaceStore((s) => s.user?.id);
   const imported = (location.state as { content?: unknown } | null)?.content;
   return (
     <SupportComposer
@@ -436,14 +497,75 @@ export function SupportPreparePage() {
     />
   );
 }
+function ConnectedSchools() {
+  const [schools, setSchools] = useState<ConnectedSchool[] | null>(null);
+  const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let active = true;
+    void getServices()
+      .support.listSchools()
+      .then((items) => {
+        if (active) {
+          setSchools(items);
+          setError("");
+        }
+      })
+      .catch((cause: unknown) => {
+        if (active) setError(errorMessage(cause));
+      });
+    return () => {
+      active = false;
+    };
+  }, [attempt]);
+  return (
+    <div className="support-demo-intake">
+      <h3>
+        {schools === null
+          ? "Kết nối với trường"
+          : schools.length
+            ? "Trường đã kết nối"
+            : "Chưa có trường kết nối"}
+      </h3>
+      {error ? (
+        <Notice tone="error">
+          {error}
+          <Button
+            variant="secondary"
+            onClick={() => setAttempt((value) => value + 1)}
+          >
+            Thử tải lại
+          </Button>
+        </Notice>
+      ) : schools === null ? (
+        <p role="status">Đang tải danh sách trường…</p>
+      ) : (
+        <>
+          {schools.length > 0 && (
+            <ul>
+              {schools.map((school) => (
+                <li key={school.id}>{school.name}</li>
+              ))}
+            </ul>
+          )}
+          <p>
+            Bản nháp chưa được chia sẻ. Bạn có thể sao chép hoặc tải lời nhắn để
+            tự chọn người nhận khi sẵn sàng.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
 function SupportComposer() {
+  const demo = useWorkspaceStore((s) => s.workspace.kind === "demo");
   const [params] = useSearchParams();
   const location = useLocation();
-  const user = useDemoStore((s) => s.user);
-  const cases = useDemoStore((s) => s.cases);
-  const drafts = useDemoStore((s) => s.drafts);
-  const people = useDemoStore((s) => s.trustedPeople);
-  const notify = useDemoStore((s) => s.notify);
+  const user = useWorkspaceStore((s) => s.user);
+  const cases = useWorkspaceStore((s) => s.cases);
+  const drafts = useWorkspaceStore((s) => s.drafts);
+  const people = useWorkspaceStore((s) => s.trustedPeople);
+  const notify = useWorkspaceStore((s) => s.notify);
   const ownCases = cases.filter((c) => c.ownerId === user?.id);
   const existing = drafts.find(
     (d) => d.id === params.get("draftId") && d.ownerId === user?.id,
@@ -485,7 +607,7 @@ function SupportComposer() {
         fromRoleplay ||
         compose(values, user?.nickname || "Bạn"),
       caseId: initialCase?.id || "",
-      draftId: existing?.id || uid("SUPPORT"),
+      draftId: existing?.id || (demo ? uid("SUPPORT") : crypto.randomUUID()),
       createdAt: existing?.createdAt || new Date().toISOString(),
     });
   });
@@ -494,6 +616,7 @@ function SupportComposer() {
   const [content, setContent] = useState(initial.draft.content);
   const [draftId] = useState(initial.draft.draftId);
   const [createdAt] = useState(initial.draft.createdAt);
+  const [version, setVersion] = useState(existing?.version);
   const snapshot = JSON.stringify({ values, content, caseId });
   const recoveryData = JSON.stringify({
     values,
@@ -571,8 +694,9 @@ function SupportComposer() {
     );
   }
   async function save(nextStatus: SupportDraft["status"]) {
+    if (!demo && nextStatus.startsWith("demo_")) return;
     if (!user) {
-      setError("Bạn cần mở phiên demo để lưu bản nháp.");
+      setError("Bạn cần đăng nhập để lưu bản nháp.");
       return;
     }
     if (!values.recipient.trim() || !content.trim()) {
@@ -585,7 +709,7 @@ function SupportComposer() {
     setError("");
     setSuccess("");
     try {
-      await demoService.saveDraft({
+      const saved = await getServices().support.save({
         id: draftId,
         ownerId: user.id,
         ...(caseId ? { caseId } : {}),
@@ -599,8 +723,10 @@ function SupportComposer() {
         content: content.trim(),
         status: nextStatus,
         createdAt,
-        demo: true,
+        demo,
+        version,
       });
+      setVersion(saved.version);
       try {
         sessionStorage.removeItem(recoveryKey);
       } catch {
@@ -608,13 +734,15 @@ function SupportComposer() {
       }
       setCleanSnapshot(snapshot);
       setRecoveryContext(`saved:${draftId}`);
-      setStatus(nextStatus);
+      setStatus(saved.status);
       setConfirmDemo(false);
       setAcknowledged(false);
       const message =
         nextStatus === "demo_submitted"
           ? "Đã lưu mô phỏng, chưa gửi. Nhà trường và người hỗ trợ chưa nhận được nội dung này."
-          : "Đã lưu bản nháp trong trình duyệt demo. Chưa gửi cho ai.";
+          : demo
+            ? "Đã lưu bản nháp trong trình duyệt demo. Chưa gửi cho ai."
+            : "Đã lưu bản nháp trong tài khoản. Chưa gửi cho ai.";
       setSuccess(message);
       notify(message);
     } catch (e) {
@@ -647,7 +775,7 @@ function SupportComposer() {
     try {
       if (!content.trim())
         throw new Error("Bạn chưa có nội dung để tải xuống.");
-      const text = `BẢN CHUẨN BỊ MOODPRINT — CHƯA GỬI\nNgười nhận dự kiến: ${values.recipient}\nChế độ: ${values.identity === "alias" ? "Bí danh (không bảo đảm ẩn danh tuyệt đối)" : "Tên hiển thị demo"}\n\n${content}`;
+      const text = `BẢN CHUẨN BỊ MOODPRINT — CHƯA GỬI\nNgười nhận dự kiến: ${values.recipient}\nChế độ: ${values.identity === "alias" ? "Bí danh (không bảo đảm ẩn danh tuyệt đối)" : demo ? "Tên hiển thị demo" : "Tên hiển thị"}\n\n${content}`;
       url = URL.createObjectURL(
         new Blob([text], { type: "text/plain;charset=utf-8" }),
       );
@@ -674,8 +802,10 @@ function SupportComposer() {
         back="/support"
       />
       <Notice>
-        Đây là bản chuẩn bị cục bộ. MoodPrint không gửi email, tin nhắn hay báo
-        cáo thật.
+        {demo
+          ? "Đây là bản chuẩn bị cục bộ."
+          : "Bản nháp đã lưu được giữ trong tài khoản của bạn."}{" "}
+        MoodPrint không gửi email, tin nhắn hay báo cáo thật.
       </Notice>
       {initial.recovered && dirty && (
         <Notice>
@@ -746,14 +876,14 @@ function SupportComposer() {
                 "Người chăm sóc",
                 "Người lớn tin cậy khác",
                 "Tổng đài 111",
-                "Trường Mẫu A (demo)",
+                ...(demo ? ["Trường Mẫu A (demo)"] : []),
                 ...people.map((p) => p.label),
                 ...(![
                   "Giáo viên",
                   "Người chăm sóc",
                   "Người lớn tin cậy khác",
                   "Tổng đài 111",
-                  "Trường Mẫu A (demo)",
+                  ...(demo ? ["Trường Mẫu A (demo)"] : []),
                   ...people.map((p) => p.label),
                 ].includes(values.recipient)
                   ? [values.recipient]
@@ -813,7 +943,7 @@ function SupportComposer() {
                 onChange={() => update({ identity: "disclose" })}
               />
               <span>
-                Dùng tên hiển thị demo
+                {demo ? "Dùng tên hiển thị demo" : "Dùng tên hiển thị"}
                 <small>
                   {user?.nickname || "Bạn"} — không phải xác minh danh tính.
                 </small>
@@ -890,8 +1020,17 @@ function SupportComposer() {
           </div>
           <div className="actions">
             <Button disabled={busy} onClick={() => save("draft")}>
-              {busy ? "Đang lưu mô phỏng…" : "Lưu bản nháp"}
+              {busy ? "Đang lưu…" : "Lưu bản nháp"}
             </Button>
+            {!demo && (
+              <Button
+                variant="secondary"
+                disabled={busy}
+                onClick={() => save("prepared")}
+              >
+                Đánh dấu đã chuẩn bị
+              </Button>
+            )}
             <Button variant="secondary" disabled={busy} onClick={copy}>
               <Copy size={16} />
               Sao chép
@@ -910,27 +1049,31 @@ function SupportComposer() {
               <div role="status">{success}</div>
             </Notice>
           )}
-          <div className="support-demo-intake">
-            <h3>Muốn thử quy trình báo cáo?</h3>
-            <p>
-              Chỉ mô phỏng lưu một báo cáo mẫu. Không có trường thật hoặc người
-              trực tiếp nhận.
-            </p>
-            <Button
-              variant="secondary"
-              disabled={busy}
-              onClick={() => {
-                setAcknowledged(false);
-                setConfirmDemo(true);
-              }}
-            >
-              Lưu báo cáo demo
-            </Button>
-            <Link to="/support/requests">
-              Xem bản nháp & theo dõi demo
-              <ArrowRight size={15} />
-            </Link>
-          </div>
+          {demo ? (
+            <div className="support-demo-intake">
+              <h3>Muốn thử quy trình báo cáo?</h3>
+              <p>
+                Chỉ mô phỏng lưu một báo cáo mẫu. Không có trường thật hoặc
+                người trực tiếp nhận.
+              </p>
+              <Button
+                variant="secondary"
+                disabled={busy}
+                onClick={() => {
+                  setAcknowledged(false);
+                  setConfirmDemo(true);
+                }}
+              >
+                Lưu báo cáo demo
+              </Button>
+              <Link to="/support/requests">
+                Xem bản nháp & theo dõi demo
+                <ArrowRight size={15} />
+              </Link>
+            </div>
+          ) : (
+            <ConnectedSchools />
+          )}
         </section>
       </div>
       {selectedCase && (
@@ -1042,8 +1185,9 @@ function SupportComposer() {
 }
 
 export function SupportRequestsPage() {
-  const user = useDemoStore((s) => s.user);
-  const drafts = useDemoStore((s) => s.drafts);
+  const demo = useWorkspaceStore((s) => s.workspace.kind === "demo");
+  const user = useWorkspaceStore((s) => s.user);
+  const drafts = useWorkspaceStore((s) => s.drafts);
   const [filter, setFilter] = useState("all");
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
@@ -1062,7 +1206,8 @@ export function SupportRequestsPage() {
     setBusyId(draft.id);
     setError("");
     try {
-      await demoService.saveDraft({
+      if (!demo) return;
+      await getServices().support.save({
         ...draft,
         status:
           draft.status === "demo_submitted" ? "demo_reviewing" : "demo_closed",
@@ -1077,19 +1222,24 @@ export function SupportRequestsPage() {
     <div className="support-page stack">
       <PageHeader
         title="Những lời bạn đang chuẩn bị"
-        description="Bản nháp và các bước mô phỏng được giữ trong trình duyệt demo này."
+        description={
+          demo
+            ? "Bản nháp và các bước mô phỏng được giữ trong trình duyệt demo này."
+            : "Các bản nháp đã lưu được giữ trong tài khoản của bạn."
+        }
         back="/support"
         action={<LinkButton to="/support/prepare">Soạn lời mới</LinkButton>}
       />
       <Notice>
-        Chưa gửi thật. Các mốc “đang xem xét” và “kết thúc” bên dưới chỉ do bạn
-        bấm thử; không phản ánh phản hồi từ trường hay người hỗ trợ.
+        {demo
+          ? "Chưa gửi thật. Các mốc “đang xem xét” và “kết thúc” bên dưới chỉ do bạn bấm thử; không phản ánh phản hồi từ trường hay người hỗ trợ."
+          : "Lưu và chuẩn bị lời nhắn chưa gửi nội dung tới trường hay người hỗ trợ. Bạn vẫn có thể mở lại, sao chép và tải bản nháp."}
       </Notice>
       <div className="segmented" aria-label="Lọc lời nhắn">
         {[
           ["all", "Tất cả"],
           ["draft", "Bản nháp"],
-          ["demo", "Báo cáo demo"],
+          ...(demo ? [["demo", "Báo cáo demo"]] : []),
         ].map(([key, label]) => (
           <button
             key={key}
@@ -1130,7 +1280,9 @@ export function SupportRequestsPage() {
                     {prettyDate(draft.createdAt)} ·{" "}
                     {draft.identityMode === "alias"
                       ? "Dùng bí danh"
-                      : "Tên hiển thị demo"}
+                      : demo
+                        ? "Tên hiển thị demo"
+                        : "Tên hiển thị"}
                   </p>
                 </div>
                 <LinkButton
@@ -1144,7 +1296,7 @@ export function SupportRequestsPage() {
                 {draft.content.slice(0, 180)}
                 {draft.content.length > 180 ? "…" : ""}
               </p>
-              {draft.status.startsWith("demo_") && (
+              {demo && draft.status.startsWith("demo_") && (
                 <>
                   <ol
                     className="support-status-timeline"

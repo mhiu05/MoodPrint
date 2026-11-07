@@ -1,16 +1,40 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticlePage, KnowledgeHub } from "./index";
 import { knowledgeArticles, filterKnowledge } from "../../mocks/data/knowledge";
 import { knowledgeSources } from "../../mocks/data/sources";
 import { useDemoStore } from "../../app/store";
+import { getServices } from "../../services/composition";
 
 beforeEach(() => {
   cleanup();
   useDemoStore.getState().reset();
 });
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 describe("knowledge discovery", () => {
+  it("does not claim a bookmark was saved when its service rejects the write", async () => {
+    vi.spyOn(getServices().knowledgeState, "toggleBookmark").mockRejectedValue(
+      new Error("Chưa lưu được bài viết."),
+    );
+    const article = knowledgeArticles.find((item) => item.id === "KB-02")!;
+    render(
+      <MemoryRouter initialEntries={[`/knowledge/${article.slug}`]}>
+        <Routes>
+          <Route path="/knowledge/:slug" element={<ArticlePage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Lưu bài viết" }));
+    await screen.findByText("Chưa lưu được bài viết.");
+    expect(
+      screen.getByRole("button", { name: "Lưu bài viết" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(useDemoStore.getState().bookmarks).not.toContain(article.id);
+  });
   it("finds Vietnamese titles without accents and intersects filters", () => {
     expect(
       filterKnowledge(knowledgeArticles, { query: "bat nat online" }).some(

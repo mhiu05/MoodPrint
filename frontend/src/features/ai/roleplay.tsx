@@ -19,7 +19,7 @@ import {
   Square,
   UserRound,
 } from "lucide-react";
-import { uid, useDemoStore } from "../../app/store";
+import { uid, useWorkspaceStore } from "../../app/store";
 import {
   Badge,
   Button,
@@ -30,7 +30,7 @@ import {
   Progress,
 } from "../../components/ui";
 import { AgentStatusOrb } from "../../animations/AgentStatusOrb";
-import { demoService } from "../../mocks/services/demo";
+import { getServices } from "../../services/composition";
 import {
   getRoleplayPrompt,
   roleLabels,
@@ -44,7 +44,13 @@ export function RoleplayPage() {
   const [query] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const store = useDemoStore();
+  const store = useWorkspaceStore();
+  const simulationNotice =
+    store.workspace.kind === "real" ? (
+      <Notice>
+        AI mô phỏng · Buổi luyện nói và lời bạn nhập chỉ lưu trên thiết bị này.
+      </Notice>
+    ) : null;
   const knownRole =
     role && Object.keys(roleLabels).includes(role) ? (role as Role) : undefined;
   const scripts = roleplayScripts.filter(
@@ -114,7 +120,7 @@ export function RoleplayPage() {
         },
       ],
     };
-    store.putRoleplay(item);
+    void getServices().roleplay.save(item);
     setText("");
     setError("");
     setChosenLines([]);
@@ -135,7 +141,7 @@ export function RoleplayPage() {
     const currentCursor = session.cursor;
     if (!retry) {
       lastTurn.current = { id: uid("turn"), body: body.trim() };
-      store.putRoleplay({
+      await getServices().roleplay.save({
         ...session,
         turns: [
           ...session.turns,
@@ -145,9 +151,9 @@ export function RoleplayPage() {
       setText("");
     }
     try {
-      await demoService.run(
-        () => {
-          const current = useDemoStore
+      await getServices().run(
+        async () => {
+          const current = useWorkspaceStore
             .getState()
             .roleplays.find((item) => item.id === currentId);
           if (!current) return;
@@ -157,7 +163,7 @@ export function RoleplayPage() {
             speaker: "ai",
             body: getRoleplayPrompt(script, cursor, current.tone),
           };
-          useDemoStore.getState().putRoleplay({
+          await getServices().roleplay.save({
             ...current,
             cursor,
             turns: [...current.turns, next],
@@ -180,7 +186,7 @@ export function RoleplayPage() {
   }
   function finish() {
     if (!session) return;
-    store.putRoleplay({ ...session, status: "completed" });
+    void getServices().roleplay.save({ ...session, status: "completed" });
     setEndOpen(false);
     setVoicePlaying(false);
     navigate(
@@ -228,6 +234,7 @@ export function RoleplayPage() {
   if (feedback && session && script)
     return (
       <div className="ai-feature ai-roleplay-page stack">
+        {simulationNotice}
         <PageHeader
           title="Mang theo một câu bạn muốn nói."
           description="Bạn có thể thử lại, sửa lời của mình hoặc dừng ở đây."
@@ -357,6 +364,7 @@ export function RoleplayPage() {
   if (!session)
     return (
       <div className="ai-feature ai-roleplay-page stack">
+        {simulationNotice}
         <PageHeader
           title="Thử nói trước, theo cách của bạn."
           description="Chọn một người nghe mẫu. Bạn có thể tạm dừng và làm lại bất cứ lúc nào."
@@ -516,6 +524,7 @@ export function RoleplayPage() {
   if (!script) return null;
   return (
     <div className="ai-feature ai-roleplay-page stack">
+      {simulationNotice}
       <PageHeader
         title={script.title}
         description={`Người nghe: ${roleLabels[session.role as Role]} · ${session.mode === "text" ? "Bằng chữ" : "Voice demo"}`}
@@ -681,7 +690,7 @@ export function RoleplayPage() {
                 variant="secondary"
                 disabled={pending}
                 onClick={() => {
-                  store.putRoleplay({
+                  void getServices().roleplay.save({
                     ...session,
                     status: session.status === "paused" ? "active" : "paused",
                   });

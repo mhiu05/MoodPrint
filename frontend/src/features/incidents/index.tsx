@@ -33,7 +33,8 @@ import {
   SectionHeading,
 } from "../../components/ui";
 import { copyText, downloadText, formatDate, normalize } from "../../lib/utils";
-import { demoService } from "../../mocks/services/demo";
+import { getServices } from "../../services/composition";
+import { ApiError } from "../../services/http/client";
 import type { Evidence, Incident, TimelineEvent } from "../../types";
 import {
   caseSummary,
@@ -41,6 +42,7 @@ import {
   provenanceLabels,
   statusLabels,
   templates,
+  mergeCaseEdits,
 } from "./model";
 import { EvidencePicker } from "./evidence";
 import "./incidents.css";
@@ -48,6 +50,7 @@ export { CaseWizard } from "./wizard";
 
 export function CaseList() {
   const user = useDemoStore((s) => s.user);
+  const real = useDemoStore((s) => s.workspace.kind === "real");
   const allCases = useDemoStore((s) => s.cases);
   const plans = useDemoStore((s) => s.plans);
   const [search, setSearch] = useState("");
@@ -127,7 +130,9 @@ export function CaseList() {
       <div className="case-intro">
         <FolderOpen size={28} />
         <div>
-          <strong>{mine.length} hồ sơ cá nhân trong demo</strong>
+          <strong>
+            {mine.length} hồ sơ cá nhân{real ? "" : " trong demo"}
+          </strong>
           <p>
             Nội dung do bạn ghi lại, chưa được kiểm chứng độc lập. Bạn luôn có
             thể sửa hoặc bổ sung.
@@ -277,10 +282,14 @@ export function CaseList() {
       <div className="case-ai-footer">
         <div>
           <strong>Chưa biết bắt đầu kể từ đâu?</strong>
-          <p>AI demo có thể gợi câu hỏi để bạn sắp xếp lại câu chuyện.</p>
+          <p>
+            {real
+              ? "AI mô phỏng dùng hội thoại mẫu để bạn thử cách sắp xếp câu chuyện."
+              : "AI demo có thể gợi câu hỏi để bạn sắp xếp lại câu chuyện."}
+          </p>
         </div>
         <LinkButton to="/ai/chat" variant="secondary">
-          Kể cùng AI demo
+          {real ? "Thử AI mô phỏng" : "Kể cùng AI demo"}
           <ArrowRight size={17} />
         </LinkButton>
       </div>
@@ -292,6 +301,7 @@ export function CaseDetail() {
   const { caseId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const real = useDemoStore((s) => s.workspace.kind === "real");
   const item = useDemoStore((s) =>
     s.cases.find((c) => c.id === caseId && c.ownerId === s.user?.id),
   );
@@ -320,29 +330,54 @@ export function CaseDetail() {
       <>
         <PageHeader title="Không tìm thấy hồ sơ" back="/cases" />
         <EmptyState
-          title="Hồ sơ này chưa có ở tài khoản demo của bạn"
+          title={
+            real
+              ? "Không tìm thấy hồ sơ trong tài khoản của bạn"
+              : "Hồ sơ này chưa có ở tài khoản demo của bạn"
+          }
           description="Có thể hồ sơ đã được xóa. Bạn có thể mở lại danh sách hoặc tạo một hồ sơ mới."
           action={<LinkButton to="/cases">Về danh sách hồ sơ</LinkButton>}
         />
       </>
     );
-  const evidence = allEvidence.filter((e) => item.evidenceIds.includes(e.id));
-  const persist = async (next: Incident, after?: () => void) => {
+  const evidence = allEvidence.filter(
+    (e) =>
+      item.evidenceIds.includes(e.id) && (!real || e.origin !== "mock_fixture"),
+  );
+  const persist = async (
+    next: Incident,
+    after?: () => void | Promise<void>,
+  ) => {
     setSaving(true);
     setError("");
     try {
-      await demoService.saveCase({
+      await getServices().cases.save({
         ...next,
         updatedAt: new Date().toISOString(),
       });
       setRetry(null);
-      after?.();
-      useDemoStore.getState().notify("Đã cập nhật hồ sơ demo.");
+      await after?.();
+      useDemoStore
+        .getState()
+        .notify(real ? "Đã cập nhật hồ sơ." : "Đã cập nhật hồ sơ demo.");
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : "Chưa lưu được. Hãy thử lại.",
       );
-      setRetry(() => () => persist(next, after));
+      if (cause instanceof ApiError && cause.code === "version_conflict") {
+        setRetry(() => async () => {
+          try {
+            const latest = await getServices().cases.get(next.id);
+            await persist(mergeCaseEdits(item, next, latest), after);
+          } catch (failure) {
+            setError(
+              failure instanceof Error
+                ? failure.message
+                : "Chưa tải được phiên bản mới.",
+            );
+          }
+        });
+      } else setRetry(() => () => persist(next, after));
     } finally {
       setSaving(false);
     }
@@ -378,10 +413,10 @@ export function CaseDetail() {
         ...item,
         evidenceIds: [...item.evidenceIds, ...attachments.map((e) => e.id)],
       },
-      () => {
-        attachments.forEach((e) =>
-          useDemoStore.getState().putEvidence({ ...e, caseId: item.id }),
-        );
+      async () => {
+        if (!real)
+          for (const e of attachments)
+            await getServices().evidence.save({ ...e, caseId: item.id });
         setAttachments([]);
         setAttachmentOpen(false);
       },
@@ -732,19 +767,24 @@ export function CaseDetail() {
             <div>
               <h2>Nguồn đính kèm</h2>
               <p className="muted">
-                Tệp và ghi chú mẫu để giữ ngữ cảnh, chưa phải thông tin đã xác
-                minh.
+                {real
+                  ? "Tệp gốc và ghi chú được lưu riêng tư; bạn có thể kiểm tra và sửa phần ghi chú riêng."
+                  : "Tệp và ghi chú mẫu để giữ ngữ cảnh, chưa phải thông tin đã xác minh."}
               </p>
             </div>
             <Button onClick={() => setAttachmentOpen(true)}>
               <Plus size={17} />
-              Thêm nguồn mẫu
+              {real ? "Thêm nguồn" : "Thêm nguồn mẫu"}
             </Button>
           </div>
           {!evidence.length ? (
             <EmptyState
               title="Hồ sơ vẫn có giá trị khi chưa có tệp"
-              description="Bạn có thể thêm ảnh mẫu, ghi chú hoặc PDF minh họa bất cứ lúc nào."
+              description={
+                real
+                  ? "Bạn có thể tải tệp hoặc lưu ghi chú bất cứ lúc nào."
+                  : "Bạn có thể thêm ảnh mẫu, ghi chú hoặc PDF minh họa bất cứ lúc nào."
+              }
             />
           ) : (
             <div className="evidence-gallery">
@@ -753,12 +793,50 @@ export function CaseDetail() {
                   key={e.id}
                   item={e}
                   busy={saving}
-                  onSave={(next) => {
-                    useDemoStore.getState().putEvidence(next);
-                    useDemoStore
-                      .getState()
-                      .notify("Đã cập nhật phần kiểm tra nguồn.");
+                  onSave={async (next) => {
+                    setSaving(true);
+                    setError("");
+                    try {
+                      await getServices().evidence.save(next);
+                      useDemoStore
+                        .getState()
+                        .notify("Đã cập nhật phần kiểm tra nguồn.");
+                    } catch (cause) {
+                      setError(
+                        cause instanceof Error
+                          ? cause.message
+                          : "Chưa lưu được phần sửa.",
+                      );
+                      throw cause;
+                    } finally {
+                      setSaving(false);
+                    }
                   }}
+                  onDelete={
+                    real
+                      ? () => {
+                          if (
+                            window.confirm(
+                              "Xóa vĩnh viễn bằng chứng gốc này? Thao tác không thể hoàn tác.",
+                            )
+                          ) {
+                            setSaving(true);
+                            setError("");
+                            void getServices()
+                              .evidence.remove(e.id)
+                              .then(() => getServices().cases.get(item.id))
+                              .catch((cause: unknown) =>
+                                setError(
+                                  cause instanceof Error
+                                    ? cause.message
+                                    : "Chưa xóa được nguồn.",
+                                ),
+                              )
+                              .finally(() => setSaving(false));
+                          }
+                        }
+                      : undefined
+                  }
                   onRemove={() => {
                     if (
                       window.confirm(
@@ -813,7 +891,10 @@ export function CaseDetail() {
             <Button
               variant="secondary"
               onClick={() =>
-                downloadText(summary, `moodprint-${item.id}-demo.txt`)
+                downloadText(
+                  summary,
+                  `moodprint-${item.id}${real ? "" : "-demo"}.txt`,
+                )
               }
             >
               <Download size={17} />
@@ -858,7 +939,8 @@ export function CaseDetail() {
       >
         <p>
           Hồ sơ “{item.title}”, kế hoạch và nguồn gắn trực tiếp với hồ sơ sẽ bị
-          xóa khỏi bản demo. Thao tác này không thể hoàn tác.
+          {real ? "xóa khỏi tài khoản của bạn." : "xóa khỏi bản demo."} Thao tác
+          này không thể hoàn tác.
         </p>
         <div className="actions">
           <Button variant="secondary" onClick={() => setDeleteOpen(false)}>
@@ -866,10 +948,26 @@ export function CaseDetail() {
           </Button>
           <Button
             variant="danger"
+            disabled={saving}
             onClick={() => {
-              useDemoStore.getState().deleteCase(item.id);
-              useDemoStore.getState().notify("Đã xóa hồ sơ demo.");
-              navigate("/cases", { replace: true });
+              setSaving(true);
+              setError("");
+              void getServices()
+                .cases.remove(item.id)
+                .then(() => {
+                  useDemoStore
+                    .getState()
+                    .notify(real ? "Đã xóa hồ sơ." : "Đã xóa hồ sơ demo.");
+                  navigate("/cases", { replace: true });
+                })
+                .catch((cause: unknown) =>
+                  setError(
+                    cause instanceof Error
+                      ? cause.message
+                      : "Chưa xóa được hồ sơ.",
+                  ),
+                )
+                .finally(() => setSaving(false));
             }}
           >
             Xóa hồ sơ
@@ -1001,7 +1099,7 @@ export function CaseDetail() {
         onClose={() => {
           if (!saving) setAttachmentOpen(false);
         }}
-        title="Thêm nguồn minh họa"
+        title={real ? "Thêm nguồn đính kèm" : "Thêm nguồn minh họa"}
       >
         <EvidencePicker items={attachments} onChange={setAttachments} />
         {error && <Notice tone="error">{error}</Notice>}
@@ -1022,19 +1120,64 @@ function EvidenceCard({
   busy,
   onSave,
   onRemove,
+  onDelete,
 }: {
   item: Evidence;
   busy: boolean;
-  onSave: (item: Evidence) => void;
+  onSave: (item: Evidence) => void | Promise<void>;
   onRemove: () => void;
+  onDelete?: () => void;
 }) {
   const [edit, setEdit] = useState(false);
-  const [text, setText] = useState(item.userEditedText ?? item.extractedText);
+  const [text, setText] = useState(
+    item.userEditedText ?? (item.extractedText || item.originalText),
+  );
+  const [failure, setFailure] = useState("");
+  const [downloading, setDownloading] = useState(false);
+  const save = async (next: Evidence) => {
+    setFailure("");
+    try {
+      await onSave(next);
+      setEdit(false);
+    } catch (cause) {
+      setFailure(
+        cause instanceof Error
+          ? cause.message
+          : "Chưa lưu được. Nội dung sửa vẫn được giữ.",
+      );
+    }
+  };
+  const download = async () => {
+    setDownloading(true);
+    setFailure("");
+    try {
+      const signed = await getServices().evidence.getDownloadUrl(item.id);
+      const link = document.createElement("a");
+      link.href = signed.url;
+      link.download = item.originalFilename ?? "evidence";
+      link.rel = "noopener";
+      document.body.append(link);
+      link.click();
+      link.remove();
+    } catch (cause) {
+      setFailure(
+        cause instanceof Error
+          ? cause.message
+          : "Chưa tải được tệp. Vui lòng thử lại.",
+      );
+    } finally {
+      setDownloading(false);
+    }
+  };
   return (
     <article className="evidence-card" id={item.id}>
       <div className="heading-row">
         <Badge tone={item.origin === "mock_fixture" ? "amber" : "gray"}>
-          {item.origin === "mock_fixture" ? "Nguồn mẫu giả lập" : "Mình nhập"}
+          {item.origin === "mock_fixture"
+            ? "Nguồn mẫu giả lập"
+            : item.origin === "user_upload"
+              ? "Tệp riêng tư"
+              : "Mình nhập"}
         </Badge>
         <Button
           variant="ghost"
@@ -1060,15 +1203,37 @@ function EvidenceCard({
           </div>
         ))}
       <h3>
-        {item.kind === "screenshot"
-          ? "Ảnh chụp mẫu"
-          : item.kind === "pdf_placeholder"
-            ? "PDF minh họa (placeholder)"
-            : "Ghi chú"}
+        {item.origin === "user_upload"
+          ? (item.originalFilename ?? "Tệp đính kèm")
+          : item.kind === "screenshot"
+            ? "Ảnh chụp mẫu"
+            : item.kind === "pdf_placeholder"
+              ? "PDF minh họa (placeholder)"
+              : "Ghi chú"}
       </h3>
       <p className="muted">
         {item.id} · Mốc hiển thị: {item.shownTimestamp || "Chưa rõ"}
       </p>
+      {item.origin === "user_upload" && (
+        <>
+          <p className="muted">
+            {item.byteSize?.toLocaleString("vi-VN")} bytes ·{" "}
+            {item.storedMimeType ?? "Chưa rõ định dạng"}
+          </p>
+          <Notice>
+            Tệp gốc đã được lưu riêng tư. AI chưa phân tích nội dung tệp này.
+          </Notice>
+          <Button
+            variant="secondary"
+            disabled={downloading}
+            onClick={() => void download()}
+          >
+            <Download size={16} />
+            {downloading ? "Đang chuẩn bị…" : "Tải tệp gốc"}
+          </Button>
+        </>
+      )}
+      {failure && <Notice tone="error">{failure}</Notice>}
       {edit ? (
         <Field label="Sửa phần nội dung bạn đọc được" id={`edit-${item.id}`}>
           <textarea
@@ -1080,7 +1245,7 @@ function EvidenceCard({
         </Field>
       ) : (
         <p className="preserve-lines">
-          {item.userEditedText ?? item.extractedText}
+          {item.userEditedText ?? (item.extractedText || item.originalText)}
         </p>
       )}
       <details>
@@ -1109,12 +1274,11 @@ function EvidenceCard({
           <>
             <Button
               onClick={() => {
-                onSave({
+                void save({
                   ...item,
                   userEditedText: text,
                   reviewStatus: "corrected",
                 });
-                setEdit(false);
               }}
               disabled={!text.trim()}
             >
@@ -1123,7 +1287,10 @@ function EvidenceCard({
             <Button
               variant="ghost"
               onClick={() => {
-                setText(item.userEditedText ?? item.extractedText);
+                setText(
+                  item.userEditedText ??
+                    (item.extractedText || item.originalText),
+                );
                 setEdit(false);
               }}
             >
@@ -1139,7 +1306,7 @@ function EvidenceCard({
         {!edit && item.reviewStatus !== "confirmed" && (
           <Button
             variant="secondary"
-            onClick={() => onSave({ ...item, reviewStatus: "confirmed" })}
+            onClick={() => void save({ ...item, reviewStatus: "confirmed" })}
           >
             <Check size={16} />
             Mình đã kiểm tra
@@ -1148,12 +1315,17 @@ function EvidenceCard({
         {!edit && item.reviewStatus !== "rejected" && (
           <Button
             variant="ghost"
-            onClick={() => onSave({ ...item, reviewStatus: "rejected" })}
+            onClick={() => void save({ ...item, reviewStatus: "rejected" })}
           >
             Đánh dấu chưa dùng
           </Button>
         )}
       </div>
+      {onDelete && (
+        <Button variant="ghost" disabled={busy} onClick={onDelete}>
+          Xóa vĩnh viễn bằng chứng
+        </Button>
+      )}
     </article>
   );
 }

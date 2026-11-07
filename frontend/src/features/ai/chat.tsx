@@ -17,7 +17,7 @@ import {
   Plus,
   Sparkles,
 } from "lucide-react";
-import { uid, useDemoStore } from "../../app/store";
+import { uid, useWorkspaceStore } from "../../app/store";
 import {
   Badge,
   Button,
@@ -30,7 +30,7 @@ import { AgentStatusOrb } from "../../animations/AgentStatusOrb";
 import { chatFixtures, scenarios } from "../../mocks/scenarios";
 import type { ChatFixture } from "../../mocks/scenarios";
 import type { ChatMessage, ChatSession } from "../../types";
-import { demoService } from "../../mocks/services/demo";
+import { getServices } from "../../services/composition";
 import { analysisVariants } from "./analysis-model";
 import { startFixtureAnalysis } from "./analysis-workflow";
 import {
@@ -164,7 +164,8 @@ export function ChatPage() {
   const [search] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const store = useDemoStore();
+  const store = useWorkspaceStore();
+  const demo = store.workspace.kind === "demo";
   const [draftId, setDraftId] = useState(() => uid("CHAT"));
   const [scenarioId, setScenarioId] = useState(
     search.get("scenario") ?? "SC-01",
@@ -243,7 +244,7 @@ export function ChatPage() {
       void runReply(chatId, response);
     };
     try {
-      await demoService.run(
+      await getServices().run(
         () => undefined,
         store.preferences.reducedMotion ? 0 : 500,
       );
@@ -251,22 +252,28 @@ export function ChatPage() {
       const finish = () => {
         if (timer.current) clearInterval(timer.current);
         timer.current = null;
-        const current = useDemoStore
+        const current = useWorkspaceStore
           .getState()
           .chats.find((item) => item.id === chatId);
         if (
           current &&
           !current.messages.some((item) => item.id === response.id)
         )
-          useDemoStore
-            .getState()
-            .putChat({
+          void getServices()
+            .chat.save({
               ...current,
               messages: [
                 ...current.messages,
                 { ...response, createdAt: new Date().toISOString() },
               ],
-            });
+            })
+            .catch((cause: unknown) =>
+              setError(
+                cause instanceof Error
+                  ? cause.message
+                  : "Chưa giữ được phản hồi mẫu.",
+              ),
+            );
         setPartial("");
         setPhase("idle");
         completeRef.current = null;
@@ -351,14 +358,26 @@ export function ChatPage() {
         },
       ],
     };
-    store.putChat(next);
+    void getServices()
+      .chat.save(next)
+      .catch((cause: unknown) =>
+        setError(
+          cause instanceof Error ? cause.message : "Chưa giữ được lời kể.",
+        ),
+      );
     if (!sessionId || scenarioOverride)
       navigate(`/ai/chat/${next.id}`, { replace: true });
     void runReply(next.id, response);
   }
   function updateDraft(value: string) {
     const current = ensureSession();
-    store.putChat({ ...current, draft: value });
+    void getServices()
+      .chat.save({ ...current, draft: value })
+      .catch((cause: unknown) =>
+        setError(
+          cause instanceof Error ? cause.message : "Chưa giữ được bản nháp.",
+        ),
+      );
     if (!sessionId) navigate(`/ai/chat/${current.id}`, { replace: true });
   }
   function chooseScenario(id: string) {
@@ -384,13 +403,13 @@ export function ChatPage() {
   function goToWizard() {
     if (!verified || !reviewText.trim()) return;
     const current = ensureSession();
-    store.putChat(current);
+    void getServices().chat.save(current);
     navigate("/cases/new", {
       state: {
         prefill: {
           title: current.title,
           summary: reviewText,
-          linkedChatIds: [current.id],
+          ...(demo ? { linkedChatIds: [current.id] } : {}),
           occurredAt: "",
           template: currentScenario === "SC-11" ? "TPL-WITNESS" : "TPL-FREE",
           perspective: currentScenario === "SC-11" ? "witness" : "self",
@@ -420,6 +439,12 @@ export function ChatPage() {
         onHistory={() => setHistoryOpen(true)}
         onMenu={() => setOptionsOpen(true)}
       />
+      {!demo && (
+        <Notice>
+          AI mô phỏng · Cuộc trò chuyện chỉ lưu trên thiết bị này. Lời kể chuyển
+          sang hồ sơ cần bạn kiểm tra và lưu riêng.
+        </Notice>
+      )}
       <MessageList
         sessionKey={session?.id ?? draftId}
         revision={`${session?.messages.length ?? 0}:${partial}:${phase}`}
@@ -652,7 +677,7 @@ export function ChatPage() {
                 ""
               }
               onChange={(event) =>
-                store.putChat({
+                void getServices().chat.save({
                   ...ensureSession(),
                   linkedCaseId: event.target.value || undefined,
                 })
@@ -744,7 +769,7 @@ export function ChatPage() {
               key={variant.id}
               onClick={() => {
                 const current = ensureSession();
-                store.putChat(current);
+                void getServices().chat.save(current);
                 const analysis = startFixtureAnalysis(variant.id, current.id);
                 setAttachments(false);
                 navigate(`/ai/analysis/${analysis.id}`);

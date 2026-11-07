@@ -12,7 +12,10 @@ import type {
   TrustedPerson,
 } from "../types";
 import { personas, seedCases, seedPlans } from "../mocks/data/seed";
-export const uid = (prefix: string) => `${prefix}-${crypto.randomUUID()}`;
+export const uid = (prefix: string) =>
+  useWorkspaceStore.getState().workspace.kind === "real"
+    ? crypto.randomUUID()
+    : `${prefix}-${crypto.randomUUID()}`;
 interface PersonalScope {
   bookmarks: string[];
   readIds: string[];
@@ -39,7 +42,13 @@ function clearFormDrafts() {
     /* Storage may be unavailable; canonical in-memory reset still works. */
   }
 }
-interface DemoState {
+export interface WorkspaceState {
+  workspace: { kind: "demo" | "real"; userId: string | null };
+  hydration: {
+    status: "initializing" | "loading" | "ready" | "error";
+    error?: string;
+  };
+  activateReal: (userId: string) => void;
   scopes: Record<string, PersonalScope>;
   user: DemoUser | null;
   cases: Incident[];
@@ -75,7 +84,7 @@ interface DemoState {
   markRead: (id: string) => void;
   addTrustedPerson: (item: TrustedPerson) => void;
   removeTrustedPerson: (id: string) => void;
-  setPreferences: (patch: Partial<DemoState["preferences"]>) => void;
+  setPreferences: (patch: Partial<WorkspaceState["preferences"]>) => void;
   setFailNextSave: (value: boolean) => void;
   notify: (message: string) => void;
 }
@@ -84,6 +93,10 @@ const upsert = <T extends { id: string }>(items: T[], item: T) =>
     ? items.map((i) => (i.id === item.id ? item : i))
     : [...items, item];
 const initial = () => ({
+  workspace: { kind: "demo" as "demo" | "real", userId: null as string | null },
+  hydration: {
+    status: "ready" as "initializing" | "loading" | "ready" | "error",
+  },
   user: null,
   scopes: {} as Record<string, PersonalScope>,
   cases: structuredClone(seedCases),
@@ -98,6 +111,7 @@ const initial = () => ({
   failNextSave: false,
   toast: "",
 });
+let persistencePaused = false;
 const safeStorage: Storage = {
   getItem: (key) => {
     try {
@@ -108,7 +122,11 @@ const safeStorage: Storage = {
   },
   setItem: (key, value) => {
     try {
-      localStorage.setItem(key, value);
+      if (
+        !persistencePaused &&
+        JSON.parse(value).state?.workspace?.kind !== "real"
+      )
+        localStorage.setItem(key, value);
     } catch {
       /* In-memory demo remains usable when storage is unavailable. */
     }
@@ -124,10 +142,29 @@ const safeStorage: Storage = {
   key: () => null,
   length: 0,
 };
-export const useDemoStore = create<DemoState>()(
+export const useWorkspaceStore = create<WorkspaceState>()(
   persist(
     (set) => ({
       ...initial(),
+      hydration: { status: "initializing" },
+      activateReal: (userId) =>
+        set({
+          ...initial(),
+          workspace: { kind: "real", userId },
+          user: null,
+          cases: [],
+          plans: [],
+          evidence: [],
+          chats: [],
+          analyses: [],
+          roleplays: [],
+          drafts: [],
+          bookmarks: [],
+          readIds: [],
+          trustedPeople: [],
+          scopes: {},
+          hydration: { status: "loading" },
+        }),
       login: (personaId, nickname, ageBand) =>
         set((s) => {
           const user = {
@@ -142,7 +179,13 @@ export const useDemoStore = create<DemoState>()(
               readIds: s.readIds,
               trustedPeople: s.trustedPeople,
             };
-          return { user, scopes, ...(scopes[user.id] ?? personalDefaults()) };
+          return {
+            user,
+            workspace: { kind: "demo" as const, userId: user.id },
+            hydration: { status: "ready" as const },
+            scopes,
+            ...(scopes[user.id] ?? personalDefaults()),
+          };
         }),
       logout: () =>
         set((s) => ({
@@ -238,9 +281,11 @@ export const useDemoStore = create<DemoState>()(
     }),
     {
       name: "moodprint-demo",
+      skipHydration: true,
       version: 1,
       storage: createJSONStorage(() => safeStorage),
       partialize: (s) => ({
+        workspace: s.workspace,
         user: s.user,
         scopes: s.scopes,
         cases: s.cases,
@@ -258,3 +303,16 @@ export const useDemoStore = create<DemoState>()(
     },
   ),
 );
+
+// Compatibility alias for existing demo readers and fixtures.
+export const useDemoStore = useWorkspaceStore;
+
+export async function restoreDemoWorkspace() {
+  persistencePaused = true;
+  try {
+    useWorkspaceStore.setState(initial());
+    await useWorkspaceStore.persist.rehydrate();
+  } finally {
+    persistencePaused = false;
+  }
+}

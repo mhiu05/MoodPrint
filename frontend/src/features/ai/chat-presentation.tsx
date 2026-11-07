@@ -15,7 +15,7 @@ import {
 import { AgentStatusOrb } from "../../animations/AgentStatusOrb";
 import { Button } from "../../components/ui";
 import { useReducedMotion } from "../../hooks/useReducedMotion";
-import { useDemoStore } from "../../app/store";
+import { useWorkspaceStore } from "../../app/store";
 import type { ChatMessage } from "../../types";
 import "./chat.css";
 
@@ -101,7 +101,7 @@ export function MessageList({
   const follow = useRef(true);
   const [away, setAway] = useState(false);
   const reduced = useReducedMotion();
-  const preference = useDemoStore((s) => s.preferences.reducedMotion);
+  const preference = useWorkspaceStore((s) => s.preferences.reducedMotion);
   const previous = useRef(sessionKey);
   const previousRevision = useRef("");
   useLayoutEffect(() => {
@@ -211,12 +211,12 @@ export function MessageBubble({
 }
 
 export function AttachmentPreview({ analysisId }: { analysisId: string }) {
-  const analysis = useDemoStore((s) =>
+  const analysis = useWorkspaceStore((s) =>
     s.analyses.find(
       (item) => item.id === analysisId && item.ownerId === s.user?.id,
     ),
   );
-  const evidence = useDemoStore((s) => s.evidence);
+  const evidence = useWorkspaceStore((s) => s.evidence);
   const previews =
     analysis?.evidenceIds
       .slice(0, 2)

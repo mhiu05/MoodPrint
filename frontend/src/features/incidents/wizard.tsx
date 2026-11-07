@@ -17,7 +17,8 @@ import {
   PageHeader,
   Progress,
 } from "../../components/ui";
-import { demoService } from "../../mocks/services/demo";
+import { getServices } from "../../services/composition";
+import { ApiError } from "../../services/http/client";
 import type { Incident } from "../../types";
 import {
   caseDraftIdentity,
@@ -48,6 +49,7 @@ const impacts = [
 function readDraft(
   key: string,
   initial: CaseDraft,
+  real = false,
 ): { draft: CaseDraft; recovered: boolean } {
   try {
     const raw = sessionStorage.getItem(key);
@@ -62,6 +64,17 @@ function readDraft(
         draft: {
           ...initial,
           ...draft,
+          attachments: real
+            ? draft.attachments.flatMap((entry) => {
+                const id = typeof entry === "string" ? entry : entry.id;
+                const evidence = useDemoStore
+                  .getState()
+                  .evidence.find(
+                    (item) => item.id === id && item.origin !== "mock_fixture",
+                  );
+                return evidence ? [evidence] : [];
+              })
+            : draft.attachments,
           step: Math.max(0, Math.min(5, draft.step || 0)),
         },
         recovered: true,
@@ -114,6 +127,7 @@ export function CaseWizard() {
 function CaseWizardForm({ draftIdentity }: { draftIdentity: string }) {
   const { caseId } = useParams();
   const user = useDemoStore((s) => s.user);
+  const real = useDemoStore((s) => s.workspace.kind === "real");
   const existing = useDemoStore((s) =>
     s.cases.find((c) => c.id === caseId && c.ownerId === s.user?.id),
   );
@@ -125,12 +139,23 @@ function CaseWizardForm({ draftIdentity }: { draftIdentity: string }) {
     ?.prefill;
   const [initial] = useState(() => {
     const draft = createCaseDraft(existing ?? prefill);
-    return readDraft(key, draft);
+    if (real) {
+      draft.clientId = existing?.id ?? crypto.randomUUID();
+      draft.firstEventId = existing?.events[0]?.id ?? crypto.randomUUID();
+      draft.linkedChatIds = [];
+      draft.sourceEvidenceIds = draft.sourceEvidenceIds.filter((id) =>
+        evidence.some(
+          (item) => item.id === id && item.origin !== "mock_fixture",
+        ),
+      );
+    }
+    return readDraft(key, draft, real);
   });
   const [draft, setDraft] = useState(initial.draft);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [conflict, setConflict] = useState<Incident | null>(null);
   const [leave, setLeave] = useState(false);
   const [storageBlocked, setStorageBlocked] = useState(false);
   const saved = useRef(false);
@@ -157,11 +182,21 @@ function CaseWizardForm({ draftIdentity }: { draftIdentity: string }) {
   useEffect(() => {
     if (saved.current) return;
     try {
-      sessionStorage.setItem(key, JSON.stringify(draft));
+      sessionStorage.setItem(
+        key,
+        JSON.stringify(
+          real
+            ? {
+                ...draft,
+                attachments: draft.attachments.map((item) => item.id),
+              }
+            : draft,
+        ),
+      );
     } catch {
       queueMicrotask(() => setStorageBlocked(true));
     }
-  }, [draft, key]);
+  }, [draft, key, real]);
   useEffect(() => {
     if (!dirty) return;
     const unload = (event: BeforeUnloadEvent) => {
@@ -184,7 +219,7 @@ function CaseWizardForm({ draftIdentity }: { draftIdentity: string }) {
     setSaveError("");
     const item = incidentFromDraft(
       draft,
-      existing?.id ?? uid("CASE"),
+      existing?.id ?? draft.clientId ?? uid("CASE"),
       user.id,
       partial
         ? "draft"
@@ -193,20 +228,23 @@ function CaseWizardForm({ draftIdentity }: { draftIdentity: string }) {
           : (existing?.status ?? "active"),
       existing,
     );
+    if (real) {
+      item.demo = false;
+      item.linkedChatIds = [];
+    }
     try {
-      await demoService.saveCase(item);
-      draft.attachments.forEach((attachment) =>
-        useDemoStore.getState().putEvidence({ ...attachment, caseId: item.id }),
-      );
-      useDemoStore
+      await getServices().cases.save(item);
+      if (!real) {
+        for (const attachment of draft.attachments)
+          await getServices().evidence.save({ ...attachment, caseId: item.id });
+      }
+      for (const chat of useDemoStore
         .getState()
         .chats.filter(
           (chat) =>
             chat.ownerId === user.id && item.linkedChatIds.includes(chat.id),
-        )
-        .forEach((chat) =>
-          useDemoStore.getState().putChat({ ...chat, linkedCaseId: item.id }),
-        );
+        ))
+        await getServices().chat.save({ ...chat, linkedCaseId: item.id });
       saved.current = true;
       if (blocker.state === "blocked") blocker.reset();
       try {
@@ -217,10 +255,22 @@ function CaseWizardForm({ draftIdentity }: { draftIdentity: string }) {
       useDemoStore
         .getState()
         .notify(
-          partial ? "Đã lưu bản nháp trong demo." : "Đã lưu hồ sơ trong demo.",
+          real
+            ? partial
+              ? "Đã lưu bản nháp."
+              : "Đã lưu hồ sơ."
+            : partial
+              ? "Đã lưu bản nháp trong demo."
+              : "Đã lưu hồ sơ trong demo.",
         );
       navigate(`/cases/${item.id}`, { replace: true });
     } catch (error) {
+      if (
+        error instanceof ApiError &&
+        error.code === "version_conflict" &&
+        error.details.latest
+      )
+        setConflict(error.details.latest as Incident);
       setSaveError(
         error instanceof Error
           ? error.message
@@ -234,9 +284,7 @@ function CaseWizardForm({ draftIdentity }: { draftIdentity: string }) {
     return (
       <>
         <PageHeader title="Không tìm thấy hồ sơ" back="/cases" />
-        <Notice>
-          Hồ sơ không còn tồn tại hoặc không thuộc tài khoản demo này.
-        </Notice>
+        <Notice>Hồ sơ không còn tồn tại hoặc không thuộc tài khoản này.</Notice>
       </>
     );
   const template =
@@ -247,6 +295,36 @@ function CaseWizardForm({ draftIdentity }: { draftIdentity: string }) {
         title={existing ? "Bổ sung hồ sơ" : "Ghi lại một chuyện"}
         description="Bạn có thể kể từng chút một, theo cách mình thấy thoải mái."
       />
+      {conflict && (
+        <Notice tone="error">
+          Hồ sơ đã được sửa ở nơi khác. Nội dung đang nhập vẫn được giữ.
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() =>
+              void getServices()
+                .cases.get(conflict.id)
+                .then((latest) => {
+                  setDraft((value) => ({
+                    ...value,
+                    baseVersion: latest.version,
+                  }));
+                  setConflict(null);
+                  setSaveError("");
+                })
+                .catch((cause: unknown) =>
+                  setSaveError(
+                    cause instanceof Error
+                      ? cause.message
+                      : "Chưa tải được phiên bản mới.",
+                  ),
+                )
+            }
+          >
+            Giữ nội dung và cập nhật phiên bản
+          </Button>
+        </Notice>
+      )}
       {initial.recovered && (
         <Notice>
           Đã khôi phục phần bạn đang viết. Bạn có thể tiếp tục từ bước{" "}
@@ -287,11 +365,13 @@ function CaseWizardForm({ draftIdentity }: { draftIdentity: string }) {
             </button>
           ))}
           <p className="muted">
-            Chỉ dùng nội dung giả. Không cần tên thật hay thông tin nhận diện.
+            {real
+              ? "Bạn có thể dùng bí danh và chỉ ghi những chi tiết mình muốn lưu."
+              : "Chỉ dùng nội dung giả. Không cần tên thật hay thông tin nhận diện."}
           </p>
           <Link to="/ai/chat" className="ai-entry">
             <Sparkles size={18} />
-            Muốn kể cùng AI demo?
+            {real ? "Muốn thử AI mô phỏng?" : "Muốn kể cùng AI demo?"}
           </Link>
         </aside>
         <section className="panel wizard-form">
@@ -547,8 +627,9 @@ function CaseWizardForm({ draftIdentity }: { draftIdentity: string }) {
             {draft.step === 5 && (
               <>
                 <Notice>
-                  Bạn quyết định nội dung nào được lưu. Hồ sơ này chỉ nằm trong
-                  bản demo.
+                  {real
+                    ? "Bạn quyết định nội dung nào được lưu. Hồ sơ được lưu riêng tư trong tài khoản của bạn."
+                    : "Bạn quyết định nội dung nào được lưu. Hồ sơ này chỉ nằm trong bản demo."}
                 </Notice>
                 <div className="review-list">
                   {[

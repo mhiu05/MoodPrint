@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowRight, Check, CircleHelp, RotateCcw, Trash2 } from "lucide-react";
-import { uid, useDemoStore } from "../../app/store";
+import { uid, useWorkspaceStore } from "../../app/store";
 import {
   Badge,
   Button,
@@ -12,7 +12,7 @@ import {
   Progress,
 } from "../../components/ui";
 import { AgentStatusOrb } from "../../animations/AgentStatusOrb";
-import { demoService } from "../../mocks/services/demo";
+import { getServices } from "../../services/composition";
 import type { Analysis, Evidence, Incident } from "../../types";
 import {
   analysisVariants,
@@ -35,7 +35,8 @@ const labelTime = (value: string) =>
 export function AnalysisPage() {
   const { analysisId } = useParams();
   const navigate = useNavigate();
-  const store = useDemoStore();
+  const store = useWorkspaceStore();
+  const demo = store.workspace.kind === "demo";
   const analysis = store.analyses.find(
     (item) => item.id === analysisId && item.ownerId === store.user?.id,
   );
@@ -92,10 +93,18 @@ export function AnalysisPage() {
           item.reviewStatus !== "rejected"),
   );
   function patchAnalysis(patch: Partial<Analysis>) {
-    store.putAnalysis({ ...analysis!, ...patch });
+    void getServices()
+      .analysis.save({ ...analysis!, ...patch })
+      .catch((cause: unknown) =>
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : "Chưa giữ được thay đổi mô phỏng.",
+        ),
+      );
   }
   function review(item: Evidence, status: Evidence["reviewStatus"]) {
-    store.putEvidence({ ...item, reviewStatus: status });
+    void getServices().analysis.saveEvidence({ ...item, reviewStatus: status });
     patchAnalysis({
       confirmedIds:
         status === "confirmed"
@@ -104,7 +113,7 @@ export function AnalysisPage() {
     });
   }
   function edit(item: Evidence, text: string) {
-    store.putEvidence(correctEvidence(item, text));
+    void getServices().analysis.saveEvidence(correctEvidence(item, text));
     patchAnalysis({
       confirmedIds: analysis!.confirmedIds.filter((id) => id !== item.id),
     });
@@ -115,7 +124,7 @@ export function AnalysisPage() {
     setError("");
     patchAnalysis({ status: "processing" });
     try {
-      await demoService.run(
+      await getServices().run(
         () => undefined,
         store.preferences.reducedMotion ? 0 : 800,
       );
@@ -132,7 +141,7 @@ export function AnalysisPage() {
     }
   }
   async function createCase() {
-    if (!confirmed.length || busy) return;
+    if (!demo || !confirmed.length || busy) return;
     setBusy(true);
     setError("");
     const id = uid("CASE");
@@ -173,15 +182,21 @@ export function AnalysisPage() {
       demo: true,
     };
     try {
-      await demoService.run(() => {
-        store.putCase(item);
-        active.forEach((source) =>
-          store.putEvidence({ ...source, caseId: id }),
-        );
-        linkedChats.forEach((chat) =>
-          store.putChat({ ...chat, linkedCaseId: id }),
-        );
-        store.putAnalysis({ ...analysis!, caseId: id, status: "confirmed" });
+      await getServices().cases.save(item);
+      await Promise.all(
+        active.map((source) =>
+          getServices().analysis.saveEvidence({ ...source, caseId: id }),
+        ),
+      );
+      await Promise.all(
+        linkedChats.map((chat) =>
+          getServices().chat.save({ ...chat, linkedCaseId: id }),
+        ),
+      );
+      await getServices().analysis.save({
+        ...analysis!,
+        caseId: id,
+        status: "confirmed",
       });
       store.notify(`Đã tạo hồ sơ từ ${confirmed.length} nguồn bạn xác nhận.`);
       navigate(`/cases/${id}`);
@@ -211,6 +226,12 @@ export function AnalysisPage() {
         thật. Xác nhận nghĩa là bạn đã kiểm tra nội dung mẫu, không xác thực sự
         việc ngoài đời.
       </Notice>
+      {!demo && (
+        <Notice>
+          AI mô phỏng · Nội dung phân tích chỉ lưu trên thiết bị này. Bộ ảnh mẫu
+          không thể lưu vào hồ sơ thật.
+        </Notice>
+      )}
       <section className="ai-analysis-context panel">
         <h2>Đặt ảnh cạnh lời kể của bạn</h2>
         <div className="grid-2">
@@ -543,7 +564,12 @@ export function AnalysisPage() {
             </p>
           )}
           <div className="actions">
-            {analysis.caseId ? (
+            {!demo ? (
+              <p>
+                Bộ ảnh mẫu không thể lưu vào hồ sơ thật. Bạn vẫn có thể luyện rà
+                soát nội dung tại đây.
+              </p>
+            ) : analysis.caseId ? (
               <>
                 <Link
                   className="button primary"
