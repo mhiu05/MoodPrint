@@ -172,14 +172,21 @@ class ActionPlanService:
                 if conflicts:
                     raise ApiError("conflict", "Bước này đã thuộc kế hoạch khác.", 409)
             for position, item in enumerate(data.items):
-                uow.session.add(
-                    PlanItemRecord(
+                from sqlalchemy.dialects.postgresql import insert
+
+                inserted_item = await uow.session.scalar(
+                    insert(PlanItemRecord)
+                    .values(
                         plan_id=row.id,
                         owner_id=auth.user_id,
                         position=position,
                         **item.model_dump(),
                     )
+                    .on_conflict_do_nothing(index_elements=[PlanItemRecord.id])
+                    .returning(PlanItemRecord.id)
                 )
+                if inserted_item is None:
+                    raise not_found()
             await uow.session.flush()
             await uow.session.refresh(row)
             return await plan_dto(uow.session, row)

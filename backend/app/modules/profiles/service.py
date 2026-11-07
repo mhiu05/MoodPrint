@@ -2,7 +2,7 @@ from moodprint_shared.contracts.auth import AuthContext
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from app.core.uow import user_uow
+from app.core.uow import account_deletion_scope, user_uow
 from app.modules.profiles.schemas import Profile, ProfilePatch
 
 
@@ -74,6 +74,12 @@ class ProfileService:
         return await self.get(auth)
 
     async def delete_account(self, auth: AuthContext, token: str, storage, cfg=None) -> None:
+        # Only this task's cleanup may enter user transactions after the durable
+        # flag is committed. A retry enters the same scope; normal requests cannot.
+        with account_deletion_scope(auth):
+            await self._delete_account(auth, token, storage, cfg)
+
+    async def _delete_account(self, auth: AuthContext, token: str, storage, cfg=None) -> None:
         from moodprint_shared.config import AppConfig
         from moodprint_shared.contracts.errors import RunInProgress
 
@@ -94,6 +100,12 @@ class ProfileService:
             )
             if active:
                 raise RunInProgress()
+            await uow.session.execute(
+                text("""INSERT INTO app.profiles(user_id,nickname,deletion_started_at)
+                VALUES(:owner,'Bạn',now()) ON CONFLICT(user_id) DO UPDATE
+                SET deletion_started_at=coalesce(app.profiles.deletion_started_at,excluded.deletion_started_at)"""),
+                {"owner": auth.user_id},
+            )
             conversations = list(
                 (
                     await uow.session.execute(

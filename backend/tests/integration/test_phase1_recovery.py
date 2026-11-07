@@ -58,20 +58,28 @@ async def test_account_deletion_partial_failure_resumable(db_engine, identities)
     with pytest.raises(ApiError):
         await service.delete_account(a, "test", storage)
     assert storage.objects == {}
-    async with user_uow(db_engine, a) as uow:
-        assert (
-            await uow.session.scalar(
-                text("SELECT count(*) FROM app.cases WHERE owner_id=:owner"), {"owner": a.user_id}
+    with pytest.raises(ApiError) as blocked:
+        async with user_uow(db_engine, a):
+            pytest.fail("An unfinished deletion must block ordinary account access")
+    assert blocked.value.code == "account_deleting"
+    from app.core.uow import account_deletion_scope
+
+    with account_deletion_scope(a):
+        async with user_uow(db_engine, a) as uow:
+            assert (
+                await uow.session.scalar(
+                    text("SELECT count(*) FROM app.cases WHERE owner_id=:owner"),
+                    {"owner": a.user_id},
+                )
+                == 0
             )
-            == 0
-        )
-        assert (
-            await uow.session.scalar(
-                text("SELECT count(*) FROM app.evidence_items WHERE owner_id=:owner"),
-                {"owner": a.user_id},
+            assert (
+                await uow.session.scalar(
+                    text("SELECT count(*) FROM app.evidence_items WHERE owner_id=:owner"),
+                    {"owner": a.user_id},
+                )
+                == 0
             )
-            == 0
-        )
     provider.fail = False
     await service.delete_account(a, "test", storage)
 

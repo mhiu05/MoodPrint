@@ -131,3 +131,19 @@ async def test_notes_only_patch_preserves_completed_checkbox(db_engine, identiti
     )
     changed = await plans.patch_item(a, plan.id, item.id, notes="Synthetic note")
     assert changed.items[0].status == "done" and changed.items[0].notes == "Synthetic note"
+
+
+async def test_foreign_plan_item_body_id_is_hidden_and_transaction_rolls_back(
+    db_engine, identities
+):
+    a, b = identities
+    cases = IncidentService(db_engine)
+    ca = await cases.create(a, CaseCreate(id=uuid4()))
+    cb = await cases.create(b, CaseCreate(id=uuid4()))
+    plans = ActionPlanService(db_engine)
+    foreign = PlanItem(id=uuid4(), label="Foreign synthetic step")
+    await plans.upsert(a, ca.id, PlanUpsert(id=uuid4(), items=[foreign]), expected_version=None)
+    with pytest.raises(ApiError) as hidden:
+        await plans.upsert(b, cb.id, PlanUpsert(id=uuid4(), items=[foreign]), expected_version=None)
+    assert hidden.value.status_code == 404
+    assert await plans.get_for_case(b, cb.id) is None

@@ -45,3 +45,11 @@ Ruling về account delete: cleanup SDK sessions và own cases trước Auth del
 Ruling về school tests: ephemeral fictional school tên Synthetic có thể dùng `verification_status=verified` để mô phỏng eligibility trong test, luôn cleanup; không seed vào committed seed.sql hoặc hosted. Production RLS không được nới; khi không có integration thật, UI hiển thị empty state.
 
 Hosted UI smoke F1-08.3 có nguy cơ BLOCKED vì Chrome plugin đọc tab vẫn lỗi ở Phase 0; sẽ kiểm lại khi local E2E đủ. Không mở Chrome mới. Paid live model A-06 vẫn BLOCKED do thiếu cost ceiling, là P1 riêng.
+
+## Review checkpoint
+
+Fresh backend review phát hiện ba Important issues: concurrent account deletion có thể bỏ sót SDK/object mới; share→case lock đảo với case→share delete; foreign plan-item body UUID có thể gây unique violation 500. Đã sửa bằng durable profiles.deletion_started_at và account transaction lock/task-scoped cleanup bypass, parent-before-child share lock, conflict-safe item insert trả404 và rollback. Migration `20261107140312_f1_account_deletion_guard.sql` mới chỉ apply local qua CLI. Xóa đang dở tiếp tục chặn mutation sau lỗi và cho phép retry cleanup; tài khoản khác vẫn hoạt động.
+
+Sau sửa: `scripts/check.py` **156 offline passed**, Pyright0errors, Ruff/import boundaries sạch; full integration **67 passed**, không skip. New deletion concurrency suite kiểm 15 targeted cases gồm running-agent guard, second-tab mutations, rollback/retry, liveAuth/Storage và drift. Cases/plans/sharing overlap subset **7 passed**. Public snapshots không đổi.
+
+Frontend checkpoint: lint exit0; full Vitest **91 passed**,22files. Typecheck và incidents8tests pass. Build/boundary/E2E final chưa được ghi pass tại checkpoint này.

@@ -38,6 +38,13 @@ class SharingService:
         self.engine, self.storage, self.cfg = engine, storage, cfg or AppConfig()
 
     async def _get(self, session, auth, id, *, lock=False):
+        if lock:
+            # Parent-before-child matches case deletion and timeline mutations.
+            # Read identity without locking, lock the parent, then re-read share
+            # under its row lock so deletion/withdrawal cannot leave stale state.
+            initial = await self._get(session, auth, id)
+            if initial["case_id"] is not None:
+                await self._case(session, auth, initial["case_id"])
         row = (
             (
                 await session.execute(
