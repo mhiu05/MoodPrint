@@ -26,7 +26,9 @@ def main() -> int:
         ([sys.executable, "scripts/dev/bootstrap_local_db.py"], ROOT),
         ([npx, "--yes", f"supabase@{CLI_VERSION}", "test", "db"], ROOT),
         ([sys.executable, "-m", "pytest", "-m", "integration", "-q", "-rA"], ROOT),
-        ([npm, "test"], ROOT / "frontend"),
+        # Bound jsdom workers on shared developer machines; preserve test timeouts
+        # and assertions while avoiding CPU contention between 13 environments.
+        ([npm, "test", "--", "--maxWorkers=2"], ROOT / "frontend"),
     ]
     history = []
     output_dir = ROOT / ".local/verification"
