@@ -35,7 +35,9 @@ class MemoryConfig:
 @dataclass(frozen=True, slots=True)
 class EvidenceConfig:
     bucket: str = "incident-evidence"
-    max_object_bytes: int = 2 * 1024**3
+    # Hosted project currently enforces 50 MB with spend cap retained.
+    # Use decimal MB conservatively so application acceptance never exceeds it.
+    max_object_bytes: int = 50_000_000
     user_quota_bytes: int = 5 * 1024**3
     pending_uploads_per_user: int = 10
     upload_rate_per_hour: int = 60
