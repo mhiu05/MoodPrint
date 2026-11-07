@@ -1,6 +1,75 @@
 # Phase 1 — Implementation report
 
-Trạng thái: **PARTIALLY_VERIFIED**, đang triển khai. G1/G2: **NOT_STARTED** về acceptance; chưa có vertical-slice proof.
+Trạng thái ngày 2026-11-08: **local G1 VERIFIED** trên `ddf970dc62f8baae5c1ab97e36ea14e069984a0b`. Hosted schema và API smoke đã chạy. **G1 chưa đóng hết** vì Security/Performance Advisor và hosted UI smoke chưa có bằng chứng trong phiên này. **G2 chưa đạt.** Không có tag `baseline/phase-1-verified`. Không tạo worktree Phase 2/3. Sản phẩm **chưa** sẵn sàng cho học sinh thật; các điều kiện `00` §6 vẫn mở.
+
+## Acceptance đã chạy trên cây này
+
+Lệnh cổng, exit 0, khoảng 26 phút, receipt `.local/phase1-gate.json` (`scope=local_phase1`, `passed=true`, commit trùng HEAD lúc chạy):
+
+`uv run python scripts/verify_phase1.py`
+
+Cổng đó gọi `verify_phase0.py --regression` rồi typecheck, lint, format, Vitest `--maxWorkers=2`, build, `check:boundaries`, E2E demo và E2E real. Chín bước đều return code 0. Receipt không được commit.
+
+Bên trong regression:
+
+| Kiểm tra | Kết quả |
+|---|---|
+| `scripts/check.py` | Ruff, Pyright 0, import boundary 3 kept, **264 passed**, 67 integration deselected |
+| Contract schema và OpenAPI `--check` | Pass, không diff |
+| `supabase db reset` rồi bootstrap | Pass. Bootstrap có thể đổi password local; cổng đọc lại `.local/test.env` |
+| pgTAP | **13 files, 194 assertions, PASS** |
+| `pytest -m integration` | **67 passed**, 264 deselected |
+| Vitest trong cổng | Pass sau khi unit test không còn nhận biến `VITE_PUBLIC_*` của E2E và `testTimeout` là 15 giây |
+
+Trước cổng gộp, các suite riêng cũng xanh trên cùng working tree: Vitest **94 passed / 23 files**; demo Playwright **13 passed**; real Playwright **11 passed** cộng `E-URG-01` **1 passed** khi process API đã dừng. Vertical slice “confirmed account” đi hết wizard, upload 20 MB, resume offset 6 MiB, plan, User B nhận 404, rồi quay lại demo “Chào An”. Local còn **0** user, object, profile, case sau các suite.
+
+Các lỗi thật đã sửa, không nới assertion:
+
+- Welcome 8 bề rộng vượt timeout 30 giây của Playwright; budget nâng lên 180 giây, assertion hình học giữ nguyên. Suite demo sau đó 13/13.
+- Deep link E-AUTH-03: `DELETE /v1/me` đặt `deletion_started_at` trong lúc trang reload còn GET hồ sơ, nên console 409 và UI “Tài khoản đang được xóa”. Test chờ heading sau reload rồi mới xóa tài khoản.
+- Vitest trong cổng nhận cấu hình Auth local nên hai test trang đầy đủ vượt 5 giây. Unit check xóa ba biến `VITE_PUBLIC_*`; E2E vẫn tự gắn lại.
+- Responsive real 14 route × 8 bề rộng vượt 180 giây khi máy vừa chạy cả cổng. Budget 360 giây. Lần cổng cuối test này nằm trong real suite xanh.
+
+Fixture console chỉ bỏ qua 404 khi response đúng `GET /v1/cases/{id}/plan`, JSON `not_found` và message đúng `Hồ sơ chưa có kế hoạch.`. 409 version conflict của E-CASE-03 vẫn là assertion có chủ đích.
+
+## Hosted `db-school-violence`
+
+Project ref `xhlshihobyxrgfqrdafh`. Dry-run liệt kê đúng sáu file `f1_*`, không file lạ. `push_hosted.py --apply` exit 0 trên commit đã có receipt. Dry-run ngay sau đó không còn pending. Lịch sử kết thúc ở `20261107140312`. Mọi bảng `app` có RLS (`tables_without_rls=0`).
+
+`uv run python scripts/smoke_hosted.py --phase 1` exit 0: readiness, profile, memory, cô lập user B, upload/download ký, hồ sơ, evidence 1 MiB, plan và tick, user B 404, xóa evidence và hồ sơ, xóa hai user Auth. Sau smoke: **0** user, **0** object, **0** profile, **0** case.
+
+MCP `school-violence-supabase` không có trong phiên này nên **chưa chạy** `get_advisors`. Không lấy advisor bằng DDL hay API key in ra log.
+
+Hosted UI smoke F1-08.3: **BLOCKED**. Phiên không có công cụ điều khiển Chrome đang mở, và yêu cầu là không tự mở Chrome mới. Không có bằng chứng đăng ký giao diện trên hosted.
+
+## G2 và chiến lược IT-01..IT-09
+
+Chưa đặt tag. `core.hooksPath` đang trống; file `.githooks/pre-commit` có trong repo nhưng không cài, vì không sửa git config của owner. CI đã có check ownership trên `feat/knowledge-ingestion-rag` và `feat/agent-companion`, cùng job E2E, nhưng chưa có run xanh trên commit này.
+
+Scaffold `06` §3.3 đã có: `create_retriever` fixture, router Knowledge rỗng, `agent/ingestion`, test/eval knowledge, composition chat/analysis/roleplay/knowledge, package `tools`/`roleplay`/`evidence`. Checker đọc `docs/implementation/ownership.yaml`.
+
+Khi có nhánh `integration/phase-2-3`, integrator chạy đúng các test sau, chưa thực hiện trong nhiệm vụ này:
+
+| Test | Việc sẽ kiểm |
+|---|---|
+| IT-01 | Migration `kb_*` và `ag_*` trên DB trống, cả hai thứ tự |
+| IT-02 | `KnowledgeRetrieverContract` với adapter thật |
+| IT-03 | `knowledge_search` trả citation có `source_id` trong `knowledge.sources` |
+| IT-04 | Không có kết quả thì Companion không bịa URL |
+| IT-05 | Timeout retriever không treo và không trả citation một phần |
+| IT-06 | Toàn bộ test hai nhánh, frontend demo và real |
+| IT-07 | pgTAP RLS cho `knowledge.*` và bảng `ag_*` |
+| IT-08 | `check_ownership.py` từng nhánh so với baseline |
+| IT-09 | Eval knowledge và companion bằng `gpt-6-luna`, rubric do coding agent chấm theo AD-20. Không chạy khi chưa có trần chi phí |
+
+## Giới hạn còn lại
+
+Signed TUS capability đã cấp vẫn dùng được tới TTL sau khi xóa Auth. Chưa có tombstone sweep. Không tuyên bố thu hồi tức thì.
+
+S-01 chưa đo wall-clock hơn hai giờ. A-06 live model không chạy vì chưa có trần chi phí; model vẫn `gpt-6-luna`. Local advisor từng còn 2 WARN multiple permissive SELECT trên share owner/staff; phiên này không đọc lại advisor hosted.
+
+Các checkpoint bên dưới là lịch sử trước acceptance này, không thay cho bảng ở trên.
+
 
 Baseline G0: `d5c36ac0a1eae81fbe61fe1c6efd2a3a4203606e`, merge [PR #46](https://github.com/mhiu05/MoodPrint/pull/46) vào `mhiu05/feat-refactor` ngày 2026-11-07. Final Phase 0 feature SHA `4a9ad38d`; cả hai final CI runs đã xanh sau retry bước start Supabase. Branch hiện tại: `feat/phase-1-backend`.
 
