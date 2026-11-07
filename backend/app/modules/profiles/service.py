@@ -72,3 +72,70 @@ class ProfileService:
                     {**changes, "id": auth.user_id},
                 )
         return await self.get(auth)
+
+    async def delete_account(self, auth: AuthContext, token: str, storage, cfg=None) -> None:
+        from moodprint_shared.config import AppConfig
+        from moodprint_shared.contracts.errors import RunInProgress
+
+        from app.modules.conversations.service import ConversationService
+        from app.modules.evidence.service import EvidenceService
+
+        if self.auth_provider is None:
+            from app.core.errors import ApiError
+
+            raise ApiError("not_ready", "Dịch vụ xác thực chưa sẵn sàng.", 503)
+        await self.auth_provider.require_live_user(auth, token)
+        async with user_uow(self.engine, auth) as uow:
+            active = await uow.session.scalar(
+                text(
+                    "SELECT id FROM app.agent_runs WHERE owner_id=:owner AND status IN ('running','awaiting_approval') LIMIT 1"
+                ),
+                {"owner": auth.user_id},
+            )
+            if active:
+                raise RunInProgress()
+            conversations = list(
+                (
+                    await uow.session.execute(
+                        text("SELECT id FROM app.conversations WHERE owner_id=:owner"),
+                        {"owner": auth.user_id},
+                    )
+                ).scalars()
+            )
+            await uow.session.execute(
+                text(
+                    "UPDATE app.case_shares SET status='withdrawn',snapshot=NULL,withdrawn_at=now() WHERE owner_id=:owner AND status<>'withdrawn'"
+                ),
+                {"owner": auth.user_id},
+            )
+            await uow.session.execute(
+                text("DELETE FROM app.case_share_evidence WHERE owner_id=:owner"),
+                {"owner": auth.user_id},
+            )
+            evidence_ids = list(
+                (
+                    await uow.session.execute(
+                        text("SELECT id FROM app.evidence_items WHERE owner_id=:owner"),
+                        {"owner": auth.user_id},
+                    )
+                ).scalars()
+            )
+        evidence = EvidenceService(self.engine, storage, cfg or AppConfig())
+        for evidence_id in evidence_ids:
+            await evidence.delete(auth, evidence_id)
+        # Clear replay before Auth cascade so a failed final HTTP call is safe to retry.
+        conversations_service = ConversationService(self.engine, cfg or AppConfig())
+        for conversation_id in conversations:
+            await conversations_service.delete(auth, conversation_id)
+        async with user_uow(self.engine, auth) as uow:
+            # Case cleanup triggers intentionally run under authenticated, never GoTrue admin.
+            await uow.session.execute(
+                text("DELETE FROM app.cases WHERE owner_id=:owner"), {"owner": auth.user_id}
+            )
+            await uow.session.execute(
+                text(
+                    "INSERT INTO app.audit_events(actor_id,action,entity_type,entity_id) VALUES(:owner,'account.deleted','profile',:owner)"
+                ),
+                {"owner": auth.user_id},
+            )
+        await self.auth_provider.delete_user(auth)

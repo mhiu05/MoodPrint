@@ -11,7 +11,18 @@ pytestmark = pytest.mark.integration
 
 
 async def test_models_match_database(db_engine):
-    for name in ("profiles", "conversations", "memory"):
+    for name in (
+        "profiles",
+        "conversations",
+        "memory",
+        "incidents",
+        "plans",
+        "evidence",
+        "contacts",
+        "support",
+        "sharing",
+        "knowledge_state",
+    ):
         importlib.import_module(f"app.modules.{name}.models")
     expected_names = {
         "profiles",
@@ -22,6 +33,20 @@ async def test_models_match_database(db_engine):
         "tool_approvals",
         "memory_candidates",
         "user_memories",
+        "cases",
+        "case_events",
+        "evidence_items",
+        "case_event_evidence",
+        "evidence_derivatives",
+        "action_plans",
+        "plan_items",
+        "trusted_contacts",
+        "support_drafts",
+        "knowledge_article_states",
+        "schools",
+        "school_memberships",
+        "case_shares",
+        "case_share_evidence",
     }
     models = {table.name: table for table in Base.metadata.tables.values() if table.schema == "app"}
     assert set(models) == expected_names

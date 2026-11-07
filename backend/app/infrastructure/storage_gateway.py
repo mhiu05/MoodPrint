@@ -93,8 +93,8 @@ class StorageGateway:
         metadata = data.get("metadata") or {}
         return ObjectInfo(
             int(metadata.get("size", data.get("size", 0))),
-            metadata.get("mimetype") or data.get("contentType"),
-            metadata.get("eTag") or data.get("eTag"),
+            metadata.get("mimetype") or data.get("content_type") or data.get("contentType"),
+            metadata.get("eTag") or data.get("etag") or data.get("eTag"),
         )
 
     async def create_download_url(

@@ -1,15 +1,47 @@
-# Phase 1 — Execution status
+# Phase 1 — Implementation report
 
-Ngày: 2026-11-07. **NOT_STARTED** vì Gate G0 tổng thể còn **BLOCKED**. Xem [Phase 0 report](phase-0-report.md) để biết implementation và bằng chứng local.
+Trạng thái: **PARTIALLY_VERIFIED**, đang triển khai. G1/G2: **NOT_STARTED** về acceptance; chưa có vertical-slice proof.
 
-- Chưa tạo `feat/phase-1-backend`; không dùng baseline chưa đủ gate để tích hợp Phase 1.
-- Frontend giữ nguyên toàn bộ chức năng và thiết kế; demo vẫn 54/54 unit tests pass. Chưa có mock/real adapters, real Auth UI hoặc real evidence upload UI.
-- Incident cases/timeline/evidence lifecycle/action plans/contacts/support/sharing APIs và RLS Phase 1: **NOT_STARTED**.
-- Product vertical slice Auth → Case → Timeline → Upload → Plan → Reload → second browser → User B isolation: **NOT_STARTED**; không coi backend unit/integration Phase 0 là bằng chứng cho milestone này.
-- `verify_phase1.py`, real frontend E2E và hosted Phase 1 smoke: **NOT_STARTED**.
-- **G1 NOT_STARTED**, **G2 NOT_STARTED**. Chưa tạo baseline tag hoặc worktrees Phase 2/3.
-- Phase 0 branch đã push qua [draft PR #46](https://github.com/mhiu05/MoodPrint/pull/46); [CI offline/integration success](https://github.com/mhiu05/MoodPrint/actions/runs/42366869339). CI xanh không thay thế hosted G0 hoặc product G1.
+Baseline G0: `d5c36ac0a1eae81fbe61fe1c6efd2a3a4203606e`, merge [PR #46](https://github.com/mhiu05/MoodPrint/pull/46) vào `mhiu05/feat-refactor` ngày 2026-11-07. Final Phase 0 feature SHA `4a9ad38d`; cả hai final CI runs đã xanh sau retry bước start Supabase. Branch hiện tại: `feat/phase-1-backend`.
 
-Khi G0 được xác minh đầy đủ, tiếp tục theo dependency graph trong `08`, tạo Phase 1 từ baseline Phase 0 đã merge/verify. Báo cáo này không thay thế implementation.
+## Ownership và execution ledger
 
-Chưa được dùng dữ liệu học sinh thật; các điều kiện `00` §6 vẫn còn mở.
+- Root: toàn bộ f1 SQL migrations/SQL tests; incidents/plans; router registration/exports; UI incidents/plans/home/support/knowledge/AI; integration/E2E/gates/reports.
+- frontend_foundation: frontend services/types/store/Auth/profile/onboarding/layout/router/tooling. Đã đọc đủ 9 specs và actual source; đang triển khai.
+- backend_domains: evidence/contacts/support/sharing/article state, related API/tests, purge worker, account deletion. Đã đọc đủ 9 specs và actual source; đang triển khai.
+- Một người tạo migrations: root. Chưa apply Phase 1 hosted; không DDL qua MCP.
+
+## Preflight rulings
+
+| Task/interface | Quyết định và lý do |
+|---|---|
+| F1-03 quota / immutable completed byte_size | Thêm expected_byte_size cho reservations, giữ byte_size là verified completion metadata; owner lock chống concurrent quota oversubscription |
+| F1-03 purge / stale upload | Thêm purge_claimed_at/purged_at cho lease/retry; expired pending chuyển failed và giữ metadata sau object cleanup; permanent deletion mới xóa row |
+| F1-06 staff / evidence RLS | Narrow DEFINER shared_evidence_key chỉ trả key khi member, visible share, selected uploaded evidence; staff không có quyền đọc private evidence table |
+| F1-07 legacy UI / real data | Ports trả canonical UI models, cache chỉ update sau server success, optional version/demo fields; demo storage giữ riêng, không migrate lên server |
+| F1-01 Root / urgent route | Auth hydration guard chỉ chặn protected routes; urgent và School Admin Demo luôn mở độc lập backend |
+
+## Tests và blockers
+
+Checkpoint backend local: **VERIFIED** cho F1-02.*, F1-03.1, F1-04.1, F1-05, F1-06.1/06.2, F1-07.5/07.6 trong phạm vi tests đã chạy. UI và full-stack acceptance vẫn PARTIALLY_VERIFIED; chưa G1/G2.
+
+| Kiểm tra đã chạy | Kết quả |
+|---|---|
+| `uv run python scripts/check.py` | Exit 0; Ruff, Pyright 0 errors, 3 import boundaries; **154 offline passed**, 62 integration deselected |
+| `uv run pytest -m integration -q --tb=short` | **62 passed**, 154 offline deselected, không skip |
+| Full pgTAP | **13 files, 194 assertions PASS** |
+| Strict ORM drift | PASS, đủ **22 app tables** đúng column/type/nullability |
+| OpenAPI-derived cross-user matrix | PASS, **28 Phase 1 owner-ID operations**, route mới chưa có fixture làm test fail |
+| Cases/plans | PASS idempotency, ownership, search không dấu, pagination, version409/latest, reorder, notes-only không ghi đè checkbox, timeline null time/cascade |
+| Auth/Storage/account lifecycle thật local | PASS; synthetic JWT/Storage/SDK sessions/account deletion/retry, stale JWT bị chặn |
+| Local advisors WARN/ERROR | Không security error; còn **2 performance WARN multiple permissive SELECT policies** cho owner/staff trên shares và selected evidence. Quyền là OR đúng scope, không unrestricted staff read |
+
+OpenAPI đã được export từ routers thật. Chưa apply Phase 1 hosted, chưa merge Phase 1 hoặc tạo tag/worktrees Phase 2/3.
+
+Sai khác có bằng chứng: Storage info thực dùng `content_type`/`etag`, gateway ban đầu chỉ map camelCase. Regression RED→GREEN đã sửa mapping; MIME không rõ dùng application/octet-stream, không tự tin metadata do client khai báo. Upload hourly budget dùng audit append-only và own-only count helper để init→delete không reset giới hạn.
+
+Ruling về account delete: cleanup SDK sessions và own cases trước Auth delete cuối để retry không để orphan; không DB transaction nào mở qua Storage/Auth calls. Signed TUS capability đã cấp vẫn có thể dùng tới TTL sau Auth deletion — test đã chứng minh và cleanup. Chưa có tombstone sweep/capability revocation; không tuyên bố bảo đảm thu hồi tức thì. Privacy/operational gates cho người dùng thật vẫn riêng biệt.
+
+Ruling về school tests: ephemeral fictional school tên Synthetic có thể dùng `verification_status=verified` để mô phỏng eligibility trong test, luôn cleanup; không seed vào committed seed.sql hoặc hosted. Production RLS không được nới; khi không có integration thật, UI hiển thị empty state.
+
+Hosted UI smoke F1-08.3 có nguy cơ BLOCKED vì Chrome plugin đọc tab vẫn lỗi ở Phase 0; sẽ kiểm lại khi local E2E đủ. Không mở Chrome mới. Paid live model A-06 vẫn BLOCKED do thiếu cost ceiling, là P1 riêng.
