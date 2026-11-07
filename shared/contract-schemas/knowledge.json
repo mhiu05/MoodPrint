@@ -1,0 +1,552 @@
+{
+  "KnowledgeChunk": {
+    "$defs": {
+      "SourceCitation": {
+        "additionalProperties": false,
+        "properties": {
+          "applicability": {
+            "title": "Applicability",
+            "type": "string"
+          },
+          "countryScope": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Countryscope",
+            "type": "array"
+          },
+          "documentId": {
+            "title": "Documentid",
+            "type": "string"
+          },
+          "lastReviewed": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastreviewed"
+          },
+          "publishedAt": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishedat"
+          },
+          "publisher": {
+            "title": "Publisher",
+            "type": "string"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section"
+          },
+          "sourceId": {
+            "title": "Sourceid",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "format": "uri",
+                "maxLength": 2083,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "sourceId",
+          "documentId",
+          "title",
+          "publisher",
+          "url",
+          "section",
+          "publishedAt",
+          "lastReviewed",
+          "applicability",
+          "countryScope"
+        ],
+        "title": "SourceCitation",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "chunkId": {
+        "title": "Chunkid",
+        "type": "string"
+      },
+      "citation": {
+        "$ref": "#/$defs/SourceCitation"
+      },
+      "matchKind": {
+        "enum": [
+          "vector",
+          "lexical",
+          "hybrid",
+          "fixture"
+        ],
+        "title": "Matchkind",
+        "type": "string"
+      },
+      "score": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Score",
+        "type": "number"
+      },
+      "text": {
+        "title": "Text",
+        "type": "string"
+      }
+    },
+    "required": [
+      "chunkId",
+      "text",
+      "citation",
+      "score",
+      "matchKind"
+    ],
+    "title": "KnowledgeChunk",
+    "type": "object"
+  },
+  "KnowledgeFilters": {
+    "additionalProperties": false,
+    "properties": {
+      "ageBand": {
+        "anyOf": [
+          {
+            "enum": [
+              "11-13",
+              "14-17"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Ageband"
+      },
+      "countryScope": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Countryscope",
+        "type": "array"
+      },
+      "languages": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Languages",
+        "type": "array"
+      },
+      "topics": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Topics",
+        "type": "array"
+      }
+    },
+    "title": "KnowledgeFilters",
+    "type": "object"
+  },
+  "KnowledgeQuery": {
+    "$defs": {
+      "KnowledgeFilters": {
+        "additionalProperties": false,
+        "properties": {
+          "ageBand": {
+            "anyOf": [
+              {
+                "enum": [
+                  "11-13",
+                  "14-17"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Ageband"
+          },
+          "countryScope": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Countryscope",
+            "type": "array"
+          },
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Languages",
+            "type": "array"
+          },
+          "topics": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Topics",
+            "type": "array"
+          }
+        },
+        "title": "KnowledgeFilters",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "filters": {
+        "$ref": "#/$defs/KnowledgeFilters"
+      },
+      "text": {
+        "maxLength": 1000,
+        "minLength": 1,
+        "title": "Text",
+        "type": "string"
+      },
+      "topK": {
+        "default": 5,
+        "maximum": 20,
+        "minimum": 1,
+        "title": "Topk",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "text"
+    ],
+    "title": "KnowledgeQuery",
+    "type": "object"
+  },
+  "KnowledgeResult": {
+    "$defs": {
+      "KnowledgeChunk": {
+        "additionalProperties": false,
+        "properties": {
+          "chunkId": {
+            "title": "Chunkid",
+            "type": "string"
+          },
+          "citation": {
+            "$ref": "#/$defs/SourceCitation"
+          },
+          "matchKind": {
+            "enum": [
+              "vector",
+              "lexical",
+              "hybrid",
+              "fixture"
+            ],
+            "title": "Matchkind",
+            "type": "string"
+          },
+          "score": {
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Score",
+            "type": "number"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chunkId",
+          "text",
+          "citation",
+          "score",
+          "matchKind"
+        ],
+        "title": "KnowledgeChunk",
+        "type": "object"
+      },
+      "SourceCitation": {
+        "additionalProperties": false,
+        "properties": {
+          "applicability": {
+            "title": "Applicability",
+            "type": "string"
+          },
+          "countryScope": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Countryscope",
+            "type": "array"
+          },
+          "documentId": {
+            "title": "Documentid",
+            "type": "string"
+          },
+          "lastReviewed": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastreviewed"
+          },
+          "publishedAt": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishedat"
+          },
+          "publisher": {
+            "title": "Publisher",
+            "type": "string"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section"
+          },
+          "sourceId": {
+            "title": "Sourceid",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "format": "uri",
+                "maxLength": 2083,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "sourceId",
+          "documentId",
+          "title",
+          "publisher",
+          "url",
+          "section",
+          "publishedAt",
+          "lastReviewed",
+          "applicability",
+          "countryScope"
+        ],
+        "title": "SourceCitation",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "chunks": {
+        "items": {
+          "$ref": "#/$defs/KnowledgeChunk"
+        },
+        "title": "Chunks",
+        "type": "array"
+      },
+      "corpusVersion": {
+        "title": "Corpusversion",
+        "type": "string"
+      },
+      "latencyMs": {
+        "minimum": 0,
+        "title": "Latencyms",
+        "type": "integer"
+      },
+      "status": {
+        "enum": [
+          "ok",
+          "no_results"
+        ],
+        "title": "Status",
+        "type": "string"
+      }
+    },
+    "required": [
+      "status",
+      "chunks",
+      "corpusVersion",
+      "latencyMs"
+    ],
+    "title": "KnowledgeResult",
+    "type": "object"
+  },
+  "RetrievalScope": {
+    "additionalProperties": false,
+    "properties": {
+      "corpusVersion": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Corpusversion"
+      },
+      "requestId": {
+        "title": "Requestid",
+        "type": "string"
+      }
+    },
+    "required": [
+      "requestId"
+    ],
+    "title": "RetrievalScope",
+    "type": "object"
+  },
+  "SourceCitation": {
+    "additionalProperties": false,
+    "properties": {
+      "applicability": {
+        "title": "Applicability",
+        "type": "string"
+      },
+      "countryScope": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Countryscope",
+        "type": "array"
+      },
+      "documentId": {
+        "title": "Documentid",
+        "type": "string"
+      },
+      "lastReviewed": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Lastreviewed"
+      },
+      "publishedAt": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Publishedat"
+      },
+      "publisher": {
+        "title": "Publisher",
+        "type": "string"
+      },
+      "section": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Section"
+      },
+      "sourceId": {
+        "title": "Sourceid",
+        "type": "string"
+      },
+      "title": {
+        "title": "Title",
+        "type": "string"
+      },
+      "url": {
+        "anyOf": [
+          {
+            "format": "uri",
+            "maxLength": 2083,
+            "minLength": 1,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Url"
+      }
+    },
+    "required": [
+      "sourceId",
+      "documentId",
+      "title",
+      "publisher",
+      "url",
+      "section",
+      "publishedAt",
+      "lastReviewed",
+      "applicability",
+      "countryScope"
+    ],
+    "title": "SourceCitation",
+    "type": "object"
+  }
+}

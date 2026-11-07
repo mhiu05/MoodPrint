@@ -1,0 +1,366 @@
+{
+  "DerivativeCreate": {
+    "$defs": {
+      "JsonValue": {}
+    },
+    "additionalProperties": false,
+    "properties": {
+      "content": {
+        "$ref": "#/$defs/JsonValue",
+        "default": null
+      },
+      "generator": {
+        "title": "Generator",
+        "type": "string"
+      },
+      "generatorVersion": {
+        "title": "Generatorversion",
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      },
+      "kind": {
+        "enum": [
+          "thumbnail",
+          "ocr_text",
+          "transcript",
+          "ai_analysis"
+        ],
+        "title": "Kind",
+        "type": "string"
+      },
+      "sourceSha256": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Sourcesha256"
+      },
+      "storageKey": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Storagekey"
+      }
+    },
+    "required": [
+      "id",
+      "kind",
+      "generator",
+      "generatorVersion"
+    ],
+    "title": "DerivativeCreate",
+    "type": "object"
+  },
+  "EvidenceDerivative": {
+    "$defs": {
+      "JsonValue": {}
+    },
+    "additionalProperties": false,
+    "properties": {
+      "content": {
+        "$ref": "#/$defs/JsonValue",
+        "default": null
+      },
+      "createdAt": {
+        "format": "date-time",
+        "title": "Createdat",
+        "type": "string"
+      },
+      "evidenceId": {
+        "format": "uuid",
+        "title": "Evidenceid",
+        "type": "string"
+      },
+      "generator": {
+        "title": "Generator",
+        "type": "string"
+      },
+      "generatorVersion": {
+        "title": "Generatorversion",
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      },
+      "kind": {
+        "enum": [
+          "thumbnail",
+          "ocr_text",
+          "transcript",
+          "ai_analysis"
+        ],
+        "title": "Kind",
+        "type": "string"
+      },
+      "ownerId": {
+        "format": "uuid",
+        "title": "Ownerid",
+        "type": "string"
+      },
+      "sourceSha256": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Sourcesha256"
+      },
+      "storageKey": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Storagekey"
+      }
+    },
+    "required": [
+      "id",
+      "kind",
+      "generator",
+      "generatorVersion",
+      "evidenceId",
+      "ownerId",
+      "createdAt"
+    ],
+    "title": "EvidenceDerivative",
+    "type": "object"
+  },
+  "EvidenceMeta": {
+    "additionalProperties": false,
+    "properties": {
+      "byteSize": {
+        "anyOf": [
+          {
+            "minimum": 0,
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Bytesize"
+      },
+      "capturedAtLabel": {
+        "default": "",
+        "title": "Capturedatlabel",
+        "type": "string"
+      },
+      "caseId": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Caseid"
+      },
+      "clientSha256": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Clientsha256"
+      },
+      "createdAt": {
+        "format": "date-time",
+        "title": "Createdat",
+        "type": "string"
+      },
+      "declaredMimeType": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Declaredmimetype"
+      },
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      },
+      "kind": {
+        "enum": [
+          "image",
+          "audio",
+          "video",
+          "document",
+          "text_note",
+          "other"
+        ],
+        "title": "Kind",
+        "type": "string"
+      },
+      "limitations": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Limitations",
+        "type": "array"
+      },
+      "origin": {
+        "enum": [
+          "user_upload",
+          "user_entered"
+        ],
+        "title": "Origin",
+        "type": "string"
+      },
+      "originalFilename": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Originalfilename"
+      },
+      "originalText": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Originaltext"
+      },
+      "ownerId": {
+        "format": "uuid",
+        "title": "Ownerid",
+        "type": "string"
+      },
+      "reviewStatus": {
+        "default": "unreviewed",
+        "enum": [
+          "unreviewed",
+          "corrected",
+          "confirmed",
+          "rejected"
+        ],
+        "title": "Reviewstatus",
+        "type": "string"
+      },
+      "shownTimestamp": {
+        "default": "",
+        "title": "Showntimestamp",
+        "type": "string"
+      },
+      "storedMimeType": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Storedmimetype"
+      },
+      "updatedAt": {
+        "format": "date-time",
+        "title": "Updatedat",
+        "type": "string"
+      },
+      "uploadStatus": {
+        "enum": [
+          "pending",
+          "uploaded",
+          "failed",
+          "deleting"
+        ],
+        "title": "Uploadstatus",
+        "type": "string"
+      },
+      "userEditedText": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Usereditedtext"
+      }
+    },
+    "required": [
+      "id",
+      "ownerId",
+      "kind",
+      "origin",
+      "uploadStatus",
+      "createdAt",
+      "updatedAt"
+    ],
+    "title": "EvidenceMeta",
+    "type": "object"
+  },
+  "SignedRead": {
+    "additionalProperties": false,
+    "properties": {
+      "expiresAt": {
+        "format": "date-time",
+        "title": "Expiresat",
+        "type": "string"
+      },
+      "url": {
+        "title": "Url",
+        "type": "string"
+      }
+    },
+    "required": [
+      "url",
+      "expiresAt"
+    ],
+    "title": "SignedRead",
+    "type": "object"
+  }
+}
