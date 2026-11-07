@@ -53,6 +53,16 @@ def test_hosted_endpoints_are_rejected_without_echoing_values(field):
     assert "hosted.example" not in str(result.value)
 
 
+def test_frontend_checks_clear_real_public_env_without_mutating_e2e_env():
+    child = stack.build_environment(values(), {"PATH": "synthetic-path"})
+    isolated = stack.environment_for_frontend_checks(child)
+    assert isolated["VITE_PUBLIC_SUPABASE_URL"] == ""
+    assert isolated["VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY"] == ""
+    assert isolated["VITE_PUBLIC_API_BASE_URL"] == ""
+    assert child["VITE_PUBLIC_SUPABASE_URL"] == "http://127.0.0.1:54321"
+    assert isolated["APP_ENV"] == "test"
+
+
 def test_owner_dotenv_cannot_be_selected():
     with pytest.raises(ValueError, match=".local"):
         stack.read_local_environment(ROOT / ".env")

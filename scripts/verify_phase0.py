@@ -9,7 +9,11 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-from e2e_stack import build_environment, read_local_environment
+from e2e_stack import (
+    build_environment,
+    environment_for_frontend_checks,
+    read_local_environment,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 CLI_VERSION = "2.122.1"
@@ -58,11 +62,14 @@ def main() -> int:
             f"Running local checkpoint {index + 1}/{len(checks)}: {' '.join(command)}", flush=True
         )
         log = output_dir / f"phase0-{index + 1}.log"
+        command_environment = child_environment
+        if Path(command[0]).name.startswith("npm"):
+            command_environment = environment_for_frontend_checks(child_environment)
         with log.open("w", encoding="utf-8") as handle:
             result = subprocess.run(
                 command,
                 cwd=cwd,
-                env=child_environment,
+                env=command_environment,
                 stdout=handle,
                 stderr=subprocess.STDOUT,
                 check=False,

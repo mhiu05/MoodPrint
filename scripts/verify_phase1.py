@@ -7,8 +7,14 @@ import os
 import subprocess
 import sys
 from datetime import UTC, datetime
+from pathlib import Path
 
-from e2e_stack import ROOT, build_environment, read_local_environment
+from e2e_stack import (
+    ROOT,
+    build_environment,
+    environment_for_frontend_checks,
+    read_local_environment,
+)
 
 
 def main() -> int:
@@ -38,6 +44,8 @@ def main() -> int:
         environment = build_environment(
             read_local_environment(ROOT / ".local/test.env"), dict(os.environ)
         )
+        if Path(command[0]).name.startswith("npm"):
+            environment = environment_for_frontend_checks(environment)
         print(
             f"Running local Phase 1 checkpoint {index + 1}/{len(checks)}: {' '.join(command)}",
             flush=True,

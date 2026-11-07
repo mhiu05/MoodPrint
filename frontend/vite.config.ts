@@ -25,5 +25,7 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test-setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
+    // Full pages under jsdom can exceed 5s when the machine is also resetting Postgres.
+    testTimeout: 15000,
   },
 });

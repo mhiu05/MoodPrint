@@ -123,6 +123,22 @@ def build_environment(local: dict[str, str], inherited: dict[str, str]) -> dict[
     return child
 
 
+def environment_for_frontend_checks(environment: dict[str, str]) -> dict[str, str]:
+    """Keep Vitest and production builds on the demo composition.
+
+    The E2E child environment points Vite at local Auth. Unit tests and the
+    boundary build must not inherit that, or jsdom starts real client calls.
+    """
+    isolated = dict(environment)
+    for name in (
+        "VITE_PUBLIC_SUPABASE_URL",
+        "VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+        "VITE_PUBLIC_API_BASE_URL",
+    ):
+        isolated[name] = ""
+    return isolated
+
+
 def wait_ready(url: str, process: subprocess.Popen | None = None, timeout: int = 60) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
