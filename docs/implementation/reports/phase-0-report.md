@@ -1,123 +1,118 @@
 # Phase 0 — Implementation report
 
-Ngày: 2026-11-07. Nhánh: `feat/phase-0-foundation`. Implementation baseline: `3db6c7a7`.
+Ngày: 2026-11-07. Branch: `feat/phase-0-foundation`. Implementation SHA: `b3ce86d0f4730841486285ab435a9b7433b80f05`.
 
-**Trạng thái tổng thể: PARTIALLY_VERIFIED. G0: BLOCKED.** Backend và agent foundation chạy được trên Supabase local. Chưa đạt G0 tổng thể vì hosted configuration, migration apply, S-05 và hosted smoke chưa được xác minh. Không bắt đầu Phase 1 integration, không merge và không tạo baseline tag.
+**VERIFIED — G0 đạt.** Các P0 trong `07` §3 đã được kiểm chứng local và hosted. Approval/recovery P1 cần cho G2 cũng có deterministic tests. Không coi đây là chứng nhận vận hành cho học sinh thật.
 
-## Phạm vi đã triển khai
+## Tasks và files
 
-| Task | Trạng thái | Kết quả |
+| Task IDs | Trạng thái | Kết quả |
 |---|---|---|
-| F0-01.1–01.3 | VERIFIED | uv workspace Python 3.12, lockfile; Ruff, Pyright, pytest, import-linter. Negative boundary experiment thực sự bị chặn và probe đã xóa |
-| F0-02.1–02.2 | VERIFIED | Typed settings, test không đọc owner dotenv, remote test DB bị từ chối; secret masking và structured logging, gồm handler Uvicorn |
-| F0-03.1–03.2 | VERIFIED local | App factory/lifespan, health/readiness, CORS/request ID/error envelope, async engine và transaction-local verified claims |
-| F0-04.1–04.3 | VERIFIED local | JWT ES256/JWKS cache/refetch, lỗi 503 khi JWKS outage, anonymous/invalid token bị chặn, live-user check, lazy profile seed/PATCH, secret boundaries |
-| F0-05.1–05.4 | VERIFIED local | 10 CLI SQL migrations, private schemas/role/grants/RLS/composite FKs/triggers/indexes; handwritten ORM + drift test; reset từ DB trống |
-| F0-06.1–06.2 | VERIFIED local / PARTIALLY_VERIFIED hosted | Private gateway, random keys, signed TUS/download; 20 MiB interruption/resume, expiry renewal, immutable original. Hosted bucket config đọc được; chưa hosted upload smoke |
-| F0-07.1–07.3 | VERIFIED local | Official SDK Companion, diagnostic tool, policies/budgets/timeouts/cancel, persistent sessions, translated SSE, transcript/run/usage persistence, disconnect recovery |
-| F0-07.4–07.5 | VERIFIED local | Persisted approval, approve/reject, restart/resume, expiry recovery và narrow reconciler `SKIP LOCKED` |
-| F0-08.1–08.4 | VERIFIED local | Explicit consent, candidate lifecycle, memory CRUD/dedupe/supersede/hard delete, lexical search không dấu, Context Builder budget/provenance/dropped/degraded behavior |
-| F0-09.1–09.2 | VERIFIED local | DTO/Protocol contracts, synthetic fixture retriever + reusable contract suite, 12 JSON Schema snapshots; OpenAPI typed REST/SSE và cursor pagination |
-| F0-10.1 | VERIFIED local | `verify_phase0.py` thực thi quality/reset/bootstrap/pgTAP/integration/frontend. Receipt chỉ chứng minh prerequisite local, không tự coi hosted G0 đạt |
-| F0-10.2 | VERIFIED | GitHub Actions trên commit `ab9d4397`: offline và integration jobs đều success |
-| F0-10.3 | PARTIALLY_VERIFIED / BLOCKED apply | Dry-run hosted exit 0, liệt kê đúng 10 migrations, không history drift; chưa apply/provision/smoke |
-| F0-11.1 | PARTIALLY_VERIFIED | Hosted Auth settings/JWKS/bucket đã GET-only verify; chưa đọc/đổi các mục Dashboard còn lại |
+| F0-01.1–01.3 | VERIFIED | Python 3.12 uv workspace, lockfile, Ruff/Pyright/Pytest, 3 import contracts và negative boundary check |
+| F0-02.1–02.2 | VERIFIED | Typed settings/config riêng; test không đọc owner dotenv, từ chối remote DB; structured logging/redaction, cả Uvicorn |
+| F0-03.1–03.2 | VERIFIED | Factory/lifespan, health/ready, CORS/request ID/errors, async UoW với transaction-local verified claims |
+| F0-04.1–04.3 | VERIFIED | ES256/JWKS/cache/outage handling; token expired/invalid/anonymous/deleted-user; profile lazy seed/PATCH; infrastructure boundaries |
+| F0-05.1–05.4 | VERIFIED | 11 CLI migrations, private schemas/role/RLS/composite FKs/triggers/indexes; ORM drift, clean reset |
+| F0-06.1–06.2 | VERIFIED cho G0 | Private gateway, safe keys, signed TUS/download, immutable original; giới hạn S-01 bên dưới |
+| F0-07.1–07.3 | VERIFIED | Một official SDK Companion, diagnostic tool, policies/budgets/timeouts/cancel, persistent sessions, SSE/run/usage, disconnect recovery |
+| F0-07.4–07.5 | VERIFIED | Persisted approve/reject, restart/resume, expiry và narrow reconciler SKIP LOCKED |
+| F0-08.1–08.4 | VERIFIED | Explicit candidate consent/edit/reject, CRUD/dedupe/supersede/delete, lexical retrieval, Context Builder budget/provenance/dropped/degraded |
+| F0-09.1–09.2 | VERIFIED | Shared contracts, synthetic fixture/reusable retriever suite, 12 snapshots, typed OpenAPI REST/SSE/cursor paging |
+| F0-10.1–10.2 | VERIFIED | Full local gate và GitHub Actions offline/integration |
+| F0-10.3 | VERIFIED | Hosted dry-run/apply/history/provisioning/S-05/advisors/smoke/cleanup |
+| F0-11.1 | VERIFIED qua owner handoff | Dashboard report có PDF; agent kiểm lại Auth API. Maximum upload khi giữ spend cap còn PARTIALLY_VERIFIED |
 
-Manifest file: [phase-0-files.txt](phase-0-files.txt). Không sửa frontend hoặc `.gitignore`. Ba file MCP của owner vẫn giữ ngoài commit: `.claude/settings.local.json`, `.cursor/mcp.json`, `.mcp.json`.
+Manifest: [phase-0-files.txt](phase-0-files.txt). Frontend và `.gitignore` không đổi so với `1a3c81fc`. Ba owner MCP configs nằm ngoài commit: `.claude/settings.local.json`, `.cursor/mcp.json`, `.mcp.json`.
 
-## Bằng chứng chạy thực tế
+## Tests đã chạy
 
 | Lệnh / kiểm tra | Kết quả |
 |---|---|
-| `uv sync --all-packages` | Exit 0; Python 3.12.13, SDK 0.24.0, SQLAlchemy 2.1.8, FastAPI 0.162.0 được khóa trong `uv.lock` |
-| `uv run python scripts/check.py` trên code cuối | Exit 0; Ruff lint/format sạch, Pyright 0 errors, 3 import contracts kept; **140 offline tests passed**, 43 integration deselected |
-| Negative import boundary | Import thử `shared -> app` bị reject; probe được xóa trong `finally`; linter sạch sau khôi phục |
-| `uv run python scripts/export_contract_schemas.py --check` | Exit 0 |
-| `uv run python scripts/export_openapi.py --check` | Exit 0 |
-| `uv run python scripts/verify_phase0.py` trên commit `3db6c7a7` | Exit 0; **140 offline tests, 43 integration tests, 84 pgTAP assertions, 54 frontend tests**. Local receipt khớp full SHA `3db6c7a72f56ae501bb17dc11b0bf44e023c5708`; không coi đây là hosted G0 |
-| `npx --yes supabase@2.122.1 test db` trong gate | **9 files, 84 assertions PASS** |
-| `uv run pytest -m integration -q -ra` trên code cuối | **43 passed**, 140 offline deselected; không integration nào skip |
-| `test_concurrent_users_never_share_claims` | PASS: 50 identity đồng thời, pool 2 connections; owner rows/claims đúng trước và sau yield |
-| Commit/rollback cleanup, engine restart, SDK metadata drift | PASS |
-| Memory từ conversation A vào context conversation B | PASS; không chép private memory vào SDK replay |
-| Approval pause + runtime mới + resume | PASS; 7+12 = **19 tokens, 2 requests, 1 tool call** |
-| `npx --yes supabase@2.122.1 db advisors --local --type all --level warn --fail-on error` | Exit 0, **No issues found** ở mức WARN/ERROR |
-| Frontend baseline và regression | Typecheck/lint/build/boundary checks exit 0; **54/54 Vitest**, 13 files pass |
+| `uv sync --all-packages` | Exit 0; Python 3.12.13; SDK 0.24.0, SQLAlchemy 2.1.8, FastAPI 0.162.0 khóa trong uv.lock |
+| `uv run python scripts/check.py` | Exit 0; Ruff lint/format sạch, Pyright 0 errors, 3 contracts kept; **150 offline passed**, 45 integration deselected |
+| Contract/OpenAPI exports `--check` | Cả hai exit 0 |
+| `uv run python scripts/verify_phase0.py` trên `b3ce86d0` | **Exit 0**, đủ 8 checkpoints, receipt scope local khớp SHA |
+| Local reset/bootstrap và `supabase@2.122.1 test db` | **10 files, 104 assertions PASS** |
+| Integration trong full gate | **45 passed**, 150 offline deselected; không integration nào skip |
+| Concurrent-user isolation | PASS: 50 requests, pool hai connections; claims/owner đúng trước và sau yield |
+| Commit/rollback cleanup, UTF-8 SDK session/engine restart/schema drift | PASS |
+| Memory conversation A vào context B | PASS; private memory không bị chép vào SDK replay |
+| Approval/process restart/resume | PASS; **19 tokens, 2 requests, 1 tool call**, không double-count cumulative usage |
+| Frontend local gate | **54/54**, 13 files, `--maxWorkers=2` |
+| Frontend CI | Typecheck/lint/unit/build/boundaries pass; source không đổi |
 | `git diff 1a3c81fc -- frontend .gitignore` | Rỗng |
-| Staged secret scan | PASS; không stage `.env`, local keys/cache, MCP config hoặc runtime credentials |
+| `check_hosted_auth_settings.py` | Exit 0; signup/confirmation bật, anonymous tắt |
+| S-05 sau migration cuối | Exit 0; session_pooler, 2 users, 50 requests, 2 connections, cleanup completed |
+| `smoke_hosted.py --phase 0` sau migration cuối | Exit 0; readiness/profile/memory/cross-user 404/private signed upload-download/cleanup |
+| Hosted cleanup count-only SELECT | **0 synthetic users, 0 evidence objects, 0 profiles, 0 memories** |
 
-Raw local logs ở `.local/verification/`, không commit vì CLI có thể ghi credentials local. Không in secret ra báo cáo. Test data chỉ synthetic; Storage suite cleanup xác nhận 0 evidence objects và 0 synthetic Auth users sau suite.
+Raw logs nằm ở `.local/verification/`, không commit. Dữ liệu chỉ synthetic. Secrets, local keys/cache và owner MCP config không được stage.
 
-Cleanup count-only sau full gate: **0 Auth users, 0 evidence objects, 0 SDK sessions** trên local stack.
+Một lượt gate trên `ee42ea90` có 3 frontend failures: hai timeout 5 giây và một lỗi tiếp theo ở Action Plan suite khi chạy 13 jsdom workers trên máy dùng chung. Cùng 54 tests pass với hai workers, giữ nguyên assertions/timeouts. Script gate được giới hạn workers; full gate `b3ce86d0` pass. Failed log giữ riêng tại `.local/verification/phase0-frontend-parallel-timeout.log`.
 
-## Database và security
+Một CI run `b3ce86d0` lỗi ở bước start Supabase trước tests; run độc lập cùng SHA pass đầy đủ. Đã yêu cầu rerun job hạ tầng lỗi; không coi lần lỗi đó là test pass.
 
-- `app`, `app_private`, `agent_store`; không expose schema ứng dụng qua Data API.
-- `moodprint_api`: NOINHERIT/NOBYPASSRLS; runtime từ chối role `postgres`. UoW dùng `SET LOCAL ROLE authenticated` và parameterized `set_config(..., true)` từ JWT đã verify.
-- Tất cả app/SDK tables có RLS và policy. Owner được kiểm ở service lẫn DB; composite FKs chống liên kết chéo owner. Audit append-only, reconciler không có quyền đọc content trực tiếp.
-- Không giữ transaction qua model/Storage HTTP calls. SDK replay riêng với transcript và long-term memory.
-- Private bucket, không public/user Storage policies; original keys không chứa filename, không upsert. Quota/upload domain APIs thuộc Phase 1, chưa được giả lập thành tính năng thật.
-- Privacy defaults: `store=False`, tracing disabled, sensitive trace data disabled. Production registry chỉ `get_server_time`.
-- Không paid live OpenAI evaluation. `gpt-6-luna` giữ nguyên; SDK/provider compatibility offline đã kiểm, live model access chưa kiểm vì chưa có cost ceiling O-09.
+## Hosted database và security
 
-## Sai khác đã quyết định và lý do
+Project **db-school-violence / xhlshihobyxrgfqrdafh** được xác minh bằng MCP URL và privileged DB URL. Không truy cập MoodPrint database cũ.
 
-1. **Không sửa `.gitignore`** theo chỉ dẫn trực tiếp của owner. Hệ quả: cache/local artifacts có thể xuất hiện untracked; stage theo đường dẫn cụ thể.
-2. Dùng linked worktree hiện có vì writable root giới hạn; tạo đúng nhánh feature. Không hard-reset và không tạo worktree Phase 2/3.
-3. CLI pin `2.122.1` do CLI v3 có breaking changes. Local dùng `[local_smtp]`, ES256 JWK có `key_ops`; không cần HS256 fallback.
-4. Signed TUS endpoint thực tế là `/upload/resumable/sign`. Endpoint không có `/sign` trả RLS error khi chỉ có signed token; đã sửa theo request thực, không thêm broad policies.
-5. SDK 0.24.0 dùng `function_tool(timeout=...)`; compaction class ở `agents.memory`; resume dùng async `RunState.from_string` với context mới. Không đổi SDK/model để né lỗi.
-6. SDK usage sau resume là cumulative; lưu replacement counters thay vì cộng lại.
-7. Thêm internal `memory_candidates.approved_memory_id` composite FK để mọi approved candidate, kể cả dedupe/edit, được xóa cùng canonical memory. Canonical dedupe nối hai supersede chains dưới owner-scoped transaction lock, không làm mất chain cũ.
-8. Retrieval-only metadata không bump content timestamp/version. Tránh memory cũ tự thành mới khi đọc.
-9. Local `postgres` không có quyền grant tiếp USAGE trên schema `auth` cho base role. Cleanup test kiểm base `current_user` và GUC rỗng, rồi switch role được phép trên **cùng connection** và xác nhận `auth.uid() IS NULL`. Không mở rộng quyền schema `auth` để vượt lỗi test.
-10. ContextRequest thêm optional identity/profile/summary fields; không email/raw claims. `AgentSession` dùng item boundary không phụ thuộc SDK. `AUTH_TEST_JWT_SECRET` là optional test-only field; dotenv example không bắt buộc chứa secret test này.
-11. Tool budget được enforced trong registry wrapper để mỗi execution chỉ đếm một lần; runtime chặn tổng configured limit, có deterministic tests.
+- 10 migrations baseline: dry-run rồi apply trên `770dbcd3`, sau full local gate tương ứng.
+- Hosted probe phát hiện SQLAlchemy asyncpg không nhận trực tiếp URL `sslmode`; hai regression tests RED → GREEN. Engine chuyển sang driver option `ssl`, giữ nguyên TLS mode, không in connection exception.
+- Performance Advisor phát hiện ba composite FKs thiếu covering indexes. Migration forward-only `20261107121921_f0_covering_fk_indexes.sql` được CLI tạo, kiểm bằng reset/pgTAP/full gate, dry-run rồi apply trên `b3ce86d0`.
+- MCP read-only xác nhận **11 versions/names khớp repo**. Không MCP apply_migration hoặc ad-hoc DDL.
+- **Security Advisor: 0 findings**. Không WARN `rls_auto_enable` hoặc RLS-disabled findings.
+- **Performance Advisor: không WARN/ERROR, không unindexed FKs**. Còn INFO unused indexes trên DB mới và Auth connection allocation absolute 10; không bỏ index cần thiết hoặc đổi tài nguyên ngoài phạm vi. Tham khảo [unused indexes](https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index), [connection strategy](https://supabase.com/docs/guides/deployment/going-into-prod).
+- Runtime `moodprint_api` NOINHERIT/NOBYPASSRLS; backend từ chối postgres. UoW dùng SET LOCAL ROLE authenticated và parameterized set_config từ verified JWT. Owner kiểm ở service lẫn PostgreSQL; composite FKs ngăn liên kết chéo user; audit append-only.
+- Không giữ DB transaction qua Auth/Storage/model HTTP. Script thêm generated DATABASE_URL riêng vào root `.env`, giữ nguyên privileged SUPABASE_DB_URL và các giá trị owner. Không in hoặc commit credentials.
 
-Review độc lập phát hiện các vấn đề memory deletion, cumulative usage, stale timestamps và OpenAPI response schemas; đều có regression RED→GREEN. Một test recovery ban đầu nhầm integer return của reconciler là tổng approval+heartbeat; đã chỉnh để kiểm recovery state thực, không sửa production semantics cho test.
+## Dashboard
 
-## Spikes
+[Dashboard handoff và PDF](dashboard-handoff.md) là báo cáo ChatGPT Work do owner chuyển. Coding agent chưa trực tiếp đọc PDF hoặc thao tác Dashboard thành công.
+
+| Mục | Giá trị ghi nhận |
+|---|---|
+| Organization/region/plan/compute | VDaAgent / ap-northeast-2 / Pro / Micro; Healthy |
+| Global upload | 50 MB, spend cap giữ nguyên; maximum khi giữ cap PARTIALLY_VERIFIED |
+| Bucket | incident-evidence private; size/MIME limits null; không đổi broad policies |
+| Site URL | http://127.0.0.1:5173 |
+| Redirects | HTTP 127.0.0.1:5173/**, 127.0.0.1:5178/**, localhost:5173/** |
+| Auth | Signup/confirmation bật, anonymous tắt; minimum password 8, leaked password protection bật |
+| JWT | 3600 giây, current ECC P-256/ES256; không rotate |
+| Data API | public, graphql_public; không app/app_private/agent_store; auto-expose new public tables giữ nguyên |
+| Session pooler | aws-0-ap-northeast-2.pooler.supabase.com:5432 |
+
+Ruling: application evidence limit **50,000,000 bytes** để phù hợp cấu hình hiện có; không tắt spend cap hoặc mua tài nguyên. Đây là điều chỉnh từ mặc định lớn hơn của plan; bucket không bị đặt limit riêng.
+
+## Spikes, quyết định và sai khác
 
 | Spike | Trạng thái | Kết luận |
 |---|---|---|
-| [S-01](../spikes/S-01.md) | VERIFIED local expiry path; PARTIALLY_VERIFIED wall-clock >2h | 20 MiB resume, renewal cùng URL; expiry test dùng valid local capability TTL 15s. Không tuyên bố đã đợi hơn hai giờ |
-| [S-02](../spikes/S-02.md) | VERIFIED local | Schema translation và UTF-8 session tồn tại sau engine restart |
-| [S-03](../spikes/S-03.md) | VERIFIED offline/local | Hai process/runtime mới resume được; không serialize AuthContext |
-| [S-04](../spikes/S-04.md) | VERIFIED | Hai stack port/data/ES256 keys riêng; chỉ stack spike đã dừng |
-| [S-05](../spikes/S-05.md) | BLOCKED | Chưa hosted runtime role/pooler isolation proof |
+| [S-01](../spikes/S-01.md) | VERIFIED bounded expiry/resume; PARTIALLY_VERIFIED wall-clock >2h | 20 MiB, chunk 6 MiB, client restart, x-signature POST/HEAD/PATCH, renewal cùng URL. Expiry dùng valid local capability TTL 15s; chưa chờ thực tế hơn 2 giờ |
+| [S-02](../spikes/S-02.md) | VERIFIED | SDK schema translation, UTF-8, engine restart |
+| [S-03](../spikes/S-03.md) | VERIFIED | Hai process/runtime restart/resume; không serialize AuthContext |
+| [S-04](../spikes/S-04.md) | VERIFIED | Hai stacks riêng port/data/ES256 keys; chỉ stack spike được dừng |
+| [S-05](../spikes/S-05.md) | VERIFIED hosted | Session pooler role/claims isolation pass; không cần direct/transaction fallback |
 
-## Hosted evidence và Dashboard
+1. Không sửa `.gitignore` theo owner; stage explicit paths. Dùng linked worktree hiện có do writable-root giới hạn; không reset hoặc tạo Phase 2/3 worktrees.
+2. CLI pin 2.122.1 do v3 breaking changes; local dùng ES256; không thêm Alembic.
+3. Signed TUS endpoint thực `/upload/resumable/sign`; endpoint thiếu `/sign` trả JWT/RLS 403. Sửa theo request thực, không mở quyền Storage. Object info NoSuchKey HTTP400/statusCode404 được normalize thành missing.
+4. SDK actual timeout/compaction/async RunState interfaces được kiểm; resumed usage cumulative được lưu replacement counters.
+5. Internal approved_memory_id composite FK bảo đảm hard-delete candidate kể cả dedupe/edit. Merge supersede chains dùng owner-scoped lock; retrieval metadata không bump content timestamp/version.
+6. Không grant rộng USAGE auth cho base role. Cleanup test kiểm base role/GUC, rồi switch authenticated trên cùng connection để xác nhận auth.uid null.
 
-Project identity: URL `https://xhlshihobyxrgfqrdafh.supabase.co`, ref trong privileged DB URL khớp; không truy cập database MoodPrint cũ.
+Review độc lập foundation đã có regression fixes cho các Important findings; review hosted delta không phát hiện Critical/Important blocker.
 
-- Hosted `GET /auth/v1/settings`: signup bật, email confirmation bật, `external.anonymous_users=false`.
-- Hosted JWKS: HTTP 200, ES256.
-- Hosted bucket GET: HTTP 200, `incident-evidence`, private, `file_size_limit=null`, `allowed_mime_types=null`.
-- `push_hosted.py --dry-run`: exit 0; cả 10 migrations còn pending, không có migration lạ trong hosted history. **Chưa apply DDL**, chưa đặt password role, chưa hosted smoke/advisors sau apply.
-- Owner đã đổi tên privileged connection từ `DATABASE_URL` sang `SUPABASE_DB_URL`; không ghi đè giá trị secret. Runtime `DATABASE_URL` chỉ được sinh bằng script provisioning sau khi điều kiện đủ.
-- CUA đã inventory đúng Chrome profile và tab Supabase hiện có. Những lần đọc snapshot/screenshot/CDP bị lỗi `Cannot read properties of undefined (reading 'timeoutMs')` hoặc deadline trước command dispatch. Owner mở lại tab mới, lỗi đọc vẫn tái diễn. Không kết luận owner chưa đăng nhập từ lỗi này.
-- Một Chrome mới được mở trong lần thử fallback đầu rồi đã đóng theo yêu cầu owner. Chỉ dùng Chrome hiện có sau chỉ dẫn đó.
+## Git, gates, phần còn lại
 
-Các mục Dashboard chưa có bằng chứng: plan/region/compute, global file limit, Site URL/redirect allow-list, password policy, JWT expiry, Data API exposed schemas và pooler host/mode. Không có thay đổi Dashboard nào được tuyên bố đã thực hiện. Hosted apply vẫn chờ prerequisite F0-11.1.
+Commits: `cb3ed5a8` workspace/contracts; `6acd76fb` DB/UoW; `ca3958b9` agent; `3db6c7a7` API/memory/SSE; `770dbcd3` hosted probe/upload cap; `ee42ea90` TLS/index fixes; `b3ce86d0` local worker limit. Docs/evidence commits trong Git history.
 
-## Git, PR, gates và phần còn lại
+[PR #46](https://github.com/mhiu05/MoodPrint/pull/46), base `mhiu05/feat-refactor`. [CI 42372716790](https://github.com/mhiu05/MoodPrint/actions/runs/42372716790) trên `b3ce86d0`: **success**, offline và integration. Merge sẽ chỉ thực hiện khi final evidence commit qua CI; không merge main.
 
-Implementation commits:
+- **G0 VERIFIED**: P0/local/hosted/history/advisors/S-05/smoke/cleanup/Dashboard evidence đủ.
+- **G1 NOT_STARTED**: chưa chứng minh business vertical slice; Phase 1 bắt đầu từ G0 baseline.
+- **G2 NOT_STARTED**: chưa freeze integration baseline/tag hay tạo Phase 2/3 worktrees.
+- **A-06 BLOCKED, P1**: thiếu cost ceiling O-09; chưa paid live OpenAI evaluation. Model giữ gpt-6-luna; offline SDK compatibility đã kiểm, live model access/identifier chưa xác minh.
+- **S-01 wall-clock PARTIALLY_VERIFIED**: actual expiry/renewal path pass; không tuyên bố đã đo retention hơn hai giờ. G0 storage criteria dùng actual expiry và resume trong suite.
+- Không còn owner action chặn Phase 0. Browser plugin đọc tab vẫn lỗi; Dashboard prerequisite được owner handoff, không mở Chrome mới hoặc sửa native host.
 
-- `cb3ed5a8`: workspace + shared contracts.
-- `6acd76fb`: private database/RLS/UoW/local tooling.
-- `ca3958b9`: Agent runtime/session/context.
-- `3db6c7a7`: authenticated API, consent memory, SSE, tests, OpenAPI, CI.
-
-- Branch đã push tới `origin/feat/phase-0-foundation`.
-- [Draft PR #46](https://github.com/mhiu05/MoodPrint/pull/46), base `mhiu05/feat-refactor`, OPEN/draft.
-- [CI run 42366869339](https://github.com/mhiu05/MoodPrint/actions/runs/42366869339) trên full SHA `ab9d4397ce84d38c99d1b5dd4c6f2ec6844d62fa`: **success**, cả offline và integration. Remote run bao gồm frontend typecheck/lint/unit/build/boundaries và Supabase local thật.
-- Không merge vào `mhiu05/feat-refactor` hoặc `main` khi G0 chưa đạt. Không tạo `baseline/phase-1-verified` tag.
-
-- **G0 BLOCKED**: còn F0-11.1 Dashboard proof, hosted apply/history/advisors/smoke và S-05.
-- **G1 NOT_STARTED**: Phase 1 chưa đủ điều kiện bắt đầu; chưa chứng minh product vertical slice.
-- **G2 NOT_STARTED**: snapshots/fixture có sẵn nhưng chưa freeze integration baseline, ownership rules/CI evidence và frontend composition.
-- Owner/tool actions còn mở: khôi phục browser-control tab hiện có; xác minh các Dashboard settings còn thiếu. Nếu Free plan thì cần đặt application evidence limit tương ứng; không tự nâng gói.
-- Live model smoke A-06 là P1, cần cost ceiling rõ ràng trước khi chạy.
-
-**Chưa sẵn sàng cho dữ liệu học sinh thật.** Các safety/privacy/legal/operational gates ở `00` §6 là điều kiện riêng, chưa được thực hiện trong Phase 0/1.
+**Chưa sẵn sàng cho dữ liệu học sinh thật:** safety/privacy/legal/operational gates trong `00` §6 là điều kiện riêng.
