@@ -1,0 +1,9 @@
+#!/bin/sh
+# Optional repository hook. CI enforces the same policy on parallel phase branches.
+branch=$(git symbolic-ref --quiet --short HEAD) || exit 0
+case "$branch" in
+  feat/knowledge-ingestion-rag) phase=2 ;;
+  feat/agent-companion) phase=3 ;;
+  *) exit 0 ;;
+esac
+exec uv run python scripts/check_ownership.py --phase "$phase" --base baseline/phase-1-verified

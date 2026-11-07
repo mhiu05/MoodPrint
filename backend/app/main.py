@@ -14,6 +14,7 @@ from moodprint_shared.env import EnvSettings, get_settings
 from moodprint_shared.logging import configure_logging
 from sqlalchemy import text
 
+from app.api.v1 import knowledge_router
 from app.api.v1.cases import router as case_router
 from app.api.v1.conversations import router as conversation_router
 from app.api.v1.evidence import router as evidence_router
@@ -143,6 +144,7 @@ def create_app(settings: EnvSettings | None = None, cfg: AppConfig | None = None
         share_router,
         school_router,
         school_access_router,
+        knowledge_router,
     ):
         app.include_router(router)
     return app
