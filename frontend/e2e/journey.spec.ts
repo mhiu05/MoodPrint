@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./helpers/fixtures";
 for (const width of [390, 1440]) {
   test(`full journey ${width}px: chat → eight screenshots → confirmed timeline → case → plan → roleplay → support`, async ({
     page,
@@ -51,10 +51,11 @@ for (const width of [390, 1440]) {
         .getByRole("button", { name: "Xác nhận nội dung", exact: true })
         .click();
     await expect(page.locator(".ai-timeline li")).toHaveCount(6);
-    await page.screenshot({
-      path: `../docs/prototype/screenshots/analysis-${width}px.png`,
-      fullPage: true,
-    });
+    if (process.env.CAPTURE_SCREENSHOTS === "1")
+      await page.screenshot({
+        path: `../docs/prototype/screenshots/analysis-${width}px.png`,
+        fullPage: true,
+      });
     await page
       .getByRole("button", { name: "Tạo hồ sơ từ nội dung đã xác nhận" })
       .click();
@@ -119,10 +120,11 @@ for (const width of [390, 1440]) {
     await expect(
       page.locator(".support-preview").getByText(/Đã lưu mô phỏng, chưa gửi/),
     ).toBeVisible();
-    await page.screenshot({
-      path: `../docs/prototype/screenshots/support-message-${width}px.png`,
-      fullPage: true,
-    });
+    if (process.env.CAPTURE_SCREENSHOTS === "1")
+      await page.screenshot({
+        path: `../docs/prototype/screenshots/support-message-${width}px.png`,
+        fullPage: true,
+      });
     await page.reload();
     await page.goto(caseUrl + "/timeline");
     await expect(page.locator(".case-timeline li")).toHaveCount(6);

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./helpers/fixtures";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 const screenshotDir = resolve("..", "docs", "prototype", "screenshots");
@@ -6,7 +6,8 @@ test("responsive routes, reduced motion, console and local-only requests", async
   page,
 }) => {
   test.setTimeout(180000);
-  mkdirSync(screenshotDir, { recursive: true });
+  if (process.env.CAPTURE_SCREENSHOTS === "1")
+    mkdirSync(screenshotDir, { recursive: true });
   const errors: string[] = [];
   const external: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -83,13 +84,14 @@ test("responsive routes, reduced motion, console and local-only requests", async
                     : route.includes("school")
                       ? "school"
                       : "support";
-        await page.screenshot({
-          path: resolve(
-            screenshotDir,
-            `${name}-${width === 390 ? "mobile" : "desktop"}.png`,
-          ),
-          fullPage: true,
-        });
+        if (process.env.CAPTURE_SCREENSHOTS === "1")
+          await page.screenshot({
+            path: resolve(
+              screenshotDir,
+              `${name}-${width === 390 ? "mobile" : "desktop"}.png`,
+            ),
+            fullPage: true,
+          });
       }
     }
   }

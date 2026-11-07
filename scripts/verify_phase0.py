@@ -3,10 +3,13 @@
 import argparse
 import json
 import os
+import socket
 import subprocess
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+
+from e2e_stack import build_environment, read_local_environment
 
 ROOT = Path(__file__).resolve().parents[1]
 CLI_VERSION = "2.122.1"
@@ -15,7 +18,18 @@ CLI_VERSION = "2.122.1"
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base", default="1a3c81fca5d5c43bf910aa9ff5f971a4a669bab5")
+    parser.add_argument(
+        "--regression",
+        action="store_true",
+        help="Recheck the foundation after Phase 1; omit the historical frontend-unchanged assertion",
+    )
     args = parser.parse_args()
+    # The gate resets the local database. Refuse while E2E owns the local API/Vite.
+    for port in (8008, 5178):
+        with socket.socket() as connection:
+            if connection.connect_ex(("127.0.0.1", port)) == 0:
+                print("FAILED: stop the E2E stack before the foundation gate resets local data")
+                return 1
     npx = "npx.cmd" if os.name == "nt" else "npx"
     npm = "npm.cmd" if os.name == "nt" else "npm"
     checks = [
@@ -34,21 +48,35 @@ def main() -> int:
     output_dir = ROOT / ".local/verification"
     output_dir.mkdir(parents=True, exist_ok=True)
     for index, (command, cwd) in enumerate(checks):
+        local_file = ROOT / ".local/test.env"
+        child_environment = (
+            build_environment(read_local_environment(local_file), dict(os.environ))
+            if local_file.exists()
+            else {**os.environ, "APP_ENV": "test"}
+        )
         print(
             f"Running local checkpoint {index + 1}/{len(checks)}: {' '.join(command)}", flush=True
         )
         log = output_dir / f"phase0-{index + 1}.log"
         with log.open("w", encoding="utf-8") as handle:
             result = subprocess.run(
-                command, cwd=cwd, stdout=handle, stderr=subprocess.STDOUT, check=False
+                command,
+                cwd=cwd,
+                env=child_environment,
+                stdout=handle,
+                stderr=subprocess.STDOUT,
+                check=False,
             )
         history.append({"command": command, "returncode": result.returncode})
         if result.returncode:
             print(f"FAILED: see {log.relative_to(ROOT)}")
             return result.returncode
-    if subprocess.check_output(
-        ["git", "diff", "--name-only", args.base, "--", "frontend"], cwd=ROOT, text=True
-    ).strip():
+    if (
+        not args.regression
+        and subprocess.check_output(
+            ["git", "diff", "--name-only", args.base, "--", "frontend"], cwd=ROOT, text=True
+        ).strip()
+    ):
         print("FAILED: frontend changed during Phase 0")
         return 1
     sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
@@ -56,13 +84,16 @@ def main() -> int:
     receipt = {
         "commit": sha,
         "passed": True,
-        "scope": "local",
+        "scope": "foundation-regression" if args.regression else "local",
         "timestamp": datetime.now(UTC).isoformat(),
         "checks": history,
     }
-    (ROOT / ".local/phase0-gate.json").write_text(json.dumps(receipt, indent=2), encoding="utf-8")
+    receipt_name = "phase0-regression-gate.json" if args.regression else "phase0-gate.json"
+    (ROOT / ".local" / receipt_name).write_text(json.dumps(receipt, indent=2), encoding="utf-8")
     print(
-        "VERIFIED: local G0 prerequisites. Hosted configuration, S-05 and smoke evidence are still required for G0."
+        "VERIFIED: foundation regression; this receipt does not authorize hosted migration."
+        if args.regression
+        else "VERIFIED: local G0 prerequisites. Hosted configuration, S-05 and smoke evidence are still required for G0."
     )
     return 0
 
