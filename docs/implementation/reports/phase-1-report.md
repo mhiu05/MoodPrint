@@ -8,6 +8,7 @@ Ngày: 2026-11-07. **NOT_STARTED** vì Gate G0 tổng thể còn **BLOCKED**. Xe
 - Product vertical slice Auth → Case → Timeline → Upload → Plan → Reload → second browser → User B isolation: **NOT_STARTED**; không coi backend unit/integration Phase 0 là bằng chứng cho milestone này.
 - `verify_phase1.py`, real frontend E2E và hosted Phase 1 smoke: **NOT_STARTED**.
 - **G1 NOT_STARTED**, **G2 NOT_STARTED**. Chưa tạo baseline tag hoặc worktrees Phase 2/3.
+- Phase 0 branch đã push qua [draft PR #46](https://github.com/mhiu05/MoodPrint/pull/46); [CI offline/integration success](https://github.com/mhiu05/MoodPrint/actions/runs/42366869339). CI xanh không thay thế hosted G0 hoặc product G1.
 
 Khi G0 được xác minh đầy đủ, tiếp tục theo dependency graph trong `08`, tạo Phase 1 từ baseline Phase 0 đã merge/verify. Báo cáo này không thay thế implementation.
 

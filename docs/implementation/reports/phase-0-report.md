@@ -19,7 +19,7 @@ Ngày: 2026-11-07. Nhánh: `feat/phase-0-foundation`. Implementation baseline: `
 | F0-08.1–08.4 | VERIFIED local | Explicit consent, candidate lifecycle, memory CRUD/dedupe/supersede/hard delete, lexical search không dấu, Context Builder budget/provenance/dropped/degraded behavior |
 | F0-09.1–09.2 | VERIFIED local | DTO/Protocol contracts, synthetic fixture retriever + reusable contract suite, 12 JSON Schema snapshots; OpenAPI typed REST/SSE và cursor pagination |
 | F0-10.1 | VERIFIED local | `verify_phase0.py` thực thi quality/reset/bootstrap/pgTAP/integration/frontend. Receipt chỉ chứng minh prerequisite local, không tự coi hosted G0 đạt |
-| F0-10.2 | PARTIALLY_VERIFIED | CI workflow đã viết; remote run và PR được cập nhật bên dưới khi có |
+| F0-10.2 | VERIFIED | GitHub Actions trên commit `ab9d4397`: offline và integration jobs đều success |
 | F0-10.3 | PARTIALLY_VERIFIED / BLOCKED apply | Dry-run hosted exit 0, liệt kê đúng 10 migrations, không history drift; chưa apply/provision/smoke |
 | F0-11.1 | PARTIALLY_VERIFIED | Hosted Auth settings/JWKS/bucket đã GET-only verify; chưa đọc/đổi các mục Dashboard còn lại |
 
@@ -47,6 +47,8 @@ Manifest file: [phase-0-files.txt](phase-0-files.txt). Không sửa frontend ho�
 | Staged secret scan | PASS; không stage `.env`, local keys/cache, MCP config hoặc runtime credentials |
 
 Raw local logs ở `.local/verification/`, không commit vì CLI có thể ghi credentials local. Không in secret ra báo cáo. Test data chỉ synthetic; Storage suite cleanup xác nhận 0 evidence objects và 0 synthetic Auth users sau suite.
+
+Cleanup count-only sau full gate: **0 Auth users, 0 evidence objects, 0 SDK sessions** trên local stack.
 
 ## Database và security
 
@@ -107,7 +109,10 @@ Implementation commits:
 - `ca3958b9`: Agent runtime/session/context.
 - `3db6c7a7`: authenticated API, consent memory, SSE, tests, OpenAPI, CI.
 
-PR/push/CI references được bổ sung sau thao tác thực tế; không merge vào `mhiu05/feat-refactor` hoặc `main` khi G0 chưa đạt. Không có `baseline/phase-1-verified` tag.
+- Branch đã push tới `origin/feat/phase-0-foundation`.
+- [Draft PR #46](https://github.com/mhiu05/MoodPrint/pull/46), base `mhiu05/feat-refactor`, OPEN/draft.
+- [CI run 42366869339](https://github.com/mhiu05/MoodPrint/actions/runs/42366869339) trên full SHA `ab9d4397ce84d38c99d1b5dd4c6f2ec6844d62fa`: **success**, cả offline và integration. Remote run bao gồm frontend typecheck/lint/unit/build/boundaries và Supabase local thật.
+- Không merge vào `mhiu05/feat-refactor` hoặc `main` khi G0 chưa đạt. Không tạo `baseline/phase-1-verified` tag.
 
 - **G0 BLOCKED**: còn F0-11.1 Dashboard proof, hosted apply/history/advisors/smoke và S-05.
 - **G1 NOT_STARTED**: Phase 1 chưa đủ điều kiện bắt đầu; chưa chứng minh product vertical slice.

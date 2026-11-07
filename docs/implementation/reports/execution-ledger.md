@@ -18,3 +18,5 @@ Source: approved plans 01, 02 and execution order 08. Initial HEAD: `1a3c81fca5d
 - Hosted READ-ONLY: Auth settings/JWKS/bucket đúng; dry-run liệt kê 10 pending migrations, exit0. Không apply/schema write/provision role.
 - Ruling: giữ hosted apply chờ Dashboard proof theo F0-11.1/AD-19; browser extension đọc tab hiện có lỗi timeoutMs/CDP trước dispatch. Chi phí: G0/G1/G2 chưa đạt, Phase1 chưa bắt đầu.
 - Owner đã đổi privileged dotenv key sang SUPABASE_DB_URL; giữ nguyên secret value, runtime credential chưa sinh khi prerequisite chưa đủ.
+- Branch đã push; draft PR #46 https://github.com/mhiu05/MoodPrint/pull/46. CI run 42366869339 trên ab9d4397 success (offline +integration). Không merge/tag.
+- Final cleanup local count-only: Auth users0, evidence objects0, SDK sessions0.
