@@ -1,6 +1,7 @@
 """Catch wrong-project deployment and unintended owner-secret replacement."""
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -12,6 +13,48 @@ assert spec and spec.loader
 safety = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = safety
 spec.loader.exec_module(safety)
+
+
+def test_phase1_deploy_cannot_use_a_phase0_receipt(tmp_path):
+    local = tmp_path / ".local"
+    local.mkdir()
+    (local / "phase0-gate.json").write_text(
+        json.dumps(
+            {
+                "commit": "verified-head",
+                "passed": True,
+                "scope": "local",
+                "checks": [{"returncode": 0}] * 8,
+            }
+        )
+    )
+    with pytest.raises(ValueError, match="Phase 1"):
+        safety.require_local_gate(tmp_path, "verified-head", phase=1)
+
+
+def test_phase1_deploy_requires_e2e_and_foundation_regression(tmp_path):
+    local = tmp_path / ".local"
+    local.mkdir()
+    receipt = {
+        "commit": "verified-head",
+        "passed": True,
+        "scope": "local_phase1",
+        "checks": [{"command": ["python", "scripts/check.py"], "returncode": 0}] * 8,
+    }
+    path = local / "phase1-gate.json"
+    path.write_text(json.dumps(receipt))
+    with pytest.raises(ValueError, match="E2E"):
+        safety.require_local_gate(tmp_path, "verified-head", phase=1)
+    receipt["checks"] += [
+        {"command": ["python", "scripts/e2e_stack.py", "--run"], "returncode": 0},
+        {"command": ["python", "scripts/verify_phase0.py", "--regression"], "returncode": 0},
+    ]
+    path.write_text(json.dumps(receipt))
+    safety.require_local_gate(tmp_path, "verified-head", phase=1)
+    receipt["commit"] = "stale-head"
+    path.write_text(json.dumps(receipt))
+    with pytest.raises(ValueError, match="HEAD"):
+        safety.require_local_gate(tmp_path, "verified-head", phase=1)
 
 
 @pytest.mark.parametrize(

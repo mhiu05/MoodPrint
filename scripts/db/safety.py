@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import subprocess
@@ -11,6 +12,41 @@ from urllib.parse import urlsplit
 PROJECT_REF = "xhlshihobyxrgfqrdafh"
 CLI_VERSION = "2.122.1"
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def require_local_gate(root: Path, head: str, *, phase: int) -> None:
+    """A deployment uses its own full local gate, never an earlier phase's receipt."""
+    path = root / f".local/phase{phase}-gate.json"
+    try:
+        receipt = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        raise ValueError(
+            f"A passing local Phase {phase} gate receipt for HEAD is required"
+        ) from None
+    expected_scope = "local_phase1" if phase == 1 else "local"
+    checks = receipt.get("checks", [])
+    if (
+        receipt.get("commit") != head
+        or receipt.get("passed") is not True
+        or receipt.get("scope") != expected_scope
+        or len(checks) < 8
+        or any(check.get("returncode") != 0 for check in checks)
+    ):
+        raise ValueError(f"A passing local Phase {phase} gate receipt for HEAD is required")
+    if phase == 1:
+        commands = [check.get("command", []) for check in checks]
+
+        def includes(script: str, option: str) -> bool:
+            return any(
+                option in command
+                and any(str(arg).replace("\\", "/").endswith(script) for arg in command)
+                for command in commands
+            )
+
+        if not includes("scripts/e2e_stack.py", "--run") or not includes(
+            "scripts/verify_phase0.py", "--regression"
+        ):
+            raise ValueError("Phase 1 gate requires E2E and foundation regression evidence")
 
 
 def is_generated_runtime_url(database_url: str) -> bool:
