@@ -1,0 +1,928 @@
+{
+  "ChatMessage": {
+    "$defs": {
+      "SourceCitation": {
+        "additionalProperties": false,
+        "properties": {
+          "applicability": {
+            "title": "Applicability",
+            "type": "string"
+          },
+          "countryScope": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Countryscope",
+            "type": "array"
+          },
+          "documentId": {
+            "title": "Documentid",
+            "type": "string"
+          },
+          "lastReviewed": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastreviewed"
+          },
+          "publishedAt": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishedat"
+          },
+          "publisher": {
+            "title": "Publisher",
+            "type": "string"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section"
+          },
+          "sourceId": {
+            "title": "Sourceid",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "format": "uri",
+                "maxLength": 2083,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "sourceId",
+          "documentId",
+          "title",
+          "publisher",
+          "url",
+          "section",
+          "publishedAt",
+          "lastReviewed",
+          "applicability",
+          "countryScope"
+        ],
+        "title": "SourceCitation",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "citations": {
+        "items": {
+          "$ref": "#/$defs/SourceCitation"
+        },
+        "title": "Citations",
+        "type": "array"
+      },
+      "clientMessageId": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Clientmessageid"
+      },
+      "content": {
+        "title": "Content",
+        "type": "string"
+      },
+      "conversationId": {
+        "format": "uuid",
+        "title": "Conversationid",
+        "type": "string"
+      },
+      "createdAt": {
+        "format": "date-time",
+        "title": "Createdat",
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      },
+      "role": {
+        "enum": [
+          "user",
+          "assistant",
+          "system"
+        ],
+        "title": "Role",
+        "type": "string"
+      },
+      "runId": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Runid"
+      }
+    },
+    "required": [
+      "id",
+      "conversationId",
+      "role",
+      "content",
+      "createdAt"
+    ],
+    "title": "ChatMessage",
+    "type": "object"
+  },
+  "RunUsage": {
+    "additionalProperties": false,
+    "properties": {
+      "inputTokens": {
+        "default": 0,
+        "minimum": 0,
+        "title": "Inputtokens",
+        "type": "integer"
+      },
+      "latencyMs": {
+        "default": 0,
+        "minimum": 0,
+        "title": "Latencyms",
+        "type": "integer"
+      },
+      "outputTokens": {
+        "default": 0,
+        "minimum": 0,
+        "title": "Outputtokens",
+        "type": "integer"
+      },
+      "requests": {
+        "default": 0,
+        "minimum": 0,
+        "title": "Requests",
+        "type": "integer"
+      },
+      "toolCalls": {
+        "default": 0,
+        "minimum": 0,
+        "title": "Toolcalls",
+        "type": "integer"
+      },
+      "totalTokens": {
+        "default": 0,
+        "minimum": 0,
+        "title": "Totaltokens",
+        "type": "integer"
+      }
+    },
+    "title": "RunUsage",
+    "type": "object"
+  },
+  "TurnHandle": {
+    "$defs": {
+      "CompanionTurn": {
+        "additionalProperties": false,
+        "properties": {
+          "citations": {
+            "items": {
+              "$ref": "#/$defs/SourceCitation"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "clarifyingQuestion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Clarifyingquestion"
+          },
+          "observedFacts": {
+            "items": {
+              "$ref": "#/$defs/Finding"
+            },
+            "title": "Observedfacts",
+            "type": "array"
+          },
+          "possiblePatterns": {
+            "items": {
+              "$ref": "#/$defs/Finding"
+            },
+            "title": "Possiblepatterns",
+            "type": "array"
+          },
+          "reply": {
+            "title": "Reply",
+            "type": "string"
+          },
+          "safeOptions": {
+            "items": {
+              "$ref": "#/$defs/SafeOption"
+            },
+            "title": "Safeoptions",
+            "type": "array"
+          },
+          "uncertainties": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Uncertainties",
+            "type": "array"
+          },
+          "urgency": {
+            "default": "none",
+            "enum": [
+              "none",
+              "elevated",
+              "immediate"
+            ],
+            "title": "Urgency",
+            "type": "string"
+          },
+          "userReportedFacts": {
+            "items": {
+              "$ref": "#/$defs/Finding"
+            },
+            "title": "Userreportedfacts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "reply"
+        ],
+        "title": "CompanionTurn",
+        "type": "object"
+      },
+      "Finding": {
+        "additionalProperties": false,
+        "properties": {
+          "sourceIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sourceids",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "Finding",
+        "type": "object"
+      },
+      "RunUsage": {
+        "additionalProperties": false,
+        "properties": {
+          "inputTokens": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Inputtokens",
+            "type": "integer"
+          },
+          "latencyMs": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Latencyms",
+            "type": "integer"
+          },
+          "outputTokens": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Outputtokens",
+            "type": "integer"
+          },
+          "requests": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Requests",
+            "type": "integer"
+          },
+          "toolCalls": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Toolcalls",
+            "type": "integer"
+          },
+          "totalTokens": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Totaltokens",
+            "type": "integer"
+          }
+        },
+        "title": "RunUsage",
+        "type": "object"
+      },
+      "SafeOption": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "SafeOption",
+        "type": "object"
+      },
+      "SourceCitation": {
+        "additionalProperties": false,
+        "properties": {
+          "applicability": {
+            "title": "Applicability",
+            "type": "string"
+          },
+          "countryScope": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Countryscope",
+            "type": "array"
+          },
+          "documentId": {
+            "title": "Documentid",
+            "type": "string"
+          },
+          "lastReviewed": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastreviewed"
+          },
+          "publishedAt": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishedat"
+          },
+          "publisher": {
+            "title": "Publisher",
+            "type": "string"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section"
+          },
+          "sourceId": {
+            "title": "Sourceid",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "format": "uri",
+                "maxLength": 2083,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "sourceId",
+          "documentId",
+          "title",
+          "publisher",
+          "url",
+          "section",
+          "publishedAt",
+          "lastReviewed",
+          "applicability",
+          "countryScope"
+        ],
+        "title": "SourceCitation",
+        "type": "object"
+      },
+      "TurnResult": {
+        "additionalProperties": false,
+        "properties": {
+          "citations": {
+            "items": {
+              "$ref": "#/$defs/SourceCitation"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "content": {
+            "default": "",
+            "title": "Content",
+            "type": "string"
+          },
+          "errorCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Errorcode"
+          },
+          "messageId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Messageid"
+          },
+          "status": {
+            "enum": [
+              "running",
+              "awaiting_approval",
+              "completed",
+              "failed",
+              "cancelled",
+              "interrupted"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "structured": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/CompanionTurn"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "usage": {
+            "$ref": "#/$defs/RunUsage"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "TurnResult",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "clientMessageId": {
+        "format": "uuid",
+        "title": "Clientmessageid",
+        "type": "string"
+      },
+      "conversationId": {
+        "format": "uuid",
+        "title": "Conversationid",
+        "type": "string"
+      },
+      "existingResult": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/TurnResult"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
+      "messageId": {
+        "format": "uuid",
+        "title": "Messageid",
+        "type": "string"
+      },
+      "replay": {
+        "default": false,
+        "title": "Replay",
+        "type": "boolean"
+      },
+      "runId": {
+        "format": "uuid",
+        "title": "Runid",
+        "type": "string"
+      }
+    },
+    "required": [
+      "runId",
+      "conversationId",
+      "messageId",
+      "clientMessageId"
+    ],
+    "title": "TurnHandle",
+    "type": "object"
+  },
+  "TurnResult": {
+    "$defs": {
+      "CompanionTurn": {
+        "additionalProperties": false,
+        "properties": {
+          "citations": {
+            "items": {
+              "$ref": "#/$defs/SourceCitation"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "clarifyingQuestion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Clarifyingquestion"
+          },
+          "observedFacts": {
+            "items": {
+              "$ref": "#/$defs/Finding"
+            },
+            "title": "Observedfacts",
+            "type": "array"
+          },
+          "possiblePatterns": {
+            "items": {
+              "$ref": "#/$defs/Finding"
+            },
+            "title": "Possiblepatterns",
+            "type": "array"
+          },
+          "reply": {
+            "title": "Reply",
+            "type": "string"
+          },
+          "safeOptions": {
+            "items": {
+              "$ref": "#/$defs/SafeOption"
+            },
+            "title": "Safeoptions",
+            "type": "array"
+          },
+          "uncertainties": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Uncertainties",
+            "type": "array"
+          },
+          "urgency": {
+            "default": "none",
+            "enum": [
+              "none",
+              "elevated",
+              "immediate"
+            ],
+            "title": "Urgency",
+            "type": "string"
+          },
+          "userReportedFacts": {
+            "items": {
+              "$ref": "#/$defs/Finding"
+            },
+            "title": "Userreportedfacts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "reply"
+        ],
+        "title": "CompanionTurn",
+        "type": "object"
+      },
+      "Finding": {
+        "additionalProperties": false,
+        "properties": {
+          "sourceIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sourceids",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "Finding",
+        "type": "object"
+      },
+      "RunUsage": {
+        "additionalProperties": false,
+        "properties": {
+          "inputTokens": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Inputtokens",
+            "type": "integer"
+          },
+          "latencyMs": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Latencyms",
+            "type": "integer"
+          },
+          "outputTokens": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Outputtokens",
+            "type": "integer"
+          },
+          "requests": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Requests",
+            "type": "integer"
+          },
+          "toolCalls": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Toolcalls",
+            "type": "integer"
+          },
+          "totalTokens": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Totaltokens",
+            "type": "integer"
+          }
+        },
+        "title": "RunUsage",
+        "type": "object"
+      },
+      "SafeOption": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "SafeOption",
+        "type": "object"
+      },
+      "SourceCitation": {
+        "additionalProperties": false,
+        "properties": {
+          "applicability": {
+            "title": "Applicability",
+            "type": "string"
+          },
+          "countryScope": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Countryscope",
+            "type": "array"
+          },
+          "documentId": {
+            "title": "Documentid",
+            "type": "string"
+          },
+          "lastReviewed": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastreviewed"
+          },
+          "publishedAt": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishedat"
+          },
+          "publisher": {
+            "title": "Publisher",
+            "type": "string"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section"
+          },
+          "sourceId": {
+            "title": "Sourceid",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "format": "uri",
+                "maxLength": 2083,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "sourceId",
+          "documentId",
+          "title",
+          "publisher",
+          "url",
+          "section",
+          "publishedAt",
+          "lastReviewed",
+          "applicability",
+          "countryScope"
+        ],
+        "title": "SourceCitation",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "citations": {
+        "items": {
+          "$ref": "#/$defs/SourceCitation"
+        },
+        "title": "Citations",
+        "type": "array"
+      },
+      "content": {
+        "default": "",
+        "title": "Content",
+        "type": "string"
+      },
+      "errorCode": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Errorcode"
+      },
+      "messageId": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Messageid"
+      },
+      "status": {
+        "enum": [
+          "running",
+          "awaiting_approval",
+          "completed",
+          "failed",
+          "cancelled",
+          "interrupted"
+        ],
+        "title": "Status",
+        "type": "string"
+      },
+      "structured": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/CompanionTurn"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
+      "usage": {
+        "$ref": "#/$defs/RunUsage"
+      }
+    },
+    "required": [
+      "status"
+    ],
+    "title": "TurnResult",
+    "type": "object"
+  }
+}

@@ -1,0 +1,1 @@
+"""MoodPrint modular monolith API."""

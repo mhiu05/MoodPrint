@@ -1,0 +1,300 @@
+{
+  "CompanionTurn": {
+    "$defs": {
+      "Finding": {
+        "additionalProperties": false,
+        "properties": {
+          "sourceIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sourceids",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "Finding",
+        "type": "object"
+      },
+      "SafeOption": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "SafeOption",
+        "type": "object"
+      },
+      "SourceCitation": {
+        "additionalProperties": false,
+        "properties": {
+          "applicability": {
+            "title": "Applicability",
+            "type": "string"
+          },
+          "countryScope": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Countryscope",
+            "type": "array"
+          },
+          "documentId": {
+            "title": "Documentid",
+            "type": "string"
+          },
+          "lastReviewed": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastreviewed"
+          },
+          "publishedAt": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishedat"
+          },
+          "publisher": {
+            "title": "Publisher",
+            "type": "string"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section"
+          },
+          "sourceId": {
+            "title": "Sourceid",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "format": "uri",
+                "maxLength": 2083,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "sourceId",
+          "documentId",
+          "title",
+          "publisher",
+          "url",
+          "section",
+          "publishedAt",
+          "lastReviewed",
+          "applicability",
+          "countryScope"
+        ],
+        "title": "SourceCitation",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "citations": {
+        "items": {
+          "$ref": "#/$defs/SourceCitation"
+        },
+        "title": "Citations",
+        "type": "array"
+      },
+      "clarifyingQuestion": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Clarifyingquestion"
+      },
+      "observedFacts": {
+        "items": {
+          "$ref": "#/$defs/Finding"
+        },
+        "title": "Observedfacts",
+        "type": "array"
+      },
+      "possiblePatterns": {
+        "items": {
+          "$ref": "#/$defs/Finding"
+        },
+        "title": "Possiblepatterns",
+        "type": "array"
+      },
+      "reply": {
+        "title": "Reply",
+        "type": "string"
+      },
+      "safeOptions": {
+        "items": {
+          "$ref": "#/$defs/SafeOption"
+        },
+        "title": "Safeoptions",
+        "type": "array"
+      },
+      "uncertainties": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Uncertainties",
+        "type": "array"
+      },
+      "urgency": {
+        "default": "none",
+        "enum": [
+          "none",
+          "elevated",
+          "immediate"
+        ],
+        "title": "Urgency",
+        "type": "string"
+      },
+      "userReportedFacts": {
+        "items": {
+          "$ref": "#/$defs/Finding"
+        },
+        "title": "Userreportedfacts",
+        "type": "array"
+      }
+    },
+    "required": [
+      "reply"
+    ],
+    "title": "CompanionTurn",
+    "type": "object"
+  },
+  "Finding": {
+    "additionalProperties": false,
+    "properties": {
+      "sourceIds": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Sourceids",
+        "type": "array"
+      },
+      "text": {
+        "title": "Text",
+        "type": "string"
+      }
+    },
+    "required": [
+      "text"
+    ],
+    "title": "Finding",
+    "type": "object"
+  },
+  "SafeOption": {
+    "additionalProperties": false,
+    "properties": {
+      "description": {
+        "default": "",
+        "title": "Description",
+        "type": "string"
+      },
+      "label": {
+        "title": "Label",
+        "type": "string"
+      }
+    },
+    "required": [
+      "label"
+    ],
+    "title": "SafeOption",
+    "type": "object"
+  },
+  "ToolPolicy": {
+    "properties": {
+      "access": {
+        "enum": [
+          "read",
+          "prepare",
+          "write"
+        ],
+        "title": "Access",
+        "type": "string"
+      },
+      "max_calls_per_run": {
+        "title": "Max Calls Per Run",
+        "type": "integer"
+      },
+      "name": {
+        "title": "Name",
+        "type": "string"
+      },
+      "needs_approval": {
+        "title": "Needs Approval",
+        "type": "boolean"
+      },
+      "timeout_s": {
+        "title": "Timeout S",
+        "type": "number"
+      },
+      "version": {
+        "title": "Version",
+        "type": "string"
+      }
+    },
+    "required": [
+      "name",
+      "version",
+      "access",
+      "needs_approval",
+      "timeout_s",
+      "max_calls_per_run"
+    ],
+    "title": "ToolPolicy",
+    "type": "object"
+  }
+}

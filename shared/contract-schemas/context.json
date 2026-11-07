@@ -1,0 +1,413 @@
+{
+  "ContextBundle": {
+    "$defs": {
+      "ContextSection": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "identity",
+              "conversation_summary",
+              "memory",
+              "domain",
+              "knowledge"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "priority": {
+            "title": "Priority",
+            "type": "integer"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "title": "Provenance",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "tokens": {
+            "minimum": 0,
+            "title": "Tokens",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "text",
+          "provenance",
+          "tokens",
+          "priority"
+        ],
+        "title": "ContextSection",
+        "type": "object"
+      },
+      "DroppedSection": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "identity",
+              "conversation_summary",
+              "memory",
+              "domain",
+              "knowledge"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "sourceIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sourceids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "reason"
+        ],
+        "title": "DroppedSection",
+        "type": "object"
+      },
+      "Provenance": {
+        "additionalProperties": false,
+        "properties": {
+          "retrievedAt": {
+            "format": "date-time",
+            "title": "Retrievedat",
+            "type": "string"
+          },
+          "sourceId": {
+            "title": "Sourceid",
+            "type": "string"
+          },
+          "sourceKind": {
+            "title": "Sourcekind",
+            "type": "string"
+          },
+          "stale": {
+            "default": false,
+            "title": "Stale",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "sourceKind",
+          "sourceId",
+          "retrievedAt"
+        ],
+        "title": "Provenance",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "dropped": {
+        "items": {
+          "$ref": "#/$defs/DroppedSection"
+        },
+        "title": "Dropped",
+        "type": "array"
+      },
+      "sections": {
+        "items": {
+          "$ref": "#/$defs/ContextSection"
+        },
+        "title": "Sections",
+        "type": "array"
+      },
+      "totalTokens": {
+        "default": 0,
+        "minimum": 0,
+        "title": "Totaltokens",
+        "type": "integer"
+      }
+    },
+    "title": "ContextBundle",
+    "type": "object"
+  },
+  "ContextRequest": {
+    "$defs": {
+      "AuthContext": {
+        "additionalProperties": false,
+        "properties": {
+          "aal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aal"
+          },
+          "claimsJson": {
+            "title": "Claimsjson",
+            "type": "string"
+          },
+          "sessionId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sessionid"
+          },
+          "userId": {
+            "format": "uuid",
+            "title": "Userid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "sessionId",
+          "aal",
+          "claimsJson"
+        ],
+        "title": "AuthContext",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "ageBand": {
+        "anyOf": [
+          {
+            "enum": [
+              "11-13",
+              "14-17"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Ageband"
+      },
+      "auth": {
+        "$ref": "#/$defs/AuthContext"
+      },
+      "conversationId": {
+        "format": "uuid",
+        "title": "Conversationid",
+        "type": "string"
+      },
+      "conversationSummary": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Conversationsummary"
+      },
+      "linkedCaseId": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Linkedcaseid"
+      },
+      "locale": {
+        "default": "vi",
+        "title": "Locale",
+        "type": "string"
+      },
+      "nickname": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Nickname"
+      },
+      "tokenBudget": {
+        "minimum": 0,
+        "title": "Tokenbudget",
+        "type": "integer"
+      },
+      "userInput": {
+        "title": "Userinput",
+        "type": "string"
+      }
+    },
+    "required": [
+      "auth",
+      "conversationId",
+      "userInput",
+      "tokenBudget"
+    ],
+    "title": "ContextRequest",
+    "type": "object"
+  },
+  "ContextSection": {
+    "$defs": {
+      "Provenance": {
+        "additionalProperties": false,
+        "properties": {
+          "retrievedAt": {
+            "format": "date-time",
+            "title": "Retrievedat",
+            "type": "string"
+          },
+          "sourceId": {
+            "title": "Sourceid",
+            "type": "string"
+          },
+          "sourceKind": {
+            "title": "Sourcekind",
+            "type": "string"
+          },
+          "stale": {
+            "default": false,
+            "title": "Stale",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "sourceKind",
+          "sourceId",
+          "retrievedAt"
+        ],
+        "title": "Provenance",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "kind": {
+        "enum": [
+          "identity",
+          "conversation_summary",
+          "memory",
+          "domain",
+          "knowledge"
+        ],
+        "title": "Kind",
+        "type": "string"
+      },
+      "priority": {
+        "title": "Priority",
+        "type": "integer"
+      },
+      "provenance": {
+        "items": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "title": "Provenance",
+        "type": "array"
+      },
+      "text": {
+        "title": "Text",
+        "type": "string"
+      },
+      "tokens": {
+        "minimum": 0,
+        "title": "Tokens",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "kind",
+      "text",
+      "provenance",
+      "tokens",
+      "priority"
+    ],
+    "title": "ContextSection",
+    "type": "object"
+  },
+  "DroppedSection": {
+    "additionalProperties": false,
+    "properties": {
+      "kind": {
+        "enum": [
+          "identity",
+          "conversation_summary",
+          "memory",
+          "domain",
+          "knowledge"
+        ],
+        "title": "Kind",
+        "type": "string"
+      },
+      "reason": {
+        "title": "Reason",
+        "type": "string"
+      },
+      "sourceIds": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Sourceids",
+        "type": "array"
+      }
+    },
+    "required": [
+      "kind",
+      "reason"
+    ],
+    "title": "DroppedSection",
+    "type": "object"
+  },
+  "Provenance": {
+    "additionalProperties": false,
+    "properties": {
+      "retrievedAt": {
+        "format": "date-time",
+        "title": "Retrievedat",
+        "type": "string"
+      },
+      "sourceId": {
+        "title": "Sourceid",
+        "type": "string"
+      },
+      "sourceKind": {
+        "title": "Sourcekind",
+        "type": "string"
+      },
+      "stale": {
+        "default": false,
+        "title": "Stale",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "sourceKind",
+      "sourceId",
+      "retrievedAt"
+    ],
+    "title": "Provenance",
+    "type": "object"
+  }
+}
