@@ -1,0 +1,15 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path=public,extensions;
+select no_plan();
+insert into auth.users(id) values ('00000000-0000-4000-8000-000000000001');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001"}',true);
+select lives_ok($$insert into app.audit_events(actor_id,action,entity_type,entity_id) values ('00000000-0000-4000-8000-000000000001','memory.deleted','memory',gen_random_uuid())$$,'user may append an audit event');
+select throws_ok($$select * from app.audit_events$$,'42501',null,'user cannot read audit');
+select throws_ok($$update app.audit_events set action='changed'$$,'42501',null,'user cannot rewrite audit');
+select throws_ok($$delete from app.audit_events$$,'42501',null,'user cannot erase audit');
+select throws_ok($$insert into app.audit_events(actor_id,action,entity_type,entity_id) values (null,'spoof','memory',gen_random_uuid())$$,'42501',null,'audit actor must match current user');
+reset role;
+select * from finish();
+rollback;

@@ -1,0 +1,14 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path=public,extensions;
+select no_plan();
+insert into auth.users(id) values ('00000000-0000-4000-8000-000000000001'),('00000000-0000-4000-8000-000000000002');
+insert into app.conversations(id,owner_id) values ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001');
+select throws_ok($$insert into app.messages(conversation_id,owner_id,role,content) values ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002','user','synthetic')$$,'23503',null,'DB rejects message linked to another owner conversation');
+select throws_ok($$insert into app.agent_runs(conversation_id,owner_id,model,prompt_version,tools_version) values ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002','synthetic','v1','v1')$$,'23503',null,'DB rejects run linked to another owner conversation');
+insert into app.agent_runs(id,conversation_id,owner_id,model,prompt_version,tools_version) values ('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001','synthetic','v1','v1');
+select throws_ok($$insert into app.tool_approvals(run_id,owner_id,tool_name,tool_call_id,arguments_preview,run_state,expires_at) values ('20000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002','test','call','{}','{}',now())$$,'23503',null,'DB rejects approval linked to another owner run');
+select throws_ok($$insert into app.memory_candidates(owner_id,category,content,source_kind,source_conversation_id) values ('00000000-0000-4000-8000-000000000002','context','synthetic','agent_proposed','10000000-0000-4000-8000-000000000001')$$,'23503',null,'DB rejects cross-owner memory provenance');
+select throws_ok($$insert into app.agent_runs(conversation_id,owner_id,model,prompt_version,tools_version) values ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001','synthetic','v1','v1')$$,'23505',null,'one active run per conversation');
+select * from finish();
+rollback;
