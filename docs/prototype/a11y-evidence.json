@@ -1,0 +1,205 @@
+﻿[
+    {
+        "incomplete":  [
+
+                       ],
+        "violations":  [
+
+                       ],
+        "counts":  {
+                       "inapplicable":  37,
+                       "incomplete":  0,
+                       "passes":  23,
+                       "violations":  0
+                   },
+        "route":  "/home"
+    },
+    {
+        "incomplete":  [
+
+                       ],
+        "violations":  [
+
+                       ],
+        "counts":  {
+                       "inapplicable":  33,
+                       "incomplete":  0,
+                       "passes":  27,
+                       "violations":  0
+                   },
+        "route":  "/cases/CASE-AN-001/plan"
+    },
+    {
+        "incomplete":  [
+
+                       ],
+        "violations":  [
+
+                       ],
+        "counts":  {
+                       "inapplicable":  36,
+                       "incomplete":  0,
+                       "passes":  24,
+                       "violations":  0
+                   },
+        "route":  "/support/knowledge"
+    },
+    {
+        "incomplete":  [
+
+                       ],
+        "violations":  [
+
+                       ],
+        "counts":  {
+                       "inapplicable":  41,
+                       "incomplete":  0,
+                       "passes":  19,
+                       "violations":  0
+                   },
+        "route":  "/knowledge/treu-dua-hay-bat-nat"
+    },
+    {
+        "incomplete":  [
+
+                       ],
+        "violations":  [
+
+                       ],
+        "counts":  {
+                       "inapplicable":  36,
+                       "incomplete":  0,
+                       "passes":  24,
+                       "violations":  0
+                   },
+        "route":  "/ai/chat"
+    },
+    {
+        "incomplete":  [
+
+                       ],
+        "violations":  [
+
+                       ],
+        "counts":  {
+                       "inapplicable":  36,
+                       "incomplete":  0,
+                       "passes":  24,
+                       "violations":  0
+                   },
+        "route":  "/ai/roleplay/teacher"
+    },
+    {
+        "incomplete":  [
+
+                       ],
+        "violations":  [
+
+                       ],
+        "counts":  {
+                       "inapplicable":  45,
+                       "incomplete":  0,
+                       "passes":  15,
+                       "violations":  0
+                   },
+        "route":  "/support"
+    },
+    {
+        "incomplete":  [
+                           {
+                               "help":  "Elements must meet minimum color contrast ratio thresholds",
+                               "helpUrl":  "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+                               "id":  "color-contrast",
+                               "impact":  "serious",
+                               "nodeCount":  1,
+                               "nodes":  [
+                                             {
+                                                 "failureSummary":  "Fix any of the following:\n  Element\u0027s background color could not be determined because it\u0027s partially obscured by another element",
+                                                 "html":  "\u003ctextarea id=\"support-preview\" maxlength=\"10000\" rows=\"17\"\u003e",
+                                                 "target":  [
+                                                                "#support-preview"
+                                                            ]
+                                             }
+                                         ],
+                               "tags":  [
+                                            "cat.color",
+                                            "wcag2aa",
+                                            "wcag143",
+                                            "TTv5",
+                                            "TT13.c",
+                                            "EN-301-549",
+                                            "EN-9.1.4.3",
+                                            "ACT",
+                                            "RGAAv4",
+                                            "RGAA-3.2.1"
+                                        ]
+                           }
+                       ],
+        "violations":  [
+
+                       ],
+        "counts":  {
+                       "inapplicable":  37,
+                       "incomplete":  1,
+                       "passes":  23,
+                       "violations":  0
+                   },
+        "route":  "/support/prepare"
+    },
+    {
+        "incomplete":  [
+                           {
+                               "help":  "Elements must meet minimum color contrast ratio thresholds",
+                               "helpUrl":  "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+                               "id":  "color-contrast",
+                               "impact":  "serious",
+                               "nodeCount":  3,
+                               "nodes":  [
+                                             {
+                                                 "failureSummary":  "Fix any of the following:\n  Element\u0027s background color could not be determined because element contains an image node",
+                                                 "html":  "\u003ctext x=\"30\" y=\"24\" text-anchor=\"middle\" fill=\"#355c4e\" font-size=\"13\"\u003e16\u003c/text\u003e",
+                                                 "target":  [
+                                                                "text[x=\"30\"]"
+                                                            ]
+                                             },
+                                             {
+                                                 "failureSummary":  "Fix any of the following:\n  Element\u0027s background color could not be determined because element contains an image node",
+                                                 "html":  "\u003ctext x=\"180\" y=\"24\" text-anchor=\"middle\" fill=\"#355c4e\" font-size=\"13\"\u003e16\u003c/text\u003e",
+                                                 "target":  [
+                                                                "text[x=\"180\"]"
+                                                            ]
+                                             },
+                                             {
+                                                 "failureSummary":  "Fix any of the following:\n  Element\u0027s background color could not be determined because element contains an image node",
+                                                 "html":  "\u003ctext x=\"330\" y=\"24\" text-anchor=\"middle\" fill=\"#355c4e\" font-size=\"13\"\u003e16\u003c/text\u003e",
+                                                 "target":  [
+                                                                "text[x=\"330\"]"
+                                                            ]
+                                             }
+                                         ],
+                               "tags":  [
+                                            "cat.color",
+                                            "wcag2aa",
+                                            "wcag143",
+                                            "TTv5",
+                                            "TT13.c",
+                                            "EN-301-549",
+                                            "EN-9.1.4.3",
+                                            "ACT",
+                                            "RGAAv4",
+                                            "RGAA-3.2.1"
+                                        ]
+                           }
+                       ],
+        "violations":  [
+
+                       ],
+        "counts":  {
+                       "inapplicable":  34,
+                       "incomplete":  1,
+                       "passes":  26,
+                       "violations":  0
+                   },
+        "route":  "/demo/school"
+    }
+]
