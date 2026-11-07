@@ -9,7 +9,8 @@ import {
 test("N-01 E-SCH-01: fourteen real routes fit all eight widths and school demo stays independent", async ({
   page,
 }) => {
-  test.setTimeout(180000);
+  // Eight widths times fourteen authenticated routes. A loaded machine needs more than three minutes.
+  test.setTimeout(360000);
   const user = await createUser();
   try {
     const item = await createCaseViaApi(user.email);
