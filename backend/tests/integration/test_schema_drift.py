@@ -9,6 +9,18 @@ from sqlalchemy.dialects import postgresql
 
 pytestmark = pytest.mark.integration
 
+# Additive tables owned by a later phase (CC-P3-002). Each name is explicit: an unknown table
+# still fails this test. They carry no ORM model, so only their presence and row-level security
+# are asserted here; their columns/policies are pinned by that phase's pgTAP suites.
+PHASE_TABLES = {
+    # Phase 3 (feat/agent-companion, *_ag_* migrations)
+    "agent_proposals",
+    "analysis_requests",
+    "roleplay_sessions",
+    "message_attachments",
+    "message_assessments",
+}
+
 
 async def test_models_match_database(db_engine):
     for name in (
@@ -58,7 +70,21 @@ async def test_models_match_database(db_engine):
                 for name in inspect(conn).get_table_names(schema="app")
             }
         )
-    assert set(live) == set(models)
+    unexpected = set(live) - set(models) - PHASE_TABLES
+    assert not unexpected, f"unexpected app tables: {sorted(unexpected)}"
+    assert set(models) <= set(live), f"missing app tables: {sorted(set(models) - set(live))}"
+    async with db_engine.connect() as connection:
+        no_rls = (
+            (
+                await connection.exec_driver_sql(
+                    "select relname from pg_class c join pg_namespace n on n.oid = c.relnamespace "
+                    "where n.nspname = 'app' and c.relkind = 'r' and not c.relrowsecurity"
+                )
+            )
+            .scalars()
+            .all()
+        )
+    assert not no_rls, f"app tables without row-level security: {sorted(no_rls)}"
     dialect = postgresql.dialect()
     for name, table in models.items():
         actual = {
