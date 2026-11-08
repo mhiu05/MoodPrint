@@ -34,10 +34,15 @@ export function createKnowledgeHttp(client: StreamClient): RealKnowledgeSearch {
       const params = new URLSearchParams({ q });
       if (filters.topic) params.set("topic", filters.topic);
       if (filters.age) params.set("age", filters.age);
-      return client<KnowledgeSearchResponse>(`/v1/knowledge/search?${params}`, { signal });
+      return client<KnowledgeSearchResponse>(`/v1/knowledge/search?${params}`, {
+        signal,
+      });
     },
     document(id, signal) {
-      return client<KnowledgeDocument>(`/v1/knowledge/documents/${encodeURIComponent(id)}`, { signal });
+      return client<KnowledgeDocument>(
+        `/v1/knowledge/documents/${encodeURIComponent(id)}`,
+        { signal },
+      );
     },
     sources(signal) {
       return client<KnowledgeSourceInfo[]>("/v1/knowledge/sources", { signal });

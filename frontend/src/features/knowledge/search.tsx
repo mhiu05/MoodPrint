@@ -1,14 +1,20 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { Button, EmptyState, Notice } from "../../components/ui";
 import { getServices } from "../../services/composition";
-import { apiAge, apiTopic } from "../../services/http/knowledge";
 import {
   isRealKnowledgeSearch,
   type KnowledgeDocument,
   type KnowledgeSearchResponse,
-  type RealKnowledgeSearch,
 } from "../../services/composition/knowledge-types";
-import { Button, EmptyState, Notice } from "../../components/ui";
+import { apiAge, apiTopic } from "../../services/http/knowledge";
+
+type SearchSnapshot = {
+  key: string;
+  status: "loading" | "ready" | "error";
+  result: KnowledgeSearchResponse | null;
+  error: string;
+};
 
 export function LiveKnowledgeSearch({
   query,
@@ -23,80 +29,121 @@ export function LiveKnowledgeSearch({
   const live = isRealKnowledgeSearch(service) ? service : null;
   const [params, setParams] = useSearchParams();
   const documentId = params.get("document") || "";
-  const [state, setState] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [result, setResult] = useState<KnowledgeSearchResponse | null>(null);
-  const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
-  const [document, setDocument] = useState<KnowledgeDocument | null>(null);
+  const [snapshot, setSnapshot] = useState<SearchSnapshot | null>(null);
+  const [opened, setOpened] = useState<{
+    id: string;
+    document: KnowledgeDocument;
+  } | null>(null);
+  const trimmed = query.trim();
+  const active = Boolean(live) && trimmed.length >= 2;
+  const requestKey = `${trimmed}|${topic}|${age}|${attempt}`;
 
   useEffect(() => {
-    if (!live || query.trim().length < 2) {
-      setState("idle");
-      setResult(null);
-      return;
-    }
+    if (!live || trimmed.length < 2) return;
     const controller = new AbortController();
-    setState("loading");
-    setError("");
+    let ignore = false;
     live
       .search(
-        query,
+        trimmed,
         { topic: apiTopic(topic), age: apiAge(age) },
         controller.signal,
       )
       .then((response) => {
-        setResult(response);
-        setState("ready");
+        if (!ignore) {
+          setSnapshot({
+            key: requestKey,
+            status: "ready",
+            result: response,
+            error: "",
+          });
+        }
       })
       .catch((cause: unknown) => {
-        if (controller.signal.aborted) return;
-        setState("error");
-        setError(cause instanceof Error ? cause.message : "Chưa tra cứu được. Hãy thử lại.");
+        if (ignore || controller.signal.aborted) return;
+        setSnapshot({
+          key: requestKey,
+          status: "error",
+          result: null,
+          error:
+            cause instanceof Error
+              ? cause.message
+              : "Chưa tra cứu được. Hãy thử lại.",
+        });
       });
-    return () => controller.abort();
-  }, [live, query, topic, age, attempt]);
+    return () => {
+      ignore = true;
+      controller.abort();
+    };
+  }, [live, trimmed, topic, age, attempt, requestKey]);
 
   useEffect(() => {
-    if (!live || !documentId) {
-      setDocument(null);
-      return;
-    }
+    if (!live || !documentId) return;
     const controller = new AbortController();
+    let ignore = false;
     live
       .document(documentId, controller.signal)
-      .then(setDocument)
-      .catch(() => setDocument(null));
-    return () => controller.abort();
+      .then((document) => {
+        if (!ignore) setOpened({ id: documentId, document });
+      })
+      .catch(() => {
+        if (!ignore) setOpened(null);
+      });
+    return () => {
+      ignore = true;
+      controller.abort();
+    };
   }, [live, documentId]);
 
   if (!live) return null;
+  const current = active && snapshot?.key === requestKey ? snapshot : null;
+  const status = !active ? "idle" : (current?.status ?? "loading");
+  const result = current?.result ?? null;
+  const error = current?.error ?? "";
+  const document = opened?.id === documentId ? opened.document : null;
+
   return (
-    <section className="knowledge-live" data-testid="knowledge-live" aria-label="Tra cứu từ nguồn">
+    <section
+      className="knowledge-live"
+      data-testid="knowledge-live"
+      aria-label="Tra cứu từ nguồn"
+    >
       <div className="knowledge-live-head">
         <h2>Tra cứu từ nguồn</h2>
         <p>Đừng nhập tên thật hoặc thông tin liên hệ.</p>
       </div>
       <div aria-live="polite">
-        {state === "idle" && <p>Gõ ít nhất hai ký tự để tra cứu nguồn đã xuất bản.</p>}
-        {state === "loading" && <p>Đang tìm trong nguồn…</p>}
-        {state === "error" && (
+        {status === "idle" && (
+          <p>Gõ ít nhất hai ký tự để tra cứu nguồn đã xuất bản.</p>
+        )}
+        {status === "loading" && <p>Đang tìm trong nguồn…</p>}
+        {status === "error" && (
           <Notice tone="error">
             <p>{error}</p>
-            <Button variant="secondary" onClick={() => setAttempt((value) => value + 1)}>
+            <Button
+              variant="secondary"
+              onClick={() => setAttempt((value) => value + 1)}
+            >
               Thử lại
             </Button>
           </Notice>
         )}
-        {state === "ready" && result?.degraded && <p>Đang tìm theo từ khóa.</p>}
-        {state === "ready" && result?.chunks.length === 0 && (
+        {status === "ready" && result?.degraded && (
+          <p>Đang tìm theo từ khóa.</p>
+        )}
+        {status === "ready" && result?.chunks.length === 0 && (
           <EmptyState
             title="Chưa tìm thấy nguồn phù hợp"
             description="Thử bỏ bớt bộ lọc hoặc dùng từ khác. Bài trong thư viện mẫu vẫn nằm ở danh sách bên dưới."
           />
         )}
-        {state === "ready" &&
+        {status === "ready" &&
           result?.chunks.map((chunk) => (
-            <article key={chunk.chunkId} className="knowledge-retrieved" data-testid="retrieved-result">
+            <article
+              key={chunk.chunkId}
+              className="knowledge-retrieved"
+              data-testid="retrieved-result"
+            >
               <h3>{chunk.citation.title}</h3>
               <p>{chunk.text}</p>
               <button
@@ -112,13 +159,19 @@ export function LiveKnowledgeSearch({
                 }
               >
                 {chunk.citation.publisher}
-                {chunk.citation.lastReviewed ? ` · ${chunk.citation.lastReviewed}` : ""}
+                {chunk.citation.lastReviewed
+                  ? ` · ${chunk.citation.lastReviewed}`
+                  : ""}
               </button>
             </article>
           ))}
       </div>
       {document && (
-        <aside className="knowledge-drawer" role="dialog" aria-label={document.title}>
+        <aside
+          className="knowledge-drawer"
+          role="dialog"
+          aria-label={document.title}
+        >
           <h2>{document.title}</h2>
           <p>{document.citation.applicability}</p>
           {document.sections.map((section) => (
@@ -128,7 +181,11 @@ export function LiveKnowledgeSearch({
             </section>
           ))}
           {document.citation.url && (
-            <a href={document.citation.url} target="_blank" rel="noopener noreferrer">
+            <a
+              href={document.citation.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               Mở nguồn
             </a>
           )}
@@ -149,5 +206,3 @@ export function LiveKnowledgeSearch({
     </section>
   );
 }
-
-export type { RealKnowledgeSearch };

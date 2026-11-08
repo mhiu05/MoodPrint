@@ -65,7 +65,8 @@ export type RealKnowledgeSearch = {
 };
 
 // The pre-branch composition test still supplies `{ live: true }`.
-export type KnowledgeSearchService = { readonly live: true } | RealKnowledgeSearch;
+export type KnowledgeSearchService =
+  { readonly live: true } | RealKnowledgeSearch;
 
 export function isRealKnowledgeSearch(
   service: KnowledgeSearchService | null,
