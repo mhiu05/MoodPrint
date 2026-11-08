@@ -4,9 +4,9 @@ Ngày chốt vòng 1: 2026-11-08. Workspace `mhiu05-feat-refactor`. Nhánh `feat
 
 ## 1. Kết luận
 
-**PARTIALLY_VERIFIED.**
+**G1 VERIFIED, G2 PARTIALLY_VERIFIED.**
 
-G0 đã đạt và đã merge. Local G1 và hosted API/schema đã có bằng chứng. G1 chưa đóng vì hosted UI smoke bị BLOCKED. G2 chưa đạt: chưa merge, chưa tag `baseline/phase-1-verified`.
+G0 đã merge. G1 có CI trên `d779a243`, hosted API smoke exit 0 trong vòng 2, và hosted UI trong cửa sổ Chrome tách biệt. G2 chưa gắn tag vì Docker không lên nên hai script cổng chưa chạy trên commit merge. Chi tiết: `g1-g2-closure-report.md`.
 
 Sản phẩm **chưa** sẵn sàng cho học sinh thật. Các điều kiện pháp lý, đồng ý, vận hành và an toàn ở `00` §6 vẫn nằm ngoài Phase 0/1.
 
@@ -19,8 +19,8 @@ Sản phẩm **chưa** sẵn sàng cho học sinh thật. Các điều kiện ph
 | Phase 1 frontend | F1-01, F1-03.2, F1-04.2, F1-07.1–07.4 | VERIFIED trên local E2E và Vitest |
 | Phase 1 cổng local | F1-08.1, F1-08.2 | VERIFIED trên `ddf970dc` |
 | Phase 1 hosted API | F1-08.3 phần schema, history, smoke API, cleanup | VERIFIED |
-| Phase 1 hosted UI | F1-08.3 phần Chrome | BLOCKED |
-| G2 | `06` §8 | Chưa đạt |
+| Phase 1 hosted UI | F1-08.3 phần Chrome | VERIFIED ở vòng 2, cửa sổ Chrome tách biệt |
+| G2 | `06` §8 | PARTIALLY_VERIFIED. Chưa tag |
 
 Không triển khai RAG, Companion tools Phase 2/3, hay worktree song song.
 
@@ -41,9 +41,9 @@ Không triển khai RAG, Companion tools Phase 2/3, hay worktree song song.
 | Hosted 6 migration `f1_*` | dry-run rồi apply, dry-run sau đó rỗng | VERIFIED | hosted |
 | Hosted API case/evidence 1 MiB/plan | `smoke_hosted.py --phase 1` exit 0 | VERIFIED | `82d9463c` có script; lần chạy trước commit báo cáo |
 | Security Advisor 0, 2 WARN SELECT | Nguồn policy trong `f1_sharing.sql`; MCP không gọi lại được trong vòng này | Chấp nhận WARN, không phải lỗi bảo mật | vòng 1 |
-| Hosted UI đăng ký/hồ sơ/reload/xóa | `orca computer` trên Chrome đang mở | BLOCKED | vòng 1 |
-| Receipt đúng SHA của HEAD | Receipt là `ddf970dc` | Không khớp HEAD | có chủ đích, diff chỉ docs + smoke |
-| CI PR #47 | offline + integration SUCCESS | VERIFIED | run `42415259412` |
+| Hosted UI đăng ký/hồ sơ/reload | Cửa sổ Chrome mới trong process đang chạy | VERIFIED vòng 2 | `g1-g2-closure-report.md` |
+| Receipt đúng SHA của HEAD | Receipt local vẫn `ddf970dc`; CI đã chạy lại trên `d779a243` | CI khớp HEAD; wrapper local chưa chạy lại | Docker không lên |
+| CI PR #47 | offline + integration SUCCESS trên `d779a243` | VERIFIED | runs `42440492063` và `42440494924` |
 | Pre-commit cài trên máy | `core.hooksPath` trống; không sửa config dùng chung | Chưa cài | vòng 1 |
 | Tag baseline | Không tạo | Chưa đạt G2 | — |
 
@@ -95,8 +95,8 @@ PostgreSQL OR các policy permissive. Tách policy để staff không có INSERT
 | Gate | Kết quả | Bằng chứng |
 |---|---|---|
 | G0 | VERIFIED | PR #46 merged `d5c36ac0`, `phase-0-report.md` |
-| G1 | PARTIALLY_VERIFIED | Cổng local exit 0 trên `ddf970dc`; hosted schema + API smoke; CI xanh trên `82d9463c`; UI hosted BLOCKED |
-| G2 | Chưa đạt | Chưa merge, chưa tag, hook chưa cài trên config dùng chung, UI hosted chưa có |
+| G1 | VERIFIED | CI offline + integration SUCCESS trên `d779a243`; UI hosted vòng 2; `smoke_hosted.py --phase 1` exit 0 vòng 2 |
+| G2 | PARTIALLY_VERIFIED | Chưa merge/tag tại mục này. Docker không lên nên chưa có receipt wrapper mới. Ma trận đủ trong `g1-g2-closure-report.md` |
 
 ## 9. Git
 
@@ -125,11 +125,7 @@ Giới hạn 3 vòng. Đã dùng **1**.
 
 ## 12. Giới hạn
 
-Không chặn baseline đã có bằng chứng, nhưng chặn đóng G1/G2:
-
-- Hosted UI smoke BLOCKED. Công cụ đã thử: `orca computer list-apps`, `list-windows`, `set-value` (verified), `press-key Return` (synthetic, trang vẫn `/home`), `Select` gợi ý omnibox (`element_not_found`). Không mở Chrome mới.
-
-Không chặn gate đã công bố, vẫn phải ghi:
+Không chặn gate đã công bố. Vòng 1 từng chặn UI. Vòng 2 đã quan sát UI trong cửa sổ Chrome tách biệt. Docker engine không lên nên chưa có receipt `verify_phase1.py` mới; CI của đúng SHA vẫn là bằng chứng suite tự động.
 
 - Signed upload đã cấp dùng được tới TTL sau khi xóa Auth. Chưa có tombstone. Không nói là đã thu hồi tức thì.
 - S-01 mới có bài expiry/renewal có giới hạn thời gian, chưa đo wall-clock hơn hai giờ.

@@ -1,6 +1,6 @@
 # Phase 1 — Implementation report
 
-Trạng thái sau vòng 1 ngày 2026-11-08: **PARTIALLY_VERIFIED**. Local gate và hosted API smoke đạt. CI của PR #47 xanh. **G1 chưa đóng** vì hosted UI smoke bị BLOCKED. **G2 chưa đạt:** chưa merge, chưa tag. Sản phẩm **chưa** sẵn sàng cho học sinh thật.
+Trạng thái sau vòng 2 ngày 2026-11-08: **G1 VERIFIED** bằng CI trên `d779a243` và hosted UI/API của phiên này. **G2 chưa đủ để gắn tag** vì Docker engine không lên, nên `verify_phase1.py` chưa chạy trên commit merge. Sản phẩm **chưa** sẵn sàng cho học sinh thật. Chi tiết vòng 2 nằm ở `g1-g2-closure-report.md`. Vòng 1 bên dưới là lịch sử.
 
 Receipt local vẫn là `ddf970dc62f8baae5c1ab97e36ea14e069984a0b`, không phải HEAD. Khác biệt tới `82d9463c` chỉ là báo cáo này và `scripts/smoke_hosted.py`.
 
@@ -50,7 +50,7 @@ Project ref `xhlshihobyxrgfqrdafh`. Dry-run liệt kê đúng sáu file `f1_*`, 
 
 MCP `school-violence-supabase` không có trong phiên này nên **chưa chạy** `get_advisors`. Không lấy advisor bằng DDL hay API key in ra log.
 
-Hosted UI smoke F1-08.3: **BLOCKED**. Phiên không có công cụ điều khiển Chrome đang mở, và yêu cầu là không tự mở Chrome mới. Không có bằng chứng đăng ký giao diện trên hosted.
+Hosted UI smoke F1-08.3 ở vòng 1: **BLOCKED**. Vòng 2 đã quan sát luồng thật trong cửa sổ Chrome tách biệt. Xem `g1-g2-closure-report.md`. Đăng ký công khai `@example.test` bị GoTrue trả `email_address_invalid`; user được tạo bằng Admin API rồi đăng nhập trên UI.
 
 ## G2 và chiến lược IT-01..IT-09
 
