@@ -5,7 +5,6 @@ The model never writes. ``propose_case_event`` stores an immutable server-side p
 from the stored proposal, so the user approves exactly what will be written.
 """
 
-from datetime import UTC, datetime
 from typing import Any, Final, Literal
 from uuid import UUID, uuid4
 
@@ -17,6 +16,7 @@ from moodprint_shared.contracts.incidents import CaseQuery, EventCreate
 from moodprint_agent.tools.context import CompanionToolContext
 from moodprint_agent.tools.proposals import payload_sha256
 from moodprint_agent.tools.registry import ToolSpec
+from moodprint_agent.tools.saving import save_approved, stored_preview
 
 DESCRIPTION_MAX: Final = 500
 RATIONALE_MAX: Final = 200
@@ -215,21 +215,10 @@ async def propose_case_event(
     }
 
 
-async def _preview_for_saved_proposal(
-    context: CompanionToolContext, arguments: dict[str, Any]
-) -> dict[str, Any]:
-    """Approval dialog content: always the stored proposal, never the model's arguments."""
-    proposal_id = _parse_uuid(str(arguments.get("proposal_id", "")))
-    if proposal_id is None or context.deps.proposals is None:
+async def _event_preview(ctx: Any, arguments: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(ctx, CompanionToolContext):
         return {}
-    stored = await context.deps.proposals.get(context.auth, proposal_id)
-    if stored is None or stored.kind != "case_event":
-        return {}
-    return {
-        **stored.preview,
-        "proposalId": str(stored.id),
-        "expiresAt": stored.expires_at.isoformat(),
-    }
+    return await stored_preview(ctx, arguments, "case_event")
 
 
 async def save_confirmed_event(
@@ -237,35 +226,7 @@ async def save_confirmed_event(
 ) -> dict[str, Any]:
     """Save the approved event proposal. The only parameter is the proposal id."""
     context = ctx.context
-    deps = context.deps
-    if deps.proposals is None or deps.events is None:
-        return _error("unavailable")
-    pid = _parse_uuid(proposal_id)
-    if pid is None:
-        return _error("not_found")
-    stored = await deps.proposals.get(context.auth, pid)
-    if stored is None or stored.kind != "case_event" or stored.owner_id != context.auth.user_id:
-        return _error("not_found")
-    if stored.conversation_id != context.conversation_id:
-        return _error("not_found")
-    if not stored.hash_matches():
-        return _error("payload_mismatch")
-    if stored.status == "applied":
-        return {"status": "applied", "result": stored.result}
-    if stored.status in ("rejected", "failed"):
-        return _error(f"proposal_{stored.status}")
-    if stored.status == "expired" or stored.expired(datetime.now(UTC)):
-        return _error("proposal_expired")
-    if stored.status != "approved":
-        return _error("not_approved")
-    outcome = await deps.events.apply(context.auth, proposal_id=pid, run_id=context.run_id)
-    if outcome.status == "applied":
-        return {"status": "applied", "result": outcome.result}
-    if outcome.status == "conflict":
-        return _error("version_conflict", retryable=False) | {
-            "latestVersion": outcome.latest_version
-        }
-    return _error(outcome.error or outcome.status)
+    return await save_approved(context, proposal_id, "case_event", context.deps.events)
 
 
 def incident_tools() -> list[ToolSpec]:
@@ -284,12 +245,6 @@ def incident_tools() -> list[ToolSpec]:
             save_confirmed_event,
             ToolPolicy("save_confirmed_event", "1", "write", True, 15, 2),
             "Lưu mốc vào hồ sơ",
-            async_preview=_preview_for_saved_proposal_ctx,
+            async_preview=_event_preview,
         ),
     ]
-
-
-async def _preview_for_saved_proposal_ctx(ctx: Any, arguments: dict[str, Any]) -> dict[str, Any]:
-    if not isinstance(ctx, CompanionToolContext):
-        return {}
-    return await _preview_for_saved_proposal(ctx, arguments)
