@@ -235,3 +235,22 @@ async def test_non_paid_hosts_are_not_forwarded_at_all(tmp_path: Path) -> None:
     async with httpx.AsyncClient(transport=transport) as client:
         with pytest.raises(BudgetError):
             await client.send(_request({}, url="https://example.com/v1/responses"))
+
+
+async def test_gzip_encoded_usage_is_reconciled_not_left_unknown(tmp_path: Path) -> None:
+    import gzip
+    import json
+
+    raw = json.dumps({"usage": {"input_tokens": 30, "output_tokens": 5}}).encode()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, headers={"content-encoding": "gzip"}, content=gzip.compress(raw))
+
+    ledger = _ledger(tmp_path, max_calls_total=2)
+    transport = GuardedTransport(httpx.MockTransport(handler), ledger, run_id="r")
+    body = {"model": "gpt-6-luna", "store": False, "max_output_tokens": 50, "input": "hi"}
+    async with httpx.AsyncClient(transport=transport) as client:
+        response = await client.send(_request(body))
+        assert response.json()["usage"]["input_tokens"] == 30
+    assert ledger.unknown_calls == 0
+    assert ledger.spent_tokens == 35

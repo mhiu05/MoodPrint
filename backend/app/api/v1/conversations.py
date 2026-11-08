@@ -14,6 +14,7 @@ from pydantic import Field
 from app.agent_gateway.sse import RunStream, produce
 from app.core.auth import get_auth
 from app.core.errors import ApiError
+from app.modules.analysis.service import tool_analysis
 from app.modules.conversations.approvals import ApprovalService
 from app.modules.conversations.paging import FoundationPages
 from app.modules.conversations.schemas import (
@@ -187,6 +188,7 @@ async def send(
                 content=data.content,
                 knowledge=getattr(request.app.state, "knowledge", None),
                 storage=getattr(request.app.state, "storage", None),
+                analysis=tool_analysis(request),
             )
         )
         request.app.state.run_tasks.add(task)
@@ -267,6 +269,7 @@ async def decide(
             resume={**row, "approved": data.decision == "approve"},
             knowledge=getattr(request.app.state, "knowledge", None),
             storage=getattr(request.app.state, "storage", None),
+            analysis=tool_analysis(request),
         )
     )
     request.app.state.run_tasks.add(task)

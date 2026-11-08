@@ -51,6 +51,7 @@ async def produce(
     resume=None,
     knowledge=None,
     storage=None,
+    analysis=None,
 ):
     usage = RunUsage()
     answer, answer_id, status, error_code, seq = "", uuid4(), "failed", "internal_error", 0
@@ -68,6 +69,7 @@ async def produce(
             content,
             knowledge,
             storage,
+            analysis,
         )
         prior = [] if resume else await service.recent_user_messages(auth, turn.conversation_id)
         session = await service.open_session(auth, turn.conversation_id)

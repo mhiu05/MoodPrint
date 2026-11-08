@@ -159,7 +159,8 @@ EXPECTED_TOOLS = {
     "propose_memory": ("prepare", False),
     "support_directory": ("read", False),
     "draft_support_message": ("prepare", False),
-}  # analyze_evidence (P3-09) and report_turn_assessment (S-06) join when implemented
+    "analyze_evidence": ("prepare", True),
+}  # report_turn_assessment (S-06) joins only if that design is chosen
 
 
 def test_tool_inventory_is_pinned_so_a_new_tool_is_a_reviewed_change() -> None:

@@ -11,6 +11,7 @@ import json
 import os
 import threading
 import time
+import zlib
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -392,11 +393,32 @@ def parse_usage(body: bytes) -> tuple[int, int, int] | None:
         return None
 
 
+def decode_body(body: bytes, encoding: str | None) -> bytes:
+    """Undo transport-level compression: the meter sees bytes before httpx decodes them."""
+    name = (encoding or "").strip().lower()
+    if name in {"", "identity"}:
+        return body
+    try:
+        if name in {"gzip", "x-gzip"}:
+            return zlib.decompress(body, 16 + zlib.MAX_WBITS)
+        if name == "deflate":
+            return zlib.decompress(body)
+    except zlib.error:
+        return b""
+    return b""  # unsupported encoding: usage stays unknown and the hold is kept
+
+
 class _MeteredStream(httpx.AsyncByteStream):
     def __init__(
-        self, inner: httpx.AsyncByteStream, ledger: BudgetLedger, reservation: Reservation, ok: bool
+        self,
+        inner: httpx.AsyncByteStream,
+        ledger: BudgetLedger,
+        reservation: Reservation,
+        ok: bool,
+        encoding: str | None = None,
     ) -> None:
         self._inner, self._ledger, self._reservation, self._ok = inner, ledger, reservation, ok
+        self._encoding = encoding
         self._body = bytearray()
         self._settled = False
 
@@ -409,7 +431,9 @@ class _MeteredStream(httpx.AsyncByteStream):
         except BaseException:
             self._settle(None)
             raise
-        self._settle(parse_usage(bytes(self._body)) if self._ok else None)
+        self._settle(
+            parse_usage(decode_body(bytes(self._body), self._encoding)) if self._ok else None
+        )
 
     async def aclose(self) -> None:
         try:
@@ -478,6 +502,12 @@ class GuardedTransport(httpx.AsyncBaseTransport):
         return httpx.Response(
             status_code=response.status_code,
             headers=response.headers,
-            stream=_MeteredStream(stream, self._ledger, reservation, response.is_success),
+            stream=_MeteredStream(
+                stream,
+                self._ledger,
+                reservation,
+                response.is_success,
+                response.headers.get("content-encoding"),
+            ),
             extensions=response.extensions,
         )

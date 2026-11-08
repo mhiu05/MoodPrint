@@ -71,6 +71,7 @@ async def build_context(
     content: str,
     knowledge: KnowledgeRetriever | None = None,
     storage=None,
+    analysis=None,
 ):
     """Fresh context for every turn and every resume; nothing global, no engine in tools."""
     memory = MemoryService(engine, cfg)
@@ -109,6 +110,7 @@ async def build_context(
             proposals=store,
             events=SqlConfirmedEventWriter(store, incidents),
             plans=SqlPlanWriter(store, plans),
+            analysis=analysis,
         ),
         knowledge_timeout_s=max(1.0, cfg.agent.knowledge_tool_timeout_s - 1),
         memory_candidates_max=cfg.memory.extraction_max_candidates_per_run,
