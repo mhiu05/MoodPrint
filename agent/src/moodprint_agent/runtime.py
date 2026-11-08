@@ -221,6 +221,8 @@ class CompanionRuntime:
         emitter = EventEmitter(
             ctx.run_id, message_id or checkpoint.message_id, self.registry, checkpoint.seq
         )
+        for pending in interruptions:
+            emitter.remember_call(_call_id(pending.raw_item), pending.tool_name or "unknown")
         self._approvals.pop(ctx.run_id, None)
         async for event in self._stream(
             ctx=ctx,

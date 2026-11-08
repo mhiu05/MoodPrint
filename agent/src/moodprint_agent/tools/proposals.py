@@ -45,6 +45,8 @@ class StoredProposal:
     result: dict[str, Any] | None
     created_at: datetime
     expires_at: datetime
+    approval_binding: dict[str, Any] | None = None
+    decided_at: datetime | None = None
 
     def expired(self, now: datetime) -> bool:
         return now >= self.expires_at
