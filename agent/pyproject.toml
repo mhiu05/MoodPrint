@@ -7,9 +7,9 @@ dependencies = ["moodprint-shared", "openai-agents[sqlalchemy]==0.24.*"]
 
 [project.optional-dependencies]
 # --- knowledge: Phase 2 owns this extra ---
-knowledge = []
+knowledge = ["httpx>=0.28", "asyncpg>=0.30", "pypdf>=5", "beautifulsoup4>=4.12", "lxml>=5"]
 # --- companion: Phase 3 owns this extra ---
-companion = []
+companion = ["pillow>=11"]
 
 [tool.uv.sources]
 moodprint-shared = { workspace = true }

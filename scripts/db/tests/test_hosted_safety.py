@@ -170,3 +170,106 @@ def test_direct_target_rejects_non_admin_role() -> None:
             "https://xhlshihobyxrgfqrdafh.supabase.co",
             "postgresql://service_role:synthetic-password@db.xhlshihobyxrgfqrdafh.supabase.co:5432/postgres",
         )
+
+
+def phase23_receipt():
+    return {
+        "commit": "verified-head",
+        "passed": True,
+        "scope": "local_phase23",
+        "checks": [
+            {"command": ["python", "scripts/verify_phase1.py"], "returncode": 0},
+            {"command": ["python", "scripts/e2e_stack.py", "--run"], "returncode": 0},
+            {"command": ["python", "scripts/dev/migration_order_check.py"], "returncode": 0},
+        ]
+        + [{"command": ["python", "scripts/check.py"], "returncode": 0} for _ in range(9)],
+    }
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "head",
+        "scope",
+        "count",
+        "failed",
+        "missing_phase1",
+        "missing_e2e",
+        "missing_order",
+        "self_test_order",
+        "one_order",
+        "fake_path",
+        "fake_script_arg",
+    ],
+)
+def test_phase23_receipt_rejects_missing_stale_or_incomplete_checks(tmp_path, mutation):
+    receipt = phase23_receipt()
+    if mutation == "head":
+        receipt["commit"] = "stale"
+    elif mutation == "scope":
+        receipt["scope"] = "local_phase1"
+    elif mutation == "count":
+        receipt["checks"].pop()
+    elif mutation == "failed":
+        receipt["checks"][3]["returncode"] = 1
+    elif mutation.startswith("missing_"):
+        index = {"missing_phase1": 0, "missing_e2e": 1, "missing_order": 2}[mutation]
+        receipt["checks"][index]["command"] = ["python", "scripts/check.py"]
+    elif mutation == "self_test_order":
+        receipt["checks"][2]["command"].append("--self-test")
+    elif mutation == "one_order":
+        receipt["checks"][2]["command"] += ["--only-order", "A"]
+    elif mutation == "fake_path":
+        receipt["checks"][0]["command"] = ["python", "evil-scripts/verify_phase1.py"]
+    else:
+        receipt["checks"][0]["command"] = ["echo", "scripts/verify_phase1.py"]
+    (tmp_path / ".local").mkdir()
+    (tmp_path / ".local/phase23-gate.json").write_text(json.dumps(receipt))
+    with pytest.raises(ValueError):
+        safety.require_local_gate(tmp_path, "verified-head", phase=23)
+
+
+def test_complete_phase23_gate_is_accepted(tmp_path):
+    (tmp_path / ".local").mkdir()
+    (tmp_path / ".local/phase23-gate.json").write_text(json.dumps(phase23_receipt()))
+    safety.require_local_gate(tmp_path, "verified-head", phase=23)
+
+
+@pytest.mark.parametrize(
+    "receipt",
+    [
+        None,
+        [],
+        "text",
+        {"checks": None},
+        {
+            "commit": "verified-head",
+            "passed": True,
+            "scope": "local_phase23",
+            "checks": [None] * 12,
+        },
+    ],
+)
+def test_malformed_receipts_fail_as_validation_error(tmp_path, receipt):
+    (tmp_path / ".local").mkdir()
+    (tmp_path / ".local/phase23-gate.json").write_text(json.dumps(receipt))
+    with pytest.raises(ValueError):
+        safety.require_local_gate(tmp_path, "verified-head", phase=23)
+
+
+@pytest.mark.parametrize(
+    "check",
+    [
+        {"returncode": False, "command": ["python", "scripts/check.py"]},
+        {"returncode": 0, "command": None},
+        {"returncode": 0, "command": []},
+        {"returncode": 0, "command": [None]},
+    ],
+)
+def test_phase23_requires_twelve_real_command_results(tmp_path, check):
+    receipt = phase23_receipt()
+    receipt["checks"][3] = check
+    (tmp_path / ".local").mkdir()
+    (tmp_path / ".local/phase23-gate.json").write_text(json.dumps(receipt))
+    with pytest.raises(ValueError):
+        safety.require_local_gate(tmp_path, "verified-head", phase=23)

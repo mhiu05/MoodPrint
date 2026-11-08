@@ -80,3 +80,109 @@ def test_missing_local_values_do_not_fall_back_to_process_environment():
     del env["SUPABASE_SECRET_KEY"]
     with pytest.raises(ValueError, match="SUPABASE_SECRET_KEY"):
         stack.build_environment(env, {"SUPABASE_SECRET_KEY": "hosted-owner-key"})
+
+
+@pytest.mark.parametrize("offset", [0, 100, 200, 300])
+def test_worktree_ports_and_output_are_isolated(offset):
+    child = stack.build_environment(values(), {}, name=f"probe-{offset}", offset=offset)
+    assert child["E2E_BASE_URL"] == f"http://127.0.0.1:{5178 + offset}"
+    assert child["E2E_API_URL"] == f"http://127.0.0.1:{8008 + offset}"
+    assert child["E2E_MAIL_URL"] == f"http://127.0.0.1:{54324 + offset}"
+    assert child["MOODPRINT_STACK_NAME"] == f"probe-{offset}"
+    assert child["MOODPRINT_PORT_OFFSET"] == str(offset)
+    assert stack.output_directory(child).name == f"probe-{offset}-{offset}"
+
+
+@pytest.mark.parametrize("name,offset", [("../owner", 100), ("kb", -1), ("ag", 9001)])
+def test_bad_stack_identity_is_rejected(name, offset):
+    with pytest.raises(ValueError):
+        stack.build_environment(values(), {}, name=name, offset=offset)
+
+
+def test_explicit_test_url_cannot_select_remote_target():
+    with pytest.raises(ValueError, match="loopback"):
+        stack.build_environment(values(), {}, frontend_url="https://hosted.example")
+
+
+def test_optional_hook_skips_only_exit_two(monkeypatch, tmp_path):
+    import subprocess
+
+    hook = [{"name": "future-seed", "cmd": ["python", "seed"], "optional": True}]
+    monkeypatch.setattr(
+        stack.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a[0], 2)
+    )
+    stack.run_hooks(hook, {}, tmp_path)
+    monkeypatch.setattr(
+        stack.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a[0], 1)
+    )
+    with pytest.raises(RuntimeError, match="future-seed"):
+        stack.run_hooks(hook, {}, tmp_path)
+
+
+def test_lite_stack_and_redirects_are_worktree_specific(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location(
+        "supabase_worktree_probe", ROOT / "scripts/dev/supabase_worktree.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    source = tmp_path / "supabase"
+    source.mkdir()
+    (source / "config.toml").write_text((ROOT / "supabase/config.toml").read_text())
+    (source / "seed.sql").write_text("")
+    (source / "migrations").mkdir()
+    (source / "tests").mkdir()
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    path = module.prepare("kb", 100, lite=True)
+    import tomllib
+
+    config = tomllib.loads((path / "supabase/config.toml").read_text())
+    assert config["project_id"] == "moodprint-kb"
+    assert config["db"]["port"] == 54422
+    assert config["studio"]["enabled"] is False
+    assert config["auth"]["site_url"] == "http://127.0.0.1:5278"
+    assert "http://127.0.0.1:5278" in config["auth"]["additional_redirect_urls"]
+
+
+def test_prepare_keeps_lite_and_replaces_removed_stack_files(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location(
+        "supabase_worktree_sync", ROOT / "scripts/dev/supabase_worktree.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    source = tmp_path / "supabase"
+    source.mkdir()
+    (source / "config.toml").write_text((ROOT / "supabase/config.toml").read_text())
+    (source / "seed.sql").write_text("")
+    (source / "migrations").mkdir()
+    (source / "tests").mkdir()
+    (source / "migrations" / "old.sql").write_text("select 1;")
+    (source / "tests" / "old.sql").write_text("select 1;")
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    module.prepare("kb", 100, lite=True)
+    (source / "migrations" / "old.sql").unlink()
+    (source / "tests" / "old.sql").unlink()
+    (source / "migrations" / "new.sql").write_text("select 2;")
+    path = module.prepare("kb", 100)
+    import tomllib
+
+    config = tomllib.loads((path / "supabase/config.toml").read_text())
+    assert config["studio"]["enabled"] is False
+    assert {item.name for item in (path / "supabase/migrations").iterdir()} == {"new.sql"}
+    assert list((path / "supabase/tests").iterdir()) == []
+    import os
+    import subprocess
+
+    original = (source / "config.toml").read_text()
+    link = tmp_path / ".local/stacks/ag"
+    link.parent.mkdir(parents=True, exist_ok=True)
+    if os.name == "nt":
+        subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(link), str(source)],
+            check=True,
+            capture_output=True,
+        )
+    else:
+        link.symlink_to(source, target_is_directory=True)
+    with pytest.raises(ValueError, match="symlink|escapes"):
+        module.prepare("ag", 200, lite=True)
+    assert (source / "config.toml").read_text() == original

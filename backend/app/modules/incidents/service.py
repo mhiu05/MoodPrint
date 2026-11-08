@@ -15,7 +15,7 @@ from moodprint_shared.contracts.incidents import (
     TimelineEvent,
 )
 from moodprint_shared.contracts.paging import Page
-from sqlalchemy import and_, delete, func, or_, select, update
+from sqlalchemy import and_, delete, func, or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
@@ -357,8 +357,9 @@ class IncidentService:
         data: EventCreate,
         *,
         editing: bool,
+        allow_provenance: frozenset[str] = frozenset({"user_entered"}),
     ) -> TimelineEvent:
-        if data.provenance != "user_entered":
+        if data.provenance not in allow_provenance:
             raise ApiError(
                 "forbidden",
                 "Mốc mô phỏng hoặc AI chưa được hỗ trợ trong hồ sơ thật.",
@@ -427,6 +428,72 @@ class IncidentService:
         await session.flush()
         assert row is not None
         return await event_dto(session, row)
+
+    async def add_confirmed_event(
+        self, auth: AuthContext, case_id: UUID, data: EventCreate, *, proposal_id: UUID
+    ) -> TimelineEvent:
+        """Internal write after the caller validates the immutable, approved proposal.
+
+        Phase 3 owns proposal ownership, expiry, payload binding and consumption.
+        This seam enforces case/evidence ownership and exact event retries without
+        giving the REST surface permission to submit user_confirmed events.
+        """
+        if data.provenance != "user_confirmed":
+            raise ValueError("confirmed events require user_confirmed provenance")
+        if not isinstance(proposal_id, UUID) or proposal_id.int == 0:
+            raise ValueError("proposal_id must be a non-nil UUID")
+        async with user_uow(self.engine, auth) as uow:
+            await owned_case(uow.session, auth, case_id, lock=True)
+            existing = await uow.session.scalar(
+                select(CaseEvent).where(
+                    CaseEvent.id == data.id,
+                    CaseEvent.case_id == case_id,
+                    CaseEvent.owner_id == auth.user_id,
+                )
+            )
+            if existing is not None:
+                result = await event_dto(uow.session, existing)
+                # PostgreSQL normalizes timestamptz to UTC and evidence links are
+                # sets, so compare the persisted meaning rather than wire formatting.
+                fields = {"case_id", "when", "evidence_ids"}
+                same_time = (
+                    datetime.fromisoformat(result.when)
+                    == datetime.fromisoformat(data.when.replace("Z", "+00:00"))
+                    if data.time_precision == result.time_precision == "exact"
+                    else result.when == data.when
+                )
+                if (
+                    result.model_dump(exclude=fields) != data.model_dump(exclude=fields)
+                    or not same_time
+                    or set(result.evidence_ids) != set(data.evidence_ids)
+                ):
+                    raise ApiError("conflict", "Mã sự kiện đã được dùng cho nội dung khác.", 409)
+                return result
+            result = await self._save_event(
+                uow.session,
+                auth,
+                case_id,
+                data,
+                editing=False,
+                allow_provenance=frozenset({"user_confirmed"}),
+            )
+            await uow.session.execute(
+                text("""INSERT INTO app.audit_events
+                    (actor_id,action,entity_type,entity_id,metadata)
+                    VALUES(:owner,'case.event_confirmed_from_proposal','case_event',:id,
+                           CAST(:metadata AS jsonb))"""),
+                {
+                    "owner": auth.user_id,
+                    "id": data.id,
+                    "metadata": json.dumps({"proposalId": str(proposal_id)}),
+                },
+            )
+            await uow.session.execute(
+                update(Case)
+                .where(Case.id == case_id, Case.owner_id == auth.user_id)
+                .values(updated_at=func.now())
+            )
+            return result
 
     async def add_event(self, auth: AuthContext, case_id: UUID, data: EventCreate) -> TimelineEvent:
         async with user_uow(self.engine, auth) as uow:

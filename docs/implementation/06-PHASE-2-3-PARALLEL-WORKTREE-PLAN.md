@@ -1,6 +1,8 @@
 # 06 — Phase 2 / Phase 3 Parallel Worktree Plan
 
-> 📐 PLANNED. **Không tạo branch hay worktree nào cho tới khi gate G2 đạt** (§8). Theo AD-19, agent được tạo worktree, push branch feature, mở PR, và integrator agent được merge vào `mhiu05/feat-refactor` khi gate đạt. Merge vào `main` vẫn do owner.
+> **Hiệu lực 2026-11-08.** Tên `feat/knowledge-ingestion-rag` đã nghỉ hưu và bị ownership từ chối. Quy trình đang dùng là `docs/implementation/phase2-3/08` và `01`. Phase 2 dùng `feat/knowledge-base`. Cả hai feature rẽ từ `baseline/phase-2-3-start` sau Gate PB, không từ `baseline/phase-1-verified`. Owner tạo `..\MoodPrint-Knowledge` và `..\MoodPrint-Agent`. Không chạy lệnh worktree trong bản lịch sử bên dưới.
+>
+> 📐 PLANNED lịch sử. **Không tạo branch hay worktree nào cho tới khi Gate PB và tag mới đã VERIFIED.** Theo AD-19, agent được push branch feature và mở PR; integrator merge vào `mhiu05/feat-refactor` khi gate đạt. Merge vào `main` vẫn do owner.
 
 ## 1. Mục tiêu
 
@@ -8,9 +10,9 @@ Hai coding agent làm cùng lúc, không sửa chung file, không đụng migrat
 
 | | Phase 2 — Knowledge | Phase 3 — Companion |
 |---|---|---|
-| Branch | `feat/knowledge-ingestion-rag` | `feat/agent-companion` |
-| Worktree đề xuất | `C:\Users\minhh\orca\workspaces\MoodPrint\feat-knowledge-ingestion-rag` | `C:\Users\minhh\orca\workspaces\MoodPrint\feat-agent-companion` |
-| Rẽ từ | Tag `baseline/phase-1-verified` | Cùng tag |
+| Branch | `feat/knowledge-base` (tên cũ `feat/knowledge-ingestion-rag` đã nghỉ hưu) | `feat/agent-companion` |
+| Worktree đề xuất | `C:\Users\minhh\orca\workspaces\MoodPrint\MoodPrint-Knowledge` | `C:\Users\minhh\orca\workspaces\MoodPrint\MoodPrint-Agent` |
+| Rẽ từ | Tag `baseline/phase-2-3-start` sau Gate PB | Cùng tag |
 | Knowledge | Adapter thật | `FixtureKnowledgeRetriever` |
 | Migration scope | `kb` | `ag` |
 | Báo cáo | `docs/implementation/reports/phase-2-report.md` | `docs/implementation/reports/phase-3-report.md` |
@@ -20,7 +22,7 @@ Hai coding agent làm cùng lúc, không sửa chung file, không đụng migrat
 1. Phase 0, Phase 1 merge vào `mhiu05/feat-refactor`, mọi gate xanh.
 2. Chuẩn bị scaffold cho cả hai phía (§3.3), chạy lại toàn bộ test.
 3. Đặt tag annotated `baseline/phase-1-verified` trên commit đó, ghi SHA vào `phase-1-report.md`.
-4. `git worktree add <path> -b feat/knowledge-ingestion-rag baseline/phase-1-verified`, tương tự cho Phase 3.
+4. Sau tag `baseline/phase-2-3-start`, owner chạy `git worktree add -b feat/knowledge-base ..\MoodPrint-Knowledge baseline/phase-2-3-start` và lệnh tương ứng cho `feat/agent-companion` tại `..\MoodPrint-Agent`. Không dùng tên nhánh đã nghỉ hưu và không rẽ từ tag Phase 1.
 5. Mỗi worktree có `.env` riêng (copy tay, không link), local Supabase riêng (§6).
 6. Mỗi agent chỉ sửa file thuộc quyền mình (§4). Pre-commit hook và CI chạy `scripts/check_ownership.py --phase 2|3`.
 7. Thay đổi contract theo §5.

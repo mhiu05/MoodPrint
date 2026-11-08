@@ -17,7 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 POLICY = "docs/implementation/ownership.yaml"
-DEFAULT_BASE = "baseline/phase-1-verified"
+DEFAULT_BASE = "baseline/phase-2-3-start"
 
 
 class CheckError(Exception):
@@ -35,11 +35,126 @@ def git(repo: Path, *args: str) -> bytes:
     return result.stdout
 
 
+def assert_base_ancestor(repo: Path, base_commit: str, head: str) -> None:
+    """Fail closed unless the selected baseline commit is an ancestor of head.
+
+    `git describe` already limits the implicit tag search to ancestors. An
+    explicit --base can name any commit, including a future or unrelated one,
+    and must not become the policy source for this revision.
+    """
+    result = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "merge-base",
+            "--is-ancestor",
+            "--end-of-options",
+            base_commit,
+            head,
+        ],
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise CheckError("Explicit baseline is not an ancestor of the checked revision.")
+
+
 def baseline_text(repo: Path, commit: str, path: str) -> str:
     try:
         return git(repo, "show", f"{commit}:{path}").decode("utf-8").replace("\r\n", "\n")
     except (CheckError, UnicodeError):
         raise CheckError(f"Baseline is missing a readable required file: {path}") from None
+
+
+def resolve_base(repo: Path, head: str = "HEAD") -> str:
+    try:
+        tag = (
+            git(
+                repo,
+                "describe",
+                "--tags",
+                "--match",
+                "baseline/phase-2-3-start*",
+                "--abbrev=0",
+                head,
+            )
+            .decode()
+            .strip()
+        )
+        return (
+            git(repo, "rev-parse", "--verify", "--end-of-options", tag + "^{commit}")
+            .decode()
+            .strip()
+        )
+    except CheckError:
+        raise CheckError(
+            "Missing ancestor baseline/phase-2-3-start* tag; fetch verified tags."
+        ) from None
+
+
+def validate_policy(policy: dict) -> None:
+    required = {
+        "version",
+        "source",
+        "baseline",
+        "branches",
+        "retired_branches",
+        "local_overrides",
+        "frozen",
+        "generated",
+        "untracked_artifacts",
+        "shared_sections",
+        "frozen_signatures",
+        "phases",
+    }
+    if not isinstance(policy, dict) or set(policy) != required or policy["version"] != 2:
+        raise CheckError("Unknown, missing or unsupported ownership policy configuration.")
+
+    def strings(value):
+        return isinstance(value, list) and all(isinstance(item, str) and item for item in value)
+
+    for key in (
+        "frozen",
+        "generated",
+        "untracked_artifacts",
+        "retired_branches",
+        "local_overrides",
+    ):
+        if not strings(policy[key]):
+            raise CheckError("Ownership policy lists must contain nonempty strings.")
+    if not isinstance(policy["source"], str) or not isinstance(policy["baseline"], str):
+        raise CheckError("Invalid ownership policy metadata.")
+    branches = policy["branches"]
+    if not isinstance(branches, dict) or branches != {
+        "feat/knowledge-base": "2",
+        "feat/agent-companion": "3",
+    }:
+        raise CheckError("Invalid ownership branch profiles.")
+    if not isinstance(policy["phases"], dict) or set(policy["phases"]) != {"2", "3"}:
+        raise CheckError("Invalid ownership phases.")
+    for rules in policy["phases"].values():
+        if (
+            not isinstance(rules, dict)
+            or set(rules) != {"allow", "exclude"}
+            or not all(strings(v) for v in rules.values())
+        ):
+            raise CheckError("Invalid phase path rules.")
+    if not isinstance(policy["shared_sections"], dict) or not isinstance(
+        policy["frozen_signatures"], dict
+    ):
+        raise CheckError("Invalid shared section or signature rules.")
+    for rule in policy["shared_sections"].values():
+        if (
+            not isinstance(rule, dict)
+            or set(rule) != {"kind", "2", "3"}
+            or rule["kind"] not in MASKERS
+            or not strings(rule["2"])
+            or not strings(rule["3"])
+        ):
+            raise CheckError("Invalid shared section rule.")
+    if any(not strings(names) for names in policy["frozen_signatures"].values()):
+        raise CheckError("Invalid frozen signatures.")
 
 
 def working_text(repo: Path, path: str) -> str:
@@ -209,12 +324,21 @@ def signatures(source: str, names: list[str]) -> list[tuple[str, str, str | None
     return result
 
 
-def violations(repo: Path, commit: str, phase: str, policy: dict) -> tuple[list[str], list[str]]:
-    raw = git(repo, "diff", "--name-only", "--no-renames", "-z", commit, "--")
-    staged = git(repo, "diff", "--cached", "--name-only", "--no-renames", "-z", commit, "--")
+def violations(
+    repo: Path, commit: str, phase: str, policy: dict, *, head: str | None = None
+) -> tuple[list[str], list[str]]:
+    validate_policy(policy)
+    raw = git(
+        repo, "diff", "--name-only", "--no-renames", "-z", commit, *([head] if head else []), "--"
+    )
+    staged = (
+        b""
+        if head
+        else git(repo, "diff", "--cached", "--name-only", "--no-renames", "-z", commit, "--")
+    )
     indexed = {path.decode("utf-8") for path in staged.split(b"\0") if path}
     paths = sorted({path.decode("utf-8") for path in raw.split(b"\0") if path} | indexed)
-    untracked = git(repo, "ls-files", "--others", "--exclude-standard", "-z")
+    untracked = b"" if head else git(repo, "ls-files", "--others", "--exclude-standard", "-z")
     paths = sorted(
         set(paths)
         | {
@@ -225,6 +349,20 @@ def violations(repo: Path, commit: str, phase: str, policy: dict) -> tuple[list[
         }
     )
     rules = policy["phases"][phase]
+    committed = {
+        p.decode()
+        for p in git(
+            repo, "diff", "--name-only", "--no-renames", "-z", commit, head or "HEAD", "--"
+        ).split(b"\0")
+        if p
+    }
+    paths = [
+        p
+        for p in paths
+        if not (
+            not head and p in policy["local_overrides"] and p not in committed and p not in indexed
+        )
+    ]
     errors = []
     for path in paths:
         reason = None
@@ -236,7 +374,7 @@ def violations(repo: Path, commit: str, phase: str, policy: dict) -> tuple[list[
             rule = policy["shared_sections"][path]
             try:
                 before = baseline_text(repo, commit, path)
-                versions = [working_text(repo, path)]
+                versions = [baseline_text(repo, head, path) if head else working_text(repo, path)]
                 if path in indexed:
                     versions.append(index_text(repo, path))
                 masker = MASKERS[rule["kind"]]
@@ -251,7 +389,7 @@ def violations(repo: Path, commit: str, phase: str, policy: dict) -> tuple[list[
         if reason is None and path in policy["frozen_signatures"]:
             try:
                 before = baseline_text(repo, commit, path)
-                versions = [working_text(repo, path)]
+                versions = [baseline_text(repo, head, path) if head else working_text(repo, path)]
                 if path in indexed:
                     versions.append(index_text(repo, path))
                 names = policy["frozen_signatures"][path]
@@ -267,23 +405,25 @@ def violations(repo: Path, commit: str, phase: str, policy: dict) -> tuple[list[
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--phase", required=True, choices=["2", "3"])
-    parser.add_argument("--base", default=DEFAULT_BASE)
+    parser.add_argument("--base")
+    parser.add_argument("--head", help="Check this committed revision only (CI)")
     parser.add_argument(
         "--repo", type=Path, default=ROOT, help="Git repository (defaults to this checkout)"
     )
     args = parser.parse_args(argv)
     try:
         repo = args.repo.resolve()
+        base = args.base or resolve_base(repo, args.head or "HEAD")
         commit = (
-            git(repo, "rev-parse", "--verify", "--end-of-options", args.base + "^{commit}")
+            git(repo, "rev-parse", "--verify", "--end-of-options", base + "^{commit}")
             .decode()
             .strip()
         )
+        assert_base_ancestor(repo, commit, args.head or "HEAD")
         # A feature branch must not be able to relax the policy it is checked against.
         policy = json.loads(baseline_text(repo, commit, POLICY))
-        if policy["version"] != 1:
-            raise CheckError("Unsupported ownership policy version in baseline.")
-        paths, errors = violations(repo, commit, args.phase, policy)
+        validate_policy(policy)
+        paths, errors = violations(repo, commit, args.phase, policy, head=args.head)
     except (CheckError, OSError, UnicodeError, ValueError, KeyError, TypeError) as error:
         message = (
             str(error)

@@ -286,5 +286,7 @@ export function createMockServices(auth: AuthPort): Services {
     roleplay: simulatedRoleplay,
     voice: { simulated: true },
     knowledgeCatalog: createKnowledgeCatalogPort,
+    knowledgeSearch: null,
+    companion: null,
   };
 }

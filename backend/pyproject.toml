@@ -3,7 +3,7 @@ name = "moodprint-backend"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-  "moodprint-shared", "moodprint-agent", "fastapi>=0.115", "uvicorn[standard]>=0.34",
+  "moodprint-shared", "moodprint-agent[knowledge,companion]", "fastapi>=0.115", "uvicorn[standard]>=0.34",
   "sqlalchemy[asyncio]>=2.0", "asyncpg>=0.30", "pyjwt[crypto]>=2.10", "httpx>=0.28",
 ]
 

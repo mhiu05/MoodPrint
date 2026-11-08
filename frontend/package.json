@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "check:boundaries": "node scripts/check-boundaries.mjs",
+    "gen:api": "openapi-typescript ../backend/openapi.json -o src/services/http/schema.gen.ts && prettier --write src/services/http/schema.gen.ts",
     "format:check": "prettier --check src e2e scripts vite.config.ts playwright.config.ts eslint.config.js tsconfig.json package.json",
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build",

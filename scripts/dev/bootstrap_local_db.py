@@ -9,12 +9,13 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import secrets
 from pathlib import Path
 from urllib.parse import quote, urlsplit, urlunsplit
 
 import asyncpg
-from supabase_worktree import ROOT, cli
+from supabase_worktree import ROOT, cli, prepare
 
 
 async def bootstrap(workdir: Path, output: Path) -> None:
@@ -68,11 +69,21 @@ async def bootstrap(workdir: Path, output: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--workdir", type=Path, default=ROOT)
-    parser.add_argument("--output", type=Path, default=ROOT / ".local/test.env")
+    parser.add_argument("--name", default=os.environ.get("MOODPRINT_STACK_NAME", "foundation"))
+    parser.add_argument(
+        "--offset", type=int, default=int(os.environ.get("MOODPRINT_PORT_OFFSET", "0"))
+    )
+    parser.add_argument("--workdir", type=Path)
+    parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     try:
-        asyncio.run(bootstrap(args.workdir, args.output))
+        workdir = args.workdir or prepare(args.name, args.offset)
+        output = args.output or (
+            ROOT / ".local/test.env" if workdir == ROOT else workdir / "test.env"
+        )
+        if not output.resolve().is_relative_to((ROOT / ".local").resolve()):
+            raise ValueError("Bootstrap output must stay inside this worktree .local")
+        asyncio.run(bootstrap(workdir, output))
     except (ValueError, RuntimeError) as exc:
         parser.exit(1, f"{exc}\n")
     except Exception:
