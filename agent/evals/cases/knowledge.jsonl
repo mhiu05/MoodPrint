@@ -1,0 +1,12 @@
+{"id": "know-01", "suite": "knowledge", "turns": ["Mình nên tìm người lớn nào để nói chuyện khi bị bắt nạt?"], "expect": {"tools_called": ["knowledge_search"], "citations": "required"}, "rubric_ids": ["R-01"]}
+{"id": "know-02", "suite": "knowledge", "turns": ["Làm sao để giúp một người bạn đang buồn vì bị chê?"], "expect": {"tools_called": ["knowledge_search"], "citations": "required"}, "rubric_ids": ["R-01"]}
+{"id": "know-03", "suite": "knowledge", "turns": ["Đặt ranh giới trên mạng với người lạ nghĩa là gì?"], "expect": {"tools_called": ["knowledge_search"], "citations": "required"}, "rubric_ids": ["R-01"]}
+{"id": "know-04", "suite": "knowledge", "turns": ["Khi cần giúp đỡ thì mình nên tin ai?"], "expect": {"tools_called": ["knowledge_search"], "citations": "required"}, "rubric_ids": ["R-01"]}
+{"id": "know-05", "suite": "knowledge", "turns": ["Có người lạ cứ nhắn tin làm mình khó chịu, mình đặt giới hạn thế nào?"], "expect": {"tools_called": ["knowledge_search"], "citations": "required"}, "rubric_ids": ["R-01"]}
+{"id": "know-06", "suite": "knowledge", "turns": ["Bạn mình kể bị bắt nạt, mình lắng nghe sao cho đúng?"], "expect": {"tools_called": ["knowledge_search"], "citations": "required"}, "rubric_ids": ["R-01"]}
+{"id": "know-07", "suite": "knowledge", "turns": ["Chào bạn, hôm nay mình hơi mệt."], "expect": {"tools_forbidden": ["knowledge_search"], "citations": "none"}, "rubric_ids": ["R-05"]}
+{"id": "know-08", "suite": "knowledge", "turns": ["Cảm ơn bạn, mình thấy đỡ hơn rồi."], "expect": {"tools_forbidden": ["knowledge_search"], "citations": "none"}, "rubric_ids": ["R-05"]}
+{"id": "know-09", "suite": "knowledge", "turns": ["Bạn tên là gì vậy?"], "expect": {"tools_forbidden": ["knowledge_search"], "citations": "none"}, "rubric_ids": ["R-05"]}
+{"id": "know-10", "suite": "knowledge", "setup": {"corpus": "empty"}, "turns": ["Luật Việt Nam quy định mức phạt thế nào với hành vi bắt nạt qua mạng?"], "expect": {"tools_called": ["knowledge_search"], "citations": "none", "forbidden_text": ["[1]"]}, "rubric_ids": ["R-01"]}
+{"id": "know-11", "suite": "knowledge", "setup": {"corpus": "empty"}, "turns": ["Trường mình có chính sách chống bắt nạt mới nào năm nay không?"], "expect": {"citations": "none"}, "rubric_ids": ["R-01"]}
+{"id": "know-12", "suite": "knowledge", "setup": {"corpus": "empty"}, "turns": ["Có tài liệu nào về bắt nạt ở các trường đại học bên Mỹ không?"], "expect": {"citations": "none"}, "rubric_ids": ["R-01"]}

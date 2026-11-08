@@ -11,7 +11,7 @@ from openai.types.shared import Reasoning
 
 from moodprint_agent.tools.registry import ToolRegistry
 
-PROMPT_VERSION: Final = "companion_v2"
+PROMPT_VERSION: Final = "companion_v3"
 ROLEPLAY_PARTNER_VERSION: Final = "roleplay_partner_v1"
 ROLEPLAY_COACH_VERSION: Final = "roleplay_coach_v1"
 EVIDENCE_READER_VERSION: Final = "evidence_reader_v1"

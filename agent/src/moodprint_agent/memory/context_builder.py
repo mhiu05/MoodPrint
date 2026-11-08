@@ -127,6 +127,7 @@ class MemoryContextBuilder:
                 json.dumps(
                     {
                         "label": "[người dùng kể]",
+                        "case_id": str(request.linked_case_id),
                         "title": summary.title,
                         "status": summary.status,
                         "events": summary.event_count,

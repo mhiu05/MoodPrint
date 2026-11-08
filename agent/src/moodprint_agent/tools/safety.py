@@ -117,7 +117,20 @@ _THIRD = re.compile(
 )
 _MEDIA = re.compile(
     r"\b(?:bai hat|phim|truyen|tho|game|meme|tiktok|sach|nhan vat|bai van|phan tich|ca khuc|"
-    r"lyric|kich|tieu thuyet)\b"
+    r"lyric|kich|tieu thuyet|bao chi|bao dien tu|tin tuc|ban tin|bai viet|dua tin|thoi su|phong van|"
+    r"van ban|trang web|bai bao)\b"
+)
+# Joking or playful framing: a "threat" between friends who laugh is not a threat.
+_JOKE = re.compile(
+    r"\b(?:dua|dua thoi|dua vui|cuoi|cuoi lan|haha|hihi|kkk|troll|choi game|dau game|vui)\b"
+)
+# Wanting to understand or prevent harm is information-seeking, not a disclosure.
+_INFO = re.compile(
+    r"\b(?:phong tranh|phong ngua|hieu cach|muon hieu|lam sao de|lam the nao de|cach de)\b"
+)
+_COMMIT = re.compile(
+    r"\b(?:minh|em|toi) (?:se|dinh|toan)(?: \w+){0,2} (?:lam|ket thuc|di|thuc hien)\b|"
+    r"\b(?:di luon|lam luon|cho xong|nghi xong|het cach)\b"
 )
 # A leading "if…" is a what-if question; a trailing "…if you tell" is the condition of a threat.
 _HYPO = re.compile(r"^(?:\w+ ){0,2}(?:neu|gia su|gia nhu|gia thu|lo nhu|gia dinh|neu nhu)\b")
@@ -140,12 +153,21 @@ _PAST = re.compile(
 _RESOLVED = re.compile(r"\b(?:gio on|da on|da qua|khong con nua|xoa roi|da het)\b")
 _IMMINENT = re.compile(
     r"\b(?:bay gio|ngay bay gio|luc nay|ngay lap tuc|toi nay|hom nay|chieu nay|sang nay|"
-    r"dem nay|lat nua|mot lat|sap|dang|chuan bi|da mua|san sang|tan hoc|sau gio hoc|"
-    r"ngay mai|trong ngay)\b"
+    r"dem nay|lat nua|mot lat|sap|dang|chuan bi|da mua|san sang|tan hoc|sau gio hoc|sau hoc|"
+    r"het gio|ra choi|tan truong|ngay mai|trong ngay|vua nhan|vua noi|ngoai kia|truoc cong|"
+    r"o cong|ngay luc nay|nhu bay gio)\b"
 )
 _FEAR = re.compile(r"\b(?:so|so hai|hoang so|lo so|run|khong dam|kinh khung|hoang)\b")
 _MEANS = re.compile(
     r"\b(?:dao|thuoc ngu|thuoc|day thung|san thuong|ban cong|kiem|vu khi|sung|day|cau)\b"
+)
+# Wishing to stop existing, in the user's own voice (plain wording; severity is decided in context).
+_IDEATION = re.compile(
+    r"\b(?:muon|dinh|toan|se|nghi (?:den|toi) chuyen)\b.{0,12}\b(?:chet|tu tu|tu sat|bien mat|"
+    r"ket thuc|di luon|dung lai|khong con)\b|"
+    r"\bkhong (?:thay |con )?(?:ly do|y nghia)\b.{0,20}\b(?:tiep tuc|song|ton tai)\b|"
+    r"\bket thuc (?:tat ca|het|moi thu|cuoc song|doi)\b|\bbien mat khoi\b|"
+    r"\b(?:chiu|chong) (?:het |khong )?(?:noi|duoc)\b.{0,25}\bdi luon\b|\bdi luon cho xong\b"
 )
 
 # group, base level, pattern, intrinsic_negation (pattern already contains its own "khong")
@@ -233,6 +255,22 @@ _RULES: Final[tuple[_P, ...]] = (
     ),
     _p("self_harm", "elevated", r"\bnghi (?:den|toi) (?:cai chet|chuyen chet|chet|chuyen tu tu)\b"),
     _p("self_harm", "elevated", r"\bchan (?:moi thu|tat ca|het)\b"),
+    _p(
+        "self_harm",
+        "immediate",
+        r"\bcam (?:lo |vi |hop )?(?:thuoc|dao|day)\b.{0,60}\b(?:uong het|nuot het|cat|tu lam dau|"
+        r"nghi den chuyen)\b|\b(?:uong|nuot) het\b",
+    ),
+    _p(
+        "self_harm",
+        "immediate",
+        r"\b(?:want to|wanna) (?:die|disappear|end (?:it|my life))\b|\bkill myself\b",
+    ),
+    _p(
+        "self_harm",
+        "immediate",
+        r"\b(?:se|dinh|toan) ket thuc\b|\bnghi xong cach\b.{0,40}\b(?:chet|bien mat|ket thuc)\b",
+    ),
     # --- threats / being hurt ----------------------------------------------------------------
     _p(
         "threat",
@@ -265,6 +303,34 @@ _RULES: Final[tuple[_P, ...]] = (
     _p("threat", "immediate", r"\bkhong dam (?:ra|ve|di|ve nha)\b"),
     _p(
         "threat",
+        "immediate",
+        r"\b(?:dang )?(?:cho|doi|dung (?:cho|doi)|rinh) (?:minh |em |toi )?(?:o |ngoai |truoc |tai )?"
+        r"(?:cong|san sau|nha xe|hanh lang|ngoai kia|truoc cong|cua lop)\b",
+    ),
+    _p(
+        "threat",
+        "elevated",
+        r"\b(?:keo|lon|bat|day|nhot) (?:minh|em|toi) (?:vao|ra|di|xuong)\b|"
+        r"\b(?:chan duong|chan minh|dap minh|xu minh)\b",
+    ),
+    _p(
+        "threat",
+        "immediate",
+        r"\b(?:co nguoi|ai do|mot nguoi|nhom nguoi)(?: dang)? di theo (?:minh|em|toi)\b",
+    ),
+    _p(
+        "threat",
+        "elevated",
+        r"\b(?:bao|noi|nhan|hen)(?: la)? (?:se )?(?:gap|tim|doi|cho) (?:minh|em|toi)\b.{0,25}"
+        r"\b(?:sau gio hoc|sau hoc|tan hoc|o cong|rieng|mang theo)\b",
+    ),
+    _p(
+        "threat",
+        "immediate",
+        r"\b(?:they|he|she|people) (?:will|are going to|gonna) (?:hurt|beat|kill|attack) (?:me|us)\b",
+    ),
+    _p(
+        "threat",
         "elevated",
         r"\bhen (?:minh|em|toi) (?:sau gio hoc|tan hoc|o cong|rieng|o nha xe|cong truong|san sau)\b|\bco ban hen (?:minh|em|toi)\b",
     ),
@@ -275,6 +341,18 @@ _RULES: Final[tuple[_P, ...]] = (
         r"(?:danh|dap|giet|chem|dam|xu ly) (?:minh|em|toi|con)\b",
     ),
     _p("threat", "elevated", r"\b(?:giet|chem|dam) (?:minh|em|toi)\b"),
+    _p(
+        "physical",
+        "elevated",
+        r"\bdang (?:danh|dap|da|xo|dam) (?:mot |may )?(?:ban|nguoi|em|bac|co)\b",
+    ),
+    _p(
+        "physical",
+        "immediate",
+        r"\bdang (?:giu|nam|keo|ghim) (?:tay|toc|ao|co) (?:minh|em|toi)?\b|"
+        r"\bkhong cho (?:minh|em|toi) (?:di|ra|ve)\b|\b(?:giu|nam) (?:tay )?(?:minh|em|toi) lai\b|"
+        r"\bgiup voi\b.{0,40}\b(?:danh|keo|dap|da)\b|\b(?:danh|keo|dap|da)\b.{0,40}\bgiup voi\b",
+    ),
     # --- physical harm ------------------------------------------------------------------------
     _p(
         "physical",
@@ -331,6 +409,45 @@ _RULES: Final[tuple[_P, ...]] = (
         "immediate",
         r"\bdoi tien\b.{0,40}\b(?:anh|hinh|clip|video)\b|\b(?:anh|hinh|clip|video)\b.{0,40}\bdoi tien\b",
     ),
+    # Private material together with a threat, or still being spread right now.
+    _p(
+        "image",
+        "immediate",
+        r"\b(?:anh|hinh|clip|video)\b.{0,12}\b(?:rieng tu|nhay cam|nong|khoa than|kin)\b.{0,70}"
+        r"\b(?:doa|de doa|uy hiep|ep)\b|\b(?:doa|de doa|uy hiep|ep)\b.{0,70}"
+        r"\b(?:anh|hinh|clip|video)\b.{0,12}\b(?:rieng tu|nhay cam|nong|khoa than|kin)\b",
+    ),
+    _p(
+        "image",
+        "immediate",
+        r"\bdang (?:gui|dang|chia se|phat tan|lan truyen)\b.{0,20}\b(?:anh|hinh|clip|video)\b.{0,12}"
+        r"\b(?:rieng tu|nhay cam|nong|khoa than|kin)\b",
+    ),
+    _p(
+        "image",
+        "immediate",
+        r"\b(?:doa|de doa|uy hiep) (?:se )?(?:dang|gui|lo|phat tan|lan truyen|dua)(?: them)?\b",
+    ),
+    _p(
+        "image",
+        "immediate",
+        r"\bneu (?:minh |em |toi )?khong\b.{0,45}\b(?:anh|hinh|clip|video)\b.{0,45}\b(?:se )?"
+        r"(?:dang|lo|phat tan|gui|dua|cong khai|chia se)\b",
+        True,
+    ),
+    _p(
+        "image",
+        "immediate",
+        r"\bkhong (?:gui|lam theo|tra tien|chuyen tien)\b.{0,25}\b(?:la|thi)\b.{0,30}\b(?:dua|dang|gui|lo|cong khai)\b"
+        r".{0,25}\b(?:cho|len|ca)\b",
+        True,
+    ),
+    _p(
+        "abuse",
+        "immediate",
+        r"\b(?:cham|so|dung|om|hon) (?:vao )?(?:minh|em)\b.{0,50}\b(?:bao dung|khong muon|khong cho|ma minh da)\b|"
+        r"\bcham vao (?:minh|em)\b",
+    ),
     # --- abuse --------------------------------------------------------------------------------
     _p(
         "abuse", "immediate", r"\bbi (?:xam hai|so mo|cuong buc|hiep|lam dung|bao hanh|dung cham)\b"
@@ -366,6 +483,15 @@ def _step_down(level: UrgencyLevel) -> UrgencyLevel:
     return "elevated" if level == "immediate" else "none"
 
 
+def first_person_ideation(clause: str) -> bool:
+    """The speaker themself wishes to stop existing (not a description of someone else)."""
+    own = _POSSESSED.sub(" ", clause)
+    if not _FIRST.search(own):
+        return False
+    # "mình không muốn chết đâu" is the opposite of ideation: a preceding negation cancels it.
+    return any(not _negated(clause, m.start(), False) for m in _IDEATION.finditer(clause))
+
+
 def _clause_signals(clause: str, *, quoted: bool) -> list[tuple[str, UrgencyLevel]]:
     found: list[tuple[str, UrgencyLevel]] = []
     media = bool(_MEDIA.search(clause))
@@ -385,6 +511,14 @@ def _clause_signals(clause: str, *, quoted: bool) -> list[tuple[str, UrgencyLeve
         level = base
         if media and group in {"self_harm", "violence", "threat", "physical"}:
             continue
+        if _INFO.search(clause) and group == "self_harm" and not first_person_ideation(clause):
+            continue  # asking how to prevent or help is information-seeking
+        if (
+            _JOKE.search(clause)
+            and group in {"threat", "violence", "physical"}
+            and not _FEAR.search(clause)
+        ):
+            continue  # friends laughing about "I'll hit you": no signal
         if group == "self_harm":
             if _HYPERBOLE_NEUTRAL.search(clause):
                 continue
@@ -396,6 +530,14 @@ def _clause_signals(clause: str, *, quoted: bool) -> list[tuple[str, UrgencyLeve
                 level = "elevated"
             if quoted:
                 level = "elevated" if level == "immediate" else level
+            if (
+                third
+                and not _FIRST.search(clause)
+                and imminent
+                and re.search(r"\b(?:nhay|san thuong|ban cong|tu tu|cat tay|uong het)\b", clause)
+            ):
+                found.append(("third_party", "immediate"))
+                continue
             if third and not _FIRST.search(clause):
                 found.append(
                     (
@@ -416,7 +558,11 @@ def _clause_signals(clause: str, *, quoted: bool) -> list[tuple[str, UrgencyLeve
                 continue  # an ordinary arrangement ("hẹn bạn làm bài nhóm"), not a threat
             if past:
                 level = "elevated"
-            elif imminent and (_FEAR.search(clause) or _VIOLENT_WORD.search(clause)):
+            elif imminent and (
+                _FEAR.search(clause)
+                or _VIOLENT_WORD.search(clause)
+                or re.search(r"\b(?:keo|chan|bat|lon|nhot|xu)\b", clause)
+            ):
                 level = "immediate"
         elif group == "physical":
             if hypothetical:
@@ -425,6 +571,12 @@ def _clause_signals(clause: str, *, quoted: bool) -> list[tuple[str, UrgencyLeve
                 level = "elevated"
             elif imminent and (_FEAR.search(clause) or "tiep" in clause):
                 level = "immediate"
+            elif (
+                third
+                and imminent
+                and re.search(r"\b(?:keu cuu|cuu|dang bi danh|dang danh|dang dap)\b", clause)
+            ):
+                level = "immediate"  # someone else is being hurt right now
         elif group == "violence":
             if _BENIGN_OBJECT.search(clause) and not _VIOLENT_WORD.search(clause):
                 continue  # kitchen knife at a picnic
@@ -465,11 +617,29 @@ def assess_urgency(text: str, *, prior: Sequence[str] = ()) -> UrgencyAssessment
     quoted_spans = [m.group(1) or m.group(2) for m in _QUOTES.finditer(text)]
     unquoted = _QUOTES.sub(" ", text)
     absorb(unquoted, quoted=False)
-    if not _MEDIA.search(fold(unquoted)):  # lyrics/film lines are not the user's own words
+    frame = fold(unquoted)
+    playful = bool(_JOKE.search(frame)) and not _FEAR.search(frame)
+    if not _MEDIA.search(frame) and not playful:  # lyrics, film lines and jokes are not threats
         for span in quoted_spans:
             # A quoted threat the user received is still a threat; quoted ideation is softened.
             absorb(span, quoted=True)
     best = _top(levels)
+
+    folded_all = fold(_QUOTES.sub(" ", text))
+    if best != "immediate" and not _MEDIA.search(folded_all) and not _INFO.search(folded_all):
+        # "I see no reason to go on. Today I will end it": two clauses, one decision.
+        if (
+            first_person_ideation(folded_all)
+            and _IMMINENT.search(folded_all)
+            and (_COMMIT.search(folded_all) or _MEANS.search(folded_all))
+            and not _HYPO.search(folded_all)
+        ):
+            best = "immediate"
+            signals.add("self_harm")
+            signals.add("ideation_with_commitment")
+        elif best == "none" and first_person_ideation(folded_all) and not _HYPO.search(folded_all):
+            best = "elevated"  # a clear wish to stop existing is never silently ignored
+            signals.add("self_harm")
 
     if prior:
         earlier = _top(assess_urgency(message).level for message in prior[-4:])

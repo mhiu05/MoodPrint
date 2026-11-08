@@ -13,7 +13,7 @@ from moodprint_agent.companion import (
 )
 
 PINNED_SHA256 = {
-    "companion_v2": "fcba5ce0f6795762b23d0f2ea5171b83c7fff0d1abe3dddbe5a53204c4218fa0",
+    "companion_v3": "24d3bb9f4faa0f5f0ab0b61cb18e7cc7fdcf6283bca7046a72d311ee977d633b",
     "roleplay_partner_v1": "a23922050aef6ed49056f40cdf5dbe573a9eb289e744b594cccf15c5df3cc778",
     "roleplay_coach_v1": "671dcf3ab3a3eccd28cec2a5c97dc194b5abed750feec7890dcc6d5da248d2bd",
     "evidence_reader_v1": "f99c4c151002c649f5628a12ae7094ed92fe42098f76114b07b25da5f8593b0c",
@@ -51,7 +51,7 @@ def test_prompts_contain_no_user_data_or_template_slots(name: str) -> None:
 
 def test_fixed_companion_prompt_stays_within_the_token_budget(capsys) -> None:
     estimate = len(load_prompt(PROMPT_VERSION)) // 3  # same len/3 rule as the context builder
-    print(f"companion_v2 fixed prompt ≈ {estimate} tokens (budget 1800)")
+    print(f"companion_v3 fixed prompt ≈ {estimate} tokens (budget 1800)")
     assert estimate <= 1_800
 
 

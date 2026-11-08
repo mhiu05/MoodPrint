@@ -62,11 +62,18 @@ async def knowledge_search(
         top_k=max(1, min(int(top_k), 6)),
     )
     try:
-        result = await context.services.knowledge.search(
-            request,
-            scope=RetrievalScope(request_id=context.request_id),
-            timeout_s=max(0.5, context.knowledge_timeout_s),
-        )
+        scope = RetrievalScope(request_id=context.request_id)
+        timeout_s = max(0.5, context.knowledge_timeout_s)
+        result = await context.services.knowledge.search(request, scope=scope, timeout_s=timeout_s)
+        if (result.status == "no_results" or not result.chunks) and request.filters.topics:
+            # The model's topic labels are guesses at a controlled vocabulary. A wrong label must
+            # not hide good sources, so retry once with the same query and no topic filter.
+            relaxed = request.model_copy(
+                update={"filters": request.filters.model_copy(update={"topics": []})}
+            )
+            result = await context.services.knowledge.search(
+                relaxed, scope=scope, timeout_s=timeout_s
+            )
     except KnowledgeTimeout:
         return {"status": "error", "error": {"code": "knowledge_timeout", "retryable": True}}
     except KnowledgeUnavailable:

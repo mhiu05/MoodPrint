@@ -1,0 +1,17 @@
+{
+  "tools": [
+    "analyze_evidence",
+    "draft_support_message",
+    "get_action_plan",
+    "get_case_context",
+    "knowledge_search",
+    "propose_action_plan",
+    "propose_case_event",
+    "propose_memory",
+    "save_confirmed_event",
+    "save_plan",
+    "support_directory"
+  ],
+  "no_outbound_tool": true,
+  "model_is_approved": true
+}
