@@ -73,7 +73,9 @@ async def produce(
             analysis,
         )
         prior = [] if resume else await service.recent_user_messages(auth, turn.conversation_id)
-        session = await service.open_session(auth, turn.conversation_id)
+        session = await service.open_session(
+            auth, turn.conversation_id, client=getattr(runtime, "openai_client", None)
+        )
         events = (
             runtime.resume_after_approval(
                 ctx=ctx,

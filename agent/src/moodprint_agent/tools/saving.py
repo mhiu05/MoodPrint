@@ -55,6 +55,10 @@ async def save_approved(
         return error("proposal_expired")
     if stored.status != "approved":
         return error("not_approved")
+    if context.cancelled():
+        # Linearisation point: a write that started before the cancel was acknowledged may
+        # commit and stays; nothing new starts after it. Nothing is rolled back or promised.
+        return error("run_cancelled")
     outcome = await writer.apply(context.auth, proposal_id=pid, run_id=context.run_id)
     if outcome.status == "applied":
         return {"status": "applied", "result": outcome.result}

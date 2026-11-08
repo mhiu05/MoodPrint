@@ -1,5 +1,6 @@
 """Per-turn tool context. Narrow Protocols only: no engine, secret or JWT ever reaches a tool."""
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Protocol, cast
 from uuid import UUID
@@ -133,3 +134,8 @@ class CompanionToolContext(AgentToolContext):
     safety_hint: str | None = field(kw_only=True, default=None)
     memory_candidates_max: int = field(kw_only=True, default=1)
     roleplay: RoleplayContext | None = field(kw_only=True, default=None)
+    # Set by the runtime: True once the user's cancel was acknowledged (linearisation point).
+    cancel_check: Callable[[], bool] | None = field(kw_only=True, default=None)
+
+    def cancelled(self) -> bool:
+        return self.cancel_check is not None and self.cancel_check()

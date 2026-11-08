@@ -2,7 +2,12 @@ import json
 from collections.abc import Sequence
 from uuid import UUID, uuid4
 
-from moodprint_agent.memory.session import make_session, repair_session
+from moodprint_agent.memory.compaction import token_compaction_policy
+from moodprint_agent.memory.session import (
+    make_compaction_session,
+    make_session,
+    repair_session,
+)
 from moodprint_shared.config import AppConfig
 from moodprint_shared.contracts.agent import CompanionTurn
 from moodprint_shared.contracts.auth import AuthContext
@@ -449,7 +454,7 @@ class ConversationService:
                 params,
             )
 
-    async def open_session(self, auth: AuthContext, conversation_id: UUID):
+    async def open_session(self, auth: AuthContext, conversation_id: UUID, *, client=None):
         await self.get(auth, conversation_id)
         session = make_session(conversation_id, self.engine, self.cfg)
         async with user_uow(self.engine, auth) as uow:
@@ -461,6 +466,15 @@ class ConversationService:
             )
         if interrupted:
             await repair_session(session)
+        if client is not None:
+            # Long conversations are compacted by estimated size (never the SDK's 10-item default).
+            return make_compaction_session(
+                conversation_id,
+                session,
+                self.cfg,
+                client=client,
+                policy=token_compaction_policy(self.cfg),
+            )
         return session
 
     async def recent_messages(

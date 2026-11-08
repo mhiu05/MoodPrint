@@ -303,6 +303,8 @@ class CompanionRuntime:
             ctx.budget.max_calls = min(ctx.budget.max_calls, self.cfg.agent.max_tool_calls_per_run)
         cancel_signal = asyncio.Event()
         self._active[ctx.run_id] = cancel_signal
+        if isinstance(ctx, CompanionToolContext):
+            ctx.cancel_check = cancel_signal.is_set
         started = perf_counter()
         result: RunResultStreaming | None = None
         next_event: asyncio.Task[SDKStreamEvent] | None = None
@@ -347,24 +349,34 @@ class CompanionRuntime:
                     return await anext(sdk_stream)
 
                 cancel_waiter = asyncio.create_task(cancel_signal.wait())
+                grace_deadline: float | None = None
+                forced = False
                 while True:
                     next_event = asyncio.create_task(read_event())
                     while True:
                         waiting: set[asyncio.Task[Any]] = {next_event}
                         if cancel_waiter is not None:
                             waiting.add(cancel_waiter)
+                        interval = self.cfg.agent.heartbeat_interval_s
+                        if grace_deadline is not None:
+                            interval = max(0.0, min(interval, grace_deadline - perf_counter()))
                         done, _ = await asyncio.wait(
-                            waiting,
-                            timeout=self.cfg.agent.heartbeat_interval_s,
-                            return_when=asyncio.FIRST_COMPLETED,
+                            waiting, timeout=interval, return_when=asyncio.FIRST_COMPLETED
                         )
                         if cancel_waiter is not None and cancel_waiter in done:
+                            # Ask nicely first: let the current turn or tool finish...
                             result.cancel("after_turn")
                             cancelled = True
                             cancel_waiter = None
+                            grace_deadline = perf_counter() + self.cfg.agent.cancel_grace_s
                         if next_event in done:
                             break
-                        if not done:
+                        if grace_deadline is not None and perf_counter() >= grace_deadline:
+                            if not forced:
+                                # ...then stop it: a slow tool or model call cannot outlive a cancel.
+                                result.cancel("immediate")
+                                forced = True
+                        elif not done:
                             yield emitter.emit("heartbeat", {})
                     try:
                         sdk_event = next_event.result()

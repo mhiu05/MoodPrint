@@ -2,7 +2,7 @@ from dataclasses import replace
 from uuid import UUID
 
 from moodprint_agent.budget import RunToolBudget
-from moodprint_agent.memory.context_builder import MemoryContextBuilder
+from moodprint_agent.memory.context_builder import DomainSummary, MemoryContextBuilder
 from moodprint_agent.runtime import CompanionRuntime
 from moodprint_agent.tools.context import CompanionToolContext, ToolDeps
 from moodprint_agent.tools.factory import build_registry
@@ -22,6 +22,25 @@ from app.modules.memory.service import MemoryService
 from app.modules.plans.service import ActionPlanService
 from app.modules.profiles.service import ProfileService
 from app.modules.roleplay.service import RoleplayService
+
+
+class CaseHeadlines:
+    """Headline-only view of the linked case for the context (never events or evidence)."""
+
+    def __init__(self, incidents: IncidentService) -> None:
+        self._incidents = incidents
+
+    async def summary(self, auth, case_id: UUID) -> DomainSummary | None:
+        try:
+            case = await self._incidents.get_case(auth, case_id)
+        except Exception:  # not found / not the caller's: no context, never an error
+            return None
+        return DomainSummary(
+            title=case.title,
+            status=case.status,
+            event_count=len(case.events),
+            updated_at=case.updated_at,
+        )
 
 
 class DeferredDomainServices:
@@ -95,7 +114,7 @@ async def build_context(
     bundle = (
         ContextBundle()
         if roleplay is not None
-        else await MemoryContextBuilder(memory, cfg).build(request)
+        else await MemoryContextBuilder(memory, cfg, domain=CaseHeadlines(incidents)).build(request)
     )
     if roleplay is None:
         bundle = await _with_attachments(engine, cfg, auth, run_id, bundle)

@@ -3,8 +3,10 @@
 import json
 import math
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
+from uuid import UUID
 
 from moodprint_shared.config import AppConfig
 from moodprint_shared.contracts.auth import AuthContext
@@ -18,9 +20,25 @@ from moodprint_shared.contracts.context import (
 )
 from moodprint_shared.contracts.memory import MemoryHit, MemoryQuery
 
+from moodprint_agent.memory.selection import memory_query
+
 
 class MemorySearch(Protocol):
     async def search(self, auth: AuthContext, query: MemoryQuery) -> list[MemoryHit]: ...
+
+
+@dataclass(frozen=True, slots=True)
+class DomainSummary:
+    """Headline facts about the linked case. Never events, people or evidence content."""
+
+    title: str
+    status: str
+    event_count: int
+    updated_at: datetime
+
+
+class DomainSummaries(Protocol):
+    async def summary(self, auth: AuthContext, case_id: UUID) -> DomainSummary | None: ...
 
 
 def _now() -> datetime:
@@ -38,8 +56,10 @@ class MemoryContextBuilder:
         cfg: AppConfig,
         *,
         clock: Callable[[], datetime] = _now,
+        domain: DomainSummaries | None = None,
     ) -> None:
         self.memory, self.cfg, self.clock = memory, cfg, clock
+        self.domain = domain
 
     async def build(self, request: ContextRequest) -> ContextBundle:
         now = self.clock()
@@ -53,6 +73,7 @@ class MemoryContextBuilder:
             source_id: str,
             priority: int,
             stale: bool = False,
+            at: datetime | None = None,
         ) -> None:
             sections.append(
                 ContextSection(
@@ -64,7 +85,7 @@ class MemoryContextBuilder:
                         Provenance(
                             source_kind=source_kind,
                             source_id=source_id,
-                            retrieved_at=now,
+                            retrieved_at=at or now,
                             stale=stale,
                         )
                     ],
@@ -91,12 +112,44 @@ class MemoryContextBuilder:
                 900,
             )
 
+        summary: DomainSummary | None = None
+        if request.linked_case_id is not None and self.domain is not None:
+            try:
+                summary = await self.domain.summary(request.auth, request.linked_case_id)
+            except Exception:
+                dropped.append(
+                    DroppedSection(kind="domain", reason="service_unavailable", source_ids=[])
+                )
+        if summary is not None:
+            # Headline only: the details are fetched with get_case_context, by the model, on demand.
+            add(
+                "domain",
+                json.dumps(
+                    {
+                        "label": "[người dùng kể]",
+                        "title": summary.title,
+                        "status": summary.status,
+                        "events": summary.event_count,
+                        "updated": summary.updated_at.date().isoformat(),
+                    },
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                ),
+                "case_summary",
+                str(request.linked_case_id),
+                700,
+            )
+
         hits: list[MemoryHit] = []
         if request.user_input.strip():
             try:
                 hits = await self.memory.search(
                     request.auth,
-                    MemoryQuery(text=request.user_input, limit=self.cfg.memory.search_limit),
+                    memory_query(
+                        request.user_input,
+                        case_title=summary.title if summary else None,
+                        limit=self.cfg.memory.search_limit,
+                    ),
                 )
             except Exception:
                 dropped.append(
@@ -105,6 +158,7 @@ class MemoryContextBuilder:
 
         hashes: set[str] = set()
         ids: set[str] = set()
+        included = 0
         # Stable lexical order on ties; adapter ordering cannot alter prompt caching.
         for hit in sorted(hits, key=lambda hit: (-hit.score, str(hit.memory.id))):
             memory = hit.memory
@@ -121,11 +175,26 @@ class MemoryContextBuilder:
                     DroppedSection(kind="memory", reason="duplicate", source_ids=[source_id])
                 )
                 continue
+            if included >= self.cfg.memory.max_context_memories:
+                dropped.append(
+                    DroppedSection(kind="memory", reason="limit", source_ids=[source_id])
+                )
+                continue
             hashes.add(memory.content_hash)
             ids.add(source_id)
+            included += 1
             stale = memory.updated_at < now - timedelta(days=self.cfg.memory.stale_days)
             priority = 500 + min(100, int(hit.score * 100)) - (200 if stale else 0)
-            add("memory", memory.content, "approved_memory", source_id, priority, stale)
+            # The label shows when the user approved it (memories are created on approval).
+            add(
+                "memory",
+                memory.content,
+                "approved_memory",
+                source_id,
+                priority,
+                stale,
+                at=memory.created_at,
+            )
 
         # Phase 0 has no domain or knowledge injection; both remain explicit service/tool seams.
         remaining = request.token_budget

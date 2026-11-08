@@ -19,6 +19,7 @@ class AgentConfig:
     session_item_limit: int = 100
     messages_per_user_per_hour: int = 60
     heartbeat_interval_s: float = 15
+    cancel_grace_s: float = 2.0
     # --- Phase 3 Companion (conservative defaults; final effort is chosen by P3-17 eval) ---
     daily_token_cap_per_user: int = 200_000
     knowledge_tool_timeout_s: float = 8
