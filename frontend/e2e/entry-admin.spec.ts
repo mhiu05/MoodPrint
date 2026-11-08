@@ -1,13 +1,11 @@
 import { expect, test } from "./helpers/fixtures";
 test("onboarding and mock account lead to four working tabs", async ({
   page,
+  baseURL,
 }) => {
   const external: string[] = [];
   page.on("request", (r) => {
-    if (
-      !r.url().startsWith("http://127.0.0.1:5178") &&
-      !r.url().startsWith("data:")
-    )
+    if (!r.url().startsWith(baseURL!) && !r.url().startsWith("data:"))
       external.push(r.url());
   });
   await page.goto("/");

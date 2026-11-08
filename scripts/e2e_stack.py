@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import signal
 import socket
 import subprocess
@@ -23,8 +24,6 @@ from urllib.request import urlopen
 from dotenv import dotenv_values
 
 ROOT = Path(__file__).resolve().parents[1]
-FRONTEND_URL = "http://127.0.0.1:5178"
-API_URL = "http://127.0.0.1:8008"
 LOOPBACK = {"127.0.0.1", "localhost", "::1"}
 OS_ENVIRONMENT = {
     "PATH",
@@ -83,7 +82,23 @@ def read_local_environment(path: Path) -> dict[str, str]:
     }
 
 
-def build_environment(local: dict[str, str], inherited: dict[str, str]) -> dict[str, str]:
+def build_environment(
+    local: dict[str, str],
+    inherited: dict[str, str],
+    *,
+    name: str | None = None,
+    offset: int | None = None,
+    frontend_url: str | None = None,
+    api_url: str | None = None,
+) -> dict[str, str]:
+    name = name or inherited.get("MOODPRINT_STACK_NAME", "foundation")
+    offset = int(inherited.get("MOODPRINT_PORT_OFFSET", "0")) if offset is None else offset
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,39}", name) or not 0 <= offset <= 9000:
+        raise ValueError("Invalid local stack name or port offset")
+    frontend_url = frontend_url or f"http://127.0.0.1:{5178 + offset}"
+    api_url = api_url or f"http://127.0.0.1:{8008 + offset}"
+    require_loopback(frontend_url, "Frontend URL")
+    require_loopback(api_url, "API URL")
     required = (
         "SUPABASE_URL",
         "SUPABASE_PUBLISHABLE_KEY",
@@ -92,13 +107,13 @@ def build_environment(local: dict[str, str], inherited: dict[str, str]) -> dict[
         "TEST_DATABASE_URL",
         "TEST_ADMIN_DATABASE_URL",
     )
-    for name in required:
-        if not local.get(name):
-            raise ValueError(f"{name} is missing from .local/test.env")
+    for field in required:
+        if not local.get(field):
+            raise ValueError(f"{field} is missing from .local/test.env")
     if local.get("APP_ENV") != "test":
         raise ValueError("APP_ENV must be test in .local/test.env")
-    for name in ("SUPABASE_URL", "DATABASE_URL", "TEST_DATABASE_URL", "TEST_ADMIN_DATABASE_URL"):
-        require_loopback(local[name], name)
+    for field in ("SUPABASE_URL", "DATABASE_URL", "TEST_DATABASE_URL", "TEST_ADMIN_DATABASE_URL"):
+        require_loopback(local[field], field)
     child = {key: value for key, value in inherited.items() if key.upper() in OS_ENVIRONMENT}
     child.update({name: local[name] for name in required})
     if local.get("AUTH_TEST_JWT_SECRET"):
@@ -108,19 +123,80 @@ def build_environment(local: dict[str, str], inherited: dict[str, str]) -> dict[
             "APP_ENV": "test",
             "PYTHONUNBUFFERED": "1",
             "PYTHONIOENCODING": "utf-8",
-            "CORS_ALLOWED_ORIGINS": FRONTEND_URL,
+            "MOODPRINT_STACK_NAME": name,
+            "MOODPRINT_PORT_OFFSET": str(offset),
+            "CORS_ALLOWED_ORIGINS": frontend_url,
             "VITE_PUBLIC_SUPABASE_URL": local["SUPABASE_URL"],
             "VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY": local["SUPABASE_PUBLISHABLE_KEY"],
-            "VITE_PUBLIC_API_BASE_URL": API_URL,
-            "E2E_BASE_URL": FRONTEND_URL,
-            "E2E_API_URL": API_URL,
+            "VITE_PUBLIC_API_BASE_URL": api_url,
+            "E2E_BASE_URL": frontend_url,
+            "E2E_PORT": str(urlsplit(frontend_url).port or 80),
+            "E2E_API_URL": api_url,
             "E2E_SUPABASE_URL": local["SUPABASE_URL"],
-            "E2E_MAIL_URL": "http://127.0.0.1:54324",
+            "E2E_MAIL_URL": f"http://127.0.0.1:{54324 + offset}",
             "E2E_STACK_MANAGED": "1",
             "CAPTURE_SCREENSHOTS": "0",
         }
     )
     return child
+
+
+def output_directory(environment: dict[str, str]) -> Path:
+    return (
+        ROOT
+        / ".local/e2e"
+        / (f"{environment['MOODPRINT_STACK_NAME']}-{environment['MOODPRINT_PORT_OFFSET']}")
+    )
+
+
+def default_environment_file(name: str | None = None, offset: int | None = None) -> Path:
+    name = name or os.environ.get("MOODPRINT_STACK_NAME", "foundation")
+    offset = int(os.environ.get("MOODPRINT_PORT_OFFSET", "0")) if offset is None else offset
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,39}", name) or not 0 <= offset <= 9000:
+        raise ValueError("Invalid local stack name or port offset")
+    return ROOT / (
+        ".local/test.env"
+        if (name, offset) == ("foundation", 0)
+        else f".local/stacks/{name}/test.env"
+    )
+
+
+def demo_environment(offset: int) -> dict[str, str]:
+    # Synthetic placeholders are never sent: demo clears all VITE_PUBLIC values.
+    database = f"postgresql+asyncpg://moodprint_api:synthetic@127.0.0.1:{54322 + offset}/postgres"
+    return {
+        "APP_ENV": "test",
+        "SUPABASE_URL": f"http://127.0.0.1:{54321 + offset}",
+        "SUPABASE_PUBLISHABLE_KEY": "synthetic-unused",
+        "SUPABASE_SECRET_KEY": "synthetic-unused",
+        "DATABASE_URL": database,
+        "TEST_DATABASE_URL": database,
+        "TEST_ADMIN_DATABASE_URL": database,
+    }
+
+
+def run_hooks(hooks: list[dict], environment: dict[str, str], output: Path) -> None:
+    output.mkdir(parents=True, exist_ok=True)
+    for hook in hooks:
+        name = hook["name"]
+        if not re.fullmatch(r"[a-z0-9-]+", name):
+            raise ValueError("Invalid E2E hook name")
+        command = list(hook["cmd"])
+        if command[0] == "python":
+            command[0] = sys.executable
+        with (output / f"hook-{name}.log").open("w", encoding="utf-8") as handle:
+            result = subprocess.run(
+                command,
+                cwd=ROOT,
+                env=environment,
+                stdout=handle,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
+        if result.returncode and not (hook.get("optional") is True and result.returncode == 2):
+            raise RuntimeError(f"E2E hook {name} failed (exit {result.returncode}); see local log")
+        if result.returncode == 2:
+            print(f"E2E hook {name}: not available yet (optional, exit 2)")
 
 
 def environment_for_frontend_checks(environment: dict[str, str]) -> dict[str, str]:
@@ -164,8 +240,7 @@ def assert_port_free(port: int) -> None:
             )
 
 
-def vite_config() -> Path:
-    directory = ROOT / ".local/e2e"
+def vite_config(directory: Path) -> Path:
     empty_env = directory / "empty-env"
     empty_env.mkdir(parents=True, exist_ok=True)
     path = directory / "vite.config.mts"
@@ -198,11 +273,13 @@ def stop_child(process: subprocess.Popen) -> None:
 
 @contextmanager
 def running_stack(environment: dict[str, str], *, demo: bool = False):
-    for port in (5178,) if demo else (8008, 5178):
+    frontend_url, api_url = environment["E2E_BASE_URL"], environment["E2E_API_URL"]
+    frontend_port, api_port = urlsplit(frontend_url).port, urlsplit(api_url).port
+    for port in (frontend_port,) if demo else (api_port, frontend_port):
         assert_port_free(port)
     if not demo:
         wait_ready(environment["SUPABASE_URL"] + "/auth/v1/health", timeout=8)
-    output = ROOT / ".local/e2e"
+    output = output_directory(environment)
     output.mkdir(parents=True, exist_ok=True)
     npm = "npm.cmd" if os.name == "nt" else "npm"
     commands = []
@@ -212,11 +289,17 @@ def running_stack(environment: dict[str, str], *, demo: bool = False):
                 [
                     sys.executable,
                     "-c",
-                    "import uvicorn; uvicorn.run('app.main:create_app', factory=True, host='127.0.0.1', port=8008, access_log=False)",
+                    "import uvicorn; uvicorn.run("
+                    + repr(
+                        "scripts.e2e_app:create_app"
+                        if environment.get("E2E_AGENT_MODE") == "scripted"
+                        else "app.main:create_app"
+                    )
+                    + f", factory=True, host='127.0.0.1', port={api_port}, access_log=False)",
                 ],
                 ROOT,
                 "api",
-                API_URL + "/ready",
+                api_url + "/ready",
             )
         )
     commands.append(
@@ -227,18 +310,18 @@ def running_stack(environment: dict[str, str], *, demo: bool = False):
                 "dev",
                 "--",
                 "--config",
-                str(vite_config()),
+                str(vite_config(output)),
                 "--mode",
                 "test",
                 "--host",
                 "127.0.0.1",
                 "--port",
-                "5178",
+                str(frontend_port),
                 "--strictPort",
             ],
             ROOT / "frontend",
             "vite",
-            FRONTEND_URL,
+            frontend_url,
         )
     )
     processes: list[subprocess.Popen] = []
@@ -259,7 +342,7 @@ def running_stack(environment: dict[str, str], *, demo: bool = False):
             processes.append(process)
             wait_ready(ready, process)
         print(
-            f"Isolated E2E ready: frontend {FRONTEND_URL}; API {API_URL if not demo else 'unused (demo)'}. No database reset.",
+            f"Isolated E2E ready: frontend {frontend_url}; API {api_url if not demo else 'unused (demo)'}. No database reset.",
             flush=True,
         )
         yield processes
@@ -276,19 +359,44 @@ def main() -> int:
         "--run", action="store_true", help="Run headless Playwright and stop child processes"
     )
     parser.add_argument("--project", choices=["real", "demo", "all"], default="real")
-    parser.add_argument("--env-file", type=Path, default=ROOT / ".local/test.env")
+    parser.add_argument("--name", default=os.environ.get("MOODPRINT_STACK_NAME", "foundation"))
+    parser.add_argument(
+        "--offset", type=int, default=int(os.environ.get("MOODPRINT_PORT_OFFSET", "0"))
+    )
+    parser.add_argument("--env-file", type=Path)
+    parser.add_argument("--agent", choices=["scripted", "live"], default="scripted")
+    parser.add_argument("--frontend-url")
+    parser.add_argument("--api-url")
     parser.add_argument("--grep", help="Run matching Playwright test titles")
     args = parser.parse_args()
     try:
         projects = ("demo", "real") if args.project == "all" else (args.project,)
         status = 0
         for project in projects:
-            environment = build_environment(read_local_environment(args.env_file), dict(os.environ))
+            env_file = args.env_file or default_environment_file(args.name, args.offset)
+            if project == "demo":
+                # Demo never needs Auth/Storage credentials or a running database.
+                local = demo_environment(args.offset)
+            else:
+                local = read_local_environment(env_file)
+            environment = build_environment(
+                local,
+                dict(os.environ),
+                name=args.name,
+                offset=args.offset,
+                frontend_url=args.frontend_url,
+                api_url=args.api_url,
+            )
+            environment["E2E_AGENT_MODE"] = args.agent
+            output = output_directory(environment)
+            if project == "real":
+                hooks = json.loads((ROOT / "scripts/e2e_hooks.json").read_text(encoding="utf-8"))
+                run_hooks(hooks["after_db_ready"], environment, output)
             if project == "demo":
                 for name in tuple(environment):
                     if name.startswith("VITE_PUBLIC_"):
                         environment[name] = ""
-            environment["PLAYWRIGHT_HTML_OUTPUT_DIR"] = str(ROOT / f".local/e2e/report-{project}")
+            environment["PLAYWRIGHT_HTML_OUTPUT_DIR"] = str(output / f"report-{project}")
             with running_stack(environment, demo=project == "demo") as processes:
                 if not args.run:
                     print("Press Ctrl+C to stop the local API and Vite children.", flush=True)
@@ -302,7 +410,7 @@ def main() -> int:
                     "--workers=1",
                     f"--project={project}",
                     "--output",
-                    str(ROOT / f".local/e2e/results-{project}"),
+                    str(output / f"results-{project}"),
                 ]
                 if args.grep != "E-URG-01":
                     command.extend(["--grep-invert", "E-URG-01"])
@@ -318,9 +426,7 @@ def main() -> int:
                     # Prove urgent help works with the actual API child stopped.
                     stop_child(processes[0])
                     environment["E2E_URGENT_BACKEND_STOPPED"] = "1"
-                    environment["PLAYWRIGHT_HTML_OUTPUT_DIR"] = str(
-                        ROOT / ".local/e2e/report-urgent"
-                    )
+                    environment["PLAYWRIGHT_HTML_OUTPUT_DIR"] = str(output / "report-urgent")
                     urgent = [
                         npx,
                         "playwright",
@@ -330,7 +436,7 @@ def main() -> int:
                         "--grep",
                         "E-URG-01",
                         "--output",
-                        str(ROOT / ".local/e2e/results-urgent"),
+                        str(output / "results-urgent"),
                     ]
                     status = max(
                         status,

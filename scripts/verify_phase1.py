@@ -12,6 +12,7 @@ from pathlib import Path
 from e2e_stack import (
     ROOT,
     build_environment,
+    default_environment_file,
     environment_for_frontend_checks,
     read_local_environment,
 )
@@ -19,7 +20,7 @@ from e2e_stack import (
 
 def main() -> int:
     environment = build_environment(
-        read_local_environment(ROOT / ".local/test.env"), dict(os.environ)
+        read_local_environment(default_environment_file()), dict(os.environ)
     )
     npm = "npm.cmd" if os.name == "nt" else "npm"
     checks = [
@@ -34,15 +35,17 @@ def main() -> int:
         ([sys.executable, "scripts/e2e_stack.py", "--run", "--project", "demo"], ROOT),
         ([sys.executable, "scripts/e2e_stack.py", "--run", "--project", "real"], ROOT),
     ]
-    output = ROOT / ".local/verification"
+    name = environment["MOODPRINT_STACK_NAME"]
+    offset = environment["MOODPRINT_PORT_OFFSET"]
+    output = ROOT / ".local/verification" / f"{name}-{offset}"
     output.mkdir(parents=True, exist_ok=True)
-    receipt = ROOT / ".local/phase1-gate.json"
+    receipt = default_environment_file().parent / "phase1-gate.json"
     receipt.unlink(missing_ok=True)
     history = []
     for index, (command, cwd) in enumerate(checks):
         # Bootstrap may rotate the local role password. Never reuse its previous value.
         environment = build_environment(
-            read_local_environment(ROOT / ".local/test.env"), dict(os.environ)
+            read_local_environment(default_environment_file()), dict(os.environ)
         )
         if Path(command[0]).name.startswith("npm"):
             environment = environment_for_frontend_checks(environment)

@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 const screenshotDir = resolve("..", "docs", "prototype", "screenshots");
 test("responsive routes, reduced motion, console and local-only requests", async ({
   page,
+  baseURL,
 }) => {
   test.setTimeout(180000);
   if (process.env.CAPTURE_SCREENSHOTS === "1")
@@ -16,7 +17,7 @@ test("responsive routes, reduced motion, console and local-only requests", async
   });
   page.on("request", (request) => {
     if (
-      !request.url().startsWith("http://127.0.0.1:5178") &&
+      !request.url().startsWith(baseURL!) &&
       !request.url().startsWith("data:") &&
       !request.url().startsWith("blob:")
     )

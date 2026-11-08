@@ -13,6 +13,8 @@ import type {
   TimelineEvent,
   TrustedPerson,
 } from "../types";
+import type { KnowledgeSearchService } from "./composition/knowledge-types";
+import type { CompanionService } from "./composition/companion-types";
 
 export interface WorkspaceProfile {
   user: DemoUser;
@@ -192,6 +194,8 @@ export interface Services {
   support: SupportPort;
   knowledgeState: KnowledgeStatePort;
   knowledgeCatalog: { list(): KnowledgeArticle[] };
+  knowledgeSearch: KnowledgeSearchService | null;
+  companion: CompanionService | null;
   chat: SimulatedPort<ChatSession>;
   analysis: AnalysisPort;
   roleplay: SimulatedPort<RoleplaySession>;

@@ -1,4 +1,5 @@
 import { test, expect } from "./helpers/fixtures";
+import { companionLive } from "./helpers/capabilities";
 import {
   createCaseViaApi,
   createUser,
@@ -48,7 +49,10 @@ test("N-01 E-SCH-01: fourteen real routes fit all eight widths and school demo s
     await expect(page.locator(".admin-table tbody tr")).toHaveCount(48);
     const writes: string[] = [];
     page.on("request", (request) => {
-      if (request.url().includes(":8008/") && request.method() !== "GET")
+      if (
+        request.url().startsWith(process.env.E2E_API_URL!) &&
+        request.method() !== "GET"
+      )
         writes.push(request.method());
     });
     await page
@@ -63,7 +67,11 @@ test("N-01 E-SCH-01: fourteen real routes fit all eight widths and school demo s
     ).toBeVisible();
     expect(writes).toEqual([]);
     await page.goto("/ai/chat");
-    await expect(page.getByText(/AI mô phỏng/).first()).toBeVisible();
+    await expect(
+      companionLive
+        ? page.getByTestId("chat-live")
+        : page.getByText(/AI mô phỏng/).first(),
+    ).toBeVisible();
     await page
       .getByRole("textbox", { name: "Điều bạn muốn kể" })
       .fill("Một câu chuyện hoàn toàn hư cấu.");
@@ -71,7 +79,7 @@ test("N-01 E-SCH-01: fourteen real routes fit all eight widths and school demo s
       .getByRole("textbox", { name: "Điều bạn muốn kể" })
       .press("Enter");
     await expect(page.locator(".ai-message.ai")).toHaveCount(1);
-    expect(writes).toEqual([]);
+    if (!companionLive) expect(writes).toEqual([]);
   } finally {
     await removeUser(user.email);
   }

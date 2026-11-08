@@ -1,11 +1,21 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createRealServices, getServices } from "./composition";
 import { useWorkspaceStore } from "../app/store";
-import { ApiError, type ApiClient } from "./http/client";
+import { ApiError, type ApiClient, type StreamClient } from "./http/client";
 import { seedCases } from "../mocks/data/seed";
+import * as knowledge from "./composition/knowledge";
+import * as chat from "./composition/chat";
+
+const asStreamClient = (api: ApiClient): StreamClient =>
+  Object.assign(api, {
+    stream: async () => {
+      throw Error("unexpected stream");
+    },
+  });
 
 describe("service composition", () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     localStorage.clear();
     useWorkspaceStore.getState().reset();
   });
@@ -21,9 +31,9 @@ describe("service composition", () => {
     const api: ApiClient = async () => {
       throw new ApiError(503, "upstream_error", "Offline");
     };
-    await expect(createRealServices(api).cases.get("a")).rejects.toThrow(
-      "Offline",
-    );
+    await expect(
+      createRealServices(asStreamClient(api)).cases.get("a"),
+    ).rejects.toThrow("Offline");
     expect(useWorkspaceStore.getState().cases).toEqual([]);
   });
   it("uses local labeled AI ports in a real workspace without writing server data", async () => {
@@ -33,7 +43,7 @@ describe("service composition", () => {
       requests++;
       throw Error("unexpected request");
     };
-    const services = createRealServices(api);
+    const services = createRealServices(asStreamClient(api));
     await services.chat.save({
       id: "sim",
       ownerId: "owner",
@@ -48,5 +58,34 @@ describe("service composition", () => {
     expect(localStorage.getItem("moodprint-sim-v1:owner")).toContain(
       "Synthetic",
     );
+  });
+  it.each(["demo", "real"])(
+    "leaves future live adapters disabled in %s",
+    (workspace) => {
+      if (workspace === "real")
+        useWorkspaceStore.getState().activateReal("owner");
+      else useWorkspaceStore.getState().login("USER-AN");
+      expect(getServices().knowledgeSearch).toBeNull();
+      expect(getServices().companion).toBeNull();
+    },
+  );
+  it("connects phase-owned factories to the stream client while keeping demo isolated", () => {
+    const knowledgeFactory = vi
+      .spyOn(knowledge, "createKnowledgeSearchPort")
+      .mockReturnValue({ live: true });
+    const companionFactory = vi
+      .spyOn(chat, "createCompanionService")
+      .mockReturnValue({ live: true });
+    const api = asStreamClient(async () => {
+      throw Error("unexpected request");
+    });
+    const services = createRealServices(api);
+    expect(services.knowledgeSearch).toEqual({ live: true });
+    expect(services.companion).toEqual({ live: true });
+    expect(knowledgeFactory).toHaveBeenCalledWith(api);
+    expect(companionFactory).toHaveBeenCalledWith(api);
+    useWorkspaceStore.getState().login("USER-AN");
+    expect(getServices().knowledgeSearch).toBeNull();
+    expect(getServices().companion).toBeNull();
   });
 });

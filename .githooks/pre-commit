@@ -1,9 +1,5 @@
 #!/bin/sh
 # Optional repository hook. CI enforces the same policy on parallel phase branches.
 branch=$(git symbolic-ref --quiet --short HEAD) || exit 0
-case "$branch" in
-  feat/knowledge-ingestion-rag) phase=2 ;;
-  feat/agent-companion) phase=3 ;;
-  *) exit 0 ;;
-esac
-exec uv run python scripts/check_ownership.py --phase "$phase" --base baseline/phase-1-verified
+command -v uv >/dev/null 2>&1 || { echo "Ownership hook requires uv" >&2; exit 2; }
+exec uv run python scripts/ci_ownership.py --branch "$branch" --local --migrations

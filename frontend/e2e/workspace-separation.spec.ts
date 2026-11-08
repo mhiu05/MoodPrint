@@ -22,7 +22,10 @@ test("E-DEMO-02: existing demo data survives a real session without entering the
     expect(demo).not.toBeNull();
     const payloads: string[] = [];
     page.on("request", (request) => {
-      if (request.url().includes(":8008/") && request.postData())
+      if (
+        request.url().startsWith(process.env.E2E_API_URL!) &&
+        request.postData()
+      )
         payloads.push(request.postData()!);
     });
     await login(page, user.email);

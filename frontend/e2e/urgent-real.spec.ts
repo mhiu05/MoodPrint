@@ -7,7 +7,11 @@ test("E-URG-01: urgent help stays public with the actual API process stopped", a
     process.env.E2E_URGENT_BACKEND_STOPPED !== "1",
     "The harness runs this test after stopping its own API child",
   );
-  expect(process.env.E2E_API_URL).toBe("http://127.0.0.1:8008");
+  const api = new URL(process.env.E2E_API_URL!);
+  expect(api.hostname).toBe("127.0.0.1");
+  expect(Number(api.port)).toBe(
+    8008 + Number(process.env.MOODPRINT_PORT_OFFSET ?? 0),
+  );
   let reachable = false;
   try {
     await fetch(`${process.env.E2E_API_URL}/health`);

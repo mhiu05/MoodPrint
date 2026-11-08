@@ -2,12 +2,15 @@ from uuid import UUID
 
 from moodprint_agent.budget import RunToolBudget
 from moodprint_agent.memory.context_builder import MemoryContextBuilder
+from moodprint_agent.runtime import CompanionRuntime
 from moodprint_shared.config import AppConfig
 from moodprint_shared.contracts.agent import AgentServices, AgentToolContext
 from moodprint_shared.contracts.context import ContextRequest
 from moodprint_shared.contracts.errors import NotFound
+from moodprint_shared.contracts.knowledge import KnowledgeRetriever
 from moodprint_shared.contracts.paging import Page
 from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
+from openai import AsyncOpenAI
 
 from app.modules.memory.service import MemoryService
 from app.modules.profiles.service import ProfileService
@@ -47,8 +50,20 @@ class DeferredDomainServices:
         raise NotFound()
 
 
+def build_runtime(cfg: AppConfig, model_client: AsyncOpenAI | None) -> CompanionRuntime:
+    """Phase 3 extends the registry here; foundation behavior remains diagnostic only."""
+    return CompanionRuntime(cfg, openai_client=model_client)
+
+
 async def build_context(
-    engine, cfg: AppConfig, auth, conversation, run_id: UUID, request_id: str, content: str
+    engine,
+    cfg: AppConfig,
+    auth,
+    conversation,
+    run_id: UUID,
+    request_id: str,
+    content: str,
+    knowledge: KnowledgeRetriever | None = None,
 ):
     memory = MemoryService(engine, cfg)
     profile = await ProfileService(engine).get(auth)
@@ -76,7 +91,7 @@ async def build_context(
             evidence=domain,
             plans=domain,
             memory=memory,
-            knowledge=FixtureKnowledgeRetriever(),
+            knowledge=knowledge if knowledge is not None else FixtureKnowledgeRetriever(),
         ),
         context=bundle,
         budget=RunToolBudget(cfg.agent.max_tool_calls_per_run),

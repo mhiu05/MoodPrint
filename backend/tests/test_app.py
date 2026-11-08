@@ -122,3 +122,78 @@ async def test_startup_shutdown_closes_engine(settings, monkeypatch):
         assert not http.is_closed
     assert http.is_closed
     dispose.assert_awaited_once()
+
+
+async def test_lifespan_injects_knowledge_before_building_runtime(settings, monkeypatch):
+    from moodprint_shared.config import AppConfig
+    from moodprint_shared.contracts.knowledge import KnowledgeQuery, RetrievalScope
+    from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
+
+    app = create_app(settings)
+    retriever = FixtureKnowledgeRetriever()
+    runtime = object()
+
+    def knowledge_factory(engine, actual_settings, cfg):
+        assert engine is app.state.engine
+        assert actual_settings is settings
+        assert isinstance(cfg, AppConfig)
+        return retriever
+
+    def runtime_factory(cfg, model_client):
+        assert app.state.knowledge is retriever
+        assert model_client is None
+        return runtime
+
+    monkeypatch.setattr("app.main.build_knowledge_retriever", knowledge_factory, raising=False)
+    monkeypatch.setattr("app.main.build_runtime", runtime_factory, raising=False)
+    async with app.router.lifespan_context(app):
+        assert app.state.runtime is runtime
+        result = await app.state.knowledge.search(
+            KnowledgeQuery(text="friends"),
+            scope=RetrievalScope(request_id="startup-test"),
+            timeout_s=1,
+        )
+        assert result.corpus_version == "synthetic-fixture-v1"
+
+
+async def test_startup_factory_failure_closes_acquired_resources(settings, monkeypatch):
+    from dataclasses import replace
+    from unittest.mock import AsyncMock
+
+    from moodprint_shared.config import AppConfig
+
+    dispose = AsyncMock()
+    monkeypatch.setattr(
+        "app.main.create_engine", lambda settings, cfg: type("Engine", (), {"dispose": dispose})()
+    )
+    cfg = AppConfig()
+    cfg = replace(cfg, knowledge=replace(cfg.knowledge, retriever="unavailable"))
+    app = create_app(settings, cfg)
+    with pytest.raises(ValueError, match="retriever not available before Phase 2"):
+        async with app.router.lifespan_context(app):
+            pytest.fail("invalid retriever must fail startup")
+    assert app.state.http.is_closed
+    dispose.assert_awaited_once()
+
+
+@pytest.mark.parametrize(
+    "module,prefix", [("analyses", "/v1/analyses"), ("roleplay", "/v1/roleplay")]
+)
+async def test_phase3_can_add_router_endpoint_without_changing_app_factory(
+    settings, monkeypatch, module, prefix
+):
+    from importlib import import_module
+
+    router = import_module(f"app.api.v1.{module}").router
+    monkeypatch.setattr(router, "routes", [])
+
+    async def probe():
+        return {"module": module}
+
+    router.add_api_route("/seam-probe", probe, methods=["GET"])
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=create_app(settings)), base_url="http://test"
+    ) as client:
+        response = await client.get(prefix + "/seam-probe")
+    assert response.status_code == 200
+    assert response.json() == {"module": module}

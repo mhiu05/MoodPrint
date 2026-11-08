@@ -2,7 +2,28 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
 select no_plan();
-select ok(not has_schema_privilege('anon',s,'USAGE'), 'anon cannot enter '||s) from unnest(array['app','app_private','agent_store']) s;
+select ok(not has_schema_privilege('anon',oid,'USAGE'), 'anon cannot enter '||nspname)
+from pg_namespace where nspname in ('app','app_private','agent_store','knowledge');
+-- Every knowledge table is either published (SELECT only) or explicitly marked
+-- private ingestion. Both classes must still have RLS and policies (00/14).
+select ok(not has_table_privilege('anon',c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+          and not has_any_column_privilege('anon',c.oid,'SELECT,INSERT,UPDATE,REFERENCES'),
+          format('anon has no privileges on %I.%I',n.nspname,c.relname))
+from pg_class c join pg_namespace n on n.oid=c.relnamespace
+where n.nspname='knowledge' and c.relkind in ('r','p');
+select ok(not has_table_privilege('authenticated',c.oid,'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+          and not has_any_column_privilege('authenticated',c.oid,'INSERT,UPDATE,REFERENCES'),
+          format('authenticated cannot write %I.%I',n.nspname,c.relname))
+from pg_class c join pg_namespace n on n.oid=c.relnamespace
+where n.nspname='knowledge' and c.relkind in ('r','p');
+select ok(case when obj_description(c.oid,'pg_class')='moodprint:private_ingestion'
+               then not has_table_privilege('authenticated',c.oid,'SELECT')
+                    and not has_any_column_privilege('authenticated',c.oid,'SELECT')
+               else has_table_privilege('authenticated',c.oid,'SELECT')
+                    and has_schema_privilege('authenticated',n.oid,'USAGE') end,
+          format('%I.%I has explicit published or private read grants',n.nspname,c.relname))
+from pg_class c join pg_namespace n on n.oid=c.relnamespace
+where n.nspname='knowledge' and c.relkind in ('r','p');
 select ok(not has_table_privilege('moodprint_api','app.messages','SELECT'),'login role cannot directly read transcript');
 select ok(not has_table_privilege('service_role','app.messages','SELECT'),'secret HTTP role cannot directly read transcript');
 select ok(not has_table_privilege('authenticated','agent_store.agent_messages','SELECT'),'user role cannot read SDK replay');

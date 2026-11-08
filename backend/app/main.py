@@ -14,7 +14,8 @@ from moodprint_shared.env import EnvSettings, get_settings
 from moodprint_shared.logging import configure_logging
 from sqlalchemy import text
 
-from app.api.v1 import knowledge_router
+from app.agent_gateway.wiring import build_runtime
+from app.api.v1 import analyses_router, knowledge_router, roleplay_router
 from app.api.v1.cases import router as case_router
 from app.api.v1.conversations import router as conversation_router
 from app.api.v1.evidence import router as evidence_router
@@ -35,6 +36,7 @@ from app.infrastructure.auth_admin import AuthAdmin
 from app.infrastructure.storage_gateway import StorageGateway
 from app.jobs.evidence import purge_loop
 from app.jobs.reconcile import reconcile_loop
+from app.modules.knowledge.factory import build_knowledge_retriever
 
 
 class HealthReply(FrozenDTO):
@@ -58,29 +60,34 @@ def create_app(settings: EnvSettings | None = None, cfg: AppConfig | None = None
             app.state.verifier = JwtVerifier(settings, cfg, http)
             app.state.auth_admin = AuthAdmin(settings, http)
             app.state.storage = StorageGateway(settings, cfg, http)
-            from moodprint_agent.runtime import CompanionRuntime
             from openai import AsyncOpenAI
 
-            model_client = (
-                AsyncOpenAI(api_key=settings.openai_api_key.get_secret_value())
-                if settings.openai_api_key
-                else None
-            )
-            app.state.runtime = CompanionRuntime(cfg, openai_client=model_client)
+            model_client = None
+            background_tasks = []
             app.state.run_tasks = set()
-            reconciler = asyncio.create_task(
-                reconcile_loop(engine, cfg.api.reconcile_interval_s, cfg.api.stale_run_after_s)
-            )
-            evidence_purger = asyncio.create_task(purge_loop(engine, app.state.storage))
             try:
+                model_client = (
+                    AsyncOpenAI(api_key=settings.openai_api_key.get_secret_value())
+                    if settings.openai_api_key
+                    else None
+                )
+                app.state.knowledge = build_knowledge_retriever(engine, settings, cfg)
+                app.state.runtime = build_runtime(cfg, model_client)
+                background_tasks.append(
+                    asyncio.create_task(
+                        reconcile_loop(
+                            engine, cfg.api.reconcile_interval_s, cfg.api.stale_run_after_s
+                        )
+                    )
+                )
+                background_tasks.append(asyncio.create_task(purge_loop(engine, app.state.storage)))
                 yield
             finally:
-                reconciler.cancel()
-                evidence_purger.cancel()
-                with suppress(asyncio.CancelledError):
-                    await reconciler
-                with suppress(asyncio.CancelledError):
-                    await evidence_purger
+                for task in background_tasks:
+                    task.cancel()
+                for task in background_tasks:
+                    with suppress(asyncio.CancelledError):
+                        await task
                 for task in list(app.state.run_tasks):
                     task.cancel()
                 await asyncio.gather(*app.state.run_tasks, return_exceptions=True)
@@ -145,6 +152,8 @@ def create_app(settings: EnvSettings | None = None, cfg: AppConfig | None = None
         school_router,
         school_access_router,
         knowledge_router,
+        analyses_router,
+        roleplay_router,
     ):
         app.include_router(router)
     return app

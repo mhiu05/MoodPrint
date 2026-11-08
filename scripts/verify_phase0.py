@@ -11,6 +11,7 @@ from pathlib import Path
 
 from e2e_stack import (
     build_environment,
+    default_environment_file,
     environment_for_frontend_checks,
     read_local_environment,
 )
@@ -29,30 +30,53 @@ def main() -> int:
     )
     args = parser.parse_args()
     # The gate resets the local database. Refuse while E2E owns the local API/Vite.
-    for port in (8008, 5178):
+    offset = int(os.environ.get("MOODPRINT_PORT_OFFSET", "0"))
+    name = os.environ.get("MOODPRINT_STACK_NAME", "foundation")
+    for port in (8008 + offset, 5178 + offset):
         with socket.socket() as connection:
             if connection.connect_ex(("127.0.0.1", port)) == 0:
                 print("FAILED: stop the E2E stack before the foundation gate resets local data")
                 return 1
-    npx = "npx.cmd" if os.name == "nt" else "npx"
     npm = "npm.cmd" if os.name == "nt" else "npm"
     checks = [
         ([sys.executable, "scripts/check.py"], ROOT),
         ([sys.executable, "scripts/export_contract_schemas.py", "--check"], ROOT),
         ([sys.executable, "scripts/export_openapi.py", "--check"], ROOT),
-        ([npx, "--yes", f"supabase@{CLI_VERSION}", "db", "reset", "--local"], ROOT),
+        (
+            [
+                sys.executable,
+                "scripts/dev/supabase_worktree.py",
+                "reset",
+                "--name",
+                name,
+                "--offset",
+                str(offset),
+            ],
+            ROOT,
+        ),
         ([sys.executable, "scripts/dev/bootstrap_local_db.py"], ROOT),
-        ([npx, "--yes", f"supabase@{CLI_VERSION}", "test", "db"], ROOT),
+        (
+            [
+                sys.executable,
+                "scripts/dev/supabase_worktree.py",
+                "test",
+                "--name",
+                name,
+                "--offset",
+                str(offset),
+            ],
+            ROOT,
+        ),
         ([sys.executable, "-m", "pytest", "-m", "integration", "-q", "-rA"], ROOT),
         # Bound jsdom workers on shared developer machines; preserve test timeouts
         # and assertions while avoiding CPU contention between 13 environments.
         ([npm, "test", "--", "--maxWorkers=2"], ROOT / "frontend"),
     ]
     history = []
-    output_dir = ROOT / ".local/verification"
+    output_dir = ROOT / ".local/verification" / f"{name}-{offset}"
     output_dir.mkdir(parents=True, exist_ok=True)
     for index, (command, cwd) in enumerate(checks):
-        local_file = ROOT / ".local/test.env"
+        local_file = default_environment_file(name, offset)
         child_environment = (
             build_environment(read_local_environment(local_file), dict(os.environ))
             if local_file.exists()
@@ -96,7 +120,8 @@ def main() -> int:
         "checks": history,
     }
     receipt_name = "phase0-regression-gate.json" if args.regression else "phase0-gate.json"
-    (ROOT / ".local" / receipt_name).write_text(json.dumps(receipt, indent=2), encoding="utf-8")
+    receipt_path = default_environment_file(name, offset).parent / receipt_name
+    receipt_path.write_text(json.dumps(receipt, indent=2), encoding="utf-8")
     print(
         "VERIFIED: foundation regression; this receipt does not authorize hosted migration."
         if args.regression

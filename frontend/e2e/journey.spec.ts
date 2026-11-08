@@ -2,6 +2,7 @@ import { expect, test } from "./helpers/fixtures";
 for (const width of [390, 1440]) {
   test(`full journey ${width}px: chat → eight screenshots → confirmed timeline → case → plan → roleplay → support`, async ({
     page,
+    baseURL,
   }) => {
     test.setTimeout(90000);
     await page.setViewportSize({ width, height: 900 });
@@ -10,7 +11,7 @@ for (const width of [390, 1440]) {
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("request", (request) => {
       if (
-        !request.url().startsWith("http://127.0.0.1:5178") &&
+        !request.url().startsWith(baseURL!) &&
         !request.url().startsWith("data:") &&
         !request.url().startsWith("blob:")
       )

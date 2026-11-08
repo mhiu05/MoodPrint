@@ -2,7 +2,7 @@ import { useWorkspaceStore } from "../app/store";
 import type { AuthPort, Services } from "./ports";
 import { getSupabase } from "./supabase";
 import { createAuthPort } from "./http/auth";
-import { createApiClient, type ApiClient } from "./http/client";
+import { createApiClient, type StreamClient } from "./http/client";
 import { createCasePort } from "./http/incidents";
 import { createEvidencePort } from "./http/evidence";
 import { createPlanPort } from "./http/plans";
@@ -13,10 +13,13 @@ import {
   createSupportPort,
 } from "./http/personal";
 import { createMockServices } from "./mock";
-import { createChatPort } from "./composition/chat";
+import { createChatPort, createCompanionService } from "./composition/chat";
 import { createAnalysisPort } from "./composition/analysis";
 import { createRoleplayPort } from "./composition/roleplay";
-import { createKnowledgeCatalogPort } from "./composition/knowledge";
+import {
+  createKnowledgeCatalogPort,
+  createKnowledgeSearchPort,
+} from "./composition/knowledge";
 import { preserveExpiredSession } from "./session-reset";
 const auth = createAuthPort();
 const api = createApiClient({
@@ -37,7 +40,7 @@ const api = createApiClient({
   },
 });
 export function createRealServices(
-  client: ApiClient,
+  client: StreamClient,
   authPort: AuthPort = auth,
 ): Services {
   return {
@@ -50,6 +53,8 @@ export function createRealServices(
     support: createSupportPort(client),
     knowledgeState: createKnowledgeStatePort(client),
     knowledgeCatalog: createKnowledgeCatalogPort,
+    knowledgeSearch: createKnowledgeSearchPort(client),
+    companion: createCompanionService(client),
     chat: createChatPort,
     analysis: createAnalysisPort,
     roleplay: createRoleplayPort,
