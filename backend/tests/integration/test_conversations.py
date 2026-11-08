@@ -58,3 +58,43 @@ async def test_begin_turn_concurrent_idempotency_and_usage(db_engine, identities
     run = await service.get_run(a, turn.run_id)
     assert run["total_tokens"] == 15
     await service.delete(a, conversation["id"])
+
+
+@pytest.mark.parametrize("terminal", ["failed", "cancelled"])
+async def test_retry_of_a_failed_or_cancelled_turn_reruns_the_same_message(
+    db_engine, identities, terminal
+):
+    """A retry (same client id, no answer) is a new run on the stored message, not a replay of the
+    failure: a replay has no terminal event and could never succeed."""
+    a = identities[0]
+    service = ConversationService(db_engine)
+    conversation = await service.create(a, uuid4(), "Synthetic")
+    client_id = uuid4()
+    first = await service.begin_turn(a, conversation["id"], client_id, "Mình muốn kể chuyện")
+    await service.finish_turn(
+        a, first, TurnResult(status=terminal, error_code="internal_error", usage=RunUsage())
+    )
+    retry = await service.begin_turn(a, conversation["id"], client_id, "Mình muốn kể chuyện")
+    assert not retry.replay
+    assert retry.run_id != first.run_id and retry.message_id == first.message_id
+    # one stored user message, now owned by the new run
+    assert [m.content for m in await service.recent_messages(a, conversation["id"], 10)] == [
+        "Mình muốn kể chuyện"
+    ]
+    # while the retry runs, a further retry is refused rather than starting a third run
+    with pytest.raises(RunInProgress):
+        await service.begin_turn(a, conversation["id"], client_id, "Mình muốn kể chuyện")
+    await service.finish_turn(
+        a,
+        retry,
+        TurnResult(
+            status="completed", content="Mình nghe đây", message_id=uuid4(), usage=RunUsage()
+        ),
+    )
+    again = await service.begin_turn(a, conversation["id"], client_id, "Mình muốn kể chuyện")
+    assert again.replay and again.existing_result.content == "Mình nghe đây"
+    assert [m.content for m in await service.recent_messages(a, conversation["id"], 10)] == [
+        "Mình muốn kể chuyện",
+        "Mình nghe đây",
+    ]
+    await service.delete(a, conversation["id"])

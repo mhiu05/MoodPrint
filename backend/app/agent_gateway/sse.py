@@ -40,6 +40,27 @@ class RunStream:
             self.attached = False
 
 
+async def drop_unanswered_duplicate(session, content: str) -> None:
+    """A failed or cancelled attempt leaves its user message as the last item of the model's history.
+    Re-running the same text must not show the model the same message twice. Best effort only."""
+    try:
+        items = await session.get_items(limit=1)
+        last = items[-1] if items else None
+        if isinstance(last, dict) and last.get("role") == "user":
+            body = last.get("content")
+            text = (
+                body
+                if isinstance(body, str)
+                else " ".join(str(part.get("text", "")) for part in body if isinstance(part, dict))
+                if isinstance(body, list)
+                else ""
+            )
+            if text.strip() == content.strip():
+                await session.pop_item()
+    except Exception:  # never let history hygiene break a turn
+        return
+
+
 async def produce(
     *,
     stream: RunStream,
@@ -76,6 +97,8 @@ async def produce(
         session = await service.open_session(
             auth, turn.conversation_id, client=getattr(runtime, "openai_client", None)
         )
+        if not resume:
+            await drop_unanswered_duplicate(session, content)
         events = (
             runtime.resume_after_approval(
                 ctx=ctx,

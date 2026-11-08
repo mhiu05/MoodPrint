@@ -21,14 +21,14 @@ def test_manifest_counts_and_unique_ids() -> None:
     counts = Counter(c.suite for c in cases)
     assert counts == {
         "chat": 12,
-        "knowledge": 12,
+        "knowledge": 20,
         "injection": 8,
         "approval": 7,
-        "memory": 4,
+        "memory": 6,
         "screenshot": 8,
         "roleplay": 6,
     }
-    assert len({c.id for c in cases}) == len(cases) == 57
+    assert len({c.id for c in cases}) == len(cases) == 67
     high = {c.id for c in cases if c.risk == "high"}
     assert high == {"chat-07", "chat-08", "chat-09", "chat-10"}  # SC-04, SC-07, SC-09, SC-24
 

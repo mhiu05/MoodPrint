@@ -6,6 +6,7 @@ results of *this* turn), so it works across conversations, restarts and approval
 tool requests, approval boundaries and database rows; it says nothing about model behaviour.
 """
 
+import asyncio
 import json
 from collections.abc import AsyncIterator, Sequence
 from typing import Any, cast
@@ -16,7 +17,9 @@ from agents.testing import ModelStep, ScriptedModel, assistant_message, function
 from agents.usage import Usage
 from moodprint_shared.config import AppConfig
 
+from moodprint_agent.roleplay.scenarios import PERSONAS
 from moodprint_agent.runtime import CompanionRuntime
+from moodprint_agent.testing.fake_provider import build_fake_client
 from moodprint_agent.tools.factory import build_registry
 
 USAGE = Usage(requests=1, input_tokens=12, output_tokens=8, total_tokens=20)
@@ -179,28 +182,89 @@ def decide(items: Sequence[Any]) -> list[Any]:
     return [assistant_message("Mình nghe đây. Bạn muốn kể thêm không?")]
 
 
-class RuleModel(Model):
-    """A provider-neutral Model that answers each request from ``decide``."""
+_FAILED_ONCE: set[str] = set()
+_PARTNER_LINES = {
+    "teacher": ("Cô", "em", "cô"),
+    "parent": ("Mẹ", "con", "mẹ"),
+    "trusted_adult": ("Mình", "bạn", "mình"),
+}
 
-    def _one(self, input: Any) -> ScriptedModel:
+
+def partner_reply(system_instructions: str, items: Sequence[Any]) -> list[Any]:
+    """A fixed persona line per role (the partner has no tools): enough to see role consistency."""
+    role = next(
+        (
+            name
+            for name, persona in PERSONAS.items()
+            if f'"persona":"{persona}"' in system_instructions
+        ),
+        "teacher",
+    )
+    who, you, me = _PARTNER_LINES[role]
+    turn = sum(1 for item in items if _is_user(item))
+    return [
+        assistant_message(
+            f"{who} nghe {you} đây (lượt {turn}). {you.capitalize()} kể thêm giúp {me} nhé?"
+        )
+    ]
+
+
+class RuleModel(Model):
+    """A provider-neutral Model that answers each request from ``decide``.
+
+    Test triggers in the user's text (all synthetic): "trả lời chậm" delays the answer by 8 s (cancel and
+    network tests), "lỗi một lần" fails the first request with that exact text and then recovers
+    (retry test), "lỗi mô hình" always fails (terminal failure). Roleplay requests (the partner prompt)
+    get a fixed persona line.
+    """
+
+    def _plan(self, system_instructions: Any, input: Any) -> tuple[ScriptedModel, float]:
         items: list[Any] = (
             [{"role": "user", "content": input}] if isinstance(input, str) else list(input)
         )
-        return ScriptedModel([ModelStep(output=decide(items), usage=USAGE)])
+        text = _Turn(items).text
+        if "lỗi mô hình" in text:
+            raise RuntimeError("e2e injected model failure")
+        if "lỗi một lần" in text and text not in _FAILED_ONCE:
+            _FAILED_ONCE.add(text)
+            raise RuntimeError("e2e injected one-time model failure")
+        delay = 8.0 if "trả lời chậm" in text else 0.0
+        if isinstance(system_instructions, str) and "DIỄN TẬP" in system_instructions:
+            output = partner_reply(system_instructions, items)
+        else:
+            output = decide(items)
+        return ScriptedModel([ModelStep(output=output, usage=USAGE)]), delay
 
     async def get_response(  # type: ignore[override]
         self, system_instructions: Any, input: Any, *args: Any, **kwargs: Any
     ) -> Any:
-        scripted: Any = self._one(input)
+        scripted, delay = self._plan(system_instructions, input)
+        if delay:
+            await asyncio.sleep(delay)
         return await scripted.get_response(system_instructions, input, *args, **kwargs)
 
     def stream_response(  # type: ignore[override]
         self, system_instructions: Any, input: Any, *args: Any, **kwargs: Any
     ) -> AsyncIterator[Any]:
-        scripted: Any = self._one(input)
-        return scripted.stream_response(system_instructions, input, *args, **kwargs)
+        scripted, delay = self._plan(system_instructions, input)
+
+        async def run() -> AsyncIterator[Any]:
+            if delay:
+                await asyncio.sleep(delay)
+            async for event in scripted.stream_response(
+                system_instructions, input, *args, **kwargs
+            ):
+                yield event
+
+        return run()
 
 
 def build_e2e_runtime(cfg: AppConfig) -> CompanionRuntime:
-    """Frozen entry point used by ``scripts/e2e_app.py``: real wiring, scripted provider only."""
-    return CompanionRuntime(cfg, build_registry(cfg), model=RuleModel())
+    """Frozen entry point used by ``scripts/e2e_app.py``: real wiring, scripted provider only.
+
+    ``openai_client`` is the deterministic HTTP-boundary fake: evidence analysis and the roleplay coach
+    run their real code against it (see ``fake_provider``).
+    """
+    return CompanionRuntime(
+        cfg, build_registry(cfg), model=RuleModel(), openai_client=build_fake_client()
+    )

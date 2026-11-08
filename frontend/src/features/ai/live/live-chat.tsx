@@ -114,24 +114,22 @@ export function Thread({
         </div>
       </header>
       {banner}
-      <ol
-        className="live-messages"
-        role="log"
-        aria-live="polite"
-        aria-label="Tin nhắn"
-      >
-        {!chat.loaded && (
-          <li className="live-hint">Đang tải cuộc trò chuyện…</li>
-        )}
-        {chat.loaded && !chat.messages.length && (
-          <li className="live-hint">
-            Bạn muốn kể điều gì? Có thể bắt đầu từ một câu.
-          </li>
-        )}
-        {chat.messages.map((message) => (
-          <LiveMessageView key={message.id} message={message} />
-        ))}
-      </ol>
+      {/* The live region wraps the list: an <li> must stay a direct child of a real list. */}
+      <div role="log" aria-live="polite" aria-label="Tin nhắn">
+        <ol className="live-messages">
+          {!chat.loaded && (
+            <li className="live-hint">Đang tải cuộc trò chuyện…</li>
+          )}
+          {chat.loaded && !chat.messages.length && (
+            <li className="live-hint">
+              Bạn muốn kể điều gì? Có thể bắt đầu từ một câu.
+            </li>
+          )}
+          {chat.messages.map((message) => (
+            <LiveMessageView key={message.id} message={message} />
+          ))}
+        </ol>
+      </div>
       <div ref={endRef} />
       {chat.tools.length > 0 && (
         <ul className="live-tools" aria-label="AI đang làm">

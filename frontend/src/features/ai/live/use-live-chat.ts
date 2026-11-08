@@ -80,6 +80,8 @@ export function useLiveChat(service: LiveCompanion, conversationId: string) {
   const [error, setError] = useState<RunError | null>(null);
   const [loaded, setLoaded] = useState(false);
   const runId = useRef<string | null>(null);
+  // Stop was pressed before the server told us the run id: cancel as soon as it arrives.
+  const stopRequested = useRef(false);
   const abort = useRef<AbortController | null>(null);
   const [hasRequest, setHasRequest] = useState(false);
   const failed = useRef<{ clientMessageId: string; content: string } | null>(
@@ -172,6 +174,10 @@ export function useLiveChat(service: LiveCompanion, conversationId: string) {
           switch (event.event) {
             case "run.started":
               runId.current = event.data.runId;
+              if (stopRequested.current) {
+                stopRequested.current = false;
+                void service.cancel(event.data.runId).catch(() => undefined);
+              }
               break;
             case "message.delta":
               queueDelta(event.data.text);
@@ -265,12 +271,14 @@ export function useLiveChat(service: LiveCompanion, conversationId: string) {
         );
       }
     },
-    [queueDelta, restore],
+    [queueDelta, restore, service],
   );
 
   const begin = useCallback(
     async (content: string, clientMessageId: string, appendUser: boolean) => {
       abort.current = new AbortController();
+      runId.current = null; // never cancel the previous turn's run by mistake
+      stopRequested.current = false;
       setError(null);
       setTools([]);
       setApproval(null);
@@ -335,6 +343,7 @@ export function useLiveChat(service: LiveCompanion, conversationId: string) {
   const stop = useCallback(async () => {
     if (runId.current)
       await service.cancel(runId.current).catch(() => undefined);
+    else stopRequested.current = true;
   }, [service]);
 
   const decide = useCallback(

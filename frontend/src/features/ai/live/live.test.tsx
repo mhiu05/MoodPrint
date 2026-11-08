@@ -287,6 +287,38 @@ describe("live chat", () => {
       expect(screen.getByRole("button", { name: /Gửi/ })).toBeTruthy(),
     );
   });
+
+  it("stop pressed before the run id arrives cancels as soon as it does", async () => {
+    // The first click can land before run.started: it used to do nothing at all.
+    let startRun: () => void = () => undefined;
+    const started = new Promise<void>((resolve) => (startRun = resolve));
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const service = fake({
+      send: vi.fn(async function* () {
+        await started;
+        yield ev("run.started", {
+          runId: "run-late",
+          conversationId: "conv-1",
+          messageId: "m",
+        });
+        await gate;
+        yield ev("run.completed", { status: "cancelled" });
+      }),
+    });
+    renderThread(service);
+    await say("x{Enter}");
+    await userEvent.click(await screen.findByRole("button", { name: /Dừng/ }));
+    expect(service.cancel).not.toHaveBeenCalled(); // no id yet, nothing to cancel
+    startRun();
+    await waitFor(() =>
+      expect(service.cancel).toHaveBeenCalledWith("run-late"),
+    );
+    release();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /Gửi/ })).toBeTruthy(),
+    );
+  });
 });
 
 describe("approval dialog", () => {

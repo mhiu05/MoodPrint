@@ -540,6 +540,10 @@ class CompanionRuntime:
             if result is not None:
                 result.cancel("immediate")
             code, retryable = _public_error(error)
+            # Class and public code only: never the message, it may carry user or provider text.
+            logging.getLogger(__name__).warning(
+                "run failed code=%s type=%s", code, type(error).__name__
+            )
             yield emitter.emit("run.usage", usage_data())
             yield emitter.emit(
                 "run.failed",

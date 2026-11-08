@@ -196,6 +196,7 @@ class ConversationService:
                 .mappings()
                 .first()
             )
+            retry_of = None
             if existing:
                 if existing["status"] in ("running", "awaiting_approval"):
                     raise RunInProgress()
@@ -211,14 +212,22 @@ class ConversationService:
                     .mappings()
                     .first()
                 )
-                return TurnHandle(
-                    run_id=existing["run_id"],
-                    conversation_id=conversation_id,
-                    message_id=existing["id"],
-                    client_message_id=client_message_id,
-                    replay=True,
-                    existing_result=await self._stored_result(uow.session, auth, existing, answer),
-                )
+                if existing["status"] in ("failed", "cancelled") and not answer:
+                    # Same message, same client id, no answer: this is a retry. Run it again as a new
+                    # run on the stored message instead of replaying the failure (which has no
+                    # terminal event and could never succeed).
+                    retry_of = existing["id"]
+                else:
+                    return TurnHandle(
+                        run_id=existing["run_id"],
+                        conversation_id=conversation_id,
+                        message_id=existing["id"],
+                        client_message_id=client_message_id,
+                        replay=True,
+                        existing_result=await self._stored_result(
+                            uow.session, auth, existing, answer
+                        ),
+                    )
             active = await uow.session.scalar(
                 text(
                     "SELECT id FROM app.agent_runs WHERE conversation_id=:conversation AND owner_id=:owner AND status IN ('running','awaiting_approval')"
@@ -277,14 +286,19 @@ class ConversationService:
                 if practice["status"] != "active":
                     raise ApiError("roleplay_ended", "Buổi diễn tập này đã kết thúc.", 409)
                 limit = self.cfg.agent.roleplay_max_turns
-                # Compare-and-set: the increment itself refuses to pass the limit.
-                claimed = await uow.session.scalar(
-                    text(
-                        "UPDATE app.roleplay_sessions SET turn_count=turn_count+1 "
-                        "WHERE conversation_id=:conversation AND owner_id=:owner "
-                        "AND status='active' AND turn_count<:limit RETURNING turn_count"
-                    ),
-                    {**params, "limit": limit},
+                # Compare-and-set: the increment itself refuses to pass the limit. A retry of an
+                # already counted turn does not count twice.
+                claimed = (
+                    0
+                    if retry_of is not None
+                    else await uow.session.scalar(
+                        text(
+                            "UPDATE app.roleplay_sessions SET turn_count=turn_count+1 "
+                            "WHERE conversation_id=:conversation AND owner_id=:owner "
+                            "AND status='active' AND turn_count<:limit RETURNING turn_count"
+                        ),
+                        {**params, "limit": limit},
+                    )
                 )
                 if claimed is None:
                     raise ApiError(
@@ -294,7 +308,7 @@ class ConversationService:
                         details={"max_turns": limit},
                     )
                 # A turn that later fails still counts: the limit bounds cost, not success.
-            run_id, message_id = uuid4(), uuid4()
+            run_id, message_id = uuid4(), retry_of or uuid4()
             await uow.session.execute(
                 text(
                     "INSERT INTO app.agent_runs(id,conversation_id,owner_id,status,model,prompt_version,tools_version) VALUES(:id,:conversation,:owner,'running',:model,:prompt,:tools)"
@@ -307,12 +321,19 @@ class ConversationService:
                     "tools": self.tools_version,
                 },
             )
-            await uow.session.execute(
-                text(
-                    "INSERT INTO app.messages(id,conversation_id,owner_id,role,content,client_message_id,run_id) VALUES(:id,:conversation,:owner,'user',:content,:client,:run)"
-                ),
-                {**params, "id": message_id, "content": content, "run": run_id},
-            )
+            if retry_of is not None:
+                await uow.session.execute(
+                    text("UPDATE app.messages SET run_id=:run WHERE id=:id AND owner_id=:owner"),
+                    {**params, "id": message_id, "run": run_id},
+                )
+                attached = []  # already attached to the stored message
+            else:
+                await uow.session.execute(
+                    text(
+                        "INSERT INTO app.messages(id,conversation_id,owner_id,role,content,client_message_id,run_id) VALUES(:id,:conversation,:owner,'user',:content,:client,:run)"
+                    ),
+                    {**params, "id": message_id, "content": content, "run": run_id},
+                )
             for evidence_id in attached:
                 await uow.session.execute(
                     text(

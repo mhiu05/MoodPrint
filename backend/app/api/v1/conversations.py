@@ -167,19 +167,42 @@ async def send(
         result = turn.existing_result
         if result is None:
             raise ApiError("internal_error", "Chưa đọc được kết quả lượt trò chuyện.", 500)
-        stream.publish(
-            make_event(
-                "message.completed",
-                seq=1,
-                run_id=turn.run_id,
-                data={
-                    "message_id": result.message_id or turn.message_id,
-                    "content": result.content,
-                    "citations": result.citations,
-                    "structured": result.structured,
-                },
-            )
-        )
+        # A replayed turn is a complete, well-ordered stream (A-19): started, answer, usage, completed.
+        for number, (name, payload) in enumerate(
+            (
+                (
+                    "run.started",
+                    {
+                        "run_id": turn.run_id,
+                        "conversation_id": id,
+                        "message_id": turn.message_id,
+                    },
+                ),
+                (
+                    "message.completed",
+                    {
+                        "message_id": result.message_id or turn.message_id,
+                        "content": result.content,
+                        "citations": result.citations,
+                        "structured": result.structured,
+                    },
+                ),
+                (
+                    "run.usage",
+                    {
+                        "input_tokens": 0,
+                        "output_tokens": 0,
+                        "total_tokens": 0,
+                        "requests": 0,
+                        "tool_calls": 0,
+                        "latency_ms": 0,
+                    },
+                ),
+                ("run.completed", {"status": result.status}),
+            ),
+            start=1,
+        ):
+            stream.publish(make_event(name, seq=number, run_id=turn.run_id, data=payload))
         stream.publish(None)
     else:
         task = asyncio.create_task(
