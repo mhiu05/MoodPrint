@@ -24,6 +24,7 @@ import httpx
 APPROVED_MODEL: Final = "gpt-6-luna"
 PAID_HOST: Final = "api.openai.com"
 PAID_PATH_PREFIX: Final = "/v1/responses"
+COMPACT_PATH: Final = "/v1/responses/compact"
 DEFAULT_BUDGET_PATH: Final = Path(".local/eval-budget.json")
 DEFAULT_LEDGER_PATH: Final = Path(".local/eval-spend.jsonl")
 EXIT_BUDGET: Final = 3
@@ -205,12 +206,23 @@ class BudgetLedger:
 
     # -- public API -----------------------------------------------------------------------
     def reserve(
-        self, *, model: str, input_tokens: int, max_output_tokens: int, run_id: str
+        self,
+        *,
+        model: str,
+        input_tokens: int,
+        max_output_tokens: int,
+        run_id: str,
+        output_bounded_by_input: bool = False,
     ) -> Reservation:
         budget = self.budget
         if model != budget.model:
             raise BudgetError("model is not the approved model")
-        if max_output_tokens < 1 or max_output_tokens > budget.max_output_tokens_per_request:
+        if max_output_tokens < 1:
+            raise BudgetError("max output tokens must be set and positive")
+        # The compaction endpoint has no output cap parameter; its result is a shorter
+        # rendering of its input, so input size is the (conservative) worst case and the
+        # per-run token cap below still bounds the whole reservation.
+        if not output_bounded_by_input and max_output_tokens > budget.max_output_tokens_per_request:
             raise BudgetError("max output tokens must be set and within the owner cap")
         if input_tokens < 0 or input_tokens > budget.prices.max_input_tokens:
             raise BudgetError("input exceeds the verified short-context price table")
@@ -479,6 +491,10 @@ class GuardedTransport(httpx.AsyncBaseTransport):
         if not isinstance(parsed, dict):
             raise BudgetError("request body must be an object")
         payload = cast(dict[str, Any], parsed)
+        if request.url.path.rstrip("/") == COMPACT_PATH:
+            return await self._compaction(request, body, payload)
+        if request.url.path.rstrip("/") != PAID_PATH_PREFIX:
+            raise BudgetError("unknown Responses sub-endpoint; request refused")
         if payload.get("store") is not False:
             raise BudgetError("store=False is mandatory; request refused")
         model = payload.get("model")
@@ -493,6 +509,28 @@ class GuardedTransport(httpx.AsyncBaseTransport):
             max_output_tokens=output_cap,
             run_id=self._run_id,
         )
+        return await self._send(request, reservation)
+
+    async def _compaction(
+        self, request: httpx.Request, body: bytes, payload: dict[str, Any]
+    ) -> httpx.Response:
+        """Stateless ``input`` compaction only: no stored response may be referenced."""
+        model = payload.get("model")
+        if not isinstance(model, str) or "input" not in payload:
+            raise BudgetError("compaction needs a model and explicit input; request refused")
+        if payload.get("previous_response_id") or payload.get("store") is True:
+            raise BudgetError("compaction must not depend on a stored response; request refused")
+        input_tokens = estimate_input_tokens(body)
+        reservation = self._ledger.reserve(
+            model=model,
+            input_tokens=input_tokens,
+            max_output_tokens=input_tokens,
+            run_id=self._run_id,
+            output_bounded_by_input=True,
+        )
+        return await self._send(request, reservation)
+
+    async def _send(self, request: httpx.Request, reservation: Reservation) -> httpx.Response:
         try:
             response = await self._inner.handle_async_request(request)
         except BaseException:

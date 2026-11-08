@@ -254,3 +254,34 @@ async def test_gzip_encoded_usage_is_reconciled_not_left_unknown(tmp_path: Path)
         assert response.json()["usage"]["input_tokens"] == 30
     assert ledger.unknown_calls == 0
     assert ledger.spent_tokens == 35
+
+
+async def test_compaction_is_metered_with_input_as_the_output_bound(tmp_path: Path) -> None:
+    sent: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(request)
+        return httpx.Response(200, json={"usage": {"input_tokens": 40, "output_tokens": 10}})
+
+    ledger = _ledger(tmp_path, max_calls_total=3)
+    transport = GuardedTransport(httpx.MockTransport(handler), ledger, run_id="r")
+    async with httpx.AsyncClient(transport=transport) as client:
+        body = {"model": "gpt-6-luna", "input": [{"role": "user", "content": "x" * 600}]}
+        # 600+ bytes of input, no output cap field: allowed because output <= input bound.
+        response = await client.send(
+            _request(body, url="https://api.openai.com/v1/responses/compact")
+        )
+        assert response.status_code == 200
+        for bad in (
+            {**body, "previous_response_id": "resp_123"},  # depends on a stored response
+            {**body, "store": True},
+            {**body, "model": "gpt-5"},
+            {"model": "gpt-6-luna"},  # no explicit input
+        ):
+            with pytest.raises(BudgetError):
+                await client.send(_request(bad, url="https://api.openai.com/v1/responses/compact"))
+        with pytest.raises(BudgetError):  # any other sub-path stays refused
+            await client.send(
+                _request(body, url="https://api.openai.com/v1/responses/input_tokens")
+            )
+    assert len(sent) == 1 and ledger.reserved_calls == 1 and ledger.unknown_calls == 0

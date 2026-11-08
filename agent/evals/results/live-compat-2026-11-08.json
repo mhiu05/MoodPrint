@@ -1,0 +1,109 @@
+{
+  "runs": [
+    {
+      "at": "2026-11-08T15:10:20.007459+00:00",
+      "model": "gpt-6-luna",
+      "openai_agents": "0.24.0",
+      "openai": "3.46.0",
+      "results": [
+        {
+          "test": "test_l_ag_04_image_input_reads_the_synthetic_greeting",
+          "outcome": "passed",
+          "duration_ms": 6490,
+          "properties": {
+            "total_tokens": 1110,
+            "diacritics_exact": true,
+            "inference_count": 1
+          }
+        },
+        {
+          "test": "test_l_ag_06_compaction_session_on_twelve_items",
+          "outcome": "passed",
+          "duration_ms": 5216,
+          "properties": {
+            "items_before": 12,
+            "items_after": 7,
+            "item_types": "compaction,message"
+          }
+        }
+      ],
+      "ledger_after_run": {
+        "calls": 6,
+        "unknown_calls": 1,
+        "spent_tokens": 5229,
+        "committed_usd": 0.002799,
+        "max_usd": 2.9,
+        "prices_verified_on": "2026-11-08"
+      }
+    },
+    {
+      "at": "2026-11-08T15:11:21.214279+00:00",
+      "model": "gpt-6-luna",
+      "openai_agents": "0.24.0",
+      "openai": "3.46.0",
+      "results": [
+        {
+          "test": "test_l_ag_01_vietnamese_streaming_turn",
+          "outcome": "passed",
+          "duration_ms": 2229,
+          "properties": {
+            "total_tokens": 1752,
+            "deltas": 38
+          }
+        },
+        {
+          "test": "test_l_ag_02_one_function_tool_round_trip",
+          "outcome": "passed",
+          "duration_ms": 4837,
+          "properties": {
+            "requests": 2
+          }
+        },
+        {
+          "test": "test_l_ag_03_small_structured_output",
+          "outcome": "passed",
+          "duration_ms": 2104,
+          "properties": {
+            "total_tokens": 88
+          }
+        },
+        {
+          "test": "test_l_ag_04_image_input_reads_the_synthetic_greeting",
+          "outcome": "passed",
+          "duration_ms": 5974,
+          "properties": {
+            "total_tokens": 1075,
+            "diacritics_exact": true,
+            "inference_count": 1
+          }
+        },
+        {
+          "test": "test_l_ag_05_approval_resumes_in_a_new_process_with_the_real_model",
+          "outcome": "passed",
+          "duration_ms": 21235,
+          "properties": {
+            "resume_events": 19
+          }
+        },
+        {
+          "test": "test_l_ag_06_compaction_session_on_twelve_items",
+          "outcome": "passed",
+          "duration_ms": 1751,
+          "properties": {
+            "items_before": 12,
+            "items_after": 7,
+            "item_types": "compaction,message"
+          }
+        }
+      ],
+      "ledger_after_run": {
+        "calls": 14,
+        "unknown_calls": 1,
+        "spent_tokens": 12718,
+        "committed_usd": 0.003668,
+        "max_usd": 2.9,
+        "prices_verified_on": "2026-11-08"
+      }
+    }
+  ]
+}
