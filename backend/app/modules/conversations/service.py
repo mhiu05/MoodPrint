@@ -3,9 +3,11 @@ from uuid import UUID, uuid4
 
 from moodprint_agent.memory.session import make_session, repair_session
 from moodprint_shared.config import AppConfig
+from moodprint_shared.contracts.agent import CompanionTurn
 from moodprint_shared.contracts.auth import AuthContext
 from moodprint_shared.contracts.conversations import ChatMessage, TurnHandle, TurnResult
 from moodprint_shared.contracts.errors import NotFound, RunInProgress
+from moodprint_shared.contracts.knowledge import SourceCitation
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -136,11 +138,7 @@ class ConversationService:
                     message_id=existing["id"],
                     client_message_id=client_message_id,
                     replay=True,
-                    existing_result=TurnResult(
-                        status=existing["status"],
-                        content=answer["content"] if answer else "",
-                        message_id=answer["id"] if answer else None,
-                    ),
+                    existing_result=await self._stored_result(uow.session, auth, existing, answer),
                 )
             active = await uow.session.scalar(
                 text(
@@ -159,6 +157,20 @@ class ConversationService:
             if count >= self.cfg.agent.messages_per_user_per_hour:
                 raise ApiError(
                     "rate_limited", "Bạn đã gửi nhiều tin nhắn. Vui lòng thử lại sau.", 429
+                )
+            spent_today = await uow.session.scalar(
+                text(
+                    "SELECT COALESCE(sum(total_tokens),0) FROM app.agent_runs WHERE owner_id=:owner "
+                    "AND started_at>=date_trunc('day', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'"
+                ),
+                params,
+            )
+            if spent_today >= self.cfg.agent.daily_token_cap_per_user:
+                raise ApiError(
+                    "quota_exceeded",
+                    "Hôm nay bạn đã dùng hết lượt trò chuyện với AI. Hãy quay lại vào ngày mai.",
+                    429,
+                    details={"kind": "ai_tokens"},
                 )
             run_id, message_id = uuid4(), uuid4()
             await uow.session.execute(
@@ -191,6 +203,49 @@ class ConversationService:
                 message_id=message_id,
                 client_message_id=client_message_id,
             )
+
+    @staticmethod
+    async def _stored_result(session, auth: AuthContext, run, answer) -> TurnResult:
+        """Rebuild a finished turn exactly as it was stored: text, citations, structured output."""
+        if not answer:
+            return TurnResult(status=run["status"])
+        raw = answer["citations"]
+        citations = [
+            SourceCitation.model_validate(c)
+            for c in (json.loads(raw) if isinstance(raw, str) else raw)
+        ]
+        stored = await session.scalar(
+            text(
+                "SELECT structured FROM app.message_assessments WHERE message_id=:id AND owner_id=:owner"
+            ),
+            {"id": answer["id"], "owner": auth.user_id},
+        )
+        structured = None
+        if stored is not None:
+            structured = CompanionTurn.model_validate(
+                json.loads(stored) if isinstance(stored, str) else stored
+            )
+        return TurnResult(
+            status=run["status"],
+            content=answer["content"],
+            message_id=answer["id"],
+            citations=citations,
+            structured=structured,
+        )
+
+    async def recent_user_messages(
+        self, auth: AuthContext, conversation_id: UUID, *, limit: int = 3
+    ) -> list[str]:
+        """The user's previous messages, oldest first, excluding the one just sent."""
+        async with user_uow(self.engine, auth) as uow:
+            rows = await uow.session.scalars(
+                text(
+                    "SELECT content FROM app.messages WHERE conversation_id=:c AND owner_id=:o AND role='user' "
+                    "ORDER BY created_at DESC OFFSET 1 LIMIT :n"
+                ),
+                {"c": conversation_id, "o": auth.user_id, "n": limit},
+            )
+            return list(reversed(list(rows)))
 
     async def finish_turn(self, auth: AuthContext, turn: TurnHandle, result: TurnResult) -> None:
         async with user_uow(self.engine, auth) as uow:
@@ -234,6 +289,7 @@ class ConversationService:
                     "error": result.error_code,
                 },
             )
+            assistant_id = result.message_id or uuid4()
             if result.status in ("completed", "cancelled") and result.content:
                 await uow.session.execute(
                     text(
@@ -241,13 +297,26 @@ class ConversationService:
                     ),
                     {
                         **params,
-                        "message": result.message_id or uuid4(),
+                        "message": assistant_id,
                         "content": result.content,
                         "citations": json.dumps(
                             [c.model_dump(mode="json", by_alias=True) for c in result.citations]
                         ),
                     },
                 )
+                if result.structured is not None:
+                    await uow.session.execute(
+                        text(
+                            "INSERT INTO app.message_assessments(message_id,owner_id,run_id,structured) "
+                            "VALUES(:message,:owner,:id,CAST(:structured AS jsonb)) "
+                            "ON CONFLICT(message_id) DO NOTHING"
+                        ),
+                        {
+                            **params,
+                            "message": assistant_id,
+                            "structured": result.structured.model_dump_json(),
+                        },
+                    )
             await uow.session.execute(
                 text(
                     "UPDATE app.conversations SET last_message_at=now() WHERE id=:conversation AND owner_id=:owner"

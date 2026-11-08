@@ -40,16 +40,36 @@ class RunStream:
 
 
 async def produce(
-    *, stream: RunStream, runtime, service, auth, turn, request_id: str, content: str, resume=None
+    *,
+    stream: RunStream,
+    runtime,
+    service,
+    auth,
+    turn,
+    request_id: str,
+    content: str,
+    resume=None,
+    knowledge=None,
+    storage=None,
 ):
     usage = RunUsage()
     answer, answer_id, status, error_code, seq = "", uuid4(), "failed", "internal_error", 0
+    citations, structured = [], None
     buffered = []
     try:
         conversation = await service.get(auth, turn.conversation_id)
         ctx = await build_context(
-            service.engine, service.cfg, auth, conversation, turn.run_id, request_id, content
+            service.engine,
+            service.cfg,
+            auth,
+            conversation,
+            turn.run_id,
+            request_id,
+            content,
+            knowledge,
+            storage,
         )
+        prior = [] if resume else await service.recent_user_messages(auth, turn.conversation_id)
         session = await service.open_session(auth, turn.conversation_id)
         events = (
             runtime.resume_after_approval(
@@ -61,13 +81,18 @@ async def produce(
             )
             if resume
             else runtime.stream_turn(
-                ctx=ctx, user_input=content, session=session, message_id=answer_id
+                ctx=ctx,
+                user_input=content,
+                session=session,
+                message_id=answer_id,
+                prior_user_messages=prior,
             )
         )
         async for event in events:
             seq = event.seq
             if event.event == "message.completed":
                 answer, answer_id = event.data.content, event.data.message_id
+                citations, structured = event.data.citations, event.data.structured
             elif event.event == "message.delta":
                 answer += event.data.text
             elif event.event == "run.usage":
@@ -94,7 +119,14 @@ async def produce(
                 await service.finish_turn(
                     auth,
                     turn,
-                    TurnResult(status=status, content=answer, message_id=answer_id, usage=usage),
+                    TurnResult(
+                        status=status,
+                        content=answer,
+                        message_id=answer_id,
+                        citations=citations,
+                        structured=structured,
+                        usage=usage,
+                    ),
                 )
             stream.publish(event)
     except asyncio.CancelledError:

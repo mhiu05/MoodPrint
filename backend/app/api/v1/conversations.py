@@ -169,7 +169,8 @@ async def send(
                 data={
                     "message_id": result.message_id or turn.message_id,
                     "content": result.content,
-                    "citations": [],
+                    "citations": result.citations,
+                    "structured": result.structured,
                 },
             )
         )
@@ -184,6 +185,8 @@ async def send(
                 turn=turn,
                 request_id=request.state.request_id,
                 content=data.content,
+                knowledge=getattr(request.app.state, "knowledge", None),
+                storage=getattr(request.app.state, "storage", None),
             )
         )
         request.app.state.run_tasks.add(task)
@@ -262,6 +265,8 @@ async def decide(
             request_id=request.state.request_id,
             content="",
             resume={**row, "approved": data.decision == "approve"},
+            knowledge=getattr(request.app.state, "knowledge", None),
+            storage=getattr(request.app.state, "storage", None),
         )
     )
     request.app.state.run_tasks.add(task)

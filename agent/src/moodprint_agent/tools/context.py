@@ -25,7 +25,7 @@ class ProposalStore(Protocol):
         conversation_id: UUID,
         run_id: UUID,
         kind: ProposalKind,
-        target_case_id: UUID | None,
+        target_case_id: UUID,
         payload: dict[str, Any],
         preview: dict[str, Any],
         base_version: int | None,

@@ -60,8 +60,14 @@ async def test_context_retriever_can_be_injected_without_changing_default(monkey
     assert ctx.context.sections[0].kind == "identity"
 
 
-def test_runtime_factory_retains_only_diagnostic_tool():
+def test_runtime_factory_registers_the_phase3_inventory_without_database_or_client():
+    """Phase 0 exposed only get_server_time; Phase 3 pins the real inventory (CC-002 signature)."""
     from app.agent_gateway.wiring import build_runtime
 
     runtime = build_runtime(AppConfig(), None)
-    assert [tool.name for tool in runtime.agent.tools] == ["get_server_time"]
+    names = sorted(tool.name for tool in runtime.agent.tools)
+    assert "get_server_time" not in names
+    assert names == sorted(runtime.registry.names())
+    assert {"knowledge_search", "save_confirmed_event", "save_plan", "propose_memory"} <= set(names)
+    assert runtime.prompt_version == "companion_v2"
+    assert build_runtime(AppConfig(), None).tools_version == runtime.tools_version

@@ -32,6 +32,59 @@ class ApprovalService:
                     },
                 )
 
+    @staticmethod
+    async def _bind_proposal(session, auth: AuthContext, approval, approved: bool) -> None:
+        """Atomically tie this decision to the stored proposal it was shown for.
+
+        The proposal id comes from the approval preview the *server* built, never from the
+        model's arguments. In the same transaction as the tool approval we record approve/reject
+        on the proposal; an approve that no longer matches (expired, already decided, preview or
+        hash changed) aborts the whole decision, so a stale dialog can never authorise a write.
+        """
+        preview = approval["arguments_preview"]
+        if isinstance(preview, (str, bytes)):
+            preview = json.loads(preview)
+        proposal_id = (preview or {}).get("proposalId") if isinstance(preview, dict) else None
+        if not proposal_id:
+            return  # not a proposal-backed tool (for example a diagnostic write)
+        params = {
+            "pid": UUID(str(proposal_id)),
+            "owner": auth.user_id,
+            "run": approval["run_id"],
+            "approval": approval["id"],
+            "call": approval["tool_call_id"],
+            "approval_s": str(approval["id"]),
+            "call_s": str(approval["tool_call_id"]),
+            "run_s": str(approval["run_id"]),
+            "owner_s": str(auth.user_id),
+        }
+        if approved:
+            bound = await session.scalar(
+                text(
+                    """UPDATE app.agent_proposals p SET status='approved',decided_at=now(),
+                    approval_binding=jsonb_build_object('decision','approve','approval_id',CAST(:approval_s AS text),
+                      'tool_call_id',CAST(:call_s AS text),'run_id',CAST(:run_s AS text),
+                      'owner_id',CAST(:owner_s AS text),'payload_sha256',p.payload_sha256)
+                    WHERE p.id=:pid AND p.owner_id=:owner AND p.status='proposed'
+                      AND p.approval_binding IS NULL AND p.expires_at>clock_timestamp()
+                      AND p.conversation_id=(SELECT conversation_id FROM app.agent_runs
+                                             WHERE id=:run AND owner_id=:owner)
+                      AND (CAST(:shown AS jsonb)-'proposalId'-'expiresAt')=p.preview
+                    RETURNING p.id"""
+                ),
+                {**params, "shown": json.dumps(preview, ensure_ascii=False)},
+            )
+            if bound is None:
+                raise VersionConflict()
+        else:
+            await session.execute(
+                text(
+                    """UPDATE app.agent_proposals SET status='rejected',decided_at=now()
+                    WHERE id=:pid AND owner_id=:owner AND status='proposed'"""
+                ),
+                params,
+            )
+
     async def decide(self, auth: AuthContext, run_id: UUID, approval_id: UUID, approved: bool):
         async with user_uow(self.engine, auth) as uow:
             params = {"id": approval_id, "run": run_id, "owner": auth.user_id}
@@ -61,6 +114,7 @@ class ApprovalService:
                 ),
                 {**params, "status": "approved" if approved else "rejected"},
             )
+            await self._bind_proposal(uow.session, auth, row, approved)
             await uow.session.execute(
                 text(
                     "UPDATE app.agent_runs SET status='running',heartbeat_at=now() WHERE id=:run AND owner_id=:owner"

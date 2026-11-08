@@ -3,8 +3,10 @@ from uuid import UUID
 from moodprint_agent.budget import RunToolBudget
 from moodprint_agent.memory.context_builder import MemoryContextBuilder
 from moodprint_agent.runtime import CompanionRuntime
+from moodprint_agent.tools.context import CompanionToolContext, ToolDeps
+from moodprint_agent.tools.factory import build_registry
 from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.agent import AgentServices, AgentToolContext
+from moodprint_shared.contracts.agent import AgentServices
 from moodprint_shared.contracts.context import ContextRequest
 from moodprint_shared.contracts.errors import NotFound
 from moodprint_shared.contracts.knowledge import KnowledgeRetriever
@@ -12,7 +14,11 @@ from moodprint_shared.contracts.paging import Page
 from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 from openai import AsyncOpenAI
 
+from app.agent_gateway.proposals import SqlConfirmedEventWriter, SqlPlanWriter, SqlProposalStore
+from app.modules.evidence.service import EvidenceService
+from app.modules.incidents.service import IncidentService
 from app.modules.memory.service import MemoryService
+from app.modules.plans.service import ActionPlanService
 from app.modules.profiles.service import ProfileService
 
 
@@ -51,8 +57,8 @@ class DeferredDomainServices:
 
 
 def build_runtime(cfg: AppConfig, model_client: AsyncOpenAI | None) -> CompanionRuntime:
-    """Phase 3 extends the registry here; foundation behavior remains diagnostic only."""
-    return CompanionRuntime(cfg, openai_client=model_client)
+    """Frozen signature (CC-002). The registry is a pure function of the config."""
+    return CompanionRuntime(cfg, build_registry(cfg), openai_client=model_client)
 
 
 async def build_context(
@@ -64,7 +70,9 @@ async def build_context(
     request_id: str,
     content: str,
     knowledge: KnowledgeRetriever | None = None,
+    storage=None,
 ):
+    """Fresh context for every turn and every resume; nothing global, no engine in tools."""
     memory = MemoryService(engine, cfg)
     profile = await ProfileService(engine).get(auth)
     request = ContextRequest(
@@ -79,21 +87,29 @@ async def build_context(
         conversation_summary=conversation["summary"],
     )
     bundle = await MemoryContextBuilder(memory, cfg).build(request)
-    domain = DeferredDomainServices()
-    return AgentToolContext(
+    incidents, plans = IncidentService(engine), ActionPlanService(engine)
+    store = SqlProposalStore(engine, cfg)
+    return CompanionToolContext(
         auth=auth,
         request_id=request_id,
         conversation_id=conversation["id"],
         run_id=run_id,
         age_band=profile.age_band,
         services=AgentServices(
-            incidents=domain,
-            evidence=domain,
-            plans=domain,
+            incidents=incidents,
+            evidence=EvidenceService(engine, storage, cfg),
+            plans=plans,
             memory=memory,
             knowledge=knowledge if knowledge is not None else FixtureKnowledgeRetriever(),
         ),
         context=bundle,
         budget=RunToolBudget(cfg.agent.max_tool_calls_per_run),
         locale=profile.locale,
+        deps=ToolDeps(
+            proposals=store,
+            events=SqlConfirmedEventWriter(store, incidents),
+            plans=SqlPlanWriter(store, plans),
+        ),
+        knowledge_timeout_s=max(1.0, cfg.agent.knowledge_tool_timeout_s - 1),
+        memory_candidates_max=cfg.memory.extraction_max_candidates_per_run,
     )
