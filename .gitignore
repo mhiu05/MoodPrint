@@ -18,14 +18,29 @@ test-results/
 .env.*
 !.env.example
 !.env.*.example
+.local/
 
 # Logs and temporary files
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+debug.log
 *.tmp
 *.temp
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Local tool and database state
+.playwright-mcp/
+supabase/.branches/
+
+# Machine-specific IDE and MCP configuration
+.claude/settings.local.json
+.cursor/mcp.json
+.mcp.json
 
 # Editor and operating system files
 .DS_Store
