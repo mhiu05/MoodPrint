@@ -1,6 +1,6 @@
 # Phase 1 — Implementation report
 
-Trạng thái sau vòng 2 ngày 2026-11-08: **G1 VERIFIED** bằng CI trên `d779a243` và hosted UI/API của phiên này. **G2 chưa đủ để gắn tag** vì Docker engine không lên, nên `verify_phase1.py` chưa chạy trên commit merge. Sản phẩm **chưa** sẵn sàng cho học sinh thật. Chi tiết vòng 2 nằm ở `g1-g2-closure-report.md`. Vòng 1 bên dưới là lịch sử.
+Trạng thái sau cổng Docker ngày 2026-11-08: **G0, G1 và G2 VERIFIED**. Tag `baseline/phase-1-verified` trỏ `763dcdd6`, nơi `verify_phase1.py` exit 0. Sản phẩm **chưa** sẵn sàng cho học sinh thật. Chi tiết ở `g1-g2-closure-report.md`. Vòng 1 bên dưới là lịch sử.
 
 Receipt local vẫn là `ddf970dc62f8baae5c1ab97e36ea14e069984a0b`, không phải HEAD. Khác biệt tới `82d9463c` chỉ là báo cáo này và `scripts/smoke_hosted.py`.
 

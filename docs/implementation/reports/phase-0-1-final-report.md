@@ -4,7 +4,7 @@ Ngày chốt vòng 1: 2026-11-08. Workspace `mhiu05-feat-refactor`. Nhánh `feat
 
 ## 1. Kết luận
 
-**G1 VERIFIED, G2 PARTIALLY_VERIFIED.**
+**G0, G1 và G2 đều VERIFIED.** Tag `baseline/phase-1-verified` trỏ `763dcdd6`.
 
 G0 đã merge. G1 có CI trên `d779a243`, hosted API smoke exit 0 trong vòng 2, và hosted UI trong cửa sổ Chrome tách biệt. G2 chưa gắn tag vì Docker không lên nên hai script cổng chưa chạy trên commit merge. Chi tiết: `g1-g2-closure-report.md`.
 
@@ -20,7 +20,7 @@ Sản phẩm **chưa** sẵn sàng cho học sinh thật. Các điều kiện ph
 | Phase 1 cổng local | F1-08.1, F1-08.2 | VERIFIED trên `ddf970dc` |
 | Phase 1 hosted API | F1-08.3 phần schema, history, smoke API, cleanup | VERIFIED |
 | Phase 1 hosted UI | F1-08.3 phần Chrome | VERIFIED ở vòng 2, cửa sổ Chrome tách biệt |
-| G2 | `06` §8 | PARTIALLY_VERIFIED. Chưa tag |
+| G2 | `06` §8 | VERIFIED. Tag `baseline/phase-1-verified` |
 
 Không triển khai RAG, Companion tools Phase 2/3, hay worktree song song.
 
@@ -45,7 +45,7 @@ Không triển khai RAG, Companion tools Phase 2/3, hay worktree song song.
 | Receipt đúng SHA của HEAD | Receipt local vẫn `ddf970dc`; CI đã chạy lại trên `d779a243` | CI khớp HEAD; wrapper local chưa chạy lại | Docker không lên |
 | CI PR #47 | offline + integration SUCCESS trên `d779a243` | VERIFIED | runs `42440492063` và `42440494924` |
 | Pre-commit cài trên máy | `core.hooksPath` trống; không sửa config dùng chung | Chưa cài | vòng 1 |
-| Tag baseline | Không tạo | Chưa đạt G2 | — |
+| Tag baseline | `baseline/phase-1-verified` -> `763dcdd6` | VERIFIED | 2026-11-08 |
 
 ## 4. Kiến trúc và chức năng thực
 
@@ -96,7 +96,7 @@ PostgreSQL OR các policy permissive. Tách policy để staff không có INSERT
 |---|---|---|
 | G0 | VERIFIED | PR #46 merged `d5c36ac0`, `phase-0-report.md` |
 | G1 | VERIFIED | CI offline + integration SUCCESS trên `d779a243`; UI hosted vòng 2; `smoke_hosted.py --phase 1` exit 0 vòng 2 |
-| G2 | PARTIALLY_VERIFIED | Đã merge `669bdb51`. Không tag. Docker không lên nên chưa có receipt wrapper trên commit merge |
+| G2 | VERIFIED | `verify_phase0.py --regression` và `verify_phase1.py` exit 0 trên `763dcdd6`. Tag đã push |
 
 ## 9. Git
 
@@ -107,7 +107,7 @@ PostgreSQL OR các policy permissive. Tách policy để staff không có INSERT
 - Merge commit: `669bdb5133feac31364bbd47d62bb85d716956bd`
 - Parents: `d5c36ac0` và `81d6d1c6`
 - CI của cây đã merge: https://github.com/mhiu05/MoodPrint/actions/runs/42453739691 trên `81d6d1c6`; run của chính merge commit: https://github.com/mhiu05/MoodPrint/actions/runs/42454255699
-- Tag: không tạo
+- Tag: `baseline/phase-1-verified` -> `763dcdd66ba8dbbfd691ad8541db21062ac06772`
 - Owner config không commit: `.claude/settings.local.json`, `.cursor/mcp.json`, `.mcp.json`
 
 ## 10. Nhật ký vòng

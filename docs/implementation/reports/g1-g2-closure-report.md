@@ -12,8 +12,8 @@ Sản phẩm **chưa** sẵn sàng cho học sinh thật. `00` §6 vẫn áp d�
 | G1 tự động | VERIFIED trên CI của đúng SHA `d779a243` |
 | G1 hosted UI | VERIFIED trong cửa sổ Chrome tách biệt của phiên Chrome đang chạy |
 | G1 hosted API/schema/advisor | VERIFIED trong phiên này |
-| G2 | PARTIALLY_VERIFIED. Chưa chạy `verify_phase0.py` và `verify_phase1.py` trên commit merge vì Docker engine không lên. Không tạo tag |
-| Tag `baseline/phase-1-verified` | Không tạo |
+| G2 | VERIFIED. `verify_phase0.py --regression` và `verify_phase1.py` exit 0 trên `763dcdd6` |
+| Tag `baseline/phase-1-verified` | Trỏ `763dcdd66ba8dbbfd691ad8541db21062ac06772`. Đã push |
 
 ## Git và CI
 
@@ -85,13 +85,13 @@ Không có security error mới. Không có escalation staff đọc draft riêng
 - `uv run python scripts/export_openapi.py --check`: exit 0
 - `uv run pytest scripts/tests/test_ownership.py -q`: **98 passed**
 
-`verify_phase1.py` không chạy lại. Docker Desktop được mở nhưng `docker info` vẫn không nối được engine sau hơn bốn phút. Cổng local gần nhất vẫn là receipt `ddf970dc`. CI của `d779a243` đã chạy lại offline và integration sau commit tài liệu đó.
+Ngày 2026-11-08, sau khi Docker engine 29.8.2 lên, `uv run python scripts/verify_phase1.py` exit 0 trên `763dcdd6` trong 1024 giây. Checkpoint 1 là `verify_phase0.py --regression`, cũng exit 0. Bên trong regression: `check.py` 265 passed / 67 deselected; pgTAP 13 files, 194 tests, PASS; `pytest -m integration` 67 passed / 265 deselected. Phần Phase 1 thêm Vitest 94 passed, demo Playwright 13 passed, real Playwright 11 passed và urgent 1 passed.
 
 ## G2
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
-| G2-01 | Combined baseline | PARTIALLY_VERIFIED | PR #47 đã merge tại `669bdb51`, cây trùng `81d6d1c6` đã có CI xanh. Wrapper local chưa chạy vì Docker |
+| G2-01 | Combined baseline | VERIFIED | Merge `669bdb51`. Trên `763dcdd6`, `verify_phase0.py --regression` và `verify_phase1.py` đều exit 0 lúc 2026-11-08T07:09:07Z. Receipt `.local/phase1-gate.json` và `.local/phase0-regression-gate.json` |
 | G2-02 | Contract snapshots | VERIFIED | `shared/tests` 53 passed; hai lệnh `--check` exit 0 trên `d779a243` |
 | G2-03 | Database migrations | VERIFIED | Hosted history 17, dry-run không pending. Reset local không chạy lại trong phiên này; CI integration đã reset/bootstrap trên cùng SHA |
 | G2-04 | AuthContext | VERIFIED | Không có thay đổi chưa merge ngoài nhánh này. CI và UI đăng nhập thật dùng JWT hosted |
@@ -106,7 +106,7 @@ Không có security error mới. Không có escalation staff đọc draft riêng
 | G2-13 | CI | VERIFIED | Hai run SUCCESS trên `d779a243` |
 | G2-14 | Integration strategy | VERIFIED | Mục dưới đây |
 
-Chưa gắn tag nên G2-01 chưa đủ điều kiện “cùng một commit đã merge và đã chạy hai script”. Không bắt đầu Phase 2/3 từ tag.
+Tag `baseline/phase-1-verified` đã push và trỏ `763dcdd6`, commit vừa chạy xong hai script cổng. Phase 2 và Phase 3 có thể rẽ từ tag này. Không coi đây là phê duyệt cho học sinh thật.
 
 ## Chiến lược integration
 
@@ -127,4 +127,4 @@ IT-02 đến IT-09 giữ nguyên bảng ở `06` §7. IT-09 dùng `gpt-6-luna` v
 - Signed upload đã phát hành còn hiệu lực tới TTL sau khi xóa Auth user. Không có thu hồi tức thì. Không thấy yêu cầu P0 bắt buộc thu hồi sớm hơn TTL.
 - A-06 không chạy. Model giữ `gpt-6-luna`.
 - Đăng ký công khai không nhận `@example.test`. Admin API thì nhận. Không tắt xác nhận email.
-- Docker engine không sẵn sàng nên không có receipt `verify_phase1.py` mới.
+- Docker engine 29.8.2 đã lên vào 2026-11-08. Cổng local chạy lại trên `763dcdd6` và exit 0.
