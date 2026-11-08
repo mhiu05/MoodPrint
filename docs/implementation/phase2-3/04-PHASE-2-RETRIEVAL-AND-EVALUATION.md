@@ -2,6 +2,7 @@
 
 > Thuộc `feat/knowledge-base`. Đặc tả cho P2-06 (embedder), P2-08 (retriever), P2-09/10 (benchmark, hiệu chỉnh), P2-11 (API response).
 > **Các con số mục tiêu trong tài liệu này là "ngưỡng đề xuất", không phải kết quả đo.** Không có số đo nào được bịa; mọi PASS/FAIL phải đến từ lần chạy thật được ghi trong báo cáo.
+> **Benchmark UNMEASURED; baseline PB pending.** Không có dataset 180 truy vấn, số Recall@5 ≥ 0.80, no-result ≥ 0.90 hay citation 100% nào được tuyên bố đã đạt. Không chạy Voyage/rerank/OpenAI trong PB; phần live chỉ thực hiện khi owner đã cấp khóa và ngân sách. Giá/model bên dưới là ghi nhận nghiên cứu planning, cần kiểm lại tài liệu chính thức khi bắt đầu P2-06; không tự xem credit miễn phí là quyền chi tiêu.
 
 ## 1. Luồng truy hồi
 
@@ -134,7 +135,8 @@ Rủi ro còn lại (ghi trong báo cáo): không thể phát hiện mọi tên 
 - Không dùng LLM làm giám khảo (AD-20). Nhãn do coding agent Phase 2 gán và rà soát; chỉ số tính bằng mã.
 - Bộ dữ liệu **tổng hợp và tự viết**; không chứa dữ liệu thật.
 - **Khóa test split trước khi tinh chỉnh** (commit riêng, ghi `split_sha256`); chỉ chạy test split **một lần** cho cấu hình đã khóa.
-- Báo cáo kèm khoảng tin cậy bootstrap 95% (1 000 lần lấy mẫu lại, hạt cố định) vì cỡ mẫu nhỏ (≈ 81 truy vấn có đáp án ở test).
+- Báo cáo kèm khoảng tin cậy bootstrap 95% (1 000 lần lấy mẫu lại, hạt cố định) vì cỡ mẫu nhỏ (90 truy vấn có đáp án và 18 không đáp án ở test nếu chia đúng tỷ lệ).
+- Chọn cấu hình và ngưỡng trên dev, đăng ký tiêu chí xác nhận trước khi mở holdout. So sánh test A–D dùng cùng một lượt đánh giá đã khóa; không lấy kết quả test để tiếp tục tuning/chọn lại. Nếu fail, công bố FAIL và xin review revision với dataset test mới tương đương, không sửa nhãn/giảm ngưỡng ngầm.
 
 ### 7.2 Bộ dữ liệu (180 truy vấn)
 
@@ -144,7 +146,7 @@ Rủi ro còn lại (ghi trong báo cáo): không thể phát hiện mọi tên 
 | ↳ phong cách: chuẩn / không dấu / tiếng lóng-thân mật / kể lể mơ hồ / pha tiếng Anh | 50 / 35 / 30 / 25 / 10 | không dấu: viết tay như người dùng gõ nhanh (tối đa 50% sinh tự động từ truy vấn chuẩn; biến thể **cùng split** với bản gốc) |
 | ↳ chủ đề: cyber 35, help-seeking 25, evidence 20, physical 15, verbal/social 15, exclusion 15, school-procedure-vn/legal-vn 15, bystander 10 | 150 | mỗi truy vấn có `topic` chính |
 | Không có đáp án | 30 | ngoài phạm vi (thời tiết, bài tập, nội dung người lớn) 20; **thuộc miền nhưng corpus không có** 10 (khoảng trống đã biết) |
-| Split | dev 72 (40%) / test 108 (60%) | phân tầng theo phong cách, chủ đề, answerable |
+| Split | dev 72 (40%: 60 answerable + 12 no-result) / test 108 (60%: 90 + 18) | phân tầng theo phong cách, chủ đề, answerable; biến thể cùng nhóm không sang hai split |
 
 Ví dụ phong cách: chuẩn — "Làm thế nào để lưu lại bằng chứng khi bị nhắn tin đe dọa?"; không dấu — "bi ban nhan tin de doa trong nhom lop"; lóng — "bị cả lớp bơ với kể xấu hoài, chịu hết nổi"; mơ hồ — "dạo này đi học cứ thấy sợ, có bạn hay nhìn mình rồi cười"; pha tiếng Anh — "bị cyberbully trên TikTok thì report sao".
 
@@ -170,7 +172,7 @@ A lexical-only · B vector-only · C hybrid (`rrf`) · C′ hybrid (`blend`) · 
 | **Recall@10** (chặn) | như trên với 10 | ≥ 0.90 |
 | **MRR@10** | nghịch đảo hạng tài liệu liên quan đầu tiên | ≥ 0.60 |
 | **nDCG@10** | gain `2^g − 1`, tài liệu khử trùng | ≥ 0.65 |
-| **No-result accuracy** | `no_results` đúng / số truy vấn không đáp án | ≥ 0.90 (≥ 27/30) |
+| **No-result accuracy** | `no_results` đúng / số truy vấn không đáp án của split đang báo cáo | ≥ 0.90; test 18 mẫu cần ≥ 17/18, không lấy 27/30 toàn bộ dataset thay holdout |
 | **False-no-result rate** | `no_results` trên truy vấn có đáp án | ≤ 0.08 |
 | **Citation integrity** | mọi chunk trả về: `source_id` tồn tại, `document_id` tồn tại trong phiên bản, URL ∈ allow-list, `last_reviewed` đặt, văn bản = DB, bộ lọc ngôn ngữ/quốc gia thỏa | **100%** (cổng cứng) |
 | **Citation precision@1** | top-1 tài liệu `grade ≥ 1` | ≥ 0.75 |
@@ -179,6 +181,8 @@ A lexical-only · B vector-only · C hybrid (`rrf`) · C′ hybrid (`blend`) · 
 | **So với đường cơ sở** | C hoặc D phải hơn max(A,B) | +0.03 Recall@5 (C) / +0.03 nDCG@10 (D) |
 
 Nếu một chỉ số không đạt: báo **FAIL**, nêu nguyên nhân (nhóm truy vấn, chủ đề thiếu tài liệu) và kế hoạch; không hạ ngưỡng im lặng. Hạ ngưỡng dưới 80% giá trị đề xuất cần owner duyệt (O-10).
+
+Mọi thay đổi target, split, corpus hay quy tắc metric sau khi đăng ký cần revision có lý do và review tường minh, kể cả khi chưa tới ngưỡng O-10. Citation integrity 100% là cổng cứng, không được đổi thành mục tiêu mềm. Trước khi có artifact run thật, mỗi ô kết quả trong báo cáo ghi `UNMEASURED` hoặc `BLOCKED` cùng lý do; không gán PASS từ HashingEmbedder.
 
 ### 7.6 Kiểm thử trong CI (ngoại tuyến)
 
@@ -200,6 +204,10 @@ Nếu một chỉ số không đạt: báo **FAIL**, nêu nguyên nhân (nhóm t
 ```
 
 `GET /v1/knowledge/documents/{documentId}` trả `sections[]` (heading + chunk text theo thứ tự) và `citation`, `derivedFrom[]` (chỉ `sourceId`, `publisher`, `title`, `url`, `locator`). `GET /v1/knowledge/sources` trả danh sách công khai (không có `licence_note`). `GET /v1/knowledge/corpus` trả phiên bản, số tài liệu/chunk, ngày publish. Hub ánh xạ camelCase → kiểu UI trong `services/http/knowledge.ts`.
+
+Đây là shape **đề xuất**, các giá trị latency/score/date trong ví dụ không phải số đo. Giữ `KnowledgeResult`/`StreamEvent` đóng băng: `degraded`/`mode` thuộc envelope API và telemetry request-local của adapter Phase 2, không thêm field shared, không suy ra hạ cấp chỉ từ `chunks=[]`. UI dùng `services.knowledgeSearch` qua `composition/knowledge-types.ts`; factory `createKnowledgeSearchPort(StreamClient)` trả adapter JSON khi Phase 2 giao hàng, còn demo luôn `null`. Hub mở `/knowledge?document=<documentId>`; citation hiển thị `title`, `publisher`, `lastReviewed`, `url`, link ngoài mở tab mới với `rel="noopener noreferrer"`.
+
+Offline contract/E2E dùng `HashingEmbedder` được truyền tường minh qua `app.modules.knowledge.testing.build_e2e_retriever(engine, cfg)`; harness gọi sau lifespan và seed qua `scripts/e2e_seed.py`. Không đọc `VOYAGE_API_KEY` trong agent và không đặt fallback Hashing vào factory production. Contract corpus có topic test `support` như mixin hiện có, không sửa mixin đóng băng.
 
 ## 9. Xác minh citation
 

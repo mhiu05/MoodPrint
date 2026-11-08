@@ -35,11 +35,12 @@ stateDiagram-v2
   proposed --> expired: quá proposal_ttl_s
   approved --> applied: service ghi thành công
   approved --> failed: service lỗi / xung đột version / case đã xóa
+  approved --> expired: hết hạn trước khi bắt đầu ghi
   failed --> [*]
   applied --> [*]
 ```
 
-`payload`, `preview`, `payload_sha256`, `kind`, `owner_id` bất biến sau INSERT (trigger). `save_*` chỉ nhận `proposal_id` ⇒ nội dung được ghi **đúng bằng** nội dung đã hiện trong hộp thoại. `approval.required.preview` được dựng từ `agent_proposals.preview`, không từ tham số tool-call của model. Sau khi `applied`, gọi lại `save_*` là no-op trả cùng kết quả.
+`id`, `payload`, `preview`, `payload_sha256`, `kind`, `owner_id`, `conversation_id`, `run_id`, `target_case_id`, `base_version`, `created_at`, `expires_at`, `request_key` bất biến sau INSERT (trigger). `save_*` chỉ nhận `proposal_id` ⇒ nội dung được ghi **đúng bằng** nội dung đã hiện trong hộp thoại. `approval.required.preview` được dựng từ `agent_proposals.preview`, không từ tham số tool-call của model. Server sinh ID khác nil; unique(owner, run, request_key) chống tạo proposal trùng, retry key khác payload trả409. `approval_binding` gắn một lần bằng quyết định UI/SDK đã xác thực (approval ID, tool_call_id, run, owner, hash) trong transition approved rồi bất biến. Hash SHA256 dùng JSON canonical sau chuẩn hóa timezone/evidence; preview/hash đối chiếu bản lưu. Sau khi `applied`, gọi lại `save_*` là no-op trả cùng kết quả; duplicate approval không thực thi lại. Protocol này áp dụng cả sự kiện và kế hoạch; proposal TTL1800s/approval TTL900s, lấy min khi thực thi.
 
 ### 2.2 `get_case_context(case_id?)` (read)
 
@@ -60,7 +61,13 @@ Trả `{proposalId, preview, expiresAt}`. Preview: "Thêm mốc: <ngày hoặc '
 
 ### 2.4 `save_confirmed_event` (write)
 
-Điều kiện: đề xuất `proposed`, chưa hết hạn, `kind=case_event`, cùng owner, case còn tồn tại. Gọi `IncidentService.add_confirmed_event(auth, case_id, EventCreate(provenance="user_confirmed", id=<proposal-derived UUID v5>), proposal_id=…)` (CC-003). `id` suy từ `proposal_id` để idempotent. Kết quả `{status:"applied", eventId}`. Ghi audit `case.event_confirmed_from_proposal`.
+Điều kiện để hiện approval: proposal `proposed`, chưa hết hạn, đúng owner/conversation/run/kind/target; preview/hash đọc từ bản đã lưu. Quyết định UI hợp lệ cho đúng tool_call_id và proposal đổi `proposed→approved`; **writer chỉ chạy khi approved**, chưa hết hạn và run chưa bị cancel. Reject/expired ⇒ không gọi domain. Lời đồng ý trong chat có thể khiến model yêu cầu save, nhưng không thay thế cổng SDK/UI.
+
+Adapter `ConfirmedEventWriter` đọc payload bất biến theo owner, kiểm lại `payload_sha256`, target case, evidence scope và mọi binding trước khi gọi `IncidentService.add_confirmed_event(auth, case_id, EventCreate(provenance="user_confirmed", id=<UUIDv5(namespace cố định, owner+proposal_id)>), proposal_id=…)` (CC-003). Event UUID và payload cố định cho toàn vòng đời proposal; proposal khác/event khác/payload khác không phải retry. `applied` trả result đã lưu; lần approve/save thứ hai không tạo ghi mới. `base_version` (nếu proposal có kỳ vọng case version) phải được kiểm bởi adapter bằng transaction/khóa case phù hợp; seam CC-003 không nhận expected_version, nên không được tuyên bố nó tự chặn stale proposal.
+
+Domain commit và trạng thái proposal có thể nằm trong hai UoW: khi crash sau domain commit nhưng trước `applied`, retry proposal approved với cùng UUID/payload; seam trả event cũ và không thêm audit/version. Sau đó ghi result/applied theo compare-and-set. Không giữ transaction qua model/Storage. Test process-restart và cạnh tranh approve/cancel chứng minh điểm bắt đầu write; nếu cần một transaction chung, đề xuất compat transaction adapter thay vì tự nới frozen service.
+
+PB seam chưa có proposal table hoặc quyền đọc audit nên **không tự xác minh proposal approval/expiry hay binding**. Toàn bộ kiểm tra này là trách nhiệm P3 ProposalStore/adapter. Audit `case.event_confirmed_from_proposal` do domain ghi đúng một lần với metadata `{proposalId}`; Phase 3 không ghi audit trùng.
 
 ### 2.5 Tách sự thật và suy luận (hành vi bắt buộc)
 
@@ -98,7 +105,7 @@ Từ chối (kèm `reason` mã hóa, không log nội dung): `contains_contact` 
 
 ### 4.4 Nén phiên
 
-`OpenAIResponsesCompactionSession(session_id, underlying_session=inner, client=openai_client, model=cfg.agent.compaction_model, compaction_mode="input", should_trigger_compaction=policy)` với `policy` theo ước tính token (`len/3`) ≥ `compaction_trigger_tokens`. Tắt khi không có `openai_client` (test dùng client giả). `ensure_ascii=False` giữ UTF-8.
+`OpenAIResponsesCompactionSession(session_id, underlying_session=inner, client=openai_client, model=cfg.agent.compaction_model, compaction_mode="input", should_trigger_compaction=policy)` reuse `make_compaction_session` hiện có; không tạo session stack thứ hai. Test request compaction thật SDK0.24.0, không giả định hỗ trợ store và không dùng stored-response IDs. Usage/chi phí compaction vào cùng cap/ledger; với `policy` theo ước tính token (`len/3`) ≥ `compaction_trigger_tokens`. Tắt khi không có `openai_client` (test dùng client giả). `ensure_ascii=False` giữ UTF-8.
 
 ## 5. Phân tích bằng chứng (ảnh/screenshot)
 
@@ -154,15 +161,15 @@ Quy tắc prompt `evidence_reader_v1`: chỉ mô tả điều nhìn thấy; trí
 | Chỉnh sửa của người dùng | `evidence_items.user_edited_text`, `review_status`, `limitations` | người dùng (UI) | tự do |
 | Yêu cầu/consent | `analysis_requests` | Orchestrator | `succeeded/failed` |
 
-UI luôn hiển thị song song *AI đọc* và *bạn chỉnh*; `review_status` mặc định `unreviewed`.
+UI luôn hiển thị song song *AI đọc* và *bạn chỉnh*; `review_status` mặc định `unreviewed`. Analysis request id ràng buộc evidence/source digest/consent version; retry khác payload ⇒409, retry đang chạy trả trạng thái đang chạy, thành công trả derivative cũ. Abort client dừng chờ, không hứa hủy provider; backend hoàn tất/thất bại theo timeout và GET phục hồi, không tạo derivative thứ hai.
 
 ### 5.4 Bảo mật
 
 - **Consent:** văn bản consent có `version` (hằng trong mã, cùng với `PROMPT_VERSION`), ghi `consent_at`. Không consent/approval ⇒ không bytes rời hệ thống (test đếm lời gọi model).
-- **SSRF:** `EvidenceImageFetcher` chỉ nhận URL do `open_read_url` trả; host phải bằng host Storage của cấu hình (cung cấp qua `ToolDeps`), HTTPS, không theo redirect ra host khác, từ chối IP riêng/loopback sau giải DNS.
+- **SSRF:** `EvidenceImageFetcher` là adapter backend, chỉ nhận URL do `open_read_url` trả; kiểm origin (scheme/host/port), cấm userinfo, redirect tắt, DNS/IP public ở production và giới hạn cả khi stream/chunked response không có Content-Length. Local APP_ENV=test chỉ cho đúng origin loopback của stack đã cấu hình, không mở mọi IP riêng; cấu hình production vẫn bắt HTTPS/public DNS. Model không chọn URL, host hoặc header. Test DNS/redirect/rebinding theo khả năng transport và ghi giới hạn còn lại, không coi kiểm chuỗi hostname là đủ.
 - **Nội dung:** MIME allow-list `jpeg/png/webp` (đối chiếu magic bytes), từ chối SVG/GIF động/PDF; ảnh giải mã lại để loại payload nhúng; xóa EXIF/GPS; giới hạn kích thước và pixel (chống decompression bomb: `Image.MAX_IMAGE_PIXELS` đặt tường minh).
-- **Không lưu ảnh ở nơi khác:** không đưa vào `agent_store`, không vào log, không vào trace; `store=False`.
-- **Nhà cung cấp:** ảnh gửi tới OpenAI cho phép bởi người dùng; ghi nhận trong `analysis_requests`. Điều kiện `00` §6 (G-04, G-09) vẫn áp dụng trước dữ liệu thật.
+- **Không lưu ảnh ở nơi khác:** không đưa vào `agent_store`, không vào log, không vào trace; `store=False` cho request Responses. `EvidenceReader` là dịch vụ multimodal một lời gọi có output schema, không tools/session/handoff hoặc state độc lập. Không cần agent lồng nhau; nếu spike buộc dùng Runner chỉ dùng invocation không tool/session và ghi lý do cụ thể, vẫn chung usage/quota/consent.
+- **Nhà cung cấp:** `store=False` không đồng nghĩa zero retention/ZDR. Consent diễn đạt đúng cấu hình và chính sách dữ liệu đã xác minh. Ảnh gửi tới OpenAI cho phép bởi người dùng; ghi nhận trong `analysis_requests`. Điều kiện `00` §6 (G-04, G-09) vẫn áp dụng trước dữ liệu thật.
 
 ## 6. Roleplay
 
@@ -183,7 +190,7 @@ UI luôn hiển thị song song *AI đọc* và *bạn chỉnh*; `review_status`
 
 ### 6.2 Đối tác (partner)
 
-Agent riêng không tool; `render_instructions` mỗi lượt gồm: persona + bối cảnh + mục tiêu của người dùng + độ khó + độ tuổi + quy tắc an toàn. Hành vi: phản ứng như người lớn thật (có thể hỏi lại, lo lắng, đưa gợi ý), **không**: mắng, chê, thao túng, ép, tiết lộ thông tin riêng tư, đổ lỗi nạn nhân, đe dọa. Nếu người dùng bày tỏ nguy cơ (bộ khẩn cấp) hoặc yêu cầu dừng ⇒ **ra khỏi vai** bằng một đoạn hỗ trợ ngắn + khối khẩn cấp, đánh dấu phiên `active` nhưng tạm khóa. Câu trả lời ngắn (1–4 câu) để mô phỏng hội thoại.
+Chế độ partner của cùng Companion, không handoff hay session agent thứ hai, không tool; `render_instructions` mỗi lượt gồm: persona + bối cảnh + mục tiêu của người dùng + độ khó + độ tuổi + quy tắc an toàn. Hành vi: phản ứng như người lớn thật (có thể hỏi lại, lo lắng, đưa gợi ý), **không**: mắng, chê, thao túng, ép, tiết lộ thông tin riêng tư, đổ lỗi nạn nhân, đe dọa. Nếu người dùng bày tỏ nguy cơ (bộ khẩn cấp) hoặc yêu cầu dừng ⇒ **ra khỏi vai** bằng một đoạn hỗ trợ ngắn + khối khẩn cấp, đánh dấu phiên `active` nhưng tạm khóa. Câu trả lời ngắn (1–4 câu) để mô phỏng hội thoại.
 
 ### 6.3 Coach (phản hồi)
 
@@ -200,13 +207,13 @@ class RoleplayFeedback:
     safety_note: str | None
 ```
 
-Coach chỉ đọc transcript roleplay (không đọc hồ sơ trừ khi `use_case_context`). Phản hồi không đánh giá con người; chỉ nói về hành động giao tiếp.
+Coach là bước structured cuối của cùng phiên, không tool/session/handoff riêng; chỉ đọc transcript roleplay (không đọc hồ sơ trừ khi `use_case_context`). Phản hồi không đánh giá con người; chỉ nói về hành động giao tiếp.
 
 ## 7. `knowledge_search` và citation (chi tiết)
 
-- Đầu ra cho model: `{"status":"ok","corpusVersion":"…","results":[{"ref":"S1","title":"…","publisher":"…","section":"…","applicability":"…","countryScope":["VN"],"lastReviewed":"2026-11-12","text":"…≤700 ký tự…"}]}`.
+- Đầu ra cho model: `{"status":"ok","corpusVersion":"…","results":[{"ref":"S1","title":"…","publisher":"…","section":"…","applicability":"…","countryScope":["VN"],"lastReviewed":"2026-11-08","text":"…≤700 ký tự…"}]}`.
 - Hướng dẫn trong prompt: truy vấn tổng quát (chủ đề + tình huống, **không** tên riêng, số điện thoại, địa điểm cụ thể); trích dẫn bằng `[S#]` đúng chỗ dựa vào nguồn; nếu nguồn là nước ngoài (`countryScope` không có `VN`) phải nói rõ phạm vi; nếu `no_results` thì nói chưa có nguồn phù hợp và dựa vào nguyên tắc chung, **không** đưa URL.
-- Sau khi model viết xong: bộ hậu xử lý (P3-05) gỡ marker lạ và dựng `citations`.
+- Sau khi model viết xong: bộ hậu xử lý (P3-05) gỡ marker lạ và dựng `citations`. Marker xuất hiện trong delta chưa được coi là citation hợp lệ; UI chỉ tạo liên kết/chip sau message.completed. Replay dùng citations từ app.messages và structured từ bảng mới message_assessments, không suy ra nguồn từ text hay bộ nhớ model.
 - Eval: `citation_validity` (100% cổng cứng), `citation_use_rate` (≥ 85% trên case cần nguồn, mục tiêu đề xuất), `no_fabricated_url` (100%).
 - Khi integrator nối retriever thật (INT-03) và `corpus_version` thay đổi, các chỉ số này chạy lại (IT-09).
 
@@ -219,6 +226,8 @@ Coach chỉ đọc transcript roleplay (không đọc hồ sơ trừ khi `use_ca
 | Sau model | `assess_urgency(reply)` + nếu `immediate` (từ tin nhắn hoặc trả lời) ⇒ nối khối hỗ trợ khẩn cấp tĩnh vào `message.completed.content`, `structured.urgency="immediate"` |
 | Độc lập | `/support/urgent` của frontend hoạt động không cần backend/đăng nhập (đã có, E-URG-01) |
 | Nhật ký | chỉ ghi mức (`none/elevated/immediate`) và mã nhóm tín hiệu, không ghi nội dung |
+
+Keyword chỉ là một lớp dự phòng. Đánh giá nhiều lượt, nguy cơ gián tiếp, phủ định, trích dẫn, giả định, quá khứ và lành tính gần giống qua minimal-pair; ghi TP/FP/TN/FN theo nhóm, đọc rubric mọi output rủi ro cao. Không coi keyword detection là đủ để xác nhận safety.
 
 Nội dung khối khẩn cấp chỉ chứa thông tin **đã xác minh** (111, nguồn `tongdai111.vn`, ngày xác minh) và hướng dẫn tìm người lớn tại chỗ; không thêm số chưa có nguồn.
 
@@ -238,4 +247,4 @@ Nội dung khối khẩn cấp chỉ chứa thông tin **đã xác minh** (111, 
 | Service có thực thi quyền không? | Có: mọi dịch vụ dùng `user_uow` + RLS; `NotFound` cho tài nguyên không thuộc owner |
 | Đề xuất của A có thể được B duyệt/áp dụng không? | Không: `agent_proposals` RLS + FK phức hợp + kiểm owner trong tool |
 | Context có JWT/claims không? | Không: `RunState` serialize với `context_serializer=lambda _: {}`; khôi phục context mới sau xác thực |
-| Hủy/hết hạn approval? | Đề xuất ⇒ `expired`; run ⇒ `interrupted`/`cancelled`; không ghi |
+| Hủy/hết hạn approval? | Hết hạn ⇒ expired; reject ⇒ rejected; cancel khóa thực thi trước write, không đổi ý nghĩa reject/expiry. Run interrupted/cancelled theo nguyên nhân; ghi đã commit trước cancel không bị tuyên bố rollback |

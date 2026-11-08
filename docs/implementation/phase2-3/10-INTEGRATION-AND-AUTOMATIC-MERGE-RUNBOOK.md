@@ -1,5 +1,7 @@
 # 10 — Integration and Automatic Merge Runbook
 
+> Bàn giao thực thi đủ bước: `14-INTEGRATION-AGENT-EXECUTION-HANDOFF.md`. Runbook này vẫn là nguồn lệnh. Không chạy integration feature trong phiên PB.
+
 > **Người thực hiện:** Integration Agent, tự chủ, sau khi cả hai branch feature hoàn tất. Shell: PowerShell trên Windows (lệnh `uv`, `git`, `gh`, `npm`).
 > **Đích:** `integration/phase-2-3` → `mhiu05/feat-refactor`. **Không bao giờ merge vào `main`.** Không `push --force`, không `reset` lịch sử đã chia sẻ, không `rebase` nhánh đã đẩy, không bỏ qua hook (`--no-verify`), không bypass branch protection nếu về sau có.
 > Runbook này **không** được thực thi trong phiên planning. Khi thực thi, mọi bước ghi kết quả vào `docs/implementation/reports/integration-report.md` (cấu trúc ở §14). Quy tắc báo cáo: không nói "xong" nếu chưa chạy; ghi lệnh, mã thoát, SHA.
@@ -113,6 +115,9 @@ uv run python scripts/dev/migration_order_check.py          # in VERIFIED order=
 - **Chênh với hosted:** hosted cuối cùng là `20261107140312_f1_account_deletion_guard`. Mọi migration mới phải có version lớn hơn ⇒ không cần `--include-all`. Nếu có migration cũ hơn (không dự kiến) ⇒ chỉ dùng `--include-all` khi đã đọc lý do và ghi báo cáo.
 - **Sửa lệch:** nếu hai bộ migration tương tác (ví dụ chỉ mục trùng tên) ⇒ thêm `supabase/migrations/<ts>_int_fix_<mô_tả>.sql` tiến-về-phía-trước (không sửa file đã có của feature), có pgTAP, chỉ chứa đối tượng cần sửa.
 - **Kết quả bắt buộc:** `db reset` từ trống xanh; cả hai thứ tự xanh; pgTAP xanh gồm `00_rls_coverage` (nhận `knowledge`), `05_grants`, `kb_*`, `ag_*`; `knowledge` không nằm trong `[api] schemas`.
+- **Tương thích backend đang chạy:** sau khi migration lên, API/backend bản đang deploy phải vẫn đọc/ghi được cho tới khi bản tích hợp được triển khai. Cột/bảng mới có default hoặc nullable trước; không rename/drop/đổi nghĩa cột mà backend cũ còn dùng. Apply xanh không đủ. Có một lần chạy backend cũ (hoặc contract test của nó) trên schema mới trước hosted apply.
+- **History drift:** `push_hosted.py --apply` đọc lại history ngay trước CLI và từ chối nếu lệch receipt. Bước đó không khóa được CLI. Hậu kiểm vẫn bắt buộc và không thay thế lần từ chối trước mutation.
+- **Parent attachment:** scope guard từ chối `INHERITS` và `PARTITION OF`. Không dùng inheritance để “thêm bảng” vào `app.cases` hoặc bảng baseline khác.
 
 ## 6. Nối retriever thật và kiểm tích hợp (INT-03, INT-05)
 

@@ -2,6 +2,7 @@
 
 > Thuộc `feat/knowledge-base` (Grok 4.7). Đặc tả kỹ thuật cho P2-01, P2-03…P2-07. Bổ sung cho `02` (kế hoạch/task) và `04` (truy hồi/đánh giá).
 > **Trạng thái nghiên cứu nguồn:** các dòng "VERIFIED-fetch" nghĩa là trang đã được **mở và đọc** trong phiên planning ngày 2026-11-08; "UNVERIFIED" nghĩa là chưa đọc được (HTTP 403) hoặc chỉ có nguồn thứ cấp. **Không** coi UNVERIFIED là sự thật cho tới khi P2-01 xác minh.
+> **Trạng thái thực thi:** pipeline/schema/corpus dưới đây là đặc tả Phase 2, chưa triển khai trong PB. Không gọi API trả phí hoặc áp migration corpus ở PB; baseline mới vẫn chờ Gate PB. Số lượng corpus, chất lượng, chi phí đều là mục tiêu/ước tính **UNMEASURED**.
 
 ## 1. Nguyên tắc
 
@@ -47,6 +48,8 @@ Chấm 0–3 mỗi tiêu chí; ghi vào `SOURCE-REGISTER.md` cùng bằng chứn
 
 Ghi chú pháp lý cần P2-01 xác minh và **không được** suy diễn: (1) đoạn Điều 15 Luật Sở hữu trí tuệ về văn bản quy phạm pháp luật; (2) hiệu lực và văn bản thay thế của từng văn bản; (3) tên cơ quan chủ quản Tổng đài 111 sau cải tổ bộ 2025; (4) mọi con số thống kê (ví dụ "25% trẻ em bị bắt nạt" của WHO không có trích dẫn trên trang) — chỉ nhập số liệu có nguồn gốc ấn phẩm rõ ràng và ngày.
 
+Các nhãn `open_reuse nếu xác nhận` trong bảng là **ứng viên**, trạng thái registry thực phải là `unverified` tới khi có bằng chứng. Gặp 403: dùng trình duyệt thông thường/manual hoặc nguồn chính thức thay thế; không vượt cơ chế truy cập, không đoán URL/giấy phép. Nếu vẫn không đọc được thì ghi BLOCKED và loại khỏi corpus. UNICEF giữ `reference_only`; WHO giữ `reference_only` tới khi xác minh phạm vi cấp phép và owner chấp thuận phi thương mại/ShareAlike; UNESCO chỉ mở sau xác minh trực tiếp và chấp thuận SA. Tự biên soạn từ ý/sự kiện không cấp quyền sao chép hay dịch gần nguyên văn.
+
 ### 3.1 Ma trận chủ đề phủ (mục tiêu ≥ 3 tài liệu/chủ đề, ≥ 2 nguồn gốc khác nhau khi có thể)
 
 | Topic ID | Nội dung | Ví dụ truy vấn |
@@ -67,6 +70,8 @@ Ghi chú pháp lý cần P2-01 xác minh và **không được** suy diễn: (1)
 | `urgent-safety` | Nguy cơ tức thời: nơi gọi giúp | "mình sợ bị đánh nữa" |
 
 `topics` trong DB và trong `KnowledgeFilters.topics` dùng đúng các ID trên (danh sách kín). Bảng ánh xạ sang chủ đề cục bộ của UI nằm trong `services/http/knowledge.ts`.
+
+Ngoại lệ test được đặt tên rõ: corpus tổng hợp dùng cho `KnowledgeRetrieverContract` phải chứa topic `support` (hợp đồng đóng băng), ngôn ngữ `vi`, quốc gia VN, tuổi `11-13`, không có `zz`. Cho phép `support` trong validator của fixture seed; không sửa contract/test mixin hoặc âm thầm đổi danh sách topic sản xuất. Nếu API cần expose topic bổ sung thì cập nhật allow-list Phase 2 và test đồng bộ có ghi quyết định.
 
 ## 4. Mô hình dữ liệu (`supabase/migrations/<ts>_kb_schema.sql`)
 
@@ -147,6 +152,8 @@ create table knowledge.ingestion_runs (
 
 **RLS/grant:** mọi bảng bật RLS. `corpus_versions`: policy `read_published` cho `authenticated` với `status='published'`. `sources`: `read_all` (không phải dữ liệu nhạy cảm; trừ cột `licence_note` — view `knowledge.public_sources` chỉ lộ cột công khai và là `security_invoker`). `documents`/`chunks`: `read_published` với `corpus_version = (select version from knowledge.corpus_versions where status='published')`. `ingestion_runs`: policy `no_client_access` `USING (false)` (thỏa kiểm "mỗi bảng có policy"). `anon`: không `USAGE`. Không có `INSERT/UPDATE/DELETE` cho vai trò người dùng. Ghi chỉ qua vai trò quản trị của kết nối ingest.
 
+`security_invoker` không tự che cột của bảng gốc: chỉ grant `SELECT` **theo các cột công khai** trên `sources` cho `authenticated`, không grant table-wide SELECT rồi dựa vào view để giấu `licence_note`/cache path. View chỉ tham chiếu các cột đã được grant; pgTAP kiểm đọc view thành công và đọc cột riêng bị từ chối. Metadata nguồn đã được một phiên bản `published`/`retired` tham chiếu phải bất biến: `store` đối chiếu hàng có sẵn thay vì upsert ghi đè; đổi metadata nguồn tạo source ID revision mới, để rollback không đổi citation của phiên bản cũ.
+
 ## 5. Pipeline
 
 ```text
@@ -217,7 +224,11 @@ Chạy từ repo root: `uv run python -m moodprint_agent.knowledge.ingest <lện
 
 Hosted: integrator chạy `scripts/db/publish_corpus.py` (INT-08), bọc cùng thư viện (`store_to_engine`, `validate_in_engine`, `publish_in_engine`) sau `validate_hosted_target` của `scripts/db/safety.py`.
 
-Mã thoát: `0` thành công; `1` lỗi dữ liệu/bất biến; `2` lệnh không tồn tại hoặc thiếu điều kiện (dùng bởi hook `optional`); `3` bị chặn bởi ngân sách/giấy phép.
+Mã thoát: `0` thành công; `1` lỗi dữ liệu/bất biến/cấu hình; `3` bị chặn bởi ngân sách/giấy phép. `scripts/e2e_seed.py` chỉ trả `2` nếu module `moodprint_agent.knowledge.ingest` **chưa tồn tại**. Khi CLI đã có mặt, thiếu DB/env/lệnh, parse sai tham số, import lỗi hoặc dữ liệu sai phải fail với `1` (budget/giấy phép là `3`); không trả `2` để optional hook bỏ qua lỗi thật. Phase 2 không sửa dispatcher/harness đóng băng.
+
+Kết nối `--target test-env` ưu tiên process env (`TEST_ADMIN_DATABASE_URL`/`TEST_DATABASE_URL`) đã được `e2e_stack.py` nạp và kiểm loopback; fallback file cho stack kb là `.local/stacks/kb/test.env`, không phải `.local/test.env` offset 0, không đọc root `.env`. CLI thiếu feature hiện tại là bình thường trong PB; các lệnh bảng trên chỉ được gọi sau P2-03/P2-07.
+
+Hook real: `knowledge-seed` trong `scripts/e2e_hooks.json` gọi `python scripts/e2e_seed.py` → `seed-synthetic --target test-env`, dùng `HashingEmbedder`, publish dữ liệu **tổng hợp**, không gọi Voyage. Factory runtime E2E thuộc Phase 2: `app.modules.knowledge.testing.build_e2e_retriever(engine, cfg)`, được `scripts/e2e_app.py` gọi đồng bộ sau lifespan; nhận `AppConfig`, dùng `cfg.knowledge`. Demo không chạy seed và vẫn `knowledgeSearch === null`.
 
 ### 7.1 Bất biến `validate`
 
@@ -230,6 +241,8 @@ Mã thoát: `0` thành công; `1` lỗi dữ liệu/bất biến; `2` lệnh kh�
 - **Rollback** là đổi con trỏ; không xóa dữ liệu. Giữ tối đa 3 bản `retired`; xóa cũ hơn bằng lệnh `prune` (quản trị, có xác nhận) — không thuộc tập lệnh mặc định.
 - **Tái lập:** `report.json` lưu phiên bản `httpx`, `pypdf`, `beautifulsoup4`, `lxml`, Python; cùng đầu vào + cùng cache ⇒ cùng `chunks.jsonl`. Vector Voyage có thể sai khác rất nhỏ giữa các lần gọi; do đó chỉ so `chunks.jsonl`, và so vector bằng cosine ≥ 0.9999 khi kiểm lại.
 - **Cập nhật nội dung:** thay đổi nguồn/thẻ ⇒ `manifest_sha256` mới ⇒ phiên bản mới. Không sửa phiên bản đã `published`.
+
+Publish/rollback phải dùng cùng một khóa transaction toàn corpus (ví dụ `pg_advisory_xact_lock` với namespace cố định) trước khi `SELECT ... FOR UPDATE` và đổi trạng thái. Chỉ khóa từng hàng target chưa ngăn được hai lần publish trên hai bản `validated` khác nhau khi chưa có bản published. Giữ unique index để bảo vệ thêm; test hai kết nối tranh chấp cả lần publish đầu tiên, rollback và publish đồng thời. Không giữ transaction qua fetch/embed.
 
 ## 9. Thẻ biên soạn (`agent/ingestion/authored/<document_id>.md`)
 

@@ -1,6 +1,6 @@
 # 11 — File Ownership and Contract Matrix
 
-> Áp dụng **sau** tag `baseline/phase-2-3-start` (xem `01`). Policy máy đọc là `docs/implementation/ownership.yaml` (JSON, `version: 1`), do `scripts/check_ownership.py` thực thi. Nếu bảng này và policy khác nhau thì **policy thắng**; PB-06 phải làm hai bên khớp và có test.
+> Áp dụng **sau** tag `baseline/phase-2-3-start` (xem `01`). Policy máy đọc là `docs/implementation/ownership.yaml` (JSON, `version: 2`, validation fail-closed), do `scripts/check_ownership.py` thực thi. Nếu bảng này và policy khác nhau thì **policy thắng**; PB-06 phải làm hai bên khớp và có test.
 > Từ ngữ: phase 2 = `feat/knowledge-base` (Grok 4.7); phase 3 = `feat/agent-companion` (Claude Opus 5.5); integrator = `integration/*`, `compat/*` (Integration Agent).
 
 ## 1. Sáu hạng sở hữu
@@ -105,7 +105,7 @@ Ký hiệu: **P2**, **P3**, **I** = integrator, 🔒 = frozen, ⚙ = generated, 
 | `uv.lock` | ⚙ | `uv lock` |
 | `.env.example` | § | Khối `knowledge` (P2), khối `agent` (P3); các khối khác I |
 | `.gitignore`, `pyproject.toml` (root), `.importlinter`, `.python-version` | I | |
-| `.claude/settings.local.json`, `.cursor/mcp.json`, `.mcp.json` | `local_overrides` | Thay đổi chưa commit bị bỏ qua; đã commit thì vi phạm |
+| `.claude/settings.local.json`, `.cursor/mcp.json`, `.mcp.json` | `local_overrides` | Unstaged local override bị bỏ qua; staged hoặc committed vi phạm |
 
 ## 3. Danh sách `frozen` v2 (thêm vào danh sách hiện có)
 
@@ -140,11 +140,11 @@ Tên trường **đặt chỗ** để tránh trùng ý nghĩa (mọi giá trị 
 
 ## 6. Policy v2 (nội dung đề xuất cho `ownership.yaml`)
 
-Integrator dán vào PB-06 (JSON hợp lệ; checker bỏ qua khóa chưa biết nên khóa mới an toàn với bản checker cũ, nhưng bản checker mới **bắt buộc** đọc `branches`, `retired_branches`, `local_overrides`).
+Integrator dán vào PB-06 (JSON hợp lệ; checker mới từ chối khóa không biết/sai kiểu và **bắt buộc** đọc `branches`, `retired_branches`, `local_overrides`).
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "source": "docs/implementation/phase2-3/11-FILE-OWNERSHIP-AND-CONTRACT-MATRIX.md",
   "baseline": "baseline/phase-2-3-start",
   "branches": { "feat/knowledge-base": "2", "feat/agent-companion": "3" },
@@ -339,7 +339,7 @@ Quy tắc cấp thời gian: agent chờ compat tối đa 1 phiên làm việc; 
 | Hook cục bộ | `.githooks/pre-commit` → `scripts/ci_ownership.py --branch $BRANCH --local` | Chặn commit vi phạm; thất bại ồn ào nếu không chạy được; cần `core.hooksPath` (O-02) |
 | CI mỗi push/PR | bước "Parallel phase ownership" | `feat/knowledge-base` → phase 2; `feat/agent-companion` → phase 3; tên cũ → lỗi; nhánh khác → "no ownership profile" |
 | CI scope SQL | bước "Migration scope" | `migration_scope_check.py` cho nhánh có profile |
-| Canary | `workflow_dispatch` với `simulate_branch` | Chứng minh đỏ/xanh đúng (PB-G10) |
+| Canary | push/PR thật trên `canary/ownership/{knowledge-base,agent-companion}/<case>`; dispatch chỉ bổ sung | Chứng minh event branch selection + đỏ/xanh đúng (PB-G10) |
 | Tích hợp | INT-04 | Chạy lại `ci_ownership.py` với `--head <SHA feature>` cho cả hai branch (IT-08) |
 
 CI luôn checkout `github.event.pull_request.head.sha` để diff chỉ là thay đổi của feature branch, không lẫn commit của target.

@@ -16,11 +16,11 @@ flowchart TB
     IN[integration/phase-2-3]
     MAIN[main — KHÔNG ĐỤNG]
   end
-  subgraph W1["Worktree P2: ...\\feat-knowledge-base"]
+  subgraph W1["Worktree P2: ...\\MoodPrint-Knowledge"]
     S1[Supabase stack 'kb' offset 100]
     E1[.env + .env.live: VOYAGE_API_KEY]
   end
-  subgraph W2["Worktree P3: ...\\feat-agent-companion"]
+  subgraph W2["Worktree P3: ...\\MoodPrint-Agent"]
     S2[Supabase stack 'ag' offset 200]
     E2[.env + .env.live: OPENAI_API_KEY]
   end
@@ -37,7 +37,7 @@ flowchart TB
 | Hạng mục | Phase 2 (Grok 4.7) | Phase 3 (Claude Opus 5.5) | Integrator |
 |---|---|---|---|
 | Nhánh | `feat/knowledge-base` | `feat/agent-companion` | `integration/phase-2-3`, `integration/*`, `compat/*` |
-| Thư mục | `…\MoodPrint\feat-knowledge-base` | `…\MoodPrint\feat-agent-companion` | worktree hiện tại `…\mhiu05-feat-refactor` |
+| Thư mục | `…\MoodPrint\MoodPrint-Knowledge` | `…\MoodPrint\MoodPrint-Agent` | worktree hiện tại `…\mhiu05-feat-refactor` |
 | Terminal | riêng, `MOODPRINT_STACK_NAME=kb`, `MOODPRINT_PORT_OFFSET=100` | riêng, `ag`, `200` | riêng, `int`, `300` |
 | Supabase local | project_id `moodprint-kb`, workdir `.local/stacks/kb` | `moodprint-ag`, `.local/stacks/ag` | `moodprint-int`, `.local/stacks/int` |
 | Cổng DB / API | 54422 / 54421 | 54522 / 54521 | 54622 / 54621 |
@@ -55,7 +55,7 @@ Docker (8.17 GB RAM) cho phép **tối đa hai stack đầy đủ cùng lúc** (
 
 1. **Không trạng thái ghi chung.** Không symlink `.env`/`.local`; không thư mục cache chung (cache embedding ở `.local/corpus-cache` của từng worktree). Dữ liệu duy nhất chung là Git.
 2. **Không chia sẻ DB.** Mỗi agent `db reset` thoải mái trên stack của mình. Test từ chối `DATABASE_URL` không loopback khi `APP_ENV=test` (`UnsafeTestEnvironment`); `ci_ownership` và `check:boundaries` bắt secret.
-3. **Không chia sẻ migration:** tiền tố `kb`/`ag`; `migration_scope_check.py` (CI) kiểm phạm vi SQL; test chặn trùng version.
+3. **Không chia sẻ migration:** tiền tố `kb`/`ag`; `migration_scope_check.py` (CI) kiểm phạm vi SQL; test chặn trùng version. `CREATE TABLE ... INHERITS` và `PARTITION OF` không phải bảng phase độc lập và bị từ chối. Schema sau migration phải vẫn chạy được với backend đang deploy cho tới khi ứng dụng tích hợp sẵn sàng. Thay đổi phá vỡ đi theo expand, rồi migrate/backfill, rồi deploy, rồi contract. Apply migration thành công không chứng minh tương thích backend.
 4. **Contract đóng băng:** `contracts/**`, `testing/**`, `contract-schemas/**`; thay đổi qua compat (`11` §8). Đề xuất của hai phase dùng tên khác nhau (`CC-P2-NNN`, `CC-P3-NNN`) để không trùng.
 5. **Không rebase / force-push** nhánh đã đẩy. Cập nhật từ baseline chỉ bằng `git merge --no-ff <tag compat>`.
 6. **Không merge chéo:** Phase 2 không merge `feat/agent-companion` và ngược lại; mọi kết hợp ở nhánh integration.

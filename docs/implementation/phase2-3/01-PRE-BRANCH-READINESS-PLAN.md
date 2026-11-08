@@ -186,7 +186,7 @@ flowchart TD
    - Cờ `--lite` của `supabase_worktree.py prepare/start`: ghi `[studio] enabled = false` (Edge Runtime và Analytics đã tắt).
    - `playwright.config.ts`: `baseURL` đã đọc `E2E_BASE_URL`; `webServer` demo dùng `process.env.E2E_PORT ?? 5178 + offset`.
    - **Capability flags:** `capabilities.ts` xuất `knowledgeLive` (từ `phase2.ts`) và `companionLive` (từ `phase3.ts`). `responsive-real.spec.ts` dòng khẳng định `AI mô phỏng` đổi thành: `companionLive ? getByTestId("chat-live") : getByText(/AI mô phỏng/)`. Hợp đồng test-id: root của chat thật là `data-testid="chat-live"`; root của Knowledge Hub có tìm kiếm thật là `data-testid="knowledge-live"`.
-   - `scripts/e2e_app.py`: factory test-only. Chế độ `scripted` (mặc định cho CI): `create_app()` rồi `app.state.runtime = CompanionRuntime(cfg, model=build_e2e_model())` nếu import được `moodprint_agent.testing.scripted_scenarios.build_e2e_model`, ngược lại giữ nguyên. Chế độ `live`: `app.main:create_app` thường. `e2e_stack.py --agent scripted|live` chọn. Ở chế độ `scripted`, nếu import được `moodprint_agent.knowledge.retriever` và `...embedder.HashingEmbedder` (Phase 2 giao hàng) thì `create_app()` gán `app.state.knowledge = PgVectorKnowledgeRetriever(engine, HashingEmbedder(), cfg)` để E2E không cần khóa Voyage; ngược lại giữ fixture.
+   - `scripts/e2e_app.py`: factory test-only, gọi **sau** lifespan gốc và chỉ khi `APP_ENV=test`. Runtime scripted là `moodprint_agent.testing.scripted_scenarios.build_e2e_runtime(cfg) -> CompanionRuntime`. Factory này phải giữ registry, policy và domain wiring của Phase 3, chỉ thay model. Không dựng `CompanionRuntime` trần bằng `build_e2e_model`. Retriever E2E là `app.modules.knowledge.testing.build_e2e_retriever(engine, cfg)` do Phase 2 tạo, dùng HashingEmbedder tường minh. Module chưa tồn tại thì giữ fixture/foundation. Module đã có nhưng lỗi import/dependency phải fail, không nuốt. `e2e_stack.py --agent scripted|live` chọn app.
    - `scripts/e2e_hooks.json`: `{ "after_db_ready": [ { "name": "knowledge-seed", "cmd": ["python","-m","moodprint_agent.knowledge.ingest","seed-synthetic","--target","test-env"], "optional": true } ] }`. `optional=true` nghĩa là mã thoát 2 (lệnh chưa tồn tại) bị bỏ qua, mọi mã khác lỗi nặng.
 7. **DB:** không. 8. **API/contract:** không.
 9. **Test:** `test_e2e_stack.py`: tính cổng cho offset 0/100/200/300 (không trùng nhau, trùng mặc định khi offset 0); `--lite` ghi cấu hình có `studio.enabled=false`; hook `optional` bỏ qua exit 2 nhưng lỗi khi exit 1; `e2e_app.py` import không có `scripted_scenarios` vẫn tạo app. Thủ công: chạy `e2e_stack.py --run --project demo --offset 100` **đồng thời** với `--offset 200` (không cần Supabase) và xác nhận cả hai xanh, không `EADDRINUSE`.
@@ -221,7 +221,7 @@ flowchart TD
 2. **Ưu tiên:** P0. 3. **Branch:** `integration/pre-branch-readiness` → PR vào `mhiu05/feat-refactor`.
 4. **Phụ thuộc:** PB-04, PB-06.
 5. **File:** `docs/implementation/reports/pre-branch-report.md`, `docs/implementation/phase2-3/BASELINE.md` (ghi SHA, tag, lệnh tạo worktree).
-6. **Chi tiết:** thực hiện theo §6 (Gate PB) theo thứ tự: hồi quy local → CI xanh → merge PR (`--merge`) → tạo `baseline/phase-2-3-start-rc1` → canary → tạo tag cuối.
+6. **Chi tiết:** thực hiện theo §6 (Gate PB) theo thứ tự: hồi quy local → CI xanh → tạo RC immutable trên preparation SHA → canary GitHub thật → merge PR (`--merge`) khi mọi gate tiền merge đạt → post-merge regression/CI → tag cuối.
 7. **DB:** không áp hosted. 8. **API/contract:** không.
 9. **Test:** toàn bộ §6.
 10. **Acceptance:** mọi dòng của §6 `VERIFIED`; hai nhánh canary được xóa; báo cáo ghi SHA.
@@ -262,22 +262,20 @@ S-04 đã **chạy** offset `+100`. Offset `+200`, `+300` suy ra bằng cùng c�
 | PB-G11 | `main` không đổi | `git rev-parse origin/main` | `8b329980af4038f4c2a565a6472fd01472fbdfef` |
 | PB-G12 | Hợp đồng đóng băng | `uv run pytest shared/tests -q`, `export_contract_schemas.py --check`, `export_openapi.py --check` | exit 0, `shared/contract-schemas/` sạch |
 
-Canary (PB-G10), thực hiện sau khi PB merge và `baseline/phase-2-3-start-rc1` đã đẩy lên:
+Canary (PB-G10) chạy **trước merge**, sau khi tag RC immutable đã trỏ đúng preparation SHA. `workflow_dispatch` + `simulate_branch` chỉ là kiểm tra phụ. Bằng chứng bắt buộc là push hoặc pull request thật, để `TASK_BRANCH` lấy `github.head_ref || github.ref_name` và checkout lấy `github.event.pull_request.head.sha || github.sha`.
 
-```powershell
-git switch -c canary/p2-forbidden baseline/phase-2-3-start-rc1
-# sửa trái phép một file đóng băng, commit, push
-Add-Content shared/src/moodprint_shared/contracts/knowledge.py "`n# canary"
-git commit -am "canary: forbidden edit" ; git push origin canary/p2-forbidden
-gh workflow run ci.yml --ref canary/p2-forbidden -f simulate_branch=feat/knowledge-base   # phải ĐỎ ở bước "Parallel phase ownership"
-git switch -c canary/p2-allowed baseline/phase-2-3-start-rc1
-# thêm file hợp lệ của Phase 2 rồi push
-New-Item agent/tests/knowledge/test_canary_ok.py -Value "def test_ok(): pass`n" ; git add agent/tests/knowledge/test_canary_ok.py ; git commit -m "canary: allowed edit" ; git push origin canary/p2-allowed
-gh workflow run ci.yml --ref canary/p2-allowed -f simulate_branch=feat/knowledge-base     # phải XANH
-# lặp lại với feat/agent-companion: sửa agent/src/moodprint_agent/knowledge/x.py (đỏ) và agent/tests/test_canary_ok.py (xanh)
-```
+Namespace disposable, đã được `ci_ownership.py` chuẩn hóa. Không tạo `feat/knowledge-base` hay `feat/agent-companion` để thử:
 
-Sau đó `git push origin --delete canary/p2-forbidden canary/p2-allowed canary/p3-forbidden canary/p3-allowed` và `gh run list` ghi URL bốn lần chạy vào `pre-branch-report.md`. Đỏ **đúng bước** là điều kiện pass.
+| Case | Ref | Kỳ vọng |
+|---|---|---|
+| P2 sửa file P2 | `canary/ownership/knowledge-base/allowed-owned` | ownership PASS |
+| P3 sửa file P3 | `canary/ownership/agent-companion/allowed-owned` | ownership PASS |
+| P2 sửa contract đóng băng | `canary/ownership/knowledge-base/forbidden-frozen` | FAIL đúng bước ownership |
+| P2 sửa file P3 | `canary/ownership/knowledge-base/forbidden-foreign` | FAIL đúng bước ownership |
+| P3 sửa file P2 | `canary/ownership/agent-companion/forbidden-foreign` | FAIL đúng bước ownership |
+| Sửa shared/generated không được phép | `canary/ownership/knowledge-base/forbidden-generated` | FAIL ownership hoặc generated drift |
+
+Ghi URL Actions, event, ref, head SHA, job, step và outcome. Đỏ đúng bước là pass của case âm. Xóa ref disposable sau khi ghi evidence. Không xóa tag baseline hoặc RC.
 
 ## 7. Bàn giao cho owner
 
@@ -285,8 +283,8 @@ Sau Gate PB, integrator ghi `docs/implementation/phase2-3/BASELINE.md` (SHA, tag
 
 ```powershell
 git fetch origin --tags
-git worktree add C:\Users\minhh\orca\workspaces\MoodPrint\feat-knowledge-base -b feat/knowledge-base baseline/phase-2-3-start
-git worktree add C:\Users\minhh\orca\workspaces\MoodPrint\feat-agent-companion -b feat/agent-companion baseline/phase-2-3-start
+git worktree add -b feat/knowledge-base ..\MoodPrint-Knowledge baseline/phase-2-3-start
+git worktree add -b feat/agent-companion ..\MoodPrint-Agent baseline/phase-2-3-start
 git rev-parse feat/knowledge-base feat/agent-companion baseline/phase-2-3-start^{commit}   # ba SHA phải GIỐNG HỆT NHAU
 ```
 
@@ -295,3 +293,22 @@ git rev-parse feat/knowledge-base feat/agent-companion baseline/phase-2-3-start^
 ## 8. Sau tag: cập nhật baseline cho hai branch
 
 Nếu về sau cần compat thay đổi (`CC-009…`): integrator làm theo `06` §5 trên `compat/CC-009`, tạo tag `baseline/phase-2-3-start+cc009`, **cả hai** feature branch `git merge --no-ff <tag>`. `ci_ownership.py` tự chọn tag gần nhất là tổ tiên của HEAD nên không cần sửa CI. Không cho phép thay đổi phá vỡ khi hai branch còn mở.
+
+
+## 9. Hiệu chỉnh triển khai PB có hiệu lực
+
+- Quyền owner yêu cầu **mọi gate trước merge** thắng thứ tự merge-trước-canary cũ. RC có thể trỏ preparation SHA chưa merge; final tag chỉ trỏ target commit sau post-merge verification. Không di chuyển RC/final tag; cần sửa dùng rc2/rc3.
+- Canary thật dùng các nhánh disposable `canary/ownership/knowledge-base/<case>` và `canary/ownership/agent-companion/<case>`. `ci_ownership.py` chuẩn hóa duy nhất hai namespace này về profile tương ứng. Push/PR event phải chọn từ `github.head_ref || github.ref_name`, không dùng simulate_branch làm bằng chứng duy nhất. Kiểm cả checkout head SHA ở PR; ghi branch/event/head/base/run URL/job/step. Xóa nhánh disposable sau ghi nhận.
+- Policy thực thi có `version: 2`, schema JSON nghiêm ngặt; không giữ version1 hoặc khóa không biết. Local overrides chỉ bỏ qua unstaged/uncommitted; staged và committed vẫn từ chối. Generated files có drift checks riêng; ownership PASS không tự chứng minh generator provenance.
+- E2E factory thực tế: `moodprint_agent.testing.scripted_scenarios.build_e2e_runtime(cfg)` giữ registry/tool wiring của Phase3; `app.modules.knowledge.testing.build_e2e_retriever(engine,cfg)` là factory Phase2 cho HashingEmbedder. Thiếu module ở PB là bình thường; lỗi dependency trong module đã có phải fail. `scripts/e2e_seed.py` trả2 chỉ khi module ingestion chưa có; mọi lỗi seed còn lại làm gate fail.
+- Env mặc định foundation `.local/test.env`; worktree named `.local/stacks/<name>/test.env`. E2E output/config chia theo `<name>-<offset>`. `gen:api` chạy openapi-typescript rồi Prettier để snapshot deterministic.
+- PB không thêm migration: `add_confirmed_event` kiểm UUID/provenance/owner/evidence/version/exact-event retry; ProposalStore của P3 phải kiểm binding owner/run/case/kind/hash/version/expiry/approval/rejection và idempotency trước gọi. Audit INSERT-only không bị nới quyền. PB không tuyên bố đã triển khai proposal system.
+- Security manifest dùng baseline names; mọi bảng mới vẫn RLS+policy. Private ingestion table cần comment `moodprint:private_ingestion`, không quyền anon/authenticated, policy chỉ role server/ingestion được duyệt. Không tự cấp quyền đọc để làm test xanh.
+- Static SQL guard dùng subset fail-closed: SQL không hỗ trợ cần compat; extension DDL không chứng minh no-op bị từ chối. Migration order harness đổi timestamp **bản sao** sau baseline, giữ bytes/relative order, reset/test cả A/B và phục hồi thứ tự source. Khi PB chưa có kb/ag, kết quả chỉ xác minh harness với baseline; IT-01 phải chạy lại với hai bộ thực.
+- Hosted: normal dryrun ghi receipt secret-free commit/history/pending/hash/introducing_commit. Backfill ghi audit read-only `cli_dry_run=false` (không tuyên bố CLI dryrun pass); `--include-all` chỉ apply rõ ràng, receipt và phase23 gate khớp. Không gọi apply trong PB.
+- Gate local chạy `scripts/verify_prebranch.py`; receipt local không thay thế GitHub canary/merge/post-merge/remote tag evidence. Kết quả hiện tại ở `15`/`16`, không suy trạng thái từ checklist này.
+- `CREATE TABLE ... INHERITS` và `PARTITION OF` bị `migration_scope_check.py` từ chối khi đứng ngoài danh sách cột. Comment, literal và cột chỉ mang tên `inherits` không bị coi là gắn parent. Chưa có ngoại lệ integrator.
+- `push_hosted.py --apply` đọc lại `schema_migrations` ngay trước CLI. History lệch plan đã review thì dừng trước mutation. Đây không phải lock: CLI mở connection riêng, nên một race sau lần đọc đó vẫn có thể xảy ra và chỉ bị bước hậu kiểm phát hiện.
+- `--base` tường minh không phải ancestor của `--head` hoặc `HEAD` làm ownership exit 2. Tag ngầm `baseline/phase-2-3-start*` vẫn phải là ancestor gần nhất.
+- Stack `--lite` ghi `.local/stacks/<name>/.stack-lite`. `prepare`/`reset`/`bootstrap` sau đó không bật lại Studio. Bản sao `migrations/` và `tests/` được thay cả thư mục, không giữ file source đã xóa. Junction hoặc symlink của stack bị từ chối.
+- Worktree owner tạo sau tag, không tự tạo trong PB: `..\MoodPrint-Knowledge` (`feat/knowledge-base`) và `..\MoodPrint-Agent` (`feat/agent-companion`).

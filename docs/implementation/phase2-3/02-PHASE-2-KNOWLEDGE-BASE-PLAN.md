@@ -1,8 +1,10 @@
 # 02 — Phase 2: Knowledge Base Implementation Plan
 
-> **Coding agent:** Grok 4.7. **Branch:** `feat/knowledge-base`, rẽ từ `baseline/phase-2-3-start` (xem `01`). **Worktree:** `C:\Users\minhh\orca\workspaces\MoodPrint\feat-knowledge-base`. **Stack local:** `kb`, offset `+100`.
+> **Coding agent:** Grok 4.7. **Branch:** `feat/knowledge-base`, rẽ từ `baseline/phase-2-3-start` (xem `01`). **Worktree:** `C:\Users\minhh\orca\workspaces\MoodPrint\MoodPrint-Knowledge`. **Stack local:** `kb`, offset `+100`.
 > Đọc trước: `08-EXECUTION-ORDER…` bộ cũ §1, `00` (phase2-3), `11` (ownership), rồi `03` (corpus + ingestion) và `04` (retrieval + evaluation) của thư mục này.
 > **Dữ liệu:** chỉ dữ liệu tổng hợp cho học sinh; **corpus tri thức là nội dung công khai/biên soạn**, không chứa dữ liệu người dùng. Câu truy vấn của học sinh là nhạy cảm (xem `04` §6).
+> **Điều kiện vào còn chờ:** Gate PB chưa được xác nhận VERIFIED trong tài liệu này; không tự tạo branch/worktree hoặc dùng tag Phase 1 thay tag mới. Owner chỉ tạo worktree sau báo cáo PB và tag `baseline/phase-2-3-start` đúng SHA đã kiểm. Bàn giao đầy đủ: [12-PHASE-2-GROK-EXECUTION-HANDOFF.md](12-PHASE-2-GROK-EXECUTION-HANDOFF.md).
+> **Chất lượng: UNMEASURED.** 180 truy vấn, Recall@5 ≥ 0.80, no-result accuracy ≥ 0.90 và citation integrity 100% là mục tiêu chưa đo; không phải kết quả baseline.
 
 ## 1. Mục tiêu
 
@@ -13,6 +15,8 @@ Một Knowledge Base thật, tiếng Việt, có nguồn kiểm chứng được
 **Ngoài phạm vi (DEFER):** crawl liên tục, upload tài liệu bởi người dùng, nhúng ký ức người dùng, reranker bật mặc định, đa ngôn ngữ giao diện, embedding cục bộ, pgroonga.
 
 **Không được làm:** sửa `shared/contracts/**`, sửa `create_retriever` (chữ ký), áp migration lên hosted, giữ `DATABASE_URL`/`SUPABASE_DB_URL` hosted trong worktree, thêm npm dependency, fallback sang dữ liệu mock khi retriever lỗi, nhúng nguyên văn nội dung `reference_only`/`unverified`.
+
+Giữ nguyên `.gitignore` theo yêu cầu owner; bảo toàn `.claude/settings.local.json`, `.cursor/mcp.json`, `.mcp.json`, giá trị `.env` đã điền. Chỉ commit/push `feat/knowledge-base` của mình; không merge target/main, tạo tag, force push hoặc sửa file đóng băng. Việc hosted của kế hoạch Phase 0/1 không cấp quyền hosted cho Phase 2.
 
 ## 2. Kiến trúc
 
@@ -97,10 +101,10 @@ flowchart TD
 ### P2-00 — Khởi tạo worktree, stack, baseline
 
 1. Mục đích: môi trường cô lập, xác nhận baseline đúng, hook/CI ownership hoạt động. 2. P0. 3. Gate PB xanh; owner đã tạo worktree.
-4. File: `.env` (copy tay, **không** có DB hosted), `.env.live` (chỉ `VOYAGE_API_KEY`), `.local/test.env` (sinh); không commit.
-5. Chi tiết: (a) `git rev-parse HEAD` phải bằng `baseline/phase-2-3-start^{commit}`. (b) `$env:MOODPRINT_STACK_NAME="kb"; $env:MOODPRINT_PORT_OFFSET="100"`; `uv sync --all-packages --all-extras --locked`. (c) `uv run python scripts/dev/supabase_worktree.py start --lite`; `uv run python scripts/dev/bootstrap_local_db.py --workdir .local/stacks/kb`. (d) chạy baseline: `uv run python scripts/check.py`, `supabase_worktree.py test`, `pytest -m integration -q`, `cd frontend && npm ci && npm test -- --maxWorkers=2`. (e) tạo `.local/eval-budget.json` **chỉ** khi owner đã duyệt (xem `09` §4). (f) ghi `docs/implementation/reports/phase-2-report.md` mục "Môi trường" (SHA, cổng, phiên bản CLI).
+4. File: `.env` (copy tay, **không** có DB hosted), `.env.live` (chỉ `VOYAGE_API_KEY`), `.local/stacks/kb/test.env` (sinh); không commit.
+5. Chi tiết: (a) `git rev-parse HEAD` phải bằng `baseline/phase-2-3-start^{commit}` và nhánh hiện tại là `feat/knowledge-base`. (b) Đặt process env `MOODPRINT_STACK_NAME=kb`, `MOODPRINT_PORT_OFFSET=100`; `uv sync --all-packages --all-extras --locked`. (c) `uv run python scripts/dev/supabase_worktree.py start --name kb --offset 100 --lite`; `uv run python scripts/dev/bootstrap_local_db.py --name kb --offset 100` sinh `.local/stacks/kb/test.env`; bootstrap lại sau mỗi reset. (d) chạy baseline: `uv run python scripts/check.py`, `uv run python scripts/dev/supabase_worktree.py test --name kb --offset 100`, integration với env stack kb được nạp vào process (không đọc `.env` owner), `npm.cmd ci` và `npm.cmd test -- --maxWorkers=2` trong `frontend/`. `verify_phase0.py --regression`/`verify_phase1.py` tự nạp đúng env theo name/offset; lệnh pytest trực tiếp phải dùng loader trong handoff12 §5. (e) ngân sách live chỉ từ owner, không tự duyệt; không gọi Voyage/OpenAI trong PB hoặc baseline offline. (f) ghi báo cáo SHA, CLI và cổng: DB 54422, Supabase API 54421, mail 54424, E2E Vite/API 5278/8108, dev Vite/API 5273/8100.
 6. DB: không. 7. API: không.
-8. Test: toàn bộ baseline (265/67, pgTAP ≥ 194, integration 67, Vitest 94) giữ nguyên.
+8. Test: toàn bộ baseline giữ nguyên. Số lịch sử Phase 1 là 265 offline/67 integration, pgTAP 194, Vitest 94; PB-02 đã kiểm 122 Vitest. Chốt số mới từ báo cáo PB/SHA tag, không dùng 94 để cho phép mất 28 test seam mới.
 9. Acceptance: số test baseline ghi vào báo cáo; ownership check exit 0 trên cây sạch.
 10. Lệnh: `uv run python scripts/ci_ownership.py --branch feat/knowledge-base --local`.
 11. Thất bại: HEAD ≠ tag; stack dùng cổng 54321–54329; `.env` chứa host hosted.
@@ -132,7 +136,7 @@ flowchart TD
 10. Lệnh: `uv run python scripts/dev/supabase_worktree.py reset; uv run python scripts/dev/supabase_worktree.py test`.
 11. Thất bại: bảng thiếu RLS; policy cho `anon`; migration đụng đối tượng ngoài `knowledge`; tên file sai mẫu.
 12. Deliverables: 2 migration + 4 file pgTAP + danh sách migration trong báo cáo.
-13. Rủi ro: HNSW trên corpus nhỏ chưa cần; giữ chỉ mục nhưng so recall HNSW với quét chính xác ở P2-10 (nếu khác > 1% tuyệt đối thì dùng quét chính xác).
+13. Rủi ro: HNSW trên corpus nhỏ chưa cần; mặc định không tạo. Nếu P2-10 chứng minh cần, thêm migration mới rồi so recall HNSW với quét chính xác (nếu khác > 1% tuyệt đối thì dùng quét chính xác).
 
 ### P2-03 — Lõi ingest: manifest, acquire, validate, parse, normalize
 
@@ -202,12 +206,13 @@ flowchart TD
 ### P2-08 — Retriever pgvector lai + contract test
 
 1. Mục đích: triển khai `KnowledgeRetriever` thật theo `04`. 2. P0. 3. P2-02, P2-06, P2-07.
-4. File: `agent/src/moodprint_agent/knowledge/{retriever,query,scoring}.py`, `backend/app/modules/knowledge/factory.py`, `agent/tests/knowledge/test_retriever_*.py`, `agent/tests/integration/knowledge/test_retriever_contract_pg.py`.
+4. File: `agent/src/moodprint_agent/knowledge/{retriever,query,scoring}.py`, `backend/app/modules/knowledge/{factory,testing}.py`, `agent/tests/knowledge/test_retriever_*.py`, `agent/tests/integration/knowledge/test_retriever_contract_pg.py`.
 5. Chi tiết: `PgVectorKnowledgeRetriever(engine, embedder, cfg: KnowledgeConfig, *, clock)` thực thi đúng thuật toán `04` §3–§5: chuẩn hóa/che truy vấn → embed (ngân sách con) → một câu `knowledge.search_chunks` (hai nhánh + hợp nhất) → ngưỡng → dựng `KnowledgeResult` (`score` ∈ [0,1], sắp xếp `score` giảm, tie-break `chunk_id`). `asyncio.timeout(timeout_s)`; `timeout_s <= 0` → `KnowledgeTimeout` ngay; `CancelledError` truyền ra; lỗi DB/mạng → `KnowledgeUnavailable`; embed lỗi → hạ cấp lexical-only (`match_kind="lexical"`, ghi log mức WARNING chỉ mã lỗi). `scope.corpus_version` ghim (truy vấn dùng kết nối `authenticated` chỉ thấy `published`; ghim bản khác chỉ hợp lệ với kết nối quản trị của harness eval). Factory: nhánh `pgvector` dựng retriever từ `app.state.engine` và `settings.voyage_api_key`; thiếu khóa → factory ném `ValueError` (không bao giờ âm thầm dùng embedder giả ở sản xuất). `HashingEmbedder` chỉ do test và `scripts/e2e_app.py` (chế độ scripted) truyền tường minh bằng cách tự dựng `PgVectorKnowledgeRetriever(engine, HashingEmbedder(), cfg)` rồi gán `app.state.knowledge`.
 6. DB: gọi `knowledge.search_chunks`; không thêm đối tượng.
 7. API/contract: Protocol 🔒 giữ nguyên.
 8. Test: `KnowledgeRetrieverContract` chạy với retriever thật + corpus tổng hợp + `HashingEmbedder` (CI ngoại tuyến): `test_ok_shape`, `no_results`, `top_k`, `sorted_by_score`, `filters`, `timeout_raises`, `cancellation_propagates`, `deterministic`; thêm `I-KB-10…18`: truy vấn không dấu = có dấu cho cùng tập top-3; nhiễu `'; DROP TABLE` và `& | ! :` không làm hỏng tsquery; embed lỗi → `match_kind=lexical`; DB tắt → `KnowledgeUnavailable` (không treo quá `timeout_s + 0.5s`); 20 truy vấn đồng thời không rò rỉ kết nối (`pool.checkedout()==0`); che email/điện thoại/URL trước khi gửi embedder (mock bắt thân yêu cầu); độ dài > `query_max_chars` bị cắt tại ranh giới từ.
 9. Acceptance: mọi test contract và `I-KB-10…18` xanh; không test nào phụ thuộc Voyage.
+   - **Seam E2E chính thức:** Phase 2 cung cấp `app.modules.knowledge.testing.build_e2e_retriever(engine, cfg) -> KnowledgeRetriever`, đồng bộ, tự dựng adapter với `HashingEmbedder` và `cfg.knowledge`. `scripts/e2e_app.py` chỉ import optional module và gọi factory này **sau khi** lifespan đã tạo engine; không suy đoán constructor `PgVectorKnowledgeRetriever`, không sửa script đóng băng. Câu mô tả constructor ở mục 5 là thiết kế nội bộ, không phải chữ ký mà harness gọi. Module có mặt nhưng thiếu dependency/factory hoặc lỗi khởi tạo phải làm E2E fail, không fallback fixture.
 10. Lệnh: `uv run pytest agent/tests/knowledge -q`; `uv run pytest -m integration agent/tests/integration/knowledge -q`.
 11. Thất bại: `no_results` sai khi nhiễu; `score` ngoài [0,1]; kết quả không tất định; truy vấn nguyên văn xuất hiện trong log.
 12. Deliverables: retriever + factory + báo cáo contract.
@@ -234,6 +239,7 @@ flowchart TD
 6. DB: có thể thêm migration `kb_fix_*` (chỉ mục/hàm). 7. API: không.
 8. Test: `U-KB-40`: hằng cấu hình nằm trong `KnowledgeConfig` và khớp `config.json` của run được chọn; hồi quy chỉ số ở CI chạy với `HashingEmbedder` kiểm sàn tối thiểu (không phải ngưỡng chất lượng).
 9. Acceptance: bảng so sánh A–D trên test split; mỗi mục tiêu `04` §7.5 được đánh dấu PASS/FAIL **trung thực**; mục FAIL có phân tích nguyên nhân và kế hoạch, không hạ ngưỡng im lặng.
+   - Chọn hybrid/rerank và khóa cấu hình bằng **dev**; mức cải thiện +0.03 trên test chỉ là tiêu chí xác nhận của kế hoạch đã đăng ký, không là vòng lựa chọn mới. Nếu test fail, báo FAIL/needs revision và review công khai; không quay lại chọn cấu hình khác trên holdout đã lộ. Nhóm no-result của test có 18 mẫu, mục tiêu ≥ 0.90 tương ứng ≥ 17/18 (30 là số toàn bộ dataset).
 10. Lệnh: `uv run python agent/evals/knowledge/run.py --split test --config <chosen> --embedder voyage`.
 11. Thất bại: tinh chỉnh trên test split; báo cáo chỉ nêu số tốt.
 12. Deliverables: `phase-2-report.md` mục "Kết quả benchmark", `S-08.md`, cấu hình khóa.
@@ -270,9 +276,10 @@ flowchart TD
 1. Mục đích: chứng minh hành trình thật + không phá demo. 2. P0. 3. P2-12.
 4. File: `frontend/e2e/knowledge-real.spec.ts`, `frontend/e2e/helpers/phase2.ts` (đặt `knowledgeLive = true`).
 5. Chi tiết: `E-KB-01` đăng nhập thật, tìm "bị nhắn tin dọa trong nhóm lớp" → có kết quả + chip nguồn + mở tài liệu; `E-KB-02` truy vấn không dấu cho kết quả tương đương; `E-KB-03` truy vấn ngoài phạm vi → trạng thái không kết quả, không bài tĩnh trong vùng kết quả; `E-KB-04` chặn `**/v1/knowledge/search` bằng `page.route` trả 502 → hiện lỗi + Thử lại, không mock; `E-KB-05` deep link `?document=`; `E-KB-06` user B xem cùng URL tài liệu (corpus công khai → thấy; xác nhận **không** có dữ liệu người dùng nào trong phản hồi); `E-KB-07` axe WCAG 2A/AA trên `/knowledge`; `E-KB-08` 320/360/375/390/430/768/1024/1440 không tràn ngang. Corpus seed qua hook `knowledge-seed` (`seed-synthetic`, HashingEmbedder). Demo: `journey.spec.ts`, `responsive.spec.ts`, `ui-refinement.spec.ts` vẫn xanh (không sửa).
+   - Hook baseline thực thi `python scripts/e2e_seed.py`, dispatcher tới `python -m moodprint_agent.knowledge.ingest seed-synthetic --target test-env`; process đã nhận env loopback stack kb. Chỉ **module tính năng chưa tồn tại** được bỏ qua với exit 2; module hiện hữu mà lỗi phải khác 0/2 và fail. Phase 2 triển khai CLI + `testing.build_e2e_retriever`, không sửa `scripts/e2e_{app,seed,stack}.py`/`e2e_hooks.json`. Demo không gọi hook seed.
 6. DB: seed tổng hợp. 7. API: không.
 8. Test: như trên. 9. Acceptance: `e2e_stack.py --run --project real` và `--project demo` (offset 100) xanh; không `console.error`; không request ra ngoài allow-list (N-05).
-10. Lệnh: `MOODPRINT_STACK_NAME=kb MOODPRINT_PORT_OFFSET=100 uv run python scripts/e2e_stack.py --run --project real`.
+10. Lệnh: sau khi đặt hai biến process như P2-00, `uv run python scripts/e2e_stack.py --run --project real --name kb --offset 100`; chạy riêng `--project demo --name kb --offset 100` (PowerShell không dùng cú pháp gán env kiểu POSIX).
 11. Thất bại: chỉnh `responsive-real.spec.ts` (🔒) thay vì dùng capability; test bị `.skip`.
 12. Deliverables: spec + ảnh báo cáo (không commit ảnh baseline đã track).
 13. Rủi ro: Vite HMR giữa lúc chạy (`fullstack-vite-hmr-pitfall`) → không sửa `frontend/` khi E2E đang chạy.
@@ -302,6 +309,8 @@ flowchart TD
 13. Rủi ro: CI đỏ do môi trường → sửa nguyên nhân, không `--no-verify`.
 
 ## 6. Definition of Done — Phase 2 (`PHASE_2 = VERIFIED` khi tất cả đúng)
+
+Trạng thái hiện tại: **NOT_STARTED / benchmark UNMEASURED; PB baseline pending**. Các tiêu chí bên dưới là điều kiện tương lai. D2-07 cho phép báo cáo FAIL có giải trình, nhưng mọi FAIL phải được nêu để integrator/owner review; không tự gắn VERIFIED khi một cổng cứng như citation integrity chưa đạt.
 
 | # | Tiêu chí | Bằng chứng |
 |---|---|---|
