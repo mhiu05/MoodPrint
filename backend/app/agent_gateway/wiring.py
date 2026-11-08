@@ -1,3 +1,4 @@
+from dataclasses import replace
 from uuid import UUID
 
 from moodprint_agent.budget import RunToolBudget
@@ -7,7 +8,7 @@ from moodprint_agent.tools.context import CompanionToolContext, ToolDeps
 from moodprint_agent.tools.factory import build_registry
 from moodprint_shared.config import AppConfig
 from moodprint_shared.contracts.agent import AgentServices
-from moodprint_shared.contracts.context import ContextRequest
+from moodprint_shared.contracts.context import ContextBundle, ContextRequest
 from moodprint_shared.contracts.errors import NotFound
 from moodprint_shared.contracts.knowledge import KnowledgeRetriever
 from moodprint_shared.contracts.paging import Page
@@ -20,6 +21,7 @@ from app.modules.incidents.service import IncidentService
 from app.modules.memory.service import MemoryService
 from app.modules.plans.service import ActionPlanService
 from app.modules.profiles.service import ProfileService
+from app.modules.roleplay.service import RoleplayService
 
 
 class DeferredDomainServices:
@@ -76,6 +78,8 @@ async def build_context(
     """Fresh context for every turn and every resume; nothing global, no engine in tools."""
     memory = MemoryService(engine, cfg)
     profile = await ProfileService(engine).get(auth)
+    incidents, plans = IncidentService(engine), ActionPlanService(engine)
+    roleplay = await _roleplay_context(engine, cfg, auth, conversation["id"], incidents)
     request = ContextRequest(
         auth=auth,
         conversation_id=conversation["id"],
@@ -87,8 +91,14 @@ async def build_context(
         locale=profile.locale,
         conversation_summary=conversation["summary"],
     )
-    bundle = await MemoryContextBuilder(memory, cfg).build(request)
-    incidents, plans = IncidentService(engine), ActionPlanService(engine)
+    # A practice partner sees neither memory nor the case file unless the user opted in.
+    bundle = (
+        ContextBundle()
+        if roleplay is not None
+        else await MemoryContextBuilder(memory, cfg).build(request)
+    )
+    if roleplay is None:
+        bundle = await _with_attachments(engine, cfg, auth, run_id, bundle)
     store = SqlProposalStore(engine, cfg)
     return CompanionToolContext(
         auth=auth,
@@ -114,4 +124,61 @@ async def build_context(
         ),
         knowledge_timeout_s=max(1.0, cfg.agent.knowledge_tool_timeout_s - 1),
         memory_candidates_max=cfg.memory.extraction_max_candidates_per_run,
+        mode="roleplay" if roleplay is not None else "companion",
+        roleplay=roleplay,
+    )
+
+
+async def _roleplay_context(engine, cfg: AppConfig, auth, conversation_id: UUID, incidents):
+    service = RoleplayService(engine, cfg)
+    context = await service.context_for(auth, conversation_id)
+    if context is None:
+        return None
+    case_id = await service.linked_case(auth, conversation_id)
+    if case_id is None:
+        return context
+    try:
+        case = await incidents.get_case(auth, case_id)
+    except Exception:  # the case may have been deleted since: practise without it
+        return context
+    summary = f"{case.title} ({case.status}); {len(case.events)} mốc; {case.summary[:300]}"
+    return replace(context, case_summary=summary)
+
+
+async def _with_attachments(engine, cfg: AppConfig, auth, run_id: UUID, bundle: ContextBundle):
+    """Tell the model *that* images are attached (id, name, kind), never what is in them."""
+    from datetime import UTC, datetime
+
+    from moodprint_shared.contracts.context import ContextSection, Provenance
+
+    from app.modules.conversations.service import ConversationService
+
+    rows = await ConversationService(engine, cfg).attachments_for_run(auth, run_id)
+    if not rows:
+        return bundle
+    listing = "; ".join(
+        f"{row['id']} ({row['original_filename'] or 'ảnh'}, {row['kind']})" for row in rows[:3]
+    )
+    text = (
+        "Bằng chứng đính kèm tin nhắn này (chỉ là danh sách, chưa được đọc; muốn đọc phải "
+        f"dùng analyze_evidence và chờ người dùng đồng ý): {listing}"
+    )
+    section = ContextSection(
+        kind="domain",
+        text=text,
+        provenance=[
+            Provenance(
+                source_kind="attachment",
+                source_id=str(rows[0]["id"]),
+                retrieved_at=datetime.now(UTC),
+            )
+        ],
+        tokens=max(1, len(text) // 3),
+        priority=5,
+    )
+    return bundle.model_copy(
+        update={
+            "sections": [*bundle.sections, section],
+            "total_tokens": bundle.total_tokens + section.tokens,
+        }
     )

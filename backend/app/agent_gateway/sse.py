@@ -9,6 +9,7 @@ from moodprint_shared.contracts.streaming import StreamEvent, make_event
 
 from app.agent_gateway.wiring import build_context
 from app.modules.conversations.approvals import ApprovalService
+from app.modules.roleplay.service import RoleplayService
 
 
 class RunStream:
@@ -95,6 +96,15 @@ async def produce(
             if event.event == "message.completed":
                 answer, answer_id = event.data.content, event.data.message_id
                 citations, structured = event.data.citations, event.data.structured
+                if (
+                    ctx.mode == "roleplay"
+                    and structured is not None
+                    and structured.urgency == "immediate"
+                ):
+                    # The role ended because of a danger signal: keep the session out of role.
+                    await RoleplayService(service.engine, service.cfg).lock_for_safety(
+                        auth, turn.conversation_id
+                    )
             elif event.event == "message.delta":
                 answer += event.data.text
             elif event.event == "run.usage":

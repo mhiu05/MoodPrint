@@ -38,6 +38,7 @@ from moodprint_agent.budget import RunToolBudget
 from moodprint_agent.companion import PROMPT_VERSION, build_companion, model_settings
 from moodprint_agent.errors import InvalidApprovalState, ToolBudgetExceeded
 from moodprint_agent.events import EventEmitter
+from moodprint_agent.roleplay.service import EXIT_ROLE_TEXT, build_partner
 from moodprint_agent.tools.citations import resolve_citations
 from moodprint_agent.tools.context import CompanionToolContext, RunScratch
 from moodprint_agent.tools.registry import ToolRegistry, diagnostic_registry
@@ -117,6 +118,7 @@ class CompanionRuntime:
         self.cfg = cfg
         self.registry = registry if registry is not None else diagnostic_registry()
         self.agent = build_companion(cfg, self.registry)
+        self.partner = build_partner(cfg)  # the same runtime in a no-tools practice mode
         # A provider-neutral Model supports ScriptedModel tests; live calls use the fixed ID.
         self.model = model
         self.openai_client = openai_client
@@ -168,10 +170,61 @@ class CompanionRuntime:
         urgency = assess_conversation([*prior_user_messages, user_input])
         if isinstance(ctx, CompanionToolContext) and urgency.level == "elevated":
             ctx.safety_hint = ELEVATED_HINT
+        if (
+            isinstance(ctx, CompanionToolContext)
+            and ctx.mode == "roleplay"
+            and (
+                urgency.immediate
+                or "recent_high_risk" in urgency.signals
+                or (ctx.roleplay is not None and ctx.roleplay.safety_locked)
+            )
+        ):
+            # Leave the role without asking the model: a practice partner never handles danger,
+            # and it does not resume right after a high-risk turn while the conversation is
+            # still on watch.
+            for event in self._exit_role(ctx, emitter, urgency):
+                yield event
+            return
         async for event in self._stream(
             ctx=ctx, sdk_input=user_input, session=session, emitter=emitter, urgency=urgency
         ):
             yield event
+
+    def _exit_role(
+        self, ctx: CompanionToolContext, emitter: EventEmitter, urgency: UrgencyAssessment
+    ) -> list[StreamEvent]:
+        content = with_emergency_block(EXIT_ROLE_TEXT)
+        return [
+            emitter.emit(
+                "run.started",
+                {
+                    "run_id": ctx.run_id,
+                    "conversation_id": ctx.conversation_id,
+                    "message_id": emitter.message_id,
+                },
+            ),
+            emitter.emit(
+                "message.completed",
+                {
+                    "message_id": emitter.message_id,
+                    "content": content,
+                    "citations": [],
+                    "structured": CompanionTurn(reply=content, urgency=urgency.level, citations=[]),
+                },
+            ),
+            emitter.emit(
+                "run.usage",
+                {
+                    "input_tokens": 0,
+                    "output_tokens": 0,
+                    "total_tokens": 0,
+                    "requests": 0,
+                    "tool_calls": 0,
+                    "latency_ms": 0,
+                },
+            ),
+            emitter.emit("run.completed", {"status": "completed"}),
+        ]
 
     async def resume_after_approval(
         self,
@@ -278,8 +331,9 @@ class CompanionRuntime:
                 },
             )
             async with asyncio.timeout(self.cfg.agent.run_timeout_s):
+                roleplay = isinstance(ctx, CompanionToolContext) and ctx.mode == "roleplay"
                 result = Runner.run_streamed(
-                    self.agent,
+                    self.partner if roleplay else self.agent,
                     sdk_input,
                     context=ctx,
                     session=session,
@@ -377,7 +431,10 @@ class CompanionRuntime:
                     raw = result.final_output if isinstance(result.final_output, str) else ""
                     scratch = ctx.scratch if isinstance(ctx, CompanionToolContext) else None
                     resolved = resolve_citations(raw, scratch)
-                    final = combine(urgency, assess_reply(resolved.content))
+                    # A persona may say worried things; only the user's side is screened in practice.
+                    final = (
+                        urgency if roleplay else combine(urgency, assess_reply(resolved.content))
+                    )
                     content = (
                         with_emergency_block(resolved.content)
                         if final.immediate

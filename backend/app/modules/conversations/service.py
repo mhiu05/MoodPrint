@@ -1,4 +1,5 @@
 import json
+from collections.abc import Sequence
 from uuid import UUID, uuid4
 
 from moodprint_agent.memory.session import make_session, repair_session
@@ -56,6 +57,71 @@ class ConversationService:
             )
         return await self.get(auth, id)
 
+    async def attachments(self, auth: AuthContext, conversation_id: UUID) -> list[dict]:
+        """``messageId -> evidenceIds`` for one of the caller's conversations."""
+        await self.get(auth, conversation_id)  # 404 for anyone else's conversation
+        async with user_uow(self.engine, auth) as uow:
+            rows = (
+                (
+                    await uow.session.execute(
+                        text(
+                            "SELECT a.message_id,array_agg(a.evidence_id ORDER BY a.created_at,a.evidence_id) AS ids "
+                            "FROM app.message_attachments a JOIN app.messages m "
+                            "ON m.id=a.message_id AND m.owner_id=a.owner_id "
+                            "WHERE m.conversation_id=:c AND a.owner_id=:owner "
+                            "GROUP BY a.message_id,m.created_at ORDER BY m.created_at"
+                        ),
+                        {"c": conversation_id, "owner": auth.user_id},
+                    )
+                )
+                .mappings()
+                .all()
+            )
+        return [{"message_id": r["message_id"], "evidence_ids": list(r["ids"])} for r in rows]
+
+    async def attachments_for_run(self, auth: AuthContext, run_id: UUID) -> list[dict]:
+        """Metadata (id, name, kind) of what the user attached to this run's message; no content."""
+        async with user_uow(self.engine, auth) as uow:
+            rows = (
+                (
+                    await uow.session.execute(
+                        text(
+                            "SELECT e.id,e.original_filename,e.kind,e.stored_mime_type "
+                            "FROM app.messages m JOIN app.message_attachments a "
+                            "ON a.message_id=m.id AND a.owner_id=m.owner_id "
+                            "JOIN app.evidence_items e ON e.id=a.evidence_id AND e.owner_id=a.owner_id "
+                            "WHERE m.run_id=:run AND m.owner_id=:owner AND m.role='user' "
+                            "ORDER BY a.created_at,e.id"
+                        ),
+                        {"run": run_id, "owner": auth.user_id},
+                    )
+                )
+                .mappings()
+                .all()
+            )
+        return [dict(r) for r in rows]
+
+    @staticmethod
+    async def _check_attachments(session, auth: AuthContext, ids: Sequence[UUID]) -> None:
+        rows = (
+            (
+                await session.execute(
+                    text(
+                        "SELECT id,kind,upload_status,stored_mime_type FROM app.evidence_items "
+                        "WHERE id=ANY(:ids) AND owner_id=:owner"
+                    ),
+                    {"ids": list(ids), "owner": auth.user_id},
+                )
+            )
+            .mappings()
+            .all()
+        )
+        if len(rows) != len(ids):
+            raise NotFound()  # missing and someone else's evidence look the same
+        for row in rows:
+            if row["upload_status"] != "uploaded" or row["kind"] != "image":
+                raise ApiError("validation_failed", "Chỉ đính kèm được ảnh đã tải lên.", 422)
+
     async def get(self, auth: AuthContext, id: UUID):
         async with user_uow(self.engine, auth) as uow:
             row = (
@@ -87,10 +153,18 @@ class ConversationService:
             ]
 
     async def begin_turn(
-        self, auth: AuthContext, conversation_id: UUID, client_message_id: UUID, content: str
+        self,
+        auth: AuthContext,
+        conversation_id: UUID,
+        client_message_id: UUID,
+        content: str,
+        attachments: Sequence[UUID] = (),
     ) -> TurnHandle:
         if not content.strip() or len(content) > self.cfg.agent.max_user_input_chars:
             raise ApiError("validation_failed", "Vui lòng kiểm tra độ dài tin nhắn.", 422)
+        attached = list(dict.fromkeys(attachments))
+        if len(attached) > 3:
+            raise ApiError("validation_failed", "Chỉ đính kèm tối đa 3 ảnh mỗi tin nhắn.", 422)
         params = {
             "conversation": conversation_id,
             "owner": auth.user_id,
@@ -160,8 +234,12 @@ class ConversationService:
                 )
             spent_today = await uow.session.scalar(
                 text(
-                    "SELECT COALESCE(sum(total_tokens),0) FROM app.agent_runs WHERE owner_id=:owner "
-                    "AND started_at>=date_trunc('day', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'"
+                    "SELECT COALESCE((SELECT sum(total_tokens) FROM app.agent_runs "
+                    "WHERE owner_id=:owner AND started_at>=date_trunc('day', now() AT TIME ZONE 'UTC') "
+                    "AT TIME ZONE 'UTC'),0) + COALESCE((SELECT sum((usage->>'total_tokens')::bigint) "
+                    "FROM app.analysis_requests WHERE owner_id=:owner "
+                    "AND started_at>=date_trunc('day', now() AT TIME ZONE 'UTC') "
+                    "AT TIME ZONE 'UTC'),0)"
                 ),
                 params,
             )
@@ -172,6 +250,45 @@ class ConversationService:
                     429,
                     details={"kind": "ai_tokens"},
                 )
+            if attached:
+                await self._check_attachments(uow.session, auth, attached)
+            # The conversation row is locked above, so turns of one session are serialised. A
+            # plain read is used on purpose: under RLS ``FOR UPDATE`` silently skips rows the
+            # update policy hides (finished sessions), which would hide the "ended" state.
+            practice = (
+                (
+                    await uow.session.execute(
+                        text(
+                            "SELECT status,turn_count FROM app.roleplay_sessions "
+                            "WHERE conversation_id=:conversation AND owner_id=:owner"
+                        ),
+                        params,
+                    )
+                )
+                .mappings()
+                .first()
+            )
+            if practice is not None:
+                if practice["status"] != "active":
+                    raise ApiError("roleplay_ended", "Buổi diễn tập này đã kết thúc.", 409)
+                limit = self.cfg.agent.roleplay_max_turns
+                # Compare-and-set: the increment itself refuses to pass the limit.
+                claimed = await uow.session.scalar(
+                    text(
+                        "UPDATE app.roleplay_sessions SET turn_count=turn_count+1 "
+                        "WHERE conversation_id=:conversation AND owner_id=:owner "
+                        "AND status='active' AND turn_count<:limit RETURNING turn_count"
+                    ),
+                    {**params, "limit": limit},
+                )
+                if claimed is None:
+                    raise ApiError(
+                        "roleplay_turn_limit",
+                        "Buổi diễn tập đã đủ số lượt. Hãy kết thúc để nhận phản hồi.",
+                        409,
+                        details={"max_turns": limit},
+                    )
+                # A turn that later fails still counts: the limit bounds cost, not success.
             run_id, message_id = uuid4(), uuid4()
             await uow.session.execute(
                 text(
@@ -191,6 +308,14 @@ class ConversationService:
                 ),
                 {**params, "id": message_id, "content": content, "run": run_id},
             )
+            for evidence_id in attached:
+                await uow.session.execute(
+                    text(
+                        "INSERT INTO app.message_attachments(message_id,owner_id,evidence_id) "
+                        "VALUES(:message,:owner,:evidence)"
+                    ),
+                    {"message": message_id, "owner": auth.user_id, "evidence": evidence_id},
+                )
             await uow.session.execute(
                 text(
                     "UPDATE app.conversations SET last_message_at=now() WHERE id=:conversation AND owner_id=:owner"

@@ -33,6 +33,15 @@ async def test_context_retriever_can_be_injected_without_changing_default(monkey
 
     monkeypatch.setattr("app.agent_gateway.wiring.ProfileService.get", profile)
     monkeypatch.setattr("app.agent_gateway.wiring.MemoryService", lambda engine, cfg: EmptyMemory())
+
+    async def no_roleplay(engine, cfg, auth, conversation_id, incidents):
+        return None  # an ordinary chat; the roleplay/attachment lookups are covered in integration
+
+    async def no_attachments(engine, cfg, auth, run_id, bundle):
+        return bundle
+
+    monkeypatch.setattr("app.agent_gateway.wiring._roleplay_context", no_roleplay)
+    monkeypatch.setattr("app.agent_gateway.wiring._with_attachments", no_attachments)
     owner = uuid4()
     auth = AuthContext(
         user_id=owner,

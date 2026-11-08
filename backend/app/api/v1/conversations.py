@@ -19,7 +19,9 @@ from app.modules.conversations.approvals import ApprovalService
 from app.modules.conversations.paging import FoundationPages
 from app.modules.conversations.schemas import (
     SSE_RESPONSES,
+    ApprovalRead,
     ConversationRead,
+    MessageAttachmentsRead,
     RunCancelRead,
     RunRead,
 )
@@ -48,6 +50,7 @@ class ConversationCreate(FrozenDTO):
 class MessageCreate(FrozenDTO):
     client_message_id: UUID
     content: str = Field(min_length=1, max_length=4000)
+    attachments: list[UUID] = Field(default_factory=list[UUID], max_length=3)
 
 
 class ApprovalDecision(FrozenDTO):
@@ -156,7 +159,9 @@ async def send(
     conversations: ConversationService = Depends(service),
 ):
     runtime = runtime_for(request)
-    turn = await conversations.begin_turn(auth, id, data.client_message_id, data.content)
+    turn = await conversations.begin_turn(
+        auth, id, data.client_message_id, data.content, data.attachments
+    )
     stream = RunStream()
     if turn.replay:
         result = turn.existing_result
@@ -196,6 +201,26 @@ async def send(
     return response_for(stream)
 
 
+@router.get("/conversations/{id}/attachments", response_model=Page[MessageAttachmentsRead])
+async def attachments(
+    id: UUID,
+    auth: AuthContext = Depends(get_auth),
+    conversations: ConversationService = Depends(service),
+):
+    return Page(items=await conversations.attachments(auth, id), next_cursor=None)
+
+
+@router.get("/runs/{id}/approvals", response_model=Page[ApprovalRead])
+async def pending_approvals(
+    id: UUID,
+    auth: AuthContext = Depends(get_auth),
+    conversations: ConversationService = Depends(service),
+):
+    return Page(
+        items=await ApprovalService(conversations.engine).pending(auth, id), next_cursor=None
+    )
+
+
 @router.get("/runs/{id}", response_model=RunRead)
 async def get_run(
     id: UUID,
@@ -232,6 +257,10 @@ async def cancel(
     run = await conversations.get_run(auth, id)
     if run["status"] == "running":
         request.app.state.runtime.cancel(id)
+        return {"status": run["status"]}
+    if run["status"] == "awaiting_approval":
+        # Nothing is executing: close the run and expire what it proposed, atomically.
+        return {"status": await ApprovalService(conversations.engine).cancel_waiting(auth, id)}
     return {"status": run["status"]}
 
 
