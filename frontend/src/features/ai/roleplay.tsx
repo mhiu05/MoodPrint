@@ -31,6 +31,8 @@ import {
 } from "../../components/ui";
 import { AgentStatusOrb } from "../../animations/AgentStatusOrb";
 import { getServices } from "../../services/composition";
+import { asLive } from "../../services/composition/companion-types";
+import { LiveRoleplayPage } from "./live/live-roleplay";
 import {
   getRoleplayPrompt,
   roleLabels,
@@ -40,6 +42,16 @@ import type { Role } from "../../mocks/scenarios";
 import type { ChatMessage, RoleplaySession } from "../../types";
 
 export function RoleplayPage() {
+  const real = useWorkspaceStore((state) => state.workspace.kind === "real");
+  const companion = real ? asLive(getServices().companion) : null;
+  return companion ? (
+    <LiveRoleplayPage service={companion} />
+  ) : (
+    <SimulatedRoleplayPage />
+  );
+}
+
+function SimulatedRoleplayPage() {
   const { role } = useParams();
   const [query] = useSearchParams();
   const location = useLocation();
