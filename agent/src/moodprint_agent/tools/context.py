@@ -130,3 +130,4 @@ class CompanionToolContext(AgentToolContext):
     tool_call_id: str | None = field(kw_only=True, default=None)
     knowledge_timeout_s: float = field(kw_only=True, default=7.0)
     safety_hint: str | None = field(kw_only=True, default=None)
+    memory_candidates_max: int = field(kw_only=True, default=1)
