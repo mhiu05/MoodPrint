@@ -4,6 +4,7 @@ The isolation matrix is derived from the live OpenAPI document: a new owner-ID r
 listed below makes ``test_phase3_isolation_matrix`` fail.
 """
 
+import asyncio
 import json
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -394,3 +395,42 @@ async def test_phase3_isolation_matrix(settings, db_engine, identities, admin):
     assert (await memory.list(a))[0].content == "Thích đọc truyện"
     status = await rows(admin, "SELECT status FROM app.agent_runs WHERE id=:r", r=run_id)
     assert status[0]["status"] == "awaiting_approval"
+
+
+async def test_twenty_concurrent_conversations_finish_cleanly_and_leak_nothing(
+    settings, db_engine, identities, admin
+):
+    a, _ = identities
+    files = Files()
+    model = ScriptedModel([reply(f"Trả lời số {n}") for n in range(20)])
+    app = build_app(settings, db_engine, a, files, model)
+    async with client_for(app) as client:
+        conversations = [await new_conversation(client) for _ in range(20)]
+        responses = await asyncio.gather(
+            *(
+                send(client, conversation, f"Xin chào {n}")
+                for n, conversation in enumerate(conversations)
+            )
+        )
+        assert all(r.status_code == 200 and "run.completed" in r.text for r in responses)
+        answers = sorted(
+            row["content"]
+            for row in await rows(
+                admin,
+                "SELECT content FROM app.messages WHERE owner_id=:o AND role='assistant'",
+                o=a.user_id,
+            )
+        )
+        assert answers == sorted(f"Trả lời số {n}" for n in range(20))  # each answer exactly once
+        runs = await rows(
+            admin,
+            "SELECT status, count(*) AS n FROM app.agent_runs WHERE owner_id=:o GROUP BY status",
+            o=a.user_id,
+        )
+        assert {r["status"]: r["n"] for r in runs} == {"completed": 20}
+    for _ in range(50):  # background run tasks unregister themselves right after the stream ends
+        if not app.state.run_tasks:
+            break
+        await asyncio.sleep(0.05)
+    assert not app.state.run_tasks
+    assert db_engine.pool.checkedout() == 0  # type: ignore[attr-defined]
