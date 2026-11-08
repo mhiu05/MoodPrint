@@ -41,6 +41,9 @@ def _tokens(text: str) -> set[str]:
     return set(re.findall(r"\w+", normalized))
 
 
+FIXTURE_MIN_LATENCY_S = 1e-3  # modelled minimum retrieval latency (seconds)
+
+
 class FixtureKnowledgeRetriever:
     def __init__(self) -> None:
         fixture = files("moodprint_shared.testing").joinpath("data/knowledge_fixture.json")
@@ -50,6 +53,11 @@ class FixtureKnowledgeRetriever:
         self, query: KnowledgeQuery, *, scope: RetrievalScope, timeout_s: float
     ) -> KnowledgeResult:
         if not math.isfinite(timeout_s) or timeout_s <= 0:
+            raise KnowledgeTimeout()
+        if timeout_s < FIXTURE_MIN_LATENCY_S:
+            # Deterministic on every OS: asyncio timers are only as fine as the platform clock
+            # (about 15.6 ms on Windows), so a budget below the modelled latency cannot be left
+            # to a wall-clock race. The in-memory adapter "takes" at least this long.
             raise KnowledgeTimeout()
         if scope.corpus_version is not None and scope.corpus_version != self._corpus.corpus_version:
             raise KnowledgeUnavailable()
