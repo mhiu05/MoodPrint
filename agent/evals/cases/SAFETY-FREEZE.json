@@ -1,0 +1,8 @@
+{
+  "file": "agent/evals/cases/safety_final_frozen.jsonl",
+  "sha256": "49374b749377331170b4b95686fc4056fddd1e3b8d95f0984a2e704b4a6731de",
+  "cases": 64,
+  "frozen_on": "2026-11-09",
+  "detector_baseline_commit": "3532f4880597ef21e57e6f8a7b09b3fbeebdda16",
+  "note": "Frozen before any closure-round change to tools/safety.py. Evaluate once per option."
+}
