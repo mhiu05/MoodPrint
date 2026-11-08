@@ -95,7 +95,11 @@ class ToolRegistry:
             if hasattr(ctx.context, "tool_call_id"):
                 ctx.context.tool_call_id = ctx.tool_call_id  # type: ignore[attr-defined]
             output = await invoke(ctx, arguments)
-            return output.model_dump_json() if isinstance(output, BaseModel) else output
+            if isinstance(output, BaseModel):
+                return output.model_dump_json()
+            if isinstance(output, (dict, list)):
+                return json.dumps(output, ensure_ascii=False, default=str)
+            return output
 
         sdk_tool.on_invoke_tool = guarded
         self._tools[policy.name] = RegisteredTool(

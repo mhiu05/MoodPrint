@@ -7,7 +7,9 @@ from moodprint_agent.tools.registry import ToolRegistry, ToolSpec
 
 def tool_groups(cfg: AppConfig) -> list[list[ToolSpec]]:
     """Ordered groups; each task registers its own group here."""
-    groups: list[list[ToolSpec]] = []
+    from moodprint_agent.tools.knowledge import knowledge_tools
+
+    groups: list[list[ToolSpec]] = [knowledge_tools()]
     return groups
 
 

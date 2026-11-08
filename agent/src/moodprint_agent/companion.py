@@ -50,7 +50,9 @@ def render_instructions(
         records.append({"kind": section.kind, "labels": labels, "text": section.text})
     # Escaping '<' prevents untrusted text from closing the data delimiter.
     data = json.dumps(records, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
-    return f"{_PROMPT}\n<context_data>\n{data}\n</context_data>"
+    hint = getattr(ctx.context, "safety_hint", None)
+    signal = f"\n<safety_signal>\n{hint}\n</safety_signal>" if hint else ""
+    return f"{_PROMPT}\n<context_data>\n{data}\n</context_data>{signal}"
 
 
 def build_companion(cfg: AppConfig, registry: ToolRegistry) -> Agent[AgentToolContext]:

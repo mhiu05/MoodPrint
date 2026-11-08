@@ -128,3 +128,5 @@ class CompanionToolContext(AgentToolContext):
     scratch: RunScratch = field(kw_only=True, default_factory=RunScratch)
     mode: str = field(kw_only=True, default="companion")
     tool_call_id: str | None = field(kw_only=True, default=None)
+    knowledge_timeout_s: float = field(kw_only=True, default=7.0)
+    safety_hint: str | None = field(kw_only=True, default=None)

@@ -1,7 +1,7 @@
 """Official Agents SDK runtime with private checkpoints and v1 public events."""
 
 import asyncio
-from collections.abc import AsyncGenerator, AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from time import perf_counter
@@ -29,7 +29,7 @@ from agents.models.openai_provider import OpenAIProvider
 from agents.result import RunResultStreaming
 from agents.stream_events import StreamEvent as SDKStreamEvent
 from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.agent import AgentToolContext
+from moodprint_shared.contracts.agent import AgentToolContext, CompanionTurn
 from moodprint_shared.contracts.streaming import RunErrorCode, StreamEvent
 from openai import AsyncOpenAI, OpenAIError
 from pydantic import BaseModel, ConfigDict, Field
@@ -38,7 +38,19 @@ from moodprint_agent.budget import RunToolBudget
 from moodprint_agent.companion import PROMPT_VERSION, build_companion, model_settings
 from moodprint_agent.errors import InvalidApprovalState, ToolBudgetExceeded
 from moodprint_agent.events import EventEmitter
+from moodprint_agent.tools.citations import resolve_citations
+from moodprint_agent.tools.context import CompanionToolContext, RunScratch
 from moodprint_agent.tools.registry import ToolRegistry, diagnostic_registry
+from moodprint_agent.tools.safety import (
+    ELEVATED_HINT,
+    NONE,
+    UrgencyAssessment,
+    UrgencyLevel,
+    assess_conversation,
+    assess_reply,
+    combine,
+    with_emergency_block,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,7 +66,7 @@ class ApprovalCheckpoint:
 
 class _Checkpoint(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    version: int = 1
+    version: int = 2
     run_id: UUID
     conversation_id: UUID
     message_id: UUID
@@ -63,6 +75,9 @@ class _Checkpoint(BaseModel):
     tools_version: str
     prompt_version: str
     budget: dict[str, Any]
+    scratch: dict[str, Any] = Field(default_factory=dict[str, Any])
+    urgency_level: UrgencyLevel = "none"
+    urgency_signals: list[str] = Field(default_factory=list[str])
     sdk_state: str
 
 
@@ -144,12 +159,17 @@ class CompanionRuntime:
         user_input: str,
         session: Session,
         message_id: UUID | None = None,
+        prior_user_messages: Sequence[str] = (),
     ) -> AsyncIterator[StreamEvent]:
         if not user_input.strip() or len(user_input) > self.cfg.agent.max_user_input_chars:
             raise ValueError("invalid user input length")
         emitter = EventEmitter(ctx.run_id, message_id or uuid4(), self.registry)
+        # Deterministic layer first: it never depends on the model or the network.
+        urgency = assess_conversation([*prior_user_messages, user_input])
+        if isinstance(ctx, CompanionToolContext) and urgency.level == "elevated":
+            ctx.safety_hint = ELEVATED_HINT
         async for event in self._stream(
-            ctx=ctx, sdk_input=user_input, session=session, emitter=emitter
+            ctx=ctx, sdk_input=user_input, session=session, emitter=emitter, urgency=urgency
         ):
             yield event
 
@@ -166,7 +186,7 @@ class CompanionRuntime:
         """Consume a server-owned snapshot after the service verifies owner/expiry/decision."""
         checkpoint = _Checkpoint.model_validate_json(serialized_state)
         if (
-            checkpoint.version != 1
+            checkpoint.version not in (1, 2)
             or checkpoint.run_id != ctx.run_id
             or checkpoint.conversation_id != ctx.conversation_id
             or checkpoint.tools_version != self.tools_version
@@ -174,6 +194,9 @@ class CompanionRuntime:
         ):
             raise InvalidApprovalState("incompatible approval checkpoint")
         ctx.budget = RunToolBudget.from_snapshot(checkpoint.budget)
+        if isinstance(ctx, CompanionToolContext):
+            ctx.scratch = RunScratch.from_snapshot(checkpoint.scratch)
+        urgency = UrgencyAssessment(checkpoint.urgency_level, tuple(checkpoint.urgency_signals))
         state = await RunState.from_string(
             self.agent,
             checkpoint.sdk_state,
@@ -205,6 +228,7 @@ class CompanionRuntime:
             session=session,
             emitter=emitter,
             elapsed_ms=checkpoint.elapsed_ms,
+            urgency=urgency,
         ):
             yield event
 
@@ -216,6 +240,7 @@ class CompanionRuntime:
         session: Session,
         emitter: EventEmitter,
         elapsed_ms: int = 0,
+        urgency: UrgencyAssessment = NONE,
     ) -> AsyncIterator[StreamEvent]:
         if ctx.run_id in self._active:
             raise ValueError("run already active")
@@ -305,6 +330,11 @@ class CompanionRuntime:
                         seq=emitter.seq + len(interruptions) + 2,
                         elapsed_ms=usage_data()["latency_ms"],
                         budget=ctx.budget.snapshot(),
+                        scratch=ctx.scratch.snapshot()
+                        if isinstance(ctx, CompanionToolContext)
+                        else {},
+                        urgency_level=urgency.level,
+                        urgency_signals=list(urgency.signals),
                         tools_version=self.tools_version,
                         prompt_version=self.prompt_version,
                         sdk_state=result.to_state().to_string(
@@ -342,13 +372,25 @@ class CompanionRuntime:
                 elif cancelled:
                     status = "cancelled"
                 else:
-                    content = result.final_output if isinstance(result.final_output, str) else ""
+                    raw = result.final_output if isinstance(result.final_output, str) else ""
+                    scratch = ctx.scratch if isinstance(ctx, CompanionToolContext) else None
+                    resolved = resolve_citations(raw, scratch)
+                    final = combine(urgency, assess_reply(resolved.content))
+                    content = (
+                        with_emergency_block(resolved.content)
+                        if final.immediate
+                        else resolved.content
+                    )
+                    citations = list(resolved.citations)
                     yield emitter.emit(
                         "message.completed",
                         {
                             "message_id": emitter.message_id,
                             "content": content,
-                            "citations": [],
+                            "citations": citations,
+                            "structured": CompanionTurn(
+                                reply=content, urgency=final.level, citations=citations
+                            ),
                         },
                     )
                     status = "completed"
