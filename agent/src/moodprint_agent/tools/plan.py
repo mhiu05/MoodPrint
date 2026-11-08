@@ -27,7 +27,10 @@ GOAL_MAX: Final = 200
 PLAN_NAMESPACE: Final = UUID("6f1c9c1e-6d0b-4d9a-9a52-4d6f6f6f7002")
 # Steps the Companion must never recommend, whatever the model proposes.
 _UNSAFE_STEP: Final = re.compile(
-    r"đối\s*đầu|trả\s*đũa|tự\s*(?:đi\s*)?(?:tìm|điều\s*tra)|đánh\s*lại|hẹn\s*(?:gặp\s*)?riêng|"
+    r"đối\s*đầu|trả\s*đũa|tự\s*(?:đi\s*)?điều\s*tra|"
+    r"tự\s*(?:đi\s*)?tìm\s*(?:ra\s*)?(?:người|ai\b|danh\s*tính|tài\s*khoản)|đánh\s*lại|"
+    # Meeting the person who hurts you alone is unsafe; meeting a teacher or parent privately is the plan.
+    r"hẹn\s*(?:gặp\s*)?(?:riêng\s*)?(?:với\s*)?(?:bạn\s*ấy|bạn\s*đó|người\s*(?:đó|kia|bắt\s*nạt)|nhóm\s*(?:đó|kia))|"
     r"moodprint\s*(?:sẽ|đã)\s*(?:liên\s*hệ|gửi|báo)",
     re.IGNORECASE,
 )

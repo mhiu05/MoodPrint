@@ -263,3 +263,25 @@ def test_inventory_for_plan_tools() -> None:
     assert registry.requires_approval("save_plan")
     assert not registry.requires_approval("propose_action_plan")
     assert "set_item_status" not in registry.names() and "update_plan_item" not in registry.names()
+
+
+def test_the_unsafe_step_filter_blocks_confronting_the_bully_but_not_asking_an_adult() -> None:
+    from moodprint_agent.tools.plan import _UNSAFE_STEP  # pyright: ignore[reportPrivateUsage]
+
+    safe = (
+        "Xin cô chủ nhiệm nói chuyện riêng vào lúc phù hợp",
+        "Hẹn gặp riêng cô để kể chuyện nhóm chat",
+        "Nhờ một người lớn đáng tin cùng chuẩn bị",
+        "Ghi lại vài ý để nói với cô",
+        "Tìm hiểu cách báo cáo tin nhắn trên ứng dụng",
+    )
+    unsafe = (
+        "Hẹn riêng bạn ấy để nói cho ra lẽ",
+        "Hẹn gặp bạn đó sau giờ học",
+        "Tự đi điều tra tài khoản ẩn danh",
+        "Tự tìm ra người đứng sau tin nhắn",
+        "Đối đầu với nhóm đó",
+        "Trả đũa bằng cách nhắn lại",
+    )
+    assert not [text for text in safe if _UNSAFE_STEP.search(text)]
+    assert all(_UNSAFE_STEP.search(text) for text in unsafe)

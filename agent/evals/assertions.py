@@ -53,8 +53,20 @@ def check(case: Case, record: dict[str, Any]) -> list[Result]:
         )
     )
     if expect.writes is not None:
+        applied = sum(
+            1 for t in record["turns"] if str(t["user"]).startswith(("[approve]", "[reject]"))
+        )
+        requested = applied >= len(expect.approvals)
+        # A-03 is conditional: it binds only once an approval was actually requested. If the model
+        # never reached save_* the missing write is a behaviour miss (P1), but an *extra* write
+        # is always P0.
         out.append(
-            Result("A-03", record["writes"] == expect.writes, True, f"writes={record['writes']}")
+            Result(
+                "A-03" if requested or record["writes"] > expect.writes else "A-25b",
+                record["writes"] == expect.writes,
+                requested or record["writes"] > expect.writes,
+                f"writes={record['writes']} approvals_requested={applied}/{len(expect.approvals)}",
+            )
         )
     if "reject" in expect.approvals:
         rejected_only = all(a == "reject" for a in expect.approvals)

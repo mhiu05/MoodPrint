@@ -205,9 +205,41 @@ async def live(args: argparse.Namespace) -> int:
     return 0
 
 
+def reassert(args: argparse.Namespace) -> int:
+    """Recompute assertions.jsonl from saved outputs: no model call, no spend."""
+    base = RESULTS / args.reassert
+    cases = {c.id: c for c in load_cases()}
+    checks: list[dict[str, Any]] = []
+    for line in (base / "outputs.jsonl").read_text(encoding="utf-8").splitlines():
+        record = json.loads(line)
+        case = cases.get(record["case_id"])
+        if case is None or not record.get("turns"):
+            continue
+        results = (
+            assertions.check_screenshot(record)
+            if case.suite == "screenshot"
+            else assertions.check(case, record)
+        )
+        checks.append(
+            {
+                "case_id": case.id,
+                "repeat": record["repeat"],
+                **assertions.summarize(results),
+                "results": [asdict(r) for r in results],
+            }
+        )
+    (base / "assertions.jsonl").write_text(
+        chr(10).join(json.dumps(c, ensure_ascii=False) for c in checks) + chr(10),
+        encoding="utf-8",
+    )
+    print(f"reasserted {len(checks)} outputs of {args.reassert}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--suite", choices=("deterministic", "live"), required=True)
+    parser.add_argument("--suite", choices=("deterministic", "live"))
+    parser.add_argument("--reassert", default="", help="recompute assertions for a saved run")
     parser.add_argument("--budget", default=".local/eval-budget.json")
     parser.add_argument("--repeat", type=int, default=1)
     parser.add_argument("--effort", choices=("low", "medium"), default="low")
@@ -216,6 +248,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--run-id", default=datetime.now(UTC).strftime("%Y%m%d-%H%M%S"))
     parser.add_argument("--concurrency", type=int, default=4)
     args = parser.parse_args(argv)
+    if args.reassert:
+        return reassert(args)
+    if args.suite is None:
+        parser.error("--suite or --reassert is required")
     if args.suite == "deterministic":
         return deterministic(args)
     return asyncio.run(live(args))
