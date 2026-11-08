@@ -10,7 +10,6 @@ from uuid import UUID, uuid4
 
 from agents import (
     Model,
-    ModelSettings,
     RunConfig,
     RunContextWrapper,
     Runner,
@@ -36,7 +35,7 @@ from openai import AsyncOpenAI, OpenAIError
 from pydantic import BaseModel, ConfigDict, Field
 
 from moodprint_agent.budget import RunToolBudget
-from moodprint_agent.companion import PROMPT_VERSION, build_companion
+from moodprint_agent.companion import PROMPT_VERSION, build_companion, model_settings
 from moodprint_agent.errors import InvalidApprovalState, ToolBudgetExceeded
 from moodprint_agent.events import EventEmitter
 from moodprint_agent.tools.registry import ToolRegistry, diagnostic_registry
@@ -116,7 +115,7 @@ class CompanionRuntime:
     def run_config(self) -> RunConfig:
         return RunConfig(
             model=self.model if self.model is not None else self.cfg.openai_model,
-            model_settings=ModelSettings(store=False, parallel_tool_calls=False),
+            model_settings=model_settings(self.cfg),
             tracing_disabled=True,
             trace_include_sensitive_data=False,
             workflow_name="moodprint-companion",
@@ -315,7 +314,9 @@ class CompanionRuntime:
                     approvals: list[ApprovalCheckpoint] = []
                     for item in interruptions:
                         name = item.tool_name or "unknown"
-                        preview = self.registry.approval_preview(name, _arguments(item.raw_item))
+                        preview = await self.registry.approval_preview_for(
+                            name, _arguments(item.raw_item), ctx
+                        )
                         approval = ApprovalCheckpoint(
                             id=uuid4(),
                             run_id=ctx.run_id,

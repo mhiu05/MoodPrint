@@ -19,6 +19,24 @@ class AgentConfig:
     session_item_limit: int = 100
     messages_per_user_per_hour: int = 60
     heartbeat_interval_s: float = 15
+    # --- Phase 3 Companion (conservative defaults; final effort is chosen by P3-17 eval) ---
+    daily_token_cap_per_user: int = 200_000
+    knowledge_tool_timeout_s: float = 8
+    proposal_ttl_s: int = 1800
+    approval_ttl_s: int = 900
+    analysis_timeout_s: float = 60
+    analysis_max_image_bytes: int = 8_000_000
+    analysis_max_image_px: int = 2048
+    analysis_allowed_mime: tuple[str, ...] = ("image/jpeg", "image/png", "image/webp")
+    roleplay_max_turns: int = 30
+    roleplay_feedback_timeout_s: float = 60
+    compaction_trigger_tokens: int = 24_000
+    memory_extraction_enabled: bool = True
+    live_eval_max_tokens_per_run: int = 40_000
+    max_output_tokens: int = 1_500
+    reasoning_effort: str = "low"
+    coach_reasoning_effort: str = "medium"
+    analysis_reasoning_effort: str = "medium"
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,6 +48,9 @@ class MemoryConfig:
     recency_weight: float = 0.1
     max_content_chars: int = 500
     candidate_ttl_days: int = 30
+    intent_boost: float = 0.2
+    max_context_memories: int = 5
+    extraction_max_candidates_per_run: int = 1
 
 
 @dataclass(frozen=True, slots=True)

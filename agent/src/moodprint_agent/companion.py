@@ -2,15 +2,36 @@
 
 import json
 from importlib.resources import files
+from typing import Final
 
 from agents import Agent, ModelSettings, RunContextWrapper
 from moodprint_shared.config import AppConfig
 from moodprint_shared.contracts.agent import AgentToolContext
+from openai.types.shared import Reasoning
 
 from moodprint_agent.tools.registry import ToolRegistry
 
-PROMPT_VERSION = "companion_v1"
-_PROMPT = files("moodprint_agent").joinpath("prompts/companion_v1.md").read_text(encoding="utf-8")
+PROMPT_VERSION: Final = "companion_v2"
+ROLEPLAY_PARTNER_VERSION: Final = "roleplay_partner_v1"
+ROLEPLAY_COACH_VERSION: Final = "roleplay_coach_v1"
+EVIDENCE_READER_VERSION: Final = "evidence_reader_v1"
+
+
+def load_prompt(name: str) -> str:
+    return files("moodprint_agent").joinpath(f"prompts/{name}.md").read_text(encoding="utf-8")
+
+
+_PROMPT = load_prompt(PROMPT_VERSION)
+
+
+def model_settings(cfg: AppConfig, *, effort: str | None = None) -> ModelSettings:
+    """Never send temperature/top_p: the reasoning model rejects or ignores them."""
+    return ModelSettings(
+        store=False,
+        parallel_tool_calls=False,
+        max_tokens=cfg.agent.max_output_tokens,
+        reasoning=Reasoning(effort=effort or cfg.agent.reasoning_effort),  # type: ignore[arg-type]
+    )
 
 
 def render_instructions(
@@ -38,6 +59,6 @@ def build_companion(cfg: AppConfig, registry: ToolRegistry) -> Agent[AgentToolCo
         instructions=render_instructions,
         tools=[tool for tool in registry.sdk_tools()],
         model=cfg.agent.companion_model,
-        model_settings=ModelSettings(store=False, parallel_tool_calls=False),
+        model_settings=model_settings(cfg),
         output_type=None,
     )
