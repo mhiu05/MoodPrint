@@ -1,0 +1,20 @@
+source_id = "unicef-vn-cyberbullying"
+kind = "factsheet"
+publisher = "UNICEF Việt Nam"
+title = "Bắt nạt trực tuyến là gì — Làm thế nào để ngăn chặn điều này?"
+url = "https://www.unicef.org/vietnam/vi/stories/bat-nat-truc-tuyen-la-gi"
+language = "vi"
+country_scope = ["VN", "GLOBAL"]
+authority_tier = 2
+licence_class = "reference_only"
+licence_note = "UNICEF giữ bản quyền. Không sao chép hoặc dịch sát nguyên văn."
+licence_quote = "UNICEF reserves all copyrights on material on its Web pages"
+verified_on = "2026-11-08"
+evidence = "Trang unicef.org/legal được đọc trong phiên lập kế hoạch 2026-11-08."
+[scores]
+authority = 3
+relevance = 3
+licence = 1
+language = 3
+applicability = 3
+freshness = 2

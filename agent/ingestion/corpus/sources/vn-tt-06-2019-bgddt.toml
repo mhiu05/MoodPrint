@@ -1,0 +1,17 @@
+source_id = "vn-tt-06-2019-bgddt"
+kind = "report"
+publisher = "Thông tư 06/2019/TT-BGDĐT"
+title = "Thông tư 06/2019/TT-BGDĐT"
+language = "vi"
+country_scope = ["VN"]
+authority_tier = 2
+licence_class = "unverified"
+licence_note = "Chưa mở được văn bản gốc để đối chiếu hiệu lực."
+evidence = "Chưa mở được văn bản gốc để đối chiếu hiệu lực."
+[scores]
+authority = 2
+relevance = 2
+licence = 0
+language = 2
+applicability = 2
+freshness = 1

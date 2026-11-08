@@ -1,0 +1,17 @@
+source_id = "unesco-2019-behind-the-numbers"
+kind = "report"
+publisher = "UNESCO Behind the numbers"
+title = "UNESCO Behind the numbers"
+language = "vi"
+country_scope = ["VN"]
+authority_tier = 2
+licence_class = "unverified"
+licence_note = "CC BY-SA mới thấy qua nguồn thứ cấp."
+evidence = "CC BY-SA mới thấy qua nguồn thứ cấp."
+[scores]
+authority = 2
+relevance = 2
+licence = 0
+language = 2
+applicability = 2
+freshness = 1

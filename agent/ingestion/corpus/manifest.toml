@@ -1,0 +1,362 @@
+version_label = "kb-authored"
+
+[[exclusion]]
+legacy_article_id = "scenario-or-quiz"
+reason = "Bài format scenario hoặc quiz là hoạt động tương tác, không đưa vào truy hồi."
+
+[[document]]
+document_id = "legacy-bat-nat-la-gi"
+source_id = "vn-111-hotline"
+path = "../authored/legacy-bat-nat-la-gi.md"
+topics = ["definition"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "legacy-luu-anh-chup-co-ngu-canh"
+source_id = "vn-111-hotline"
+path = "../authored/legacy-luu-anh-chup-co-ngu-canh.md"
+topics = ["cyber"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "legacy-chan-va-bao-cao-noi-dung"
+source_id = "vn-111-hotline"
+path = "../authored/legacy-chan-va-bao-cao-noi-dung.md"
+topics = ["cyber"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "legacy-noi-chuyen-voi-giao-vien"
+source_id = "vn-111-hotline"
+path = "../authored/legacy-noi-chuyen-voi-giao-vien.md"
+topics = ["help-seeking"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "legacy-noi-chuyen-voi-nguoi-cham-soc"
+source_id = "vn-111-hotline"
+path = "../authored/legacy-noi-chuyen-voi-nguoi-cham-soc.md"
+topics = ["help-seeking"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "legacy-tom-tat-trung-tinh"
+source_id = "vn-111-hotline"
+path = "../authored/legacy-tom-tat-trung-tinh.md"
+topics = ["help-seeking"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "legacy-tam-dung-khi-lo-lang"
+source_id = "vn-111-hotline"
+path = "../authored/legacy-tam-dung-khi-lo-lang.md"
+topics = ["emotional-impact"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "legacy-tong-dai-111"
+source_id = "vn-111-hotline"
+path = "../authored/legacy-tong-dai-111.md"
+topics = ["help-seeking"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "legacy-theo-doi-sau-khi-nho-giup"
+source_id = "vn-111-hotline"
+path = "../authored/legacy-theo-doi-sau-khi-nho-giup.md"
+topics = ["help-seeking"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-definition-01"
+source_id = "who-youth-violence"
+path = "../authored/mp-definition-01.md"
+topics = ["definition"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-definition-02"
+source_id = "moet-portal"
+path = "../authored/mp-definition-02.md"
+topics = ["definition"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-definition-03"
+source_id = "who-youth-violence"
+path = "../authored/mp-definition-03.md"
+topics = ["definition"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-physical-01"
+source_id = "unicef-vn-cyberbullying"
+path = "../authored/mp-physical-01.md"
+topics = ["physical"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-physical-02"
+source_id = "vn-111-hotline"
+path = "../authored/mp-physical-02.md"
+topics = ["physical"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-physical-03"
+source_id = "unicef-vn-cyberbullying"
+path = "../authored/mp-physical-03.md"
+topics = ["physical"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-verbal-social-01"
+source_id = "moet-portal"
+path = "../authored/mp-verbal-social-01.md"
+topics = ["verbal-social"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-verbal-social-02"
+source_id = "who-youth-violence"
+path = "../authored/mp-verbal-social-02.md"
+topics = ["verbal-social"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-verbal-social-03"
+source_id = "moet-portal"
+path = "../authored/mp-verbal-social-03.md"
+topics = ["verbal-social"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-exclusion-01"
+source_id = "vn-111-hotline"
+path = "../authored/mp-exclusion-01.md"
+topics = ["exclusion"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-exclusion-02"
+source_id = "unicef-vn-cyberbullying"
+path = "../authored/mp-exclusion-02.md"
+topics = ["exclusion"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-exclusion-03"
+source_id = "vn-111-hotline"
+path = "../authored/mp-exclusion-03.md"
+topics = ["exclusion"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-cyber-01"
+source_id = "who-youth-violence"
+path = "../authored/mp-cyber-01.md"
+topics = ["cyber"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-cyber-02"
+source_id = "moet-portal"
+path = "../authored/mp-cyber-02.md"
+topics = ["cyber"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-cyber-03"
+source_id = "who-youth-violence"
+path = "../authored/mp-cyber-03.md"
+topics = ["cyber"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-evidence-01"
+source_id = "unicef-vn-cyberbullying"
+path = "../authored/mp-evidence-01.md"
+topics = ["evidence"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-evidence-02"
+source_id = "vn-111-hotline"
+path = "../authored/mp-evidence-02.md"
+topics = ["evidence"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-evidence-03"
+source_id = "unicef-vn-cyberbullying"
+path = "../authored/mp-evidence-03.md"
+topics = ["evidence"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-help-seeking-01"
+source_id = "moet-portal"
+path = "../authored/mp-help-seeking-01.md"
+topics = ["help-seeking"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-help-seeking-02"
+source_id = "who-youth-violence"
+path = "../authored/mp-help-seeking-02.md"
+topics = ["help-seeking"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-help-seeking-03"
+source_id = "moet-portal"
+path = "../authored/mp-help-seeking-03.md"
+topics = ["help-seeking"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-school-procedure-vn-01"
+source_id = "vn-111-hotline"
+path = "../authored/mp-school-procedure-vn-01.md"
+topics = ["school-procedure-vn"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-school-procedure-vn-02"
+source_id = "unicef-vn-cyberbullying"
+path = "../authored/mp-school-procedure-vn-02.md"
+topics = ["school-procedure-vn"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-school-procedure-vn-03"
+source_id = "vn-111-hotline"
+path = "../authored/mp-school-procedure-vn-03.md"
+topics = ["school-procedure-vn"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-legal-vn-01"
+source_id = "who-youth-violence"
+path = "../authored/mp-legal-vn-01.md"
+topics = ["legal-vn"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-legal-vn-02"
+source_id = "moet-portal"
+path = "../authored/mp-legal-vn-02.md"
+topics = ["legal-vn"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-legal-vn-03"
+source_id = "who-youth-violence"
+path = "../authored/mp-legal-vn-03.md"
+topics = ["legal-vn"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-bystander-01"
+source_id = "unicef-vn-cyberbullying"
+path = "../authored/mp-bystander-01.md"
+topics = ["bystander"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-bystander-02"
+source_id = "vn-111-hotline"
+path = "../authored/mp-bystander-02.md"
+topics = ["bystander"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-bystander-03"
+source_id = "unicef-vn-cyberbullying"
+path = "../authored/mp-bystander-03.md"
+topics = ["bystander"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-emotional-impact-01"
+source_id = "moet-portal"
+path = "../authored/mp-emotional-impact-01.md"
+topics = ["emotional-impact"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-emotional-impact-02"
+source_id = "who-youth-violence"
+path = "../authored/mp-emotional-impact-02.md"
+topics = ["emotional-impact"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-emotional-impact-03"
+source_id = "moet-portal"
+path = "../authored/mp-emotional-impact-03.md"
+topics = ["emotional-impact"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-parents-teachers-01"
+source_id = "vn-111-hotline"
+path = "../authored/mp-parents-teachers-01.md"
+topics = ["parents-teachers"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-parents-teachers-02"
+source_id = "unicef-vn-cyberbullying"
+path = "../authored/mp-parents-teachers-02.md"
+topics = ["parents-teachers"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-parents-teachers-03"
+source_id = "vn-111-hotline"
+path = "../authored/mp-parents-teachers-03.md"
+topics = ["parents-teachers"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-platform-reporting-01"
+source_id = "who-youth-violence"
+path = "../authored/mp-platform-reporting-01.md"
+topics = ["platform-reporting"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-platform-reporting-02"
+source_id = "moet-portal"
+path = "../authored/mp-platform-reporting-02.md"
+topics = ["platform-reporting"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-platform-reporting-03"
+source_id = "who-youth-violence"
+path = "../authored/mp-platform-reporting-03.md"
+topics = ["platform-reporting"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-urgent-safety-01"
+source_id = "unicef-vn-cyberbullying"
+path = "../authored/mp-urgent-safety-01.md"
+topics = ["urgent-safety"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-urgent-safety-02"
+source_id = "vn-111-hotline"
+path = "../authored/mp-urgent-safety-02.md"
+topics = ["urgent-safety"]
+last_reviewed = 2026-11-08
+
+[[document]]
+document_id = "mp-urgent-safety-03"
+source_id = "unicef-vn-cyberbullying"
+path = "../authored/mp-urgent-safety-03.md"
+topics = ["urgent-safety"]
+last_reviewed = 2026-11-08

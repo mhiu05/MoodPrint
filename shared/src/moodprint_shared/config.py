@@ -48,9 +48,36 @@ class EvidenceConfig:
 
 @dataclass(frozen=True, slots=True)
 class KnowledgeConfig:
+    """Public retrieval defaults. The integrator switches ``retriever`` off fixture."""
+
     retriever: str = "fixture"
     top_k: int = 5
     timeout_s: float = 15
+    embedding_model: str = "voyage-4"
+    query_embedding_model: str = ""
+    embedding_dims: int = 1024
+    embed_timeout_fraction: float = 0.6
+    vector_candidates: int = 30
+    lexical_candidates: int = 30
+    rrf_k: int = 50
+    # Provisional gates until a Voyage dev-split run can replace them.
+    min_vector_score: float = 0.55
+    min_lexical_score: float = 0.01
+    vector_cos_lo: float = 0.20
+    vector_cos_hi: float = 0.80
+    score_mode: str = "rrf"
+    blend_vector_weight: float = 0.5
+    rerank_enabled: bool = False
+    rerank_model: str = "rerank-3"
+    min_rerank_score: float = 0.20
+    query_max_chars: int = 300
+    search_rate_per_user_per_min: int = 20
+    ingest_batch_size: int = 128
+    max_chunks_per_document: int = 2
+    embed_request_timeout_s: float = 8.0
+
+    def resolved_query_model(self) -> str:
+        return self.query_embedding_model or self.embedding_model
 
 
 @dataclass(frozen=True, slots=True)

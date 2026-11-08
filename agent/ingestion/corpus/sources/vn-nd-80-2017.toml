@@ -1,0 +1,17 @@
+source_id = "vn-nd-80-2017"
+kind = "report"
+publisher = "Nghị định 80/2017/NĐ-CP"
+title = "Nghị định 80/2017/NĐ-CP"
+language = "vi"
+country_scope = ["VN"]
+authority_tier = 2
+licence_class = "unverified"
+licence_note = "Chưa đọc được văn bản gốc vì nguồn thứ cấp trả 403."
+evidence = "Chưa đọc được văn bản gốc vì nguồn thứ cấp trả 403."
+[scores]
+authority = 2
+relevance = 2
+licence = 0
+language = 2
+applicability = 2
+freshness = 1
