@@ -169,16 +169,20 @@ def test_prepare_keeps_lite_and_replaces_removed_stack_files(tmp_path, monkeypat
     assert config["studio"]["enabled"] is False
     assert {item.name for item in (path / "supabase/migrations").iterdir()} == {"new.sql"}
     assert list((path / "supabase/tests").iterdir()) == []
+    import os
     import subprocess
 
     original = (source / "config.toml").read_text()
     link = tmp_path / ".local/stacks/ag"
     link.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(
-        ["cmd", "/c", "mklink", "/J", str(link), str(source)],
-        check=True,
-        capture_output=True,
-    )
+    if os.name == "nt":
+        subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(link), str(source)],
+            check=True,
+            capture_output=True,
+        )
+    else:
+        link.symlink_to(source, target_is_directory=True)
     with pytest.raises(ValueError, match="symlink|escapes"):
         module.prepare("ag", 200, lite=True)
     assert (source / "config.toml").read_text() == original
