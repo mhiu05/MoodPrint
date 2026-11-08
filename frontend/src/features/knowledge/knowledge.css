@@ -461,3 +461,39 @@
     width: 100%;
   }
 }
+.knowledge-live {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid #eadfd4;
+}
+.knowledge-live-head h2,
+.knowledge-retrieved h3 {
+  margin: 0;
+}
+.knowledge-live-head p,
+.knowledge-retrieved p {
+  margin: 6px 0 0;
+  color: #526b65;
+}
+.knowledge-retrieved {
+  padding-top: 12px;
+  border-top: 1px solid #eadfd4;
+}
+.knowledge-citation {
+  margin-top: 8px;
+  border: 0;
+  background: #f8eee5;
+  border-radius: 999px;
+  padding: 6px 12px;
+  color: #795239;
+}
+.knowledge-drawer {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #f8eee5;
+}

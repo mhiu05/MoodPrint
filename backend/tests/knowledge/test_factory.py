@@ -21,5 +21,5 @@ def test_backend_factory_rejects_unavailable_retriever(settings):
 
     cfg = AppConfig()
     cfg = replace(cfg, knowledge=replace(cfg.knowledge, retriever="pgvector"))
-    with pytest.raises(ValueError, match="retriever not available before Phase 2"):
+    with pytest.raises(ValueError, match="Voyage API key is required"):
         build_knowledge_retriever(None, settings, cfg)
