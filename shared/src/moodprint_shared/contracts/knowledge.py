@@ -62,3 +62,4 @@ class KnowledgeRetriever(Protocol):
     async def search(
         self, query: KnowledgeQuery, *, scope: RetrievalScope, timeout_s: float
     ) -> KnowledgeResult: ...
+
