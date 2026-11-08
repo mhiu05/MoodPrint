@@ -84,6 +84,9 @@ _TEEN: Final[dict[str, str]] = {
 }
 _QUOTES: Final = re.compile(r"[\"“”«»]([^\"“”«»]+)[\"“”«»]|(?<!\w)'([^']{3,})'(?!\w)")
 _SENTENCE: Final = re.compile(r"[.!?;\n…]+")
+# A comma before a new subject ("…không đáng sống, mình sẽ…") ends the clause, so a negation
+# stays local to the clause it belongs to.
+_SUBJECT_BREAK: Final = re.compile(r",\s*(?=(?:mình|em|tôi|tao|tớ|tui|mik)\b)", re.IGNORECASE)
 
 
 def fold(text: str) -> str:
@@ -116,7 +119,7 @@ _THIRD = re.compile(
     r"nhan vat|hoc sinh)\b"
 )
 _MEDIA = re.compile(
-    r"\b(?:bai hat|phim|truyen|tho|game|meme|tiktok|sach|nhan vat|bai van|phan tich|ca khuc|"
+    r"\b(?:bai hat|phim|truyen|bai tho|cau tho|nha tho|game|meme|tiktok|cuon sach|quyen sach|nhan vat|bai van|phan tich|ca khuc|"
     r"lyric|kich|tieu thuyet|bao chi|bao dien tu|tin tuc|ban tin|bai viet|dua tin|thoi su|phong van|"
     r"van ban|trang web|bai bao)\b"
 )
@@ -126,7 +129,7 @@ _JOKE = re.compile(
 )
 # Wanting to understand or prevent harm is information-seeking, not a disclosure.
 _INFO = re.compile(
-    r"\b(?:phong tranh|phong ngua|hieu cach|muon hieu|lam sao de|lam the nao de|cach de)\b"
+    r"\b(?:phong tranh|phong ngua|(?<!tim )hieu cach|muon hieu|lam sao de|lam the nao de|cach de)\b"
 )
 _COMMIT = re.compile(
     r"\b(?:minh|em|toi) (?:se|dinh|toan)(?: \w+){0,2} (?:lam|ket thuc|di|thuc hien)\b|"
@@ -136,7 +139,13 @@ _COMMIT = re.compile(
 _HYPO = re.compile(r"^(?:\w+ ){0,2}(?:neu|gia su|gia nhu|gia thu|lo nhu|gia dinh|neu nhu)\b")
 _BENIGN_OBJECT = re.compile(
     r"\b(?:got|bep|nau|hoa qua|trai cay|picnic|cat banh|bua an|an com|thuc hanh|nghe thuat|"
-    r"roc giay|thu cong|my thuat|cat giay|lam banh|dung cu|hoc cu)\b"
+    r"roc giay|thu cong|my thuat|cat giay|lam banh|dung cu|hoc cu|thai rau|thai thit|rau|"
+    r"phu me nau|nau com)\b"
+)
+# Taking prescribed or ordinary medicine as directed is not an overdose.
+_BENIGN_MED = re.compile(
+    r"\b(?:khang sinh|thuoc cam|thuoc ho|vitamin|bac si dan|theo don|dung gio|dung lieu|"
+    r"thuoc bo|sau khi an)\b"
 )
 # "tức muốn chết", "đói muốn chết": hyperbole. Physical/neutral ones carry no signal; emotional
 # ones ("buồn muốn chết") are not dismissed but kept at elevated.
@@ -144,11 +153,15 @@ _HYPERBOLE_NEUTRAL = re.compile(
     r"\b(?:tuc|doi|khat|nong|lanh|cuoi|buon cuoi|vui|xau ho|buon ngu|thich|yeu|moi|ngai|dau|ghet|"
     r"met|buon ngu|nhuc|an|no) (?:den muc |phat )?muon chet\b"
 )
+_HYPERBOLE_CHET = re.compile(
+    r"\bchet (?:di )?(?:duoc|mat|roi|luon|nguoi|do|diem|ngat|lang|dung)\b|"
+    r"\b(?:cuoi|met|doi|nong|lanh|ngai|xau ho|tuc|khat|buon ngu|nho|thich|yeu) chet\b"
+)
 _HYPERBOLE_EMOTIONAL = re.compile(r"\b(?:buon|chan|so|bat luc|kho chiu|ap luc) muon chet\b")
 _VIOLENT_WORD = re.compile(r"\b(?:danh|dap|giet|chem|dam|xu ly|hanh hung|doa)\b")
 _PAST = re.compile(
     r"\b(?:hoi|tungz|da tungz|truoc day|nam ngoai|thang truoc|tuan truoc|ngay xua|luc nho|"
-    r"hoi nho|ngay do|thoi do|lan do|hom qua|truoc kia|nam truoc)\b"
+    r"hoi nho|(?<!dung )(?<!o )(?<!ngoi )ngay do|thoi do|lan do|hom qua|truoc kia|nam truoc)\b"
 )
 _RESOLVED = re.compile(r"\b(?:gio on|da on|da qua|khong con nua|xoa roi|da het)\b")
 _IMMINENT = re.compile(
@@ -156,6 +169,12 @@ _IMMINENT = re.compile(
     r"dem nay|lat nua|mot lat|sap|dang|chuan bi|da mua|san sang|tan hoc|sau gio hoc|sau hoc|"
     r"het gio|ra choi|tan truong|ngay mai|trong ngay|vua nhan|vua noi|ngoai kia|truoc cong|"
     r"o cong|ngay luc nay|nhu bay gio)\b"
+)
+# Markers that put the situation in the present. Day words ("hôm nay", "tối nay") do not: "tuần trước
+# bị xô… hôm nay mình không dám đến lớp" is a past event with a present consequence.
+_NOW_STRONG = re.compile(
+    r"\b(?:bay gio|ngay bay gio|luc nay|ngay luc nay|ngay lap tuc|dang|vua|sap|lat nua|mot lat|"
+    r"ngoai kia|truoc cong|o cong|nhu bay gio|van dung|van o)\b"
 )
 _FEAR = re.compile(r"\b(?:so|so hai|hoang so|lo so|run|khong dam|kinh khung|hoang)\b")
 _MEANS = re.compile(
@@ -269,7 +288,7 @@ _RULES: Final[tuple[_P, ...]] = (
     _p(
         "self_harm",
         "immediate",
-        r"\b(?:se|dinh|toan) ket thuc\b|\bnghi xong cach\b.{0,40}\b(?:chet|bien mat|ket thuc)\b",
+        r"\b(?:se|dinh|toan) ket thuc\b(?! (?:bai|buoi|cuoc hop|tiet|gio|phan|chuong|nam hoc|hoc ky|mon|truyen|cau|video|phim|tran|tuan|thang|som)\b)(?! ngay (?!bay gio|lap tuc|luc nay))|\bnghi xong cach\b.{0,40}\b(?:chet|bien mat|ket thuc)\b",
     ),
     # --- threats / being hurt ----------------------------------------------------------------
     _p(
@@ -488,6 +507,8 @@ def first_person_ideation(clause: str) -> bool:
     own = _POSSESSED.sub(" ", clause)
     if not _FIRST.search(own):
         return False
+    if _HYPERBOLE_CHET.search(clause) or _HYPERBOLE_NEUTRAL.search(clause):
+        return False
     # "mình không muốn chết đâu" is the opposite of ideation: a preceding negation cancels it.
     return any(not _negated(clause, m.start(), False) for m in _IDEATION.finditer(clause))
 
@@ -496,7 +517,7 @@ def _clause_signals(clause: str, *, quoted: bool) -> list[tuple[str, UrgencyLeve
     found: list[tuple[str, UrgencyLevel]] = []
     media = bool(_MEDIA.search(clause))
     hypothetical = bool(_HYPO.search(clause))
-    past = bool(_PAST.search(clause)) and not _IMMINENT.search(clause.replace("hom qua", ""))
+    past = bool(_PAST.search(clause)) and not _NOW_STRONG.search(clause.replace("hom qua", ""))
     resolved = bool(_RESOLVED.search(clause))
     own = _POSSESSED.sub(" ", clause)
     first_person = bool(_FIRST.search(own.split(" noi ")[-1]))
@@ -520,7 +541,9 @@ def _clause_signals(clause: str, *, quoted: bool) -> list[tuple[str, UrgencyLeve
         ):
             continue  # friends laughing about "I'll hit you": no signal
         if group == "self_harm":
-            if _HYPERBOLE_NEUTRAL.search(clause):
+            if _BENIGN_MED.search(clause):
+                continue
+            if _HYPERBOLE_NEUTRAL.search(clause) or _HYPERBOLE_CHET.search(clause):
                 continue
             if _HYPERBOLE_EMOTIONAL.search(clause):
                 level = "elevated"
@@ -600,17 +623,357 @@ def _clause_signals(clause: str, *, quoted: bool) -> list[tuple[str, UrgencyLeve
     return found
 
 
+# ---------------------------------------------------------------------------------------------
+# Concept composition (second layer)
+#
+# The per-phrase rules above only fire on wording somebody already thought of. This layer instead
+# detects *concepts* (an act, a means, the time frame, who is present, a condition for a threat)
+# and fires when the combination means danger, whatever the exact words are. It is still a
+# keyword system: it widens recall, it does not make the system safe (see the S-06 addendum).
+# ---------------------------------------------------------------------------------------------
+_NOW = (
+    r"(?:toi nay|dem nay|chieu nay|sang nay|trua nay|ngay bay gio|bay gio|luc nay|ngay luc nay|"
+    r"lat nua|mot lat|\d+ ?(?:phut|p|gio|tieng) nua|cuoi gio|tan hoc|sau gio hoc|ngay mai|sang mai|"
+    r"mai|hom nay|truoc \d+ ?gio|\d+ ?gio (?:chieu|toi|sang|dem) nay)"
+)
+_NOW_RE: Final = re.compile(r"\b" + _NOW + r"\b")
+_C_SELF_ACT: Final = re.compile(
+    r"\b(?:chet|tu tu|tu sat|nhay (?:xuong|lau|cau|tu|thang)|nhay\b|treo co|cat (?:tay|co tay)|"
+    r"rach (?:tay|co tay)|uong (?:het )?thuoc|nuot (?:het )?thuoc|ket thuc (?:moi thu|tat ca|cuoc song|"
+    r"doi)|cham dut|bien mat|ra di|lan cuoi|day thung|lam chuyen dai)\b"
+)
+_C_INTENT: Final = re.compile(
+    r"\b(?:se|dinh|toan|quyet dinh|chuan bi|chon xong|nghi xong|da mua|da gom|chac minh|"
+    r"khong ai phai|la lan cuoi)\b"
+)
+_C_MEANS_ACQ: Final = re.compile(
+    r"\b(?:gom|mua|giau|tich|tim|chuan bi|lay)(?: het| nhieu| mot)?(?: \w+){0,3} "
+    r"(?:thuoc|day thung|day|dao|luoi dao|thuoc ngu)\b"
+)
+_C_HEIGHT: Final = re.compile(
+    r"\b(?:mep|ban cong|san thuong|bau cua so|cua so tang|tren cau|tang thuong|tang \d+|"
+    r"len cau|tren noc)\b"
+)
+_C_PERCH: Final = re.compile(r"\b(?:dang|van) (?:dung|ngoi|nam|leo|o)\b")
+_C_FAREWELL: Final = re.compile(
+    r"\b(?:xin loi (?:cho )?(?:ca nha|moi nguoi|me|ba|bo|gia dinh)|de lai thu|thu (?:cho|de lai) "
+    r"(?:me|ba|bo|ca nha)|don het do|tam biet|lan cuoi|cam on (?:ban )?da (?:nghe|o canh|giup|"
+    r"lang nghe)|khong (?:con )?phai lo (?:cho|ve)?|khong lam phien|se khong con|gui loi chao)\b"
+)
+_C_PREP: Final = re.compile(
+    r"\b(?:tim hieu cach|chuan bi xong|da chon xong|nghi xong cach|da biet cach|xong het roi)\b"
+)
+_C_ALONE: Final = re.compile(
+    r"\b(?:nha khong co ai|khong co ai o nha|di vang|di dam cuoi|di vang het|mot minh|1 minh|"
+    r"khi moi nguoi di|khi khong con ai|moi nguoi di het)\b"
+)
+_C_DISTRESS: Final = re.compile(
+    r"\b(?:met moi|met lam|chan|vo nghia|buon|khong chiu noi|tuyet vong|co don|kiet suc|"
+    r"khong con y nghia|ap luc)\b"
+)
+_C_ONGOING: Final = re.compile(
+    r"\b(?:chua (?:ngung|dung|cam)|van (?:chay|dang chay)|dang chay|khong ngung|buon ngu|"
+    r"choang|chong mat|dau bat dau|bat dau (?:choang|chong mat|dau))\b"
+)
+_C_PERP: Final = re.compile(
+    r"\b(?:nguoi la|nguoi dan ong|nguoi lon|mot nhom|nhom|tui no|tui no|ba dua|hai dua|may dua|"
+    r"may anh|anh lop \d+|anh lop tren|xe|ten do|thang do|gia dinh|ong ay|nguoi yeu cu|nguoi yeu)\b"
+)
+_C_FOLLOW: Final = re.compile(
+    r"\b(?:bam theo|theo sau|theo doi|di theo|vay|chan (?:minh|em|toi|duong)|cho (?:minh|em|toi)|"
+    r"cho truoc|dung (?:cho|truoc|ngoai)|go cua|den tim|den nha|rinh|lon vao|keo (?:minh|em|toi)|"
+    r"len tim|cam (?:dao|gay|vu khi)|rut dien thoai)\b"
+)
+_C_WEAPON: Final = re.compile(
+    r"\b(?:dao|gay|keo|kiem|sung|luoi dao|bom|axit|vu khi|dao cao|day lung|day dien|xich)\b"
+)
+_C_ATTACK: Final = re.compile(
+    r"\b(?:danh|dam|dap|da|giet|chem|de|doa|xu|lon|hanh hung|dap dau|bop co|tat|nem|tra thu|"
+    r"xu ly|day do)\b"
+)
+_C_INJURY: Final = re.compile(
+    r"\b(?:bat tinh|ngat|khong tinh|khong day (?:noi|duoc)|nam co|co nguoi lai|chay mau|"
+    r"mau chay|be bet|mat ca|khong tho|bam tim|nga (?:xuong|guc|nhao)|nam duoi dat)\b"
+)
+_C_IMG: Final = re.compile(
+    r"\b(?:anh|hinh|clip|video|tin nhan)\b.{0,30}\b(?:rieng tu|nhay cam|nong|khoa than|khong mac|"
+    r"cu|rieng)\b|\b(?:rieng tu|nhay cam|khoa than)\b.{0,15}\b(?:anh|hinh|clip|video)\b|"
+    r"\banh khong mac\b"
+)
+_C_IMG_ANY: Final = re.compile(r"\b(?:anh|hinh|clip|video)\b")
+_C_COND: Final = re.compile(
+    r"\b(?:neu (?:khong|em khong|minh khong|toi khong)|khong thi|bat (?:minh|em|toi)|ep (?:minh|em|toi)|"
+    r"doi tien|tong tien|chuyen tien|tra tien|gui them|doi gui|doi minh|dieu kien|tu choi)\b"
+)
+_C_SPREAD: Final = re.compile(
+    r"\b(?:tung|dang len|dang|dua (?:cho|len)|gui cho|len (?:group|fb|facebook|nhom|trang)|"
+    r"cong khai|chia se|lan truyen|phat tan|chuyen tay|ba me|cho (?:ca|toan) (?:lop|truong|khoi|"
+    r"nhom|ban be))\b|\bgui\b.{0,30}\bcho\b"
+)
+_C_SPREADING_NOW: Final = re.compile(
+    r"\b(?:dang (?:duoc )?(?:chuyen tay|chia se|lan truyen|phat tan|dang)|vua bi (?:chia se|dang|"
+    r"tung|lo)|hang chuc nguoi xem|nhieu nguoi xem|ca lop da xem)\b"
+)
+_C_ADULT: Final = re.compile(
+    r"\b(?:chu|bo|ba|me ke|bo duong|di ghe|anh ho|chu ho|thay|co giao|bac|ong|nguoi lon|hang xom|"
+    r"anh|nguoi quen)\b"
+)
+_C_TOUCH: Final = re.compile(
+    r"\b(?:so|cham vao|om|hon|vao phong|sờ|bat nat|coi (?:dai|quan)|goi (?:em|minh) (?:ra|vao|sang|lai)|"
+    r"o lai mot minh|chi rieng)\b"
+)
+_C_ACCESS: Final = re.compile(
+    r"\b(?:ban dem|khong co ai|dung noi|toi nay|cuoi tuan|lai den|lai o|o nha|o lai|hom truoc|"
+    r"bao em|bao minh)\b"
+)
+_C_CONFINE: Final = re.compile(
+    r"\b(?:khoa|nhot|nhot|nhot) (?:cua )?(?:minh|em|toi)\b|\bnhot (?:minh|em|toi)\b"
+)
+_C_THIRD_SELF: Final = re.compile(
+    r"\b(?:rach tay|cat tay|cat co tay|nhay|uong thuoc|uong het|nuot thuoc|treo co|cam dao|"
+    r"luoi dao|tu tu|bi nhot trong|khoa minh)\b"
+)
+
+
+def _compose(clause: str, *, quoted: bool) -> list[tuple[str, UrgencyLevel]]:
+    """Concept-level rules. ``clause`` is already folded."""
+    # "họ nói nếu em không chuyển tiền thì…" is a reported condition, not a what-if question.
+    reported = re.match(r"^\w+ (?:noi|bao|nhan|doa|nhac|ra dieu kien)\b", clause) is not None
+    if _MEDIA.search(clause) or (_HYPO.search(clause) and not reported) or _INFO.search(clause):
+        return []
+    if _HYPERBOLE_NEUTRAL.search(clause) or _HYPERBOLE_EMOTIONAL.search(clause):
+        return []
+    if _HYPERBOLE_CHET.search(clause):
+        return []
+    past = bool(_PAST.search(clause)) and not _NOW_STRONG.search(clause.replace("hom qua", ""))
+    resolved = bool(_RESOLVED.search(clause))
+    if resolved:
+        return []
+    own = _POSSESSED.sub(" ", clause)
+    first = bool(_FIRST.search(own))
+    third = bool(_THIRD.search(own) or _POSSESSED.search(clause)) and not first
+    now = bool(_NOW_RE.search(clause))
+    soft: UrgencyLevel = "elevated" if (past or quoted) else "immediate"
+    out: list[tuple[str, UrgencyLevel]] = []
+
+    def ok(pattern: "re.Pattern[str]") -> bool:
+        match = pattern.search(clause)
+        return match is not None and not _negated(clause, match.start(), False)
+
+    # -- self harm -----------------------------------------------------------------------
+    act = ok(_C_SELF_ACT)
+    if act and ok(_C_INTENT) and now and not _BENIGN_OBJECT.search(clause) and not third:
+        out.append(("self_harm", soft))
+    if ok(_C_MEANS_ACQ) and now and (first or not third) and not _BENIGN_OBJECT.search(clause):
+        if re.search(r"\b(?:thuoc|day thung|luoi dao|thuoc ngu)\b", clause):
+            out.append(("self_harm", soft))
+    if (
+        ok(_C_HEIGHT)
+        and ok(_C_PERCH)
+        and first
+        and not re.search(r"\b(?:chup|ngam|view|canh)\b", clause)
+    ):
+        out.append(("self_harm", soft))
+    if (
+        ok(_C_FAREWELL)
+        and first
+        and (
+            len(set(_C_FAREWELL.findall(clause))) >= 2
+            or (now and _C_FAREWELL.search(clause) is not None)
+        )
+    ):
+        out.append(("self_harm", soft))
+    if (
+        re.search(r"\b(?:cat|rach) (?:tay|co tay)\b", clause)
+        and _C_ONGOING.search(clause)
+        and first
+    ):
+        out.append(("self_harm", "immediate"))
+    if (
+        re.search(r"\b(?:vua|da) (?:nuot|uong|cat|rach)\b", clause)
+        and _C_ONGOING.search(clause)
+        and first
+    ):
+        out.append(("self_harm", "immediate"))
+    # a named method together with finality, in the speaker's own voice
+    if (
+        re.search(r"\b(?:nhay (?:tu|xuong|khoi)|treo co|cat co tay|tu tu|uong het thuoc)\b", clause)
+        and ok(_C_SELF_ACT)
+        and first
+        and not third
+        and re.search(r"\b(?:la|se|luon|cho xong|dinh|toan|khong chiu noi|ket thuc)\b", clause)
+        and not _BENIGN_OBJECT.search(clause)
+        and not re.search(r"\b(?:bungee|du lich|tro choi|boi|xuong ho)\b", clause)
+    ):
+        out.append(("self_harm", soft))
+    # worked out how, and when
+    if (
+        re.search(r"\b(?:nghi xong cach|da chon xong|da biet cach|tim hieu cach)\b", clause)
+        and now
+        and first
+        and re.search(r"\b(?:se lam|minh lam|thuc hien|ra tay)\b", clause)
+    ):
+        out.append(("self_harm", soft))
+    # a third person in acute self-harm
+    other = bool(
+        _THIRD.search(clause)
+        or re.search(
+            r"\b(?:ban (?:than|cung (?:phong|lop|ban)|minh|em)|anh (?:minh|trai)|chi (?:minh|gai))\b",
+            clause,
+        )
+    )
+    if (
+        (third or other)
+        and _C_THIRD_SELF.search(clause)
+        and re.search(r"\b(?:dang|vua|sap)\b", clause)
+    ):
+        out.append(("third_party", "immediate"))
+    if (
+        other
+        and re.search(r"\b(?:tay|co tay)\b.{0,12}\bchay mau\b", clause)
+        and re.search(r"\b(?:vua|dang)\b", clause)
+    ):
+        out.append(("third_party", "immediate"))
+
+    # -- threats, presence and weapons -----------------------------------------------------
+    victim = bool(re.search(r"\b(?:minh|em|toi|con)\b", clause))
+    if _C_FOLLOW.search(clause) and victim and re.search(r"\b(?:dang|van|cu|vua)\b", clause):
+        if _C_PERP.search(clause) or re.search(r"\b(?:ai do|co nguoi|nguoi)\b", clause):
+            out.append(("threat", "elevated" if past else "immediate"))
+    if (
+        _C_FOLLOW.search(clause)
+        and victim
+        and now
+        and (_C_ALONE.search(clause) or _FEAR.search(clause) or _C_WEAPON.search(clause))
+        and re.search(r"\b(?:ai do|co nguoi|nguoi|ho|no|tui)\b", clause)
+    ):
+        out.append(("threat", "elevated" if past else "immediate"))
+    if (
+        _C_WEAPON.search(clause)
+        and now
+        and re.search(r"\b(?:mang|cam|dem|den|ra|tim|xu|giet|dam|doi)\b", clause)
+        and (_C_ATTACK.search(clause) or _C_FOLLOW.search(clause) or victim)
+    ):
+        if not _BENIGN_OBJECT.search(clause) and not _JOKE.search(clause):
+            out.append(("violence", soft))
+    if (
+        re.search(r"\b(?:dang|vua)\b", clause)
+        and _C_ATTACK.search(clause)
+        and (_C_INJURY.search(clause) or re.search(r"\b(?:lien tuc|dap dau|duoi theo)\b", clause))
+    ):
+        out.append(("physical", "immediate" if not past else "elevated"))
+    if (
+        _C_INJURY.search(clause)
+        and _C_ATTACK.search(clause)
+        and not past
+        and (third or re.search(r"\b(?:ban|em|anh|chi|me|bo)\b", clause))
+        and re.search(r"\b(?:bi|dang|vua)\b", clause)
+    ):
+        out.append(("physical", "immediate"))
+    # The person who hurt or threatened the speaker is still there, and the speaker is afraid or was
+    # just hit: the urgency is the present contact, not the severity of what already happened.
+    if (
+        re.search(
+            r"\b(?:van|dang|chua) (?:dung|o|ngoi|dut)? ?(?:ngay )?(?:do|day|canh|ben canh|truoc mat)\b",
+            clause,
+        )
+        and victim
+        and (_FEAR.search(clause) or _C_ATTACK.search(clause) or re.search(r"\bxo\b", clause))
+        and not past
+    ):
+        out.append(("physical", "immediate"))
+    # A serious injury is happening now (medical emergency), whatever caused it.
+    if (
+        re.search(
+            r"\b(?:chong mat|choang|buon non|bat tinh|chay mau nhieu|khong cam duoc mau|mau khong cam|"
+            r"khong dung duoc|khong cu dong|gay (?:tay|chan|xuong))\b",
+            clause,
+        )
+        and victim
+        and re.search(r"\b(?:bi|dap|nga|xo|danh|va)\b", clause)
+        and not past
+    ):
+        out.append(("physical", "immediate"))
+    if _C_CONFINE.search(clause):
+        out.append(
+            (
+                "physical",
+                "immediate" if _C_ATTACK.search(clause) or _FEAR.search(clause) else "elevated",
+            )
+        )
+
+    # -- private images ------------------------------------------------------------------------
+    img = bool(_C_IMG.search(clause))
+    if img and _C_COND.search(clause) and _C_SPREAD.search(clause):
+        out.append(("image", soft))
+    if (img or _C_IMG_ANY.search(clause)) and _C_SPREADING_NOW.search(clause) and img:
+        out.append(("image", soft))
+    if img and re.search(r"\b(?:ep|bat) (?:minh|em|toi)\b", clause):
+        out.append(("image", soft))
+
+    # -- abuse -----------------------------------------------------------------------------------
+    adult = bool(_C_ADULT.search(clause))
+    if adult and _C_TOUCH.search(clause) and victim and (_C_ACCESS.search(clause) or now):
+        out.append(("abuse", soft))
+    if (
+        re.search(r"\b(?:cam|coi|rut)\b.{0,20}\b(?:day lung|day dien|roi|gay|dao)\b", clause)
+        and re.search(r"\b(?:goi|bat|keu)\b.{0,12}\b(?:em|minh|con)\b", clause)
+    ) or (
+        adult
+        and re.search(r"\b(?:danh|dap|dung)\b", clause)
+        and victim
+        and re.search(r"\b(?:tiep|lai|nua)\b", clause)
+        and now
+    ):
+        out.append(("abuse", soft))
+    return out
+
+
+def _conversation_signals(turns: Sequence[str]) -> list[tuple[str, UrgencyLevel]]:
+    """Plan-over-turns: preparation + being alone + distress across the recent messages."""
+    if len(turns) < 2:
+        return []
+    joined = fold(" . ".join(turns[-4:]))
+    if _MEDIA.search(joined) or _HYPO.search(joined) or _INFO.search(joined):
+        return []
+    if (
+        _C_PREP.search(joined)
+        and _C_DISTRESS.search(joined)
+        and (_NOW_RE.search(joined) or _C_ALONE.search(joined))
+        and (_C_ALONE.search(joined) or re.search(r"\bminh (?:se )?lam\b", joined))
+    ):
+        return [("self_harm", "immediate")]
+    return []
+
+
 def assess_urgency(text: str, *, prior: Sequence[str] = ()) -> UrgencyAssessment:
     """Assess one message. ``prior`` holds earlier user messages of the same conversation."""
     levels: list[UrgencyLevel] = []
     signals: set[str] = set()
 
     def absorb(source: str, *, quoted: bool) -> None:
+        # Judge each sentence whole (a fear can sit in the next comma-part) and again split at
+        # a new subject (so a negation cannot leak across it); signals are the union.
+        pieces: list[str] = []
         for sentence in _SENTENCE.split(source):
+            parts = _SUBJECT_BREAK.split(sentence)
+            pieces.append(sentence)
+            if len(parts) > 1:
+                pieces.extend(parts)
+        for sentence in pieces:
             clause = fold(sentence)
             if not clause:
                 continue
             for group, level in _clause_signals(clause, quoted=quoted):
+                signals.add(group)
+                levels.append(level)
+            for group, level in _compose(clause, quoted=quoted):
+                signals.add(group)
+                levels.append(level)
+        # The same concepts can be spread over a few sentences of one message.
+        whole = fold(source)
+        if whole and len(_SENTENCE.split(source)) > 1:
+            for group, level in _compose(whole, quoted=quoted):
                 signals.add(group)
                 levels.append(level)
 
@@ -642,6 +1005,11 @@ def assess_urgency(text: str, *, prior: Sequence[str] = ()) -> UrgencyAssessment
             signals.add("self_harm")
 
     if prior:
+        for group, level in _conversation_signals([*prior, text]):
+            if _RANK[level] > _RANK[best]:
+                best = level
+            signals.add(group)
+            signals.add("plan_over_turns")
         earlier = _top(assess_urgency(message).level for message in prior[-4:])
         current = fold(text)
         if (

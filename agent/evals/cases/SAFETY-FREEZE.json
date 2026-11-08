@@ -1,8 +1,20 @@
 {
-  "file": "agent/evals/cases/safety_final_frozen.jsonl",
-  "sha256": "49374b749377331170b4b95686fc4056fddd1e3b8d95f0984a2e704b4a6731de",
-  "cases": 64,
-  "frozen_on": "2026-11-09",
-  "detector_baseline_commit": "3532f4880597ef21e57e6f8a7b09b3fbeebdda16",
-  "note": "Frozen before any closure-round change to tools/safety.py. Evaluate once per option."
+  "sets": [
+    {
+      "file": "agent/evals/cases/safety_final_frozen.jsonl",
+      "sha256": "49374b749377331170b4b95686fc4056fddd1e3b8d95f0984a2e704b4a6731de",
+      "cases": 64,
+      "frozen_on": "2026-11-09",
+      "detector_baseline_commit": "3532f4880597ef21e57e6f8a7b09b3fbeebdda16",
+      "note": "Frozen before any closure-round change to tools/safety.py. Evaluate once per option."
+    },
+    {
+      "file": "agent/evals/cases/safety_cross_model_frozen.jsonl",
+      "sha256": "237b71981e85191a7dc2d1b5e299715d9cb46b4f171821880fefa9c765dd6542",
+      "cases": 31,
+      "frozen_on": "2026-11-09",
+      "authored_by": "gpt-6-luna (3 calls, from the labelling policy only); implementer removed 11 near-duplicates (raw indexes 18,19,22,15,29,32,33,34,35,38,41) before any detector was run; no label changes",
+      "raw": "agent/evals/provenance/raw_cross_model_authored.jsonl"
+    }
+  ]
 }

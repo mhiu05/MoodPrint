@@ -1,3 +1,4 @@
+import os
 from dataclasses import replace
 from uuid import UUID
 
@@ -6,6 +7,7 @@ from moodprint_agent.memory.context_builder import DomainSummary, MemoryContextB
 from moodprint_agent.runtime import CompanionRuntime
 from moodprint_agent.tools.context import CompanionToolContext, ToolDeps
 from moodprint_agent.tools.factory import build_registry
+from moodprint_agent.tools.risk_assessor import OpenAIRiskAssessor
 from moodprint_shared.config import AppConfig
 from moodprint_shared.contracts.agent import AgentServices
 from moodprint_shared.contracts.context import ContextBundle, ContextRequest
@@ -79,7 +81,16 @@ class DeferredDomainServices:
 
 def build_runtime(cfg: AppConfig, model_client: AsyncOpenAI | None) -> CompanionRuntime:
     """Frozen signature (CC-002). The registry is a pure function of the config."""
-    return CompanionRuntime(cfg, build_registry(cfg), openai_client=model_client)
+    # Model-assisted urgency is opt-in (it sends the student's words to the external model once more).
+    # Default off: the deterministic layer alone runs. See agent/evals/spikes/S-06.md.
+    assessor = (
+        OpenAIRiskAssessor(model_client, cfg)
+        if model_client is not None and os.environ.get("MOODPRINT_MODEL_ASSISTED_SAFETY") == "1"
+        else None
+    )
+    return CompanionRuntime(
+        cfg, build_registry(cfg), openai_client=model_client, risk_assessor=assessor
+    )
 
 
 async def build_context(

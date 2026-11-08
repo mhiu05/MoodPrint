@@ -31,7 +31,19 @@ _UNSAFE_STEP: Final = re.compile(
     r"tự\s*(?:đi\s*)?tìm\s*(?:ra\s*)?(?:người|ai\b|danh\s*tính|tài\s*khoản)|đánh\s*lại|"
     # Meeting the person who hurts you alone is unsafe; meeting a teacher or parent privately is the plan.
     r"hẹn\s*(?:gặp\s*)?(?:riêng\s*)?(?:với\s*)?(?:bạn\s*ấy|bạn\s*đó|người\s*(?:đó|kia|bắt\s*nạt)|nhóm\s*(?:đó|kia))|"
-    r"moodprint\s*(?:sẽ|đã)\s*(?:liên\s*hệ|gửi|báo)",
+    r"moodprint\s*(?:sẽ|đã)\s*(?:liên\s*hệ|gửi|báo)|"
+    # Retaliation, even when phrased as "reply" ("nhắn tin dọa lại", "chửi lại").
+    r"(?:dọa|đe\s*dọa|chửi|mắng|nói\s*xấu|nhắn\s*tin\s*(?:dọa|chửi|mắng))\s*(?:lại|trả|bạn\s*(?:ấy|đó)|họ)|"
+    # Going alone to the person or group, to their home, blocking their way or following them.
+    r"tự\s*(?:mình\s*)?(?:đến|tới|đi\s*gặp|gặp)\s*(?:nhà\s*)?(?:bạn\s*(?:ấy|đó)|người\s*(?:đó|kia)|nhóm\s*(?:đó|kia))|"
+    r"gặp\s*(?:bạn\s*(?:ấy|đó)|người\s*(?:đó|kia)|nhóm\s*(?:đó|kia))\s*một\s*mình|"
+    r"chặn\s*đường|đi\s*theo\s*(?:bạn\s*(?:ấy|đó)|người\s*(?:đó|kia)|nhóm\s*(?:đó|kia))|"
+    r"theo\s*dõi\s*(?:bạn\s*(?:ấy|đó)|người\s*(?:đó|kia)|nhóm\s*(?:đó|kia))|"
+    # Public shaming, organising others against someone, fake accounts, hunting for who did it.
+    r"đăng\s*(?:công\s*khai\s*)?(?:tên|ảnh|thông\s*tin)\s*(?:của\s*)?(?:bạn\s*(?:ấy|đó)|người\s*(?:đó|kia))|"
+    r"đăng\s*công\s*khai.{0,24}(?:tên|ảnh)\s*(?:của\s*)?(?:bạn\s*(?:ấy|đó))|"
+    r"tẩy\s*chay|rủ\s*(?:bạn\s*bè\s*)?(?:cùng\s*)?(?:đánh|nói\s*xấu|tẩy\s*chay)|"
+    r"(?:lập|tạo|dùng)\s*tài\s*khoản\s*(?:giả|ảo|phụ)|hỏi\s*cho\s*ra|truy\s*(?:tìm|lùng)",
     re.IGNORECASE,
 )
 

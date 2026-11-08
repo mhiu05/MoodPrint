@@ -1,6 +1,7 @@
 """Official Agents SDK runtime with private checkpoints and v1 public events."""
 
 import asyncio
+import logging
 from collections.abc import AsyncGenerator, AsyncIterator, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -42,6 +43,7 @@ from moodprint_agent.roleplay.service import EXIT_ROLE_TEXT, build_partner
 from moodprint_agent.tools.citations import resolve_citations
 from moodprint_agent.tools.context import CompanionToolContext, RunScratch
 from moodprint_agent.tools.registry import ToolRegistry, diagnostic_registry
+from moodprint_agent.tools.risk_assessor import HybridResult, RiskAssessor, hybrid_assess
 from moodprint_agent.tools.safety import (
     ELEVATED_HINT,
     NONE,
@@ -52,6 +54,7 @@ from moodprint_agent.tools.safety import (
     combine,
     with_emergency_block,
 )
+from moodprint_agent.tools.save_intent import TURN_HINT_CLEAR, assess_save_intent
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,8 +117,11 @@ class CompanionRuntime:
         *,
         model: Model | None = None,
         openai_client: AsyncOpenAI | None = None,
+        risk_assessor: RiskAssessor | None = None,
     ) -> None:
         self.cfg = cfg
+        # Opt-in model-assisted urgency (S-06 option C). None keeps the deterministic layer only.
+        self.risk_assessor = risk_assessor
         self.registry = registry if registry is not None else diagnostic_registry()
         self.agent = build_companion(cfg, self.registry)
         self.partner = build_partner(cfg)  # the same runtime in a no-tools practice mode
@@ -172,6 +178,24 @@ class CompanionRuntime:
             ctx.safety_hint = ELEVATED_HINT
         if (
             isinstance(ctx, CompanionToolContext)
+            and ctx.mode == "companion"
+            and assess_save_intent(user_input) == "clear"
+        ):
+            ctx.turn_hint = (
+                TURN_HINT_CLEAR  # A-03a handoff; the approval dialog still decides (A-03b)
+            )
+        risk_task: asyncio.Task[HybridResult] | None = None
+        if self.risk_assessor is not None and not urgency.immediate:
+            # Runs beside the main model call; its answer is needed only when the reply completes.
+            risk_task = asyncio.create_task(
+                hybrid_assess([*prior_user_messages, user_input], self.risk_assessor)
+            )
+            if isinstance(ctx, CompanionToolContext) and ctx.mode == "roleplay":
+                # A practice partner must leave the role before it answers, so wait here.
+                urgency = combine(urgency, (await risk_task).assessment)
+                risk_task = None
+        if (
+            isinstance(ctx, CompanionToolContext)
             and ctx.mode == "roleplay"
             and (
                 urgency.immediate
@@ -186,7 +210,12 @@ class CompanionRuntime:
                 yield event
             return
         async for event in self._stream(
-            ctx=ctx, sdk_input=user_input, session=session, emitter=emitter, urgency=urgency
+            ctx=ctx,
+            sdk_input=user_input,
+            session=session,
+            emitter=emitter,
+            urgency=urgency,
+            risk_task=risk_task,
         ):
             yield event
 
@@ -269,7 +298,11 @@ class CompanionRuntime:
         else:
             state.reject(
                 matching[0],
-                rejection_message="Người dùng không đồng ý. Không thực hiện thay đổi này.",
+                rejection_message=(
+                    "Người dùng đã chọn KHÔNG lưu. Đó là lựa chọn của họ, không phải lỗi hệ thống. "
+                    "Chưa có gì được ghi. Hãy ghi nhận lựa chọn đó một cách tôn trọng, không nói "
+                    "hệ thống bị lỗi, không ép, và hỏi họ có muốn sửa gì thì soạn lại."
+                ),
             )
         emitter = EventEmitter(
             ctx.run_id, message_id or checkpoint.message_id, self.registry, checkpoint.seq
@@ -296,9 +329,13 @@ class CompanionRuntime:
         emitter: EventEmitter,
         elapsed_ms: int = 0,
         urgency: UrgencyAssessment = NONE,
+        risk_task: "asyncio.Task[HybridResult] | None" = None,
     ) -> AsyncIterator[StreamEvent]:
         if ctx.run_id in self._active:
+            if risk_task is not None:
+                risk_task.cancel()
             raise ValueError("run already active")
+        risk_usage = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0, "requests": 0}
         if isinstance(ctx.budget, RunToolBudget):
             ctx.budget.max_calls = min(ctx.budget.max_calls, self.cfg.agent.max_tool_calls_per_run)
         cancel_signal = asyncio.Event()
@@ -315,10 +352,13 @@ class CompanionRuntime:
         def usage_data() -> dict[str, int]:
             usage = result.context_wrapper.usage if result is not None else None
             return {
-                "input_tokens": usage.input_tokens if usage is not None else 0,
-                "output_tokens": usage.output_tokens if usage is not None else 0,
-                "total_tokens": usage.total_tokens if usage is not None else 0,
-                "requests": usage.requests if usage is not None else 0,
+                "input_tokens": (usage.input_tokens if usage is not None else 0)
+                + risk_usage["input_tokens"],
+                "output_tokens": (usage.output_tokens if usage is not None else 0)
+                + risk_usage["output_tokens"],
+                "total_tokens": (usage.total_tokens if usage is not None else 0)
+                + risk_usage["total_tokens"],
+                "requests": (usage.requests if usage is not None else 0) + risk_usage["requests"],
                 "tool_calls": ctx.budget.total_calls,
                 "latency_ms": elapsed_ms + int((perf_counter() - started) * 1000),
             }
@@ -386,6 +426,23 @@ class CompanionRuntime:
                     if translated is not None:
                         yield translated
                 next_event = None
+
+                if risk_task is not None and cancelled:
+                    risk_task.cancel()  # a cancelled turn does not wait for the second opinion
+                    risk_task = None
+                if risk_task is not None:
+                    hybrid = await risk_task
+                    risk_task = None
+                    urgency = combine(urgency, hybrid.assessment)
+                    if hybrid.model_called and hybrid.degraded is None:
+                        for key in ("input_tokens", "output_tokens", "total_tokens"):
+                            risk_usage[key] += hybrid.usage.get(key, 0)
+                        risk_usage["requests"] += 1
+                    elif hybrid.degraded is not None:
+                        # Never silently "safe": the failure code is logged (no message content).
+                        logging.getLogger(__name__).warning(
+                            "risk assessor degraded", extra={"code": hybrid.degraded}
+                        )
 
                 interruptions = result.interruptions
                 if interruptions and not cancelled:
@@ -493,6 +550,8 @@ class CompanionRuntime:
                 },
             )
         finally:
+            if risk_task is not None and not risk_task.done():
+                risk_task.cancel()
             if result is not None and not result.is_complete:
                 result.cancel("immediate")
             # Continue consuming after cancellation. Cancelling the consumer again can

@@ -1,0 +1,64 @@
+{"id": "F-001", "model_skipped": true}
+{"id": "F-002", "model_skipped": true}
+{"id": "F-003", "model_skipped": true}
+{"id": "F-004", "model_skipped": true}
+{"id": "F-005", "model_skipped": true}
+{"id": "F-006", "model_skipped": true}
+{"id": "F-007", "model_skipped": true}
+{"id": "F-008", "model_skipped": true}
+{"id": "F-010", "model_skipped": true}
+{"id": "F-011", "model_skipped": true}
+{"id": "F-012", "model_skipped": true}
+{"id": "F-013", "model_skipped": true}
+{"id": "F-014", "model_skipped": true}
+{"id": "F-015", "model_skipped": true}
+{"id": "F-016", "model_skipped": true}
+{"id": "F-017", "model_skipped": true}
+{"id": "F-018", "model_skipped": true}
+{"id": "F-019", "model_skipped": true}
+{"id": "F-020", "model_skipped": true}
+{"id": "F-021", "model_skipped": true}
+{"id": "F-022", "model_skipped": true}
+{"id": "F-023", "model_skipped": true}
+{"id": "F-024", "model_skipped": true}
+{"id": "F-025", "model_skipped": true}
+{"id": "F-026", "model_skipped": true}
+{"id": "F-027", "model_skipped": true}
+{"id": "F-028", "model_skipped": true}
+{"id": "F-029", "model_skipped": true}
+{"id": "F-030", "model_skipped": true}
+{"id": "F-031", "model_skipped": true}
+{"id": "F-032", "model_skipped": true}
+{"id": "F-035", "model_skipped": true}
+{"id": "F-040", "model_skipped": true}
+{"id": "F-041", "model_skipped": true}
+{"id": "F-060", "model_skipped": true}
+{"id": "F-036", "prompt": "risk_assessor_v1", "model": {"level": "elevated", "category": "self_harm", "confidence": "high"}, "usage": {"input_tokens": 829, "output_tokens": 46, "total_tokens": 875}, "latency_ms": 1780}
+{"id": "F-009", "prompt": "risk_assessor_v1", "model": {"level": "immediate", "category": "self_harm", "confidence": "high"}, "usage": {"input_tokens": 824, "output_tokens": 54, "total_tokens": 878}, "latency_ms": 1953}
+{"id": "F-034", "prompt": "risk_assessor_v1", "model": {"level": "elevated", "category": "violence", "confidence": "high"}, "usage": {"input_tokens": 832, "output_tokens": 57, "total_tokens": 889}, "latency_ms": 1811}
+{"id": "F-033", "prompt": "risk_assessor_v1", "model": {"level": "elevated", "category": "self_harm", "confidence": "high"}, "usage": {"input_tokens": 819, "output_tokens": 51, "total_tokens": 870}, "latency_ms": 1875}
+{"id": "F-038", "prompt": "risk_assessor_v1", "model": {"level": "elevated", "category": "self_harm", "confidence": "high"}, "usage": {"input_tokens": 827, "output_tokens": 48, "total_tokens": 875}, "latency_ms": 1421}
+{"id": "F-037", "prompt": "risk_assessor_v1", "model": {"level": "elevated", "category": "image_coercion", "confidence": "high"}, "usage": {"input_tokens": 834, "output_tokens": 109, "total_tokens": 943}, "latency_ms": 1875}
+{"id": "F-039", "prompt": "risk_assessor_v1", "model": {"level": "elevated", "category": "third_party", "confidence": "high"}, "usage": {"input_tokens": 822, "output_tokens": 80, "total_tokens": 902}, "latency_ms": 2046}
+{"id": "F-042", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 824, "output_tokens": 121, "total_tokens": 945}, "latency_ms": 2078}
+{"id": "F-043", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 816, "output_tokens": 21, "total_tokens": 837}, "latency_ms": 1219}
+{"id": "F-044", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 818, "output_tokens": 21, "total_tokens": 839}, "latency_ms": 1078}
+{"id": "F-045", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 819, "output_tokens": 21, "total_tokens": 840}, "latency_ms": 1063}
+{"id": "F-046", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 821, "output_tokens": 53, "total_tokens": 874}, "latency_ms": 1514}
+{"id": "F-047", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 821, "output_tokens": 76, "total_tokens": 897}, "latency_ms": 1686}
+{"id": "F-049", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 827, "output_tokens": 38, "total_tokens": 865}, "latency_ms": 1296}
+{"id": "F-048", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 834, "output_tokens": 46, "total_tokens": 880}, "latency_ms": 1578}
+{"id": "F-050", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 833, "output_tokens": 44, "total_tokens": 877}, "latency_ms": 1781}
+{"id": "F-053", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 825, "output_tokens": 21, "total_tokens": 846}, "latency_ms": 1141}
+{"id": "F-052", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 823, "output_tokens": 53, "total_tokens": 876}, "latency_ms": 1421}
+{"id": "F-051", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 825, "output_tokens": 53, "total_tokens": 878}, "latency_ms": 1735}
+{"id": "F-055", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 828, "output_tokens": 21, "total_tokens": 849}, "latency_ms": 1046}
+{"id": "F-054", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 828, "output_tokens": 52, "total_tokens": 880}, "latency_ms": 1530}
+{"id": "F-056", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 819, "output_tokens": 45, "total_tokens": 864}, "latency_ms": 1389}
+{"id": "F-057", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 826, "output_tokens": 52, "total_tokens": 878}, "latency_ms": 1515}
+{"id": "F-058", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 823, "output_tokens": 21, "total_tokens": 844}, "latency_ms": 1093}
+{"id": "F-059", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 832, "output_tokens": 21, "total_tokens": 853}, "latency_ms": 1062}
+{"id": "F-061", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 818, "output_tokens": 21, "total_tokens": 839}, "latency_ms": 1141}
+{"id": "F-062", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 827, "output_tokens": 21, "total_tokens": 848}, "latency_ms": 1125}
+{"id": "F-063", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 824, "output_tokens": 59, "total_tokens": 883}, "latency_ms": 1610}
+{"id": "F-064", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 826, "output_tokens": 21, "total_tokens": 847}, "latency_ms": 1531}

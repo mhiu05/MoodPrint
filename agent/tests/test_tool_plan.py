@@ -285,3 +285,31 @@ def test_the_unsafe_step_filter_blocks_confronting_the_bully_but_not_asking_an_a
     )
     assert not [text for text in safe if _UNSAFE_STEP.search(text)]
     assert all(_UNSAFE_STEP.search(text) for text in unsafe)
+
+
+def test_unsafe_step_filter_minimal_pairs_closure_round() -> None:
+    """Adversarial / benign pairs added after the filter was found to miss most paraphrases.
+
+    The two lists in the test above are kept as the historical examples (they came from live
+    findings); these extend them without loosening anything.
+    """
+    from moodprint_agent.tools.plan import _UNSAFE_STEP  # pyright: ignore[reportPrivateUsage]
+
+    pairs = (  # (unsafe step, nearby protective step that must stay allowed)
+        ("Nhắn tin dọa lại cho bạn ấy", "Không trả lời tin nhắn đó và lưu lại làm bằng chứng"),
+        ("Tự đến nhà bạn đó nói chuyện", "Đi cùng một người lớn tin cậy đến gặp cô"),
+        ("Chặn đường bạn ấy sau giờ học để nói chuyện", "Chặn tài khoản đó trên ứng dụng"),
+        ("Đi theo bạn ấy xem bạn ấy làm gì", "Nhờ bạn thân đi cùng khi tan học"),
+        ("Theo dõi bạn ấy trên mạng", "Theo dõi cảm xúc của mình mỗi ngày bằng một ghi chú"),
+        ("Đăng công khai tên bạn ấy lên mạng", "Báo cáo tài khoản cho ứng dụng"),
+        (
+            "Rủ bạn bè cùng tẩy chay bạn ấy",
+            "Nói với một người lớn đáng tin về việc bị loại khỏi nhóm",
+        ),
+        ("Lập tài khoản giả để thử bạn ấy", "Tìm hiểu cách bật chế độ riêng tư cho tài khoản"),
+        ("Tự hỏi cho ra ai đã nhắn tin", "Hẹn gặp tư vấn viên của trường"),
+        ("Gặp nhóm đó một mình để nói rõ", "Hẹn gặp cô sau giờ học"),
+        ("Nhắn tin chửi lại bạn ấy", "Ghi lại vài ý để nói với cô"),
+    )
+    assert [bad for bad, _ in pairs if not _UNSAFE_STEP.search(bad)] == []
+    assert [good for _, good in pairs if _UNSAFE_STEP.search(good)] == []

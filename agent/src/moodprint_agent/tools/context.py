@@ -132,6 +132,8 @@ class CompanionToolContext(AgentToolContext):
     tool_call_id: str | None = field(kw_only=True, default=None)
     knowledge_timeout_s: float = field(kw_only=True, default=7.0)
     safety_hint: str | None = field(kw_only=True, default=None)
+    # System-written, per-turn instruction derived from the user's own message (e.g. a clear save request).
+    turn_hint: str | None = field(kw_only=True, default=None)
     memory_candidates_max: int = field(kw_only=True, default=1)
     roleplay: RoleplayContext | None = field(kw_only=True, default=None)
     # Set by the runtime: True once the user's cancel was acknowledged (linearisation point).
