@@ -1,6 +1,16 @@
 # Phase 1 — Implementation report
 
-Trạng thái ngày 2026-11-08: **local G1 VERIFIED** trên `ddf970dc62f8baae5c1ab97e36ea14e069984a0b`. Hosted schema và API smoke đã chạy. **G1 chưa đóng hết** vì Security/Performance Advisor và hosted UI smoke chưa có bằng chứng trong phiên này. **G2 chưa đạt.** Không có tag `baseline/phase-1-verified`. Không tạo worktree Phase 2/3. Sản phẩm **chưa** sẵn sàng cho học sinh thật; các điều kiện `00` §6 vẫn mở.
+Trạng thái sau vòng 1 ngày 2026-11-08: **PARTIALLY_VERIFIED**. Local gate và hosted API smoke đạt. CI của PR #47 xanh. **G1 chưa đóng** vì hosted UI smoke bị BLOCKED. **G2 chưa đạt:** chưa merge, chưa tag. Sản phẩm **chưa** sẵn sàng cho học sinh thật.
+
+Receipt local vẫn là `ddf970dc62f8baae5c1ab97e36ea14e069984a0b`, không phải HEAD. Khác biệt tới `82d9463c` chỉ là báo cáo này và `scripts/smoke_hosted.py`.
+
+### Vòng 1 — hosted UI và advisor
+
+Chrome đang mở được điều khiển qua `orca computer` (không mở Chrome mới). Tab MoodPrint hiện có là workspace **demo** (`Chào An`, `CASE-AN-001`, nhãn AI mô phỏng). `set-value` xác nhận chuỗi `http://127.0.0.1:5173/auth` trên thanh địa chỉ, nhưng Enter là synthetic input không được xác minh và trang vẫn ở `/home`. Chọn gợi ý omnibox thì index hết hạn (`element_not_found`). Không tuyên bố UI smoke pass.
+
+Hai policy SELECT trên `case_shares` (`owner_read` và `staff_read`) và trên `case_share_evidence` (`owner_all` cộng `staff_read`) là OR có chủ đích: chủ sở hữu đọc bản nháp, staff chỉ đọc share đã gửi. Không gộp policy và không xóa index chưa dùng. WARN performance được chấp nhận; không phải lỗi bảo mật. Phiên này không gọi lại được advisor MCP.
+
+`core.hooksPath` trống. Không ghi config dùng chung của worktree vì `extensions.worktreeConfig` tắt; làm vậy sẽ đổi hook của checkout `E:/MoodPrint`. Chạy tay `.githooks/pre-commit` trên nhánh này exit 0. CI ownership chỉ chạy trên nhánh Phase 2/3.
 
 ## Acceptance đã chạy trên cây này
 
