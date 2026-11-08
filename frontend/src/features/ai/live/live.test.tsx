@@ -98,7 +98,7 @@ function fake(overrides: Partial<LiveCompanion> = {}): LiveCompanion {
 // Wait until the transcript has loaded (the composer is blocked while recovering), then type.
 async function say(text: string) {
   await screen.findByText(/Bạn muốn kể điều gì/);
-  await userEvent.type(await screen.findByLabelText("Tin nhắn của bạn"), text);
+  await userEvent.type(await screen.findByLabelText("Điều bạn muốn kể"), text);
 }
 const renderThread = (service: LiveCompanion) =>
   render(

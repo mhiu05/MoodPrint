@@ -35,7 +35,9 @@ export function UrgentBlock() {
 
 export function LiveMessageView({ message }: { message: LiveMessage }) {
   return (
-    <li className={`live-message live-${message.role}`}>
+    <li
+      className={`live-message live-${message.role} ai-message ${message.role === "assistant" ? "ai" : "user"}`}
+    >
       <div className="live-bubble" data-testid={`live-${message.role}`}>
         {message.role === "assistant" && (
           <span className="live-author">AI · không phải người thật</span>
@@ -77,7 +79,8 @@ export function Thread({
   // The dialog is open for any approval the user has not deferred; no effect needed.
   const dialog =
     chat.approval !== null && deferred !== chat.approval.approvalId;
-  const memoryKey = chat.messages.length; // suggestions are re-read after each new message
+  // Suggestions are re-read whenever a run settles (the candidate exists only after the tool ran).
+  const memoryKey = `${chat.messages.length}:${chat.status}`;
   useEffect(() => {
     if (chat.status === "idle") onSettled?.();
   }, [chat.status, onSettled]);
@@ -180,7 +183,7 @@ export function Thread({
         }}
       >
         <label className="sr-only" htmlFor="live-input">
-          Tin nhắn của bạn
+          Điều bạn muốn kể
         </label>
         <textarea
           id="live-input"
