@@ -96,15 +96,17 @@ PostgreSQL OR các policy permissive. Tách policy để staff không có INSERT
 |---|---|---|
 | G0 | VERIFIED | PR #46 merged `d5c36ac0`, `phase-0-report.md` |
 | G1 | VERIFIED | CI offline + integration SUCCESS trên `d779a243`; UI hosted vòng 2; `smoke_hosted.py --phase 1` exit 0 vòng 2 |
-| G2 | PARTIALLY_VERIFIED | Chưa merge/tag tại mục này. Docker không lên nên chưa có receipt wrapper mới. Ma trận đủ trong `g1-g2-closure-report.md` |
+| G2 | PARTIALLY_VERIFIED | Đã merge `669bdb51`. Không tag. Docker không lên nên chưa có receipt wrapper trên commit merge |
 
 ## 9. Git
 
 - PR: https://github.com/mhiu05/MoodPrint/pull/47
 - Base: `mhiu05/feat-refactor`
 - Head: `feat/phase-1-backend`
-- Trạng thái: OPEN, MERGEABLE, chưa merge
-- CI: https://github.com/mhiu05/MoodPrint/actions/runs/42415259412
+- PR #47: MERGED
+- Merge commit: `669bdb5133feac31364bbd47d62bb85d716956bd`
+- Parents: `d5c36ac0` và `81d6d1c6`
+- CI của cây đã merge: https://github.com/mhiu05/MoodPrint/actions/runs/42453739691 trên `81d6d1c6`; run của chính merge commit: https://github.com/mhiu05/MoodPrint/actions/runs/42454255699
 - Tag: không tạo
 - Owner config không commit: `.claude/settings.local.json`, `.cursor/mcp.json`, `.mcp.json`
 

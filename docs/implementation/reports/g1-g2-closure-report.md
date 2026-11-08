@@ -1,6 +1,6 @@
 # G1/G2 closure — vòng 2
 
-Ngày: 2026-11-08. Workspace `C:/Users/minhh/orca/workspaces/MoodPrint/mhiu05-feat-refactor`. Nhánh lúc kiểm tra: `feat/phase-1-backend`. HEAD sản phẩm: `d779a2435149b0e8f6630873f70c56f06979ad20`.
+Ngày: 2026-11-08. Workspace `C:/Users/minhh/orca/workspaces/MoodPrint/mhiu05-feat-refactor`. Nhánh lúc kiểm tra: `feat/phase-1-backend`. HEAD sản phẩm đã kiểm CI: `81d6d1c6d568eda6ffb7e31104339c3ca076d751`. Merge commit: `669bdb5133feac31364bbd47d62bb85d716956bd`. Hai cây Git giống nhau (`ced5a0b43a1ea1bf470da3be40ade16b9f680f3c`).
 
 Sản phẩm **chưa** sẵn sàng cho học sinh thật. `00` §6 vẫn áp dụng.
 
@@ -91,7 +91,7 @@ Không có security error mới. Không có escalation staff đọc draft riêng
 
 | ID | Requirement | Status | Evidence |
 |---|---|---|---|
-| G2-01 | Combined baseline | PARTIALLY_VERIFIED | Phase 0 đã merge. Phase 1 chưa merge tại thời điểm viết mục này. CI xanh trên `d779a243`. Wrapper local chưa chạy vì Docker |
+| G2-01 | Combined baseline | PARTIALLY_VERIFIED | PR #47 đã merge tại `669bdb51`, cây trùng `81d6d1c6` đã có CI xanh. Wrapper local chưa chạy vì Docker |
 | G2-02 | Contract snapshots | VERIFIED | `shared/tests` 53 passed; hai lệnh `--check` exit 0 trên `d779a243` |
 | G2-03 | Database migrations | VERIFIED | Hosted history 17, dry-run không pending. Reset local không chạy lại trong phiên này; CI integration đã reset/bootstrap trên cùng SHA |
 | G2-04 | AuthContext | VERIFIED | Không có thay đổi chưa merge ngoài nhánh này. CI và UI đăng nhập thật dùng JWT hosted |
@@ -110,7 +110,7 @@ Chưa gắn tag nên G2-01 chưa đủ điều kiện “cùng một commit đã
 
 ## Chiến lược integration
 
-Baseline sẽ là commit merge của PR #47 trên `mhiu05/feat-refactor`. Hai worktree sau này:
+Baseline đã merge là `669bdb5133feac31364bbd47d62bb85d716956bd` trên `mhiu05/feat-refactor`. Hai worktree sau này:
 
 - `feat/knowledge-ingestion-rag` từ baseline đó, chỉ sửa vùng Phase 2 trong `docs/implementation/ownership.yaml`
 - `feat/agent-companion` từ cùng baseline, chỉ sửa vùng Phase 3
