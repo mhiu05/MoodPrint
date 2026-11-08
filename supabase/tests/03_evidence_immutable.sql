@@ -1,0 +1,20 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path=public,extensions;
+select no_plan();
+insert into auth.users(id) values ('00000000-0000-4000-8000-000000000001');
+insert into app.cases(id,owner_id,template) values ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001','TPL-FREE');
+insert into app.evidence_items(id,owner_id,case_id,kind,origin,original_text,upload_status)
+values ('20000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','text_note','user_entered','Synthetic original','uploaded');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select throws_ok($$update app.evidence_items set original_text='Replacement'$$,'23514',null,'owner cannot overwrite original evidence text');
+select throws_ok($$update app.evidence_items set origin='user_upload'$$,'23514',null,'origin remains immutable');
+select lives_ok($$update app.evidence_items set user_edited_text='Synthetic correction',review_status='corrected'$$,'owner can save correction separately');
+select is((select original_text from app.evidence_items),'Synthetic original','original remains intact');
+select is((select user_edited_text from app.evidence_items),'Synthetic correction','correction persisted');
+select lives_ok($$delete from app.cases$$,'case deletion prepares evidence purge');
+select is((select upload_status from app.evidence_items),'deleting','file row kept for retry until purge');
+select is((select case_id from app.evidence_items),null::uuid,'deleted case unlinks evidence');
+select * from finish();
+rollback;

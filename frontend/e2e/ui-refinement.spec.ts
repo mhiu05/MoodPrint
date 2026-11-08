@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./helpers/fixtures";
 import { chatFixtures } from "../src/mocks/scenarios";
 
 test("mock processing keeps the compact companion identity stable", async ({
@@ -44,9 +44,10 @@ test("active conversation and inline evidence fit every requested width", async 
     ).toBeLessThanOrEqual(width);
     const composer = await page.locator(".chat-composer").boundingBox();
     expect(composer!.y + composer!.height).toBeLessThanOrEqual(640);
-    await page.screenshot({
-      path: `../docs/prototype/screenshots/ui-refinement/after/inline-analysis-${width}.png`,
-    });
+    if (process.env.CAPTURE_SCREENSHOTS === "1")
+      await page.screenshot({
+        path: `../docs/prototype/screenshots/ui-refinement/after/inline-analysis-${width}.png`,
+      });
   }
   await page.setViewportSize({ width: 320, height: 480 });
   await page.goto("/auth");
@@ -66,6 +67,8 @@ async function login(page: import("@playwright/test").Page) {
 test("single canvas, unclipped illustrations and reachable actions at all requested widths", async ({
   page,
 }) => {
+  // Eight widths × four welcome loads plus auth checks; same budget as the route sweep.
+  test.setTimeout(180000);
   for (const width of [320, 360, 375, 390, 430, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: width < 500 ? 640 : 900 });
     for (const step of [1, 2, 3, 4]) {
@@ -219,9 +222,10 @@ test("composer fits short and simulated keyboard viewports without page scrollin
       return box!.y + box!.height;
     })
     .toBeLessThanOrEqual(420);
-  await page.screenshot({
-    path: "../docs/prototype/screenshots/ui-refinement/after/chat-keyboard-390.png",
-  });
+  if (process.env.CAPTURE_SCREENSHOTS === "1")
+    await page.screenshot({
+      path: "../docs/prototype/screenshots/ui-refinement/after/chat-keyboard-390.png",
+    });
 });
 
 test("manual reading position is respected while new messages arrive", async ({

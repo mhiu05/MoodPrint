@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "source": "docs/implementation/06-PHASE-2-3-PARALLEL-WORKTREE-PLAN.md sections 3-5",
+  "baseline": "baseline/phase-1-verified",
+  "notes": [
+    "Preparation only: this policy does not declare G1/G2 complete or create the baseline tag.",
+    "JSON is a YAML 1.2 subset; the checker uses the standard library without a YAML dependency.",
+    "The checker reads this policy from the selected baseline, including committed, staged, unstaged and untracked non-ignored changes.",
+    "untracked_artifacts applies only to untracked bytecode and reserved local output directories; tracked/index changes are always checked. The root .env is never opened or exempted by this policy.",
+    "Every path not explicitly owned is integrator-only. Frozen changes require a compat proposal and an integrator-produced baseline/phase-1-verified+ccNNN tag; neither phase may edit frozen files directly.",
+    "Generated files must be regenerated, never hand-edited. Ownership checks do not establish generator provenance or validate migration SQL object scope.",
+    "Phase 2 migrations may affect knowledge only; Phase 3 may add tables in app/agent_store, never ALTER/DROP f0/f1 tables. Only the integrator pushes hosted migrations after section 7 passes.",
+    "After both branches pass, integration checks IT-01..09 cover both migration orders, the real retriever contract/tools, failures, all suites, RLS, ownership and gpt-6-luna evals without a model judge."
+  ],
+  "frozen": [
+    "shared/src/moodprint_shared/contracts/**",
+    "shared/src/moodprint_shared/testing/**",
+    "shared/contract-schemas/**",
+    "shared/src/moodprint_shared/env.py",
+    "shared/src/moodprint_shared/logging.py",
+    "supabase/migrations/*_f0_*",
+    "supabase/migrations/*_f1_*",
+    "backend/app/core/**",
+    "backend/app/modules/profiles/**",
+    "backend/app/modules/incidents/**",
+    "backend/app/modules/evidence/**",
+    "backend/app/modules/plans/**",
+    "backend/app/modules/contacts/**",
+    "backend/app/modules/sharing/**",
+    "backend/app/modules/support/**",
+    "backend/app/modules/knowledge_state/**",
+    "frontend/src/services/ports.ts",
+    "frontend/src/services/http/client.ts",
+    "frontend/src/services/workspace.ts",
+    "frontend/src/services/http/stream-events.ts"
+  ],
+  "generated": [
+    "uv.lock",
+    "frontend/package-lock.json",
+    "backend/openapi.json",
+    "frontend/src/services/http/schema.gen.ts"
+  ],
+  "untracked_artifacts": [
+    "**/__pycache__/*.pyc",
+    ".local/**",
+    ".venv/**",
+    ".pytest_cache/**",
+    ".ruff_cache/**",
+    "agent/.pytest_cache/**",
+    "backend/.pytest_cache/**",
+    "shared/.pytest_cache/**",
+    ".playwright-mcp/**",
+    "frontend/node_modules/**",
+    "frontend/dist/**",
+    "frontend/.vite/**",
+    "frontend/coverage/**",
+    "frontend/test-results/**",
+    "frontend/playwright-report/**",
+    "supabase/.branches/**",
+    "supabase/.temp/**",
+    "debug.log"
+  ],
+  "shared_sections": {
+    "shared/src/moodprint_shared/config.py": {
+      "kind": "python_classes",
+      "2": ["KnowledgeConfig"],
+      "3": ["AgentConfig", "MemoryConfig"]
+    },
+    ".env.example": {
+      "kind": "env_blocks",
+      "2": ["knowledge"],
+      "3": ["agent"]
+    },
+    "agent/pyproject.toml": {
+      "kind": "toml_extras",
+      "2": ["knowledge"],
+      "3": ["companion"]
+    }
+  },
+  "frozen_signatures": {
+    "agent/src/moodprint_agent/knowledge/__init__.py": ["create_retriever"]
+  },
+  "phases": {
+    "2": {
+      "allow": [
+        "agent/ingestion/**",
+        "agent/src/moodprint_agent/knowledge/**",
+        "agent/tests/knowledge/**",
+        "agent/evals/knowledge/**",
+        "backend/app/modules/knowledge/**",
+        "backend/app/api/v1/knowledge.py",
+        "supabase/migrations/*_kb_*.sql",
+        "supabase/tests/kb_*.sql",
+        "frontend/src/features/knowledge/**",
+        "frontend/src/services/composition/knowledge.ts",
+        "frontend/src/services/http/knowledge.ts",
+        "docs/implementation/reports/phase-2-report.md",
+        "docs/implementation/compat/CC-*.md"
+      ],
+      "exclude": []
+    },
+    "3": {
+      "allow": [
+        "agent/src/moodprint_agent/companion.py",
+        "agent/src/moodprint_agent/runtime.py",
+        "agent/src/moodprint_agent/events.py",
+        "agent/src/moodprint_agent/budget.py",
+        "agent/src/moodprint_agent/errors.py",
+        "agent/src/moodprint_agent/prompts/**",
+        "agent/src/moodprint_agent/tools/**",
+        "agent/src/moodprint_agent/memory/**",
+        "agent/src/moodprint_agent/roleplay/**",
+        "agent/src/moodprint_agent/evidence/**",
+        "agent/tests/**",
+        "agent/evals/**",
+        "backend/app/agent_gateway/**",
+        "backend/app/modules/conversations/**",
+        "backend/app/modules/memory/**",
+        "backend/app/api/v1/conversations.py",
+        "backend/app/api/v1/memories.py",
+        "backend/app/jobs/**",
+        "supabase/migrations/*_ag_*.sql",
+        "supabase/tests/ag_*.sql",
+        "frontend/src/features/ai/**",
+        "frontend/src/services/composition/chat.ts",
+        "frontend/src/services/composition/analysis.ts",
+        "frontend/src/services/composition/roleplay.ts",
+        "frontend/src/services/http/chat.ts",
+        "frontend/src/services/http/analysis.ts",
+        "frontend/src/services/http/roleplay.ts",
+        "docs/implementation/reports/phase-3-report.md",
+        "docs/implementation/compat/CC-*.md"
+      ],
+      "exclude": ["agent/tests/knowledge/**", "agent/evals/knowledge/**"]
+    }
+  }
+}

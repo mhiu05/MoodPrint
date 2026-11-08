@@ -3,7 +3,7 @@ import { lazy } from "react";
 import { createBrowserRouter } from "react-router-dom";
 import { StudentShell } from "../components/layout/StudentShell";
 import { WelcomePage } from "../features/onboarding";
-import { AuthPage } from "../features/auth";
+import { AuthPage, ResetPasswordPage } from "../features/auth";
 import { HomePage } from "../features/home";
 import { SettingsPage } from "../features/profile";
 import { SchoolPage } from "../features/school-admin";
@@ -37,6 +37,7 @@ export const router = createBrowserRouter([
       { path: "/", element: <Entry /> },
       { path: "/welcome/:step", element: <WelcomePage /> },
       { path: "/auth", element: <AuthPage /> },
+      { path: "/auth/reset", element: <ResetPasswordPage /> },
       { path: "/support/urgent", element: <UrgentPage /> },
       { path: "/demo/school", element: <SchoolPage /> },
       { path: "/demo/school/reports", element: <SchoolPage /> },

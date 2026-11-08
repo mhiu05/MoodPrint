@@ -18,7 +18,7 @@ moodprint-agent = { workspace = true }
 dev = ["pytest>=9", "pytest-asyncio>=1", "ruff>=0.14", "pyright>=1.1", "import-linter>=2", "httpx>=0.28"]
 
 [tool.pytest.ini_options]
-testpaths = ["shared/tests", "agent/tests", "backend/tests", "scripts/db/tests"]
+testpaths = ["shared/tests", "agent/tests", "backend/tests", "scripts/db/tests", "scripts/tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 addopts = "-m 'not integration and not live_agent' --import-mode=importlib"

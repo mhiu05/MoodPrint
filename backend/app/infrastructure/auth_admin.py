@@ -33,3 +33,19 @@ class AuthAdmin:
 
     async def require_live_user(self, auth: AuthContext, token: str) -> None:
         await self.user_metadata(auth, token)
+
+    async def delete_user(self, auth: AuthContext) -> None:
+        try:
+            response = await self.http.delete(
+                self.url + "/admin/users/" + str(auth.user_id),
+                headers={
+                    "apikey": self.secret.get_secret_value(),
+                    "Authorization": "Bearer " + self.secret.get_secret_value(),
+                },
+            )
+        except httpx.HTTPError as error:
+            raise ApiError(
+                "upstream_error", "Chưa thể xóa tài khoản. Vui lòng thử lại.", 502
+            ) from error
+        if response.status_code not in (200, 204, 404):
+            raise ApiError("upstream_error", "Chưa thể xóa tài khoản. Vui lòng thử lại.", 502)

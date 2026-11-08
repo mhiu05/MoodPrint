@@ -1,48 +1,46 @@
-# MoodPrint frontend prototype
+﻿# MoodPrint frontend
 
-React + Vite + TypeScript, mobile-first, tiếng Việt. Chỉ sử dụng dữ liệu hư cấu và mock services trên trình duyệt. Không có backend, xác thực thật, AI/OCR, microphone/STT/TTS, email/SMS hay báo cáo thật.
+React, Vite và TypeScript. Phase 1 hỗ trợ hai workspace: tài khoản Supabase với dữ liệu nghiệp vụ qua FastAPI, và demo chạy độc lập trên trình duyệt. Chỉ sử dụng tài khoản thử nghiệm và nội dung hư cấu.
 
 ## Chạy local
 
-Yêu cầu Node.js 22.12+ (đã kiểm tra Node 24), npm.
+Yêu cầu Node.js 22.12+ và npm. Từ `frontend/`:
 
 ```powershell
-cd frontend
 npm install
 npm run dev
 ```
 
-Mở URL Vite hiển thị (mặc định http://127.0.0.1:5173). Bỏ qua onboarding vẫn đi qua tài khoản demo. Chọn An, Minh, Hà hoặc Linh rồi **Vào thử với tài khoản demo**. Không nhập dữ liệu thật hay mật khẩu bạn đang dùng.
+Vite đọc `.env` ở root và chỉ đưa biến có tiền tố `VITE_PUBLIC_` vào ứng dụng: `VITE_PUBLIC_SUPABASE_URL`, `VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `VITE_PUBLIC_API_BASE_URL`. Không đặt secret key hoặc database URL trong biến frontend. Không cần cấu hình backend để bấm **Vào thử với tài khoản demo**.
+
+## Dữ liệu và xác thực
+
+- `services/composition.ts` chọn adapter theo `workspace.kind`. Component gọi port; lỗi HTTP hiện lỗi và cho thử lại.
+- Supabase JavaScript SDK chỉ dùng Auth, với PKCE, khôi phục phiên và tự làm mới token. Dữ liệu hồ sơ, evidence, kế hoạch, người tin cậy, bản nháp hỗ trợ và trạng thái đọc đi qua FastAPI.
+- Store `useWorkspaceStore` là cache trong bộ nhớ khi đăng nhập thật. Alias `useDemoStore` giữ tương thích prototype. Chỉ workspace demo được persist trong `moodprint-demo`; dữ liệu demo không được chuyển lên server.
+- Chat, phân tích mẫu, roleplay và voice còn mô phỏng. Trong tài khoản thật, state này nằm riêng tại `moodprint-sim-v1:<userId>`. Bộ ảnh mẫu không thể gắn vào hồ sơ thật. Knowledge catalog vẫn local đến Phase 2.
+- Evidence thật dùng `tus-js-client`, signed upload capability từ backend, chunk 6 MB, pause/resume và cấp lại token khi cần. Không ghi đè bản gốc. Signed download URL chỉ dùng tạm thời, không ghi vào store.
+- Hết phiên giữ bản nháp biểu mẫu theo user để đăng nhập lại. Đăng xuất chủ động dừng upload, xóa cache và bản nháp/simulation của user đó. Settings của tài khoản thật có thể xóa dữ liệu demo riêng trên trình duyệt.
+- `/demo/school` dùng `moodprint-school-demo` độc lập. `/support/urgent` luôn công khai và không phụ thuộc backend; nút 111 mở trình gọi khi người dùng bấm.
 
 ## Kiểm tra
 
 ```powershell
 npm run typecheck
 npm run lint
-npm test
+npm test -- --maxWorkers=2
 npm run build
 npm run check:boundaries
 npm run format:check
-npx playwright install chromium
-npm run test:e2e
+npm run test:e2e -- --project=demo
 ```
 
-E2E tự mở Vite tại cổng 5178. Báo cáo HTML trong `playwright-report/`, trace lỗi trong `test-results/`. Build chỉ tạo file local `dist/`; không tự deploy. Không có `.env` hoặc API key cần thiết.
+Project E2E `real` cần local Supabase và FastAPI; xem `../docs/implementation/07-TESTING-AND-ACCEPTANCE-CRITERIA.md`. Test chỉ dùng dữ liệu tổng hợp. Ảnh chụp prototype chỉ cập nhật khi chủ động bật `CAPTURE_SCREENSHOTS=1`.
 
-## Dữ liệu demo
+Sinh lại TypeScript contract sau khi cập nhật `backend/openapi.json`:
 
-- Zustand canonical store, versioned localStorage key `moodprint-demo`. Case, evidence, timeline, plan, chat, analysis, roleplay và support liên kết bằng ID; hồ sơ lọc theo ownerId.
-- `/demo/school` là khu độc lập với key `moodprint-school-demo` và 48 reports riêng, không đọc student store.
-- Settings → **Khôi phục dữ liệu mẫu** để xóa thay đổi student demo và đăng xuất. School Demo có nút reset riêng. Đăng xuất giữ bản ghi demo cục bộ để có thể tiếp tục persona cũ.
-- Settings có lỗi lưu một lần để kiểm tra retry. Tìm kiếm vô nghĩa để xem empty state. Analysis có dữ liệu bị cắt, trùng và mâu thuẫn.
-- UI dùng `mocks/services/demo.ts`; adapter chỉ tạo độ trễ và cập nhật state cục bộ. Không fetch hoặc telemetry.
+```powershell
+npx openapi-typescript ../backend/openapi.json -o src/services/http/schema.gen.ts
+```
 
-## Walkthrough
-
-Welcome → mock account → Home → AI → Chat → bộ 8 ảnh mẫu → mở phân tích → rà soát/sửa/xác nhận từng nguồn → xác nhận tạo hồ sơ → timeline → Kế hoạch ứng phó trong hồ sơ → chọn/điều chỉnh checklist → luyện nói 3 lượt → phản hồi → chuẩn bị lời nhắn → preview/bí danh → lưu báo cáo demo (chưa gửi).
-
-Knowledge Hub ở Support, shortcut trên Home. Nguồn chính thức có nhãn phạm vi áp dụng và mở do người dùng chủ động. `/support/urgent` mở trực tiếp không yêu cầu tài khoản; nút 111 mở trình gọi của thiết bị, không tự gọi.
-
-## Ranh giới kiến trúc
-
-Code sản phẩm chỉ nằm trong frontend. `backend/README.md`, `agent/README.md` mô tả hướng phát triển sau này. `types/` là shared mock contracts; `features/` theo chức năng; `components/` là primitives/layout; `animations/` quản lý motion. Không khôi phục CI cũ. Xem `../docs/prototype/IMPLEMENTATION-EXECUTION.md` và báo cáo triển khai để biết coverage và bằng chứng.
+HTTP chỉ được phép trong `src/services/http/`. Boundary check chặn secret trong source/bundle, SDK ngoài phạm vi, socket, telemetry và microphone. Build tạo `dist/`, không tự deploy.

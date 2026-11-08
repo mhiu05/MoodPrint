@@ -1,5 +1,8 @@
 import type { Evidence, Incident, TimelineEvent } from "../../types";
 export interface CaseDraft {
+  clientId?: string;
+  firstEventId?: string;
+  baseVersion?: number;
   title: string;
   template: string;
   perspective: Incident["perspective"];
@@ -75,9 +78,13 @@ export const statusLabels: Record<Incident["status"], string> = {
 export const provenanceLabels: Record<TimelineEvent["provenance"], string> = {
   user_entered: "Mình kể",
   mock_extracted: "Từ ảnh mẫu",
+  ai_extracted: "Từ phân tích AI",
   user_confirmed: "Đã xác nhận lại",
 };
 export const createCaseDraft = (item?: Partial<Incident>): CaseDraft => ({
+  clientId: item?.id,
+  firstEventId: item?.events?.[0]?.id,
+  baseVersion: item?.version,
   title: item?.title ?? "",
   template: item?.template ?? "TPL-FREE",
   perspective: item?.perspective ?? "self",
@@ -118,7 +125,7 @@ export const incidentFromDraft = (
   const when = draft.timePrecision === "unknown" ? "" : draft.occurredAt;
   const first: TimelineEvent = {
     ...(existing?.events[0] ?? {
-      id: `${id}-first`,
+      id: draft.firstEventId ?? `${id}-first`,
       caseId: id,
       provenance: "user_entered" as const,
       needsReview: false,
@@ -166,9 +173,56 @@ export const incidentFromDraft = (
     trustedPerson: draft.trustedPerson,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
+    version: draft.baseVersion ?? existing?.version,
     demo: true,
   };
 };
+export function mergeCaseEdits(
+  base: Incident,
+  edited: Incident,
+  latest: Incident,
+): Incident {
+  const merged = { ...latest };
+  const scalars = [
+    "title",
+    "template",
+    "perspective",
+    "summary",
+    "categoryTags",
+    "impactTags",
+    "status",
+    "people",
+    "place",
+    "occurredAt",
+    "tried",
+    "trustedPerson",
+  ] as const;
+  for (const key of scalars) {
+    if (JSON.stringify(base[key]) !== JSON.stringify(edited[key]))
+      Object.assign(merged, { [key]: edited[key] });
+  }
+  const events = new Map(latest.events.map((event) => [event.id, event]));
+  for (const event of base.events)
+    if (!edited.events.some((next) => next.id === event.id))
+      events.delete(event.id);
+  for (const event of edited.events) {
+    const previous = base.events.find((value) => value.id === event.id);
+    if (JSON.stringify(previous) !== JSON.stringify(event))
+      events.set(event.id, event);
+  }
+  merged.events = [...events.values()];
+  const removed = new Set(
+    base.evidenceIds.filter((id) => !edited.evidenceIds.includes(id)),
+  );
+  merged.evidenceIds = [
+    ...new Set([
+      ...latest.evidenceIds.filter((id) => !removed.has(id)),
+      ...edited.evidenceIds.filter((id) => !base.evidenceIds.includes(id)),
+    ]),
+  ];
+  return merged;
+}
+
 export const eventTime = (event: TimelineEvent): string =>
   event.timePrecision === "unknown" || !event.when
     ? "Chưa rõ thời gian"

@@ -9,12 +9,18 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
 import os
 import subprocess
 
 import asyncpg
-from safety import CLI_VERSION, ROOT, check_history, committed_migrations, load_hosted_env
+from safety import (
+    CLI_VERSION,
+    ROOT,
+    check_history,
+    committed_migrations,
+    load_hosted_env,
+    require_local_gate,
+)
 
 
 async def run(*, apply: bool) -> None:
@@ -49,12 +55,8 @@ async def run(*, apply: bool) -> None:
             text=True,
         )
         head = git_result.stdout.strip()
-        receipt_path = ROOT / ".local/phase0-gate.json"
-        receipt = json.loads(receipt_path.read_text()) if receipt_path.exists() else {}
-        if receipt.get("commit") != head or receipt.get("passed") is not True:
-            raise ValueError(
-                "A passing local Phase 0 gate receipt for HEAD is required before hosted apply"
-            )
+        phase = 1 if any("_f1_" in path.name for path in paths) else 0
+        require_local_gate(ROOT, head, phase=phase)
     command = [
         "npx.cmd" if os.name == "nt" else "npx",
         "--yes",

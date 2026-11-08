@@ -18,7 +18,100 @@ from moodprint_shared.config import AppConfig
 from moodprint_shared.env import EnvSettings
 
 
-async def run() -> None:
+def field(payload: dict, name: str):
+    camel = name.split("_")
+    camel = camel[0] + "".join(part.title() for part in camel[1:])
+    if name in payload:
+        return payload[name]
+    return payload[camel]
+
+
+async def phase1_workflow(api, upstream, auth_a, auth_b, base, storage_keys: list[str]) -> None:
+    case_id, evidence_id, plan_id, item_id = (str(uuid4()) for _ in range(4))
+    payload = b"S" * (1024 * 1024)
+    created = await api.post(
+        "/v1/cases",
+        headers=auth_a,
+        json={
+            "id": case_id,
+            "title": "Synthetic hosted case",
+            "template": "TPL-FREE",
+            "perspective": "self",
+            "summary": "Synthetic hosted smoke only.",
+            "status": "active",
+        },
+    )
+    if created.status_code != 200:
+        raise RuntimeError("Hosted case creation failed")
+    if (await api.get(f"/v1/cases/{case_id}", headers=auth_b)).status_code != 404:
+        raise RuntimeError("Hosted case isolation failed")
+    upload = await api.post(
+        "/v1/evidence/uploads",
+        headers=auth_a,
+        json={
+            "id": evidence_id,
+            "case_id": case_id,
+            "filename": "synthetic.bin",
+            "mime_type": "application/octet-stream",
+            "byte_size": len(payload),
+        },
+    )
+    if upload.status_code != 200:
+        raise RuntimeError("Hosted evidence init failed")
+    info = upload.json()["upload"]
+    key = field(info, "object_name")
+    storage_keys.append(key)
+    stored = await upstream.put(
+        base + "/storage/v1/object/upload/sign/" + field(info, "bucket_name") + "/" + key,
+        params={"token": info["token"]},
+        content=payload,
+        headers={"Content-Type": "application/octet-stream"},
+    )
+    if stored.status_code not in (200, 201):
+        raise RuntimeError("Hosted evidence upload failed")
+    completed = await api.post(f"/v1/evidence/{evidence_id}/complete", headers=auth_a)
+    completed_body = completed.json() if completed.content else {}
+    if completed.status_code != 200 or field(completed_body, "byte_size") != len(payload):
+        raise RuntimeError("Hosted evidence completion failed")
+    signed = await api.get(f"/v1/evidence/{evidence_id}/download-url", headers=auth_a)
+    if signed.status_code != 200:
+        raise RuntimeError("Hosted evidence download URL failed")
+    downloaded = await upstream.get(signed.json()["url"])
+    if downloaded.status_code != 200 or downloaded.content != payload:
+        raise RuntimeError("Hosted evidence download mismatch")
+    if (await api.get(f"/v1/evidence/{evidence_id}", headers=auth_b)).status_code != 404:
+        raise RuntimeError("Hosted evidence isolation failed")
+    plan = await api.put(
+        f"/v1/cases/{case_id}/plan",
+        headers=auth_a,
+        json={
+            "id": plan_id,
+            "goal": "Synthetic hosted plan",
+            "status": "active",
+            "items": [{"id": item_id, "label": "Synthetic step", "status": "not_started"}],
+        },
+    )
+    if plan.status_code != 200:
+        raise RuntimeError("Hosted plan creation failed")
+    ticked = await api.patch(
+        f"/v1/plans/{plan_id}/items/{item_id}",
+        headers=auth_a,
+        json={"status": "done"},
+    )
+    ticked_body = ticked.json() if ticked.content else {}
+    if ticked.status_code != 200 or field(ticked_body["items"][0], "status") != "done":
+        raise RuntimeError("Hosted plan item update failed")
+    if (await api.get(f"/v1/cases/{case_id}/plan", headers=auth_b)).status_code != 404:
+        raise RuntimeError("Hosted plan isolation failed")
+    if (await api.delete(f"/v1/evidence/{evidence_id}", headers=auth_a)).status_code != 204:
+        raise RuntimeError("Hosted evidence deletion failed")
+    storage_keys.remove(key)
+    if (await api.delete(f"/v1/cases/{case_id}", headers=auth_a)).status_code != 204:
+        raise RuntimeError("Hosted case deletion failed")
+    print("VERIFIED case, one-megabyte evidence, plan, isolation, and deletion")
+
+
+async def run(phase: str) -> None:
     values = {key: value for key, value in dotenv_values(ROOT / ".env").items() if value}
     admin_url = values.get("SUPABASE_DB_URL", "")
     runtime_url = values.get("DATABASE_URL", "")
@@ -123,6 +216,8 @@ async def run() -> None:
                     await gateway.delete(storage_keys)
                     storage_keys.clear()
                     print("VERIFIED private signed upload/download")
+                    if phase == "1":
+                        await phase1_workflow(api, upstream, auth_a, auth_b, base, storage_keys)
         finally:
             if storage_keys:
                 from app.infrastructure.storage_gateway import StorageGateway
@@ -140,11 +235,11 @@ async def run() -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--phase", choices=("0",), default="0")
-    parser.parse_args()
+    parser.add_argument("--phase", choices=("0", "1"), default="0")
+    args = parser.parse_args()
     try:
-        asyncio.run(run())
-    except ValueError as error:
+        asyncio.run(run(args.phase))
+    except (ValueError, RuntimeError) as error:
         print(str(error))
         return 1
     except Exception:

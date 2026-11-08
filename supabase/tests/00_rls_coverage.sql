@@ -4,7 +4,7 @@ set local search_path = public, extensions;
 select no_plan();
 
 select ok(exists(select 1 from pg_namespace where nspname='app'), 'domain schema exists');
-select is((select count(*)::int from pg_tables where schemaname='app'), 8, 'all eight Phase 0 domain tables exist');
+select is((select count(*)::int from pg_tables where schemaname='app'), 22, 'all Phase 0 and Phase 1 domain tables exist');
 select is((select count(*)::int from pg_tables where schemaname='agent_store'), 2, 'SDK tables exist');
 select ok(c.relrowsecurity, format('%I.%I enforces RLS', n.nspname,c.relname))
 from pg_class c join pg_namespace n on n.oid=c.relnamespace

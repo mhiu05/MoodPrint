@@ -4,6 +4,8 @@ Ngày: 2026-11-07. Branch: `feat/phase-0-foundation`. Implementation SHA: `b3ce8
 
 **VERIFIED — G0 đạt.** Các P0 trong `07` §3 đã được kiểm chứng local và hosted. Approval/recovery P1 cần cho G2 cũng có deterministic tests. Không coi đây là chứng nhận vận hành cho học sinh thật.
 
+Phase 1 sau đó được phép sửa frontend. Câu “frontend không đổi” chỉ đúng tới commit foundation, không còn đúng trên `feat/phase-1-backend`. Kết luận G0 không đổi. Bản hợp nhất: [phase-0-1-final-report.md](phase-0-1-final-report.md).
+
 ## Tasks và files
 
 | Task IDs | Trạng thái | Kết quả |

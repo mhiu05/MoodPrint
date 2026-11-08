@@ -14,15 +14,26 @@ from moodprint_shared.env import EnvSettings, get_settings
 from moodprint_shared.logging import configure_logging
 from sqlalchemy import text
 
+from app.api.v1 import knowledge_router
+from app.api.v1.cases import router as case_router
 from app.api.v1.conversations import router as conversation_router
+from app.api.v1.evidence import router as evidence_router
+from app.api.v1.knowledge_state import router as knowledge_state_router
 from app.api.v1.me import router as me_router
 from app.api.v1.memories import router as memory_router
+from app.api.v1.plans import router as plan_router
+from app.api.v1.school_access import router as school_access_router
+from app.api.v1.schools import router as school_router
+from app.api.v1.shares import router as share_router
+from app.api.v1.support_drafts import router as support_router
+from app.api.v1.trusted_contacts import router as contact_router
 from app.core.auth import JwtVerifier
 from app.core.db import create_engine
 from app.core.errors import envelope, register_handlers
 from app.core.request_id import RequestIdMiddleware
 from app.infrastructure.auth_admin import AuthAdmin
 from app.infrastructure.storage_gateway import StorageGateway
+from app.jobs.evidence import purge_loop
 from app.jobs.reconcile import reconcile_loop
 
 
@@ -60,12 +71,16 @@ def create_app(settings: EnvSettings | None = None, cfg: AppConfig | None = None
             reconciler = asyncio.create_task(
                 reconcile_loop(engine, cfg.api.reconcile_interval_s, cfg.api.stale_run_after_s)
             )
+            evidence_purger = asyncio.create_task(purge_loop(engine, app.state.storage))
             try:
                 yield
             finally:
                 reconciler.cancel()
+                evidence_purger.cancel()
                 with suppress(asyncio.CancelledError):
                     await reconciler
+                with suppress(asyncio.CancelledError):
+                    await evidence_purger
                 for task in list(app.state.run_tasks):
                     task.cancel()
                 await asyncio.gather(*app.state.run_tasks, return_exceptions=True)
@@ -119,4 +134,17 @@ def create_app(settings: EnvSettings | None = None, cfg: AppConfig | None = None
     app.include_router(me_router)
     app.include_router(memory_router)
     app.include_router(conversation_router)
+    for router in (
+        case_router,
+        plan_router,
+        evidence_router,
+        contact_router,
+        support_router,
+        knowledge_state_router,
+        share_router,
+        school_router,
+        school_access_router,
+        knowledge_router,
+    ):
+        app.include_router(router)
     return app

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -10,13 +11,15 @@ import {
   Sun,
   Sparkles,
 } from "lucide-react";
-import { useDemoStore } from "../../app/store";
+import { useWorkspaceStore } from "../../app/store";
+import { getServices } from "../../services/composition";
 import {
   Badge,
   Button,
   EmptyState,
   Progress,
   SectionHeading,
+  Notice,
 } from "../../components/ui";
 import { FlowerArt } from "../../components/layout/Brand";
 import { formatDate } from "../../lib/utils";
@@ -53,13 +56,15 @@ const statusLabels: Record<string, string> = {
   closed: "Đã tự đóng",
 };
 export function HomePage() {
-  const user = useDemoStore((s) => s.user);
-  const cases = useDemoStore((s) => s.cases)
+  const user = useWorkspaceStore((s) => s.user);
+  const demo = useWorkspaceStore((s) => s.workspace.kind === "demo");
+  const [pendingItem, setPendingItem] = useState("");
+  const [error, setError] = useState("");
+  const cases = useWorkspaceStore((s) => s.cases)
     .filter((c) => c.ownerId === user?.id)
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  const plans = useDemoStore((s) => s.plans);
-  const putPlan = useDemoStore((s) => s.putPlan);
-  const notify = useDemoStore((s) => s.notify);
+  const plans = useWorkspaceStore((s) => s.plans);
+  const notify = useWorkspaceStore((s) => s.notify);
   const plan =
     plans.find(
       (p) => cases.some((c) => c.id === p.caseId) && p.status !== "completed",
@@ -169,24 +174,30 @@ export function HomePage() {
                     <input
                       type="checkbox"
                       checked={item.status === "done"}
-                      disabled={plan.status === "paused"}
-                      onChange={() => {
-                        putPlan({
-                          ...plan,
-                          items: plan.items.map((i) =>
-                            i.id === item.id
-                              ? {
-                                  ...i,
-                                  status:
-                                    i.status === "done"
-                                      ? "not_started"
-                                      : "done",
-                                }
-                              : i,
-                          ),
-                          lastUpdated: new Date().toISOString(),
-                        });
-                        notify("Đã cập nhật bước trong kế hoạch demo.");
+                      disabled={plan.status === "paused" || !!pendingItem}
+                      onChange={async () => {
+                        setPendingItem(item.id);
+                        setError("");
+                        try {
+                          await getServices().plans.setItemStatus(
+                            plan.id,
+                            item.id,
+                            item.status === "done" ? "not_started" : "done",
+                          );
+                          notify(
+                            demo
+                              ? "Đã cập nhật bước trong kế hoạch demo."
+                              : "Đã cập nhật bước trong kế hoạch.",
+                          );
+                        } catch (cause) {
+                          setError(
+                            cause instanceof Error
+                              ? cause.message
+                              : "Chưa cập nhật được bước. Hãy thử lại.",
+                          );
+                        } finally {
+                          setPendingItem("");
+                        }
                       }}
                     />
                     <span
@@ -203,6 +214,7 @@ export function HomePage() {
                   {done}/{plan.items.length} bước bạn đã ghi hoàn thành
                 </p>
                 <Progress value={done} max={plan.items.length} />
+                {error && <Notice tone="error">{error}</Notice>}
               </>
             ) : (
               <>
@@ -262,7 +274,9 @@ export function HomePage() {
           variant="ghost"
           onClick={() =>
             notify(
-              "Bạn có thể tạm dừng và quay lại bất cứ lúc nào. Dữ liệu demo đã lưu trên trình duyệt này.",
+              demo
+                ? "Bạn có thể tạm dừng và quay lại bất cứ lúc nào. Dữ liệu demo đã lưu trên trình duyệt này."
+                : "Bạn có thể tạm dừng và quay lại bất cứ lúc nào. Những thay đổi đã lưu được giữ trong tài khoản của bạn.",
             )
           }
           aria-label="Về nhịp trải nghiệm của bạn"

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./helpers/fixtures";
 test("onboarding and mock account lead to four working tabs", async ({
   page,
 }) => {

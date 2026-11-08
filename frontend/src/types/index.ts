@@ -3,10 +3,11 @@ export interface DemoUser {
   id: string;
   nickname: string;
   ageBand: AgeBand;
-  demo: true;
+  demo?: boolean;
 }
 export type CaseStatus = "draft" | "active" | "monitoring" | "closed";
-export type Provenance = "user_entered" | "mock_extracted" | "user_confirmed";
+export type Provenance =
+  "user_entered" | "mock_extracted" | "ai_extracted" | "user_confirmed";
 export interface TimelineEvent {
   id: string;
   caseId: string;
@@ -21,8 +22,21 @@ export interface TimelineEvent {
 export interface Evidence {
   id: string;
   caseId?: string;
-  kind: "screenshot" | "text_note" | "pdf_placeholder";
-  origin: "mock_fixture" | "user_entered";
+  kind:
+    | "screenshot"
+    | "text_note"
+    | "pdf_placeholder"
+    | "image"
+    | "audio"
+    | "video"
+    | "document"
+    | "other";
+  origin: "mock_fixture" | "user_entered" | "user_upload";
+  uploadStatus?: "pending" | "uploaded" | "failed" | "deleting";
+  originalFilename?: string;
+  byteSize?: number;
+  storedMimeType?: string;
+  capturedAtLabel?: string;
   assetPath?: string;
   shownTimestamp: string;
   originalText: string;
@@ -32,6 +46,7 @@ export interface Evidence {
   limitations: string[];
 }
 export interface Incident {
+  version?: number;
   id: string;
   ownerId: string;
   title: string;
@@ -52,7 +67,7 @@ export interface Incident {
   trustedPerson: string;
   createdAt: string;
   updatedAt: string;
-  demo: true;
+  demo?: boolean;
 }
 export interface PlanItem {
   id: string;
@@ -63,6 +78,7 @@ export interface PlanItem {
   reason: string;
 }
 export interface ActionPlan {
+  version?: number;
   outcomeNotes?: string;
   id: string;
   caseId: string;
@@ -72,7 +88,7 @@ export interface ActionPlan {
   items: PlanItem[];
   nextReviewDate: string;
   lastUpdated: string;
-  demo: true;
+  demo?: boolean;
 }
 export interface ChatMessage {
   createdAt?: string;
@@ -118,6 +134,7 @@ export interface RoleplaySession {
   status: "active" | "paused" | "completed";
 }
 export interface SupportDraft {
+  version?: number;
   compose?: { purpose: string; detail: string; alias: string };
   id: string;
   ownerId: string;
@@ -128,7 +145,7 @@ export interface SupportDraft {
   status:
     "draft" | "prepared" | "demo_submitted" | "demo_reviewing" | "demo_closed";
   createdAt: string;
-  demo: true;
+  demo?: boolean;
 }
 export interface TrustedPerson {
   id: string;
@@ -176,5 +193,5 @@ export interface SchoolReport {
   summary: string;
   handledByRole: string;
   notes: string;
-  demo: true;
+  demo?: boolean;
 }

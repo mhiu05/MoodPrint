@@ -74,7 +74,9 @@ export function StudentShell() {
             <span>
               <strong>{user?.nickname}</strong>
               <br />
-              <span className="muted">Tài khoản demo</span>
+              <span className="muted">
+                {user?.demo ? "Tài khoản demo" : "Tài khoản của bạn"}
+              </span>
             </span>
             <Settings size={18} style={{ marginLeft: "auto" }} />
           </Link>

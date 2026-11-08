@@ -6,11 +6,12 @@ import {
   Mic,
   Sparkles,
 } from "lucide-react";
-import { useDemoStore } from "../../app/store";
+import { useWorkspaceStore } from "../../app/store";
 import {
   Badge,
   EmptyState,
   PageHeader,
+  Notice,
   SectionHeading,
 } from "../../components/ui";
 import { AgentStatusOrb } from "../../animations/AgentStatusOrb";
@@ -21,9 +22,10 @@ export { AnalysisPage } from "./analysis";
 export { RoleplayPage } from "./roleplay";
 
 export function AIHub() {
-  const user = useDemoStore((state) => state.user);
-  const chats = useDemoStore((state) => state.chats);
-  const roleplays = useDemoStore((state) => state.roleplays);
+  const real = useWorkspaceStore((state) => state.workspace.kind === "real");
+  const user = useWorkspaceStore((state) => state.user);
+  const chats = useWorkspaceStore((state) => state.chats);
+  const roleplays = useWorkspaceStore((state) => state.roleplays);
   const navigate = useNavigate();
   const mine = chats
     .filter((chat) => chat.ownerId === user?.id)
@@ -47,6 +49,12 @@ export function AIHub() {
           </div>
         }
       />
+      {real && (
+        <Notice>
+          AI mô phỏng · Chat, phân tích ảnh và luyện nói chỉ lưu trên thiết bị
+          này.
+        </Notice>
+      )}
       <div className="ai-entry-grid">
         <Link className="ai-entry ai-entry-chat" to="/ai/chat">
           <MessageCircle size={30} />
@@ -85,7 +93,11 @@ export function AIHub() {
           <FileImage size={24} />
           <div>
             <h3>Cùng xem 8 ảnh chụp mẫu</h3>
-            <p>Rà soát nguồn, sửa nội dung và xác nhận trước khi tạo hồ sơ.</p>
+            <p>
+              {real
+                ? "Rà soát nguồn và thử xác nhận nội dung; ảnh mẫu không lưu vào hồ sơ thật."
+                : "Rà soát nguồn, sửa nội dung và xác nhận trước khi tạo hồ sơ."}
+            </p>
           </div>
         </div>
         <button

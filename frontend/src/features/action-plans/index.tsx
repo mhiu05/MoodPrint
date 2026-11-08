@@ -14,7 +14,7 @@ import {
   Save,
   Trash2,
 } from "lucide-react";
-import { uid, useDemoStore } from "../../app/store";
+import { uid, useWorkspaceStore } from "../../app/store";
 import {
   Badge,
   Button,
@@ -25,8 +25,10 @@ import {
   Notice,
   PageHeader,
   Progress,
+  Skeleton,
 } from "../../components/ui";
-import { demoService } from "../../mocks/services/demo";
+import { getServices } from "../../services/composition";
+import { ApiError } from "../../services/http/client";
 import type { ActionPlan, Incident, PlanItem } from "../../types";
 import { mergePlanDraft, movePlanItem, validatePlan } from "./model";
 import "./plans.css";
@@ -155,15 +157,16 @@ function optionsFor(item: Incident): PlanOption[] {
   ];
 }
 function makePlan(item: Incident, option?: PlanOption): ActionPlan {
+  const demo = useWorkspaceStore.getState().workspace.kind === "demo";
   return {
-    id: uid("PLAN"),
+    id: demo ? uid("PLAN") : crypto.randomUUID(),
     caseId: item.id,
     goal: option?.title ?? "Chuẩn bị một bước nhỏ phù hợp với mình",
     chosenOptionId: option?.id ?? "manual",
     status: "draft",
     nextReviewDate: "",
     lastUpdated: new Date().toISOString(),
-    demo: true,
+    demo,
     items: (
       option?.labels ?? [
         "Ghi lại điều mình muốn thay đổi",
@@ -171,7 +174,7 @@ function makePlan(item: Incident, option?: PlanOption): ActionPlan {
         "Chuẩn bị bước nhỏ tiếp theo",
       ]
     ).map((label, index) => ({
-      id: uid("STEP"),
+      id: demo ? uid("STEP") : crypto.randomUUID(),
       label,
       status: "not_started",
       notes: "",
@@ -185,17 +188,70 @@ function makePlan(item: Incident, option?: PlanOption): ActionPlan {
 }
 export function PlanPage() {
   const { caseId } = useParams();
-  const item = useDemoStore((s) =>
+  const workspace = useWorkspaceStore((s) => s.workspace);
+  return (
+    <PlanWorkspace
+      key={`${workspace.kind}:${workspace.userId}:${caseId}`}
+      caseId={caseId}
+    />
+  );
+}
+function PlanWorkspace({ caseId }: { caseId?: string }) {
+  const kind = useWorkspaceStore((s) => s.workspace.kind);
+  const [loading, setLoading] = useState(kind === "real");
+  const [loadError, setLoadError] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  const item = useWorkspaceStore((s) =>
     s.cases.find((c) => c.id === caseId && c.ownerId === s.user?.id),
   );
-  const stored = useDemoStore((s) => s.plans.find((p) => p.caseId === caseId));
+  const stored = useWorkspaceStore((s) =>
+    s.plans.find((p) => p.caseId === caseId),
+  );
+  useEffect(() => {
+    if (kind !== "real" || !caseId) return;
+    let active = true;
+    void getServices()
+      .plans.getForCase(caseId)
+      .then(() => {
+        if (active) {
+          setLoading(false);
+          setLoadError("");
+        }
+      })
+      .catch((cause: unknown) => {
+        if (active) {
+          setLoading(false);
+          setLoadError(
+            cause instanceof Error ? cause.message : "Chưa tải được kế hoạch.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [caseId, kind, attempt]);
+  if (loading) return <Skeleton />;
+  if (loadError)
+    return (
+      <Notice tone="error">
+        {loadError}
+        <Button
+          onClick={() => {
+            setLoading(true);
+            setAttempt((value) => value + 1);
+          }}
+        >
+          Thử tải lại
+        </Button>
+      </Notice>
+    );
   if (!item)
     return (
       <>
         <PageHeader title="Chưa tìm thấy hồ sơ" back="/cases" />
         <EmptyState
           title="Kế hoạch cần gắn với một hồ sơ của bạn"
-          description="Mở hồ sơ trong tài khoản demo của bạn để tiếp tục."
+          description="Mở hồ sơ trong tài khoản của bạn để tiếp tục."
           action={<LinkButton to="/cases">Về danh sách hồ sơ</LinkButton>}
         />
       </>
@@ -203,6 +259,7 @@ export function PlanPage() {
   return <PlanEditor key={item.id} item={item} stored={stored} />;
 }
 function PlanEditor({ item, stored }: { item: Incident; stored?: ActionPlan }) {
+  const demo = useWorkspaceStore((s) => s.workspace.kind === "demo");
   const key = `moodprint-plan-draft-v1:${item.ownerId}:${item.id}`;
   const [initial] = useState(() => readPlanRecovery(key, stored));
   const [plan, setPlan] = useState<ActionPlan | null>(initial.plan);
@@ -212,6 +269,9 @@ function PlanEditor({ item, stored }: { item: Incident; stored?: ActionPlan }) {
   const [notReady, setNotReady] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [conflictRevision, setConflictRevision] = useState<ActionPlan | null>(
+    null,
+  );
   const [savedLabel, setSavedLabel] = useState("");
   const [editing, setEditing] = useState<PlanItem | null>(null);
   const [deleteStep, setDeleteStep] = useState<PlanItem | null>(null);
@@ -223,8 +283,12 @@ function PlanEditor({ item, stored }: { item: Incident; stored?: ActionPlan }) {
   const base = `/cases/${item.id}`;
   const options = optionsFor(item);
   const dirty = !!plan && JSON.stringify(plan) !== JSON.stringify(stored);
-  const conflict =
-    !!plan && JSON.stringify(baseRevision) !== JSON.stringify(stored ?? null);
+  const latest = conflictRevision ?? stored ?? null;
+  const sameRevision = (left: ActionPlan | null, right: ActionPlan | null) =>
+    left?.version !== undefined || right?.version !== undefined
+      ? left?.id === right?.id && left?.version === right?.version
+      : JSON.stringify(left) === JSON.stringify(right);
+  const conflict = !!plan && !sameRevision(baseRevision, latest);
   useEffect(() => {
     if (!plan || !dirty) return;
     try {
@@ -248,7 +312,11 @@ function PlanEditor({ item, stored }: { item: Incident; stored?: ActionPlan }) {
   };
   const choose = (option?: PlanOption) => {
     const next = makePlan(item, option);
-    setPlan({ ...next, id: plan?.id ?? stored?.id ?? next.id });
+    setPlan({
+      ...next,
+      id: plan?.id ?? stored?.id ?? next.id,
+      version: plan?.version ?? stored?.version,
+    });
     setNotReady(false);
     setChangeOptions(false);
     setError("");
@@ -258,8 +326,10 @@ function PlanEditor({ item, stored }: { item: Incident; stored?: ActionPlan }) {
     const next = target ?? plan;
     if (!next) return;
     const current =
-      useDemoStore.getState().plans.find((p) => p.caseId === item.id) ?? null;
-    if (JSON.stringify(baseRevision) !== JSON.stringify(current)) {
+      conflictRevision ??
+      useWorkspaceStore.getState().plans.find((p) => p.caseId === item.id) ??
+      null;
+    if (!sameRevision(baseRevision, current)) {
       setError(
         "Kế hoạch đã có cập nhật mới. Hãy đối chiếu tiến độ trước khi lưu; phần đang viết vẫn được giữ.",
       );
@@ -274,17 +344,40 @@ function PlanEditor({ item, stored }: { item: Incident; stored?: ActionPlan }) {
     setError("");
     const record = { ...next, lastUpdated: new Date().toISOString() };
     try {
-      await demoService.savePlan(record);
-      setPlan(record);
-      setBaseRevision(record);
+      const saved = await getServices().plans.save(record);
+      setPlan((current) =>
+        current && JSON.stringify(current) !== JSON.stringify(next)
+          ? {
+              ...current,
+              version: saved.version,
+              lastUpdated: saved.lastUpdated,
+            }
+          : saved,
+      );
+      setBaseRevision(saved);
+      setConflictRevision(null);
       try {
         sessionStorage.removeItem(key);
       } catch {
         /* State is saved. */
       }
-      setSavedLabel("Đã lưu trong demo. Home đã được cập nhật.");
-      useDemoStore.getState().notify("Đã lưu kế hoạch ứng phó demo.");
+      setSavedLabel(
+        demo
+          ? "Đã lưu trong demo. Home đã được cập nhật."
+          : "Đã lưu kế hoạch. Home đã được cập nhật.",
+      );
+      useWorkspaceStore
+        .getState()
+        .notify(
+          demo ? "Đã lưu kế hoạch ứng phó demo." : "Đã lưu kế hoạch ứng phó.",
+        );
     } catch (cause) {
+      if (
+        cause instanceof ApiError &&
+        cause.code === "version_conflict" &&
+        cause.details.latest
+      )
+        setConflictRevision(cause.details.latest as ActionPlan);
       setError(
         cause instanceof Error
           ? cause.message
@@ -345,9 +438,9 @@ function PlanEditor({ item, stored }: { item: Incident; stored?: ActionPlan }) {
             onClick={() => {
               if (plan)
                 setPlan(
-                  stored ? mergePlanDraft(baseRevision, plan, stored) : plan,
+                  latest ? mergePlanDraft(baseRevision, plan, latest) : plan,
                 );
-              setBaseRevision(stored ?? null);
+              setBaseRevision(latest);
               setError("");
             }}
           >
@@ -361,7 +454,7 @@ function PlanEditor({ item, stored }: { item: Incident; stored?: ActionPlan }) {
             <div>
               <h2>Bạn muốn bắt đầu theo cách nào?</h2>
               <p className="muted">
-                Ba phương án gợi ý từ tình huống mẫu. Không có lựa chọn nào bắt
+                Ba phương án gợi ý để bạn cân nhắc. Không có lựa chọn nào bắt
                 buộc.
               </p>
             </div>
@@ -503,7 +596,7 @@ function PlanEditor({ item, stored }: { item: Incident; stored?: ActionPlan }) {
                   onClick={() => {
                     setEditError("");
                     setEditing({
-                      id: uid("STEP"),
+                      id: demo ? uid("STEP") : crypto.randomUUID(),
                       label: "",
                       status: "not_started",
                       notes: "",
@@ -762,7 +855,7 @@ function PlanEditor({ item, stored }: { item: Incident; stored?: ActionPlan }) {
               </div>
             </section>
             <Notice>
-              Đây là gợi ý từ dữ liệu mẫu. Không cần tự đối đầu hay thu thập
+              Đây là gợi ý để bạn cân nhắc. Không cần tự đối đầu hay thu thập
               thêm thông tin nếu bạn thấy không an toàn.
             </Notice>
             <div className="plan-related-links">
@@ -809,7 +902,13 @@ function PlanEditor({ item, stored }: { item: Incident; stored?: ActionPlan }) {
       )}
       {plan && !changeOptions && (
         <div className="plan-mobile-save">
-          <span>{dirty ? "Thay đổi chưa lưu" : "Đã lưu trong demo"}</span>
+          <span>
+            {dirty
+              ? "Thay đổi chưa lưu"
+              : demo
+                ? "Đã lưu trong demo"
+                : "Đã lưu kế hoạch"}
+          </span>
           <Button
             disabled={saving || !dirty || conflict}
             onClick={() => void save()}

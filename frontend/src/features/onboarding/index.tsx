@@ -80,7 +80,7 @@ export function WelcomePage() {
         </div>
         <small>
           <ShieldCheck size={15} />
-          Prototype chỉ dùng dữ liệu giả lập, không gửi thông tin ra ngoài.
+          Chỉ dùng nội dung hư cấu. AI và luyện nói đang được mô phỏng.
         </small>
       </footer>
     </main>

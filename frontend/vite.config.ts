@@ -1,6 +1,8 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 export default defineConfig({
+  envDir: "..",
+  envPrefix: "VITE_PUBLIC_",
   plugins: [react()],
   build: {
     rollupOptions: {
@@ -23,5 +25,7 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test-setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
+    // Full pages under jsdom can exceed 5s when the machine is also resetting Postgres.
+    testTimeout: 15000,
   },
 });

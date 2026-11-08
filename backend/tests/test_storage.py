@@ -55,3 +55,21 @@ async def test_storage_error_hides_upstream_body(settings):
         with pytest.raises(Exception) as error:
             await gateway.create_upload_token(original_key(OWNER, EVIDENCE, None))
     assert "sensitive-upstream-detail" not in str(error.value)
+
+
+async def test_object_info_maps_storage_snake_case_fields(settings):
+    # Shape observed from local Storage v1.84.19, including metadata=null.
+    payload = {
+        "size": 23,
+        "content_type": "application/octet-stream",
+        "etag": "actual-etag",
+        "metadata": None,
+    }
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(lambda request: httpx.Response(200, json=payload))
+    ) as client:
+        gateway = StorageGateway(settings, AppConfig(), client)
+        info = await gateway.object_info(original_key(OWNER, EVIDENCE, None))
+    assert info.byte_size == 23
+    assert info.mime_type == "application/octet-stream"
+    assert info.etag == "actual-etag"
