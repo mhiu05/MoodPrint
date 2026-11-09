@@ -219,7 +219,10 @@ async def test_a_failing_retriever_ends_the_run_cleanly_without_a_citation(
     db_engine, identities, admin, published_corpus, failure
 ):
     """IT-05: the run finishes inside the budget, the tool reports failure, and nothing is cited."""
-    auth, _, service, _, conversation = await world(db_engine, identities)
+    auth, _, _, _, conversation = await world(db_engine, identities)
+    # The service's config decides the per-turn knowledge budget, the runtime's config the tools:
+    # give both the same short budget so a failing retriever is observable in about a second.
+    service = ConversationService(db_engine, fast_failure_config())
     engines = []
     if failure == "database_down":
         engine = create_async_engine(
