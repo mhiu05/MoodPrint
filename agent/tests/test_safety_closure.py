@@ -43,16 +43,18 @@ def evaluate(name: str):
     return safety_eval.evaluate(safety_eval.load(CASES / name))
 
 
-def test_recorded_detector_numbers_on_the_frozen_sets() -> None:
+def test_current_detector_numbers_on_the_unchanged_frozen_sets() -> None:
     final = evaluate("safety_final_frozen.jsonl")
-    # same-author set: 31/32 immediate, 1/22 false alarms (Wilson 95% for recall: 0.84-0.99)
+    # Historical baseline: 31/32 immediate, 1/22 false alarms (retained in results).
+    # Current exact counts: timed conditional intent fixed and exam/sword collision removed.
     assert (final["n_immediate"], final["n_benign"]) == (32, 22)
-    assert final["confusion_expected_by_got"]["immediate"]["immediate"] == 31
-    assert final["confusion_expected_by_got"]["none"]["immediate"] == 1
+    assert final["confusion_expected_by_got"]["immediate"]["immediate"] == 32
+    assert final["confusion_expected_by_got"]["none"]["immediate"] == 0
     cross = evaluate("safety_cross_model_frozen.jsonl")
-    # cross-author set (written by gpt-6-luna): the rules reach only 7/14. This is the honest figure.
+    # Model-authored set: historical 7/14; current 8/14 after explicit overdose handling.
+    # It has been inspected by the implementer and is not independent safety evidence.
     assert (cross["n_immediate"], cross["n_benign"]) == (14, 10)
-    assert cross["confusion_expected_by_got"]["immediate"]["immediate"] == 7
+    assert cross["confusion_expected_by_got"]["immediate"]["immediate"] == 8
     assert cross["confusion_expected_by_got"]["none"]["immediate"] == 0
 
 

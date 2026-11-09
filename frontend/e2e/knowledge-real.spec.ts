@@ -35,6 +35,21 @@ test("E-KB-01 real search, citations, diacritics, empty, retry, and layout", asy
       page.getByTestId("knowledge-live").getByTestId("retrieved-result"),
     ).toHaveCount(0);
 
+    // Related school-safety cards cannot establish a missing exact legal fact.
+    for (const unsupported of [
+      "Mức phạt tiền khi học sinh đánh bạn là bao nhiêu?",
+      "Luật chống bắt nạt ở Canada quy định gì?",
+    ]) {
+      await search.fill(unsupported);
+      await expect(page.getByText("Chưa tìm thấy nguồn phù hợp")).toBeVisible();
+      await expect(
+        page.getByTestId("knowledge-live").getByTestId("retrieved-result"),
+      ).toHaveCount(0);
+      await expect(
+        page.getByText(/Kho tri thức hiện tại chưa có đủ thông tin/),
+      ).toBeVisible();
+    }
+
     await page.route("**/v1/knowledge/search**", (route) =>
       route.fulfill({
         status: 502,

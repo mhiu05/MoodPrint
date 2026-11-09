@@ -232,3 +232,59 @@ def test_voyage_command_stops_before_a_client_when_the_budget_refuses(
     monkeypatch.setattr("moodprint_agent.knowledge.ingest.commands.reserve", refuse)
     monkeypatch.setattr("moodprint_agent.knowledge.ingest.commands.VoyageEmbedder", explode)
     assert main(["embed", "--build", str(build), "--embedder", "voyage"]) == 3
+
+
+def test_voyage_embed_requires_existing_cumulative_ledger(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    manifest = _corpus(tmp_path / "corpus")
+    build = tmp_path / "build"
+    assert main(["build", "--manifest", str(manifest), "--out", str(build)]) == 0
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        "moodprint_agent.knowledge.ingest.commands._voyage_key", lambda: "synthetic-key"
+    )
+
+    def unexpected(*args, **kwargs):
+        raise AssertionError("missing ledger must fail before provider construction")
+
+    monkeypatch.setattr("moodprint_agent.knowledge.ingest.commands.VoyageEmbedder", unexpected)
+    assert main(["embed", "--build", str(build), "--embedder", "voyage"]) == 3
+    assert not (tmp_path / ".local/voyage-ledger.json").exists()
+
+
+def test_embed_timeout_keeps_conservative_cost(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from types import SimpleNamespace
+
+    from moodprint_shared.contracts.errors import KnowledgeTimeout
+
+    manifest = _corpus(tmp_path / "corpus")
+    build = tmp_path / "build"
+    assert main(["build", "--manifest", str(manifest), "--out", str(build)]) == 0
+    monkeypatch.chdir(tmp_path)
+    initial = reserve(1)
+    commit(initial, 0)
+    monkeypatch.setattr(
+        "moodprint_agent.knowledge.ingest.commands._voyage_key", lambda: "synthetic-key"
+    )
+
+    class TimeoutEmbedder:
+        attempts = 1
+        settlement_tokens = None
+        usage = SimpleNamespace(total_tokens=0, usd=0)
+
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def embed_documents(self, batch):
+            raise KnowledgeTimeout()
+
+        async def aclose(self):
+            pass
+
+    monkeypatch.setattr("moodprint_agent.knowledge.ingest.commands.VoyageEmbedder", TimeoutEmbedder)
+    with pytest.raises(KnowledgeTimeout):
+        main(["embed", "--build", str(build), "--embedder", "voyage"])
+    assert float(snapshot()["spent_usd"]) > 0

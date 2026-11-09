@@ -134,7 +134,7 @@ export function LiveKnowledgeSearch({
         {status === "ready" && result?.chunks.length === 0 && (
           <EmptyState
             title="Chưa tìm thấy nguồn phù hợp"
-            description="Thử bỏ bớt bộ lọc hoặc dùng từ khác. Bài trong thư viện mẫu vẫn nằm ở danh sách bên dưới."
+            description="Kho tri thức hiện tại chưa có đủ thông tin cho câu hỏi này. Bạn có thể kiểm tra nguồn chính thức hoặc hỏi thầy cô, nhà trường. Nếu cần, thử dùng từ khác hoặc bỏ bớt bộ lọc."
           />
         )}
         {status === "ready" &&

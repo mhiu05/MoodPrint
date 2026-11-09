@@ -19,6 +19,7 @@ from moodprint_shared.contracts.knowledge import (
     RetrievalScope,
     SourceCitation,
 )
+from moodprint_shared.knowledge_support import assess_support
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
@@ -191,7 +192,7 @@ class PgVectorKnowledgeRetriever:
         degraded = collected.degraded
         version = collected.version
         scored = score_hits(
-            collected.hits,
+            self._supported_hits(query, collected.hits),
             self.cfg,
             top_k=query.top_k,
             lexical_only=degraded or not collected.has_vector,
@@ -209,6 +210,9 @@ class PgVectorKnowledgeRetriever:
         mode = "lexical" if degraded else "hybrid"
         observation = RetrievalObservation(degraded, mode, version)
         return self._result(chunks, started, version), observation
+
+    def _supported_hits(self, query: KnowledgeQuery, hits: list[RawHit]) -> list[RawHit]:
+        return [hit for hit in hits if assess_support(query.text, hit).supported]
 
     async def collect(self, query: KnowledgeQuery, scope: RetrievalScope) -> Collected | None:
         """Embed, read candidates from both branches and attach raw scores. No gating.

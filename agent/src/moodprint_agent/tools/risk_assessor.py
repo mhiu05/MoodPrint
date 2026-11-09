@@ -24,7 +24,7 @@ from typing import Any, Final, Literal, Protocol, cast
 
 from moodprint_shared.config import AppConfig
 from openai import AsyncOpenAI, OpenAIError
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 from moodprint_agent.companion import load_prompt
 from moodprint_agent.tools.safety import (
@@ -55,9 +55,13 @@ class ModelRisk(BaseModel):
 class AssessorFailed(Exception):
     """``code`` is one of timeout, refusal, upstream_error, unreadable_output."""
 
-    def __init__(self, code: str) -> None:
+    def __init__(
+        self, code: str, *, usage: dict[str, int] | None = None, latency_ms: int = 0
+    ) -> None:
         super().__init__(code)
         self.code = code
+        self.usage = usage or {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+        self.latency_ms = latency_ms
 
 
 @dataclass(frozen=True, slots=True)
@@ -113,22 +117,26 @@ class OpenAIRiskAssessor:
             raise AssessorFailed("timeout") from None
         except OpenAIError:
             raise AssessorFailed("upstream_error") from None
+        except (ValidationError, json.JSONDecodeError):
+            raise AssessorFailed("unreadable_output") from None
+        usage = response.usage
+        tokens = {
+            "input_tokens": usage.input_tokens if usage else 0,
+            "output_tokens": usage.output_tokens if usage else 0,
+            "total_tokens": usage.total_tokens if usage else 0,
+        }
+        latency = int((asyncio.get_running_loop().time() - started) * 1000)
         for item in cast(list[Any], getattr(response, "output", None) or []):
             for part in cast(list[Any], getattr(item, "content", None) or []):
                 if getattr(part, "type", "") == "refusal":
-                    raise AssessorFailed("refusal")
+                    raise AssessorFailed("refusal", usage=tokens, latency_ms=latency)
         parsed = response.output_parsed
         if parsed is None:
-            raise AssessorFailed("unreadable_output")
-        usage = response.usage
+            raise AssessorFailed("unreadable_output", usage=tokens, latency_ms=latency)
         return AssessorResult(
             risk=parsed,
-            usage={
-                "input_tokens": usage.input_tokens if usage else 0,
-                "output_tokens": usage.output_tokens if usage else 0,
-                "total_tokens": usage.total_tokens if usage else 0,
-            },
-            latency_ms=int((asyncio.get_running_loop().time() - started) * 1000),
+            usage=tokens,
+            latency_ms=latency,
         )
 
 
@@ -165,17 +173,27 @@ def _as_assessment(risk: ModelRisk) -> UrgencyAssessment:
 
 
 async def hybrid_assess(
-    messages: Sequence[str], assessor: RiskAssessor | None, *, skip_when_immediate: bool = True
+    messages: Sequence[str],
+    assessor: RiskAssessor | None,
+    *,
+    skip_when_immediate: bool = True,
+    timeout_s: float = DEFAULT_TIMEOUT_S,
 ) -> HybridResult:
     """Deterministic floor first; the model may only raise it; a failure is never "safe"."""
     deterministic = assess_conversation(messages)
     empty_usage = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
     if assessor is None or (skip_when_immediate and deterministic.immediate):
         return HybridResult(deterministic, deterministic, None, None, False, empty_usage, 0)
+    started = asyncio.get_running_loop().time()
     try:
-        result = await assessor.assess(messages)
-    except (AssessorFailed, Exception) as caught:  # CancelledError is a BaseException: not caught
-        exc = caught if isinstance(caught, AssessorFailed) else AssessorFailed("internal_error")
+        async with asyncio.timeout(timeout_s):
+            result = await assessor.assess(messages)
+    except Exception as caught:  # CancelledError is a BaseException: not caught
+        exc = (
+            caught
+            if isinstance(caught, AssessorFailed)
+            else AssessorFailed("timeout" if isinstance(caught, TimeoutError) else "internal_error")
+        )
         floor = deterministic
         if exc.code == "refusal":
             # A model that declines to read a student's message is itself a reason to look closer.
@@ -184,7 +202,15 @@ async def hybrid_assess(
             floor = combine(
                 floor, UrgencyAssessment("elevated", (f"classifier_{exc.code}", "wide_net"))
             )
-        return HybridResult(floor, deterministic, None, exc.code, True, empty_usage, 0)
+        return HybridResult(
+            floor,
+            deterministic,
+            None,
+            exc.code,
+            True,
+            exc.usage,
+            max(exc.latency_ms, int((asyncio.get_running_loop().time() - started) * 1000)),
+        )
     merged = combine(deterministic, _as_assessment(result.risk))
     return HybridResult(
         merged, deterministic, result.risk, None, True, result.usage, result.latency_ms

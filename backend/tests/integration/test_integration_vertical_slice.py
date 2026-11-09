@@ -168,6 +168,21 @@ async def test_real_retrieval_checked_citations_approval_isolation_and_restore(
     assert ungrounded["citations"] == []
     assert "[S1]" not in ungrounded["content"]
 
+    # The model may generalize away the requested number. The user's requirements
+    # still bind the real retriever's evidence and final saved assistant message.
+    await run_turn(
+        service,
+        auth,
+        conversation,
+        knowledge_turn("bạo lực học đường", "Theo nguồn, mức phạt là 9000000 đồng [S1]."),
+        retriever,
+        "Mức phạt tiền khi học sinh đánh bạn là bao nhiêu?",
+    )
+    unsupported = (await assistant_rows(admin, conversation))[-1]
+    assert unsupported["citations"] == []
+    assert "9000000" not in unsupported["content"]
+    assert "chưa có đủ thông tin" in unsupported["content"]
+
     # 3. Case context and an AI proposal: nothing is written before the bound approval.
     await propose_via_agent(service, auth, case.id, conversation)
     (proposal,) = await rows(

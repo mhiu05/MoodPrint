@@ -17,6 +17,7 @@ from moodprint_shared.contracts.knowledge import (
     KnowledgeQuery,
     RetrievalScope,
 )
+from moodprint_shared.knowledge_support import assess_support, requires_specific_support
 
 from moodprint_agent.tools.context import CompanionToolContext
 from moodprint_agent.tools.registry import ToolSpec
@@ -25,7 +26,7 @@ TEXT_LIMIT: Final = 700
 _EMAIL: Final = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 _URL: Final = re.compile(r"(?:https?://|www\.)\S+", re.IGNORECASE)
 _PHONE: Final = re.compile(r"(?<!\w)(?:\+?\d[\d .-]{7,}\d)(?!\w)")
-NO_RESULTS_HINT: Final = "Không có nguồn phù hợp; đừng trích dẫn và đừng đưa liên kết."
+NO_RESULTS_HINT: Final = "Kho tri thức chưa có đủ thông tin; đừng trích dẫn và đừng đưa liên kết. Không tự suy ra số tiền, thời hạn, quy định hay thủ tục. Gợi ý kiểm tra nguồn chính thức hoặc hỏi người có thẩm quyền."
 
 
 def mask_identifiers(text: str) -> str:
@@ -51,6 +52,10 @@ async def knowledge_search(
     masked = mask_identifiers(query)[:1000]
     if not masked:
         return {"status": "error", "error": {"code": "empty_query", "retryable": False}}
+    question = mask_identifiers(
+        context.knowledge_question or context.scratch.knowledge_question or masked
+    )
+    context.scratch.knowledge_requires_support |= requires_specific_support(question)
     request = KnowledgeQuery(
         text=masked,
         filters=KnowledgeFilters(
@@ -82,7 +87,13 @@ async def knowledge_search(
         # Never leak the provider's message; the run keeps going without sources.
         return {"status": "error", "error": {"code": "knowledge_unavailable", "retryable": True}}
 
-    if result.status == "no_results" or not result.chunks:
+    supported = [
+        c
+        for c in result.chunks
+        if assess_support(masked, c).supported and assess_support(question, c).supported
+    ]
+    if result.status == "no_results" or not supported:
+        context.scratch.knowledge_abstained = True
         return {
             "status": "no_results",
             "corpusVersion": result.corpus_version,
@@ -90,7 +101,9 @@ async def knowledge_search(
             "hint": NO_RESULTS_HINT,
         }
     items: list[dict[str, Any]] = []
-    for chunk in result.chunks:
+    context.scratch.knowledge_supported = True
+    context.scratch.knowledge_abstained = False
+    for chunk in supported:
         citation = chunk.citation
         ref = context.scratch.register_citation(citation)
         items.append(

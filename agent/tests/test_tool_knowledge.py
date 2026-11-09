@@ -349,3 +349,83 @@ async def test_elevated_turn_adds_a_safety_signal_to_instructions_only() -> None
     assert ctx.safety_hint is not None
     assert "111" not in done.content
     assert done.structured is not None and done.structured.urgency == "elevated"
+
+
+async def test_original_question_requirements_survive_model_query_generalization() -> None:
+    ctx = make_ctx(
+        StubRetriever(trap_result("Giữ bằng chứng và báo giáo viên.")),
+        knowledge_question="Mức phạt tiền khi đánh bạn là bao nhiêu?",
+    )
+    out = await run_search(ctx, query="bạo lực học đường", topics=["legal-vn"])
+    assert out["status"] == "no_results"
+    assert ctx.scratch.citations == {}
+    assert ctx.scratch.knowledge_abstained
+
+
+async def test_known_insufficient_result_replaces_fabricated_exact_answer() -> None:
+    model = ScriptedModel(
+        [
+            ModelStep(
+                output=[function_call("knowledge_search", {"query": "bạo lực"}, call_id="k1")],
+                usage=usage(),
+            ),
+            ModelStep(
+                output=[assistant_message("Bạn sẽ nhận chính xác 9000000 đồng theo luật [S1].")],
+                usage=usage(),
+            ),
+        ]
+    )
+    ctx = make_ctx(StubRetriever(trap_result("Hãy nhờ người lớn hỗ trợ.")))
+    events = await collect(scripted_runtime(model), ctx, "Bồi thường bao nhiêu tiền khi bị đánh?")
+    done = next(e.data for e in events if e.event == "message.completed")
+    assert "9000000" not in done.content
+    assert "chưa có đủ thông tin" in done.content
+    assert "nguồn chính thức" in done.content
+    assert done.citations == []
+    assert all("9000000" not in e.data.text for e in events if e.event == "message.delta")
+
+
+async def test_specific_fact_without_any_search_also_abstains() -> None:
+    model = ScriptedModel(
+        [ModelStep(output=[assistant_message("Mức phạt là 9000000 đồng.")], usage=usage())]
+    )
+    ctx = make_ctx(FixtureKnowledgeRetriever())
+    events = await collect(scripted_runtime(model), ctx, "Mức phạt tiền đánh bạn bao nhiêu?")
+    done = next(e.data for e in events if e.event == "message.completed")
+    assert "9000000" not in done.content
+    assert "chưa có đủ thông tin" in done.content
+    assert done.citations == []
+
+
+def test_abstention_checkpoint_survives_approval_serialization() -> None:
+    scratch = RunScratch(knowledge_requires_support=True, knowledge_abstained=True)
+    restored = RunScratch.from_snapshot(scratch.snapshot())
+    resolved = resolve_citations("Phạt 9000000 đồng [S1].", restored)
+    assert "9000000" not in resolved.content
+    assert resolved.citations == ()
+
+
+async def test_specific_supported_chunk_is_still_citable() -> None:
+    result = trap_result("Tổng đài Quốc gia bảo vệ trẻ em 111 hoạt động miễn phí 24/24.")
+    ctx = make_ctx(
+        StubRetriever(result), knowledge_question="Số điện thoại tổng đài bảo vệ trẻ em là số nào?"
+    )
+    out = await run_search(ctx, query="tổng đài 111")
+    assert out["status"] == "ok"
+    assert ctx.scratch.knowledge_supported
+    assert list(ctx.scratch.citations) == ["S1"]
+
+
+async def test_original_evidence_question_survives_an_approval_checkpoint() -> None:
+    original = make_ctx(
+        StubRetriever(trap_result("Báo giáo viên và giữ bằng chứng.")),
+        knowledge_question="Đánh bạn bị phạt bao nhiêu tiền?",
+    )
+    # Runtime checkpoints carry the scratch, even when approval interrupted before lookup.
+    original.scratch.knowledge_question = original.knowledge_question
+    restored = make_ctx(StubRetriever(trap_result("Báo giáo viên và giữ bằng chứng.")))
+    restored.scratch = RunScratch.from_snapshot(original.scratch.snapshot())
+    out = await run_search(restored, query="bạo lực học đường")
+    assert out["status"] == "no_results"
+    assert not restored.scratch.knowledge_supported
+    assert restored.scratch.citations == {}

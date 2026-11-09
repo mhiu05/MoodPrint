@@ -90,6 +90,10 @@ class RunScratch:
     proposals: dict[str, str] = field(default_factory=dict[str, str])
     memory_candidates: int = 0
     assessment: dict[str, Any] | None = None
+    knowledge_question: str | None = None
+    knowledge_requires_support: bool = False
+    knowledge_abstained: bool = False
+    knowledge_supported: bool = False
 
     def register_citation(self, citation: SourceCitation) -> str:
         """Return the stable ``S<n>`` ref for a retrieved citation, creating it on first use."""
@@ -106,6 +110,10 @@ class RunScratch:
             "proposals": dict(self.proposals),
             "memory_candidates": self.memory_candidates,
             "assessment": self.assessment,
+            "knowledge_question": self.knowledge_question,
+            "knowledge_requires_support": self.knowledge_requires_support,
+            "knowledge_abstained": self.knowledge_abstained,
+            "knowledge_supported": self.knowledge_supported,
         }
 
     @classmethod
@@ -119,6 +127,11 @@ class RunScratch:
         scratch.assessment = (
             cast(dict[str, Any], assessment) if isinstance(assessment, dict) else None
         )
+        question = data.get("knowledge_question")
+        scratch.knowledge_question = question if isinstance(question, str) else None
+        scratch.knowledge_requires_support = bool(data.get("knowledge_requires_support", False))
+        scratch.knowledge_abstained = bool(data.get("knowledge_abstained", False))
+        scratch.knowledge_supported = bool(data.get("knowledge_supported", False))
         return scratch
 
 
@@ -131,6 +144,8 @@ class CompanionToolContext(AgentToolContext):
     mode: str = field(kw_only=True, default="companion")
     tool_call_id: str | None = field(kw_only=True, default=None)
     knowledge_timeout_s: float = field(kw_only=True, default=7.0)
+    # Original user question stays local; never send identifiers via a model-written query.
+    knowledge_question: str | None = field(kw_only=True, default=None)
     safety_hint: str | None = field(kw_only=True, default=None)
     # System-written, per-turn instruction derived from the user's own message (e.g. a clear save request).
     turn_hint: str | None = field(kw_only=True, default=None)

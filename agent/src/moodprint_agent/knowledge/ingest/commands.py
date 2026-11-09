@@ -28,6 +28,7 @@ from moodprint_agent.knowledge.ingest.acquire import fetch_source
 from moodprint_agent.knowledge.ingest.budget import (
     BudgetBlocked,
     commit,
+    default_ledger_path,
     release,
     reserve,
 )
@@ -189,7 +190,11 @@ async def embed_build(args: argparse.Namespace) -> int:
     settled = False
     try:
         if embedder_name == "voyage":
-            estimated = sum(estimate_tokens(text) for text in texts)
+            ledger = default_ledger_path()
+            if not ledger.is_file() or not ledger.with_suffix(".jsonl").is_file():
+                raise BudgetBlocked("existing cumulative Voyage ledger and log required")
+            # Byte bound includes every possible retry; cached documents cost zero at settlement.
+            estimated = sum(len(text.encode("utf-8")) for text in texts) * 5
             reservation = reserve(max(estimated, 1))
             voyage = VoyageEmbedder(_voyage_key(), cfg, cache=cache)
             batch_size = cfg.ingest_batch_size
@@ -207,7 +212,7 @@ async def embed_build(args: argparse.Namespace) -> int:
                 input_type="document",
                 batch_size=batch_size,
             )
-            commit(reservation, voyage.usage.total_tokens)
+            commit(reservation, voyage.settlement_tokens)
             settled = True
             tokens = voyage.usage.total_tokens
             usd = voyage.usage.usd
@@ -256,7 +261,10 @@ async def embed_build(args: argparse.Namespace) -> int:
         return 1
     finally:
         if reservation is not None and not settled:
-            release(reservation)
+            if voyage is not None and voyage.attempts:
+                commit(reservation, voyage.settlement_tokens)
+            else:
+                release(reservation)
         cache.close()
         if voyage is not None:
             await voyage.aclose()

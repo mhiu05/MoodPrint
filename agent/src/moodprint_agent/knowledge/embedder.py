@@ -79,6 +79,8 @@ class HashingEmbedder:
     def __init__(self, dims: int = 1024) -> None:
         self.dims = dims
         self.usage = EmbedUsage()
+        self.attempts = 0
+        self._unknown_usage = False
 
     def _vector(self, text: str) -> list[float]:
         folded = fold_vietnamese(text) or " "
@@ -162,10 +164,19 @@ class VoyageEmbedder:
         self.cfg = cfg
         self.cache = cache
         self.usage = EmbedUsage()
+        self.attempts = 0
+        self._unknown_usage = False
         self._client = client
         self._owns_client = client is None
         self._sleep = sleeper or _async_sleep
         self._rng = rng or random.Random(0)
+
+    @property
+    def settlement_tokens(self) -> int | None:
+        """Unknown/retried billing keeps the full conservative ledger reservation."""
+        if self._unknown_usage or self.attempts != self.usage.calls:
+            return None
+        return self.usage.total_tokens
 
     async def aclose(self) -> None:
         if self._owns_client and self._client is not None:
@@ -220,10 +231,13 @@ class VoyageEmbedder:
                 )
             usage = body.get("usage")
             tokens = 0
+            known_usage = False
             if isinstance(usage, dict):
                 raw_tokens = cast(dict[str, object], usage).get("total_tokens")
-                if isinstance(raw_tokens, int):
+                if type(raw_tokens) is int and raw_tokens >= 0:
                     tokens = raw_tokens
+                    known_usage = True
+            self._unknown_usage |= not known_usage
             self.usage.add(tokens)
             log.info(
                 "embed_batch",
@@ -257,6 +271,7 @@ class VoyageEmbedder:
         last_status = 0
         for attempt in range(_MAX_ATTEMPTS):
             try:
+                self.attempts += 1
                 response = await client.post(
                     VOYAGE_URL,
                     json=payload,

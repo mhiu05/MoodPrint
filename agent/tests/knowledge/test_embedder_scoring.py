@@ -140,3 +140,50 @@ async def _instant(_seconds: float) -> None:
 def test_cache_key_uses_text_hash_not_the_raw_string(tmp_path) -> None:
     digest = hashlib.sha256(b"hello").hexdigest()
     assert len(digest) == 64
+
+
+def test_unknown_provider_attempts_are_not_zero_cost() -> None:
+    import asyncio
+
+    import httpx
+    from moodprint_agent.knowledge.embedder import VoyageEmbedder
+    from moodprint_shared.config import KnowledgeConfig
+    from moodprint_shared.contracts.errors import KnowledgeTimeout
+
+    async def once():
+        def timeout(request):
+            raise httpx.ReadTimeout("synthetic timeout", request=request)
+
+        async def no_wait(seconds):
+            pass
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(timeout)) as client:
+            embedder = VoyageEmbedder(
+                "synthetic-key", KnowledgeConfig(), client=client, sleeper=no_wait
+            )
+            with pytest.raises(KnowledgeTimeout):
+                await embedder.embed_query("synthetic input")
+            assert embedder.attempts == 5
+            assert embedder.settlement_tokens is None
+
+    asyncio.run(once())
+
+
+def test_success_without_usage_is_still_unknown_cost() -> None:
+    import asyncio
+
+    import httpx
+    from moodprint_agent.knowledge.embedder import VoyageEmbedder
+    from moodprint_shared.config import KnowledgeConfig
+
+    async def once():
+        async with httpx.AsyncClient(
+            transport=httpx.MockTransport(
+                lambda request: httpx.Response(200, json={"data": [{"embedding": [0.0] * 1024}]})
+            )
+        ) as client:
+            embedder = VoyageEmbedder("synthetic-key", KnowledgeConfig(), client=client)
+            await embedder.embed_query("synthetic input")
+            assert embedder.settlement_tokens is None
+
+    asyncio.run(once())

@@ -84,6 +84,8 @@ _TEEN: Final[dict[str, str]] = {
 }
 _QUOTES: Final = re.compile(r"[\"“”«»]([^\"“”«»]+)[\"“”«»]|(?<!\w)'([^']{3,})'(?!\w)")
 _SENTENCE: Final = re.compile(r"[.!?;\n…]+")
+# An adversative starts a new assertion: its negation/media frame stays local.
+_CONTEXT_BREAK: Final = re.compile(r"\b(?:nhưng|nhung|tuy nhiên|tuy nhien)\b", re.IGNORECASE)
 # A comma before a new subject ("…không đáng sống, mình sẽ…") ends the clause, so a negation
 # stays local to the clause it belongs to.
 _SUBJECT_BREAK: Final = re.compile(r",\s*(?=(?:mình|em|tôi|tao|tớ|tui|mik)\b)", re.IGNORECASE)
@@ -96,6 +98,7 @@ def fold(text: str) -> str:
     # "đừng" (don't) vs "đứng" (stand) and "từng" (once) vs the verb "tung" (to leak).
     lowered = re.sub("đừng", "dungz", lowered)
     lowered = re.sub("từng", "tungz", lowered)
+    lowered = re.sub("kiểm tra", "kiemtra", lowered)  # exam, not "kiếm" (sword)
     lowered = re.sub("biệt danh", "bietdanh", lowered)  # nickname, not "danh" (to hit)
     decomposed = unicodedata.normalize("NFD", lowered.replace("đ", "d"))
     ascii_text = "".join(c for c in decomposed if unicodedata.category(c) != "Mn")
@@ -189,6 +192,27 @@ _IDEATION = re.compile(
     r"\b(?:chiu|chong) (?:het |khong )?(?:noi|duoc)\b.{0,25}\bdi luon\b|\bdi luon cho xong\b"
 )
 
+# Overdose quantities are distinct from taking ordinary medicine as directed.
+_OVERDOSE: Final = re.compile(
+    r"\b(?:uong|nuot) (?:rat nhieu|qua nhieu|ca (?:dong|nam|vi|lo|hop))(?: \w+){0,3} thuoc\b"
+)
+_PRESENT_CONTACT: Final = re.compile(
+    r"\b(?:van|dang) (?:\w+ ){0,4}(?:cua|day|do|canh|ben canh|truoc mat|ngoai|truoc nha|cong)\b|"
+    r"\b(?:nhin thay|thay)\b.{0,35}\b(?:o cong|truoc nha|ngoai cua)\b|"
+    r"\b(?:o cong|truoc nha|ngoai cua) roi\b"
+)
+
+
+def _conditional_self_plan(clause: str) -> bool:
+    """A timed first-person conditional commitment is a plan, not an abstract what-if."""
+    return bool(
+        _HYPO.search(clause)
+        and _NOW_RE.search(clause)
+        and re.search(r"\bthi (?:minh|em|toi|tao|to) (?:se|dinh|toan)\b", clause)
+        and re.search(r"\b(?:tu tu|tu sat|treo co|nhay|cat (?:tay|co tay)|uong.*thuoc)\b", clause)
+    )
+
+
 # group, base level, pattern, intrinsic_negation (pattern already contains its own "khong")
 _P = tuple[str, UrgencyLevel, "re.Pattern[str]", bool]
 
@@ -198,6 +222,7 @@ def _p(group: str, level: UrgencyLevel, pattern: str, intrinsic: bool = False) -
 
 
 _RULES: Final[tuple[_P, ...]] = (
+    _p("self_harm", "immediate", _OVERDOSE.pattern),
     # --- self harm: active intent / plan / means ---------------------------------------------
     _p("self_harm", "immediate", r"\bmuon (?:chet|tu tu|tu sat|tu ket lieu)\b"),
     _p("self_harm", "immediate", r"\bmuon (?:ket thuc|dung) (?:cuoc song|cuoc doi|tat ca|het)\b"),
@@ -516,7 +541,7 @@ def first_person_ideation(clause: str) -> bool:
 def _clause_signals(clause: str, *, quoted: bool) -> list[tuple[str, UrgencyLevel]]:
     found: list[tuple[str, UrgencyLevel]] = []
     media = bool(_MEDIA.search(clause))
-    hypothetical = bool(_HYPO.search(clause))
+    hypothetical = bool(_HYPO.search(clause)) and not _conditional_self_plan(clause)
     past = bool(_PAST.search(clause)) and not _NOW_STRONG.search(clause.replace("hom qua", ""))
     resolved = bool(_RESOLVED.search(clause))
     own = _POSSESSED.sub(" ", clause)
@@ -541,7 +566,7 @@ def _clause_signals(clause: str, *, quoted: bool) -> list[tuple[str, UrgencyLeve
         ):
             continue  # friends laughing about "I'll hit you": no signal
         if group == "self_harm":
-            if _BENIGN_MED.search(clause):
+            if _BENIGN_MED.search(clause) and not _OVERDOSE.search(clause):
                 continue
             if _HYPERBOLE_NEUTRAL.search(clause) or _HYPERBOLE_CHET.search(clause):
                 continue
@@ -592,7 +617,9 @@ def _clause_signals(clause: str, *, quoted: bool) -> list[tuple[str, UrgencyLeve
                 continue
             if past:
                 level = "elevated"
-            elif imminent and (_FEAR.search(clause) or "tiep" in clause):
+            elif (imminent or _PRESENT_CONTACT.search(clause)) and (
+                _FEAR.search(clause) or "tiep" in clause
+            ):
                 level = "immediate"
             elif (
                 third
@@ -739,7 +766,11 @@ def _compose(clause: str, *, quoted: bool) -> list[tuple[str, UrgencyLevel]]:
     """Concept-level rules. ``clause`` is already folded."""
     # "họ nói nếu em không chuyển tiền thì…" is a reported condition, not a what-if question.
     reported = re.match(r"^\w+ (?:noi|bao|nhan|doa|nhac|ra dieu kien)\b", clause) is not None
-    if _MEDIA.search(clause) or (_HYPO.search(clause) and not reported) or _INFO.search(clause):
+    if (
+        _MEDIA.search(clause)
+        or (_HYPO.search(clause) and not reported and not _conditional_self_plan(clause))
+        or _INFO.search(clause)
+    ):
         return []
     if _HYPERBOLE_NEUTRAL.search(clause) or _HYPERBOLE_EMOTIONAL.search(clause):
         return []
@@ -825,6 +856,7 @@ def _compose(clause: str, *, quoted: bool) -> list[tuple[str, UrgencyLevel]]:
     if (
         (third or other)
         and _C_THIRD_SELF.search(clause)
+        and (not _BENIGN_MED.search(clause) or _OVERDOSE.search(clause))
         and re.search(r"\b(?:dang|vua|sap)\b", clause)
     ):
         out.append(("third_party", "immediate"))
@@ -878,7 +910,11 @@ def _compose(clause: str, *, quoted: bool) -> list[tuple[str, UrgencyLevel]]:
             clause,
         )
         and victim
-        and (_FEAR.search(clause) or _C_ATTACK.search(clause) or re.search(r"\bxo\b", clause))
+        and (
+            _FEAR.search(clause)
+            or _VIOLENT_WORD.search(clause)
+            or re.search(r"\b(?:xo|de (?:len|minh|em|toi))\b", clause)
+        )
         and not past
     ):
         out.append(("physical", "immediate"))
@@ -956,6 +992,10 @@ def assess_urgency(text: str, *, prior: Sequence[str] = ()) -> UrgencyAssessment
         # a new subject (so a negation cannot leak across it); signals are the union.
         pieces: list[str] = []
         for sentence in _SENTENCE.split(source):
+            # Split before evaluating, so an earlier denial cannot negate later intent.
+            if _CONTEXT_BREAK.search(sentence):
+                pieces.extend(_CONTEXT_BREAK.split(sentence))
+                continue
             parts = _SUBJECT_BREAK.split(sentence)
             pieces.append(sentence)
             if len(parts) > 1:
@@ -1010,18 +1050,57 @@ def assess_urgency(text: str, *, prior: Sequence[str] = ()) -> UrgencyAssessment
                 best = level
             signals.add(group)
             signals.add("plan_over_turns")
-        earlier = _top(assess_urgency(message).level for message in prior[-4:])
+        previous = [assess_urgency(message) for message in prior[-4:]]
+        earlier = _top(assessment.level for assessment in previous)
+        earlier_signals = {signal for assessment in previous for signal in assessment.signals}
         current = fold(text)
+        # Time and a pronoun alone do not mean danger ("now I am doing homework").
+        # Link the new cue to the kind of concern already disclosed.
+        self_harm_escalation = (
+            "self_harm" in earlier_signals
+            and _IMMINENT.search(current)
+            and (
+                _C_ALONE.search(current)
+                or _COMMIT.search(current)
+                or (
+                    _MEANS.search(current)
+                    and not _BENIGN_MED.search(current)
+                    and not _BENIGN_OBJECT.search(current)
+                )
+            )
+        )
+        contact_escalation = (
+            (
+                earlier_signals & {"threat", "abuse", "violence"}
+                or ("physical" in earlier_signals and _FEAR.search(current))
+            )
+            and _PRESENT_CONTACT.search(current)
+            and (
+                # Generic third-person references may name a new helper. Reuse the
+                # prior aggressor only for anaphora, or with a current danger cue.
+                re.search(
+                    r"\b(?:(?:ban|anh|chi|co|em|cau) ay|no|bon no|tui no|nhom do|nguoi do|ke do|ten do|thang do)\b",
+                    current,
+                )
+                or (
+                    _C_PERP.search(current)
+                    and (
+                        _FEAR.search(current)
+                        or _C_FOLLOW.search(current)
+                        or _C_ATTACK.search(current)
+                    )
+                )
+            )
+        )
         if (
             best != "immediate"
-            and earlier != "none"
-            and _IMMINENT.search(current)
-            and (_FIRST.search(current) or _MEANS.search(current) or _FEAR.search(current))
+            and (self_harm_escalation or contact_escalation)
+            and not (_MEDIA.search(current) or _HYPO.search(current) or _INFO.search(current))
         ):
             best = "immediate"
             signals.add("escalation_over_turns")
-        elif earlier == "immediate" and best == "none":
-            best = "elevated"  # the conversation stays on watch after a high-risk turn
+        elif earlier != "none" and best == "none":
+            best = "elevated"  # preserve a check-in without inventing a present emergency
             signals.add("recent_high_risk")
     return UrgencyAssessment(best, tuple(sorted(signals))) if best != "none" else NONE
 

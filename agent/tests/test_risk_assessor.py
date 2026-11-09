@@ -21,7 +21,16 @@ from moodprint_shared.config import AppConfig
 from tests.test_runtime import collect, context
 
 INDIRECT = "Bạn thân tớ nhắn vừa uống cả đống thuốc rồi, giờ không trả lời điện thoại."
+# New indirect fixture exercises the model-only path; the original overdose stays below.
+SECOND_OPINION = "Bạn thân tớ nhắn những lời rất tuyệt vọng, rồi tắt máy."
 CALM = "Mai mình có bài kiểm tra toán, hơi lo thôi."
+
+
+async def test_explicit_third_party_overdose_no_longer_needs_a_model() -> None:
+    fake = Fake("none")
+    result = await hybrid_assess([INDIRECT], fake)
+    assert result.deterministic.immediate and result.assessment.immediate
+    assert not result.model_called and not fake.calls
 
 
 class Fake:
@@ -46,7 +55,7 @@ class Fake:
 
 
 async def test_model_can_raise_a_deterministic_none() -> None:
-    result = await hybrid_assess([INDIRECT], Fake("immediate"))
+    result = await hybrid_assess([SECOND_OPINION], Fake("immediate"))
     assert result.deterministic.level != "immediate"
     assert result.assessment.level == "immediate"
     assert result.usage["total_tokens"] == 105 and result.degraded is None
@@ -78,7 +87,7 @@ async def test_no_assessor_is_exactly_the_deterministic_layer() -> None:
     "code", ["timeout", "upstream_error", "unreadable_output", "internal_error"]
 )
 async def test_failure_with_a_risky_cue_is_never_reported_as_safe(code: str) -> None:
-    result = await hybrid_assess([INDIRECT], Fake(error=code))
+    result = await hybrid_assess([INDIRECT], Fake(error=code), skip_when_immediate=False)
     assert result.degraded == code
     assert result.assessment.level in {"elevated", "immediate"}
     assert "wide_net" in result.assessment.signals or result.assessment.immediate
@@ -100,7 +109,7 @@ async def test_unexpected_exception_is_contained() -> None:
         async def assess(self, messages: Sequence[str]) -> AssessorResult:
             raise RuntimeError("private-canary")
 
-    result = await hybrid_assess([INDIRECT], Broken())
+    result = await hybrid_assess([INDIRECT], Broken(), skip_when_immediate=False)
     assert result.degraded == "internal_error" and result.assessment.level != "none"
 
 
@@ -127,7 +136,7 @@ def _runtime(assessor, reply: str = "Mình đang nghe bạn.") -> CompanionRunti
 
 async def test_runtime_adds_the_static_block_when_only_the_model_sees_the_danger() -> None:
     ctx = context()
-    events = await collect(_runtime(Fake("immediate")), ctx, INDIRECT)
+    events = await collect(_runtime(Fake("immediate")), ctx, SECOND_OPINION)
     done = next(e for e in events if e.event == "message.completed")
     assert EMERGENCY_BLOCK in done.data.content
     assert done.data.structured.urgency == "immediate"
@@ -136,20 +145,20 @@ async def test_runtime_adds_the_static_block_when_only_the_model_sees_the_danger
 
 
 async def test_runtime_without_assessor_is_unchanged() -> None:
-    events = await collect(_runtime(None), context(), INDIRECT)
+    events = await collect(_runtime(None), context(), SECOND_OPINION)
     done = next(e for e in events if e.event == "message.completed")
     assert EMERGENCY_BLOCK not in done.data.content
 
 
 async def test_runtime_survives_assessor_failure_and_still_completes() -> None:
-    events = await collect(_runtime(Fake(error="timeout")), context(), INDIRECT)
+    events = await collect(_runtime(Fake(error="timeout")), context(), SECOND_OPINION)
     assert [e.event for e in events][-1] == "run.completed"
     done = next(e for e in events if e.event == "message.completed")
     assert done.data.structured.urgency in {"elevated", "immediate"}  # wide net, not "none"
 
 
 async def test_a_slow_assessor_does_not_block_streaming_but_is_awaited_for_the_verdict() -> None:
-    events = await collect(_runtime(Fake("immediate", delay=0.2)), context(), INDIRECT)
+    events = await collect(_runtime(Fake("immediate", delay=0.2)), context(), SECOND_OPINION)
     types = [e.event for e in events]
     assert types.index("message.completed") == len(types) - 3  # completed, usage, run.completed
     assert (

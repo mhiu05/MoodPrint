@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Final
 
 from moodprint_shared.contracts.knowledge import SourceCitation
+from moodprint_shared.knowledge_support import INSUFFICIENT_EVIDENCE_MESSAGE
 
 from moodprint_agent.tools.context import RunScratch
 
@@ -28,6 +29,12 @@ def markers_in(content: str) -> list[str]:
 
 
 def resolve_citations(content: str, scratch: RunScratch | None) -> ResolvedAnswer:
+    if (
+        scratch is not None
+        and (scratch.knowledge_requires_support or scratch.knowledge_abstained)
+        and not scratch.knowledge_supported
+    ):
+        return ResolvedAnswer(INSUFFICIENT_EVIDENCE_MESSAGE, (), len(markers_in(content)))
     ledger = scratch.citations if scratch is not None else {}
     order: dict[str, int] = {}
     unverified = 0
