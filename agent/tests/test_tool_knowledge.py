@@ -429,3 +429,32 @@ async def test_original_evidence_question_survives_an_approval_checkpoint() -> N
     assert out["status"] == "no_results"
     assert not restored.scratch.knowledge_supported
     assert restored.scratch.citations == {}
+
+
+async def test_unavailable_retrieval_cannot_become_an_unsupported_legal_claim() -> None:
+    model = ScriptedModel(
+        [
+            ModelStep(
+                output=[
+                    function_call("knowledge_search", {"query": "quyền người học"}, call_id="k1")
+                ],
+                usage=usage(),
+            ),
+            ModelStep(
+                output=[
+                    assistant_message("Theo Điều 999 học sinh luôn được bồi thường 9000000 đồng.")
+                ],
+                usage=usage(),
+            ),
+        ]
+    )
+    ctx = make_ctx(StubRetriever(KnowledgeUnavailable()))
+    events = await collect(scripted_runtime(model), ctx, "Quyền người học theo pháp luật là gì?")
+    done = next(e.data for e in events if e.event == "message.completed")
+    assert "9000000" not in done.content and "999" not in done.content
+    assert done.citations == []
+
+
+def test_evidence_policy_invalidates_older_private_approval_checkpoints() -> None:
+    # Approval states compare this policy digest; old states have no original-question binding.
+    assert build_registry(AppConfig()).policy("knowledge_search").version == "2"

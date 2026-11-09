@@ -31,6 +31,7 @@ from moodprint_shared.contracts.context import (
     ContextSection,
     Provenance,
 )
+from moodprint_shared.contracts.knowledge import KnowledgeRetriever
 from moodprint_shared.contracts.streaming import StreamEvent
 from openai import AsyncOpenAI
 
@@ -115,6 +116,7 @@ class TurnRecorder:
         self.deltas: list[str] = []
         self.assistant: str | None = None
         self.citations: list[str] = []
+        self.citation_records: list[dict[str, Any]] = []
         self.urgency = "none"
         self.status = "failed"
         self.error_code: str | None = None
@@ -133,6 +135,7 @@ class TurnRecorder:
         elif event.event == "message.completed":
             self.assistant = data.content
             self.citations = [c.title for c in data.citations]
+            self.citation_records = [c.model_dump(mode="json") for c in data.citations]
             if data.structured is not None:
                 self.urgency = data.structured.urgency
         elif event.event == "approval.required":
@@ -153,6 +156,7 @@ class TurnRecorder:
             "assistant": self.assistant,
             "tools": self.tools,
             "citations": self.citations,
+            "citation_records": self.citation_records,
             "urgency": self.urgency,
             "status": self.status,
             "error_code": self.error_code,
@@ -164,11 +168,15 @@ class TurnRecorder:
         }
 
 
-def _domain_for(case: Case) -> EvalDomain:
+def _domain_for(case: Case, knowledge: KnowledgeRetriever | None = None) -> EvalDomain:
     corpus = case.setup.corpus
     return EvalDomain(
         case_note=case.setup.case_note,
-        knowledge=RecordingKnowledge(poison=corpus == "poisoned", empty=corpus == "empty"),
+        knowledge=RecordingKnowledge(
+            poison=knowledge is None and corpus == "poisoned",
+            empty=knowledge is None and corpus == "empty",
+            inner=knowledge,
+        ),
     )
 
 
@@ -185,9 +193,14 @@ async def _new_tool_outputs(session: SQLiteSession, seen: list[int]) -> list[str
 
 
 async def run_chat_case(
-    case: Case, repeat: int, cfg: AppConfig, client: AsyncOpenAI
+    case: Case,
+    repeat: int,
+    cfg: AppConfig,
+    client: AsyncOpenAI,
+    *,
+    knowledge: KnowledgeRetriever | None = None,
 ) -> dict[str, Any]:
-    domain = _domain_for(case)
+    domain = _domain_for(case, knowledge)
     runtime = CompanionRuntime(cfg, build_registry(cfg), openai_client=client)
     session = SQLiteSession(f"{case.id}-{repeat}-{uuid4().hex[:6]}")
     conversation_id = uuid4()
@@ -243,6 +256,10 @@ async def run_chat_case(
         "retrieved_citation_titles": sorted(
             {c.citation.title for r in domain.knowledge.results for c in r.chunks}
         ),
+        "retrieved_citation_records": [
+            c.citation.model_dump(mode="json") for r in domain.knowledge.results for c in r.chunks
+        ],
+        "retrieved_corpus_versions": sorted({r.corpus_version for r in domain.knowledge.results}),
         "knowledge_statuses": [r.status for r in domain.knowledge.results],
         "asked_before_save": asked,
         "guard_refusals": 0,
@@ -340,9 +357,16 @@ async def run_roleplay_case(
     }
 
 
-async def run_case(case: Case, repeat: int, cfg: AppConfig, client: AsyncOpenAI) -> dict[str, Any]:
+async def run_case(
+    case: Case,
+    repeat: int,
+    cfg: AppConfig,
+    client: AsyncOpenAI,
+    *,
+    knowledge: KnowledgeRetriever | None = None,
+) -> dict[str, Any]:
     if case.suite == "screenshot":
         return await run_screenshot_case(case, repeat, cfg, client)
     if case.suite == "roleplay":
         return await run_roleplay_case(case, repeat, cfg, client)
-    return await run_chat_case(case, repeat, cfg, client)
+    return await run_chat_case(case, repeat, cfg, client, knowledge=knowledge)

@@ -25,6 +25,7 @@ class Expect(BaseModel):
     tools_forbidden: list[str] = Field(default_factory=list)  # A-08 / A-15
     urgency: Urgency | None = None  # A-12: minimum level of the last turn ('none' = exactly none)
     citations: Literal["required", "none", "any"] = "any"  # A-04 / A-06
+    clarify_before_prepare: bool = False  # explicit injection/no-consent probe
     approvals: list[Literal["approve", "reject"]] = Field(default_factory=list)
     writes: int | None = None  # domain writes after all decisions
     candidates: int | None = None  # memory candidates the agent created (never memories)

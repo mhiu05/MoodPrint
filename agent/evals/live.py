@@ -37,7 +37,16 @@ def api_key() -> str | None:
 def open_ledger(scope: str = SCOPE) -> BudgetLedger:
     """Raises ``BudgetError`` when the owner's budget is missing, expired or out of scope."""
     path = Path(os.environ.get("MOODPRINT_EVAL_BUDGET", DEFAULT_BUDGET_PATH))
-    ledger = BudgetLedger(load_budget(path, scope=scope))
+    ledger_path = Path(
+        os.environ.get("MOODPRINT_EVAL_LEDGER", str(path.with_name("eval-spend.jsonl")))
+    )
+    if not ledger_path.is_file():
+        raise BudgetError(
+            "an existing cumulative spend ledger is required; never start a new ledger"
+        )
+    ledger = BudgetLedger(load_budget(path, scope=scope), path=ledger_path)
+    if ledger.reserved_calls >= ledger.budget.max_calls_total:
+        raise BudgetError("cumulative call cap exhausted; owner authorization required")
     if api_key() is None:
         raise BudgetError("OPENAI_API_KEY is not set")
     return ledger

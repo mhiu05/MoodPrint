@@ -80,11 +80,14 @@ async def knowledge_search(
                 relaxed, scope=scope, timeout_s=timeout_s
             )
     except KnowledgeTimeout:
+        context.scratch.knowledge_abstained = True
         return {"status": "error", "error": {"code": "knowledge_timeout", "retryable": True}}
     except KnowledgeUnavailable:
+        context.scratch.knowledge_abstained = True
         return {"status": "error", "error": {"code": "knowledge_unavailable", "retryable": True}}
     except Exception:
         # Never leak the provider's message; the run keeps going without sources.
+        context.scratch.knowledge_abstained = True
         return {"status": "error", "error": {"code": "knowledge_unavailable", "retryable": True}}
 
     supported = [
@@ -132,7 +135,7 @@ def knowledge_tools() -> list[ToolSpec]:
     return [
         ToolSpec(
             knowledge_search,
-            ToolPolicy("knowledge_search", "1", "read", False, 8, 2),
+            ToolPolicy("knowledge_search", "2", "read", False, 8, 2),
             "Tra cứu nguồn tin cậy",
         )
     ]

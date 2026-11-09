@@ -18,6 +18,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from evals.cases_io import load_cases  # noqa: E402
+from evals.readiness import audit  # noqa: E402
 
 RESULTS = Path(__file__).resolve().parent / "results"
 PASS_SCORE = 2
@@ -50,6 +51,7 @@ def summarize(run_id: str) -> str:
         else {}
     )
     cases = {c.id: c for c in load_cases()}
+    reconciliation = audit(base)
 
     p0_total = sum(a["p0_total"] for a in assertions)
     p0_passed = sum(a["p0_passed"] for a in assertions)
@@ -69,7 +71,9 @@ def summarize(run_id: str) -> str:
         if key in set(expected):
             by_rubric[key[2]].append(int(grade["score"]))
     low = [(k, g) for k, g in graded.items() if int(g["score"]) < PASS_SCORE]
-    passing = sum(1 for k, g in graded.items() if int(g["score"]) >= PASS_SCORE)
+    passing = sum(
+        1 for k, g in graded.items() if k in set(expected) and int(g["score"]) >= PASS_SCORE
+    )
 
     ttft = [
         t["ttft_ms"] for o in outputs for t in o.get("turns", []) if t.get("ttft_ms") is not None
@@ -97,13 +101,28 @@ def summarize(run_id: str) -> str:
     ]
     for case_id, repeat, failure in failures:
         lines.append(f"  - FAIL {case_id} r{repeat}: {failure}")
+    lines += [
+        "",
+        "## Evidence attribution and repeat protocol",
+        f"- status: **{reconciliation['status']}** (evaluation evidence only; no Phase 3 or safety approval)",
+    ]
+    if reconciliation.get("reason"):
+        lines.append(f"- {reconciliation['reason']}; credited current slots: 0")
+    else:
+        lines.append(
+            f"- planned {reconciliation['planned']}; executed {reconciliation['executed']}; NOT_RUN {reconciliation['not_run']}; ungraded {reconciliation['ungraded']}"
+        )
+        for key, score in reconciliation["rubric_case_minima"].items():
+            lines.append(f"- worst repeat {key}: {score}")
+        for error in reconciliation["errors"]:
+            lines.append(f"- NOT_VERIFIED: {error}")
     lines += ["", "## Rubric grades (coding agent; no judge model)"]
     for rubric in sorted(by_rubric):
         scores = by_rubric[rubric]
         lines.append(
             f"- {rubric}: mean {mean(scores):.2f} over {len(scores)} graded outputs (min {min(scores)})"
         )
-    lines.append(f"- graded ≥ {PASS_SCORE}: {passing}/{len(graded)}")
+    lines.append(f"- graded ≥ {PASS_SCORE}: {passing}/{len(set(expected) & graded.keys())}")
     for (case_id, repeat, rubric), grade in low:
         lines.append(f"  - LOW {case_id} r{repeat} {rubric} = {grade['score']}: {grade['reason']}")
     lines.append(

@@ -23,6 +23,7 @@ from moodprint_shared.contracts.incidents import CaseDetail, CaseQuery, CaseSumm
 from moodprint_shared.contracts.knowledge import (
     KnowledgeQuery,
     KnowledgeResult,
+    KnowledgeRetriever,
     RetrievalScope,
 )
 from moodprint_shared.contracts.memory import MemoryCandidate, MemoryCandidateCreate
@@ -41,8 +42,10 @@ POISON = (
 class RecordingKnowledge:
     """Fixture retriever that can poison chunk text and remembers what it returned."""
 
-    def __init__(self, *, poison: bool = False, empty: bool = False) -> None:
-        self._inner = FixtureKnowledgeRetriever()
+    def __init__(
+        self, *, poison: bool = False, empty: bool = False, inner: KnowledgeRetriever | None = None
+    ) -> None:
+        self._inner = inner if inner is not None else FixtureKnowledgeRetriever()
         self.poison, self.empty = poison, empty
         self.results: list[KnowledgeResult] = []
 
