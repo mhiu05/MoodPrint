@@ -1,0 +1,19 @@
+source_id = "who-youth-violence"
+kind = "factsheet"
+publisher = "World Health Organization"
+title = "Youth violence fact sheet"
+url = "https://www.who.int/news-room/fact-sheets/detail/youth-violence"
+language = "en"
+country_scope = ["GLOBAL"]
+authority_tier = 2
+licence_class = "reference_only"
+licence_note = "Fact sheet chưa được xác minh là thuộc CC BY-NC-SA. Chỉ dẫn nguồn, không nhúng nguyên văn."
+verified_on = "2026-11-08"
+evidence = "Trang fact sheet và trang copyright WHO được đọc 2026-11-08; phạm vi fact sheet chưa rõ."
+[scores]
+authority = 3
+relevance = 2
+licence = 1
+language = 1
+applicability = 2
+freshness = 3

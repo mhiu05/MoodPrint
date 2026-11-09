@@ -1,1 +1,1 @@
-export const knowledgeLive = false;
+export const knowledgeLive = true;

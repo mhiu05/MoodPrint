@@ -48,9 +48,54 @@ class EvidenceConfig:
 
 @dataclass(frozen=True, slots=True)
 class KnowledgeConfig:
+    """Public retrieval defaults. The integrator switches ``retriever`` off fixture."""
+
     retriever: str = "fixture"
     top_k: int = 5
     timeout_s: float = 15
+    embedding_model: str = "voyage-4"
+    query_embedding_model: str = ""
+    embedding_dims: int = 1024
+    embed_timeout_fraction: float = 0.6
+    vector_candidates: int = 40
+    lexical_candidates: int = 40
+    rrf_k: int = 50
+    # Locked on the DEV split of benchmark v2 on 2026-11-09 (agent/evals/knowledge/results/
+    # locked-config-v2.json, enforced by a test). On dev the no-result target of 0.90 was not
+    # met (in-domain gaps are not separable by similarity), so these values are not a quality
+    # pass; the single test-split run is recorded in the Phase 2 report.
+    min_vector_score: float = 0.425
+    min_lexical_score: float = 0.5
+    vector_cos_lo: float = 0.20
+    vector_cos_hi: float = 0.80
+    score_mode: str = "rrf"
+    blend_vector_weight: float = 0.5
+    # Keyword branch. "coverage" is the IDF-weighted share of the query's terms found in the
+    # chunk (0..1) plus a phrase bonus; "rank" is the raw ts_rank_cd score of the first pass.
+    # With lexical_weight 0 the keyword branch only opens the answerable gate and powers the
+    # degraded mode; ranking is by vector score.
+    lexical_mode: str = "coverage"
+    lexical_weight: float = 0.0
+    lexical_phrase_bonus: float = 0.0
+    # "query": a query is answerable only if its best hit clears min_vector_score or
+    # min_lexical_score, and then chunks above the lower floors are kept. "chunk": every chunk
+    # must clear the gate (first-pass behaviour).
+    gate_scope: str = "query"
+    chunk_floor_vector: float = 0.2
+    chunk_floor_lexical: float = 0.2
+    # Restore diacritics in an unaccented Vietnamese query from the corpus text before embedding.
+    restore_diacritics: bool = True
+    rerank_enabled: bool = False
+    rerank_model: str = "rerank-3"
+    min_rerank_score: float = 0.20
+    query_max_chars: int = 300
+    search_rate_per_user_per_min: int = 20
+    ingest_batch_size: int = 128
+    max_chunks_per_document: int = 1
+    embed_request_timeout_s: float = 8.0
+
+    def resolved_query_model(self) -> str:
+        return self.query_embedding_model or self.embedding_model
 
 
 @dataclass(frozen=True, slots=True)
