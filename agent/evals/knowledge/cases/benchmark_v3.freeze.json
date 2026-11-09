@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "dataset": "benchmark_v3.jsonl",
+  "sha256_lf": "bba4d0f1dc6ee1d0ac1fd578bf2df5d2af2dc86f96f550d17c236cc65d38d534",
+  "queries": 120,
+  "answerable": 90,
+  "no_result": 30,
+  "independent": false,
+  "author": "same coding agent as evidence-support implementation",
+  "status": "FROZEN_BEFORE_FIRST_EVALUATION",
+  "dev_data": "benchmark_v2 dev (already inspected historical set)",
+  "groups": 60,
+  "limitation": "30 answerable seeds have 3 correlated styles each; cannot claim 90 independent situations. No human relabelling. New legal cards do not add answers for these no-result scopes. Labels must not change after run."
+}
