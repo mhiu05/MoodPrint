@@ -8,7 +8,7 @@ import time
 import tomllib
 from dataclasses import replace
 from pathlib import Path
-from urllib.parse import quote, urljoin, urlsplit
+from urllib.parse import parse_qsl, quote, urlencode, urljoin, urlsplit, urlunsplit
 from uuid import uuid4
 
 import httpx
@@ -256,17 +256,42 @@ async def test_user_jwt_cannot_read_list_or_write_and_anon_cannot_read(local_set
 
 
 async def test_download_url_expires(local_settings):
+    """An expired signed download URL is refused by Storage.
+
+    The first version waited out a real 1 s window: the "live" read had to finish within one second of
+    signing, so under load it failed *before* the expiry check was even reached (CC-P3-003). Expiry is
+    now exercised without racing the clock: the issued capability is re-signed locally (the same
+    technique as the TUS expiry test below) once with an expiry in the past and once, as a control,
+    with an expiry well in the future. Only the expiry differs, so a refusal can only be the expiry.
+    """
     key = original_key(uuid4(), uuid4(), None)
     async with httpx.AsyncClient(timeout=30) as client:
         gateway = StorageGateway(local_settings, AppConfig(), client)
         try:
             await upload_small(client, local_settings, gateway, key)
-            url = await gateway.create_download_url(key, 1, attachment_name=None)
+            url = await gateway.create_download_url(key, 60, attachment_name=None)
             response = await client.get(url)
             checked(response, {200}, "read live signed download URL")
-            await asyncio.sleep(2)
-            response = await client.get(url, headers={"Cache-Control": "no-cache"})
-            assert response.status_code >= 400
+
+            parts = urlsplit(url)
+            query = dict(parse_qsl(parts.query))
+            token = query["token"]
+            assert jwt.get_unverified_header(token)["alg"] == "HS256", (
+                "Update the expiry test for the local signing algorithm"
+            )
+            claims = jwt.decode(token, options={"verify_signature": False})
+            secret = await asyncio.to_thread(local_storage_signing_secret)
+
+            def resigned(expiry: int) -> str:
+                signed = jwt.encode({**claims, "exp": expiry}, secret, algorithm="HS256")
+                return urlunsplit(parts._replace(query=urlencode({**query, "token": signed})))
+
+            now = int(time.time())
+            control = await client.get(resigned(now + 300), headers={"Cache-Control": "no-cache"})
+            checked(control, {200}, "control: same capability re-signed with a future expiry")
+            expired = await client.get(resigned(now - 60), headers={"Cache-Control": "no-cache"})
+            assert expired.status_code >= 400, "Expired signed download URL remained authorized"
+            assert expired.content != control.content
         finally:
             await gateway.delete([key])
 
