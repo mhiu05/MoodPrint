@@ -52,7 +52,42 @@ Corpus `kb-20261109-06` (54 documents, 74 chunks, `voyage-4`, manifest `95435827
 
 ## F. Tests
 
-PENDING_F
+Tested tree: `integration/phase-2-3` at the commit that carries this report's test evidence (the only later change is this file). Local runs on Windows with Docker Desktop; stack `int` offset 300, `--lite`.
+
+| Command | Exit | Result |
+|---|---|---|
+| `uv run python scripts/check.py` | 0 | ruff check, ruff format, pyright, import-linter (3 contracts kept), pytest: **1434 passed, 142 deselected** |
+| `uv run pytest -m integration -q` with the `int` stack env | 0 | **136 passed** (Phase 1 and 3 integration, Phase 2 knowledge integration, the vertical slice) |
+| `supabase_worktree.py test --name int --offset 300 --lite` | 0 | pgTAP **20 files, 460 tests, PASS** |
+| `migration_order_check.py` | 0 | **VERIFIED order=kb-first** and **order=ag-first** |
+| `migration_scope_check.py`, `test_migration_versions.py` | 0 | 6 phase migrations VERIFIED; 11 passed; no duplicate versions |
+| `export_contract_schemas --check`, `export_openapi --check`, `npm run gen:api` | 0 | no drift (57 paths, both phases' routes) |
+| Frontend `typecheck`, `lint`, `build`, `check:boundaries` | 0 each | clean on the merged frontend |
+| Frontend `npm test -- --maxWorkers=2` | 0 | **26 files, 144 tests passed** |
+| Frontend `format:check` | 1 as checked out | only CRLF line endings of this Windows checkout; passes with `--end-of-line auto` (the repository stores LF) |
+| `e2e_stack.py --run --project real --name int --offset 300 --agent scripted` | 0 | **36 passed** (7.6 min) plus the urgent project, **1 passed**: Companion, approval, evidence, roleplay, Knowledge Hub, vertical slice, auth, responsive |
+| `e2e_stack.py --run --project demo --name int --offset 300` | 0 | **13 passed** (4.3 min) |
+| `test_safety_closure.py` and `test_safety.py` | 0 | 246 passed, including the SC-04 present-danger pairs (Q3-04) |
+
+Two things happened during the runs that are not code defects. Docker Desktop stopped partway through one E2E run and failed 34 specs with `ECONNREFUSED` on the Supabase API; after restarting it the full project was re-run from the start and passed. The first real E2E run on the merged tree had failed `E-AG-01` and `E-AG-12` for the reason in section D; those were fixed and the whole project re-run.
+
+Floors from the runbook are all exceeded: pgTAP 460 (floor 194), Vitest 144 (94), demo 13, real 36 plus 1 (11 plus 1), integration 136 (67).
+
+### IT checks
+
+| IT | Status | Evidence |
+|---|---|---|
+| IT-01 migrations | PASS | order check both ways, pgTAP 460, scope, versions |
+| IT-02 retriever contract on the DB | PASS | Phase 2 integration tests on `int`; the live Voyage ordering and filters check is not repeated here (Phase 2 measured a live run) |
+| IT-03 citations belong to the corpus | PASS | slice test: document and source exist in the published version; benchmark integrity 1.0 on 900 chunks (Phase 2) |
+| IT-04 out-of-scope gives no citation | PASS offline, **not run live** | slice test and E2E; the live repeat needs model budget |
+| IT-05 failure classes | PASS | rejected credentials, embedder hang (also covers the timeout class) and database down each end the run in about a second with no citation |
+| IT-06 regression | PASS | check.py and the suites above; `verify_phase0.py --regression` and `verify_phase1.py` were **not run** (they reset other stacks); `scripts/verify_phase23.py` does not exist in the repository |
+| IT-07 RLS and isolation | PASS | pgTAP, `test_phase3_isolation_matrix`, slice user B 404, E2E `E-AG-10` |
+| IT-08 ownership | PASS | both feature branches against their baselines |
+| IT-09 benchmark and Companion eval | **partial** | the retriever and corpus are unchanged from Phase 2's head, so the Phase 2 numbers stand and were not re-run; Q3-01..05 live repeats not run (call ceiling) |
+| IT-10..18 full-stack journey | PASS scripted, **not run live** | `vertical-slice-real.spec.ts`, the integration slice test, E2E real. `--agent live` was not run (no authorisation to spend) |
+| IT-19, IT-20 | not applicable here | hosted and post-merge steps, excluded by the mission |
 
 ## G. Security
 
@@ -70,7 +105,14 @@ PENDING_F
 
 ## H. CI and PRs
 
-PENDING_H
+| Item | Result |
+|---|---|
+| Phase 2 feature head `b2c0586a` | `offline` and `integration` both success, https://github.com/mhiu05/MoodPrint/actions/runs/42557140430. The earlier heads `5a1ac224` and `df5bcb24` failed the `integration` job (7 knowledge tests needed a developer-only stack file, one pinned a version present only in the local database, one depended on test order); fixed in `b2c0586a` and verified in both test orders. |
+| Phase 3 feature head `505ea9b8` | success, https://github.com/mhiu05/MoodPrint/actions/runs/42543642592 |
+| Compatibility PR #53, head `03158a09` | `offline` and `integration` success on the push run 42552549604 and the pull_request run 42552554608; merged with `gh pr merge --merge --match-head-commit` as `0976736f`. No branch protection exists on the target (HTTP 404), so no protection or review was bypassed and `--admin` was not used. |
+| Integration PR and CI on the integration SHA | A report cannot hold the CI result of the commit that contains it. The PR, its checks, the merge commit and the post-merge checks are recorded on the pull request and in the final handoff message. |
+
+Post-merge checks to run on the target: both feature heads are ancestors, `origin/main` is still `8b329980`, and the offline suite of the merged target.
 
 ## I. Remaining blockers for formal verification
 
