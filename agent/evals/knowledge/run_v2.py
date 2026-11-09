@@ -176,8 +176,9 @@ async def evaluate(
     use_vector: bool,
     use_lexical: bool,
     keep_outputs: bool = False,
+    retriever_type: type[PgVectorKnowledgeRetriever] = PgVectorKnowledgeRetriever,
 ) -> dict[str, object]:
-    retriever = PgVectorKnowledgeRetriever(
+    retriever = retriever_type(
         engine, embedder, cfg, read_role=None, use_vector=use_vector, use_lexical=use_lexical
     )
     hosts = allow_hosts()

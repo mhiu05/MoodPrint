@@ -1,0 +1,2053 @@
+{
+  "source_sha": "2dde44dcac5eb57c061c362805dc612a542baa35",
+  "source_tree_sha256": "c7824e456ac578a99d8e0c9812de2bbfd38ae10b943f66810be6cbd73a1d1d09",
+  "benchmark_sha256_lf": "6d9fae8b0aedb5f1cca52c965dc1696250266755b79333289bf1e235ace4f1d6",
+  "split": "dev",
+  "data_provenance": "self-authored synthetic; not independent; v2 already inspected; v3 correlated styles disclosed in freeze",
+  "corpus": {
+    "version": "kb-20261109-06",
+    "manifest_sha256": "95435827eccd150b77734f2a58a8c3fe03c7b684ece93d6cbc226fee49ed3eed",
+    "embedding_model": "voyage-4"
+  },
+  "corpus_sizes": {
+    "documents": 54,
+    "chunks": 74
+  },
+  "support_version": "evidence-support-v1",
+  "config_values": {
+    "retriever": "pgvector",
+    "top_k": 5,
+    "timeout_s": 15,
+    "embedding_model": "voyage-4",
+    "query_embedding_model": "",
+    "embedding_dims": 1024,
+    "embed_timeout_fraction": 0.6,
+    "vector_candidates": 40,
+    "lexical_candidates": 40,
+    "rrf_k": 50,
+    "min_vector_score": 0.425,
+    "min_lexical_score": 0.5,
+    "vector_cos_lo": 0.2,
+    "vector_cos_hi": 0.8,
+    "score_mode": "rrf",
+    "blend_vector_weight": 0.5,
+    "lexical_mode": "coverage",
+    "lexical_weight": 0.0,
+    "lexical_phrase_bonus": 0.0,
+    "gate_scope": "query",
+    "chunk_floor_vector": 0.2,
+    "chunk_floor_lexical": 0.2,
+    "restore_diacritics": true,
+    "rerank_enabled": false,
+    "rerank_model": "rerank-3",
+    "min_rerank_score": 0.2,
+    "query_max_chars": 300,
+    "search_rate_per_user_per_min": 20,
+    "ingest_batch_size": 128,
+    "max_chunks_per_document": 1,
+    "embed_request_timeout_s": 8.0
+  },
+  "methods": {
+    "locked": {
+      "summary": {
+        "queries": 72,
+        "answerable": 60,
+        "no_result_queries": 12,
+        "hit_at_5": 0.9167,
+        "recall_at_5": 0.8611,
+        "recall_at_10": 0.8736,
+        "mrr_at_10": 0.7881,
+        "ndcg_at_10": 0.7725,
+        "precision_at_1": 0.7167,
+        "false_no_result_rate": 0.0667,
+        "no_result_accuracy": 1.0,
+        "no_result_correct": 12,
+        "no_result_gap_accuracy": 1.0,
+        "no_result_oos_accuracy": 1.0,
+        "citation_integrity": 1.0,
+        "citation_chunks_checked": 549,
+        "latency_ms_p50_cached_embed": 60.7,
+        "latency_ms_p95_cached_embed": 107.5,
+        "ci95": {
+          "recall_at_5": [
+            0.786,
+            0.933
+          ],
+          "hit_at_5": [
+            0.833,
+            0.983
+          ],
+          "no_result_accuracy": [
+            1.0,
+            1.0
+          ]
+        },
+        "by_style": {
+          "eng": {
+            "n": 4,
+            "recall_at_5": 0.875,
+            "hit_at_5": 1.0
+          },
+          "narr": {
+            "n": 11,
+            "recall_at_5": 0.7273,
+            "hit_at_5": 0.8182
+          },
+          "nodiac": {
+            "n": 14,
+            "recall_at_5": 0.8929,
+            "hit_at_5": 0.9286
+          },
+          "slang": {
+            "n": 11,
+            "recall_at_5": 0.7879,
+            "hit_at_5": 0.9091
+          },
+          "std": {
+            "n": 20,
+            "recall_at_5": 0.95,
+            "hit_at_5": 0.95
+          }
+        },
+        "by_topic_recall_at_5": {
+          "bystander": 1.0,
+          "cyber": 0.8333,
+          "definition": 1.0,
+          "emotional-impact": 0.75,
+          "evidence": 1.0,
+          "exclusion": 0.6,
+          "help-seeking": 0.7143,
+          "legal-vn": 1.0,
+          "parents-teachers": 1.0,
+          "physical": 0.9,
+          "platform-reporting": 1.0,
+          "school-procedure-vn": 1.0,
+          "urgent-safety": 0.6667,
+          "verbal-social": 1.0
+        },
+        "false_result_rate": 0.0
+      },
+      "per_query": [
+        {
+          "id": "A003",
+          "style": "std",
+          "topic": "cyber",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 173.60020000000986,
+          "top_docs": [
+            "kb-by-thay-tren-mang",
+            "kb-cyber-bai-dang-boc-phot",
+            "kb-plat-roi-nhom-chat",
+            "kb-verb-bi-nhai-cuoi-nhao",
+            "kb-excl-ep-lam-theo-nhom"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 0.8213137146137828,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-cyber-bai-dang-boc-phot": 2,
+            "kb-by-thay-tren-mang": 1,
+            "kb-plat-roi-nhom-chat": 1
+          }
+        },
+        {
+          "id": "A005",
+          "style": "nodiac",
+          "topic": "cyber",
+          "answerable": true,
+          "gap": false,
+          "status": "no_results",
+          "latency_ms": 63.56029999983548,
+          "top_docs": [],
+          "hit5": 0.0,
+          "recall5": 0.0,
+          "recall10": 0.0,
+          "mrr10": 0.0,
+          "ndcg10": 0.0,
+          "p1": 0.0,
+          "false_no_result": 1.0,
+          "relevant": {
+            "kb-cyber-tin-nhan-doa": 2,
+            "kb-plat-luu-chan-bao-cao": 1
+          }
+        },
+        {
+          "id": "A006",
+          "style": "slang",
+          "topic": "cyber",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 59.512199999971926,
+          "top_docs": [
+            "kb-cyber-bai-dang-boc-phot",
+            "kb-by-thay-tren-mang",
+            "kb-plat-roi-nhom-chat",
+            "kb-def-cac-hinh-thuc",
+            "kb-excl-ep-lam-theo-nhom"
+          ],
+          "hit5": 1.0,
+          "recall5": 0.5,
+          "recall10": 0.5,
+          "mrr10": 1.0,
+          "ndcg10": 0.8262346571285599,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-cyber-bai-dang-boc-phot": 2,
+            "kb-emo-phan-ung-thuong-gap": 1
+          }
+        },
+        {
+          "id": "A007",
+          "style": "slang",
+          "topic": "cyber",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 63.75079999997979,
+          "top_docs": [
+            "kb-cyber-anh-rieng-tong-tien",
+            "kb-excl-ep-lam-theo-nhom",
+            "kb-cyber-tin-nhan-doa",
+            "kb-def-cac-hinh-thuc",
+            "kb-evid-dieu-khong-nen"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-cyber-anh-rieng-tong-tien": 2
+          }
+        },
+        {
+          "id": "A010",
+          "style": "narr",
+          "topic": "cyber",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 79.50849999997445,
+          "top_docs": [
+            "kb-cyber-tai-khoan-gia",
+            "kb-evid-luu-truoc-khi-chan",
+            "kb-plat-roi-nhom-chat",
+            "kb-cyber-tin-nhan-doa",
+            "kb-by-thay-tren-mang"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-cyber-tai-khoan-gia": 2
+          }
+        },
+        {
+          "id": "A012",
+          "style": "eng",
+          "topic": "cyber",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 108.01740000010795,
+          "top_docs": [
+            "kb-cyber-tin-nhan-doa",
+            "kb-plat-luu-chan-bao-cao",
+            "kb-evid-luu-truoc-khi-chan",
+            "kb-cyber-anh-rieng-tong-tien",
+            "legacy-chan-va-bao-cao-noi-dung"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-cyber-tin-nhan-doa": 2,
+            "kb-plat-luu-chan-bao-cao": 2
+          }
+        },
+        {
+          "id": "A015",
+          "style": "nodiac",
+          "topic": "cyber",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 64.97540000009394,
+          "top_docs": [
+            "kb-cyber-anh-rieng-tong-tien",
+            "kb-cyber-bai-dang-boc-phot",
+            "legacy-luu-anh-chup-co-ngu-canh",
+            "kb-evid-dieu-khong-nen",
+            "kb-cyber-tai-khoan-gia"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-cyber-anh-rieng-tong-tien": 2,
+            "kb-cyber-bai-dang-boc-phot": 1
+          }
+        },
+        {
+          "id": "A016",
+          "style": "std",
+          "topic": "cyber",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 61.03869999992639,
+          "top_docs": [
+            "kb-plat-roi-nhom-chat",
+            "kb-excl-bi-loai-khoi-nhom",
+            "kb-by-thay-tren-mang",
+            "kb-excl-ep-lam-theo-nhom",
+            "kb-verb-bi-nhai-cuoi-nhao"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-plat-roi-nhom-chat": 2,
+            "kb-excl-bi-loai-khoi-nhom": 1
+          }
+        },
+        {
+          "id": "A020",
+          "style": "std",
+          "topic": "cyber",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 69.48439999996481,
+          "top_docs": [
+            "kb-urg-bi-doa-thoi-gian-cu-the",
+            "kb-cyber-tin-nhan-doa",
+            "kb-legal-khi-nao-bao-cong-an",
+            "kb-help-cau-mo-loi",
+            "kb-help-so-tra-thu"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-urg-bi-doa-thoi-gian-cu-the": 2,
+            "kb-cyber-tin-nhan-doa": 2
+          }
+        },
+        {
+          "id": "A023",
+          "style": "std",
+          "topic": "evidence",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 57.26759999993192,
+          "top_docs": [
+            "kb-evid-luu-truoc-khi-chan",
+            "kb-evid-dieu-khong-nen",
+            "kb-evid-chup-man-hinh",
+            "legacy-luu-anh-chup-co-ngu-canh",
+            "kb-plat-luu-chan-bao-cao"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 0.9327783893101107,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-evid-luu-truoc-khi-chan": 2,
+            "kb-plat-luu-chan-bao-cao": 1
+          }
+        },
+        {
+          "id": "A024",
+          "style": "std",
+          "topic": "evidence",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 102.66539999997804,
+          "top_docs": [
+            "kb-evid-dieu-khong-nen",
+            "legacy-chan-va-bao-cao-noi-dung",
+            "kb-cyber-bai-dang-boc-phot",
+            "kb-evid-chup-man-hinh",
+            "legacy-luu-anh-chup-co-ngu-canh"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-evid-dieu-khong-nen": 2
+          }
+        },
+        {
+          "id": "A026",
+          "style": "slang",
+          "topic": "evidence",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 114.01079999996,
+          "top_docs": [
+            "legacy-bat-nat-la-gi",
+            "kb-school-chuan-bi-gap-thay-co",
+            "legacy-tom-tat-trung-tinh",
+            "kb-evid-nhat-ky-su-viec",
+            "kb-def-cac-hinh-thuc"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 0.631251450669265,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-evid-nhat-ky-su-viec": 2,
+            "legacy-bat-nat-la-gi": 1
+          }
+        },
+        {
+          "id": "A028",
+          "style": "narr",
+          "topic": "evidence",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 107.53439999984948,
+          "top_docs": [
+            "kb-evid-dieu-khong-nen",
+            "kb-by-thay-tren-mang",
+            "legacy-luu-anh-chup-co-ngu-canh",
+            "kb-cyber-anh-rieng-tong-tien",
+            "kb-verb-tin-don-noi-xau"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 0.9832184408687481,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-evid-dieu-khong-nen": 2,
+            "kb-by-thay-tren-mang": 1,
+            "kb-cyber-anh-rieng-tong-tien": 1
+          }
+        },
+        {
+          "id": "A032",
+          "style": "nodiac",
+          "topic": "evidence",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 58.90329999988353,
+          "top_docs": [
+            "legacy-luu-anh-chup-co-ngu-canh",
+            "kb-evid-chup-man-hinh",
+            "kb-evid-dieu-khong-nen",
+            "kb-phys-sau-khi-bi-thuong",
+            "kb-evid-luu-truoc-khi-chan"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 0.25,
+          "ndcg10": 0.4306765580733931,
+          "p1": 0.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-phys-sau-khi-bi-thuong": 2
+          }
+        },
+        {
+          "id": "A037",
+          "style": "std",
+          "topic": "help-seeking",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 58.08060000003934,
+          "top_docs": [
+            "kb-help-so-tra-thu",
+            "kb-verb-bi-nhai-cuoi-nhao",
+            "kb-urg-bi-doa-thoi-gian-cu-the",
+            "kb-pt-giao-vien-tiep-nhan",
+            "kb-help-chon-nguoi-nao"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-help-so-tra-thu": 2
+          }
+        },
+        {
+          "id": "A039",
+          "style": "slang",
+          "topic": "help-seeking",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 55.476200000157405,
+          "top_docs": [
+            "legacy-noi-chuyen-voi-nguoi-cham-soc",
+            "kb-help-cau-mo-loi",
+            "kb-help-so-tra-thu",
+            "kb-help-chon-nguoi-nao",
+            "legacy-noi-chuyen-voi-giao-vien"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "legacy-noi-chuyen-voi-nguoi-cham-soc": 2,
+            "kb-help-cau-mo-loi": 2
+          }
+        },
+        {
+          "id": "A041",
+          "style": "narr",
+          "topic": "help-seeking",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 56.34680000002845,
+          "top_docs": [
+            "legacy-bat-nat-la-gi",
+            "kb-by-ban-ke-bi-mat",
+            "kb-school-chuan-bi-gap-thay-co",
+            "kb-emo-phan-ung-thuong-gap",
+            "kb-help-chon-nguoi-nao"
+          ],
+          "hit5": 1.0,
+          "recall5": 0.5,
+          "recall10": 0.5,
+          "mrr10": 0.2,
+          "ndcg10": 0.23719771276929622,
+          "p1": 0.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-help-chon-nguoi-nao": 2,
+            "kb-help-cau-mo-loi": 2
+          }
+        },
+        {
+          "id": "A043",
+          "style": "eng",
+          "topic": "help-seeking",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 25.33150000022033,
+          "top_docs": [
+            "kb-pt-giao-vien-tiep-nhan",
+            "kb-help-so-tra-thu",
+            "kb-school-chuan-bi-gap-thay-co",
+            "legacy-noi-chuyen-voi-giao-vien",
+            "kb-school-theo-doi-leo-thang"
+          ],
+          "hit5": 1.0,
+          "recall5": 0.5,
+          "recall10": 1.0,
+          "mrr10": 0.25,
+          "ndcg10": 0.4486438193521591,
+          "p1": 0.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-help-cau-mo-loi": 2,
+            "legacy-noi-chuyen-voi-giao-vien": 2
+          }
+        },
+        {
+          "id": "A044",
+          "style": "nodiac",
+          "topic": "help-seeking",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 65.30359999987922,
+          "top_docs": [
+            "kb-excl-bi-loai-khoi-nhom",
+            "kb-by-ban-ke-bi-mat",
+            "kb-help-chon-nguoi-nao",
+            "kb-excl-bi-pho-lo-o-lop",
+            "legacy-noi-chuyen-voi-giao-vien"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 0.6885288809404666,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-help-chon-nguoi-nao": 2,
+            "kb-excl-bi-loai-khoi-nhom": 1
+          }
+        },
+        {
+          "id": "A047",
+          "style": "std",
+          "topic": "help-seeking",
+          "answerable": true,
+          "gap": false,
+          "status": "no_results",
+          "latency_ms": 59.7487000000001,
+          "top_docs": [],
+          "hit5": 0.0,
+          "recall5": 0.0,
+          "recall10": 0.0,
+          "mrr10": 0.0,
+          "ndcg10": 0.0,
+          "p1": 0.0,
+          "false_no_result": 1.0,
+          "relevant": {
+            "legacy-tom-tat-trung-tinh": 2,
+            "kb-evid-nhat-ky-su-viec": 1
+          }
+        },
+        {
+          "id": "A048",
+          "style": "std",
+          "topic": "help-seeking",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 68.06589999996504,
+          "top_docs": [
+            "legacy-theo-doi-sau-khi-nho-giup",
+            "kb-help-so-tra-thu",
+            "kb-school-theo-doi-leo-thang",
+            "legacy-noi-chuyen-voi-giao-vien",
+            "kb-school-chuan-bi-gap-thay-co"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 0.9197207891481876,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "legacy-theo-doi-sau-khi-nho-giup": 2,
+            "kb-school-theo-doi-leo-thang": 2
+          }
+        },
+        {
+          "id": "A049",
+          "style": "std",
+          "topic": "physical",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 62.229300000126386,
+          "top_docs": [
+            "kb-phys-ngay-luc-bi-danh",
+            "kb-phys-sau-khi-bi-thuong",
+            "kb-urg-dang-nguy-hiem",
+            "kb-by-chung-kien-tai-cho",
+            "kb-phys-do-dac-cap-sach"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-phys-ngay-luc-bi-danh": 2,
+            "kb-phys-sau-khi-bi-thuong": 1
+          }
+        },
+        {
+          "id": "A052",
+          "style": "std",
+          "topic": "physical",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 66.86469999999645,
+          "top_docs": [
+            "kb-phys-noi-vang-nguoi",
+            "kb-urg-duong-ve-nha",
+            "kb-school-chuan-bi-gap-thay-co",
+            "kb-pt-ke-hoach-an-toan-gia-dinh",
+            "kb-excl-bi-loai-khoi-nhom"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-phys-noi-vang-nguoi": 2,
+            "kb-urg-duong-ve-nha": 1
+          }
+        },
+        {
+          "id": "A053",
+          "style": "slang",
+          "topic": "physical",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 53.694199999881675,
+          "top_docs": [
+            "kb-legal-khi-nao-bao-cong-an",
+            "kb-urg-bi-doa-thoi-gian-cu-the",
+            "kb-phys-noi-vang-nguoi",
+            "kb-phys-ngay-luc-bi-danh",
+            "kb-school-quy-trinh-khung"
+          ],
+          "hit5": 1.0,
+          "recall5": 0.5,
+          "recall10": 0.75,
+          "mrr10": 0.3333333333333333,
+          "ndcg10": 0.46200711043956255,
+          "p1": 0.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-phys-ngay-luc-bi-danh": 2,
+            "kb-urg-dang-nguy-hiem": 1,
+            "kb-phys-noi-vang-nguoi": 1,
+            "kb-phys-sau-khi-bi-thuong": 1
+          }
+        },
+        {
+          "id": "A056",
+          "style": "narr",
+          "topic": "physical",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 55.87160000004587,
+          "top_docs": [
+            "kb-urg-duong-ve-nha",
+            "kb-phys-noi-vang-nguoi",
+            "kb-urg-bi-doa-thoi-gian-cu-the",
+            "kb-excl-bi-loai-khoi-nhom",
+            "kb-by-chung-kien-tai-cho"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-phys-noi-vang-nguoi": 2,
+            "kb-urg-duong-ve-nha": 2
+          }
+        },
+        {
+          "id": "A060",
+          "style": "nodiac",
+          "topic": "physical",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 57.810799999970186,
+          "top_docs": [
+            "kb-phys-ngay-luc-bi-danh",
+            "kb-phys-sau-khi-bi-thuong",
+            "kb-phys-do-dac-cap-sach",
+            "kb-cyber-tin-nhan-doa",
+            "kb-def-dua-hay-bat-nat"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-phys-ngay-luc-bi-danh": 2
+          }
+        },
+        {
+          "id": "A061",
+          "style": "std",
+          "topic": "verbal-social",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 61.7631000000074,
+          "top_docs": [
+            "kb-verb-biet-danh-ngoai-hinh",
+            "kb-def-cac-hinh-thuc",
+            "kb-verb-bi-nhai-cuoi-nhao",
+            "kb-verb-tin-don-noi-xau",
+            "kb-def-ba-dau-hieu"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-verb-biet-danh-ngoai-hinh": 2
+          }
+        },
+        {
+          "id": "A065",
+          "style": "slang",
+          "topic": "verbal-social",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 47.1592999999757,
+          "top_docs": [
+            "kb-verb-bi-nhai-cuoi-nhao",
+            "kb-verb-biet-danh-ngoai-hinh",
+            "kb-excl-ep-lam-theo-nhom",
+            "kb-def-cac-hinh-thuc",
+            "kb-emo-khi-nao-can-giup-ngay"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-verb-bi-nhai-cuoi-nhao": 2
+          }
+        },
+        {
+          "id": "A066",
+          "style": "narr",
+          "topic": "verbal-social",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 77.93119999996634,
+          "top_docs": [
+            "kb-verb-tin-don-noi-xau",
+            "kb-help-so-tra-thu",
+            "kb-by-ban-ke-bi-mat",
+            "legacy-noi-chuyen-voi-nguoi-cham-soc",
+            "kb-cyber-bai-dang-boc-phot"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 0.9327783893101107,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-verb-tin-don-noi-xau": 2,
+            "kb-cyber-bai-dang-boc-phot": 1
+          }
+        },
+        {
+          "id": "A070",
+          "style": "nodiac",
+          "topic": "verbal-social",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 58.48280000009254,
+          "top_docs": [
+            "kb-verb-biet-danh-ngoai-hinh",
+            "kb-verb-bi-nhai-cuoi-nhao",
+            "kb-verb-tin-don-noi-xau",
+            "kb-cyber-bai-dang-boc-phot",
+            "kb-by-thay-tren-mang"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 0.3333333333333333,
+          "ndcg10": 0.5,
+          "p1": 0.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-verb-tin-don-noi-xau": 2
+          }
+        },
+        {
+          "id": "A072",
+          "style": "nodiac",
+          "topic": "exclusion",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 62.41339999996853,
+          "top_docs": [
+            "kb-excl-bi-loai-khoi-nhom",
+            "kb-excl-bi-pho-lo-o-lop",
+            "kb-verb-bi-nhai-cuoi-nhao",
+            "kb-excl-ep-lam-theo-nhom",
+            "legacy-noi-chuyen-voi-giao-vien"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 0.7967075809905066,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-excl-bi-pho-lo-o-lop": 2,
+            "kb-excl-bi-loai-khoi-nhom": 1
+          }
+        },
+        {
+          "id": "A073",
+          "style": "std",
+          "topic": "exclusion",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 59.60249999998268,
+          "top_docs": [
+            "kb-excl-ep-lam-theo-nhom",
+            "kb-def-cac-hinh-thuc",
+            "legacy-bat-nat-la-gi",
+            "kb-excl-bi-loai-khoi-nhom",
+            "legacy-noi-chuyen-voi-giao-vien"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-excl-ep-lam-theo-nhom": 2
+          }
+        },
+        {
+          "id": "A074",
+          "style": "slang",
+          "topic": "exclusion",
+          "answerable": true,
+          "gap": false,
+          "status": "no_results",
+          "latency_ms": 60.69919999981721,
+          "top_docs": [],
+          "hit5": 0.0,
+          "recall5": 0.0,
+          "recall10": 0.0,
+          "mrr10": 0.0,
+          "ndcg10": 0.0,
+          "p1": 0.0,
+          "false_no_result": 1.0,
+          "relevant": {
+            "kb-excl-bi-pho-lo-o-lop": 2
+          }
+        },
+        {
+          "id": "A077",
+          "style": "narr",
+          "topic": "exclusion",
+          "answerable": true,
+          "gap": false,
+          "status": "no_results",
+          "latency_ms": 60.12369999984912,
+          "top_docs": [],
+          "hit5": 0.0,
+          "recall5": 0.0,
+          "recall10": 0.0,
+          "mrr10": 0.0,
+          "ndcg10": 0.0,
+          "p1": 0.0,
+          "false_no_result": 1.0,
+          "relevant": {
+            "kb-excl-ep-lam-theo-nhom": 2
+          }
+        },
+        {
+          "id": "A078",
+          "style": "eng",
+          "topic": "exclusion",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 64.95790000008128,
+          "top_docs": [
+            "kb-excl-bi-loai-khoi-nhom",
+            "kb-excl-bi-pho-lo-o-lop",
+            "kb-excl-ep-lam-theo-nhom",
+            "kb-verb-bi-nhai-cuoi-nhao",
+            "kb-plat-roi-nhom-chat"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-excl-bi-loai-khoi-nhom": 2,
+            "kb-excl-bi-pho-lo-o-lop": 1
+          }
+        },
+        {
+          "id": "A082",
+          "style": "nodiac",
+          "topic": "school-procedure-vn",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 57.51409999993484,
+          "top_docs": [
+            "kb-school-chuan-bi-gap-thay-co",
+            "legacy-noi-chuyen-voi-giao-vien",
+            "legacy-noi-chuyen-voi-nguoi-cham-soc",
+            "kb-help-cau-mo-loi",
+            "legacy-bat-nat-la-gi"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-school-chuan-bi-gap-thay-co": 2
+          }
+        },
+        {
+          "id": "A084",
+          "style": "std",
+          "topic": "school-procedure-vn",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 74.15430000014567,
+          "top_docs": [
+            "kb-legal-quyen-nguoi-hoc",
+            "vn-nd-80-2017-trich",
+            "kb-school-quy-trinh-khung",
+            "kb-school-theo-doi-leo-thang",
+            "kb-help-chon-nguoi-nao"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-legal-quyen-nguoi-hoc": 2,
+            "vn-nd-80-2017-trich": 1
+          }
+        },
+        {
+          "id": "A087",
+          "style": "narr",
+          "topic": "school-procedure-vn",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 56.47810000004938,
+          "top_docs": [
+            "kb-school-quy-trinh-khung",
+            "kb-school-theo-doi-leo-thang",
+            "legacy-theo-doi-sau-khi-nho-giup",
+            "kb-legal-quyen-nguoi-hoc",
+            "kb-school-chuan-bi-gap-thay-co"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 0.5,
+          "ndcg10": 0.6590018048024133,
+          "p1": 0.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-school-theo-doi-leo-thang": 2,
+            "legacy-theo-doi-sau-khi-nho-giup": 1
+          }
+        },
+        {
+          "id": "A092",
+          "style": "std",
+          "topic": "legal-vn",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 98.54719999998451,
+          "top_docs": [
+            "vn-nd-80-2017-trich",
+            "kb-def-ba-dau-hieu",
+            "kb-legal-nd80-tong-quan",
+            "kb-legal-khi-nao-bao-cong-an",
+            "kb-school-quy-trinh-khung"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 0.9514426589871553,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-legal-nd80-tong-quan": 2,
+            "vn-nd-80-2017-trich": 2,
+            "kb-def-ba-dau-hieu": 1
+          }
+        },
+        {
+          "id": "A093",
+          "style": "nodiac",
+          "topic": "legal-vn",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 68.21930000000975,
+          "top_docs": [
+            "kb-school-quy-trinh-khung",
+            "kb-legal-khi-nao-bao-cong-an",
+            "kb-school-theo-doi-leo-thang",
+            "kb-pt-giao-vien-tiep-nhan",
+            "vn-nd-80-2017-trich"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 0.7939234660462212,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-legal-khi-nao-bao-cong-an": 2,
+            "kb-school-quy-trinh-khung": 1,
+            "vn-nd-80-2017-trich": 1
+          }
+        },
+        {
+          "id": "A099",
+          "style": "std",
+          "topic": "bystander",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 66.15350000015496,
+          "top_docs": [
+            "kb-by-chung-kien-tai-cho",
+            "legacy-bat-nat-la-gi",
+            "kb-school-chuan-bi-gap-thay-co",
+            "kb-emo-phan-ung-thuong-gap",
+            "kb-phys-noi-vang-nguoi"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-by-chung-kien-tai-cho": 2
+          }
+        },
+        {
+          "id": "A103",
+          "style": "slang",
+          "topic": "bystander",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 55.092199999990044,
+          "top_docs": [
+            "kb-verb-tin-don-noi-xau",
+            "kb-by-ban-ke-bi-mat",
+            "kb-by-thay-tren-mang",
+            "kb-by-chung-kien-tai-cho",
+            "kb-cyber-bai-dang-boc-phot"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 0.6758840844016503,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-by-chung-kien-tai-cho": 2,
+            "kb-by-thay-tren-mang": 1,
+            "kb-verb-tin-don-noi-xau": 1
+          }
+        },
+        {
+          "id": "A106",
+          "style": "nodiac",
+          "topic": "bystander",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 56.05549999995674,
+          "top_docs": [
+            "kb-evid-dieu-khong-nen",
+            "kb-by-chung-kien-tai-cho",
+            "kb-phys-sau-khi-bi-thuong",
+            "kb-cyber-anh-rieng-tong-tien",
+            "legacy-luu-anh-chup-co-ngu-canh"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 0.5,
+          "ndcg10": 0.6309297535714574,
+          "p1": 0.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-by-chung-kien-tai-cho": 2
+          }
+        },
+        {
+          "id": "A107",
+          "style": "std",
+          "topic": "emotional-impact",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 59.42559999994046,
+          "top_docs": [
+            "kb-emo-phan-ung-thuong-gap",
+            "kb-phys-noi-vang-nguoi",
+            "kb-def-ba-dau-hieu",
+            "kb-pt-ke-hoach-an-toan-gia-dinh",
+            "kb-school-chuan-bi-gap-thay-co"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-emo-phan-ung-thuong-gap": 2
+          }
+        },
+        {
+          "id": "A110",
+          "style": "slang",
+          "topic": "emotional-impact",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 55.05740000012338,
+          "top_docs": [
+            "kb-emo-phan-ung-thuong-gap",
+            "kb-def-ba-dau-hieu",
+            "kb-school-chuan-bi-gap-thay-co",
+            "kb-phys-noi-vang-nguoi",
+            "legacy-bat-nat-la-gi"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-emo-phan-ung-thuong-gap": 2
+          }
+        },
+        {
+          "id": "A112",
+          "style": "narr",
+          "topic": "emotional-impact",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 70.31830000005357,
+          "top_docs": [
+            "kb-excl-bi-pho-lo-o-lop",
+            "kb-emo-phan-ung-thuong-gap",
+            "kb-verb-bi-nhai-cuoi-nhao",
+            "legacy-noi-chuyen-voi-nguoi-cham-soc",
+            "kb-school-chuan-bi-gap-thay-co"
+          ],
+          "hit5": 1.0,
+          "recall5": 0.5,
+          "recall10": 0.5,
+          "mrr10": 0.5,
+          "ndcg10": 0.52129602861432,
+          "p1": 0.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-emo-phan-ung-thuong-gap": 2,
+            "kb-emo-binh-tinh-nhanh": 1
+          }
+        },
+        {
+          "id": "A115",
+          "style": "nodiac",
+          "topic": "emotional-impact",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 96.88579999988178,
+          "top_docs": [
+            "kb-excl-bi-pho-lo-o-lop",
+            "kb-urg-duong-ve-nha",
+            "kb-emo-phan-ung-thuong-gap",
+            "kb-phys-noi-vang-nguoi",
+            "kb-pt-ke-hoach-an-toan-gia-dinh"
+          ],
+          "hit5": 1.0,
+          "recall5": 0.5,
+          "recall10": 0.5,
+          "mrr10": 0.3333333333333333,
+          "ndcg10": 0.41311732856427996,
+          "p1": 0.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-emo-phan-ung-thuong-gap": 2,
+            "kb-emo-binh-tinh-nhanh": 1
+          }
+        },
+        {
+          "id": "A117",
+          "style": "std",
+          "topic": "parents-teachers",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 67.17950000006567,
+          "top_docs": [
+            "kb-pt-cha-me-lang-nghe",
+            "kb-pt-giao-vien-tiep-nhan",
+            "kb-by-ban-ke-bi-mat",
+            "kb-pt-ke-hoach-an-toan-gia-dinh",
+            "kb-by-chung-kien-tai-cho"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 0.944847956559586,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-pt-cha-me-lang-nghe": 2,
+            "kb-pt-ke-hoach-an-toan-gia-dinh": 1
+          }
+        },
+        {
+          "id": "A122",
+          "style": "narr",
+          "topic": "parents-teachers",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 71.80310000012469,
+          "top_docs": [
+            "kb-excl-bi-pho-lo-o-lop",
+            "kb-pt-cha-me-lang-nghe",
+            "kb-help-chon-nguoi-nao",
+            "legacy-noi-chuyen-voi-nguoi-cham-soc",
+            "kb-pt-ke-hoach-an-toan-gia-dinh"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 0.5,
+          "ndcg10": 0.6278397607958708,
+          "p1": 0.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-pt-cha-me-lang-nghe": 2,
+            "kb-pt-ke-hoach-an-toan-gia-dinh": 1
+          }
+        },
+        {
+          "id": "A123",
+          "style": "eng",
+          "topic": "parents-teachers",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 46.27970000001369,
+          "top_docs": [
+            "kb-pt-cha-me-lang-nghe",
+            "kb-pt-ke-hoach-an-toan-gia-dinh",
+            "kb-legal-khi-nao-bao-cong-an",
+            "kb-by-chung-kien-tai-cho",
+            "kb-school-theo-doi-leo-thang"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-pt-cha-me-lang-nghe": 2,
+            "kb-pt-ke-hoach-an-toan-gia-dinh": 1
+          }
+        },
+        {
+          "id": "A124",
+          "style": "nodiac",
+          "topic": "parents-teachers",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 65.61350000015409,
+          "top_docs": [
+            "kb-excl-bi-loai-khoi-nhom",
+            "kb-by-ban-ke-bi-mat",
+            "kb-pt-cha-me-lang-nghe",
+            "kb-excl-bi-pho-lo-o-lop",
+            "kb-excl-ep-lam-theo-nhom"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 0.3333333333333333,
+          "ndcg10": 0.5,
+          "p1": 0.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-pt-cha-me-lang-nghe": 2
+          }
+        },
+        {
+          "id": "A125",
+          "style": "std",
+          "topic": "platform-reporting",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 65.84330000009686,
+          "top_docs": [
+            "kb-plat-luu-chan-bao-cao",
+            "legacy-chan-va-bao-cao-noi-dung",
+            "kb-cyber-bai-dang-boc-phot",
+            "kb-plat-roi-nhom-chat",
+            "kb-by-thay-tren-mang"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-plat-luu-chan-bao-cao": 2,
+            "legacy-chan-va-bao-cao-noi-dung": 2
+          }
+        },
+        {
+          "id": "A129",
+          "style": "slang",
+          "topic": "platform-reporting",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 99.50670000011996,
+          "top_docs": [
+            "kb-plat-roi-nhom-chat",
+            "kb-cyber-bai-dang-boc-phot",
+            "kb-by-thay-tren-mang",
+            "kb-plat-luu-chan-bao-cao",
+            "kb-excl-bi-loai-khoi-nhom"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-plat-roi-nhom-chat": 2
+          }
+        },
+        {
+          "id": "A132",
+          "style": "nodiac",
+          "topic": "platform-reporting",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 75.98649999999907,
+          "top_docs": [
+            "kb-cyber-bai-dang-boc-phot",
+            "kb-by-thay-tren-mang",
+            "legacy-chan-va-bao-cao-noi-dung",
+            "kb-plat-luu-chan-bao-cao",
+            "legacy-tom-tat-trung-tinh"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 0.25,
+          "ndcg10": 0.4306765580733931,
+          "p1": 0.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-plat-luu-chan-bao-cao": 2
+          }
+        },
+        {
+          "id": "A135",
+          "style": "std",
+          "topic": "urgent-safety",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 71.96800000019721,
+          "top_docs": [
+            "kb-urg-bi-doa-thoi-gian-cu-the",
+            "kb-legal-khi-nao-bao-cong-an",
+            "kb-pt-ke-hoach-an-toan-gia-dinh",
+            "kb-school-chuan-bi-gap-thay-co",
+            "kb-phys-noi-vang-nguoi"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-urg-bi-doa-thoi-gian-cu-the": 2
+          }
+        },
+        {
+          "id": "A136",
+          "style": "nodiac",
+          "topic": "urgent-safety",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 102.70909999985633,
+          "top_docs": [
+            "legacy-tong-dai-111",
+            "kb-urg-dang-nguy-hiem",
+            "kb-legal-khi-nao-bao-cong-an",
+            "kb-help-chon-nguoi-nao",
+            "kb-school-theo-doi-leo-thang"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 1.0,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-urg-dang-nguy-hiem": 2,
+            "legacy-tong-dai-111": 2
+          }
+        },
+        {
+          "id": "A138",
+          "style": "slang",
+          "topic": "urgent-safety",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 56.035399999927904,
+          "top_docs": [
+            "kb-urg-duong-ve-nha",
+            "kb-pt-ke-hoach-an-toan-gia-dinh",
+            "legacy-theo-doi-sau-khi-nho-giup",
+            "kb-phys-noi-vang-nguoi",
+            "kb-school-chuan-bi-gap-thay-co"
+          ],
+          "hit5": 1.0,
+          "recall5": 0.6666666666666666,
+          "recall10": 0.6666666666666666,
+          "mrr10": 1.0,
+          "ndcg10": 0.6732934624429354,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-urg-duong-ve-nha": 2,
+            "kb-urg-dang-nguy-hiem": 2,
+            "kb-pt-ke-hoach-an-toan-gia-dinh": 1
+          }
+        },
+        {
+          "id": "A139",
+          "style": "narr",
+          "topic": "urgent-safety",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 69.6815000001152,
+          "top_docs": [
+            "kb-excl-bi-pho-lo-o-lop",
+            "kb-phys-noi-vang-nguoi",
+            "kb-help-so-tra-thu",
+            "kb-def-ba-dau-hieu",
+            "kb-cyber-tai-khoan-gia"
+          ],
+          "hit5": 0.0,
+          "recall5": 0.0,
+          "recall10": 0.0,
+          "mrr10": 0.0,
+          "ndcg10": 0.0,
+          "p1": 0.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-urg-bi-doa-thoi-gian-cu-the": 2
+          }
+        },
+        {
+          "id": "A144",
+          "style": "std",
+          "topic": "definition",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 63.81179999993947,
+          "top_docs": [
+            "kb-def-dua-hay-bat-nat",
+            "kb-def-cac-hinh-thuc",
+            "kb-def-ba-dau-hieu",
+            "legacy-bat-nat-la-gi",
+            "kb-legal-khi-nao-bao-cong-an"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 0.9639404333166532,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-def-dua-hay-bat-nat": 2,
+            "kb-def-ba-dau-hieu": 1
+          }
+        },
+        {
+          "id": "A147",
+          "style": "narr",
+          "topic": "definition",
+          "answerable": true,
+          "gap": false,
+          "status": "ok",
+          "latency_ms": 73.33690000018578,
+          "top_docs": [
+            "kb-def-dua-hay-bat-nat",
+            "legacy-bat-nat-la-gi",
+            "kb-def-ba-dau-hieu",
+            "kb-def-cac-hinh-thuc",
+            "kb-excl-ep-lam-theo-nhom"
+          ],
+          "hit5": 1.0,
+          "recall5": 1.0,
+          "recall10": 1.0,
+          "mrr10": 1.0,
+          "ndcg10": 0.9514426589871553,
+          "p1": 1.0,
+          "false_no_result": 0.0,
+          "relevant": {
+            "kb-def-dua-hay-bat-nat": 2,
+            "kb-def-ba-dau-hieu": 2,
+            "legacy-bat-nat-la-gi": 1
+          }
+        },
+        {
+          "id": "N001",
+          "style": "standard",
+          "topic": "",
+          "answerable": false,
+          "gap": false,
+          "status": "no_results",
+          "latency_ms": 43.00680000005741,
+          "top_docs": [],
+          "correct_no_result": 1.0,
+          "relevant": {}
+        },
+        {
+          "id": "N005",
+          "style": "standard",
+          "topic": "",
+          "answerable": false,
+          "gap": false,
+          "status": "no_results",
+          "latency_ms": 53.403300000127274,
+          "top_docs": [],
+          "correct_no_result": 1.0,
+          "relevant": {}
+        },
+        {
+          "id": "N010",
+          "style": "standard",
+          "topic": "",
+          "answerable": false,
+          "gap": false,
+          "status": "no_results",
+          "latency_ms": 34.156299999949624,
+          "top_docs": [],
+          "correct_no_result": 1.0,
+          "relevant": {}
+        },
+        {
+          "id": "N011",
+          "style": "standard",
+          "topic": "",
+          "answerable": false,
+          "gap": false,
+          "status": "no_results",
+          "latency_ms": 56.092000000035114,
+          "top_docs": [],
+          "correct_no_result": 1.0,
+          "relevant": {}
+        },
+        {
+          "id": "N012",
+          "style": "standard",
+          "topic": "",
+          "answerable": false,
+          "gap": false,
+          "status": "no_results",
+          "latency_ms": 49.960899999859976,
+          "top_docs": [],
+          "correct_no_result": 1.0,
+          "relevant": {}
+        },
+        {
+          "id": "N017",
+          "style": "standard",
+          "topic": "",
+          "answerable": false,
+          "gap": false,
+          "status": "no_results",
+          "latency_ms": 49.04009999995651,
+          "top_docs": [],
+          "correct_no_result": 1.0,
+          "relevant": {}
+        },
+        {
+          "id": "N018",
+          "style": "standard",
+          "topic": "",
+          "answerable": false,
+          "gap": false,
+          "status": "no_results",
+          "latency_ms": 53.818800000044575,
+          "top_docs": [],
+          "correct_no_result": 1.0,
+          "relevant": {}
+        },
+        {
+          "id": "N019",
+          "style": "standard",
+          "topic": "",
+          "answerable": false,
+          "gap": false,
+          "status": "no_results",
+          "latency_ms": 53.40810000006968,
+          "top_docs": [],
+          "correct_no_result": 1.0,
+          "relevant": {}
+        },
+        {
+          "id": "N022",
+          "style": "standard",
+          "topic": "",
+          "answerable": false,
+          "gap": true,
+          "status": "no_results",
+          "latency_ms": 56.24260000013237,
+          "top_docs": [],
+          "correct_no_result": 1.0,
+          "relevant": {}
+        },
+        {
+          "id": "N023",
+          "style": "standard",
+          "topic": "",
+          "answerable": false,
+          "gap": true,
+          "status": "no_results",
+          "latency_ms": 55.015099999991435,
+          "top_docs": [],
+          "correct_no_result": 1.0,
+          "relevant": {}
+        },
+        {
+          "id": "N026",
+          "style": "standard",
+          "topic": "",
+          "answerable": false,
+          "gap": true,
+          "status": "no_results",
+          "latency_ms": 50.68750000009459,
+          "top_docs": [],
+          "correct_no_result": 1.0,
+          "relevant": {}
+        },
+        {
+          "id": "N029",
+          "style": "standard",
+          "topic": "",
+          "answerable": false,
+          "gap": true,
+          "status": "no_results",
+          "latency_ms": 54.45010000016737,
+          "top_docs": [],
+          "correct_no_result": 1.0,
+          "relevant": {}
+        }
+      ]
+    }
+  },
+  "no_result_diagnosis": [
+    {
+      "id": "N001",
+      "query": "công thức làm bánh flan",
+      "expected": "no_results",
+      "baseline_status": "no_results",
+      "candidates": []
+    },
+    {
+      "id": "N005",
+      "query": "tỷ số trận chung kết sea games",
+      "expected": "no_results",
+      "baseline_status": "no_results",
+      "candidates": []
+    },
+    {
+      "id": "N010",
+      "query": "cách trồng cây xương rồng",
+      "expected": "no_results",
+      "baseline_status": "no_results",
+      "candidates": []
+    },
+    {
+      "id": "N011",
+      "query": "thuật toán sắp xếp nhanh quicksort",
+      "expected": "no_results",
+      "baseline_status": "no_results",
+      "candidates": []
+    },
+    {
+      "id": "N012",
+      "query": "làm sao để bắt cá ở ao",
+      "expected": "no_results",
+      "baseline_status": "no_results",
+      "candidates": []
+    },
+    {
+      "id": "N017",
+      "query": "điều kiện xét tuyển đại học năm nay",
+      "expected": "no_results",
+      "baseline_status": "no_results",
+      "candidates": []
+    },
+    {
+      "id": "N018",
+      "query": "báo cáo thực hành môn hóa lớp 9",
+      "expected": "no_results",
+      "baseline_status": "no_results",
+      "candidates": []
+    },
+    {
+      "id": "N019",
+      "query": "bài hát nhạc trẻ mới ra",
+      "expected": "no_results",
+      "baseline_status": "no_results",
+      "candidates": []
+    },
+    {
+      "id": "N022",
+      "query": "học sinh bao nhiêu tuổi thì phải chịu trách nhiệm hình sự",
+      "expected": "no_results",
+      "baseline_status": "ok",
+      "candidates": [
+        {
+          "document_id": "kb-legal-khi-nao-bao-cong-an",
+          "chunk_id": "kb-legal-khi-nao-bao-cong-an#001-0e5ff567",
+          "text": "Mức xử phạt, tuổi chịu trách nhiệm pháp lý và thủ tục điều tra không nằm trong phần văn bản đã đọc, nên không được nêu ở đây. Nếu cần các thông tin này, hãy hỏi cán bộ pháp lý, tổ chức trợ giúp pháp lý hoặc cơ quan công an có thẩm quyền.",
+          "vector_score": 0.5929319505136053,
+          "lexical_score": 0.46398520630404916,
+          "rank_score": 1.0,
+          "support": false,
+          "reason": "criminal_age_missing"
+        },
+        {
+          "document_id": "vn-nd-80-2017-trich",
+          "chunk_id": "vn-nd-80-2017-trich#001-7edc4498",
+          "text": "Nghị định này áp dụng đối với cơ sở giáo dục mầm non, cơ sở giáo dục phổ thông, cơ sở giáo dục thường xuyên, cơ sở giáo dục nghề nghiệp, trường chuyên biệt, cơ sở giáo dục có vốn đầu tư nước ngoài hoặc liên kết đào tạo với nước ngoài tại Việt Nam (sau đây gọi chung là cơ sở giáo dục), lớp xóa mù chữ, lớp ngoại ngữ, lớp tin học, lớp dạy kỹ năng, lớp dạy năng khiếu, lớp dạy văn hóa, lớp dành cho trẻ em vì hoàn cảnh khó khăn hoặc có hoàn cảnh đặc biệt không được đi học ở nhà trường (sau đây gọi chung là lớp độc lập) có người học dưới 18 tuổi; các cơ quan, tổ chức và cá nhân có liên quan.",
+          "vector_score": 0.5180646181106567,
+          "lexical_score": 0.15881076483437323,
+          "rank_score": 0.9807692307692308,
+          "support": false,
+          "reason": "criminal_age_missing"
+        },
+        {
+          "document_id": "kb-legal-nd80-tong-quan",
+          "chunk_id": "kb-legal-nd80-tong-quan#000-666b9266",
+          "text": "Nghị định 80/2017/NĐ-CP do Chính phủ ban hành ngày 17 tháng 7 năm 2017 và có hiệu lực từ ngày 5 tháng 9 năm 2017. Theo Điều 1, nghị định áp dụng với cơ sở giáo dục mầm non, phổ thông, thường xuyên, nghề nghiệp, trường chuyên biệt và các lớp độc lập có người học dưới 18 tuổi, cùng các cơ quan, tổ chức, cá nhân liên quan. Bạo lực học đường được hiểu thế nào. Điều 2 khoản 5 định nghĩa bạo lực học đường là các hành vi hành hạ, ngược đãi, đánh đập, xâm hại thân thể, sức khỏe, lăng mạ, xúc phạm danh dự, nhân phẩm, cô lập, xua đuổi và các hành vi cố ý khác gây tổn hại về thể chất, tinh thần của người học, xảy ra trong cơ sở giáo dục hoặc lớp độc lập.",
+          "vector_score": 0.4873271882534027,
+          "lexical_score": 0.18353661557725223,
+          "rank_score": 0.9444444444444444,
+          "support": false,
+          "reason": "criminal_age_missing"
+        },
+        {
+          "document_id": "kb-school-quy-trinh-khung",
+          "chunk_id": "kb-school-quy-trinh-khung#001-f27269b9",
+          "text": "Thẻ này chỉ tóm tắt một khung chung. Quy trình cụ thể ở từng trường, ai phụ trách, thời hạn bao lâu, mức kỷ luật thế nào, có thể khác và không được nêu trong phần văn bản MoodPrint đã đọc. Hãy hỏi trực tiếp nhà trường về quy trình của họ.",
+          "vector_score": 0.4784337424765155,
+          "lexical_score": null,
+          "rank_score": 0.9107142857142857,
+          "support": false,
+          "reason": "criminal_age_missing"
+        },
+        {
+          "document_id": "kb-help-chon-nguoi-nao",
+          "chunk_id": "kb-help-chon-nguoi-nao#000-6e5f0e30",
+          "text": "Giáo viên chủ nhiệm là người thường biết lớp bạn nhất. Cán bộ tư vấn hoặc cô thầy y tế phù hợp khi bạn không muốn kể trước lớp. Nghị định 80/2017/NĐ-CP, Điều 5 khoản 1, nói nhà trường thực hiện công tác y tế, tư vấn, trợ giúp người học và thiết lập các kênh như hộp thư góp ý, đường dây nóng để tiếp nhận thông tin. Người thân. Cha mẹ, ông bà, anh chị, cô dì chú bác. Chọn người bình tĩnh, ít la mắng, và sẽ nghe bạn kể trước khi quyết định. Nếu bạn lo họ sẽ phản ứng quá mạnh, hãy nhờ người khác đi cùng khi nói chuyện. Tổng đài 111. Nếu bạn dưới 18 tuổi và chưa biết nói với ai, hoặc bạn lo người xung quanh không giúp được, bạn có thể gọi 111. Đây là tổng đài quốc gia bảo vệ trẻ em, hoạt động 24/24 và miễn phí cước gọi.",
+          "vector_score": 0.4596215027457926,
+          "lexical_score": 0.2655013832051643,
+          "rank_score": 0.8793103448275862,
+          "support": false,
+          "reason": "criminal_age_missing"
+        }
+      ]
+    },
+    {
+      "id": "N023",
+      "query": "quy chế xử lý kỷ luật học sinh của trường THCS Nguyễn Du",
+      "expected": "no_results",
+      "baseline_status": "ok",
+      "candidates": [
+        {
+          "document_id": "kb-school-quy-trinh-khung",
+          "chunk_id": "kb-school-quy-trinh-khung#001-f27269b9",
+          "text": "Thẻ này chỉ tóm tắt một khung chung. Quy trình cụ thể ở từng trường, ai phụ trách, thời hạn bao lâu, mức kỷ luật thế nào, có thể khác và không được nêu trong phần văn bản MoodPrint đã đọc. Hãy hỏi trực tiếp nhà trường về quy trình của họ.",
+          "vector_score": 0.6367525052056466,
+          "lexical_score": 0.3214021233502352,
+          "rank_score": 1.0,
+          "support": false,
+          "reason": "institution_policy_unavailable"
+        },
+        {
+          "document_id": "kb-legal-quyen-nguoi-hoc",
+          "chunk_id": "kb-legal-quyen-nguoi-hoc#001-9aa92e5f",
+          "text": "Văn bản này nêu việc nhà trường cần làm, không nêu thời hạn xử lý hay hình thức kỷ luật. Đây là tóm tắt, không thay thế tư vấn pháp lý.",
+          "vector_score": 0.5726837174484908,
+          "lexical_score": 0.33949973881525847,
+          "rank_score": 0.9807692307692308,
+          "support": false,
+          "reason": "institution_policy_unavailable"
+        },
+        {
+          "document_id": "kb-legal-nd80-tong-quan",
+          "chunk_id": "kb-legal-nd80-tong-quan#001-47150db3",
+          "text": "Điều 6 chia các biện pháp làm ba nhóm: phòng ngừa, hỗ trợ người học có nguy cơ bị bạo lực, và can thiệp khi đã xảy ra. Mỗi nhóm có các việc cụ thể cho nhà trường, như tuyên truyền, tư vấn, chăm sóc y tế, thông báo gia đình và phối hợp với công an hoặc chính quyền địa phương. Lưu ý quan trọng. Đây là phần tóm tắt từ bản quét chính thức, không phải tư vấn pháp lý. MoodPrint chưa xác nhận được từ cơ sở dữ liệu chính thức rằng nghị định còn nguyên hiệu lực hoặc chưa bị sửa đổi vào thời điểm đọc. Với việc cần căn cứ pháp lý, hãy kiểm tra văn bản hiện hành hoặc hỏi người có chuyên môn.",
+          "vector_score": 0.5092207193374634,
+          "lexical_score": 0.1292116835901057,
+          "rank_score": 0.9444444444444444,
+          "support": false,
+          "reason": "institution_policy_unavailable"
+        },
+        {
+          "document_id": "vn-nd-80-2017-trich",
+          "chunk_id": "vn-nd-80-2017-trich#007-fb7407b0",
+          "text": "3. Biện pháp can thiệp khi xảy ra bạo lực học đường: a) Đánh giá sơ bộ về mức độ tổn hại của người học, đưa ra nhận định về tình trạng hiện thời của người học; b) Thực hiện ngay các biện pháp trợ giúp, chăm sóc y tế, tư vấn đối với người học bị bạo lực; theo dõi, đánh giá sự an toàn của người bị bạo lực; c) Thông báo kịp thời với gia đình người học để phối hợp xử lý; trường hợp vụ việc vượt quá khả năng giải quyết của cơ sở giáo dục thì thông báo kịp thời với cơ quan công an, Ủy ban nhân dân xã, phường, thị trấn và các cơ quan liên quan để phối hợp xử lý theo quy định của pháp luật.",
+          "vector_score": 0.5078763356356257,
+          "lexical_score": 0.3223732322330607,
+          "rank_score": 0.9272727272727272,
+          "support": false,
+          "reason": "institution_policy_unavailable"
+        },
+        {
+          "document_id": "kb-legal-khi-nao-bao-cong-an",
+          "chunk_id": "kb-legal-khi-nao-bao-cong-an#000-5a6f63e3",
+          "text": "Nghị định 80/2017/NĐ-CP, Điều 6 khoản 3 điểm c, nói nếu vụ việc vượt quá khả năng giải quyết của cơ sở giáo dục thì nhà trường thông báo kịp thời cho cơ quan công an, Ủy ban nhân dân xã, phường, thị trấn và các cơ quan liên quan. Điều 13 khoản 2 giao Ủy ban nhân dân các cấp chỉ đạo các cơ quan địa phương bảo đảm an ninh trật tự và điều tra, xử lý vụ việc bạo lực học đường. Những tình huống gợi ý cho gia đình cân nhắc. Văn bản không liệt kê cụ thể thế nào là vượt khả năng. Gia đình có thể cân nhắc khi có thương tích nặng, có đe dọa nghiêm trọng đến an toàn, có tống tiền hoặc đe dọa tung ảnh riêng, hoặc nhà trường không xử lý dù đã báo nhiều lần. Nếu có nguy hiểm tức thì, hãy gọi 113 hoặc nhờ người lớn đưa đến công an xã, phường.",
+          "vector_score": 0.4858791844988877,
+          "lexical_score": 0.25618265764869513,
+          "rank_score": 0.85,
+          "support": false,
+          "reason": "institution_policy_unavailable"
+        }
+      ]
+    },
+    {
+      "id": "N026",
+      "query": "thuốc gì chữa trầm cảm cho học sinh",
+      "expected": "no_results",
+      "baseline_status": "no_results",
+      "candidates": []
+    },
+    {
+      "id": "N029",
+      "query": "địa chỉ trung tâm tư vấn tâm lý học sinh ở Đà Nẵng",
+      "expected": "no_results",
+      "baseline_status": "no_results",
+      "candidates": []
+    }
+  ],
+  "embedding_calls_this_run": 0,
+  "embedding_tokens_this_run": 0,
+  "latency_scope": "database + scoring with cached embeddings; provider latency is separate and not a live latency pass",
+  "provider_network_ms": []
+}
