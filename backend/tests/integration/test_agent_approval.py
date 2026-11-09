@@ -12,6 +12,7 @@ from moodprint_agent.tools.registry import ToolRegistry
 from moodprint_shared.config import AppConfig
 from moodprint_shared.contracts.agent import AgentToolContext, ToolPolicy
 from moodprint_shared.contracts.errors import NotFound, VersionConflict
+from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 
 pytestmark = pytest.mark.integration
 
@@ -48,6 +49,7 @@ async def test_approval_persisted_owner_decision_restart_and_cumulative_usage(
     )
     stream = RunStream()
     await produce(
+        knowledge=FixtureKnowledgeRetriever(),
         stream=stream,
         runtime=first,
         service=service,
@@ -78,6 +80,7 @@ async def test_approval_persisted_owner_decision_restart_and_cumulative_usage(
         ),
     )
     await produce(
+        knowledge=FixtureKnowledgeRetriever(),
         stream=RunStream(),
         runtime=second,
         service=service,

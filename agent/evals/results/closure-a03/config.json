@@ -1,0 +1,15 @@
+{
+  "run_id": "closure-a03",
+  "suite": "live",
+  "groups": [],
+  "repeat": 3,
+  "effort": "low",
+  "model": "gpt-6-luna",
+  "openai_agents": "0.24.0",
+  "openai": "3.46.0",
+  "commit": "14fcee3f68d4",
+  "prompt_version": "companion_v4",
+  "tools_version": "77f3941b03fdb67a",
+  "corpus_version": "synthetic-fixture-v1",
+  "started_at": "2026-11-08T20:33:52.017388+00:00"
+}

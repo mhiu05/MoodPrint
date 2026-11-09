@@ -20,6 +20,10 @@ class EventEmitter:
     seq: int = 0
     _tools_by_call: dict[str, str] = field(default_factory=dict[str, str])
 
+    def remember_call(self, call_id: str, tool: str) -> None:
+        """After a resume the SDK replays only the tool output; restore the call -> tool map."""
+        self._tools_by_call[call_id] = tool
+
     def emit(self, event: str, data: dict[str, Any]) -> StreamEvent:
         self.seq += 1
         return make_event(event, seq=self.seq, run_id=self.run_id, data=data)

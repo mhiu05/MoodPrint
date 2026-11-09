@@ -29,6 +29,7 @@ import {
 import { knowledgeSources } from "../../mocks/data/sources";
 import { getServices } from "../../services/composition";
 import type { KnowledgeArticle } from "../../types";
+import { LiveKnowledgeSearch } from "./search";
 import "./knowledge.css";
 
 const reviewDate = (date: string) =>
@@ -202,6 +203,7 @@ export function KnowledgeHub() {
           <BookOpen size={68} />
         </div>
       </section>
+      <LiveKnowledgeSearch query={query} topic={topic} age={age} />
       <div className="knowledge-search">
         <Search size={20} />
         <input

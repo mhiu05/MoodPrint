@@ -13,6 +13,8 @@ import {
 } from "../../components/ui";
 import { AgentStatusOrb } from "../../animations/AgentStatusOrb";
 import { getServices } from "../../services/composition";
+import { asLive } from "../../services/composition/companion-types";
+import { LiveAnalysisPage } from "./live/live-analysis";
 import type { Analysis, Evidence, Incident } from "../../types";
 import {
   analysisVariants,
@@ -33,6 +35,16 @@ const labelTime = (value: string) =>
     : "16/10 · không rõ giờ";
 
 export function AnalysisPage() {
+  const real = useWorkspaceStore((state) => state.workspace.kind === "real");
+  const companion = real ? asLive(getServices().companion) : null;
+  return companion ? (
+    <LiveAnalysisPage service={companion} />
+  ) : (
+    <SimulatedAnalysisPage />
+  );
+}
+
+function SimulatedAnalysisPage() {
   const { analysisId } = useParams();
   const navigate = useNavigate();
   const store = useWorkspaceStore();

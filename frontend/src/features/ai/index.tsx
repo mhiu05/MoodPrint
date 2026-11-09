@@ -16,6 +16,8 @@ import {
 } from "../../components/ui";
 import { AgentStatusOrb } from "../../animations/AgentStatusOrb";
 import { startFixtureAnalysis } from "./analysis-workflow";
+import { getServices } from "../../services/composition";
+import { asLive } from "../../services/composition/companion-types";
 import "./ai.css";
 export { ChatPage } from "./chat";
 export { AnalysisPage } from "./analysis";
@@ -23,6 +25,8 @@ export { RoleplayPage } from "./roleplay";
 
 export function AIHub() {
   const real = useWorkspaceStore((state) => state.workspace.kind === "real");
+  // A real workspace with a Companion is live: no sample chats, no sample fixtures.
+  const live = real && asLive(getServices().companion) !== null;
   const user = useWorkspaceStore((state) => state.user);
   const chats = useWorkspaceStore((state) => state.chats);
   const roleplays = useWorkspaceStore((state) => state.roleplays);
@@ -45,11 +49,17 @@ export function AIHub() {
         action={
           <div className="actions">
             <AgentStatusOrb state="idle" size={32} showLabel={false} />
-            <Badge tone="lavender">AI mô phỏng</Badge>
+            <Badge tone="lavender">{live ? "AI thật" : "AI mô phỏng"}</Badge>
           </div>
         }
       />
-      {real && (
+      {live && (
+        <Notice>
+          AI có thể sai và không phải người thật. Mọi thay đổi vào hồ sơ đều cần
+          bạn duyệt.
+        </Notice>
+      )}
+      {real && !live && (
         <Notice>
           AI mô phỏng · Chat, phân tích ảnh và luyện nói chỉ lưu trên thiết bị
           này.
@@ -73,77 +83,100 @@ export function AIHub() {
           </span>
         </Link>
       </div>
-      <section>
-        <SectionHeading title="Bạn đang muốn nói về…" />
-        <div className="chips">
-          {[
-            ["Tin nhắn làm mình lo", "SC-07"],
-            ["Bị bỏ ra ngoài nhóm", "SC-03"],
-            ["Không biết nói với ai", "SC-13"],
-          ].map(([label, id]) => (
-            <Link className="chip" key={id} to={`/ai/chat?scenario=${id}`}>
-              {label}
-              <ArrowRight size={15} />
-            </Link>
-          ))}
-        </div>
-      </section>
-      <section className="ai-fixture-entry">
-        <div>
-          <FileImage size={24} />
-          <div>
-            <h3>Cùng xem 8 ảnh chụp mẫu</h3>
-            <p>
-              {real
-                ? "Rà soát nguồn và thử xác nhận nội dung; ảnh mẫu không lưu vào hồ sơ thật."
-                : "Rà soát nguồn, sửa nội dung và xác nhận trước khi tạo hồ sơ."}
-            </p>
-          </div>
-        </div>
-        <button
-          className="button secondary"
-          onClick={() =>
-            navigate(`/ai/analysis/${startFixtureAnalysis("multi").id}`)
-          }
-        >
-          Mở bộ ảnh hư cấu
-          <ArrowRight size={17} />
-        </button>
-      </section>
-      <section>
-        <SectionHeading
-          title="Cuộc trò chuyện gần đây"
-          to="/ai/chat"
-          label="Cuộc trò chuyện mới"
-        />
-        {mine.length ? (
-          <div className="panel">
-            {mine.map((chat) => (
-              <Link
-                className="ai-recent-row"
-                key={chat.id}
-                to={`/ai/chat/${chat.id}`}
-              >
-                <MessageCircle size={21} />
-                <div>
-                  <strong>{chat.title}</strong>
-                  <small>
-                    {chat.draft ? "Có bản nháp · " : ""}
-                    {chat.messages.length} tin nhắn · tình huống mẫu
-                  </small>
-                </div>
-                <ArrowRight size={18} />
+      {!live && (
+        <section>
+          <SectionHeading title="Bạn đang muốn nói về…" />
+          <div className="chips">
+            {[
+              ["Tin nhắn làm mình lo", "SC-07"],
+              ["Bị bỏ ra ngoài nhóm", "SC-03"],
+              ["Không biết nói với ai", "SC-13"],
+            ].map(([label, id]) => (
+              <Link className="chip" key={id} to={`/ai/chat?scenario=${id}`}>
+                {label}
+                <ArrowRight size={15} />
               </Link>
             ))}
           </div>
-        ) : (
-          <EmptyState
-            title="Một trang trò chuyện mới"
-            description="Cuộc trò chuyện mẫu của bạn sẽ ở đây để bạn quay lại khi muốn."
+        </section>
+      )}
+      {live ? (
+        <section className="ai-fixture-entry">
+          <div>
+            <FileImage size={24} />
+            <div>
+              <h3>Phân tích ảnh bằng AI</h3>
+              <p>
+                Chọn một ảnh bạn đã tải lên. AI chỉ đọc sau khi bạn đồng ý, và
+                bản gốc không bị thay đổi.
+              </p>
+            </div>
+          </div>
+          <Link className="button secondary" to="/ai/analysis/new">
+            Chọn ảnh để phân tích
+            <ArrowRight size={17} />
+          </Link>
+        </section>
+      ) : (
+        <section className="ai-fixture-entry">
+          <div>
+            <FileImage size={24} />
+            <div>
+              <h3>Cùng xem 8 ảnh chụp mẫu</h3>
+              <p>
+                {real
+                  ? "Rà soát nguồn và thử xác nhận nội dung; ảnh mẫu không lưu vào hồ sơ thật."
+                  : "Rà soát nguồn, sửa nội dung và xác nhận trước khi tạo hồ sơ."}
+              </p>
+            </div>
+          </div>
+          <button
+            className="button secondary"
+            onClick={() =>
+              navigate(`/ai/analysis/${startFixtureAnalysis("multi").id}`)
+            }
+          >
+            Mở bộ ảnh hư cấu
+            <ArrowRight size={17} />
+          </button>
+        </section>
+      )}
+      {!live && (
+        <section>
+          <SectionHeading
+            title="Cuộc trò chuyện gần đây"
+            to="/ai/chat"
+            label="Cuộc trò chuyện mới"
           />
-        )}
-      </section>
-      {practice && (
+          {mine.length ? (
+            <div className="panel">
+              {mine.map((chat) => (
+                <Link
+                  className="ai-recent-row"
+                  key={chat.id}
+                  to={`/ai/chat/${chat.id}`}
+                >
+                  <MessageCircle size={21} />
+                  <div>
+                    <strong>{chat.title}</strong>
+                    <small>
+                      {chat.draft ? "Có bản nháp · " : ""}
+                      {chat.messages.length} tin nhắn · tình huống mẫu
+                    </small>
+                  </div>
+                  <ArrowRight size={18} />
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="Một trang trò chuyện mới"
+              description="Cuộc trò chuyện mẫu của bạn sẽ ở đây để bạn quay lại khi muốn."
+            />
+          )}
+        </section>
+      )}
+      {!live && practice && (
         <Link
           className="ai-resume"
           to={`/ai/roleplay/${practice.role}?session=${practice.id}`}
@@ -156,10 +189,12 @@ export function AIHub() {
           <ArrowRight size={18} />
         </Link>
       )}
-      <p className="ai-demo-footnote">
-        Nội dung dựng sẵn, chỉ lưu trên trình duyệt này. Không có AI, OCR, ghi
-        âm hoặc gửi thông tin thật.
-      </p>
+      {!live && (
+        <p className="ai-demo-footnote">
+          Nội dung dựng sẵn, chỉ lưu trên trình duyệt này. Không có AI, OCR, ghi
+          âm hoặc gửi thông tin thật.
+        </p>
+      )}
     </div>
   );
 }

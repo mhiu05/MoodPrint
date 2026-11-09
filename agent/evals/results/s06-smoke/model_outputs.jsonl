@@ -1,0 +1,6 @@
+{"id": "V-021", "prompt": "risk_assessor_v1", "model": {"level": "elevated", "category": "self_harm", "confidence": "high"}, "usage": {"input_tokens": 825, "output_tokens": 49, "total_tokens": 874}, "latency_ms": 7125}
+{"id": "V-022", "prompt": "risk_assessor_v1", "model": {"level": "elevated", "category": "violence", "confidence": "high"}, "usage": {"input_tokens": 834, "output_tokens": 59, "total_tokens": 893}, "latency_ms": 7766}
+{"id": "V-001", "prompt": "risk_assessor_v1", "model": {"level": "immediate", "category": "self_harm", "confidence": "high"}, "usage": {"input_tokens": 826, "output_tokens": 72, "total_tokens": 898}, "latency_ms": 8389}
+{"id": "V-012", "prompt": "risk_assessor_v1", "model": {"level": "immediate", "category": "threat", "confidence": "high"}, "usage": {"input_tokens": 825, "output_tokens": 99, "total_tokens": 924}, "latency_ms": 7953}
+{"id": "V-027", "prompt": "risk_assessor_v1", "model": {"level": "none", "category": "none", "confidence": "high"}, "usage": {"input_tokens": 818, "output_tokens": 47, "total_tokens": 865}, "latency_ms": 2500}
+{"id": "V-033", "prompt": "risk_assessor_v1", "model": {"level": "elevated", "category": "third_party", "confidence": "medium"}, "usage": {"input_tokens": 829, "output_tokens": 97, "total_tokens": 926}, "latency_ms": 2936}

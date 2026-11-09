@@ -1,0 +1,41 @@
+{
+  "locked_on": "2026-11-09",
+  "split_used": "dev only",
+  "benchmark_sha256_lf": "6d9fae8b0aedb5f1cca52c965dc1696250266755b79333289bf1e235ace4f1d6",
+  "tuning_corpus_version": "kb-20261109-04",
+  "embedding_model": "voyage-4",
+  "embedding_input": "context",
+  "selection_rule": "fallback: no_result_accuracy >= 0.90 is NOT met on dev; best accuracy under the false-no-result cap",
+  "dev_metrics_at_lock": {
+    "recall_at_5": 0.8611,
+    "hit_at_5": 0.9167,
+    "mrr_at_10": 0.7881,
+    "ndcg_at_10": 0.7725,
+    "false_no_result_rate": 0.0667,
+    "no_result_accuracy": 0.8333,
+    "gap_accuracy": 0.5
+  },
+  "config": {
+    "gate_scope": "query",
+    "min_vector_score": 0.425,
+    "min_lexical_score": 0.5,
+    "chunk_floor_vector": 0.2,
+    "chunk_floor_lexical": 0.2,
+    "lexical_weight": 0.0,
+    "lexical_phrase_bonus": 0.0,
+    "rrf_k": 50,
+    "max_chunks_per_document": 1,
+    "vector_candidates": 40,
+    "lexical_candidates": 40,
+    "lexical_mode": "coverage",
+    "restore_diacritics": true,
+    "score_mode": "rrf"
+  },
+  "not_met_on_dev": [
+    "no_result_accuracy >= 0.90 (0.833, in-domain gaps 2/4)"
+  ],
+  "decisions": [
+    "context_folded embedding input rejected on dev (lower no-result accuracy, lower unconstrained nDCG)",
+    "voyage-4-large, voyage-4-lite and rerank-3 not evaluated: the recorded Voyage authorization names voyage-4 only"
+  ]
+}

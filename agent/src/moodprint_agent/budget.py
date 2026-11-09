@@ -11,6 +11,7 @@ class RunToolBudget:
     max_calls: int = 6
     _counts: dict[str, int] = field(default_factory=dict[str, int], init=False, repr=False)
     _total_calls: int = field(default=0, init=False)
+    _exempt_calls: int = field(default=0, init=False, repr=False)
 
     def __post_init__(self) -> None:
         if self.max_calls < 1:
@@ -29,8 +30,20 @@ class RunToolBudget:
         self._counts[tool_name] = count + 1
         self._total_calls += 1
 
+    def consume_exempt(self, tool_name: str, max_calls_per_run: int) -> None:
+        """Count a read-only internal tool against its own limit but not the run total."""
+        count = self._counts.get(tool_name, 0)
+        if count >= max_calls_per_run:
+            raise PerToolBudgetExceeded
+        self._counts[tool_name] = count + 1
+        self._exempt_calls += 1
+
     def snapshot(self) -> dict[str, Any]:
-        return {"max_calls": self.max_calls, "counts": dict(self._counts)}
+        return {
+            "max_calls": self.max_calls,
+            "counts": dict(self._counts),
+            "exempt": self._exempt_calls,
+        }
 
     @classmethod
     def from_snapshot(cls, data: dict[str, Any]) -> "RunToolBudget":
@@ -43,6 +56,8 @@ class RunToolBudget:
                 raise ValueError("invalid budget checkpoint")
             budget._counts[name] = count
         budget._total_calls = sum(budget._counts.values())
+        budget._total_calls -= int(data.get("exempt", 0))
+        budget._exempt_calls = int(data.get("exempt", 0))
         if budget._total_calls > budget.max_calls:
             raise ValueError("invalid budget checkpoint")
         return budget

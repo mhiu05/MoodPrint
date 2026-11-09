@@ -116,7 +116,16 @@ async def test_startup_shutdown_closes_engine(settings, monkeypatch):
             await dispose()
 
     monkeypatch.setattr("app.main.create_engine", lambda settings, cfg: TrackedEngine())
-    app = create_app(settings)
+    # This test is about resource lifetimes, not retrieval: choose the fixture on purpose (the product
+    # default is the real retriever and needs a Voyage key).
+    from dataclasses import replace
+
+    from moodprint_shared.config import AppConfig
+
+    base = AppConfig()
+    app = create_app(
+        settings, replace(base, knowledge=replace(base.knowledge, retriever="fixture"))
+    )
     async with app.router.lifespan_context(app):
         http = app.state.http
         assert not http.is_closed
@@ -169,7 +178,7 @@ async def test_startup_factory_failure_closes_acquired_resources(settings, monke
     cfg = AppConfig()
     cfg = replace(cfg, knowledge=replace(cfg.knowledge, retriever="unavailable"))
     app = create_app(settings, cfg)
-    with pytest.raises(ValueError, match="retriever not available before Phase 2"):
+    with pytest.raises(ValueError, match="Unknown knowledge retriever"):
         async with app.router.lifespan_context(app):
             pytest.fail("invalid retriever must fail startup")
     assert app.state.http.is_closed

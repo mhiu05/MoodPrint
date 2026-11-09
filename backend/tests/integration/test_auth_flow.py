@@ -2,7 +2,7 @@
 
 import importlib.util
 import secrets
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from urllib.parse import urlsplit
 from uuid import UUID, uuid4
@@ -10,9 +10,17 @@ from uuid import UUID, uuid4
 import httpx
 import pytest
 from app.main import create_app
+from moodprint_shared.config import AppConfig
 from moodprint_shared.env import EnvSettings
 
 from backend.tests.integration.conftest import local_value
+
+
+def fixture_config() -> AppConfig:
+    """These tests are about Auth, not retrieval: the fixture is chosen on purpose (no Voyage key)."""
+    base = AppConfig()
+    return replace(base, knowledge=replace(base.knowledge, retriever="fixture"))
+
 
 _script_path = Path(__file__).resolve().parents[3] / "scripts/check_hosted_auth_settings.py"
 _script_spec = importlib.util.spec_from_file_location("hosted_auth_checker", _script_path)
@@ -88,7 +96,7 @@ async def auth_users(local_settings):
 
 @pytest.mark.integration
 async def test_real_auth_token_creates_profile_and_patch_persists(local_settings, auth_users):
-    app = create_app(local_settings)
+    app = create_app(local_settings, fixture_config())
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://test"
@@ -114,7 +122,7 @@ async def test_real_auth_token_creates_profile_and_patch_persists(local_settings
 
 @pytest.mark.integration
 async def test_real_auth_users_have_separate_api_profiles(local_settings, auth_users):
-    app = create_app(local_settings)
+    app = create_app(local_settings, fixture_config())
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://test"

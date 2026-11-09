@@ -1,0 +1,17 @@
+source_id = "stopbullying-report-cyber"
+kind = "report"
+publisher = "StopBullying.gov Report Cyberbullying"
+title = "StopBullying.gov Report Cyberbullying"
+language = "vi"
+country_scope = ["VN"]
+authority_tier = 2
+licence_class = "unverified"
+licence_note = "HTTP 403, chưa xác minh public domain."
+evidence = "HTTP 403, chưa xác minh public domain."
+[scores]
+authority = 2
+relevance = 2
+licence = 0
+language = 2
+applicability = 2
+freshness = 1

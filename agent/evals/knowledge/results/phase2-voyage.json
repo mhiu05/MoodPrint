@@ -1,0 +1,204 @@
+{
+  "corpus_version": "kb-20261109-03",
+  "model": "voyage-4",
+  "chosen_min_vector_score": 0.35,
+  "chosen_min_lexical_score": 0.12,
+  "dev": [
+    {
+      "min_vector": 0.35,
+      "min_lexical": 0.01,
+      "recall_at_5": 0.4930555555555555,
+      "mrr_at_5": 0.5902777777777778,
+      "ndcg_at_5": 0.502035420715509,
+      "no_result_accuracy": 0.0,
+      "citation_integrity": 1.0,
+      "latency_p50_ms": 355.0,
+      "latency_p95_ms": 1035.0,
+      "cases": 72.0
+    },
+    {
+      "min_vector": 0.35,
+      "min_lexical": 0.05,
+      "recall_at_5": 0.4930555555555555,
+      "mrr_at_5": 0.5902777777777778,
+      "ndcg_at_5": 0.502035420715509,
+      "no_result_accuracy": 0.0,
+      "citation_integrity": 1.0,
+      "latency_p50_ms": 60.0,
+      "latency_p95_ms": 90.0,
+      "cases": 72.0
+    },
+    {
+      "min_vector": 0.35,
+      "min_lexical": 0.12,
+      "recall_at_5": 0.4861111111111111,
+      "mrr_at_5": 0.5736111111111111,
+      "ndcg_at_5": 0.49253257718229954,
+      "no_result_accuracy": 0.25,
+      "citation_integrity": 1.0,
+      "latency_p50_ms": 62.0,
+      "latency_p95_ms": 147.0,
+      "cases": 72.0
+    },
+    {
+      "min_vector": 0.35,
+      "min_lexical": 0.2,
+      "recall_at_5": 0.4569444444444445,
+      "mrr_at_5": 0.5402777777777777,
+      "ndcg_at_5": 0.46330428366131166,
+      "no_result_accuracy": 0.5,
+      "citation_integrity": 1.0,
+      "latency_p50_ms": 112.0,
+      "latency_p95_ms": 211.0,
+      "cases": 72.0
+    },
+    {
+      "min_vector": 0.45,
+      "min_lexical": 0.01,
+      "recall_at_5": 0.4652777777777778,
+      "mrr_at_5": 0.5722222222222223,
+      "ndcg_at_5": 0.48254249854901377,
+      "no_result_accuracy": 0.0,
+      "citation_integrity": 1.0,
+      "latency_p50_ms": 105.0,
+      "latency_p95_ms": 228.0,
+      "cases": 72.0
+    },
+    {
+      "min_vector": 0.45,
+      "min_lexical": 0.05,
+      "recall_at_5": 0.4652777777777778,
+      "mrr_at_5": 0.5722222222222223,
+      "ndcg_at_5": 0.48254249854901377,
+      "no_result_accuracy": 0.0,
+      "citation_integrity": 1.0,
+      "latency_p50_ms": 89.0,
+      "latency_p95_ms": 201.0,
+      "cases": 72.0
+    },
+    {
+      "min_vector": 0.45,
+      "min_lexical": 0.12,
+      "recall_at_5": 0.4583333333333333,
+      "mrr_at_5": 0.5555555555555556,
+      "ndcg_at_5": 0.47303965501580425,
+      "no_result_accuracy": 0.25,
+      "citation_integrity": 1.0,
+      "latency_p50_ms": 108.0,
+      "latency_p95_ms": 306.0,
+      "cases": 72.0
+    },
+    {
+      "min_vector": 0.45,
+      "min_lexical": 0.2,
+      "recall_at_5": 0.4236111111111111,
+      "mrr_at_5": 0.5166666666666667,
+      "ndcg_at_5": 0.44146694818571536,
+      "no_result_accuracy": 0.5,
+      "citation_integrity": 1.0,
+      "latency_p50_ms": 60.0,
+      "latency_p95_ms": 576.0,
+      "cases": 72.0
+    },
+    {
+      "min_vector": 0.55,
+      "min_lexical": 0.01,
+      "recall_at_5": 0.4513888888888889,
+      "mrr_at_5": 0.5444444444444444,
+      "ndcg_at_5": 0.47034742519367856,
+      "no_result_accuracy": 0.0,
+      "citation_integrity": 1.0,
+      "latency_p50_ms": 56.0,
+      "latency_p95_ms": 102.0,
+      "cases": 72.0
+    },
+    {
+      "min_vector": 0.55,
+      "min_lexical": 0.05,
+      "recall_at_5": 0.4513888888888889,
+      "mrr_at_5": 0.5444444444444444,
+      "ndcg_at_5": 0.47034742519367856,
+      "no_result_accuracy": 0.0,
+      "citation_integrity": 1.0,
+      "latency_p50_ms": 78.0,
+      "latency_p95_ms": 151.0,
+      "cases": 72.0
+    },
+    {
+      "min_vector": 0.55,
+      "min_lexical": 0.12,
+      "recall_at_5": 0.4444444444444445,
+      "mrr_at_5": 0.5277777777777778,
+      "ndcg_at_5": 0.46084458166046904,
+      "no_result_accuracy": 0.25,
+      "citation_integrity": 1.0,
+      "latency_p50_ms": 69.0,
+      "latency_p95_ms": 123.0,
+      "cases": 72.0
+    },
+    {
+      "min_vector": 0.55,
+      "min_lexical": 0.2,
+      "recall_at_5": 0.40555555555555556,
+      "mrr_at_5": 0.4861111111111111,
+      "ndcg_at_5": 0.42544570675995347,
+      "no_result_accuracy": 0.5,
+      "citation_integrity": 1.0,
+      "latency_p50_ms": 49.0,
+      "latency_p95_ms": 89.0,
+      "cases": 72.0
+    }
+  ],
+  "test": {
+    "lexical": {
+      "recall_at_5": 0.22962962962962966,
+      "mrr_at_5": 0.3114814814814815,
+      "ndcg_at_5": 0.23523119398370873,
+      "no_result_accuracy": 0.16666666666666666,
+      "citation_integrity": 1.0,
+      "latency_p50_ms": 33.0,
+      "latency_p95_ms": 58.0,
+      "cases": 108.0
+    },
+    "vector": {
+      "recall_at_5": 0.31574074074074077,
+      "mrr_at_5": 0.47314814814814815,
+      "ndcg_at_5": 0.3393285309071953,
+      "no_result_accuracy": 1.0,
+      "citation_integrity": 1.0,
+      "latency_p50_ms": 316.0,
+      "latency_p95_ms": 786.0,
+      "cases": 108.0
+    },
+    "hybrid": {
+      "recall_at_5": 0.36759259259259264,
+      "mrr_at_5": 0.4666666666666667,
+      "ndcg_at_5": 0.3685144809938569,
+      "no_result_accuracy": 0.16666666666666666,
+      "citation_integrity": 1.0,
+      "latency_p50_ms": 59.0,
+      "latency_p95_ms": 92.0,
+      "cases": 108.0
+    },
+    "blend": {
+      "recall_at_5": 0.4064814814814815,
+      "mrr_at_5": 0.48055555555555557,
+      "ndcg_at_5": 0.4008051438885368,
+      "no_result_accuracy": 0.16666666666666666,
+      "citation_integrity": 1.0,
+      "latency_p50_ms": 73.0,
+      "latency_p95_ms": 167.0,
+      "cases": 108.0
+    }
+  },
+  "usage": {
+    "calls": 180,
+    "tokens": 1191,
+    "usd": 7.146e-05,
+    "ledger": {
+      "spent_usd": "0.00401370",
+      "reserved_usd": "0E-8",
+      "max_usd": "1.00"
+    }
+  }
+}
