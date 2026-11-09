@@ -18,6 +18,7 @@ import pytest
 from agents.testing import ModelStep, ScriptedModel, assistant_message, function_call
 from agents.usage import Usage
 from app.agent_gateway.sse import RunStream, produce
+from app.core.errors import ApiError
 from app.modules.conversations.service import ConversationService
 from app.modules.incidents.service import IncidentService
 from moodprint_agent.knowledge.embedder import HashingEmbedder
@@ -185,7 +186,8 @@ async def test_real_retrieval_checked_citations_approval_isolation_and_restore(
     assert any("nhắn tin dọa" in str(item) for item in history)
     with pytest.raises(NotFound):
         await fresh.get(other, conversation)
-    with pytest.raises(NotFound):
+    with pytest.raises(ApiError) as hidden:
         await IncidentService(db_engine).get_case(other, case.id)
+    assert hidden.value.status_code == 404  # another user's case does not exist for user B
 
     await service.delete(auth, conversation)
