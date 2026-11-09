@@ -200,7 +200,12 @@ async def test_real_retrieval_checked_citations_approval_isolation_and_restore(
 
     # 4. History restore for the owner; user B sees none of it.
     fresh = ConversationService(db_engine)
-    history = await fresh.recent_user_messages(auth, conversation)
+    recent = await fresh.recent_user_messages(auth, conversation)
+    assert len(recent) == 3
+    assert any("M\u1ee9c ph\u1ea1t ti\u1ec1n" in item for item in recent)
+    # This journey now has five user turns. Ask for four previous messages to
+    # prove the first still persists, while preserving the default window above.
+    history = await fresh.recent_user_messages(auth, conversation, limit=4)
     assert any("nhắn tin dọa" in str(item) for item in history)
     with pytest.raises(NotFound):
         await fresh.get(other, conversation)
