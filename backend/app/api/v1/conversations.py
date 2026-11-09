@@ -14,11 +14,14 @@ from pydantic import Field
 from app.agent_gateway.sse import RunStream, produce
 from app.core.auth import get_auth
 from app.core.errors import ApiError
+from app.modules.analysis.service import tool_analysis
 from app.modules.conversations.approvals import ApprovalService
 from app.modules.conversations.paging import FoundationPages
 from app.modules.conversations.schemas import (
     SSE_RESPONSES,
+    ApprovalRead,
     ConversationRead,
+    MessageAttachmentsRead,
     RunCancelRead,
     RunRead,
 )
@@ -47,6 +50,7 @@ class ConversationCreate(FrozenDTO):
 class MessageCreate(FrozenDTO):
     client_message_id: UUID
     content: str = Field(min_length=1, max_length=4000)
+    attachments: list[UUID] = Field(default_factory=list[UUID], max_length=3)
 
 
 class ApprovalDecision(FrozenDTO):
@@ -155,24 +159,50 @@ async def send(
     conversations: ConversationService = Depends(service),
 ):
     runtime = runtime_for(request)
-    turn = await conversations.begin_turn(auth, id, data.client_message_id, data.content)
+    turn = await conversations.begin_turn(
+        auth, id, data.client_message_id, data.content, data.attachments
+    )
     stream = RunStream()
     if turn.replay:
         result = turn.existing_result
         if result is None:
             raise ApiError("internal_error", "Chưa đọc được kết quả lượt trò chuyện.", 500)
-        stream.publish(
-            make_event(
-                "message.completed",
-                seq=1,
-                run_id=turn.run_id,
-                data={
-                    "message_id": result.message_id or turn.message_id,
-                    "content": result.content,
-                    "citations": [],
-                },
-            )
-        )
+        # A replayed turn is a complete, well-ordered stream (A-19): started, answer, usage, completed.
+        for number, (name, payload) in enumerate(
+            (
+                (
+                    "run.started",
+                    {
+                        "run_id": turn.run_id,
+                        "conversation_id": id,
+                        "message_id": turn.message_id,
+                    },
+                ),
+                (
+                    "message.completed",
+                    {
+                        "message_id": result.message_id or turn.message_id,
+                        "content": result.content,
+                        "citations": result.citations,
+                        "structured": result.structured,
+                    },
+                ),
+                (
+                    "run.usage",
+                    {
+                        "input_tokens": 0,
+                        "output_tokens": 0,
+                        "total_tokens": 0,
+                        "requests": 0,
+                        "tool_calls": 0,
+                        "latency_ms": 0,
+                    },
+                ),
+                ("run.completed", {"status": result.status}),
+            ),
+            start=1,
+        ):
+            stream.publish(make_event(name, seq=number, run_id=turn.run_id, data=payload))
         stream.publish(None)
     else:
         task = asyncio.create_task(
@@ -184,11 +214,34 @@ async def send(
                 turn=turn,
                 request_id=request.state.request_id,
                 content=data.content,
+                knowledge=getattr(request.app.state, "knowledge", None),
+                storage=getattr(request.app.state, "storage", None),
+                analysis=tool_analysis(request),
             )
         )
         request.app.state.run_tasks.add(task)
         task.add_done_callback(request.app.state.run_tasks.discard)
     return response_for(stream)
+
+
+@router.get("/conversations/{id}/attachments", response_model=Page[MessageAttachmentsRead])
+async def attachments(
+    id: UUID,
+    auth: AuthContext = Depends(get_auth),
+    conversations: ConversationService = Depends(service),
+):
+    return Page(items=await conversations.attachments(auth, id), next_cursor=None)
+
+
+@router.get("/runs/{id}/approvals", response_model=Page[ApprovalRead])
+async def pending_approvals(
+    id: UUID,
+    auth: AuthContext = Depends(get_auth),
+    conversations: ConversationService = Depends(service),
+):
+    return Page(
+        items=await ApprovalService(conversations.engine).pending(auth, id), next_cursor=None
+    )
 
 
 @router.get("/runs/{id}", response_model=RunRead)
@@ -227,6 +280,10 @@ async def cancel(
     run = await conversations.get_run(auth, id)
     if run["status"] == "running":
         request.app.state.runtime.cancel(id)
+        return {"status": run["status"]}
+    if run["status"] == "awaiting_approval":
+        # Nothing is executing: close the run and expire what it proposed, atomically.
+        return {"status": await ApprovalService(conversations.engine).cancel_waiting(auth, id)}
     return {"status": run["status"]}
 
 
@@ -262,6 +319,9 @@ async def decide(
             request_id=request.state.request_id,
             content="",
             resume={**row, "approved": data.decision == "approve"},
+            knowledge=getattr(request.app.state, "knowledge", None),
+            storage=getattr(request.app.state, "storage", None),
+            analysis=tool_analysis(request),
         )
     )
     request.app.state.run_tasks.add(task)

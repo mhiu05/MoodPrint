@@ -31,6 +31,8 @@ import { chatFixtures, scenarios } from "../../mocks/scenarios";
 import type { ChatFixture } from "../../mocks/scenarios";
 import type { ChatMessage, ChatSession } from "../../types";
 import { getServices } from "../../services/composition";
+import { asLive } from "../../services/composition/companion-types";
+import { LiveChatPage } from "./live/live-chat";
 import { analysisVariants } from "./analysis-model";
 import { startFixtureAnalysis } from "./analysis-workflow";
 import {
@@ -159,7 +161,18 @@ function Findings({
   );
 }
 
+/** Real workspace with a live Companion → the real chat; otherwise the labelled simulation. */
 export function ChatPage() {
+  const real = useWorkspaceStore((state) => state.workspace.kind === "real");
+  const companion = real ? asLive(getServices().companion) : null;
+  return companion ? (
+    <LiveChatPage service={companion} />
+  ) : (
+    <SimulatedChatPage />
+  );
+}
+
+function SimulatedChatPage() {
   const { sessionId } = useParams();
   const [search] = useSearchParams();
   const location = useLocation();

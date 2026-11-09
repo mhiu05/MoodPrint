@@ -1,0 +1,225 @@
+/* Live Companion UI. Reuses the existing tokens; adds only what the simulated chat lacks. */
+.live-thread {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: var(--space-3, 12px);
+  max-width: 760px;
+  margin: 0 auto;
+  padding: var(--space-4, 16px);
+}
+.live-thread-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.live-thread-head h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.live-thread-head small,
+.live-author {
+  color: var(--muted, #52616b);
+}
+.live-messages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 40vh;
+}
+.live-hint {
+  color: var(--muted, #52616b);
+}
+.live-message {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.live-user {
+  align-items: flex-end;
+}
+.live-bubble {
+  max-width: min(100%, 560px);
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--surface-2, #eef3f5);
+  overflow-wrap: anywhere;
+}
+.live-user .live-bubble {
+  background: var(--primary-soft, #dff1ee);
+}
+.live-text {
+  margin: 0;
+  white-space: pre-wrap;
+}
+.live-author {
+  display: block;
+  font-size: 0.78rem;
+  margin-bottom: 4px;
+}
+.live-tools {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+.live-tools li {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-2, #eef3f5);
+  font-size: 0.82rem;
+}
+.live-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--danger-soft, #fdeceb);
+  color: var(--danger-ink, #7a1f17);
+}
+.live-composer {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  position: sticky;
+  bottom: 0;
+  background: var(--bg, #fff);
+  padding-block: 8px;
+}
+.live-composer textarea {
+  flex: 1;
+  resize: none;
+  min-height: 48px;
+  font: inherit;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line, #c7d2d8);
+}
+.live-urgent {
+  padding: 14px;
+  border-radius: 14px;
+  border: 2px solid var(--danger, #b3261e);
+  background: var(--danger-soft, #fdeceb);
+}
+.live-citations ul {
+  list-style: none;
+  display: flex;
+  gap: 6px;
+  padding: 0;
+  margin: 8px 0 0;
+}
+.live-chip {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--line, #c7d2d8);
+  background: #fff;
+  cursor: pointer;
+}
+.live-citation-card {
+  display: grid;
+  gap: 2px;
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 0.9rem;
+}
+.live-citation-links {
+  display: flex;
+  gap: 14px;
+}
+.live-approval {
+  display: grid;
+  gap: 12px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.live-approval-note {
+  margin: 0;
+  color: var(--muted, #52616b);
+}
+.live-approval-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+  background: var(--bg, #fff);
+}
+.live-preview {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+}
+.live-preview dt {
+  font-weight: 600;
+}
+.live-preview dd {
+  margin: 0;
+}
+.live-memory,
+.live-memory-list {
+  display: grid;
+  gap: 8px;
+}
+.live-memory-card {
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-2, #eef3f5);
+}
+.live-memory-list {
+  list-style: none;
+  padding: 0;
+}
+.live-memory-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.live-roleplay-banner {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--lavender-soft, #ece7f6);
+}
+.live-feedback {
+  display: grid;
+  gap: 12px;
+}
+.live-reading {
+  display: grid;
+  gap: 12px;
+}
+.live-reading section {
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-2, #eef3f5);
+}
+.live-reading .live-guess {
+  border: 1px dashed var(--line, #c7d2d8);
+  background: transparent;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .live-thread {
+    padding: 12px;
+  }
+  .live-composer {
+    flex-wrap: wrap;
+  }
+}

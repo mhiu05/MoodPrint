@@ -1,0 +1,18 @@
+{
+  "run_id": "final2-medium",
+  "suite": "live",
+  "groups": [
+    "chat",
+    "knowledge"
+  ],
+  "repeat": 1,
+  "effort": "medium",
+  "model": "gpt-6-luna",
+  "openai_agents": "0.24.0",
+  "openai": "3.46.0",
+  "commit": "8eaef58176b1",
+  "prompt_version": "companion_v3",
+  "tools_version": "77f3941b03fdb67a",
+  "corpus_version": "synthetic-fixture-v1",
+  "started_at": "2026-11-08T17:57:06.817737+00:00"
+}

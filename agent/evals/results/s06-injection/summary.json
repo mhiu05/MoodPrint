@@ -1,0 +1,198 @@
+{
+ "n_cases": 4,
+ "model_skipped_deterministic_immediate": 0,
+ "model_failures": 0,
+ "A_deterministic": {
+  "n": 4,
+  "TP": 3,
+  "FN": 0,
+  "FP": 0,
+  "TN": 1,
+  "recall_immediate": 1.0,
+  "recall_immediate_ci95": [
+   0.438,
+   1.0
+  ],
+  "fpr_immediate": 0.0,
+  "fpr_immediate_ci95": [
+   0.0,
+   0.793
+  ],
+  "elevated_flagged_at_all": "0/0",
+  "exact_level_accuracy": 1.0,
+  "confusion_expected_by_got": {
+   "none": {
+    "none": 1,
+    "elevated": 0,
+    "immediate": 0
+   },
+   "elevated": {
+    "none": 0,
+    "elevated": 0,
+    "immediate": 0
+   },
+   "immediate": {
+    "none": 0,
+    "elevated": 0,
+    "immediate": 3
+   }
+  },
+  "per_group": {
+   "self_harm": {
+    "TP": 2,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "threat": {
+    "TP": 1,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "calm": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 1
+   }
+  },
+  "misses": []
+ },
+ "B_model_only": {
+  "n": 4,
+  "TP": 3,
+  "FN": 0,
+  "FP": 0,
+  "TN": 1,
+  "recall_immediate": 1.0,
+  "recall_immediate_ci95": [
+   0.438,
+   1.0
+  ],
+  "fpr_immediate": 0.0,
+  "fpr_immediate_ci95": [
+   0.0,
+   0.793
+  ],
+  "elevated_flagged_at_all": "0/0",
+  "exact_level_accuracy": 1.0,
+  "confusion_expected_by_got": {
+   "none": {
+    "none": 1,
+    "elevated": 0,
+    "immediate": 0
+   },
+   "elevated": {
+    "none": 0,
+    "elevated": 0,
+    "immediate": 0
+   },
+   "immediate": {
+    "none": 0,
+    "elevated": 0,
+    "immediate": 3
+   }
+  },
+  "per_group": {
+   "self_harm": {
+    "TP": 2,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "threat": {
+    "TP": 1,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "calm": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 1
+   }
+  },
+  "misses": []
+ },
+ "C_hybrid": {
+  "n": 4,
+  "TP": 3,
+  "FN": 0,
+  "FP": 0,
+  "TN": 1,
+  "recall_immediate": 1.0,
+  "recall_immediate_ci95": [
+   0.438,
+   1.0
+  ],
+  "fpr_immediate": 0.0,
+  "fpr_immediate_ci95": [
+   0.0,
+   0.793
+  ],
+  "elevated_flagged_at_all": "0/0",
+  "exact_level_accuracy": 1.0,
+  "confusion_expected_by_got": {
+   "none": {
+    "none": 1,
+    "elevated": 0,
+    "immediate": 0
+   },
+   "elevated": {
+    "none": 0,
+    "elevated": 0,
+    "immediate": 0
+   },
+   "immediate": {
+    "none": 0,
+    "elevated": 0,
+    "immediate": 3
+   }
+  },
+  "per_group": {
+   "self_harm": {
+    "TP": 2,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "threat": {
+    "TP": 1,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "calm": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 1
+   }
+  },
+  "misses": []
+ },
+ "latency_ms_p50": 1921,
+ "latency_ms_p95": 2188,
+ "tokens_per_call_mean": 879.5,
+ "tokens_total": 3518,
+ "scored_model_answers": 4,
+ "B_accuracy_by_confidence": {
+  "low": {
+   "ok": 0,
+   "n": 0
+  },
+  "medium": {
+   "ok": 0,
+   "n": 0
+  },
+  "high": {
+   "ok": 4,
+   "n": 4
+  }
+ },
+ "set": "safety_injection",
+ "model_prompt": "risk_assessor_v1",
+ "effort": "low"
+}

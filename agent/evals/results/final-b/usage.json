@@ -1,0 +1,17 @@
+{
+  "calls": 77,
+  "committed_usd_this_run": 0.015973,
+  "tokens_this_run": 113620,
+  "ledger_calls_total": 495,
+  "ledger_usd_total": 0.094073,
+  "ledger_unknown_calls": 5,
+  "max_usd": 2.9,
+  "prices": {
+    "input_per_mtok": 0.1,
+    "cached_input_per_mtok": 0.01,
+    "output_per_mtok": 0.5,
+    "max_input_tokens": 272000,
+    "service_tier": "default",
+    "verified_on": "2026-11-08"
+  }
+}

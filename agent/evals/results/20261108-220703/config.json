@@ -1,0 +1,15 @@
+{
+  "run_id": "20261108-220703",
+  "suite": "deterministic",
+  "groups": [],
+  "repeat": 1,
+  "effort": "low",
+  "model": "gpt-6-luna",
+  "openai_agents": "0.24.0",
+  "openai": "3.46.0",
+  "commit": "5015149bedfb",
+  "prompt_version": "companion_v4",
+  "tools_version": "77f3941b03fdb67a",
+  "corpus_version": "synthetic-fixture-v1",
+  "started_at": "2026-11-08T22:07:04.413849+00:00"
+}

@@ -42,3 +42,20 @@ SSE_RESPONSES: dict[int | str, dict[str, Any]] = {
         "content": {"text/event-stream": {"schema": {"type": "string"}}},
     }
 }
+
+
+class ApprovalRead(FrozenDTO):
+    """A decision the user still has to make; the preview is the server-stored content."""
+
+    id: UUID
+    run_id: UUID
+    tool: str
+    tool_call_id: str
+    preview: dict[str, Any]
+    expires_at: datetime
+    status: Literal["pending", "approved", "rejected", "expired"]
+
+
+class MessageAttachmentsRead(FrozenDTO):
+    message_id: UUID
+    evidence_ids: list[UUID]

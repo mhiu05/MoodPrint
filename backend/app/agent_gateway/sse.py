@@ -9,6 +9,7 @@ from moodprint_shared.contracts.streaming import StreamEvent, make_event
 
 from app.agent_gateway.wiring import build_context
 from app.modules.conversations.approvals import ApprovalService
+from app.modules.roleplay.service import RoleplayService
 
 
 class RunStream:
@@ -39,18 +40,65 @@ class RunStream:
             self.attached = False
 
 
+async def drop_unanswered_duplicate(session, content: str) -> None:
+    """A failed or cancelled attempt leaves its user message as the last item of the model's history.
+    Re-running the same text must not show the model the same message twice. Best effort only."""
+    try:
+        items = await session.get_items(limit=1)
+        last = items[-1] if items else None
+        if isinstance(last, dict) and last.get("role") == "user":
+            body = last.get("content")
+            text = (
+                body
+                if isinstance(body, str)
+                else " ".join(str(part.get("text", "")) for part in body if isinstance(part, dict))
+                if isinstance(body, list)
+                else ""
+            )
+            if text.strip() == content.strip():
+                await session.pop_item()
+    except Exception:  # never let history hygiene break a turn
+        return
+
+
 async def produce(
-    *, stream: RunStream, runtime, service, auth, turn, request_id: str, content: str, resume=None
+    *,
+    stream: RunStream,
+    runtime,
+    service,
+    auth,
+    turn,
+    request_id: str,
+    content: str,
+    resume=None,
+    knowledge=None,
+    storage=None,
+    analysis=None,
 ):
     usage = RunUsage()
     answer, answer_id, status, error_code, seq = "", uuid4(), "failed", "internal_error", 0
+    citations, structured = [], None
     buffered = []
     try:
         conversation = await service.get(auth, turn.conversation_id)
         ctx = await build_context(
-            service.engine, service.cfg, auth, conversation, turn.run_id, request_id, content
+            service.engine,
+            service.cfg,
+            auth,
+            conversation,
+            turn.run_id,
+            request_id,
+            content,
+            knowledge,
+            storage,
+            analysis,
         )
-        session = await service.open_session(auth, turn.conversation_id)
+        prior = [] if resume else await service.recent_user_messages(auth, turn.conversation_id)
+        session = await service.open_session(
+            auth, turn.conversation_id, client=getattr(runtime, "openai_client", None)
+        )
+        if not resume:
+            await drop_unanswered_duplicate(session, content)
         events = (
             runtime.resume_after_approval(
                 ctx=ctx,
@@ -61,13 +109,27 @@ async def produce(
             )
             if resume
             else runtime.stream_turn(
-                ctx=ctx, user_input=content, session=session, message_id=answer_id
+                ctx=ctx,
+                user_input=content,
+                session=session,
+                message_id=answer_id,
+                prior_user_messages=prior,
             )
         )
         async for event in events:
             seq = event.seq
             if event.event == "message.completed":
                 answer, answer_id = event.data.content, event.data.message_id
+                citations, structured = event.data.citations, event.data.structured
+                if (
+                    ctx.mode == "roleplay"
+                    and structured is not None
+                    and structured.urgency == "immediate"
+                ):
+                    # The role ended because of a danger signal: keep the session out of role.
+                    await RoleplayService(service.engine, service.cfg).lock_for_safety(
+                        auth, turn.conversation_id
+                    )
             elif event.event == "message.delta":
                 answer += event.data.text
             elif event.event == "run.usage":
@@ -94,7 +156,14 @@ async def produce(
                 await service.finish_turn(
                     auth,
                     turn,
-                    TurnResult(status=status, content=answer, message_id=answer_id, usage=usage),
+                    TurnResult(
+                        status=status,
+                        content=answer,
+                        message_id=answer_id,
+                        citations=citations,
+                        structured=structured,
+                        usage=usage,
+                    ),
                 )
             stream.publish(event)
     except asyncio.CancelledError:
