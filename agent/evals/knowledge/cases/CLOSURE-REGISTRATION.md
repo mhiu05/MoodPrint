@@ -1,6 +1,6 @@
 # Retrieval closure evaluation registration
 
-Frozen final data: `benchmark_v3.jsonl`, SHA256 LF `bba4d0f1dc6ee1d0ac1fd578bf2df5d2af2dc86f96f550d17c236cc65d38d534`.
+Frozen final data: `benchmark_v3.jsonl`, SHA256 LF `ad457c367dd883eefe10b0b98e8efcbd69969a3ff59d73f03222432a18f8dc84`.
 
 - 120 synthetic queries: 90 answerable (30 seeds, three correlated styles) and30 no-result. All14 subject areas represented; ambiguous descriptions, diacritic-free input, exact facts, legal jurisdiction, institutions and out-of-domain task collisions.
 - Same coding agent created labels and support code. This is not unseen independent validation; final outcomes have not been consulted before this registration. Existing v2 test is already inspected and is regression evidence only.
@@ -11,3 +11,4 @@ Frozen final data: `benchmark_v3.jsonl`, SHA256 LF `bba4d0f1dc6ee1d0ac1fd578bf2d
 - Final execution once per registered method. Any subsequent rerun is explicitly regression/reproducibility, not a new holdout. Labels never changed based on outcomes.
 - Cached provider embeddings allowed; API calls only under existing original cumulative Voyage ledger, never a new ledger. Cached latency does not count as live latency validation. No OpenAI/model judge.
 - Frozen labels have one primary answer-bearing document per positive query rather than full pooled multi-document relevance. Disclose this limit; v2 metrics provide the historical multi-label regression comparison. Bootstrap CIs are descriptive; correlated styles reduce effective sample size.
+Freeze metadata correction before first evaluation: initial raw CRLF digest retained in freeze file; corrected to LF. Dataset rows/labels untouched.
