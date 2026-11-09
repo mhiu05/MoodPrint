@@ -60,6 +60,13 @@ def main(argv: list[str] | None = None) -> int:
         command.add_argument("--version")
         command.add_argument("--to")
         command.add_argument("--embedder", choices=("hashing", "voyage"))
+        command.add_argument(
+            "--embedding-input",
+            choices=("context", "context_folded"),
+            default="context",
+            help="what the document embedder sees: title+heading+text, optionally with the "
+            "accent-stripped form appended",
+        )
         command.add_argument("--budget-tokens", type=int)
         command.add_argument("--offline", action="store_true")
         command.add_argument("--link-check", action="store_true")

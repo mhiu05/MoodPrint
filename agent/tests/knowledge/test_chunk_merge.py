@@ -62,3 +62,10 @@ def test_embedding_input_carries_title_and_heading() -> None:
     assert "Mục một" in value
     assert value.endswith("Nội dung chính.")
     assert embedding_input("", "", "Chỉ nội dung.") == "Chỉ nội dung."
+
+
+def test_embedding_input_can_add_the_unaccented_form() -> None:
+    value = embedding_input("Bắt nạt", "Đường về", "Nhắn tin cho tôi.", folded=True)
+    assert value.startswith("Bắt nạt — Đường về\nNhắn tin cho tôi.")
+    assert value.endswith("bat nat — duong ve nhan tin cho toi.")
+    assert embedding_input("a", "b", "c", folded=False) == "a — b\nc"

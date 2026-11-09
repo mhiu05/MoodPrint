@@ -20,9 +20,17 @@ from moodprint_shared.contracts.knowledge import (
     SourceCitation,
 )
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
+from moodprint_agent.knowledge.lexical import (
+    TermStats,
+    chunk_terms,
+    content_bigrams,
+    coverage_score,
+    query_terms,
+)
 from moodprint_agent.knowledge.query import prepare_query
+from moodprint_agent.knowledge.restore import Restorer
 from moodprint_agent.knowledge.scoring import RawHit, score_hits
 
 log = logging.getLogger("moodprint.knowledge.retriever")
@@ -74,6 +82,24 @@ class RetrievalObservation:
     degraded: bool
     mode: str
     corpus_version: str
+
+
+@dataclass(frozen=True, slots=True)
+class Lexicon:
+    """Per-corpus-version text statistics: term frequencies and the diacritic restorer."""
+
+    stats: TermStats
+    restorer: Restorer
+
+
+@dataclass(frozen=True, slots=True)
+class Collected:
+    """Candidates with raw branch scores, before the relevance gate and ranking."""
+
+    version: str
+    hits: list[RawHit]
+    degraded: bool
+    has_vector: bool
 
 
 def _number(row: dict[str, object], key: str) -> float:
@@ -132,6 +158,8 @@ class PgVectorKnowledgeRetriever:
         self.read_role = read_role
         self.use_vector = use_vector
         self.use_lexical = use_lexical
+        # Corpus versions are immutable, so per-version term statistics are safe to keep.
+        self._lexicons: dict[str, Lexicon] = {}
 
     async def search(
         self, query: KnowledgeQuery, *, scope: RetrievalScope, timeout_s: float
@@ -155,18 +183,64 @@ class PgVectorKnowledgeRetriever:
     async def _search(
         self, query: KnowledgeQuery, scope: RetrievalScope, started: float
     ) -> tuple[KnowledgeResult, RetrievalObservation]:
-        prepared = prepare_query(query.text, max_chars=self.cfg.query_max_chars)
-        if prepared.empty:
+        collected = await self.collect(query, scope)
+        if collected is None:
             return self._result([], started, "unpublished"), RetrievalObservation(
                 False, "hybrid", ""
             )
+        degraded = collected.degraded
+        version = collected.version
+        scored = score_hits(
+            collected.hits,
+            self.cfg,
+            top_k=query.top_k,
+            lexical_only=degraded or not collected.has_vector,
+        )
+        chunks = [
+            KnowledgeChunk(
+                chunk_id=hit.chunk_id,
+                text=hit.text,
+                citation=hit.citation,
+                score=hit.score,
+                match_kind="lexical" if degraded else hit.match_kind,  # type: ignore[arg-type]
+            )
+            for hit in scored
+        ]
+        mode = "lexical" if degraded else "hybrid"
+        observation = RetrievalObservation(degraded, mode, version)
+        return self._result(chunks, started, version), observation
+
+    async def collect(self, query: KnowledgeQuery, scope: RetrievalScope) -> Collected | None:
+        """Embed, read candidates from both branches and attach raw scores. No gating.
+
+        Public so the dev sweep can re-score one candidate set under many settings.
+        """
+        prepared = prepare_query(query.text, max_chars=self.cfg.query_max_chars)
+        if prepared.empty:
+            return None
+        lexicon: Lexicon | None = None
+        embed_text = prepared.embed_text
+        if self.cfg.restore_diacritics or (
+            self.use_lexical and self.cfg.lexical_mode == "coverage"
+        ):
+            try:
+                _version, lexicon = await self._lexicon(scope)
+            except KnowledgeUnavailable:
+                raise
+            except Exception as exc:
+                raise KnowledgeUnavailable(
+                    "Knowledge search could not read the corpus.",
+                    details={"reason": "database"},
+                ) from exc
+            if self.cfg.restore_diacritics:
+                embed_text = lexicon.restorer.restore(prepared.embed_text)
         degraded = False
         vector: list[float] | None = None
         embed_budget = max(0.05, self.cfg.embed_timeout_fraction * self.cfg.timeout_s)
         if self.use_vector:
             try:
                 async with asyncio.timeout(embed_budget):
-                    vector = await self.embedder.embed_query(prepared.embed_text)
+                    vector = await self.embedder.embed_query(embed_text)
             except TimeoutError:
                 degraded = True
                 log.warning("embed_unavailable")
@@ -194,13 +268,27 @@ class PgVectorKnowledgeRetriever:
                 "Knowledge search could not read the corpus.",
                 details={"reason": "database"},
             ) from exc
+        stats = lexicon.stats if lexicon is not None else None
+        terms = query_terms(embed_text)
+        bigrams = content_bigrams(embed_text)
         merged: dict[str, RawHit] = {}
         for row, kind in rows:
             chunk_id = str(row["chunk_id"])
             current = merged.get(chunk_id)
             citation = _citation(row)
             vector_score = _number(row, "vector_score") if kind == "vector" else None
-            lexical_score = _number(row, "lexical_score") if kind == "lexical" else None
+            lexical_score: float | None = None
+            if kind == "lexical":
+                if stats is not None and self.cfg.lexical_mode == "coverage":
+                    lexical_score = coverage_score(
+                        terms,
+                        chunk_terms(f"{row['heading'] or ''} {row['text']}"),
+                        stats,
+                        bigrams=bigrams,
+                        phrase_bonus=self.cfg.lexical_phrase_bonus,
+                    )
+                else:
+                    lexical_score = _number(row, "lexical_score")
             if current is None:
                 merged[chunk_id] = RawHit(
                     chunk_id=chunk_id,
@@ -219,25 +307,12 @@ class PgVectorKnowledgeRetriever:
                     vector_score=current.vector_score if vector_score is None else vector_score,
                     lexical_score=current.lexical_score if lexical_score is None else lexical_score,
                 )
-        scored = score_hits(
-            list(merged.values()),
-            self.cfg,
-            top_k=query.top_k,
-            lexical_only=degraded or vector is None,
+        return Collected(
+            version=version,
+            hits=list(merged.values()),
+            degraded=degraded,
+            has_vector=vector is not None,
         )
-        chunks = [
-            KnowledgeChunk(
-                chunk_id=hit.chunk_id,
-                text=hit.text,
-                citation=hit.citation,
-                score=hit.score,
-                match_kind="lexical" if degraded else hit.match_kind,  # type: ignore[arg-type]
-            )
-            for hit in scored
-        ]
-        mode = "lexical" if degraded else "hybrid"
-        observation = RetrievalObservation(degraded, mode, version)
-        return self._result(chunks, started, version), observation
 
     async def _query(
         self,
@@ -254,48 +329,8 @@ class PgVectorKnowledgeRetriever:
         }
         async with self.engine.connect() as conn:
             async with conn.begin():
-                if self.read_role:
-                    await conn.execute(text("set local role authenticated"))
-                await conn.execute(text("set local search_path = public, extensions"))
-                await conn.execute(text("set local statement_timeout = '4000ms'"))
-                published = (
-                    await conn.execute(
-                        text(
-                            "select version from knowledge.corpus_versions "
-                            "where status = 'published'"
-                        )
-                    )
-                ).scalar_one_or_none()
-                version = scope.corpus_version or published
-                if published is None and scope.corpus_version is None:
-                    raise KnowledgeUnavailable(
-                        "No published corpus is available.",
-                        details={"reason": "no_published_corpus"},
-                    )
-                if scope.corpus_version and self.read_role and scope.corpus_version != published:
-                    raise KnowledgeUnavailable(
-                        "That corpus version is not readable.",
-                        details={"reason": "corpus_version_not_available"},
-                    )
-                if version is None:
-                    raise KnowledgeUnavailable(
-                        "That corpus version is not readable.",
-                        details={"reason": "corpus_version_not_available"},
-                    )
-                if scope.corpus_version and not self.read_role:
-                    exists = (
-                        await conn.execute(
-                            text(
-                                "select 1 from knowledge.corpus_versions where version = :version"
-                            ),
-                            {"version": scope.corpus_version},
-                        )
-                    ).scalar_one_or_none()
-                    if exists is None:
-                        raise KnowledgeUnavailable(
-                            "That corpus version is not readable.",
-                            details={"reason": "corpus_version_not_available"},
-                        )
+                await self._prepare(conn)
+                version = await self._resolve_version(conn, scope)
                 rows: list[tuple[dict[str, object], str]] = []
                 params = {"version": version, **filters}
                 if vector is not None and self.use_vector:
@@ -315,6 +350,73 @@ class PgVectorKnowledgeRetriever:
                     )
                     rows.extend((dict(row), "lexical") for row in result.mappings())
                 return str(version), rows
+
+    async def _prepare(self, conn: AsyncConnection) -> None:
+        if self.read_role:
+            await conn.execute(text("set local role authenticated"))
+        await conn.execute(text("set local search_path = public, extensions"))
+        await conn.execute(text("set local statement_timeout = '4000ms'"))
+
+    async def _resolve_version(self, conn: AsyncConnection, scope: RetrievalScope) -> str:
+        published = (
+            await conn.execute(
+                text("select version from knowledge.corpus_versions where status = 'published'")
+            )
+        ).scalar_one_or_none()
+        version = scope.corpus_version or published
+        if published is None and scope.corpus_version is None:
+            raise KnowledgeUnavailable(
+                "No published corpus is available.",
+                details={"reason": "no_published_corpus"},
+            )
+        if scope.corpus_version and self.read_role and scope.corpus_version != published:
+            raise KnowledgeUnavailable(
+                "That corpus version is not readable.",
+                details={"reason": "corpus_version_not_available"},
+            )
+        if version is None:
+            raise KnowledgeUnavailable(
+                "That corpus version is not readable.",
+                details={"reason": "corpus_version_not_available"},
+            )
+        if scope.corpus_version and not self.read_role:
+            exists = (
+                await conn.execute(
+                    text("select 1 from knowledge.corpus_versions where version = :version"),
+                    {"version": scope.corpus_version},
+                )
+            ).scalar_one_or_none()
+            if exists is None:
+                raise KnowledgeUnavailable(
+                    "That corpus version is not readable.",
+                    details={"reason": "corpus_version_not_available"},
+                )
+        return str(version)
+
+    async def _lexicon(self, scope: RetrievalScope) -> tuple[str, Lexicon]:
+        """Term statistics and the diacritic restorer for the version this query will read."""
+        async with self.engine.connect() as conn:
+            async with conn.begin():
+                await self._prepare(conn)
+                version = await self._resolve_version(conn, scope)
+                cached = self._lexicons.get(version)
+                if cached is not None:
+                    return version, cached
+                rows = (
+                    await conn.execute(
+                        text(
+                            "select heading, text from knowledge.chunks "
+                            "where corpus_version = :version"
+                        ),
+                        {"version": version},
+                    )
+                ).all()
+        texts = [f"{heading or ''} {body}" for heading, body in rows]
+        lexicon = Lexicon(TermStats.from_texts(texts), Restorer.from_texts(texts))
+        if len(self._lexicons) >= 8:
+            self._lexicons.pop(next(iter(self._lexicons)))
+        self._lexicons[version] = lexicon
+        return version, lexicon
 
     def _result(
         self, chunks: list[KnowledgeChunk], started: float, version: str

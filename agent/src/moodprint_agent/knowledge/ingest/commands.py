@@ -166,9 +166,13 @@ async def embed_build(args: argparse.Namespace) -> int:
         str(row["document_id"]): str(row.get("title") or "")
         for row in read_jsonl(args.build / "documents.jsonl")
     }
+    variant = str(getattr(args, "embedding_input", "context") or "context")
     texts = [
         embedding_input(
-            titles.get(str(row["document_id"]), ""), str(row["heading"]), str(row["text"])
+            titles.get(str(row["document_id"]), ""),
+            str(row["heading"]),
+            str(row["text"]),
+            folded=variant == "context_folded",
         )
         for row in chunks
     ]
@@ -230,7 +234,7 @@ async def embed_build(args: argparse.Namespace) -> int:
             "complete": True,
             "dims": cfg.embedding_dims,
             "embedded": len(vectors),
-            "embedding_input": "title + heading + text",
+            "embedding_input": variant,
             "input_type": "document",
             "model": model,
             "sha256": [str(row["content_sha256"]) for row in chunks],

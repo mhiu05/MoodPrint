@@ -52,8 +52,8 @@ def score_hits(
     vector_rank = {} if lexical_only else _rank(hits, "vector_score")
     lexical_rank = _rank(hits, "lexical_score")
     span = cfg.vector_cos_hi - cfg.vector_cos_lo
-    fused_max = 2.0 / (cfg.rrf_k + 1)
-    ranked: list[ScoredHit] = []
+    fused_max = (1.0 + cfg.lexical_weight) / (cfg.rrf_k + 1)
+    relevance: list[tuple[RawHit, float | None, float, float]] = []
     for hit in hits:
         vector_score = None if lexical_only else hit.vector_score
         lexical_score = hit.lexical_score
@@ -64,7 +64,21 @@ def score_hits(
         else:
             vec_rel = _clamp((vector_score - cfg.vector_cos_lo) / span, 0.0, 1.0)
         lex_rel = 0.0 if lexical_score is None else _clamp(lexical_score, 0.0, 1.0)
-        if vec_rel < cfg.min_vector_score and lex_rel < cfg.min_lexical_score:
+        relevance.append((hit, vector_score, vec_rel, lex_rel))
+    if cfg.gate_scope == "query":
+        # Answerable only if some hit clears the gate; then keep every hit above the lower floors.
+        if not any(
+            vec >= cfg.min_vector_score or lex >= cfg.min_lexical_score
+            for _hit, _score, vec, lex in relevance
+        ):
+            return []
+        floor_vector, floor_lexical = cfg.chunk_floor_vector, cfg.chunk_floor_lexical
+    else:
+        floor_vector, floor_lexical = cfg.min_vector_score, cfg.min_lexical_score
+    ranked: list[ScoredHit] = []
+    for hit, vector_score, vec_rel, lex_rel in relevance:
+        lexical_score = hit.lexical_score
+        if vec_rel < floor_vector and lex_rel < floor_lexical:
             continue
         v_rank = vector_rank.get(hit.chunk_id)
         l_rank = lexical_rank.get(hit.chunk_id)
@@ -73,7 +87,7 @@ def score_hits(
             score = weight * vec_rel + (1.0 - weight) * lex_rel
         else:
             fused = (0.0 if v_rank is None else 1.0 / (cfg.rrf_k + v_rank)) + (
-                0.0 if l_rank is None else 1.0 / (cfg.rrf_k + l_rank)
+                0.0 if l_rank is None else cfg.lexical_weight / (cfg.rrf_k + l_rank)
             )
             score = 0.0 if fused_max <= 0 else min(1.0, fused / fused_max)
         if lexical_only or (v_rank is None and l_rank is not None):

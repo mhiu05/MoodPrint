@@ -154,9 +154,7 @@ def chunk_document(document: ParsedDocument, params: ChunkParams, parser: str) -
             )
             packed = _pack(units or [first_text], params)
         else:
-            merged = [first_text] + [
-                f"{_inline_heading(part[0])} {part[2]}" for part in group[1:]
-            ]
+            merged = [first_text] + [f"{_inline_heading(part[0])} {part[2]}" for part in group[1:]]
             packed = [(" ".join(merged), False)]
         for piece, oversize in packed:
             if len(piece) < params.short_min:

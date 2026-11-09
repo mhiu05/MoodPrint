@@ -83,16 +83,20 @@ async def main() -> None:
     async with engine.connect() as conn:
         await conn.execute(text("set local search_path = public, extensions"))
         rows = (
-            await conn.execute(
-                text(
-                    "select c.chunk_id, c.document_id, c.text, d.topics, d.title "
-                    "from knowledge.chunks c join knowledge.documents d "
-                    "on d.corpus_version=c.corpus_version and d.document_id=c.document_id "
-                    "where c.corpus_version=:v order by c.chunk_id"
-                ),
-                {"v": VERSION},
+            (
+                await conn.execute(
+                    text(
+                        "select c.chunk_id, c.document_id, c.text, d.topics, d.title "
+                        "from knowledge.chunks c join knowledge.documents d "
+                        "on d.corpus_version=c.corpus_version and d.document_id=c.document_id "
+                        "where c.corpus_version=:v order by c.chunk_id"
+                    ),
+                    {"v": VERSION},
+                )
             )
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
         chunks = [dict(r) for r in rows]
         doc_ids = {c["document_id"] for c in chunks}
 
@@ -102,12 +106,7 @@ async def main() -> None:
             for topic in chunk["topics"]:
                 by_topic.setdefault(topic, set()).add(chunk["document_id"])
         label_missing = sorted(
-            {
-                doc
-                for case in cases
-                for doc in case["relevant"]
-                if doc not in doc_ids
-            }
+            {doc for case in cases for doc in case["relevant"] if doc not in doc_ids}
         )
         rel_sizes = Counter(len(case["relevant"]) for case in cases if not case["no_result"])
         split_topics = {
@@ -125,9 +124,7 @@ async def main() -> None:
                 if not case["no_result"]
             ),
             "split_topics": split_topics,
-            "topics_in_both_splits": sorted(
-                set(split_topics["dev"]) & set(split_topics["test"])
-            ),
+            "topics_in_both_splits": sorted(set(split_topics["dev"]) & set(split_topics["test"])),
             "has_style_field": any("style" in c for c in cases),
             "no_result_queries_are_in_domain": 0,
         }
@@ -146,7 +143,7 @@ async def main() -> None:
                 score = inter / (len(a) + len(b) - inter)
                 best = max(best, score)
             max_j.append(best)
-        for (i, a), (j, b) in combinations(list(enumerate(sets)), 2):
+        for (_i, a), (_j, b) in combinations(list(enumerate(sets)), 2):
             if a and b:
                 pair_n += 1
         near = sum(1 for v in max_j if v >= 0.5)
@@ -160,9 +157,7 @@ async def main() -> None:
             sentence_df.update(seen)
         common = [(s, n) for s, n in sentence_df.most_common(6) if n >= 20]
         chunk_chars = sum(len(c["text"]) for c in chunks)
-        boiler_chars = sum(
-            len(s) * n for s, n in sentence_df.items() if n >= 0.2 * len(chunks)
-        )
+        boiler_chars = sum(len(s) * n for s, n in sentence_df.items() if n >= 0.2 * len(chunks))
         mp_chunks = [c for c in chunks if c["document_id"].startswith("mp-")]
         out["duplication"] = {
             "chunks": len(chunks),
@@ -224,23 +219,31 @@ async def main() -> None:
             q = str(case["query"])
             prepared = prepare_query(q, max_chars=cfg.query_max_chars)
             vec = (
-                await conn.execute(
-                    text(_VECTOR_SQL),
-                    {
-                        **params_base,
-                        "embedding": _vector_literal(cache[q]),
-                        "limit": 30,
-                    },
+                (
+                    await conn.execute(
+                        text(_VECTOR_SQL),
+                        {
+                            **params_base,
+                            "embedding": _vector_literal(cache[q]),
+                            "limit": 30,
+                        },
+                    )
                 )
-            ).mappings().all()
+                .mappings()
+                .all()
+            )
             lex = []
             if prepared.tsquery:
                 lex = (
-                    await conn.execute(
-                        text(_LEXICAL_SQL),
-                        {**params_base, "tsquery": prepared.tsquery, "limit": 30},
+                    (
+                        await conn.execute(
+                            text(_LEXICAL_SQL),
+                            {**params_base, "tsquery": prepared.tsquery, "limit": 30},
+                        )
                     )
-                ).mappings().all()
+                    .mappings()
+                    .all()
+                )
             tokens = lexical_tokens(prepared.embed_text)
             token_df = {t: df.get(t, 0) for t in tokens}
             per_query.append(
@@ -281,7 +284,9 @@ async def main() -> None:
                 ranked = first_k_docs(r[f"{branch}_docs"], 30)  # type: ignore[arg-type]
                 strict.append(recall_at_k(rel, ranked, 5))
                 hit.append(hit_at_k(rel, ranked, 5))
-                topic_hit.append(1.0 if set(ranked[:5]) & by_topic.get(str(r["topic"]), set()) else 0.0)
+                topic_hit.append(
+                    1.0 if set(ranked[:5]) & by_topic.get(str(r["topic"]), set()) else 0.0
+                )
             summary[f"{branch}_{split}"] = {
                 "strict_recall_at_5_doc_level_unthresholded": round(statistics.fmean(strict), 3),
                 "hit_at_5_unthresholded": round(statistics.fmean(hit), 3),
@@ -312,11 +317,11 @@ async def main() -> None:
         "effective_cosine_gate_at_locked_config": round(gate_cos, 3),
         "no_result_queries_with_any_lexical_hit": sum(1 for r in no_result if r["lex_docs"]),
         "no_result_queries_passing_locked_lexical_gate": sum(
-            1 for r in no_result if max(r["lex_scores"], default=0.0) >= cfg.min_lexical_score  # type: ignore[type-var]
+            1
+            for r in no_result
+            if max(r["lex_scores"], default=0.0) >= cfg.min_lexical_score  # type: ignore[type-var]
         ),
-        "no_result_queries_passing_locked_vector_gate": sum(
-            1 for v in max_cos_no if v >= gate_cos
-        ),
+        "no_result_queries_passing_locked_vector_gate": sum(1 for v in max_cos_no if v >= gate_cos),
         "answerable_failing_locked_vector_gate": sum(1 for v in max_cos_ans if v < gate_cos),
     }
     stop_hits: Counter[str] = Counter()

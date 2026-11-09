@@ -53,7 +53,9 @@ def fold(text: str) -> str:
     return stripped.replace("đ", "d")
 
 
-def apportion(strata: dict[tuple[str, ...], list[int]], dev_total: int, rng: random.Random) -> set[int]:
+def apportion(
+    strata: dict[tuple[str, ...], list[int]], dev_total: int, rng: random.Random
+) -> set[int]:
     """Largest-remainder apportionment of dev slots across strata, then seeded picks inside."""
     quotas = {key: len(items) * DEV_FRACTION for key, items in strata.items()}
     take = {key: int(quota) for key, quota in quotas.items()}
@@ -153,9 +155,7 @@ def main() -> None:
     for i, row in enumerate(rows):
         row["split"] = "dev" if i in dev else "test"
 
-    payload = (
-        "\n".join(json.dumps(row, ensure_ascii=False, sort_keys=True) for row in rows) + "\n"
-    )
+    payload = "\n".join(json.dumps(row, ensure_ascii=False, sort_keys=True) for row in rows) + "\n"
     OUT.write_text(payload, encoding="utf-8", newline="\n")
     digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
     split_counts = Counter(
@@ -183,7 +183,9 @@ def main() -> None:
         encoding="utf-8",
         newline="\n",
     )
-    sys.stdout.buffer.write((json.dumps(summary, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))
+    sys.stdout.buffer.write(
+        (json.dumps(summary, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    )
 
 
 if __name__ == "__main__":

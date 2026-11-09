@@ -10,19 +10,25 @@ from pathlib import Path
 from typing import cast
 
 from moodprint_agent.knowledge.embedder import EmbeddingCache
+from moodprint_agent.knowledge.textnorm import fold_vietnamese
 
 EmbedBatch = Callable[[list[str]], Awaitable[list[list[float]]]]
 
 
-def embedding_input(title: str, heading: str, text: str) -> str:
+def embedding_input(title: str, heading: str, text: str, *, folded: bool = False) -> str:
     """Text sent to the document embedder: title and heading give a short chunk its context.
 
     FTS already indexes ``heading + text``; the vector side needs the same context because a
     150-character section such as "Cố ý gây hại" is otherwise embedded without its topic.
+    With ``folded`` the accent-stripped form follows, so one vector also matches queries typed
+    without diacritics, which the embedding model handles poorly on its own.
     """
     parts = [part.strip() for part in (title, heading) if part and part.strip()]
     prefix = " — ".join(parts)
-    return f"{prefix}\n{text}" if prefix else text
+    value = f"{prefix}\n{text}" if prefix else text
+    if folded:
+        value = f"{value}\n{fold_vietnamese(f'{prefix} {text}'.strip())}"
+    return value
 
 
 def _content_digest(text: str) -> str:

@@ -6,14 +6,16 @@ import re
 import unicodedata
 from dataclasses import dataclass
 
-from moodprint_agent.knowledge.textnorm import clean_text, fold_vietnamese
+from moodprint_agent.knowledge.lexical import folded_terms
+from moodprint_agent.knowledge.textnorm import clean_text
 
 _EMAIL = re.compile(r"\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b", re.UNICODE)
 _URL = re.compile(r"(?i)\b(?:https?://|www\.)\S+")
 _HANDLE = re.compile(r"(?<!\w)@[A-Za-z0-9_.]{2,}")
 _PHONE = re.compile(r"(?<!\d)(?:\+?84|0)[\s.\-]?\d{2,3}[\s.\-]?\d{3}[\s.\-]?\d{3,4}(?!\d)")
 _LONG_DIGITS = re.compile(r"\d{8,}")
-_TOKEN = re.compile(r"[a-z0-9]+")
+# First-pass stoplist, no longer used for retrieval (see lexical.STOP_TERMS). Kept so that
+# agent/evals/knowledge/diagnosis/diagnose_v1.py still imports.
 STOPWORDS = frozenset(
     "la va cua co khong thi toi minh ban gi nhu the nao bi cho duoc khi mot cac "
     "nhung de o trong voi".split()
@@ -47,15 +49,8 @@ def truncate_words(text: str, limit: int) -> str:
 
 
 def lexical_tokens(text: str, *, limit: int = 16) -> list[str]:
-    folded = fold_vietnamese(text)
-    tokens: list[str] = []
-    for token in _TOKEN.findall(folded):
-        if len(token) < 2 or token in STOPWORDS:
-            continue
-        tokens.append(token)
-        if len(tokens) == limit:
-            break
-    return tokens
+    """Distinct information-bearing folded terms; see ``lexical.query_terms``."""
+    return folded_terms(text, limit=limit)
 
 
 def prepare_query(text: str, *, max_chars: int) -> PreparedQuery:
