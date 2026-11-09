@@ -7,6 +7,7 @@ import asyncio
 import hashlib
 import json
 import os
+import re
 from datetime import date
 from pathlib import Path
 from typing import Any, cast
@@ -19,6 +20,8 @@ from moodprint_agent.knowledge.embedder import HashingEmbedder
 from moodprint_agent.knowledge.textnorm import fold_vietnamese
 
 _LOOPBACK = {"127.0.0.1", "localhost", "::1"}
+_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+_PHONE = re.compile(r"(?<!\d)(?:\+?84|0)\d{8,10}(?!\d)")
 _LOCK_A = 8042
 _LOCK_B = 2
 
@@ -95,10 +98,11 @@ async def store_records(
             .mappings()
             .first()
         )
-        if existing and existing["status"] == "published":
+        if existing:
             if existing["manifest_sha256"] != manifest_sha256:
                 raise ValueError("published corpus version is immutable")
-            return
+            if existing["status"] != "building":
+                return
         if existing is None:
             await conn.execute(
                 text(
@@ -152,26 +156,30 @@ async def store_records(
                 ),
                 {**document, "corpus_version": version},
             )
-        for chunk, vector in zip(chunks, vectors, strict=True):
-            folded = fold_vietnamese(f"{chunk['heading']} {chunk['text']}")
-            await conn.execute(
-                text(
-                    "insert into knowledge.chunks (corpus_version, document_id, chunk_id, ordinal,"
-                    " heading, section_path, text, heading_norm, fts, embedding, char_start, char_end,"
-                    " token_estimate, content_sha256, parser, oversize)"
-                    " values (:corpus_version, :document_id, :chunk_id, :ordinal, :heading, :section_path,"
-                    " :text, :heading_norm, to_tsvector('simple', :folded), cast(:embedding as vector),"
-                    " :char_start, :char_end, :token_estimate, :content_sha256, :parser, :oversize)"
-                    " on conflict (corpus_version, chunk_id) do nothing"
-                ),
-                {
-                    **chunk,
-                    "corpus_version": version,
-                    "heading_norm": fold_vietnamese(str(chunk["heading"])),
-                    "folded": folded,
-                    "embedding": "[" + ",".join(f"{value:.8f}" for value in vector) + "]",
-                },
-            )
+    for start in range(0, len(chunks), 200):
+        async with engine.begin() as conn:
+            for chunk, vector in zip(
+                chunks[start : start + 200], vectors[start : start + 200], strict=True
+            ):
+                folded = fold_vietnamese(f"{chunk['heading']} {chunk['text']}")
+                await conn.execute(
+                    text(
+                        "insert into knowledge.chunks (corpus_version, document_id, chunk_id, ordinal,"
+                        " heading, section_path, text, heading_norm, fts, embedding, char_start, char_end,"
+                        " token_estimate, content_sha256, parser, oversize)"
+                        " values (:corpus_version, :document_id, :chunk_id, :ordinal, :heading, :section_path,"
+                        " :text, :heading_norm, to_tsvector('simple', :folded), cast(:embedding as vector),"
+                        " :char_start, :char_end, :token_estimate, :content_sha256, :parser, :oversize)"
+                        " on conflict (corpus_version, chunk_id) do nothing"
+                    ),
+                    {
+                        **chunk,
+                        "corpus_version": version,
+                        "heading_norm": fold_vietnamese(str(chunk["heading"])),
+                        "folded": folded,
+                        "embedding": "[" + ",".join(f"{value:.8f}" for value in vector) + "]",
+                    },
+                )
 
 
 async def validate_version(
@@ -201,6 +209,69 @@ async def validate_version(
         ).scalar_one()
         if bad:
             raise ValueError("corpus contains a forbidden licence class")
+        weak = (
+            await conn.execute(
+                text(
+                    "select count(*) from knowledge.chunks where corpus_version = :version"
+                    " and abs(sqrt((embedding <#> embedding) * -1) - 1) > 0.001"
+                ),
+                {"version": version},
+            )
+        ).scalar_one()
+        if weak:
+            raise ValueError("embedding norm is outside the accepted range")
+        stale = (
+            await conn.execute(
+                text(
+                    "select count(*) from knowledge.documents where corpus_version = :version"
+                    " and (applicability = '' or last_reviewed > current_date)"
+                ),
+                {"version": version},
+            )
+        ).scalar_one()
+        if stale:
+            raise ValueError("document review metadata is invalid")
+        texts = (
+            await conn.execute(
+                text("select text from knowledge.chunks where corpus_version = :version"),
+                {"version": version},
+            )
+        ).scalars()
+        if any(_EMAIL.search(value) or _PHONE.search(value) for value in texts):
+            raise ValueError("corpus failed the personal-data scan")
+        if not allow_support:
+            topics = (
+                await conn.execute(
+                    text(
+                        "select topic, count(distinct document_id) from knowledge.documents d,"
+                        " unnest(d.topics) as topic where d.corpus_version = :version group by topic"
+                    ),
+                    {"version": version},
+                )
+            ).all()
+            counts = {str(topic): int(count) for topic, count in topics}
+            missing = [
+                topic
+                for topic in (
+                    "definition",
+                    "physical",
+                    "verbal-social",
+                    "exclusion",
+                    "cyber",
+                    "evidence",
+                    "help-seeking",
+                    "school-procedure-vn",
+                    "legal-vn",
+                    "bystander",
+                    "emotional-impact",
+                    "parents-teachers",
+                    "platform-reporting",
+                    "urgent-safety",
+                )
+                if counts.get(topic, 0) == 0
+            ]
+            if missing:
+                raise ValueError("corpus is missing a core topic")
         await conn.execute(
             text(
                 "update knowledge.corpus_versions set status = 'validated', validated_at = now()"
@@ -221,7 +292,9 @@ async def publish_version(engine: AsyncEngine, version: str) -> None:
                 text("select status from knowledge.corpus_versions where version = :version"),
                 {"version": version},
             )
-        ).scalar_one()
+        ).scalar_one_or_none()
+        if status is None:
+            raise ValueError("corpus version was not found")
         if status == "published":
             return
         if status != "validated":
@@ -252,7 +325,9 @@ async def rollback_version(engine: AsyncEngine, version: str) -> None:
                 text("select status from knowledge.corpus_versions where version = :version"),
                 {"version": version},
             )
-        ).scalar_one()
+        ).scalar_one_or_none()
+        if status is None:
+            raise ValueError("rollback target was not found")
         if status != "retired":
             raise ValueError("rollback target must be retired")
         await conn.execute(
@@ -290,10 +365,11 @@ async def seed_corpus(target: str, payload: dict[str, Any], digest: str) -> int:
             texts.append(str(cast(dict[str, object], chunk)["text"]))
     vectors = await HashingEmbedder().embed_documents(texts)
     engine = engine_for(target)
+    version = str(payload["version"])
     try:
         await store_records(
             engine,
-            version=str(payload["version"]),
+            version=version,
             manifest_sha256=digest,
             embedding_model="hashing",
             sources=cast(list[dict[str, object]], payload["sources"]),
@@ -301,40 +377,35 @@ async def seed_corpus(target: str, payload: dict[str, Any], digest: str) -> int:
             chunks=cast(list[dict[str, object]], chunks),
             vectors=vectors,
         )
-        await validate_version(engine, str(payload["version"]), allow_support=True)
-        await publish_version(engine, str(payload["version"]))
+        status = await _version_status(engine, version)
+        if status == "published":
+            return 0
+        if status == "retired":
+            await rollback_version(engine, version)
+            return 0
+        if status == "building":
+            await validate_version(engine, version, allow_support=True)
+        await publish_version(engine, version)
     finally:
         await engine.dispose()
     return 0
+
+
+async def _version_status(engine: AsyncEngine, version: str) -> str:
+    async with engine.connect() as conn:
+        status = (
+            await conn.execute(
+                text("select status from knowledge.corpus_versions where version = :version"),
+                {"version": version},
+            )
+        ).scalar_one()
+    return str(status)
 
 
 def dispatch(args: argparse.Namespace) -> int:
-    command = str(args.command)
-    target = str(args.target or "test-env")
-    if command == "status":
-        return asyncio.run(_status(target))
-    raise ValueError("command is not available without a local corpus build")
+    from moodprint_agent.knowledge.ingest.commands import dispatch as run_command
 
-
-async def _status(target: str) -> int:
-    engine = engine_for(target)
-    try:
-        async with engine.connect() as conn:
-            rows = (
-                (
-                    await conn.execute(
-                        text(
-                            "select version, status from knowledge.corpus_versions order by version"
-                        )
-                    )
-                )
-                .mappings()
-                .all()
-            )
-    finally:
-        await engine.dispose()
-    print(json.dumps([dict(row) for row in rows], ensure_ascii=False))
-    return 0
+    return run_command(args)
 
 
 def _as_date(value: object) -> date | None:

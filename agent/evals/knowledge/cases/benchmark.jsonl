@@ -1,0 +1,180 @@
+{"id": "A001", "no_result": false, "query": "trêu nhau có tính là bắt nạt không", "relevant": ["legacy-bat-nat-la-gi", "mp-definition-01", "mp-definition-02", "mp-definition-03"], "split": "dev", "topic": "definition"}
+{"id": "A002", "no_result": false, "query": "thế nào là bắt nạt học đường", "relevant": ["legacy-bat-nat-la-gi", "mp-definition-01", "mp-definition-02", "mp-definition-03"], "split": "dev", "topic": "definition"}
+{"id": "A003", "no_result": false, "query": "xung đột khác bắt nạt chỗ nào", "relevant": ["legacy-bat-nat-la-gi", "mp-definition-01", "mp-definition-02", "mp-definition-03"], "split": "dev", "topic": "definition"}
+{"id": "A004", "no_result": false, "query": "dấu hiệu mình đang bị bắt nạt", "relevant": ["legacy-bat-nat-la-gi", "mp-definition-01", "mp-definition-02", "mp-definition-03"], "split": "dev", "topic": "definition"}
+{"id": "A005", "no_result": false, "query": "bạn đùa dai có phải bắt nạt", "relevant": ["legacy-bat-nat-la-gi", "mp-definition-01", "mp-definition-02", "mp-definition-03"], "split": "dev", "topic": "definition"}
+{"id": "A006", "no_result": false, "query": "bắt nạt khác cãi nhau thế nào", "relevant": ["legacy-bat-nat-la-gi", "mp-definition-01", "mp-definition-02", "mp-definition-03"], "split": "dev", "topic": "definition"}
+{"id": "A007", "no_result": false, "query": "làm sao biết một việc là bắt nạt", "relevant": ["legacy-bat-nat-la-gi", "mp-definition-01", "mp-definition-02", "mp-definition-03"], "split": "dev", "topic": "definition"}
+{"id": "A008", "no_result": false, "query": "trêu cho vui nhưng mình thấy sợ", "relevant": ["legacy-bat-nat-la-gi", "mp-definition-01", "mp-definition-02", "mp-definition-03"], "split": "dev", "topic": "definition"}
+{"id": "A009", "no_result": false, "query": "định nghĩa bắt nạt cho học sinh", "relevant": ["legacy-bat-nat-la-gi", "mp-definition-01", "mp-definition-02", "mp-definition-03"], "split": "dev", "topic": "definition"}
+{"id": "A010", "no_result": false, "query": "khi nào trò đùa trở thành bắt nạt", "relevant": ["legacy-bat-nat-la-gi", "mp-definition-01", "mp-definition-02", "mp-definition-03"], "split": "dev", "topic": "definition"}
+{"id": "A011", "no_result": false, "query": "mình không chắc việc đó có phải bắt nạt", "relevant": ["legacy-bat-nat-la-gi", "mp-definition-01", "mp-definition-02", "mp-definition-03"], "split": "dev", "topic": "definition"}
+{"id": "A012", "no_result": false, "query": "bạn cứ trêu hoài có phải chuyện nhỏ", "relevant": ["legacy-bat-nat-la-gi", "mp-definition-01", "mp-definition-02", "mp-definition-03"], "split": "dev", "topic": "definition"}
+{"id": "A013", "no_result": false, "query": "bị bạn đánh ở sân trường", "relevant": ["mp-physical-01", "mp-physical-02", "mp-physical-03"], "split": "dev", "topic": "physical"}
+{"id": "A014", "no_result": false, "query": "bị xô ngã ở hành lang", "relevant": ["mp-physical-01", "mp-physical-02", "mp-physical-03"], "split": "dev", "topic": "physical"}
+{"id": "A015", "no_result": false, "query": "bị giật tóc lúc ra chơi", "relevant": ["mp-physical-01", "mp-physical-02", "mp-physical-03"], "split": "dev", "topic": "physical"}
+{"id": "A016", "no_result": false, "query": "bị tát trước mặt cả lớp", "relevant": ["mp-physical-01", "mp-physical-02", "mp-physical-03"], "split": "dev", "topic": "physical"}
+{"id": "A017", "no_result": false, "query": "bị đẩy vào tường ở trường", "relevant": ["mp-physical-01", "mp-physical-02", "mp-physical-03"], "split": "dev", "topic": "physical"}
+{"id": "A018", "no_result": false, "query": "bị đánh mà không dám kể", "relevant": ["mp-physical-01", "mp-physical-02", "mp-physical-03"], "split": "dev", "topic": "physical"}
+{"id": "A019", "no_result": false, "query": "bạo lực thể chất ở sân chơi", "relevant": ["mp-physical-01", "mp-physical-02", "mp-physical-03"], "split": "dev", "topic": "physical"}
+{"id": "A020", "no_result": false, "query": "bị đạp vào cặp sách", "relevant": ["mp-physical-01", "mp-physical-02", "mp-physical-03"], "split": "dev", "topic": "physical"}
+{"id": "A021", "no_result": false, "query": "bị giữ tay không cho đi", "relevant": ["mp-physical-01", "mp-physical-02", "mp-physical-03"], "split": "dev", "topic": "physical"}
+{"id": "A022", "no_result": false, "query": "bị đánh rồi bị dọa im lặng", "relevant": ["mp-physical-01", "mp-physical-02", "mp-physical-03"], "split": "dev", "topic": "physical"}
+{"id": "A023", "no_result": false, "query": "bị véo ở lớp mà không ai thấy", "relevant": ["mp-physical-01", "mp-physical-02", "mp-physical-03"], "split": "dev", "topic": "physical"}
+{"id": "A024", "no_result": false, "query": "bị lấy mạnh cặp rồi đẩy mình", "relevant": ["mp-physical-01", "mp-physical-02", "mp-physical-03"], "split": "dev", "topic": "physical"}
+{"id": "A025", "no_result": false, "query": "cả lớp nói xấu mình sau lưng", "relevant": ["mp-verbal-social-01", "mp-verbal-social-02", "mp-verbal-social-03"], "split": "dev", "topic": "verbal-social"}
+{"id": "A026", "no_result": false, "query": "bị đặt biệt danh xấu", "relevant": ["mp-verbal-social-01", "mp-verbal-social-02", "mp-verbal-social-03"], "split": "dev", "topic": "verbal-social"}
+{"id": "A027", "no_result": false, "query": "bị chế giễu ngoại hình mỗi ngày", "relevant": ["mp-verbal-social-01", "mp-verbal-social-02", "mp-verbal-social-03"], "split": "dev", "topic": "verbal-social"}
+{"id": "A028", "no_result": false, "query": "bị tung tin đồn trong lớp", "relevant": ["mp-verbal-social-01", "mp-verbal-social-02", "mp-verbal-social-03"], "split": "dev", "topic": "verbal-social"}
+{"id": "A029", "no_result": false, "query": "bị la mắng giữa giờ ra chơi", "relevant": ["mp-verbal-social-01", "mp-verbal-social-02", "mp-verbal-social-03"], "split": "dev", "topic": "verbal-social"}
+{"id": "A030", "no_result": false, "query": "bạn bè cười nhạo mình liên tục", "relevant": ["mp-verbal-social-01", "mp-verbal-social-02", "mp-verbal-social-03"], "split": "dev", "topic": "verbal-social"}
+{"id": "A031", "no_result": false, "query": "bị nói nặng lời ở nhóm bạn", "relevant": ["mp-verbal-social-01", "mp-verbal-social-02", "mp-verbal-social-03"], "split": "dev", "topic": "verbal-social"}
+{"id": "A032", "no_result": false, "query": "bị trêu vì điểm số", "relevant": ["mp-verbal-social-01", "mp-verbal-social-02", "mp-verbal-social-03"], "split": "dev", "topic": "verbal-social"}
+{"id": "A033", "no_result": false, "query": "bị nhại giọng trước lớp", "relevant": ["mp-verbal-social-01", "mp-verbal-social-02", "mp-verbal-social-03"], "split": "dev", "topic": "verbal-social"}
+{"id": "A034", "no_result": false, "query": "lời nói làm mình không dám đến lớp", "relevant": ["mp-verbal-social-01", "mp-verbal-social-02", "mp-verbal-social-03"], "split": "dev", "topic": "verbal-social"}
+{"id": "A035", "no_result": false, "query": "bị nói tục mỗi lần đi qua", "relevant": ["mp-verbal-social-01", "mp-verbal-social-02", "mp-verbal-social-03"], "split": "dev", "topic": "verbal-social"}
+{"id": "A036", "no_result": false, "query": "cả nhóm đặt chuyện về mình", "relevant": ["mp-verbal-social-01", "mp-verbal-social-02", "mp-verbal-social-03"], "split": "dev", "topic": "verbal-social"}
+{"id": "A037", "no_result": false, "query": "không ai chơi cùng mình", "relevant": ["mp-exclusion-01", "mp-exclusion-02", "mp-exclusion-03"], "split": "dev", "topic": "exclusion"}
+{"id": "A038", "no_result": false, "query": "bị loại khỏi nhóm bạn", "relevant": ["mp-exclusion-01", "mp-exclusion-02", "mp-exclusion-03"], "split": "dev", "topic": "exclusion"}
+{"id": "A039", "no_result": false, "query": "không được ngồi chung bàn", "relevant": ["mp-exclusion-01", "mp-exclusion-02", "mp-exclusion-03"], "split": "dev", "topic": "exclusion"}
+{"id": "A040", "no_result": false, "query": "bị cô lập ở giờ ra chơi", "relevant": ["mp-exclusion-01", "mp-exclusion-02", "mp-exclusion-03"], "split": "dev", "topic": "exclusion"}
+{"id": "A041", "no_result": false, "query": "nhóm không cho mình tham gia", "relevant": ["mp-exclusion-01", "mp-exclusion-02", "mp-exclusion-03"], "split": "dev", "topic": "exclusion"}
+{"id": "A042", "no_result": false, "query": "mọi người tránh mặt mình", "relevant": ["mp-exclusion-01", "mp-exclusion-02", "mp-exclusion-03"], "split": "dev", "topic": "exclusion"}
+{"id": "A043", "no_result": false, "query": "bị bỏ rơi trong hoạt động nhóm", "relevant": ["mp-exclusion-01", "mp-exclusion-02", "mp-exclusion-03"], "split": "dev", "topic": "exclusion"}
+{"id": "A044", "no_result": false, "query": "không ai trả lời khi mình chào", "relevant": ["mp-exclusion-01", "mp-exclusion-02", "mp-exclusion-03"], "split": "dev", "topic": "exclusion"}
+{"id": "A045", "no_result": false, "query": "bị gạt khỏi cuộc chơi", "relevant": ["mp-exclusion-01", "mp-exclusion-02", "mp-exclusion-03"], "split": "dev", "topic": "exclusion"}
+{"id": "A046", "no_result": false, "query": "cảm giác bị cả lớp loại ra", "relevant": ["mp-exclusion-01", "mp-exclusion-02", "mp-exclusion-03"], "split": "dev", "topic": "exclusion"}
+{"id": "A047", "no_result": false, "query": "không được mời vào nhóm làm bài", "relevant": ["mp-exclusion-01", "mp-exclusion-02", "mp-exclusion-03"], "split": "dev", "topic": "exclusion"}
+{"id": "A048", "no_result": false, "query": "ra chơi một mình vì không ai rủ", "relevant": ["mp-exclusion-01", "mp-exclusion-02", "mp-exclusion-03"], "split": "dev", "topic": "exclusion"}
+{"id": "A049", "no_result": false, "query": "bị nhắn tin dọa trong nhóm lớp", "relevant": ["mp-cyber-01", "mp-cyber-02", "mp-cyber-03", "legacy-chan-va-bao-cao-noi-dung"], "split": "dev", "topic": "cyber"}
+{"id": "A050", "no_result": false, "query": "bị lập nhóm nói xấu trên mạng", "relevant": ["mp-cyber-01", "mp-cyber-02", "mp-cyber-03", "legacy-chan-va-bao-cao-noi-dung"], "split": "dev", "topic": "cyber"}
+{"id": "A051", "no_result": false, "query": "có tài khoản giả dùng tên mình", "relevant": ["mp-cyber-01", "mp-cyber-02", "mp-cyber-03", "legacy-chan-va-bao-cao-noi-dung"], "split": "dev", "topic": "cyber"}
+{"id": "A052", "no_result": false, "query": "bị gửi ảnh riêng vào nhóm chat", "relevant": ["mp-cyber-01", "mp-cyber-02", "mp-cyber-03", "legacy-chan-va-bao-cao-noi-dung"], "split": "dev", "topic": "cyber"}
+{"id": "A053", "no_result": false, "query": "bị quấy rối trong tin nhắn", "relevant": ["mp-cyber-01", "mp-cyber-02", "mp-cyber-03", "legacy-chan-va-bao-cao-noi-dung"], "split": "dev", "topic": "cyber"}
+{"id": "A054", "no_result": false, "query": "nhóm chat cứ nhắc đến mình", "relevant": ["mp-cyber-01", "mp-cyber-02", "mp-cyber-03", "legacy-chan-va-bao-cao-noi-dung"], "split": "dev", "topic": "cyber"}
+{"id": "A055", "no_result": false, "query": "bị dọa phát tán tin nhắn", "relevant": ["mp-cyber-01", "mp-cyber-02", "mp-cyber-03", "legacy-chan-va-bao-cao-noi-dung"], "split": "dev", "topic": "cyber"}
+{"id": "A056", "no_result": false, "query": "bị tag vào bài viết xấu", "relevant": ["mp-cyber-01", "mp-cyber-02", "mp-cyber-03", "legacy-chan-va-bao-cao-noi-dung"], "split": "dev", "topic": "cyber"}
+{"id": "A057", "no_result": false, "query": "không thoát được nhóm nói xấu", "relevant": ["mp-cyber-01", "mp-cyber-02", "mp-cyber-03", "legacy-chan-va-bao-cao-noi-dung"], "split": "dev", "topic": "cyber"}
+{"id": "A058", "no_result": false, "query": "bị nhắn tin đêm khuya để dọa", "relevant": ["mp-cyber-01", "mp-cyber-02", "mp-cyber-03", "legacy-chan-va-bao-cao-noi-dung"], "split": "dev", "topic": "cyber"}
+{"id": "A059", "no_result": false, "query": "bi nhan tin doa trong nhom lop", "relevant": ["mp-cyber-01", "mp-cyber-02", "mp-cyber-03", "legacy-chan-va-bao-cao-noi-dung"], "split": "dev", "topic": "cyber"}
+{"id": "A060", "no_result": false, "query": "chụp màn hình lưu lại như nào", "relevant": ["mp-evidence-01", "mp-evidence-02", "mp-evidence-03", "legacy-luu-anh-chup-co-ngu-canh"], "split": "dev", "topic": "evidence"}
+{"id": "A061", "no_result": false, "query": "giữ tin nhắn trước khi bị xóa", "relevant": ["mp-evidence-01", "mp-evidence-02", "mp-evidence-03", "legacy-luu-anh-chup-co-ngu-canh"], "split": "test", "topic": "evidence"}
+{"id": "A062", "no_result": false, "query": "lưu bằng chứng mà không chuyển tiếp", "relevant": ["mp-evidence-01", "mp-evidence-02", "mp-evidence-03", "legacy-luu-anh-chup-co-ngu-canh"], "split": "test", "topic": "evidence"}
+{"id": "A063", "no_result": false, "query": "ghi ngày giờ của tin nhắn", "relevant": ["mp-evidence-01", "mp-evidence-02", "mp-evidence-03", "legacy-luu-anh-chup-co-ngu-canh"], "split": "test", "topic": "evidence"}
+{"id": "A064", "no_result": false, "query": "ảnh chụp màn hình đưa cho ai", "relevant": ["mp-evidence-01", "mp-evidence-02", "mp-evidence-03", "legacy-luu-anh-chup-co-ngu-canh"], "split": "test", "topic": "evidence"}
+{"id": "A065", "no_result": false, "query": "không biết có nên giữ ảnh không", "relevant": ["mp-evidence-01", "mp-evidence-02", "mp-evidence-03", "legacy-luu-anh-chup-co-ngu-canh"], "split": "test", "topic": "evidence"}
+{"id": "A066", "no_result": false, "query": "bằng chứng trên điện thoại bị mất", "relevant": ["mp-evidence-01", "mp-evidence-02", "mp-evidence-03", "legacy-luu-anh-chup-co-ngu-canh"], "split": "test", "topic": "evidence"}
+{"id": "A067", "no_result": false, "query": "cách giữ lại cuộc trò chuyện", "relevant": ["mp-evidence-01", "mp-evidence-02", "mp-evidence-03", "legacy-luu-anh-chup-co-ngu-canh"], "split": "test", "topic": "evidence"}
+{"id": "A068", "no_result": false, "query": "lưu tin nhắn mà không trả thù", "relevant": ["mp-evidence-01", "mp-evidence-02", "mp-evidence-03", "legacy-luu-anh-chup-co-ngu-canh"], "split": "test", "topic": "evidence"}
+{"id": "A069", "no_result": false, "query": "chụp màn hình rồi nói với người lớn", "relevant": ["mp-evidence-01", "mp-evidence-02", "mp-evidence-03", "legacy-luu-anh-chup-co-ngu-canh"], "split": "test", "topic": "evidence"}
+{"id": "A070", "no_result": false, "query": "nói với cô giáo thế nào", "relevant": ["legacy-noi-chuyen-voi-giao-vien", "legacy-noi-chuyen-voi-nguoi-cham-soc", "legacy-tong-dai-111", "mp-help-seeking-01"], "split": "test", "topic": "help-seeking"}
+{"id": "A071", "no_result": false, "query": "không biết mở lời với người lớn", "relevant": ["legacy-noi-chuyen-voi-giao-vien", "legacy-noi-chuyen-voi-nguoi-cham-soc", "legacy-tong-dai-111", "mp-help-seeking-01"], "split": "test", "topic": "help-seeking"}
+{"id": "A072", "no_result": false, "query": "muốn kể với bố mẹ nhưng ngại", "relevant": ["legacy-noi-chuyen-voi-giao-vien", "legacy-noi-chuyen-voi-nguoi-cham-soc", "legacy-tong-dai-111", "mp-help-seeking-01"], "split": "test", "topic": "help-seeking"}
+{"id": "A073", "no_result": false, "query": "nên nói với giáo viên chủ nhiệm", "relevant": ["legacy-noi-chuyen-voi-giao-vien", "legacy-noi-chuyen-voi-nguoi-cham-soc", "legacy-tong-dai-111", "mp-help-seeking-01"], "split": "test", "topic": "help-seeking"}
+{"id": "A074", "no_result": false, "query": "cần một người lớn đáng tin", "relevant": ["legacy-noi-chuyen-voi-giao-vien", "legacy-noi-chuyen-voi-nguoi-cham-soc", "legacy-tong-dai-111", "mp-help-seeking-01"], "split": "test", "topic": "help-seeking"}
+{"id": "A075", "no_result": false, "query": "sợ kể ra sẽ bị mắng", "relevant": ["legacy-noi-chuyen-voi-giao-vien", "legacy-noi-chuyen-voi-nguoi-cham-soc", "legacy-tong-dai-111", "mp-help-seeking-01"], "split": "test", "topic": "help-seeking"}
+{"id": "A076", "no_result": false, "query": "làm sao bắt đầu câu chuyện", "relevant": ["legacy-noi-chuyen-voi-giao-vien", "legacy-noi-chuyen-voi-nguoi-cham-soc", "legacy-tong-dai-111", "mp-help-seeking-01"], "split": "test", "topic": "help-seeking"}
+{"id": "A077", "no_result": false, "query": "nhờ cô giáo nghe mình", "relevant": ["legacy-noi-chuyen-voi-giao-vien", "legacy-noi-chuyen-voi-nguoi-cham-soc", "legacy-tong-dai-111", "mp-help-seeking-01"], "split": "test", "topic": "help-seeking"}
+{"id": "A078", "no_result": false, "query": "nói với người chăm sóc ở nhà", "relevant": ["legacy-noi-chuyen-voi-giao-vien", "legacy-noi-chuyen-voi-nguoi-cham-soc", "legacy-tong-dai-111", "mp-help-seeking-01"], "split": "test", "topic": "help-seeking"}
+{"id": "A079", "no_result": false, "query": "chưa dám kể hết một lúc", "relevant": ["legacy-noi-chuyen-voi-giao-vien", "legacy-noi-chuyen-voi-nguoi-cham-soc", "legacy-tong-dai-111", "mp-help-seeking-01"], "split": "test", "topic": "help-seeking"}
+{"id": "A080", "no_result": false, "query": "theo dõi sau khi đã nhờ giúp", "relevant": ["legacy-noi-chuyen-voi-giao-vien", "legacy-noi-chuyen-voi-nguoi-cham-soc", "legacy-tong-dai-111", "mp-help-seeking-01"], "split": "test", "topic": "help-seeking"}
+{"id": "A081", "no_result": false, "query": "báo với trường thì ai xử lý", "relevant": ["mp-school-procedure-vn-01", "mp-school-procedure-vn-02", "mp-school-procedure-vn-03"], "split": "test", "topic": "school-procedure-vn"}
+{"id": "A082", "no_result": false, "query": "giáo viên chủ nhiệm làm gì khi có bắt nạt", "relevant": ["mp-school-procedure-vn-01", "mp-school-procedure-vn-02", "mp-school-procedure-vn-03"], "split": "test", "topic": "school-procedure-vn"}
+{"id": "A083", "no_result": false, "query": "ban giám hiệu có vai trò gì", "relevant": ["mp-school-procedure-vn-01", "mp-school-procedure-vn-02", "mp-school-procedure-vn-03"], "split": "test", "topic": "school-procedure-vn"}
+{"id": "A084", "no_result": false, "query": "quy trình nhà trường khi bị bắt nạt", "relevant": ["mp-school-procedure-vn-01", "mp-school-procedure-vn-02", "mp-school-procedure-vn-03"], "split": "test", "topic": "school-procedure-vn"}
+{"id": "A085", "no_result": false, "query": "nên báo cô tổng phụ trách không", "relevant": ["mp-school-procedure-vn-01", "mp-school-procedure-vn-02", "mp-school-procedure-vn-03"], "split": "test", "topic": "school-procedure-vn"}
+{"id": "A086", "no_result": false, "query": "nhà trường tiếp nhận việc này ra sao", "relevant": ["mp-school-procedure-vn-01", "mp-school-procedure-vn-02", "mp-school-procedure-vn-03"], "split": "test", "topic": "school-procedure-vn"}
+{"id": "A087", "no_result": false, "query": "ai trong trường có thể đứng ra nghe", "relevant": ["mp-school-procedure-vn-01", "mp-school-procedure-vn-02", "mp-school-procedure-vn-03"], "split": "test", "topic": "school-procedure-vn"}
+{"id": "A088", "no_result": false, "query": "báo cáo ở trường khác kể trên mạng", "relevant": ["mp-school-procedure-vn-01", "mp-school-procedure-vn-02", "mp-school-procedure-vn-03"], "split": "test", "topic": "school-procedure-vn"}
+{"id": "A089", "no_result": false, "query": "trường sẽ gọi phụ huynh khi nào", "relevant": ["mp-school-procedure-vn-01", "mp-school-procedure-vn-02", "mp-school-procedure-vn-03"], "split": "test", "topic": "school-procedure-vn"}
+{"id": "A090", "no_result": false, "query": "muốn nhà trường biết mà không ồn ào", "relevant": ["mp-school-procedure-vn-01", "mp-school-procedure-vn-02", "mp-school-procedure-vn-03"], "split": "test", "topic": "school-procedure-vn"}
+{"id": "A091", "no_result": false, "query": "khi nào gọi 111", "relevant": ["mp-legal-vn-01", "mp-legal-vn-02", "mp-legal-vn-03", "legacy-tong-dai-111"], "split": "test", "topic": "legal-vn"}
+{"id": "A092", "no_result": false, "query": "tổng đài 111 có mất tiền không", "relevant": ["mp-legal-vn-01", "mp-legal-vn-02", "mp-legal-vn-03", "legacy-tong-dai-111"], "split": "test", "topic": "legal-vn"}
+{"id": "A093", "no_result": false, "query": "111 hoạt động giờ nào", "relevant": ["mp-legal-vn-01", "mp-legal-vn-02", "mp-legal-vn-03", "legacy-tong-dai-111"], "split": "test", "topic": "legal-vn"}
+{"id": "A094", "no_result": false, "query": "gọi 111 khác gọi công an thế nào", "relevant": ["mp-legal-vn-01", "mp-legal-vn-02", "mp-legal-vn-03", "legacy-tong-dai-111"], "split": "test", "topic": "legal-vn"}
+{"id": "A095", "no_result": false, "query": "quyền được bảo vệ khi bị bắt nạt", "relevant": ["mp-legal-vn-01", "mp-legal-vn-02", "mp-legal-vn-03", "legacy-tong-dai-111"], "split": "test", "topic": "legal-vn"}
+{"id": "A096", "no_result": false, "query": "khi nào cần cơ quan chức năng", "relevant": ["mp-legal-vn-01", "mp-legal-vn-02", "mp-legal-vn-03", "legacy-tong-dai-111"], "split": "test", "topic": "legal-vn"}
+{"id": "A097", "no_result": false, "query": "số 111 dành cho trẻ em", "relevant": ["mp-legal-vn-01", "mp-legal-vn-02", "mp-legal-vn-03", "legacy-tong-dai-111"], "split": "test", "topic": "legal-vn"}
+{"id": "A098", "no_result": false, "query": "có được gọi 111 dù chưa chắc", "relevant": ["mp-legal-vn-01", "mp-legal-vn-02", "mp-legal-vn-03", "legacy-tong-dai-111"], "split": "test", "topic": "legal-vn"}
+{"id": "A099", "no_result": false, "query": "111 nghe chuyện bắt nạt không", "relevant": ["mp-legal-vn-01", "mp-legal-vn-02", "mp-legal-vn-03", "legacy-tong-dai-111"], "split": "test", "topic": "legal-vn"}
+{"id": "A100", "no_result": false, "query": "pháp luật bảo vệ học sinh ra sao", "relevant": ["mp-legal-vn-01", "mp-legal-vn-02", "mp-legal-vn-03", "legacy-tong-dai-111"], "split": "test", "topic": "legal-vn"}
+{"id": "A101", "no_result": false, "query": "thấy bạn bị bắt nạt thì làm gì", "relevant": ["mp-bystander-01", "mp-bystander-02", "mp-bystander-03"], "split": "test", "topic": "bystander"}
+{"id": "A102", "no_result": false, "query": "có nên vào giữa khi bạn bị trêu", "relevant": ["mp-bystander-01", "mp-bystander-02", "mp-bystander-03"], "split": "test", "topic": "bystander"}
+{"id": "A103", "no_result": false, "query": "mình đứng nhìn có sao không", "relevant": ["mp-bystander-01", "mp-bystander-02", "mp-bystander-03"], "split": "test", "topic": "bystander"}
+{"id": "A104", "no_result": false, "query": "rủ bạn ra khỏi chỗ đang bị trêu", "relevant": ["mp-bystander-01", "mp-bystander-02", "mp-bystander-03"], "split": "test", "topic": "bystander"}
+{"id": "A105", "no_result": false, "query": "không muốn tham gia cười nhạo", "relevant": ["mp-bystander-01", "mp-bystander-02", "mp-bystander-03"], "split": "test", "topic": "bystander"}
+{"id": "A106", "no_result": false, "query": "người chứng kiến nên gọi người lớn", "relevant": ["mp-bystander-01", "mp-bystander-02", "mp-bystander-03"], "split": "test", "topic": "bystander"}
+{"id": "A107", "no_result": false, "query": "thấy bạn bị cô lập thì sao", "relevant": ["mp-bystander-01", "mp-bystander-02", "mp-bystander-03"], "split": "test", "topic": "bystander"}
+{"id": "A108", "no_result": false, "query": "không dám can nhưng muốn giúp", "relevant": ["mp-bystander-01", "mp-bystander-02", "mp-bystander-03"], "split": "test", "topic": "bystander"}
+{"id": "A109", "no_result": false, "query": "báo cô giáo hộ một bạn khác", "relevant": ["mp-bystander-01", "mp-bystander-02", "mp-bystander-03"], "split": "test", "topic": "bystander"}
+{"id": "A110", "no_result": false, "query": "đứng về phía bạn bị hại", "relevant": ["mp-bystander-01", "mp-bystander-02", "mp-bystander-03"], "split": "test", "topic": "bystander"}
+{"id": "A111", "no_result": false, "query": "bị bắt nạt xong rất lo", "relevant": ["legacy-tam-dung-khi-lo-lang", "mp-emotional-impact-01", "mp-emotional-impact-02", "mp-emotional-impact-03"], "split": "test", "topic": "emotional-impact"}
+{"id": "A112", "no_result": false, "query": "không muốn đến trường vì sợ", "relevant": ["legacy-tam-dung-khi-lo-lang", "mp-emotional-impact-01", "mp-emotional-impact-02", "mp-emotional-impact-03"], "split": "test", "topic": "emotional-impact"}
+{"id": "A113", "no_result": false, "query": "thấy mệt sau khi bị nói xấu", "relevant": ["legacy-tam-dung-khi-lo-lang", "mp-emotional-impact-01", "mp-emotional-impact-02", "mp-emotional-impact-03"], "split": "test", "topic": "emotional-impact"}
+{"id": "A114", "no_result": false, "query": "cần tạm dừng khi quá lo lắng", "relevant": ["legacy-tam-dung-khi-lo-lang", "mp-emotional-impact-01", "mp-emotional-impact-02", "mp-emotional-impact-03"], "split": "test", "topic": "emotional-impact"}
+{"id": "A115", "no_result": false, "query": "không ngủ được vì sợ ngày mai", "relevant": ["legacy-tam-dung-khi-lo-lang", "mp-emotional-impact-01", "mp-emotional-impact-02", "mp-emotional-impact-03"], "split": "test", "topic": "emotional-impact"}
+{"id": "A116", "no_result": false, "query": "cảm thấy xấu hổ sau khi bị trêu", "relevant": ["legacy-tam-dung-khi-lo-lang", "mp-emotional-impact-01", "mp-emotional-impact-02", "mp-emotional-impact-03"], "split": "test", "topic": "emotional-impact"}
+{"id": "A117", "no_result": false, "query": "muốn bình tĩnh lại trước khi kể", "relevant": ["legacy-tam-dung-khi-lo-lang", "mp-emotional-impact-01", "mp-emotional-impact-02", "mp-emotional-impact-03"], "split": "test", "topic": "emotional-impact"}
+{"id": "A118", "no_result": false, "query": "lo lắng không có nghĩa là yếu", "relevant": ["legacy-tam-dung-khi-lo-lang", "mp-emotional-impact-01", "mp-emotional-impact-02", "mp-emotional-impact-03"], "split": "test", "topic": "emotional-impact"}
+{"id": "A119", "no_result": false, "query": "sau buổi bị trêu mình rất run", "relevant": ["legacy-tam-dung-khi-lo-lang", "mp-emotional-impact-01", "mp-emotional-impact-02", "mp-emotional-impact-03"], "split": "test", "topic": "emotional-impact"}
+{"id": "A120", "no_result": false, "query": "làm sao dịu lại khi đang sợ", "relevant": ["legacy-tam-dung-khi-lo-lang", "mp-emotional-impact-01", "mp-emotional-impact-02", "mp-emotional-impact-03"], "split": "test", "topic": "emotional-impact"}
+{"id": "A121", "no_result": false, "query": "nói với bố mẹ như nào", "relevant": ["mp-parents-teachers-01", "mp-parents-teachers-02", "mp-parents-teachers-03"], "split": "test", "topic": "parents-teachers"}
+{"id": "A122", "no_result": false, "query": "phụ huynh nên nghe con thế nào", "relevant": ["mp-parents-teachers-01", "mp-parents-teachers-02", "mp-parents-teachers-03"], "split": "test", "topic": "parents-teachers"}
+{"id": "A123", "no_result": false, "query": "giáo viên hỏi học sinh ra sao", "relevant": ["mp-parents-teachers-01", "mp-parents-teachers-02", "mp-parents-teachers-03"], "split": "test", "topic": "parents-teachers"}
+{"id": "A124", "no_result": false, "query": "đừng bắt con đối chất ngay", "relevant": ["mp-parents-teachers-01", "mp-parents-teachers-02", "mp-parents-teachers-03"], "split": "test", "topic": "parents-teachers"}
+{"id": "A125", "no_result": false, "query": "người lớn không nên đổ lỗi cho con", "relevant": ["mp-parents-teachers-01", "mp-parents-teachers-02", "mp-parents-teachers-03"], "split": "test", "topic": "parents-teachers"}
+{"id": "A126", "no_result": false, "query": "cách ngồi nghe một học sinh kể", "relevant": ["mp-parents-teachers-01", "mp-parents-teachers-02", "mp-parents-teachers-03"], "split": "test", "topic": "parents-teachers"}
+{"id": "A127", "no_result": false, "query": "bố mẹ muốn giúp mà con chưa muốn nói", "relevant": ["mp-parents-teachers-01", "mp-parents-teachers-02", "mp-parents-teachers-03"], "split": "test", "topic": "parents-teachers"}
+{"id": "A128", "no_result": false, "query": "thầy cô không được phớt lờ", "relevant": ["mp-parents-teachers-01", "mp-parents-teachers-02", "mp-parents-teachers-03"], "split": "test", "topic": "parents-teachers"}
+{"id": "A129", "no_result": false, "query": "nói chuyện ở nhà cho an toàn", "relevant": ["mp-parents-teachers-01", "mp-parents-teachers-02", "mp-parents-teachers-03"], "split": "test", "topic": "parents-teachers"}
+{"id": "A130", "no_result": false, "query": "người lớn hứa gì khi con kể", "relevant": ["mp-parents-teachers-01", "mp-parents-teachers-02", "mp-parents-teachers-03"], "split": "test", "topic": "parents-teachers"}
+{"id": "A131", "no_result": false, "query": "báo cáo bài đăng làm mình sợ", "relevant": ["mp-platform-reporting-01", "mp-platform-reporting-02", "mp-platform-reporting-03"], "split": "test", "topic": "platform-reporting"}
+{"id": "A132", "no_result": false, "query": "chặn người nhắn tin dọa", "relevant": ["mp-platform-reporting-01", "mp-platform-reporting-02", "mp-platform-reporting-03"], "split": "test", "topic": "platform-reporting"}
+{"id": "A133", "no_result": false, "query": "báo nội dung xấu mà không trả thù", "relevant": ["mp-platform-reporting-01", "mp-platform-reporting-02", "mp-platform-reporting-03"], "split": "test", "topic": "platform-reporting"}
+{"id": "A134", "no_result": false, "query": "không biết nút báo cáo ở đâu theo nguyên tắc", "relevant": ["mp-platform-reporting-01", "mp-platform-reporting-02", "mp-platform-reporting-03"], "split": "test", "topic": "platform-reporting"}
+{"id": "A135", "no_result": false, "query": "gỡ mình khỏi nhóm chat", "relevant": ["mp-platform-reporting-01", "mp-platform-reporting-02", "mp-platform-reporting-03"], "split": "test", "topic": "platform-reporting"}
+{"id": "A136", "no_result": false, "query": "báo cáo tài khoản giả mạo tên mình", "relevant": ["mp-platform-reporting-01", "mp-platform-reporting-02", "mp-platform-reporting-03"], "split": "test", "topic": "platform-reporting"}
+{"id": "A137", "no_result": false, "query": "chặn và giữ bằng chứng", "relevant": ["mp-platform-reporting-01", "mp-platform-reporting-02", "mp-platform-reporting-03"], "split": "test", "topic": "platform-reporting"}
+{"id": "A138", "no_result": false, "query": "nói với người lớn trước khi bấm báo cáo", "relevant": ["mp-platform-reporting-01", "mp-platform-reporting-02", "mp-platform-reporting-03"], "split": "test", "topic": "platform-reporting"}
+{"id": "A139", "no_result": false, "query": "báo nội dung lộ ảnh riêng", "relevant": ["mp-platform-reporting-01", "mp-platform-reporting-02", "mp-platform-reporting-03"], "split": "test", "topic": "platform-reporting"}
+{"id": "A140", "no_result": false, "query": "nguyên tắc chặn người đang quấy rối", "relevant": ["mp-platform-reporting-01", "mp-platform-reporting-02", "mp-platform-reporting-03"], "split": "test", "topic": "platform-reporting"}
+{"id": "A141", "no_result": false, "query": "mình sợ bị đánh nữa ngay hôm nay", "relevant": ["mp-urgent-safety-01", "mp-urgent-safety-02", "mp-urgent-safety-03"], "split": "test", "topic": "urgent-safety"}
+{"id": "A142", "no_result": false, "query": "đang bị dồn vào góc thì làm gì", "relevant": ["mp-urgent-safety-01", "mp-urgent-safety-02", "mp-urgent-safety-03"], "split": "test", "topic": "urgent-safety"}
+{"id": "A143", "no_result": false, "query": "cần ra chỗ đông người", "relevant": ["mp-urgent-safety-01", "mp-urgent-safety-02", "mp-urgent-safety-03"], "split": "test", "topic": "urgent-safety"}
+{"id": "A144", "no_result": false, "query": "sợ bị hại ngay bây giờ", "relevant": ["mp-urgent-safety-01", "mp-urgent-safety-02", "mp-urgent-safety-03"], "split": "test", "topic": "urgent-safety"}
+{"id": "A145", "no_result": false, "query": "không an toàn khi về một mình", "relevant": ["mp-urgent-safety-01", "mp-urgent-safety-02", "mp-urgent-safety-03"], "split": "test", "topic": "urgent-safety"}
+{"id": "A146", "no_result": false, "query": "cần người lớn ngay lúc này", "relevant": ["mp-urgent-safety-01", "mp-urgent-safety-02", "mp-urgent-safety-03"], "split": "test", "topic": "urgent-safety"}
+{"id": "A147", "no_result": false, "query": "bị đe dọa đánh sau giờ học", "relevant": ["mp-urgent-safety-01", "mp-urgent-safety-02", "mp-urgent-safety-03"], "split": "test", "topic": "urgent-safety"}
+{"id": "A148", "no_result": false, "query": "đang run và muốn rời khỏi đó", "relevant": ["mp-urgent-safety-01", "mp-urgent-safety-02", "mp-urgent-safety-03"], "split": "test", "topic": "urgent-safety"}
+{"id": "A149", "no_result": false, "query": "gọi người lớn khi nguy hiểm tức thì", "relevant": ["mp-urgent-safety-01", "mp-urgent-safety-02", "mp-urgent-safety-03"], "split": "test", "topic": "urgent-safety"}
+{"id": "A150", "no_result": false, "query": "nếu sợ bị đánh tiếp thì đi đâu", "relevant": ["mp-urgent-safety-01", "mp-urgent-safety-02", "mp-urgent-safety-03"], "split": "test", "topic": "urgent-safety"}
+{"id": "N001", "no_result": true, "query": "công thức nấu phở bò", "relevant": [], "split": "dev", "topic": ""}
+{"id": "N002", "no_result": true, "query": "lịch sử miệng núi lửa", "relevant": [], "split": "dev", "topic": ""}
+{"id": "N003", "no_result": true, "query": "giải phương trình bậc hai", "relevant": [], "split": "dev", "topic": ""}
+{"id": "N004", "no_result": true, "query": "tỷ số bóng đá đêm qua", "relevant": [], "split": "dev", "topic": ""}
+{"id": "N005", "no_result": true, "query": "giá vé máy bay đi huế", "relevant": [], "split": "dev", "topic": ""}
+{"id": "N006", "no_result": true, "query": "cách thay lốp xe đạp", "relevant": [], "split": "dev", "topic": ""}
+{"id": "N007", "no_result": true, "query": "nguồn gốc của trà ô long", "relevant": [], "split": "dev", "topic": ""}
+{"id": "N008", "no_result": true, "query": "chu vi hình tròn là gì", "relevant": [], "split": "dev", "topic": ""}
+{"id": "N009", "no_result": true, "query": "tên các hành tinh trong hệ mặt trời", "relevant": [], "split": "dev", "topic": ""}
+{"id": "N010", "no_result": true, "query": "cách gấp máy bay giấy", "relevant": [], "split": "dev", "topic": ""}
+{"id": "N011", "no_result": true, "query": "lịch thi violon cuối năm", "relevant": [], "split": "dev", "topic": ""}
+{"id": "N012", "no_result": true, "query": "công dụng của vitamin k", "relevant": [], "split": "dev", "topic": ""}
+{"id": "N013", "no_result": true, "query": "sông nào dài nhất việt nam", "relevant": [], "split": "test", "topic": ""}
+{"id": "N014", "no_result": true, "query": "cách reset modem wifi", "relevant": [], "split": "test", "topic": ""}
+{"id": "N015", "no_result": true, "query": "luật việt vị trong bóng đá", "relevant": [], "split": "test", "topic": ""}
+{"id": "N016", "no_result": true, "query": "công thức diện tích hình thang", "relevant": [], "split": "test", "topic": ""}
+{"id": "N017", "no_result": true, "query": "mùa mưa ở đà lạt bắt đầu khi nào", "relevant": [], "split": "test", "topic": ""}
+{"id": "N018", "no_result": true, "query": "cách trồng rau mầm", "relevant": [], "split": "test", "topic": ""}
+{"id": "N019", "no_result": true, "query": "ý nghĩa của số pi", "relevant": [], "split": "test", "topic": ""}
+{"id": "N020", "no_result": true, "query": "lịch sử áo dài thập niên 1960", "relevant": [], "split": "test", "topic": ""}
+{"id": "N021", "no_result": true, "query": "cách đọc bản đồ địa hình", "relevant": [], "split": "test", "topic": ""}
+{"id": "N022", "no_result": true, "query": "tên gọi khoa học của mèo", "relevant": [], "split": "test", "topic": ""}
+{"id": "N023", "no_result": true, "query": "cách bảo quản mật ong", "relevant": [], "split": "test", "topic": ""}
+{"id": "N024", "no_result": true, "query": "vì sao lá cây có màu xanh", "relevant": [], "split": "test", "topic": ""}
+{"id": "N025", "no_result": true, "query": "cách thắt cà vạt", "relevant": [], "split": "test", "topic": ""}
+{"id": "N026", "no_result": true, "query": "lịch sử cầu long biên", "relevant": [], "split": "test", "topic": ""}
+{"id": "N027", "no_result": true, "query": "công thức hóa học của muối ăn", "relevant": [], "split": "test", "topic": ""}
+{"id": "N028", "no_result": true, "query": "cách chơi cờ vua khai cuộc", "relevant": [], "split": "test", "topic": ""}
+{"id": "N029", "no_result": true, "query": "tên các cung hoàng đạo", "relevant": [], "split": "test", "topic": ""}
+{"id": "N030", "no_result": true, "query": "cách đo huyết áp tại nhà", "relevant": [], "split": "test", "topic": ""}

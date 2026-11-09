@@ -3,6 +3,14 @@ create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 select no_plan();
 
+-- The transaction rolls these deletes back. They keep the assertions independent of a seeded corpus.
+delete from knowledge.chunks;
+delete from knowledge.documents;
+delete from knowledge.ingestion_runs;
+delete from knowledge.source_confidential;
+delete from knowledge.sources;
+delete from knowledge.corpus_versions;
+
 insert into knowledge.corpus_versions (version, status, embedding_model, embedding_dims, manifest_sha256, builder)
 values
   ('kb-20261108-01', 'published', 'hashing', 1024, repeat('a', 64), 'pgtap'),

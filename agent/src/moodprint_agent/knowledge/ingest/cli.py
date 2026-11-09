@@ -7,6 +7,7 @@ import json
 import sys
 from pathlib import Path
 
+from moodprint_agent.knowledge.ingest.budget import BudgetBlocked
 from moodprint_agent.knowledge.ingest.build import build_corpus
 from moodprint_agent.knowledge.ingest.manifest import load_manifest
 from moodprint_agent.knowledge.ingest.topics import PUBLISHABLE
@@ -63,7 +64,10 @@ def main(argv: list[str] | None = None) -> int:
         command.add_argument("--offline", action="store_true")
         command.add_argument("--link-check", action="store_true")
         command.add_argument("--only")
-    args = parser.parse_args(argv)
+    try:
+        args = parser.parse_args(argv)
+    except SystemExit as exc:
+        return 0 if exc.code in (0, None) else 1
     try:
         if args.command == "plan":
             return plan(args.manifest)
@@ -75,33 +79,15 @@ def main(argv: list[str] | None = None) -> int:
             from moodprint_agent.knowledge.ingest.runtime import seed_synthetic
 
             return seed_synthetic(args.target or "test-env")
-        if args.command in {
-            "store",
-            "validate",
-            "publish",
-            "rollback",
-            "status",
-            "verify-citations",
-            "embed",
-        }:
-            from moodprint_agent.knowledge.ingest.runtime import dispatch
+        from moodprint_agent.knowledge.ingest.runtime import dispatch
 
-            return dispatch(args)
-        if args.command == "acquire":
-            print(json.dumps({"acquired": 0, "reason": "no open_reuse acquire blocks"}))
-            return 0
+        return dispatch(args)
     except BudgetBlocked as exc:
         print(str(exc), file=sys.stderr)
         return 3
-    except (OSError, ValueError, KeyError) as exc:
+    except (OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
         print(type(exc).__name__, file=sys.stderr)
         return 1
-    print("unknown command", file=sys.stderr)
-    return 1
-
-
-class BudgetBlocked(RuntimeError):
-    pass
 
 
 if __name__ == "__main__":

@@ -60,9 +60,10 @@ class KnowledgeConfig:
     vector_candidates: int = 30
     lexical_candidates: int = 30
     rrf_k: int = 50
-    # Provisional gates until a Voyage dev-split run can replace them.
-    min_vector_score: float = 0.55
-    min_lexical_score: float = 0.01
+    # Locked from the Phase 2 dev split on 2026-11-09. The holdout did not
+    # meet Recall@5 or no-result accuracy; these values are not a quality pass.
+    min_vector_score: float = 0.35
+    min_lexical_score: float = 0.12
     vector_cos_lo: float = 0.20
     vector_cos_hi: float = 0.80
     score_mode: str = "rrf"

@@ -37,10 +37,10 @@ join knowledge.documents d
   on d.corpus_version = c.corpus_version and d.document_id = c.document_id
 join knowledge.sources s on s.source_id = d.source_id
 where c.corpus_version = :version
-  and d.language = any(:languages)
-  and (cardinality(:countries) = 0 or d.country_scope && :countries)
+  and d.language = any(cast(:languages as text[]))
+  and (cardinality(cast(:countries as text[])) = 0 or d.country_scope && cast(:countries as text[]))
   and (cast(:age as text) is null or cardinality(d.age_bands) = 0 or cast(:age as text) = any(d.age_bands))
-  and (cardinality(:topics) = 0 or d.topics && :topics)
+  and (cardinality(cast(:topics as text[])) = 0 or d.topics && cast(:topics as text[]))
 order by c.embedding <=> cast(:embedding as vector)
 limit :limit
 """
@@ -55,10 +55,10 @@ join knowledge.documents d
   on d.corpus_version = c.corpus_version and d.document_id = c.document_id
 join knowledge.sources s on s.source_id = d.source_id
 where c.corpus_version = :version
-  and d.language = any(:languages)
-  and (cardinality(:countries) = 0 or d.country_scope && :countries)
+  and d.language = any(cast(:languages as text[]))
+  and (cardinality(cast(:countries as text[])) = 0 or d.country_scope && cast(:countries as text[]))
   and (cast(:age as text) is null or cardinality(d.age_bands) = 0 or cast(:age as text) = any(d.age_bands))
-  and (cardinality(:topics) = 0 or d.topics && :topics)
+  and (cardinality(cast(:topics as text[])) = 0 or d.topics && cast(:topics as text[]))
   and c.fts @@ to_tsquery('simple', :tsquery)
 order by lexical_score desc, c.chunk_id
 limit :limit
@@ -122,12 +122,16 @@ class PgVectorKnowledgeRetriever:
         *,
         clock: Callable[[], float] = time.perf_counter,
         read_role: str | None = "authenticated",
+        use_vector: bool = True,
+        use_lexical: bool = True,
     ) -> None:
         self.engine = engine
         self.embedder = embedder
         self.cfg = cfg
         self._clock = clock
         self.read_role = read_role
+        self.use_vector = use_vector
+        self.use_lexical = use_lexical
 
     async def search(
         self, query: KnowledgeQuery, *, scope: RetrievalScope, timeout_s: float
@@ -159,20 +163,21 @@ class PgVectorKnowledgeRetriever:
         degraded = False
         vector: list[float] | None = None
         embed_budget = max(0.05, self.cfg.embed_timeout_fraction * self.cfg.timeout_s)
-        try:
-            async with asyncio.timeout(embed_budget):
-                vector = await self.embedder.embed_query(prepared.embed_text)
-        except TimeoutError:
-            degraded = True
-            log.warning("embed_unavailable")
-        except KnowledgeTimeout:
-            degraded = True
-            log.warning("embed_unavailable")
-        except KnowledgeUnavailable as exc:
-            if exc.details.get("reason") == "embed_config":
-                raise
-            degraded = True
-            log.warning("embed_unavailable")
+        if self.use_vector:
+            try:
+                async with asyncio.timeout(embed_budget):
+                    vector = await self.embedder.embed_query(prepared.embed_text)
+            except TimeoutError:
+                degraded = True
+                log.warning("embed_unavailable")
+            except KnowledgeTimeout:
+                degraded = True
+                log.warning("embed_unavailable")
+            except KnowledgeUnavailable as exc:
+                if exc.details.get("reason") == "embed_config":
+                    raise
+                degraded = True
+                log.warning("embed_unavailable")
         if vector is not None and len(vector) != self.cfg.embedding_dims:
             raise KnowledgeUnavailable(
                 "Query embedding had the wrong size.",
@@ -251,6 +256,7 @@ class PgVectorKnowledgeRetriever:
             async with conn.begin():
                 if self.read_role:
                     await conn.execute(text("set local role authenticated"))
+                await conn.execute(text("set local search_path = public, extensions"))
                 await conn.execute(text("set local statement_timeout = '4000ms'"))
                 published = (
                     await conn.execute(
@@ -292,7 +298,7 @@ class PgVectorKnowledgeRetriever:
                         )
                 rows: list[tuple[dict[str, object], str]] = []
                 params = {"version": version, **filters}
-                if vector is not None:
+                if vector is not None and self.use_vector:
                     result = await conn.execute(
                         text(_VECTOR_SQL),
                         {
@@ -302,7 +308,7 @@ class PgVectorKnowledgeRetriever:
                         },
                     )
                     rows.extend((dict(row), "vector") for row in result.mappings())
-                if tsquery:
+                if tsquery and self.use_lexical:
                     result = await conn.execute(
                         text(_LEXICAL_SQL),
                         {**params, "tsquery": tsquery, "limit": self.cfg.lexical_candidates},

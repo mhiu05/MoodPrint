@@ -6,8 +6,9 @@ language = "vi"
 country_scope = ["VN"]
 authority_tier = 2
 licence_class = "unverified"
-licence_note = "Chưa đọc được văn bản gốc vì nguồn thứ cấp trả 403."
-evidence = "Chưa đọc được văn bản gốc vì nguồn thứ cấp trả 403."
+licence_note = "Siêu dữ liệu đã đọc trên vanban.chinhphu.vn ngày 2026-11-09. PDF ký số chính thức là ảnh quét, không trích được chữ, nên chưa nhúng."
+evidence = "Cổng Chính phủ docid 190430: số 80/2017/NĐ-CP, ban hành 17-07-2017, hiệu lực 05-09-2017. PDF datafiles SHA256 cdede8a6aa3fec59064f795483f937d179d0d6f37d9acee6914fa9bf6937a8e4 không có text layer."
+url = "https://vanban.chinhphu.vn/default.aspx?docid=190430&pageid=27160"
 [scores]
 authority = 2
 relevance = 2

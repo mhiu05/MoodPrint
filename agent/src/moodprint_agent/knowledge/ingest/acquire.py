@@ -8,7 +8,7 @@ import ipaddress
 import socket
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 from urllib.robotparser import RobotFileParser
 
 import httpx
@@ -82,7 +82,7 @@ async def fetch_source(
     robots = await client.get(robots_url)
     if robots.status_code == 200 and not robots_allow(url, robots.text):
         return None
-    response = await _get_with_retry(client, url)
+    response = await _get_with_retry(client, url, {host.lower() for host in allow_hosts})
     clock[host] = asyncio.get_running_loop().time()
     if response is None:
         return None
@@ -107,12 +107,24 @@ def _write_cache(cache: Path, digest: str, payload: bytes) -> None:
     (cache / digest).write_bytes(payload)
 
 
-async def _get_with_retry(client: httpx.AsyncClient, url: str) -> httpx.Response | None:
+async def _get_with_retry(
+    client: httpx.AsyncClient, url: str, allow_hosts: set[str]
+) -> httpx.Response | None:
     delay = 0.2
+    current = url
+    redirects = 0
     for attempt in range(3):
-        response = await client.get(url, follow_redirects=False)
+        response = await client.get(current, follow_redirects=False)
         if response.status_code in {301, 302, 303, 307, 308}:
-            raise ValueError("redirects must be re-checked by the caller")
+            if redirects == 2:
+                raise ValueError("too many redirects")
+            location = response.headers.get("location")
+            if not location:
+                raise ValueError("redirect is missing a location")
+            current = urljoin(current, location)
+            assert_public_https(current, allow_hosts)
+            redirects += 1
+            continue
         if response.status_code == 200:
             return response
         if response.status_code not in {429, 500, 502, 503, 504} or attempt == 2:
