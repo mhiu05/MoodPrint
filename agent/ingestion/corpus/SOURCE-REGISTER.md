@@ -1,5 +1,18 @@
 # SOURCE-REGISTER
 
+## Follow-up official-source audit (2026-11-09)
+
+The latest evidence and preserved original hashes are in [the legal audit](../legal/LEGAL-AUDIT-2026-11-09.md). [Human review](../legal/HUMAN-REVIEW-CHECKLIST.md) remains PENDING on every row.
+
+- The legal-text reuse basis is now verified in a **primary** official source: Intellectual Property Law Article 15(2), consolidation 160/2026, PDF p14. Earlier secondary-only limitations below describe the historical audit.
+- Official Child Law consolidation 108/2025 is readable and preserved. New revision `vn-luat-tre-em-vbhn108-2025` supports two authored cards. Scope is **under 16**, not every under-18 learner.
+- Official TT06/2019 is preserved. TT03/2026 Article 15(2), visually checked at PDF p7, makes **Article 6 only** expire from 30 January 2026. New source `vn-tt-03-2026-bgddt` supports the current teacher-duty summary; the old excluded candidates remain unchanged.
+- ND80 identity/original effective date are confirmed. Its complete current status remains unconfirmed in the official registry (403); a 4 November 2026 Government briefing about proposed amendments is corroboration, not a status certificate. The existing transcription still has no human proofreading.
+
+Current registry: **15 candidates**, three `open_reuse`, one `authored`, four `reference_only`, seven `unverified`. Four usable sources still miss the target of six. Three substantive cards add six chunks; **57 documents / 80 chunks** still miss the 350-chunk target. No source was split to inflate the usable-source count. Old source records and historical corpus versions were retained.
+
+## Earlier audit, retained as historical evidence
+
 Ngày chấm: 2026-11-09. `unverified` không có khối acquire và không vào cơ sở dữ liệu. Bảng dưới chỉ ghi điều đã kiểm chứng; chỗ chưa kiểm chứng được ghi rõ là chưa.
 
 ## Văn bản đã dùng làm nguồn `open_reuse`

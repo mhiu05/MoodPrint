@@ -435,3 +435,27 @@ path = "../legal/nd-80-2017.md"
 topics = ["legal-vn", "school-procedure-vn"]
 last_reviewed = 2026-11-09
 licence_class = "open_reuse"
+
+[[document]]
+document_id = "kb-legal-rieng-tu-duoi16"
+source_id = "vn-luat-tre-em-vbhn108-2025"
+path = "../authored/kb-legal-rieng-tu-duoi16.md"
+topics = ["legal-vn", "cyber"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-legal-bao-tin-xam-hai"
+source_id = "vn-luat-tre-em-vbhn108-2025"
+path = "../authored/kb-legal-bao-tin-xam-hai.md"
+topics = ["legal-vn", "help-seeking", "bystander"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-school-nha-giao-tt03-2026"
+source_id = "vn-tt-03-2026-bgddt"
+path = "../authored/kb-school-nha-giao-tt03-2026.md"
+topics = ["school-procedure-vn", "parents-teachers", "legal-vn"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
