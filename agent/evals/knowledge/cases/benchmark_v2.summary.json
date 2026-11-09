@@ -1,0 +1,42 @@
+{
+  "gap_queries": {
+    "dev": 4,
+    "test": 6
+  },
+  "rows": 180,
+  "sha256_lf": "6d9fae8b0aedb5f1cca52c965dc1696250266755b79333289bf1e235ace4f1d6",
+  "splits": {
+    "dev/answerable": 60,
+    "dev/no_result": 12,
+    "test/answerable": 90,
+    "test/no_result": 18
+  },
+  "styles": {
+    "dev/eng": 4,
+    "dev/narr": 11,
+    "dev/nodiac": 14,
+    "dev/slang": 11,
+    "dev/std": 20,
+    "test/eng": 11,
+    "test/narr": 14,
+    "test/nodiac": 23,
+    "test/slang": 16,
+    "test/std": 26
+  },
+  "topics_both_splits": [
+    "bystander",
+    "cyber",
+    "definition",
+    "emotional-impact",
+    "evidence",
+    "exclusion",
+    "help-seeking",
+    "legal-vn",
+    "parents-teachers",
+    "physical",
+    "platform-reporting",
+    "school-procedure-vn",
+    "urgent-safety",
+    "verbal-social"
+  ]
+}
