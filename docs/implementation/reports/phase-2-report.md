@@ -55,7 +55,7 @@ What this branch is: a functional, tested, locally publishable Knowledge Base th
 | D2-07 | **FAIL** | No-result accuracy 0.556 (10/18) against 0.90. Everything else passes (section I). |
 | D2-08 | PASS for the suites run | 881 Python tests, 58 + 8 knowledge tests, 15 backend knowledge tests, pgTAP 300, Vitest 122, real E2E 1, demo E2E 13. Test counts rose from the first pass (24 knowledge tests). |
 | D2-09 | PASS | Section J. |
-| D2-10 | See section L | |
+| D2-10 | Ownership PASS locally; CI result in `integration-report.md` | Run for `5a1ac224` linked in section L. |
 | D2-11 | PASS as a report | This file. |
 
 ## E. Environment and budget
@@ -190,7 +190,20 @@ Not run in this round: Playwright responsive matrix and axe for the demo beyond 
 
 ## L. Git and CI
 
-PENDING_L
+- Baseline `baseline/phase-2-3-start-rc3` = `3ff7cb35`, already merged into the branch before this round.
+- The first-pass agent's four unpushed commits (`3ff7cb35`..`00a2db0b`) were verified before anything else (ahead 4, behind 0, clean tree, no merge in progress, ownership PASS, no credential in the diff) and pushed unchanged with a normal push: `faf8a392..00a2db0b`.
+- This round's commits, all pushed to `origin/feat/knowledge-base` without force:
+
+| SHA | Subject |
+|---|---|
+| `0d7a14d8` | measured diagnosis of the holdout failure |
+| `eb090342` | rebuilt corpus, section-merging chunker, manifest generator, digest independent of line endings |
+| `57e2123b` | **benchmark v2 frozen before any tuning** |
+| `4bf2fbce` | coverage keyword branch, query-level gate, diacritic restoration, **configuration locked on dev** (committed before the test split was read) |
+| `5a1ac224` | security and licence suites, test-split results, this report (tested SHA for sections K and I) |
+
+- `origin/feat/knowledge-base` equals the local branch at `5a1ac224` (checked with `git ls-remote`). `.env` and `.local/` (including the Voyage ledger) are not in any commit.
+- GitHub Actions for `5a1ac224`: https://github.com/mhiu05/MoodPrint/actions/runs/42553524643. A report cannot hold the CI result of the commit that contains it, so the result for this SHA, and for any docs-only follow-up, is recorded in `integration-report.md`.
 
 ## M. Known limitations and recommended next steps
 
