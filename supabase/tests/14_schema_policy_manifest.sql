@@ -21,14 +21,18 @@ from pg_class c join pg_namespace n on n.oid=c.relnamespace
 where n.nspname='knowledge' and c.relkind in ('r','p')
   and obj_description(c.oid,'pg_class')='moodprint:private_ingestion';
 
-select ok(exists(
-    select 1 from pg_policy p cross join lateral unnest(p.polroles) as pr(role_oid)
-    join pg_roles r on r.oid=pr.role_oid
-    where p.polrelid=c.oid and p.polcmd in ('*','a','w','d')
-      and r.rolname not in ('anon','authenticated','service_role','postgres')
-      and not r.rolsuper and not r.rolbypassrls
-      and has_table_privilege(r.oid,c.oid,'INSERT,UPDATE,DELETE')
-), format('private ingestion %I.%I has an explicit restricted writer policy and grant',n.nspname,c.relname))
+-- Private metadata is maintained by the existing owner/admin ingestion connection.
+-- An unused writer role would only enlarge the runtime attack surface. Require the
+-- owner to remain distinct from application roles and reject table OR column grants.
+select ok(
+    c.relowner not in ('anon'::regrole, 'authenticated'::regrole, 'service_role'::regrole, 'moodprint_api'::regrole)
+    and has_table_privilege(c.relowner,c.oid,'INSERT,UPDATE,DELETE')
+    and not exists(
+        select 1 from pg_roles r
+        where r.rolname in ('anon','authenticated','service_role','moodprint_api')
+          and (has_table_privilege(r.oid,c.oid,'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+               or has_any_column_privilege(r.oid,c.oid,'INSERT,UPDATE,REFERENCES'))
+    ), format('private ingestion %I.%I retains owner/admin writes with no runtime mutation grants',n.nspname,c.relname))
 from pg_class c join pg_namespace n on n.oid=c.relnamespace
 where n.nspname='knowledge' and c.relkind in ('r','p')
   and obj_description(c.oid,'pg_class')='moodprint:private_ingestion';
