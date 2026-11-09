@@ -3,16 +3,13 @@
 from __future__ import annotations
 
 import asyncio
-import os
 from collections.abc import Iterator
-from pathlib import Path
 
 import pytest
-from dotenv import dotenv_values
 from moodprint_agent.knowledge.ingest.runtime import engine_for, rollback_version
 from sqlalchemy import text
 
-KB_ENV = Path(".local/stacks/kb/test.env")
+from .kb_env import load_test_env
 
 
 async def _published() -> str | None:
@@ -39,12 +36,10 @@ async def _restore(version: str) -> None:
 @pytest.fixture(autouse=True)
 def keep_published_corpus(request: pytest.FixtureRequest) -> Iterator[None]:
     """Integration tests seed and publish synthetic corpora; put the live one back afterwards."""
-    if request.node.get_closest_marker("integration") is None or not KB_ENV.is_file():
+    if request.node.get_closest_marker("integration") is None:
         yield
         return
-    for key, value in dotenv_values(KB_ENV).items():
-        if value:
-            os.environ.setdefault(key, value)
+    load_test_env()
     before = asyncio.run(_published())
     yield
     if before is not None and asyncio.run(_published()) != before:

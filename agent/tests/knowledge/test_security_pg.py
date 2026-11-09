@@ -5,12 +5,10 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 import uuid
 from pathlib import Path
 
 import pytest
-from dotenv import dotenv_values
 from moodprint_agent.knowledge.embedder import HashingEmbedder
 from moodprint_agent.knowledge.ingest.cli import main
 from moodprint_agent.knowledge.retriever import PgVectorKnowledgeRetriever
@@ -19,23 +17,15 @@ from moodprint_shared.contracts.knowledge import KnowledgeFilters, KnowledgeQuer
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from .fuzz_cases import fuzz_corpus
+from .kb_env import api_database_url, load_test_env
 
 pytestmark = pytest.mark.integration
 
-KB_ENV = Path(".local/stacks/kb/test.env")
-
 
 def _prepare() -> str:
-    if not KB_ENV.is_file():
-        pytest.fail("kb test.env is missing; start stack kb and bootstrap it")
-    for key, value in dotenv_values(KB_ENV).items():
-        if value:
-            os.environ.setdefault(key, value)
+    load_test_env()
     assert main(["seed-synthetic", "--target", "test-env"]) == 0
-    database = dotenv_values(KB_ENV).get("TEST_DATABASE_URL")
-    if not database:
-        pytest.fail("TEST_DATABASE_URL is missing from the kb stack")
-    return database
+    return api_database_url()
 
 
 async def _run(database: str, queries: list[str]) -> list[str]:
