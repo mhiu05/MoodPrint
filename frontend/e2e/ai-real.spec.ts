@@ -59,7 +59,7 @@ test("E-AG-01: a cited answer shows only the verified source chip", async ({
     ).toBeVisible();
     await expect(page.getByText("Tra cứu nguồn tin cậy")).toBeVisible();
     const chip = page.getByRole("button", {
-      name: /Nguồn 1: Tìm người hỗ trợ/,
+      name: /Nguồn 1: Hỗ trợ khi bạn cần một người lớn/,
     });
     await expect(chip).toBeVisible();
     await chip.click();

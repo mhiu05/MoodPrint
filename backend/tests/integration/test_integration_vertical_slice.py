@@ -11,7 +11,10 @@ user saw, history restore, and user A / user B isolation.
 
 from __future__ import annotations
 
+import asyncio
 import os
+import time
+from dataclasses import replace
 from uuid import uuid4
 
 import pytest
@@ -27,7 +30,7 @@ from moodprint_agent.knowledge.retriever import PgVectorKnowledgeRetriever
 from moodprint_agent.runtime import CompanionRuntime
 from moodprint_agent.tools.factory import build_registry
 from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.errors import NotFound
+from moodprint_shared.contracts.errors import KnowledgeUnavailable, NotFound
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -190,4 +193,80 @@ async def test_real_retrieval_checked_citations_approval_isolation_and_restore(
         await IncidentService(db_engine).get_case(other, case.id)
     assert hidden.value.status_code == 404  # another user's case does not exist for user B
 
+    await service.delete(auth, conversation)
+
+
+class ConfigErrorEmbedder:
+    """A rejected key or request: the retriever must fail loudly, not degrade silently."""
+
+    async def embed_query(self, text: str) -> list[float]:  # noqa: ARG002
+        raise KnowledgeUnavailable("bad credentials", details={"reason": "embed_config"})
+
+
+class HangingEmbedder:
+    async def embed_query(self, text: str) -> list[float]:  # noqa: ARG002
+        await asyncio.sleep(60)
+        return []
+
+
+def fast_failure_config() -> AppConfig:
+    """A one-second knowledge budget keeps the failure cases quick."""
+    return replace(CFG, agent=replace(CFG.agent, knowledge_tool_timeout_s=2.0))
+
+
+@pytest.mark.parametrize("failure", ["embedder_config_error", "embedder_hang", "database_down"])
+async def test_a_failing_retriever_ends_the_run_cleanly_without_a_citation(
+    db_engine, identities, admin, published_corpus, failure
+):
+    """IT-05: the run finishes inside the budget, the tool reports failure, and nothing is cited."""
+    auth, _, service, _, conversation = await world(db_engine, identities)
+    engines = []
+    if failure == "database_down":
+        engine = create_async_engine(
+            "postgresql+asyncpg://moodprint_api:nope@127.0.0.1:1/postgres", hide_parameters=True
+        )
+        engines.append(engine)
+        retriever = PgVectorKnowledgeRetriever(engine, HashingEmbedder(), CFG.knowledge)
+    elif failure == "embedder_config_error":
+        retriever = PgVectorKnowledgeRetriever(db_engine, ConfigErrorEmbedder(), CFG.knowledge)
+    else:
+        retriever = PgVectorKnowledgeRetriever(db_engine, HangingEmbedder(), CFG.knowledge)
+    cfg = fast_failure_config()
+    runtime = CompanionRuntime(
+        cfg,
+        build_registry(cfg),
+        model=ScriptedModel(
+            [
+                ModelStep(
+                    output=[
+                        function_call(
+                            "knowledge_search", {"query": "bị nhắn tin dọa"}, call_id="k1"
+                        )
+                    ],
+                    usage=usage(),
+                ),
+                ModelStep(
+                    output=[assistant_message("Mình chưa tra được nguồn [S1].")], usage=usage()
+                ),
+            ]
+        ),
+    )
+    started = time.monotonic()
+    try:
+        turn = await run_turn(
+            service, auth, conversation, runtime, retriever, "Có bạn nhắn tin dọa mình"
+        )
+    finally:
+        for engine in engines:
+            await engine.dispose()
+    assert time.monotonic() - started < cfg.agent.knowledge_tool_timeout_s + 3.0, (
+        "the run must not hang"
+    )
+    (run,) = await rows(
+        admin, "SELECT status, tool_call_count FROM app.agent_runs WHERE id=:r", r=turn.run_id
+    )
+    assert run["status"] == "completed" and run["tool_call_count"] == 1
+    (answer,) = await assistant_rows(admin, conversation)
+    assert answer["citations"] == []
+    assert "[S1]" not in answer["content"]
     await service.delete(auth, conversation)
