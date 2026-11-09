@@ -290,7 +290,6 @@ async def test_download_url_expires(local_settings):
             control = await client.get(resigned(now + 300), headers={"Cache-Control": "no-cache"})
             checked(control, {200}, "control: same capability re-signed with a future expiry")
             expired = await client.get(resigned(now - 60), headers={"Cache-Control": "no-cache"})
-            del secret
             assert expired.status_code >= 400, "Expired signed download URL remained authorized"
             assert expired.content != control.content
         finally:
