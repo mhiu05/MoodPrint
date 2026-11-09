@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import pytest
-from dotenv import dotenv_values
 from moodprint_agent.knowledge.embedder import HashingEmbedder
 from moodprint_agent.knowledge.ingest.cli import main
 from moodprint_agent.knowledge.ingest.runtime import (
@@ -20,18 +18,15 @@ from moodprint_agent.knowledge.retriever import PgVectorKnowledgeRetriever
 from moodprint_shared.config import KnowledgeConfig
 from moodprint_shared.contracts.knowledge import KnowledgeFilters, KnowledgeQuery, RetrievalScope
 
+from .kb_env import api_database_url, load_test_env
+
 pytestmark = pytest.mark.integration
 
-KB_ENV = Path(".local/stacks/kb/test.env")
 SYNTHETIC = Path("agent/ingestion/synthetic/contract_corpus.json")
 
 
 def _load_kb_env() -> None:
-    if not KB_ENV.is_file():
-        pytest.fail("kb test.env is missing; start stack kb and bootstrap it")
-    for key, value in dotenv_values(KB_ENV).items():
-        if value:
-            os.environ.setdefault(key, value)
+    load_test_env()
 
 
 def test_seed_publish_rollback_and_citation_round_trip() -> None:
@@ -83,11 +78,10 @@ def test_published_corpus_rejects_a_different_manifest() -> None:
 
 def test_authenticated_role_can_search_the_published_corpus() -> None:
     _load_kb_env()
+    assert main(["seed-synthetic", "--target", "test-env"]) == 0  # do not depend on test order
     from sqlalchemy.ext.asyncio import create_async_engine
 
-    database = dotenv_values(KB_ENV).get("TEST_DATABASE_URL")
-    if not database:
-        pytest.fail("TEST_DATABASE_URL is missing from the kb stack")
+    database = api_database_url()
 
     async def once() -> None:
         engine = create_async_engine(database, hide_parameters=True)
@@ -113,6 +107,8 @@ def test_authenticated_role_can_search_the_published_corpus() -> None:
 
 def test_empty_filters_do_not_break_search() -> None:
     _load_kb_env()
+    assert main(["seed-synthetic", "--target", "test-env"]) == 0
+    pinned = str(json.loads(SYNTHETIC.read_text(encoding="utf-8"))["version"])
 
     async def once() -> None:
         engine = engine_for("test-env")
@@ -122,11 +118,11 @@ def test_empty_filters_do_not_break_search() -> None:
             )
             result = await retriever.search(
                 KnowledgeQuery(text="bị nhắn tin", filters=KnowledgeFilters(languages=["vi"])),
-                scope=RetrievalScope(request_id="empty-filters", corpus_version="kb-20261109-03"),
+                scope=RetrievalScope(request_id="empty-filters", corpus_version=pinned),
                 timeout_s=5,
             )
             assert result.status in {"ok", "no_results"}
-            assert result.corpus_version == "kb-20261109-03"
+            assert result.corpus_version == pinned
         finally:
             await engine.dispose()
 
