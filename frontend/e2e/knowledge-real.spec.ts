@@ -31,7 +31,9 @@ test("E-KB-01 real search, citations, diacritics, empty, retry, and layout", asy
 
     await search.fill("công thức nấu phở bò");
     await expect(page.getByText("Chưa tìm thấy nguồn phù hợp")).toBeVisible();
-    await expect(page.getByTestId("knowledge-live").getByTestId("retrieved-result")).toHaveCount(0);
+    await expect(
+      page.getByTestId("knowledge-live").getByTestId("retrieved-result"),
+    ).toHaveCount(0);
 
     await page.route("**/v1/knowledge/search**", (route) =>
       route.fulfill({
@@ -58,7 +60,9 @@ test("E-KB-01 real search, citations, diacritics, empty, retry, and layout", asy
     for (const width of widths) {
       await page.setViewportSize({ width, height: 900 });
       const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+        () =>
+          document.documentElement.scrollWidth >
+          document.documentElement.clientWidth + 1,
       );
       expect(overflow).toBe(false);
     }

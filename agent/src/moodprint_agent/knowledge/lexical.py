@@ -20,7 +20,8 @@ from dataclasses import dataclass, field
 
 from moodprint_agent.knowledge.textnorm import clean_text, fold_vietnamese
 
-_TOKEN = re.compile(r"\w+", re.UNICODE)
+# Letters and digits only: an underscore is a separator, never part of a term.
+_TOKEN = re.compile(r"[^\W_]+", re.UNICODE)
 
 # Folded Vietnamese function and question words. Deliberately short: IDF handles the rest, and a
 # long list would delete real words that fold onto the same letters (co = cô / có / cớ).
@@ -148,8 +149,12 @@ def coverage_score(
 
 
 def folded_terms(text: str, *, limit: int = 16) -> list[str]:
-    """Folded form of ``query_terms``, for building the tsquery."""
-    return [term.folded for term in query_terms(text, limit=limit)]
+    """Folded form of ``query_terms`` for the tsquery.
+
+    Only ASCII terms are kept: every indexed lexeme is accent-folded ASCII, so a token that is
+    still non-ASCII after folding cannot match and has no business inside a tsquery.
+    """
+    return [term.folded for term in query_terms(text, limit=limit) if term.folded.isascii()]
 
 
 __all__ = [
