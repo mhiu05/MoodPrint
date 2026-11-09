@@ -19,6 +19,7 @@ test-results/
 !.env.example
 !.env.*.example
 .local/
+.local*
 
 # Logs and temporary files
 npm-debug.log*
@@ -28,6 +29,7 @@ pnpm-debug.log*
 debug.log
 *.tmp
 *.temp
+*.out
 
 # Python bytecode
 __pycache__/
