@@ -1,18 +1,21 @@
 source_id = "vn-nd-80-2017"
-kind = "report"
-publisher = "Nghị định 80/2017/NĐ-CP"
-title = "Nghị định 80/2017/NĐ-CP"
+kind = "law"
+publisher = "Chính phủ — Nghị định 80/2017/NĐ-CP"
+title = "Nghị định 80/2017/NĐ-CP quy định về môi trường giáo dục an toàn, lành mạnh, thân thiện, phòng, chống bạo lực học đường"
 language = "vi"
 country_scope = ["VN"]
-authority_tier = 2
-licence_class = "unverified"
-licence_note = "Siêu dữ liệu đã đọc trên vanban.chinhphu.vn ngày 2026-11-09. PDF ký số chính thức là ảnh quét, không trích được chữ, nên chưa nhúng."
-evidence = "Cổng Chính phủ docid 190430: số 80/2017/NĐ-CP, ban hành 17-07-2017, hiệu lực 05-09-2017. PDF datafiles SHA256 cdede8a6aa3fec59064f795483f937d179d0d6f37d9acee6914fa9bf6937a8e4 không có text layer."
+authority_tier = 1
+licence_class = "open_reuse"
+licence_note = "Văn bản quy phạm pháp luật. Căn cứ tái sử dụng: Luật Sở hữu trí tuệ Điều 15 khoản 2 loại văn bản quy phạm pháp luật khỏi phạm vi bảo hộ quyền tác giả (nội dung điều luật xác nhận qua nguồn thứ cấp, chưa mở văn bản gốc của luật). Chỉ trích phần văn bản của nghị định; không chép chú thích, bố cục hay bình luận của trang thương mại."
+licence_quote = "Văn bản quy phạm pháp luật không thuộc đối tượng bảo hộ quyền tác giả (Luật Sở hữu trí tuệ, Điều 15 khoản 2)."
+verified_on = "2026-11-09"
+retrieved_on = "2026-11-09"
 url = "https://vanban.chinhphu.vn/default.aspx?docid=190430&pageid=27160"
+evidence = "Cổng TTĐT Chính phủ docid 190430: số 80/2017/NĐ-CP, ban hành 17-07-2017, hiệu lực 05-09-2017 (Điều 16 trong văn bản), Thủ tướng Nguyễn Xuân Phúc ký. File chính thức datafiles.chinhphu.vn/cpp/files/vbpq/2017/07/80.signed.pdf, SHA256 cdede8a6aa3fec59064f795483f937d179d0d6f37d9acee6914fa9bf6937a8e4, 8 trang ảnh quét, không có text layer; bản gốc lưu tại agent/ingestion/legal/original/. Chữ được chép thủ công từng trang từ ảnh quét và ghi số trang; chưa có người đọc soát. Tình trạng hiệu lực hiện hành chưa xác nhận từ cơ sở dữ liệu chính thức (vbpl.vn, congbao.chinhphu.vn chỉ hiển thị bằng JavaScript); trang chính thức không nêu văn bản sửa đổi hay thay thế."
 [scores]
-authority = 2
-relevance = 2
-licence = 0
-language = 2
-applicability = 2
+authority = 3
+relevance = 3
+licence = 2
+language = 3
+applicability = 3
 freshness = 1

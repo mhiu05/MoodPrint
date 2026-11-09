@@ -80,26 +80,84 @@ def _pack(units: list[str], params: ChunkParams) -> list[tuple[str, bool]]:
     return [(text, flag) for text, flag in chunks if text.strip()]
 
 
-def chunk_document(document: ParsedDocument, params: ChunkParams, parser: str) -> list[ChunkDraft]:
+def _sections(document: ParsedDocument) -> list[tuple[str, list[str], str]]:
+    """(heading, heading path, body text) per heading; text before any heading has heading ""."""
+    sections: list[tuple[str, list[str], str]] = []
     path: list[str] = []
     heading = ""
     bucket: list[str] = []
+
+    def close() -> None:
+        text = " ".join(bucket).strip()
+        if text:
+            sections.append((heading, list(path), text))
+        bucket.clear()
+
+    for block in document.blocks:
+        if block.kind == "heading":
+            close()
+            heading = block.text
+            path = path[: max(block.level - 1, 0)] + [block.text]
+            continue
+        bucket.append(block.text)
+    close()
+    return sections
+
+
+def _inline_heading(heading: str) -> str:
+    return heading.rstrip(" .:;,") + "."
+
+
+def _merge_groups(
+    sections: list[tuple[str, list[str], str]], params: ChunkParams
+) -> list[list[tuple[str, list[str], str]]]:
+    """Group neighbouring short sections so a chunk reaches the target size.
+
+    A group only grows while it is below ``target_min`` and the merged text stays within
+    ``target_max``. Legal articles (Điều/Khoản headings) are hard boundaries so a citation keeps
+    pointing at one provision.
+    """
+    groups: list[list[tuple[str, list[str], str]]] = []
+    for section in sections:
+        heading, _path, text = section
+        if groups:
+            last = groups[-1]
+            last_len = sum(len(part[2]) for part in last) + sum(
+                len(_inline_heading(part[0])) + 2 for part in last[1:]
+            )
+            joined = last_len + len(_inline_heading(heading)) + len(text) + 2
+            mergeable = (
+                last_len < params.target_min
+                and joined <= params.target_max
+                and not _ARTICLE.match(heading)
+                and not _ARTICLE.match(last[0][0])
+                and bool(heading)
+            )
+            if mergeable:
+                last.append(section)
+                continue
+        groups.append([section])
+    return groups
+
+
+def chunk_document(document: ParsedDocument, params: ChunkParams, parser: str) -> list[ChunkDraft]:
     drafts: list[ChunkDraft] = []
     cursor = 0
-
-    def emit() -> None:
-        nonlocal bucket, cursor
-        if not bucket:
-            return
-        text = " ".join(bucket).strip()
-        bucket = []
-        if not text:
-            return
-        legal = bool(_ARTICLE.match(heading))
-        units = [text] if legal and len(text) <= params.oversize_max else split_sentences(text)
-        if not units:
-            units = [text]
-        packed = _pack(units, params)
+    for group in _merge_groups(_sections(document), params):
+        heading, path, first_text = group[0]
+        if len(group) == 1:
+            legal = bool(_ARTICLE.match(heading))
+            units = (
+                [first_text]
+                if legal and len(first_text) <= params.oversize_max
+                else split_sentences(first_text)
+            )
+            packed = _pack(units or [first_text], params)
+        else:
+            merged = [first_text] + [
+                f"{_inline_heading(part[0])} {part[2]}" for part in group[1:]
+            ]
+            packed = [(" ".join(merged), False)]
         for piece, oversize in packed:
             if len(piece) < params.short_min:
                 continue
@@ -117,19 +175,10 @@ def chunk_document(document: ParsedDocument, params: ChunkParams, parser: str) -
                 draft = draft.model_copy(update={"oversize": True})
             drafts.append(draft)
             cursor += len(piece)
-
-    for block in document.blocks:
-        if block.kind == "heading":
-            emit()
-            heading = block.text
-            path = path[: max(block.level - 1, 0)] + [block.text]
-            continue
-        bucket.append(block.text)
-    emit()
     if not drafts and document.blocks:
         text = " ".join(block.text for block in document.blocks if block.kind != "heading").strip()
         if len(text) >= params.short_min:
-            drafts.append(_draft(document.document_id, 0, heading, path, text, 0, parser, params))
+            drafts.append(_draft(document.document_id, 0, "", [], text, 0, parser, params))
     return drafts
 
 

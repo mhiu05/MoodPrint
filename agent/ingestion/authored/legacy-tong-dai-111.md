@@ -1,18 +1,21 @@
 +++
 document_id = "legacy-tong-dai-111"
 title = "Tổng đài 111 tại Việt Nam"
-source_id = "vn-111-hotline"
+source_id = "mp-authored"
 language = "vi"
 country_scope = ["VN"]
 topics = ["help-seeking"]
 age_bands = ["11-13", "14-17"]
-last_reviewed = 2026-11-08
+last_reviewed = 2026-11-09
 applicability = "Tóm tắt biên soạn của MoodPrint cho học sinh tại Việt Nam; không thay thế tư vấn pháp lý."
 legacy_article_id = "KB-21"
 primary_url = "https://tongdai111.vn/"
 [[derived_from]]
+source_id = "mp-authored"
+locator = "Bài tĩnh trong frontend/src/mocks/data/knowledge.ts (id KB-21); biên soạn nguyên bản bởi MoodPrint, chưa thẩm định bởi chuyên gia bên ngoài."
+[[derived_from]]
 source_id = "vn-111-hotline"
-locator = "ý chính do MoodPrint diễn đạt lại, không sao chép Tổng đài 111"
+locator = "tongdai111.vn đọc 2026-11-08: số 111, hoạt động 24/24, miễn phí cước gọi"
 +++
 ## Điều cần biết
 
@@ -29,7 +32,3 @@ Bạn chủ động bấm liên kết gọi trên trang Hỗ trợ ngay hoặc m
 ## Ví dụ để chuẩn bị lời của bạn
 
 Câu chuẩn bị do MoodPrint soạn: “Em muốn nhờ hỗ trợ về một việc khiến em thấy không an toàn. Em có thể kể từ đâu?”
-
-## Khi cần người lớn
-
-Khi bài Tổng đài 111 tại Việt Nam, bạn không cần tự đặt tên cho mọi thứ ngay. Một bước vừa sức là rời khỏi tình huống nếu bạn đang bị dồn vào góc, rồi tìm một người lớn đang ở gần. Việc này giúp câu chuyện rõ hơn mà không buộc bạn phải kể hết một lúc. Hãy tránh việc đừng hứa giữ bí mật với người đang làm hại bạn, và đừng tự điều tra tài khoản của họ. Bạn có thể mở lời với giáo viên chủ nhiệm, người chăm sóc, hoặc cán bộ tư vấn trong nhà trường. Nếu chưa biết nói gì, thử câu: Em muốn kể một việc liên quan tới help seeking và em cần một người lớn cùng xem giúp. Thẻ này do MoodPrint biên soạn, có đối chiếu ý với Tổng đài 111, không thay tư vấn pháp lý hay chẩn đoán. Nếu bạn đang sợ bị hại ngay, hãy tới chỗ đông người và liên hệ người lớn hoặc số 111. Số 111 là tổng đài bảo vệ trẻ em, hoạt động suốt ngày đêm và không tính cước cuộc gọi.

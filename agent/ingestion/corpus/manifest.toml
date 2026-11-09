@@ -5,358 +5,433 @@ legacy_article_id = "scenario-or-quiz"
 reason = "Bài format scenario hoặc quiz là hoạt động tương tác, không đưa vào truy hồi."
 
 [[document]]
-document_id = "legacy-bat-nat-la-gi"
-source_id = "vn-111-hotline"
-path = "../authored/legacy-bat-nat-la-gi.md"
-topics = ["definition"]
-last_reviewed = 2026-11-08
+document_id = "kb-by-ban-ke-bi-mat"
+source_id = "mp-authored"
+path = "../authored/kb-by-ban-ke-bi-mat.md"
+topics = ["bystander", "help-seeking"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
 
 [[document]]
-document_id = "legacy-luu-anh-chup-co-ngu-canh"
-source_id = "vn-111-hotline"
-path = "../authored/legacy-luu-anh-chup-co-ngu-canh.md"
-topics = ["cyber"]
-last_reviewed = 2026-11-08
+document_id = "kb-by-chung-kien-tai-cho"
+source_id = "mp-authored"
+path = "../authored/kb-by-chung-kien-tai-cho.md"
+topics = ["bystander"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-by-thay-tren-mang"
+source_id = "mp-authored"
+path = "../authored/kb-by-thay-tren-mang.md"
+topics = ["bystander", "cyber"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-cyber-anh-rieng-tong-tien"
+source_id = "mp-authored"
+path = "../authored/kb-cyber-anh-rieng-tong-tien.md"
+topics = ["cyber", "evidence", "urgent-safety"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-cyber-bai-dang-boc-phot"
+source_id = "mp-authored"
+path = "../authored/kb-cyber-bai-dang-boc-phot.md"
+topics = ["cyber", "verbal-social"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-cyber-tai-khoan-gia"
+source_id = "mp-authored"
+path = "../authored/kb-cyber-tai-khoan-gia.md"
+topics = ["cyber", "platform-reporting"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-cyber-tin-nhan-doa"
+source_id = "mp-authored"
+path = "../authored/kb-cyber-tin-nhan-doa.md"
+topics = ["cyber", "evidence"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-def-ba-dau-hieu"
+source_id = "mp-authored"
+path = "../authored/kb-def-ba-dau-hieu.md"
+topics = ["definition"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-def-cac-hinh-thuc"
+source_id = "mp-authored"
+path = "../authored/kb-def-cac-hinh-thuc.md"
+topics = ["definition"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-def-dua-hay-bat-nat"
+source_id = "mp-authored"
+path = "../authored/kb-def-dua-hay-bat-nat.md"
+topics = ["definition", "emotional-impact"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-emo-binh-tinh-nhanh"
+source_id = "mp-authored"
+path = "../authored/kb-emo-binh-tinh-nhanh.md"
+topics = ["emotional-impact", "urgent-safety"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-emo-khi-nao-can-giup-ngay"
+source_id = "mp-authored"
+path = "../authored/kb-emo-khi-nao-can-giup-ngay.md"
+topics = ["emotional-impact", "urgent-safety"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-emo-phan-ung-thuong-gap"
+source_id = "mp-authored"
+path = "../authored/kb-emo-phan-ung-thuong-gap.md"
+topics = ["emotional-impact"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-evid-chup-man-hinh"
+source_id = "mp-authored"
+path = "../authored/kb-evid-chup-man-hinh.md"
+topics = ["evidence", "cyber"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-evid-dieu-khong-nen"
+source_id = "mp-authored"
+path = "../authored/kb-evid-dieu-khong-nen.md"
+topics = ["evidence"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-evid-luu-truoc-khi-chan"
+source_id = "mp-authored"
+path = "../authored/kb-evid-luu-truoc-khi-chan.md"
+topics = ["evidence", "platform-reporting"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-evid-nhat-ky-su-viec"
+source_id = "mp-authored"
+path = "../authored/kb-evid-nhat-ky-su-viec.md"
+topics = ["evidence", "help-seeking"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-excl-bi-loai-khoi-nhom"
+source_id = "mp-authored"
+path = "../authored/kb-excl-bi-loai-khoi-nhom.md"
+topics = ["exclusion"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-excl-bi-pho-lo-o-lop"
+source_id = "mp-authored"
+path = "../authored/kb-excl-bi-pho-lo-o-lop.md"
+topics = ["exclusion", "emotional-impact"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-excl-ep-lam-theo-nhom"
+source_id = "mp-authored"
+path = "../authored/kb-excl-ep-lam-theo-nhom.md"
+topics = ["exclusion", "bystander"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-help-cau-mo-loi"
+source_id = "mp-authored"
+path = "../authored/kb-help-cau-mo-loi.md"
+topics = ["help-seeking"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-help-chon-nguoi-nao"
+source_id = "mp-authored"
+path = "../authored/kb-help-chon-nguoi-nao.md"
+topics = ["help-seeking", "school-procedure-vn"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-help-so-tra-thu"
+source_id = "mp-authored"
+path = "../authored/kb-help-so-tra-thu.md"
+topics = ["help-seeking", "urgent-safety"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-legal-khi-nao-bao-cong-an"
+source_id = "vn-nd-80-2017"
+path = "../authored/kb-legal-khi-nao-bao-cong-an.md"
+topics = ["legal-vn", "urgent-safety"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-legal-nd80-tong-quan"
+source_id = "vn-nd-80-2017"
+path = "../authored/kb-legal-nd80-tong-quan.md"
+topics = ["legal-vn"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-legal-quyen-nguoi-hoc"
+source_id = "vn-nd-80-2017"
+path = "../authored/kb-legal-quyen-nguoi-hoc.md"
+topics = ["legal-vn", "school-procedure-vn"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-phys-do-dac-cap-sach"
+source_id = "mp-authored"
+path = "../authored/kb-phys-do-dac-cap-sach.md"
+topics = ["physical", "evidence"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-phys-ngay-luc-bi-danh"
+source_id = "mp-authored"
+path = "../authored/kb-phys-ngay-luc-bi-danh.md"
+topics = ["physical", "urgent-safety"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-phys-noi-vang-nguoi"
+source_id = "mp-authored"
+path = "../authored/kb-phys-noi-vang-nguoi.md"
+topics = ["physical", "urgent-safety"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-phys-sau-khi-bi-thuong"
+source_id = "mp-authored"
+path = "../authored/kb-phys-sau-khi-bi-thuong.md"
+topics = ["physical", "evidence"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-plat-luu-chan-bao-cao"
+source_id = "mp-authored"
+path = "../authored/kb-plat-luu-chan-bao-cao.md"
+topics = ["platform-reporting", "cyber"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-plat-roi-nhom-chat"
+source_id = "mp-authored"
+path = "../authored/kb-plat-roi-nhom-chat.md"
+topics = ["platform-reporting", "exclusion"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-pt-cha-me-lang-nghe"
+source_id = "mp-authored"
+path = "../authored/kb-pt-cha-me-lang-nghe.md"
+topics = ["parents-teachers"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-pt-giao-vien-tiep-nhan"
+source_id = "mp-authored"
+path = "../authored/kb-pt-giao-vien-tiep-nhan.md"
+topics = ["parents-teachers", "school-procedure-vn"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-pt-ke-hoach-an-toan-gia-dinh"
+source_id = "mp-authored"
+path = "../authored/kb-pt-ke-hoach-an-toan-gia-dinh.md"
+topics = ["parents-teachers", "urgent-safety"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-school-chuan-bi-gap-thay-co"
+source_id = "mp-authored"
+path = "../authored/kb-school-chuan-bi-gap-thay-co.md"
+topics = ["school-procedure-vn", "help-seeking"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-school-quy-trinh-khung"
+source_id = "vn-nd-80-2017"
+path = "../authored/kb-school-quy-trinh-khung.md"
+topics = ["school-procedure-vn", "legal-vn"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-school-theo-doi-leo-thang"
+source_id = "mp-authored"
+path = "../authored/kb-school-theo-doi-leo-thang.md"
+topics = ["school-procedure-vn", "parents-teachers"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-urg-bi-doa-thoi-gian-cu-the"
+source_id = "mp-authored"
+path = "../authored/kb-urg-bi-doa-thoi-gian-cu-the.md"
+topics = ["urgent-safety", "cyber"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-urg-dang-nguy-hiem"
+source_id = "mp-authored"
+path = "../authored/kb-urg-dang-nguy-hiem.md"
+topics = ["urgent-safety"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-urg-duong-ve-nha"
+source_id = "mp-authored"
+path = "../authored/kb-urg-duong-ve-nha.md"
+topics = ["urgent-safety", "physical"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-verb-bi-nhai-cuoi-nhao"
+source_id = "mp-authored"
+path = "../authored/kb-verb-bi-nhai-cuoi-nhao.md"
+topics = ["verbal-social"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-verb-biet-danh-ngoai-hinh"
+source_id = "mp-authored"
+path = "../authored/kb-verb-biet-danh-ngoai-hinh.md"
+topics = ["verbal-social", "emotional-impact"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "kb-verb-tin-don-noi-xau"
+source_id = "mp-authored"
+path = "../authored/kb-verb-tin-don-noi-xau.md"
+topics = ["verbal-social", "evidence"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "legacy-bat-nat-la-gi"
+source_id = "mp-authored"
+path = "../authored/legacy-bat-nat-la-gi.md"
+topics = ["definition"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
 
 [[document]]
 document_id = "legacy-chan-va-bao-cao-noi-dung"
-source_id = "vn-111-hotline"
+source_id = "mp-authored"
 path = "../authored/legacy-chan-va-bao-cao-noi-dung.md"
 topics = ["cyber"]
-last_reviewed = 2026-11-08
+last_reviewed = 2026-11-09
+licence_class = "authored"
+
+[[document]]
+document_id = "legacy-luu-anh-chup-co-ngu-canh"
+source_id = "mp-authored"
+path = "../authored/legacy-luu-anh-chup-co-ngu-canh.md"
+topics = ["cyber"]
+last_reviewed = 2026-11-09
+licence_class = "authored"
 
 [[document]]
 document_id = "legacy-noi-chuyen-voi-giao-vien"
-source_id = "vn-111-hotline"
+source_id = "mp-authored"
 path = "../authored/legacy-noi-chuyen-voi-giao-vien.md"
 topics = ["help-seeking"]
-last_reviewed = 2026-11-08
+last_reviewed = 2026-11-09
+licence_class = "authored"
 
 [[document]]
 document_id = "legacy-noi-chuyen-voi-nguoi-cham-soc"
-source_id = "vn-111-hotline"
+source_id = "mp-authored"
 path = "../authored/legacy-noi-chuyen-voi-nguoi-cham-soc.md"
 topics = ["help-seeking"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "legacy-tom-tat-trung-tinh"
-source_id = "vn-111-hotline"
-path = "../authored/legacy-tom-tat-trung-tinh.md"
-topics = ["help-seeking"]
-last_reviewed = 2026-11-08
+last_reviewed = 2026-11-09
+licence_class = "authored"
 
 [[document]]
 document_id = "legacy-tam-dung-khi-lo-lang"
-source_id = "vn-111-hotline"
+source_id = "mp-authored"
 path = "../authored/legacy-tam-dung-khi-lo-lang.md"
 topics = ["emotional-impact"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "legacy-tong-dai-111"
-source_id = "vn-111-hotline"
-path = "../authored/legacy-tong-dai-111.md"
-topics = ["help-seeking"]
-last_reviewed = 2026-11-08
+last_reviewed = 2026-11-09
+licence_class = "authored"
 
 [[document]]
 document_id = "legacy-theo-doi-sau-khi-nho-giup"
-source_id = "vn-111-hotline"
+source_id = "mp-authored"
 path = "../authored/legacy-theo-doi-sau-khi-nho-giup.md"
 topics = ["help-seeking"]
-last_reviewed = 2026-11-08
+last_reviewed = 2026-11-09
+licence_class = "authored"
 
 [[document]]
-document_id = "mp-definition-01"
-source_id = "who-youth-violence"
-path = "../authored/mp-definition-01.md"
-topics = ["definition"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-definition-02"
-source_id = "moet-portal"
-path = "../authored/mp-definition-02.md"
-topics = ["definition"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-definition-03"
-source_id = "who-youth-violence"
-path = "../authored/mp-definition-03.md"
-topics = ["definition"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-physical-01"
-source_id = "unicef-vn-cyberbullying"
-path = "../authored/mp-physical-01.md"
-topics = ["physical"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-physical-02"
-source_id = "vn-111-hotline"
-path = "../authored/mp-physical-02.md"
-topics = ["physical"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-physical-03"
-source_id = "unicef-vn-cyberbullying"
-path = "../authored/mp-physical-03.md"
-topics = ["physical"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-verbal-social-01"
-source_id = "moet-portal"
-path = "../authored/mp-verbal-social-01.md"
-topics = ["verbal-social"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-verbal-social-02"
-source_id = "who-youth-violence"
-path = "../authored/mp-verbal-social-02.md"
-topics = ["verbal-social"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-verbal-social-03"
-source_id = "moet-portal"
-path = "../authored/mp-verbal-social-03.md"
-topics = ["verbal-social"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-exclusion-01"
-source_id = "vn-111-hotline"
-path = "../authored/mp-exclusion-01.md"
-topics = ["exclusion"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-exclusion-02"
-source_id = "unicef-vn-cyberbullying"
-path = "../authored/mp-exclusion-02.md"
-topics = ["exclusion"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-exclusion-03"
-source_id = "vn-111-hotline"
-path = "../authored/mp-exclusion-03.md"
-topics = ["exclusion"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-cyber-01"
-source_id = "who-youth-violence"
-path = "../authored/mp-cyber-01.md"
-topics = ["cyber"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-cyber-02"
-source_id = "moet-portal"
-path = "../authored/mp-cyber-02.md"
-topics = ["cyber"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-cyber-03"
-source_id = "who-youth-violence"
-path = "../authored/mp-cyber-03.md"
-topics = ["cyber"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-evidence-01"
-source_id = "unicef-vn-cyberbullying"
-path = "../authored/mp-evidence-01.md"
-topics = ["evidence"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-evidence-02"
-source_id = "vn-111-hotline"
-path = "../authored/mp-evidence-02.md"
-topics = ["evidence"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-evidence-03"
-source_id = "unicef-vn-cyberbullying"
-path = "../authored/mp-evidence-03.md"
-topics = ["evidence"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-help-seeking-01"
-source_id = "moet-portal"
-path = "../authored/mp-help-seeking-01.md"
+document_id = "legacy-tom-tat-trung-tinh"
+source_id = "mp-authored"
+path = "../authored/legacy-tom-tat-trung-tinh.md"
 topics = ["help-seeking"]
-last_reviewed = 2026-11-08
+last_reviewed = 2026-11-09
+licence_class = "authored"
 
 [[document]]
-document_id = "mp-help-seeking-02"
-source_id = "who-youth-violence"
-path = "../authored/mp-help-seeking-02.md"
+document_id = "legacy-tong-dai-111"
+source_id = "mp-authored"
+path = "../authored/legacy-tong-dai-111.md"
 topics = ["help-seeking"]
-last_reviewed = 2026-11-08
+last_reviewed = 2026-11-09
+licence_class = "authored"
 
 [[document]]
-document_id = "mp-help-seeking-03"
-source_id = "moet-portal"
-path = "../authored/mp-help-seeking-03.md"
-topics = ["help-seeking"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-school-procedure-vn-01"
-source_id = "vn-111-hotline"
-path = "../authored/mp-school-procedure-vn-01.md"
-topics = ["school-procedure-vn"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-school-procedure-vn-02"
-source_id = "unicef-vn-cyberbullying"
-path = "../authored/mp-school-procedure-vn-02.md"
-topics = ["school-procedure-vn"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-school-procedure-vn-03"
-source_id = "vn-111-hotline"
-path = "../authored/mp-school-procedure-vn-03.md"
-topics = ["school-procedure-vn"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-legal-vn-01"
-source_id = "who-youth-violence"
-path = "../authored/mp-legal-vn-01.md"
-topics = ["legal-vn"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-legal-vn-02"
-source_id = "moet-portal"
-path = "../authored/mp-legal-vn-02.md"
-topics = ["legal-vn"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-legal-vn-03"
-source_id = "who-youth-violence"
-path = "../authored/mp-legal-vn-03.md"
-topics = ["legal-vn"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-bystander-01"
-source_id = "unicef-vn-cyberbullying"
-path = "../authored/mp-bystander-01.md"
-topics = ["bystander"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-bystander-02"
-source_id = "vn-111-hotline"
-path = "../authored/mp-bystander-02.md"
-topics = ["bystander"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-bystander-03"
-source_id = "unicef-vn-cyberbullying"
-path = "../authored/mp-bystander-03.md"
-topics = ["bystander"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-emotional-impact-01"
-source_id = "moet-portal"
-path = "../authored/mp-emotional-impact-01.md"
-topics = ["emotional-impact"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-emotional-impact-02"
-source_id = "who-youth-violence"
-path = "../authored/mp-emotional-impact-02.md"
-topics = ["emotional-impact"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-emotional-impact-03"
-source_id = "moet-portal"
-path = "../authored/mp-emotional-impact-03.md"
-topics = ["emotional-impact"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-parents-teachers-01"
-source_id = "vn-111-hotline"
-path = "../authored/mp-parents-teachers-01.md"
-topics = ["parents-teachers"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-parents-teachers-02"
-source_id = "unicef-vn-cyberbullying"
-path = "../authored/mp-parents-teachers-02.md"
-topics = ["parents-teachers"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-parents-teachers-03"
-source_id = "vn-111-hotline"
-path = "../authored/mp-parents-teachers-03.md"
-topics = ["parents-teachers"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-platform-reporting-01"
-source_id = "who-youth-violence"
-path = "../authored/mp-platform-reporting-01.md"
-topics = ["platform-reporting"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-platform-reporting-02"
-source_id = "moet-portal"
-path = "../authored/mp-platform-reporting-02.md"
-topics = ["platform-reporting"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-platform-reporting-03"
-source_id = "who-youth-violence"
-path = "../authored/mp-platform-reporting-03.md"
-topics = ["platform-reporting"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-urgent-safety-01"
-source_id = "unicef-vn-cyberbullying"
-path = "../authored/mp-urgent-safety-01.md"
-topics = ["urgent-safety"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-urgent-safety-02"
-source_id = "vn-111-hotline"
-path = "../authored/mp-urgent-safety-02.md"
-topics = ["urgent-safety"]
-last_reviewed = 2026-11-08
-
-[[document]]
-document_id = "mp-urgent-safety-03"
-source_id = "unicef-vn-cyberbullying"
-path = "../authored/mp-urgent-safety-03.md"
-topics = ["urgent-safety"]
-last_reviewed = 2026-11-08
+document_id = "vn-nd-80-2017-trich"
+source_id = "vn-nd-80-2017"
+path = "../legal/nd-80-2017.md"
+topics = ["legal-vn", "school-procedure-vn"]
+last_reviewed = 2026-11-09
+licence_class = "open_reuse"

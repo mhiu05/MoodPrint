@@ -112,6 +112,7 @@ def manifest_digest(path: Path, manifest: CorpusManifest) -> str:
     hasher = hashlib.sha256()
     for item in files:
         hasher.update(item.name.encode())
-        hasher.update(item.read_bytes())
+        # CRLF and LF checkouts of the same card must give the same digest.
+        hasher.update(item.read_bytes().replace(b"\r\n", b"\n"))
     hasher.update(json.dumps(manifest.params.model_dump(mode="json"), sort_keys=True).encode())
     return hasher.hexdigest()

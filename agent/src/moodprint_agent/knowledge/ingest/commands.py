@@ -33,6 +33,7 @@ from moodprint_agent.knowledge.ingest.budget import (
 )
 from moodprint_agent.knowledge.ingest.embed import (
     embed_missing,
+    embedding_input,
     load_chunks,
     read_jsonl,
     read_vectors,
@@ -161,7 +162,16 @@ async def embed_build(args: argparse.Namespace) -> int:
         raise ValueError("embed requires --build")
     embedder_name = str(args.embedder or "hashing")
     chunks = load_chunks(args.build)
-    texts = [str(row["text"]) for row in chunks]
+    titles = {
+        str(row["document_id"]): str(row.get("title") or "")
+        for row in read_jsonl(args.build / "documents.jsonl")
+    }
+    texts = [
+        embedding_input(
+            titles.get(str(row["document_id"]), ""), str(row["heading"]), str(row["text"])
+        )
+        for row in chunks
+    ]
     if (
         args.budget_tokens is not None
         and sum(estimate_tokens(text) for text in texts) > args.budget_tokens
@@ -220,6 +230,7 @@ async def embed_build(args: argparse.Namespace) -> int:
             "complete": True,
             "dims": cfg.embedding_dims,
             "embedded": len(vectors),
+            "embedding_input": "title + heading + text",
             "input_type": "document",
             "model": model,
             "sha256": [str(row["content_sha256"]) for row in chunks],

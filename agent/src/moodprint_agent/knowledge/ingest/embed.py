@@ -14,6 +14,17 @@ from moodprint_agent.knowledge.embedder import EmbeddingCache
 EmbedBatch = Callable[[list[str]], Awaitable[list[list[float]]]]
 
 
+def embedding_input(title: str, heading: str, text: str) -> str:
+    """Text sent to the document embedder: title and heading give a short chunk its context.
+
+    FTS already indexes ``heading + text``; the vector side needs the same context because a
+    150-character section such as "Cố ý gây hại" is otherwise embedded without its topic.
+    """
+    parts = [part.strip() for part in (title, heading) if part and part.strip()]
+    prefix = " — ".join(parts)
+    return f"{prefix}\n{text}" if prefix else text
+
+
 def _content_digest(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
