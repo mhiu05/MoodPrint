@@ -19,6 +19,7 @@ from moodprint_agent.runtime import CompanionRuntime
 from moodprint_agent.tools.factory import build_registry
 from moodprint_shared.config import AppConfig
 from moodprint_shared.contracts.memory import CandidateDecision, MemoryCandidateCreate, MemoryCreate
+from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -48,6 +49,7 @@ async def turn(engine: Any, auth: Any, conversation_id: Any, content: str, *step
     service = ConversationService(engine, CFG)
     handle = await service.begin_turn(auth, conversation_id, uuid4(), content)
     await produce(
+        knowledge=FixtureKnowledgeRetriever(),
         stream=RunStream(),
         runtime=runtime,
         service=service,

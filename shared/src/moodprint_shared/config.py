@@ -70,9 +70,10 @@ class EvidenceConfig:
 
 @dataclass(frozen=True, slots=True)
 class KnowledgeConfig:
-    """Public retrieval defaults. The integrator switches ``retriever`` off fixture."""
+    """Public retrieval defaults. ``retriever`` is ``pgvector`` (real, needs a Voyage key);
+    ``fixture`` is explicit opt-in for deterministic tests and the demo and is refused in production."""
 
-    retriever: str = "fixture"
+    retriever: str = "pgvector"
     top_k: int = 5
     timeout_s: float = 15
     embedding_model: str = "voyage-4"

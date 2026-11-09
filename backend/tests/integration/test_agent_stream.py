@@ -1,5 +1,6 @@
 import asyncio
 import json
+from dataclasses import replace
 from uuid import uuid4
 
 import httpx
@@ -13,6 +14,7 @@ from app.modules.conversations.service import ConversationService
 from moodprint_agent.runtime import CompanionRuntime
 from moodprint_shared.config import AppConfig
 from moodprint_shared.env import EnvSettings
+from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 
 from backend.tests.integration.conftest import local_value
 
@@ -32,8 +34,14 @@ def test_settings():
 test_settings.__test__ = False
 
 
+def fixture_config() -> AppConfig:
+    """The real lifespan runs here without a Voyage key: choose the fixture on purpose."""
+    base = AppConfig()
+    return replace(base, knowledge=replace(base.knowledge, retriever="fixture"))
+
+
 async def test_scripted_sse_persists_transcript_usage_and_private_events(identities):
-    app = create_app(test_settings())
+    app = create_app(test_settings(), cfg=fixture_config())
     app.dependency_overrides[get_auth] = lambda: identities[0]
     model = ScriptedModel(
         [
@@ -99,6 +107,7 @@ async def test_client_disconnect_run_completes_and_persists(db_engine, identitie
     stream = RunStream()
     task = asyncio.create_task(
         produce(
+            knowledge=FixtureKnowledgeRetriever(),
             stream=stream,
             runtime=runtime,
             service=service,
@@ -142,6 +151,7 @@ async def test_approved_memory_retrieved_across_conversations_without_copying_to
     runtime = CompanionRuntime(AppConfig(), model=model)
     turn = await service.begin_turn(auth, second["id"], uuid4(), "hướng dẫn từng bước")
     await produce(
+        knowledge=FixtureKnowledgeRetriever(),
         stream=RunStream(),
         runtime=runtime,
         service=service,

@@ -14,7 +14,6 @@ from moodprint_shared.contracts.context import ContextBundle, ContextRequest
 from moodprint_shared.contracts.errors import NotFound
 from moodprint_shared.contracts.knowledge import KnowledgeRetriever
 from moodprint_shared.contracts.paging import Page
-from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 from openai import AsyncOpenAI
 
 from app.agent_gateway.proposals import SqlConfirmedEventWriter, SqlPlanWriter, SqlProposalStore
@@ -24,6 +23,18 @@ from app.modules.memory.service import MemoryService
 from app.modules.plans.service import ActionPlanService
 from app.modules.profiles.service import ProfileService
 from app.modules.roleplay.service import RoleplayService
+
+
+def _require_retriever(knowledge: KnowledgeRetriever | None) -> KnowledgeRetriever:
+    """A turn without a configured retriever fails; it never answers from synthetic fixtures.
+
+    ``is None`` on purpose: an injected adapter may be falsey and is still the adapter.
+    """
+    if knowledge is None:
+        raise ValueError(
+            "No knowledge retriever is configured for this turn; refusing to use the fixture"
+        )
+    return knowledge
 
 
 class CaseHeadlines:
@@ -141,7 +152,7 @@ async def build_context(
             evidence=EvidenceService(engine, storage, cfg),
             plans=plans,
             memory=memory,
-            knowledge=knowledge if knowledge is not None else FixtureKnowledgeRetriever(),
+            knowledge=_require_retriever(knowledge),
         ),
         context=bundle,
         budget=RunToolBudget(cfg.agent.max_tool_calls_per_run),

@@ -64,6 +64,10 @@ def test_phase3_defaults_are_conservative() -> None:
 def test_agent_package_has_no_unreviewed_network_clients() -> None:
     """Only the model client and the budget-aware evidence fetcher may open connections."""
     banned = {"requests", "urllib3", "aiohttp", "socket"}
+    # Reviewed exception (integration, INT-07): the ingestion CLI's SSRF guard resolves host names with
+    # ``socket.getaddrinfo`` to refuse non-public addresses. It opens no connection, and nothing in the
+    # runtime or the backend imports the ingest package.
+    reviewed = {ROOT / "agent" / "src" / "moodprint_agent" / "knowledge" / "ingest" / "acquire.py"}
     for path in (ROOT / "agent" / "src").rglob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
@@ -72,4 +76,14 @@ def test_agent_package_has_no_unreviewed_network_clients() -> None:
                 names = [alias.name.split(".")[0] for alias in node.names]
             elif isinstance(node, ast.ImportFrom) and node.module:
                 names = [node.module.split(".")[0]]
+            if path in reviewed:
+                names = [name for name in names if name != "socket"]
             assert not banned.intersection(names), path
+    used = {
+        node.attr
+        for node in ast.walk(ast.parse(next(iter(reviewed)).read_text(encoding="utf-8")))
+        if isinstance(node, ast.Attribute)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "socket"
+    }
+    assert used <= {"getaddrinfo", "gaierror"}, used  # resolution only, never a connection

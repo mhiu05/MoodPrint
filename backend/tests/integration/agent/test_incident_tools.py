@@ -22,6 +22,7 @@ from moodprint_agent.tools.factory import build_registry
 from moodprint_agent.tools.proposals import event_id_for
 from moodprint_shared.config import AppConfig
 from moodprint_shared.contracts.errors import NotFound, VersionConflict
+from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -51,6 +52,7 @@ def runtime_for(*steps: ModelStep) -> CompanionRuntime:
 async def run_turn(service, auth, conversation_id, runtime, content, **extra):
     turn = await service.begin_turn(auth, conversation_id, uuid4(), content)
     await produce(
+        knowledge=FixtureKnowledgeRetriever(),
         stream=RunStream(),
         runtime=runtime,
         service=service,
@@ -138,6 +140,7 @@ async def finish_resume(service, auth, paused_runtime, turn, checkpoint, approve
         client_message_id=message["client_message_id"],
     )
     await produce(
+        knowledge=FixtureKnowledgeRetriever(),
         stream=RunStream(),
         runtime=paused_runtime,
         service=service,

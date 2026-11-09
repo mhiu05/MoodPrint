@@ -25,7 +25,9 @@ class NoResultsRetriever:
 
 
 @pytest.mark.parametrize("injected", [False, True])
-async def test_context_retriever_can_be_injected_without_changing_default(monkeypatch, injected):
+async def test_context_requires_an_explicit_retriever_and_never_substitutes_the_fixture(
+    monkeypatch, injected
+):
     from app.agent_gateway.wiring import build_context
 
     async def profile(self, auth):
@@ -50,7 +52,7 @@ async def test_context_retriever_can_be_injected_without_changing_default(monkey
         claims_json=json.dumps({"sub": str(owner), "role": "authenticated"}),
     )
     kwargs = {"knowledge": NoResultsRetriever()} if injected else {}
-    ctx = await build_context(
+    call = build_context(
         None,
         AppConfig(),
         auth,
@@ -60,12 +62,18 @@ async def test_context_retriever_can_be_injected_without_changing_default(monkey
         "Synthetic context",
         **kwargs,
     )
+    if not injected:
+        # No retriever must be an error, never the synthetic fixture.
+        with pytest.raises(ValueError, match="knowledge retriever"):
+            await call
+        return
+    ctx = await call
     result = await ctx.services.knowledge.search(
         KnowledgeQuery(text="friends"),
         scope=RetrievalScope(request_id=ctx.request_id),
         timeout_s=1,
     )
-    assert result.corpus_version == ("injected-empty-v1" if injected else "synthetic-fixture-v1")
+    assert result.corpus_version == "injected-empty-v1"
     assert ctx.context.sections[0].kind == "identity"
 
 

@@ -1,9 +1,11 @@
 """Local-only E2E composition. Optional feature modules are explicit test seams."""
 
 from contextlib import asynccontextmanager
+from dataclasses import replace
 from importlib import import_module
 
 from app.main import create_app as create_foundation_app
+from moodprint_shared.config import AppConfig
 
 
 def optional_module(name: str):
@@ -16,8 +18,15 @@ def optional_module(name: str):
         raise
 
 
+def _fixture_config() -> AppConfig:
+    """The E2E process has no Voyage key. Start on the fixture on purpose, announced in the log,
+    then the lifespan below swaps in the real pgvector retriever over the seeded corpus."""
+    base = AppConfig()
+    return replace(base, knowledge=replace(base.knowledge, retriever="fixture"))
+
+
 def create_app():
-    app = create_foundation_app()
+    app = create_foundation_app(cfg=_fixture_config())
     original = app.router.lifespan_context
 
     @asynccontextmanager

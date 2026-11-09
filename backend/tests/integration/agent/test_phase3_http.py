@@ -30,6 +30,7 @@ from moodprint_agent.runtime import CompanionRuntime
 from moodprint_agent.tools.factory import build_registry
 from moodprint_shared.config import AppConfig
 from moodprint_shared.contracts.memory import MemoryCandidateCreate, MemoryCreate
+from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -67,6 +68,8 @@ def build_app(settings, engine, user, files, model: ScriptedModel | None = None)
     app = create_app(settings)
     app.state.engine, app.state.storage, app.state.auth_admin = engine, files, LiveUser()
     app.state.run_tasks = set()
+    # Deterministic harness: the synthetic retriever is chosen on purpose, never by a silent default.
+    app.state.knowledge = FixtureKnowledgeRetriever()
     app.state.runtime = CompanionRuntime(CFG, build_registry(CFG), model=model or ScriptedModel([]))
     app.dependency_overrides[get_auth] = lambda: user
     return app
