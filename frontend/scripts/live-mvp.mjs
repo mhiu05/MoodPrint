@@ -145,6 +145,11 @@ async function apiJson(endpoint, method = "GET", body) {
   return response.json();
 }
 async function say(id, prompt) {
+  const input = page.getByRole("textbox", { name: "Điều bạn muốn kể" });
+  await input.fill(prompt);
+  await expect(
+    page.getByRole("button", { name: "Gửi", exact: true }),
+  ).toBeEnabled();
   const response = page.waitForResponse(
     (r) =>
       new URL(r.url()).origin === api &&
@@ -152,8 +157,6 @@ async function say(id, prompt) {
       new URL(r.url()).pathname.endsWith("/messages"),
     { timeout: 90000 },
   );
-  const input = page.getByRole("textbox", { name: "Điều bạn muốn kể" });
-  await input.fill(prompt);
   await input.press("Enter");
   const stream = await response;
   const raw = await stream.text();
@@ -295,7 +298,7 @@ try {
     ).toBeVisible();
   });
   await check("UI Knowledge Hub, Support and Profile", async () => {
-    for (const route of ["/knowledge", "/support", "/settings"]) {
+    for (const route of ["/support/knowledge", "/support", "/settings"]) {
       await page.goto(route);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     }
