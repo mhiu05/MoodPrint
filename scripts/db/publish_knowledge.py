@@ -35,6 +35,7 @@ from moodprint_agent.knowledge.ingest.runtime import (
 from moodprint_agent.knowledge.textnorm import fold_vietnamese
 from safety import PROJECT_REF, ROOT, check_history, committed_migrations, load_hosted_env
 from sqlalchemy import text
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine
 
 
@@ -115,6 +116,19 @@ class TransactionEngine:
     @asynccontextmanager
     async def connect(self):
         yield self.connection
+
+
+def hosted_engine(database_url: str):
+    """Preserve TLS while adapting a libpq URL for SQLAlchemy's asyncpg dialect."""
+    url = make_url(database_url).set(drivername="postgresql+asyncpg")
+    mode = url.query.get("sslmode", "require")
+    if set(url.query) - {"sslmode"} or mode not in {"require", "verify-ca", "verify-full"}:
+        raise ValueError("Hosted corpus connection requires TLS without endpoint query overrides")
+    return create_async_engine(
+        url.difference_update_query(["sslmode"]),
+        hide_parameters=True,
+        connect_args={"ssl": mode, "statement_cache_size": 0},
+    )
 
 
 DOCUMENT_COLUMNS = (
@@ -396,11 +410,7 @@ async def run(build: Path, manifest: Path, version: str, *, apply: bool) -> None
 
     verify_source()
     paths = committed_migrations()
-    engine = create_async_engine(
-        env["SUPABASE_DB_URL"].replace("postgresql://", "postgresql+asyncpg://", 1),
-        hide_parameters=True,
-        connect_args={"ssl": "require", "statement_cache_size": 0},
-    )
+    engine = hosted_engine(env["SUPABASE_DB_URL"])
     try:
         async with engine.begin() as conn:
             await conn.execute(text("SET TRANSACTION READ ONLY"))

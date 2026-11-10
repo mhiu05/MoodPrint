@@ -542,6 +542,14 @@ class Harness:
             json={"data": {"role": "admin", "is_admin": True}},
         )
         self.check("User-editable metadata exercised", update.status_code == 200)
+        metadata_login = await self.upstream.post(
+            auth_base + "/token?grant_type=password",
+            headers=headers(self.values),
+            json={"email": user["email"], "password": user["password"]},
+        )
+        if metadata_login.status_code != 200:
+            raise RuntimeError("Synthetic metadata JWT refresh failed")
+        self.tokens[0] = metadata_login.json()["access_token"]
         foreign = await self.http.get(
             f"/v1/school/{uuid4()}/shares", headers={"Authorization": "Bearer " + self.tokens[0]}
         )

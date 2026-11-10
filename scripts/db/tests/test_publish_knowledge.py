@@ -119,3 +119,32 @@ def test_idempotent_publish_rejects_database_content_drift(build, mutation):
     assert hasattr(publisher, "compare_stored"), "Full persisted-payload verification is missing"
     with pytest.raises(ValueError):
         publisher.compare_stored(bundle, snapshot)
+
+
+async def test_hosted_engine_translates_libpq_sslmode_before_asyncpg_connect():
+    from sqlalchemy import event
+
+    publisher = module()
+    assert hasattr(publisher, "hosted_engine"), "Hosted SSL connection adaptation is missing"
+    engine = publisher.hosted_engine(
+        "postgresql://postgres:synthetic@db.example.supabase.co/postgres?sslmode=require"
+    )
+    seen = {}
+
+    class StopBeforeNetwork(Exception):
+        pass
+
+    @event.listens_for(engine.sync_engine, "do_connect")
+    def inspect_driver_args(dialect, record, args, kwargs):
+        seen.update(kwargs)
+        raise StopBeforeNetwork
+
+    try:
+        with pytest.raises(StopBeforeNetwork):
+            async with engine.connect():
+                pytest.fail("The probe must never connect")
+        assert "sslmode" not in seen
+        assert seen["ssl"] == "require"
+        assert seen["host"] == "db.example.supabase.co"
+    finally:
+        await engine.dispose()
