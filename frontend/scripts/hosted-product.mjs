@@ -4,13 +4,18 @@ import { randomUUID } from "node:crypto";
 import { readFile, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
 
 const root = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../..",
 );
 const expect = baseExpect.configure({ timeout: 30000 });
-const output = path.join(root, ".local/product-completion");
+const genuine = process.argv.includes("--genuine");
+const output = path.join(
+  root,
+  genuine ? ".local/fresh-supabase" : ".local/product-completion",
+);
 const manifest = JSON.parse(
   await readFile(path.join(output, "hosted-users.json"), "utf8"),
 );
@@ -36,8 +41,8 @@ const supabase = env("SUPABASE_URL").replace(/\/$/, "");
 const key = env("SUPABASE_PUBLISHABLE_KEY");
 if (supabase !== `https://${project}.supabase.co`)
   throw new Error("Exact audited project required");
-const frontend = "http://127.0.0.1:5183";
-const api = "http://127.0.0.1:8010";
+const frontend = genuine ? "http://127.0.0.1:5173" : "http://127.0.0.1:5183";
+const api = genuine ? "http://127.0.0.1:8000" : "http://127.0.0.1:8010";
 const storage = `https://${project}.storage.supabase.co`;
 const [userA, userB] = manifest.users;
 const privateValues = [
@@ -45,6 +50,13 @@ const privateValues = [
   ...manifest.users.flatMap((u) => [u.email, u.password]),
 ];
 const receipt = {
+  source_commit: execFileSync("git", ["rev-parse", "HEAD"], {
+    cwd: root,
+    encoding: "utf8",
+  }).trim(),
+  runtime: genuine
+    ? "app.main:create_app with metered real providers"
+    : "hosted inspection seam",
   started_at: new Date().toISOString(),
   project_ref: project,
   users: manifest.users.map(({ slot, id }) => ({ slot, id })),
@@ -55,7 +67,10 @@ const receipt = {
   page_errors: [],
   browser_http_errors: [],
 };
-const receiptPath = path.join(output, "hosted-browser-receipt.json");
+const receiptPath = path.join(
+  output,
+  genuine ? "browser-product-genuine.json" : "hosted-browser-receipt.json",
+);
 await mkdir(output, { recursive: true });
 try {
   const previous = await readFile(receiptPath, "utf8");
@@ -665,21 +680,27 @@ try {
     await page.goto("/cases");
     await expect(page).toHaveURL(/\/auth/);
   });
-  await check(
-    "known-schema preflight exposes blockers without querying user rows",
-    async () => {
-      const response = await fetch(api + "/hosted-product/preflight");
-      expect(response.status).toBe(200);
-      const preflight = await response.json();
-      receipt.preflight = preflight;
-      for (const [relation, present] of Object.entries(preflight.relations))
-        if (!present)
-          blocked(
-            `hosted relation ${relation}`,
-            "Missing hosted relation; corresponding journey is not verified. Deployment is outside this run.",
-          );
-    },
-  );
+  if (genuine)
+    await check("genuine local runtime readiness", async () => {
+      expect((await fetch(api + "/health")).status).toBe(200);
+      expect((await fetch(api + "/ready")).status).toBe(200);
+    });
+  else
+    await check(
+      "known-schema preflight exposes blockers without querying user rows",
+      async () => {
+        const response = await fetch(api + "/hosted-product/preflight");
+        expect(response.status).toBe(200);
+        const preflight = await response.json();
+        receipt.preflight = preflight;
+        for (const [relation, present] of Object.entries(preflight.relations))
+          if (!present)
+            blocked(
+              `hosted relation ${relation}`,
+              "Missing hosted relation; corresponding journey is not verified. Deployment is outside this run.",
+            );
+      },
+    );
   blocked(
     "genuine expired signed JWT",
     "No genuine expired token fixture is available. Missing/invalid token checks passed separately; no signing keys or Auth settings were changed.",
