@@ -1,0 +1,17 @@
+source_id = "stopbullying-what-is"
+kind = "report"
+publisher = "StopBullying.gov What Is Bullying"
+title = "StopBullying.gov What Is Bullying"
+language = "vi"
+country_scope = ["VN"]
+authority_tier = 2
+licence_class = "unverified"
+licence_note = "HTTP 403 trong phiên lập kế hoạch."
+evidence = "HTTP 403 trong phiên lập kế hoạch."
+[scores]
+authority = 2
+relevance = 2
+licence = 0
+language = 2
+applicability = 2
+freshness = 1

@@ -1,0 +1,20 @@
+{
+  "run_id": "final-b",
+  "suite": "live",
+  "groups": [
+    "knowledge",
+    "memory",
+    "screenshot",
+    "roleplay"
+  ],
+  "repeat": 1,
+  "effort": "low",
+  "model": "gpt-6-luna",
+  "openai_agents": "0.24.0",
+  "openai": "3.46.0",
+  "commit": "8eaef58176b1",
+  "prompt_version": "companion_v3",
+  "tools_version": "77f3941b03fdb67a",
+  "corpus_version": "synthetic-fixture-v1",
+  "started_at": "2026-11-08T17:52:26.965856+00:00"
+}

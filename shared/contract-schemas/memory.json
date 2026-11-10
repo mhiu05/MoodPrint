@@ -1,0 +1,637 @@
+{
+  "CandidateDecision": {
+    "additionalProperties": false,
+    "properties": {
+      "decision": {
+        "enum": [
+          "approve",
+          "reject"
+        ],
+        "title": "Decision",
+        "type": "string"
+      },
+      "editedContent": {
+        "anyOf": [
+          {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Editedcontent"
+      }
+    },
+    "required": [
+      "decision"
+    ],
+    "title": "CandidateDecision",
+    "type": "object"
+  },
+  "Memory": {
+    "additionalProperties": false,
+    "properties": {
+      "category": {
+        "enum": [
+          "preference",
+          "communication",
+          "support_person",
+          "goal",
+          "context"
+        ],
+        "title": "Category",
+        "type": "string"
+      },
+      "content": {
+        "maxLength": 500,
+        "minLength": 1,
+        "title": "Content",
+        "type": "string"
+      },
+      "contentHash": {
+        "title": "Contenthash",
+        "type": "string"
+      },
+      "createdAt": {
+        "format": "date-time",
+        "title": "Createdat",
+        "type": "string"
+      },
+      "expiresAt": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Expiresat"
+      },
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      },
+      "lastRetrievedAt": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Lastretrievedat"
+      },
+      "ownerId": {
+        "format": "uuid",
+        "title": "Ownerid",
+        "type": "string"
+      },
+      "sourceCandidateId": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Sourcecandidateid"
+      },
+      "sourceConversationId": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Sourceconversationid"
+      },
+      "sourceKind": {
+        "default": "user_created",
+        "enum": [
+          "user_created",
+          "approved_candidate"
+        ],
+        "title": "Sourcekind",
+        "type": "string"
+      },
+      "status": {
+        "default": "active",
+        "enum": [
+          "active",
+          "superseded"
+        ],
+        "title": "Status",
+        "type": "string"
+      },
+      "supersedesId": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Supersedesid"
+      },
+      "updatedAt": {
+        "format": "date-time",
+        "title": "Updatedat",
+        "type": "string"
+      },
+      "version": {
+        "default": 1,
+        "minimum": 1,
+        "title": "Version",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "category",
+      "content",
+      "id",
+      "ownerId",
+      "contentHash",
+      "createdAt",
+      "updatedAt"
+    ],
+    "title": "Memory",
+    "type": "object"
+  },
+  "MemoryCandidate": {
+    "additionalProperties": false,
+    "properties": {
+      "category": {
+        "enum": [
+          "preference",
+          "communication",
+          "support_person",
+          "goal",
+          "context"
+        ],
+        "title": "Category",
+        "type": "string"
+      },
+      "content": {
+        "maxLength": 500,
+        "minLength": 1,
+        "title": "Content",
+        "type": "string"
+      },
+      "createdAt": {
+        "format": "date-time",
+        "title": "Createdat",
+        "type": "string"
+      },
+      "decidedAt": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Decidedat"
+      },
+      "expiresAt": {
+        "format": "date-time",
+        "title": "Expiresat",
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      },
+      "ownerId": {
+        "format": "uuid",
+        "title": "Ownerid",
+        "type": "string"
+      },
+      "sourceConversationId": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Sourceconversationid"
+      },
+      "sourceKind": {
+        "default": "agent_proposed",
+        "enum": [
+          "user_explicit",
+          "agent_proposed"
+        ],
+        "title": "Sourcekind",
+        "type": "string"
+      },
+      "sourceMessageId": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Sourcemessageid"
+      },
+      "status": {
+        "default": "pending",
+        "enum": [
+          "pending",
+          "approved",
+          "rejected",
+          "expired"
+        ],
+        "title": "Status",
+        "type": "string"
+      },
+      "supersedesMemoryId": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Supersedesmemoryid"
+      }
+    },
+    "required": [
+      "category",
+      "content",
+      "id",
+      "ownerId",
+      "expiresAt",
+      "createdAt"
+    ],
+    "title": "MemoryCandidate",
+    "type": "object"
+  },
+  "MemoryCandidateCreate": {
+    "additionalProperties": false,
+    "properties": {
+      "category": {
+        "enum": [
+          "preference",
+          "communication",
+          "support_person",
+          "goal",
+          "context"
+        ],
+        "title": "Category",
+        "type": "string"
+      },
+      "content": {
+        "maxLength": 500,
+        "minLength": 1,
+        "title": "Content",
+        "type": "string"
+      },
+      "sourceConversationId": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Sourceconversationid"
+      },
+      "sourceKind": {
+        "default": "agent_proposed",
+        "enum": [
+          "user_explicit",
+          "agent_proposed"
+        ],
+        "title": "Sourcekind",
+        "type": "string"
+      },
+      "sourceMessageId": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Sourcemessageid"
+      },
+      "supersedesMemoryId": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Supersedesmemoryid"
+      }
+    },
+    "required": [
+      "category",
+      "content"
+    ],
+    "title": "MemoryCandidateCreate",
+    "type": "object"
+  },
+  "MemoryCreate": {
+    "additionalProperties": false,
+    "properties": {
+      "category": {
+        "enum": [
+          "preference",
+          "communication",
+          "support_person",
+          "goal",
+          "context"
+        ],
+        "title": "Category",
+        "type": "string"
+      },
+      "content": {
+        "maxLength": 500,
+        "minLength": 1,
+        "title": "Content",
+        "type": "string"
+      },
+      "expiresAt": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Expiresat"
+      },
+      "sourceConversationId": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Sourceconversationid"
+      }
+    },
+    "required": [
+      "category",
+      "content"
+    ],
+    "title": "MemoryCreate",
+    "type": "object"
+  },
+  "MemoryHit": {
+    "$defs": {
+      "Memory": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "enum": [
+              "preference",
+              "communication",
+              "support_person",
+              "goal",
+              "context"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "content": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          },
+          "contentHash": {
+            "title": "Contenthash",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expiresat"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lastRetrievedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Lastretrievedat"
+          },
+          "ownerId": {
+            "format": "uuid",
+            "title": "Ownerid",
+            "type": "string"
+          },
+          "sourceCandidateId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Sourcecandidateid"
+          },
+          "sourceConversationId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Sourceconversationid"
+          },
+          "sourceKind": {
+            "default": "user_created",
+            "enum": [
+              "user_created",
+              "approved_candidate"
+            ],
+            "title": "Sourcekind",
+            "type": "string"
+          },
+          "status": {
+            "default": "active",
+            "enum": [
+              "active",
+              "superseded"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "supersedesId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Supersedesid"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          },
+          "version": {
+            "default": 1,
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "category",
+          "content",
+          "id",
+          "ownerId",
+          "contentHash",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "Memory",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "memory": {
+        "$ref": "#/$defs/Memory"
+      },
+      "score": {
+        "minimum": 0,
+        "title": "Score",
+        "type": "number"
+      }
+    },
+    "required": [
+      "memory",
+      "score"
+    ],
+    "title": "MemoryHit",
+    "type": "object"
+  },
+  "MemoryQuery": {
+    "additionalProperties": false,
+    "properties": {
+      "categories": {
+        "items": {
+          "enum": [
+            "preference",
+            "communication",
+            "support_person",
+            "goal",
+            "context"
+          ],
+          "type": "string"
+        },
+        "title": "Categories",
+        "type": "array"
+      },
+      "limit": {
+        "default": 5,
+        "maximum": 20,
+        "minimum": 1,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "text": {
+        "maxLength": 4000,
+        "title": "Text",
+        "type": "string"
+      }
+    },
+    "required": [
+      "text"
+    ],
+    "title": "MemoryQuery",
+    "type": "object"
+  }
+}

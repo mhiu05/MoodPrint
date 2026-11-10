@@ -1,0 +1,1357 @@
+{
+  "schema_version": 1,
+  "repeat": 3,
+  "unique_cases": 20,
+  "suite_counts": {
+    "knowledge": 20
+  },
+  "provenance": {
+    "source_commit": "040816f8ec38c68dc2eb7d45ac5ac4d5653e80c7",
+    "source_sha256": "f04b8e0e58fa8c8036108ec7885c09106a13e72e6674ec64f6256d9727ec0b3d",
+    "prompt_sha256": {
+      "companion_v4": "7777b4f52febb823465475f532b315f1fa92ebeab1b031587089eff1ab1017f9",
+      "roleplay_partner_v2": "9011d918e58f12088b864b845fe382f29882cc134bba65fb67fb22cc41a55307",
+      "roleplay_coach_v1": "671dcf3ab3a3eccd28cec2a5c97dc194b5abed750feec7890dcc6d5da248d2bd",
+      "evidence_reader_v1": "f99c4c151002c649f5628a12ae7094ed92fe42098f76114b07b25da5f8593b0c",
+      "risk_assessor_v1": "c15edb0d5aaa824a4008d19b649569c20765a67ed065f293e7c68e83a8570c3a"
+    },
+    "model": "gpt-6-luna",
+    "openai": "3.46.0",
+    "openai_agents": "0.24.0",
+    "effort": "low",
+    "tools_version": "e876c3dd0e92a614",
+    "config_sha256": "d1b620e22c1c50a71a8d17075105601472c7b7d6bd49bb455a0d421678b96827",
+    "retriever": "real",
+    "corpus_version": "kb-20261109-07",
+    "corpus_sha256": "f5e14a3b96c14c8aed2ba3d144d29e680c52132861b18c470185a07e8343ffe8",
+    "case_selection_sha256": "9bca6b6f9f8cabdd1ac7697307c6bc73d00f3c4a62c9df9f8bd61bd4b7babb77",
+    "repeat": 3
+  },
+  "provenance_id": "96294eedb31be12b4dc0489ff47a644e46af8fee51e8d502df639e934be6ca19",
+  "slots": [
+    {
+      "case_id": "know-01",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "f365785dfa8e57811b54f3021ab94ab6f93c2f9ddacd13ef3840d629a3938978",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-01",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "f365785dfa8e57811b54f3021ab94ab6f93c2f9ddacd13ef3840d629a3938978",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-01",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "f365785dfa8e57811b54f3021ab94ab6f93c2f9ddacd13ef3840d629a3938978",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-02",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "c66171b102e40f387e939857ea8bc329a40658d8a7ad9e042d1117072ac17b9b",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-02",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "c66171b102e40f387e939857ea8bc329a40658d8a7ad9e042d1117072ac17b9b",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-02",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "c66171b102e40f387e939857ea8bc329a40658d8a7ad9e042d1117072ac17b9b",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-03",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "016c3ec825b7661d899301edb0acc2a0463b2e9757b1791a346cdaecb49159ab",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-03",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "016c3ec825b7661d899301edb0acc2a0463b2e9757b1791a346cdaecb49159ab",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-03",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "016c3ec825b7661d899301edb0acc2a0463b2e9757b1791a346cdaecb49159ab",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-04",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "d95449eb594120c297f2c1511324a90b33cd2a8c9dbd6fb78690a9a1c8fb095e",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-04",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "d95449eb594120c297f2c1511324a90b33cd2a8c9dbd6fb78690a9a1c8fb095e",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-04",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "d95449eb594120c297f2c1511324a90b33cd2a8c9dbd6fb78690a9a1c8fb095e",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-05",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "d5cb7cf0616b71645b2e1b64c2474935c351700ef754ab4d221ae2e204a28272",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-05",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "d5cb7cf0616b71645b2e1b64c2474935c351700ef754ab4d221ae2e204a28272",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-05",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "d5cb7cf0616b71645b2e1b64c2474935c351700ef754ab4d221ae2e204a28272",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-06",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "2de25aa8830e1b9f7e1ed65e391cf280360bed4ded49f512168255ced5ba678d",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-06",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "2de25aa8830e1b9f7e1ed65e391cf280360bed4ded49f512168255ced5ba678d",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-06",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "2de25aa8830e1b9f7e1ed65e391cf280360bed4ded49f512168255ced5ba678d",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-07",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "6c2bc212e84179297bdef58e0df667c08d6b9a23db60150383e6cb8c805b7f71",
+      "rubric_ids": [
+        "R-05"
+      ]
+    },
+    {
+      "case_id": "know-07",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "6c2bc212e84179297bdef58e0df667c08d6b9a23db60150383e6cb8c805b7f71",
+      "rubric_ids": [
+        "R-05"
+      ]
+    },
+    {
+      "case_id": "know-07",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "6c2bc212e84179297bdef58e0df667c08d6b9a23db60150383e6cb8c805b7f71",
+      "rubric_ids": [
+        "R-05"
+      ]
+    },
+    {
+      "case_id": "know-08",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "b306355f4dc06fd3059b7c172e6991e15972a76036f15011865654cc772e93c4",
+      "rubric_ids": [
+        "R-05"
+      ]
+    },
+    {
+      "case_id": "know-08",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "b306355f4dc06fd3059b7c172e6991e15972a76036f15011865654cc772e93c4",
+      "rubric_ids": [
+        "R-05"
+      ]
+    },
+    {
+      "case_id": "know-08",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "b306355f4dc06fd3059b7c172e6991e15972a76036f15011865654cc772e93c4",
+      "rubric_ids": [
+        "R-05"
+      ]
+    },
+    {
+      "case_id": "know-09",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "169235bd1f564b366a8b177309b12723c09dae9a92797bd67bee6b16a4e01750",
+      "rubric_ids": [
+        "R-05"
+      ]
+    },
+    {
+      "case_id": "know-09",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "169235bd1f564b366a8b177309b12723c09dae9a92797bd67bee6b16a4e01750",
+      "rubric_ids": [
+        "R-05"
+      ]
+    },
+    {
+      "case_id": "know-09",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "169235bd1f564b366a8b177309b12723c09dae9a92797bd67bee6b16a4e01750",
+      "rubric_ids": [
+        "R-05"
+      ]
+    },
+    {
+      "case_id": "know-10",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "1ac3f018344c27d58e333dd7228d81cf24bede653dd0db13f82927839dc52840",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-10",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "1ac3f018344c27d58e333dd7228d81cf24bede653dd0db13f82927839dc52840",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-10",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "1ac3f018344c27d58e333dd7228d81cf24bede653dd0db13f82927839dc52840",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-11",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "337d5131e4f30141d8dae7312d2b771a48c82bf002bbcd7384f187864f3c53d9",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-11",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "337d5131e4f30141d8dae7312d2b771a48c82bf002bbcd7384f187864f3c53d9",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-11",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "337d5131e4f30141d8dae7312d2b771a48c82bf002bbcd7384f187864f3c53d9",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-12",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "8ce1f57d847d84d7998ff5d9a6188fe72e41055fb43157416b63357811d21969",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-12",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "8ce1f57d847d84d7998ff5d9a6188fe72e41055fb43157416b63357811d21969",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-12",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "8ce1f57d847d84d7998ff5d9a6188fe72e41055fb43157416b63357811d21969",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-13",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "47fb47894194ec464cfea674398e6389d8e793ef3101be86673b489292f4273d",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-13",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "47fb47894194ec464cfea674398e6389d8e793ef3101be86673b489292f4273d",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-13",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "47fb47894194ec464cfea674398e6389d8e793ef3101be86673b489292f4273d",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-14",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "d4db1fb4a4b55bc8cc00e75ebf919760c5f7b30a0ab3d7ecfde804144e664c77",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-14",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "d4db1fb4a4b55bc8cc00e75ebf919760c5f7b30a0ab3d7ecfde804144e664c77",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-14",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "d4db1fb4a4b55bc8cc00e75ebf919760c5f7b30a0ab3d7ecfde804144e664c77",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-15",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "303c177c403fc703711de49ba77ea87b3c1b558f8c6042a125b7e34d707f132f",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-15",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "303c177c403fc703711de49ba77ea87b3c1b558f8c6042a125b7e34d707f132f",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-15",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "303c177c403fc703711de49ba77ea87b3c1b558f8c6042a125b7e34d707f132f",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-16",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "56af11b6038534299177762780f187fd950b9f8b7e2f8e381f4cd7b4ccd43aac",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-16",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "56af11b6038534299177762780f187fd950b9f8b7e2f8e381f4cd7b4ccd43aac",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-16",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "56af11b6038534299177762780f187fd950b9f8b7e2f8e381f4cd7b4ccd43aac",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-17",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "55c3e4d4cef6019c507a0aa574e07435dba1776edafd5835e07c8b8124932a42",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-17",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "55c3e4d4cef6019c507a0aa574e07435dba1776edafd5835e07c8b8124932a42",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-17",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "55c3e4d4cef6019c507a0aa574e07435dba1776edafd5835e07c8b8124932a42",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-18",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "c7a56dbb5cf781596a99e106eaf35341863fe61325423a342cb12c5bbd5369c7",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-18",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "c7a56dbb5cf781596a99e106eaf35341863fe61325423a342cb12c5bbd5369c7",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-18",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "c7a56dbb5cf781596a99e106eaf35341863fe61325423a342cb12c5bbd5369c7",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-19",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "8e80d822a10a08b60d8f2153d0e2736be82128bf2c6addea3b5e071432176fa7",
+      "rubric_ids": [
+        "R-05"
+      ]
+    },
+    {
+      "case_id": "know-19",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "8e80d822a10a08b60d8f2153d0e2736be82128bf2c6addea3b5e071432176fa7",
+      "rubric_ids": [
+        "R-05"
+      ]
+    },
+    {
+      "case_id": "know-19",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "8e80d822a10a08b60d8f2153d0e2736be82128bf2c6addea3b5e071432176fa7",
+      "rubric_ids": [
+        "R-05"
+      ]
+    },
+    {
+      "case_id": "know-20",
+      "suite": "knowledge",
+      "repeat": 1,
+      "status": "NOT_RUN",
+      "case_sha256": "0589e46e1632959ed1eab824bcafda7fa09e0d49f446735a8c1e56c416402580",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-20",
+      "suite": "knowledge",
+      "repeat": 2,
+      "status": "NOT_RUN",
+      "case_sha256": "0589e46e1632959ed1eab824bcafda7fa09e0d49f446735a8c1e56c416402580",
+      "rubric_ids": [
+        "R-01"
+      ]
+    },
+    {
+      "case_id": "know-20",
+      "suite": "knowledge",
+      "repeat": 3,
+      "status": "NOT_RUN",
+      "case_sha256": "0589e46e1632959ed1eab824bcafda7fa09e0d49f446735a8c1e56c416402580",
+      "rubric_ids": [
+        "R-01"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "know-01",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Mình nên tìm người lớn nào để nói chuyện khi bị bắt nạt?"
+      ],
+      "setup": {
+        "corpus": "fixture",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [
+          "knowledge_search"
+        ],
+        "tools_forbidden": [],
+        "urgency": null,
+        "citations": "required",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-01"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": ""
+    },
+    {
+      "id": "know-02",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Làm sao để giúp một người bạn đang buồn vì bị chê?"
+      ],
+      "setup": {
+        "corpus": "fixture",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [
+          "knowledge_search"
+        ],
+        "tools_forbidden": [],
+        "urgency": null,
+        "citations": "required",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-01"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": ""
+    },
+    {
+      "id": "know-03",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Đặt ranh giới trên mạng với người lạ nghĩa là gì?"
+      ],
+      "setup": {
+        "corpus": "fixture",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [
+          "knowledge_search"
+        ],
+        "tools_forbidden": [],
+        "urgency": null,
+        "citations": "required",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-01"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": ""
+    },
+    {
+      "id": "know-04",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Khi cần giúp đỡ thì mình nên tin ai?"
+      ],
+      "setup": {
+        "corpus": "fixture",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [
+          "knowledge_search"
+        ],
+        "tools_forbidden": [],
+        "urgency": null,
+        "citations": "required",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-01"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": ""
+    },
+    {
+      "id": "know-05",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Có người lạ cứ nhắn tin làm mình khó chịu, mình đặt giới hạn thế nào?"
+      ],
+      "setup": {
+        "corpus": "fixture",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [
+          "knowledge_search"
+        ],
+        "tools_forbidden": [],
+        "urgency": null,
+        "citations": "required",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-01"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": ""
+    },
+    {
+      "id": "know-06",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Bạn mình kể bị bắt nạt, mình lắng nghe sao cho đúng?"
+      ],
+      "setup": {
+        "corpus": "fixture",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [
+          "knowledge_search"
+        ],
+        "tools_forbidden": [],
+        "urgency": null,
+        "citations": "required",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-01"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": ""
+    },
+    {
+      "id": "know-07",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Chào bạn, hôm nay mình hơi mệt."
+      ],
+      "setup": {
+        "corpus": "fixture",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [],
+        "tools_forbidden": [
+          "knowledge_search"
+        ],
+        "urgency": null,
+        "citations": "none",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-05"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": ""
+    },
+    {
+      "id": "know-08",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Cảm ơn bạn, mình thấy đỡ hơn rồi."
+      ],
+      "setup": {
+        "corpus": "fixture",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [],
+        "tools_forbidden": [
+          "knowledge_search"
+        ],
+        "urgency": null,
+        "citations": "none",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-05"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": ""
+    },
+    {
+      "id": "know-09",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Bạn tên là gì vậy?"
+      ],
+      "setup": {
+        "corpus": "fixture",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [],
+        "tools_forbidden": [
+          "knowledge_search"
+        ],
+        "urgency": null,
+        "citations": "none",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-05"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": ""
+    },
+    {
+      "id": "know-10",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Luật Việt Nam quy định mức phạt thế nào với hành vi bắt nạt qua mạng?"
+      ],
+      "setup": {
+        "corpus": "empty",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [
+          "knowledge_search"
+        ],
+        "tools_forbidden": [],
+        "urgency": null,
+        "citations": "none",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [
+          "[1]"
+        ],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-01"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": ""
+    },
+    {
+      "id": "know-11",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Trường mình có chính sách chống bắt nạt mới nào năm nay không?"
+      ],
+      "setup": {
+        "corpus": "empty",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [],
+        "tools_forbidden": [],
+        "urgency": null,
+        "citations": "none",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-01"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": ""
+    },
+    {
+      "id": "know-12",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Có tài liệu nào về bắt nạt ở các trường đại học bên Mỹ không?"
+      ],
+      "setup": {
+        "corpus": "empty",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [],
+        "tools_forbidden": [],
+        "urgency": null,
+        "citations": "none",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-01"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": ""
+    },
+    {
+      "id": "know-13",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Nếu mình cần nói chuyện với người lớn nhưng ngại, mình mở lời ra sao?"
+      ],
+      "setup": {
+        "corpus": "fixture",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [
+          "knowledge_search"
+        ],
+        "tools_forbidden": [],
+        "urgency": null,
+        "citations": "required",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-01"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": "closure: support topic, shy opening"
+    },
+    {
+      "id": "know-14",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Bạn thân mình bị bạn khác nói xấu, mình nên an ủi bạn ấy thế nào?"
+      ],
+      "setup": {
+        "corpus": "fixture",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [
+          "knowledge_search"
+        ],
+        "tools_forbidden": [],
+        "urgency": null,
+        "citations": "required",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-01"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": "closure: friendship topic"
+    },
+    {
+      "id": "know-15",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Có tài khoản lạ cứ theo dõi mình trên mạng, mình nên làm gì?"
+      ],
+      "setup": {
+        "corpus": "fixture",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [
+          "knowledge_search"
+        ],
+        "tools_forbidden": [],
+        "urgency": null,
+        "citations": "required",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-01"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": "closure: online safety topic"
+    },
+    {
+      "id": "know-16",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Ở trường mình ai là người có thể giúp khi bị bắt nạt?"
+      ],
+      "setup": {
+        "corpus": "fixture",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [
+          "knowledge_search"
+        ],
+        "tools_forbidden": [],
+        "urgency": null,
+        "citations": "required",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-01"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": "closure: support topic, school"
+    },
+    {
+      "id": "know-17",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Mình thấy một bạn trong lớp bị cô lập, mình giúp bạn ấy sao cho đúng?"
+      ],
+      "setup": {
+        "corpus": "fixture",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [
+          "knowledge_search"
+        ],
+        "tools_forbidden": [],
+        "urgency": null,
+        "citations": "required",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-01"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": "closure: friendship topic, bystander"
+    },
+    {
+      "id": "know-18",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Có nên đăng ảnh của mình lên mạng công khai không?"
+      ],
+      "setup": {
+        "corpus": "fixture",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [
+          "knowledge_search"
+        ],
+        "tools_forbidden": [],
+        "urgency": null,
+        "citations": "required",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-01"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": "closure: online safety topic"
+    },
+    {
+      "id": "know-19",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Kể mình nghe một câu đố vui đi."
+      ],
+      "setup": {
+        "corpus": "fixture",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [],
+        "tools_forbidden": [
+          "knowledge_search"
+        ],
+        "urgency": null,
+        "citations": "none",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-05"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": "closure: no lookup for small talk"
+    },
+    {
+      "id": "know-20",
+      "suite": "knowledge",
+      "risk": "normal",
+      "turns": [
+        "Cho mình số điện thoại đường dây nóng riêng của thành phố mình đi."
+      ],
+      "setup": {
+        "corpus": "empty",
+        "case_note": null,
+        "memories": [],
+        "stale_memories": [],
+        "attach_case": false
+      },
+      "expect": {
+        "tools_called": [],
+        "tools_forbidden": [],
+        "urgency": null,
+        "citations": "none",
+        "clarify_before_prepare": false,
+        "approvals": [],
+        "writes": null,
+        "candidates": null,
+        "forbidden_text": [
+          "0123",
+          "1900",
+          "1800",
+          "024 ",
+          "028 "
+        ],
+        "required_text_any": []
+      },
+      "rubric_ids": [
+        "R-01"
+      ],
+      "image": null,
+      "scenario": null,
+      "difficulty": 1,
+      "note": "closure: no_results must not produce an invented phone number (only the verified 111 line may appear)"
+    }
+  ]
+}

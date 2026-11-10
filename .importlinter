@@ -1,0 +1,28 @@
+[importlinter]
+root_packages =
+    moodprint_shared
+    moodprint_agent
+    app
+include_external_packages = True
+
+[importlinter:contract:shared]
+name = Shared cannot depend on application packages
+type = forbidden
+source_modules = moodprint_shared
+forbidden_modules =
+    moodprint_agent
+    app
+
+[importlinter:contract:agent]
+name = Agent cannot depend on backend infrastructure
+type = forbidden
+source_modules = moodprint_agent
+forbidden_modules =
+    app
+    fastapi
+
+[importlinter:contract:routers]
+name = Routers use services rather than privileged gateways
+type = forbidden
+source_modules = app.api
+forbidden_modules = app.infrastructure

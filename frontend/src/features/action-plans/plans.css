@@ -1,0 +1,384 @@
+.plan-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin: 24px 0;
+}
+.plan-option {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  border-top: 2px solid #ccddd7;
+  min-width: 0;
+}
+.plan-option h3 {
+  font-size: 20px;
+  line-height: 1.5;
+  margin: 0 0 20px;
+}
+.plan-option dl {
+  margin: 0;
+  flex: 1;
+}
+.plan-option dl > div {
+  margin-bottom: 18px;
+}
+.plan-option dt {
+  font-weight: 600;
+  font-size: 14px;
+  color: #183b37;
+}
+.plan-option dd {
+  font-size: 14px;
+  line-height: 1.75;
+  margin: 4px 0 0;
+  color: #506c66;
+}
+.plan-option > .button {
+  margin-top: 8px;
+  justify-content: space-between;
+  text-align: left;
+}
+.plan-start-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 8px 0 24px;
+}
+.plan-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 24px;
+  align-items: start;
+}
+.plan-layout > .stack {
+  min-width: 0;
+}
+.plan-goal .heading-row {
+  flex-wrap: wrap;
+}
+.plan-goal .heading-row .button {
+  white-space: normal;
+  max-width: 100%;
+}
+.plan-goal .field {
+  margin-top: 20px;
+}
+.plan-progress-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14px;
+  margin: 24px 0 12px;
+}
+.plan-goal > .muted {
+  font-size: 13px;
+  margin: 12px 0 0;
+}
+.plan-goal > .notice {
+  margin-top: 20px;
+}
+.plan-checklist > .section-heading {
+  margin-bottom: 12px;
+}
+.plan-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.plan-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 24px 0;
+  border-bottom: 1px solid #e0ebe7;
+}
+.plan-item:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.plan-step-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.plan-check {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid #94b6ac;
+  border-radius: 9px;
+  background: white;
+  cursor: pointer;
+  flex: none;
+  color: white;
+  margin-top: 2px;
+}
+.plan-check[aria-pressed="true"] {
+  background: #126a61;
+  border-color: #126a61;
+}
+.plan-check:hover {
+  outline: 3px solid #ddf1eb;
+  outline-offset: 1px;
+}
+.plan-step-content {
+  min-width: 0;
+  flex: 1;
+}
+.plan-step-content h3 {
+  font-size: 17px;
+  line-height: 1.6;
+  margin: 6px 0 8px;
+  overflow-wrap: anywhere;
+}
+.plan-item.done h3 {
+  color: #506c66;
+}
+.plan-step-status {
+  font-size: 12px;
+  color: #506c66;
+}
+.plan-step-content .chips {
+  align-items: center;
+}
+.plan-step-reason {
+  font-size: 14px;
+  line-height: 1.65;
+  color: #506c66;
+  margin: 0 0 10px;
+  overflow-wrap: anywhere;
+}
+.plan-step-note {
+  font-size: 14px;
+  padding: 12px 0;
+  margin: 8px 0;
+  border-top: 1px solid #e0ebe7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.plan-step-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.plan-step-controls > select {
+  max-width: 160px;
+  font-size: 13px;
+  min-height: 44px;
+}
+.plan-step-controls > .button {
+  padding: 10px;
+  font-size: 13px;
+  min-width: 44px;
+}
+.plan-reorder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+.plan-reorder > .button {
+  padding: 8px;
+  min-width: 44px;
+  min-height: 44px;
+}
+.plan-reorder > span {
+  font-size: 12px;
+  color: #506c66;
+}
+.plan-sidebar {
+  position: sticky;
+  top: 24px;
+}
+.plan-sidebar h2 {
+  font-size: 19px;
+  margin-top: 0;
+}
+.plan-state-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+.plan-state-actions .button {
+  font-size: 14px;
+  justify-content: center;
+}
+.plan-save {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #ccddd7;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.plan-save > .button {
+  width: 100%;
+  justify-content: center;
+}
+.plan-save > small {
+  font-size: 12px;
+  color: #506c66;
+}
+.plan-sidebar > .notice {
+  font-size: 14px;
+}
+.plan-related-links {
+  display: flex;
+  flex-direction: column;
+}
+.plan-related-links > a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 0;
+  border-bottom: 1px solid #e0ebe7;
+  font-size: 14px;
+}
+.plan-related-links svg {
+  flex: none;
+}
+.plan-page > .notice {
+  margin-bottom: 20px;
+}
+.plan-layout + .notice {
+  margin-top: 24px;
+}
+.plan-save-success {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: #126a61;
+  font-size: 14px;
+}
+.plan-mobile-save {
+  display: none;
+}
+.plan-page .plan-layout .stack > .panel > h2 {
+  margin-top: 0;
+}
+.plan-layout .panel > .field + .field {
+  margin-top: 20px;
+}
+@media (max-width: 1000px) {
+  .plan-layout {
+    grid-template-columns: minmax(0, 1fr) 240px;
+    gap: 20px;
+  }
+  .plan-options {
+    gap: 20px;
+  }
+  .plan-option h3 {
+    font-size: 18px;
+  }
+}
+@media (max-width: 760px) {
+  .plan-options {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .plan-option {
+    border-top-width: 1px;
+    padding: 20px 0;
+  }
+  .plan-option dl {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .plan-option h3 {
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+  .plan-option > .button {
+    align-self: flex-start;
+  }
+  .plan-layout {
+    grid-template-columns: 1fr;
+  }
+  .plan-sidebar {
+    position: static;
+  }
+  .plan-mobile-save {
+    display: flex;
+    position: sticky;
+    bottom: 90px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0 8px;
+    margin-top: 24px;
+    background: #f6faf8;
+    border-top: 1px solid #ccddd7;
+    z-index: 2;
+  }
+  .plan-mobile-save > span {
+    font-size: 12px;
+    color: #506c66;
+  }
+  .plan-item {
+    gap: 4px;
+  }
+  .plan-step-main {
+    gap: 10px;
+  }
+  .plan-check {
+    width: 30px;
+    height: 30px;
+  }
+  .plan-checklist {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .plan-step-controls > select {
+    max-width: 150px;
+  }
+  .plan-start-actions {
+    gap: 8px;
+  }
+  .plan-page .section-heading {
+    align-items: flex-start;
+  }
+}
+@media (max-width: 380px) {
+  .plan-checklist > .section-heading {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .plan-step-controls > select {
+    width: 100%;
+    max-width: none;
+  }
+  .plan-step-controls > .button {
+    padding: 8px;
+  }
+  .plan-step-main {
+    gap: 8px;
+  }
+  .plan-reorder > .button {
+    padding: 4px;
+    min-width: 36px;
+  }
+  .plan-progress-label {
+    font-size: 13px;
+  }
+}
+
+.plan-check {
+  width: 44px;
+  height: 44px;
+}
+.plan-reorder > .button {
+  min-width: 44px;
+  min-height: 44px;
+}

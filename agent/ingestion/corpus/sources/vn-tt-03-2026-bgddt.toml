@@ -1,0 +1,21 @@
+source_id = "vn-tt-03-2026-bgddt"
+kind = "law"
+publisher = "Bộ Giáo dục và Đào tạo"
+title = "Thông tư 03/2026/TT-BGDĐT quy định quy tắc ứng xử của nhà giáo"
+url = "https://xaydungchinhsach.chinhphu.vn/toan-van-thong-tu-03-2026-tt-bgddt-quy-dinh-quy-tac-ung-xu-cua-nha-giao-119260205093856491.htm"
+language = "vi"
+country_scope = ["VN"]
+authority_tier = 1
+licence_class = "open_reuse"
+licence_note = "Legal text only, excluding portal commentary, photographs and layout. Reuse basis: Intellectual Property Law Article 15(2), latest official consolidation 160/2026/VBHN-LQ-VPQH, PDF page 14 (printed Gazette page 15); https://congbaocdn.chinhphu.vn/180507251028987904/2026/10/6/470657-1791273236_v1_1791273883_signed.pdf"
+licence_quote = "Văn bản quy phạm pháp luật (Luật Sở hữu trí tuệ, Điều 15 khoản 2)."
+verified_on = "2026-11-09"
+retrieved_on = "2026-11-09"
+evidence = "Official signed 7-page PDF linked from Government portal, original/tt-03-2026-bgddt.signed.pdf SHA256 84d4f7fc55d75d32d378b7f21f718c717365729b1f2cbbe08c6fb60431169e24. Model visually read Articles 5(3)-(4) on PDF p3 and 15(1)-(2) on p7: effective 30-01-2026; TT06/2019 Article 6 alone expires. Other TT06 provisions are not thereby repealed. No human proofreading claimed."
+[scores]
+authority = 3
+relevance = 3
+licence = 3
+language = 3
+applicability = 3
+freshness = 3

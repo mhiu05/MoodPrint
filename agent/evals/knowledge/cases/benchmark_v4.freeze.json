@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "dataset": "benchmark_v4.jsonl",
+  "sha256_lf": "1f114eaf6408525c4046e2e8a01435abe9cba44426d5367f19ad833f18b0aafa",
+  "queries": 180,
+  "answerable": 150,
+  "no_result": 30,
+  "gaps": 10,
+  "out_of_scope": 20,
+  "positive_styles": {
+    "standard": 50,
+    "nodiac": 35,
+    "slang": 30,
+    "narrative": 25,
+    "english": 10
+  },
+  "positive_topics": 14,
+  "groups": 60,
+  "independent": false,
+  "author": "same coding agent as support implementation",
+  "status": "FROZEN_BEFORE_FIRST_V4_EVALUATION",
+  "source_sha_before_freeze": "5de00ced922a4ac95b9f8455a11cb1000fb53e2a",
+  "support_version": "evidence-support-v2",
+  "corpus_version": "kb-20261109-07",
+  "corpus_sha256": "f5e14a3b96c14c8aed2ba3d144d29e680c52132861b18c470185a07e8343ffe8",
+  "dev_data": "already inspected benchmark_v2 dev",
+  "limitation": "Added after seeing V3 coverage/results to repair design coverage, not an untouched holdout. No further implementation tuning permitted. 30 seeds x5 correlated variants; legal/clinical/OOS negatives self-authored. Four groups have graded secondary support, not exhaustive independent pooled labels."
+}

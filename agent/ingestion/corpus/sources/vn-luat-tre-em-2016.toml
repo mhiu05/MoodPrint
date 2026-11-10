@@ -1,0 +1,17 @@
+source_id = "vn-luat-tre-em-2016"
+kind = "report"
+publisher = "Luật Trẻ em 2016"
+title = "Luật Trẻ em 2016"
+language = "vi"
+country_scope = ["VN"]
+authority_tier = 2
+licence_class = "unverified"
+licence_note = "Chưa đọc điều khoản hiệu lực tại 2026-11 từ nguồn chính thức."
+evidence = "Chưa đọc điều khoản hiệu lực tại 2026-11 từ nguồn chính thức."
+[scores]
+authority = 2
+relevance = 2
+licence = 0
+language = 2
+applicability = 2
+freshness = 1

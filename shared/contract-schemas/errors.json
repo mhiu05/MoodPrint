@@ -1,0 +1,83 @@
+{
+  "ErrorBody": {
+    "$defs": {
+      "JsonValue": {}
+    },
+    "additionalProperties": false,
+    "properties": {
+      "code": {
+        "title": "Code",
+        "type": "string"
+      },
+      "details": {
+        "additionalProperties": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "title": "Details",
+        "type": "object"
+      },
+      "message": {
+        "title": "Message",
+        "type": "string"
+      },
+      "requestId": {
+        "title": "Requestid",
+        "type": "string"
+      }
+    },
+    "required": [
+      "code",
+      "message",
+      "requestId"
+    ],
+    "title": "ErrorBody",
+    "type": "object"
+  },
+  "ErrorEnvelope": {
+    "$defs": {
+      "ErrorBody": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "details": {
+            "additionalProperties": {
+              "$ref": "#/$defs/JsonValue"
+            },
+            "title": "Details",
+            "type": "object"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "requestId": {
+            "title": "Requestid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "requestId"
+        ],
+        "title": "ErrorBody",
+        "type": "object"
+      },
+      "JsonValue": {}
+    },
+    "additionalProperties": false,
+    "properties": {
+      "error": {
+        "$ref": "#/$defs/ErrorBody"
+      }
+    },
+    "required": [
+      "error"
+    ],
+    "title": "ErrorEnvelope",
+    "type": "object"
+  }
+}

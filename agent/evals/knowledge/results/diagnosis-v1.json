@@ -1,0 +1,344 @@
+{
+  "corpus_version": "kb-20261109-03",
+  "benchmark_lf_sha256": "0bedae78047fa0c04262f5f785dd73131d05fa67c63cba064d150e32624b19eb",
+  "benchmark_cases": 180,
+  "labels": {
+    "relevant_doc_ids_missing_from_corpus": [],
+    "relevant_set_size_histogram": {
+      "4": 64,
+      "3": 86
+    },
+    "labels_are_whole_topic_clusters": false,
+    "split_topics": {
+      "dev": [
+        "cyber",
+        "definition",
+        "evidence",
+        "exclusion",
+        "physical",
+        "verbal-social"
+      ],
+      "test": [
+        "bystander",
+        "emotional-impact",
+        "evidence",
+        "help-seeking",
+        "legal-vn",
+        "parents-teachers",
+        "platform-reporting",
+        "school-procedure-vn",
+        "urgent-safety"
+      ]
+    },
+    "topics_in_both_splits": [
+      "evidence"
+    ],
+    "has_style_field": false,
+    "no_result_queries_are_in_domain": 0
+  },
+  "duplication": {
+    "chunks": 726,
+    "documents": 51,
+    "chunks_from_mp_documents": 672,
+    "chunks_with_a_neighbour_jaccard_ge_0.5": 690,
+    "median_best_neighbour_jaccard": 0.871,
+    "p90_best_neighbour_jaccard": 1.0,
+    "sentences_in_ge_20_percent_of_chunks": [
+      {
+        "sentence_prefix": "bạn có thể mở lời với giáo viên chủ nhiệm, người chăm sóc, hoặc cán bộ",
+        "chunks": 345
+      },
+      {
+        "sentence_prefix": "việc này giúp câu chuyện rõ hơn mà không buộc bạn phải kể hết một lúc.",
+        "chunks": 345
+      },
+      {
+        "sentence_prefix": "nếu bạn đang sợ bị hại ngay, hãy tới chỗ đông người và liên hệ người l",
+        "chunks": 345
+      },
+      {
+        "sentence_prefix": "số 111 là tổng đài bảo vệ trẻ em, hoạt động suốt ngày đêm và không tín",
+        "chunks": 345
+      },
+      {
+        "sentence_prefix": "thẻ này do moodprint biên soạn, có đối chiếu ý với tổng đài 111, không",
+        "chunks": 89
+      },
+      {
+        "sentence_prefix": "hãy tránh việc đừng hứa giữ bí mật với người đang làm hại bạn, và đừng",
+        "chunks": 88
+      }
+    ],
+    "share_of_chunk_chars_in_boilerplate_sentences": 0.362,
+    "pairs_compared": 263175
+  },
+  "query_embedding_usage_this_run": {
+    "calls": 180,
+    "tokens": 1191
+  },
+  "unthresholded_raw_retrieval": {
+    "vec_dev": {
+      "strict_recall_at_5_doc_level_unthresholded": 0.744,
+      "hit_at_5_unthresholded": 0.9,
+      "answerable_cases": 60
+    },
+    "vec_test": {
+      "strict_recall_at_5_doc_level_unthresholded": 0.557,
+      "hit_at_5_unthresholded": 0.778,
+      "answerable_cases": 90
+    },
+    "lex_dev": {
+      "strict_recall_at_5_doc_level_unthresholded": 0.458,
+      "hit_at_5_unthresholded": 0.55,
+      "answerable_cases": 60
+    },
+    "lex_test": {
+      "strict_recall_at_5_doc_level_unthresholded": 0.28,
+      "hit_at_5_unthresholded": 0.422,
+      "answerable_cases": 90
+    }
+  },
+  "no_result_separability": {
+    "max_cosine_answerable": {
+      "min": 0.151,
+      "median": 0.482,
+      "max": 0.72
+    },
+    "max_cosine_no_result": {
+      "min": 0.122,
+      "median": 0.237,
+      "max": 0.383
+    },
+    "auc_max_cosine": 0.98,
+    "max_lexical_answerable_median": 0.333,
+    "max_lexical_no_result_median": 0.231,
+    "auc_max_lexical": 0.845,
+    "effective_cosine_gate_at_locked_config": 0.41,
+    "no_result_queries_with_any_lexical_hit": 30,
+    "no_result_queries_passing_locked_lexical_gate": 24,
+    "no_result_queries_passing_locked_vector_gate": 0,
+    "answerable_failing_locked_vector_gate": 27
+  },
+  "lexical_false_positive_driver_tokens": {
+    "tokens_present_in_ge_20pct_of_chunks_that_triggered_no_result_hits": {
+      "ten": 3,
+      "so": 2,
+      "dai": 2,
+      "do": 2,
+      "bo": 1,
+      "hai": 1,
+      "dem": 1,
+      "ve": 1,
+      "thay": 1,
+      "lop": 1,
+      "chu": 1,
+      "tinh": 1
+    },
+    "current_stoplist_size": 24,
+    "tsquery_operator": "OR (' | ')"
+  },
+  "no_result_examples": [
+    {
+      "query": "công thức nấu phở bò",
+      "tokens": [
+        "cong",
+        "thuc",
+        "nau",
+        "pho",
+        "bo"
+      ],
+      "token_chunk_share": {
+        "cong": 0.001,
+        "thuc": 0.006,
+        "nau": 0.0,
+        "pho": 0.0,
+        "bo": 0.585
+      },
+      "max_cos": 0.234,
+      "max_lex": 0.091,
+      "top_lex_doc": "legacy-bat-nat-la-gi"
+    },
+    {
+      "query": "lịch sử miệng núi lửa",
+      "tokens": [
+        "lich",
+        "su",
+        "mieng",
+        "nui",
+        "lua"
+      ],
+      "token_chunk_share": {
+        "lich": 0.001,
+        "su": 0.003,
+        "mieng": 0.0,
+        "nui": 0.0,
+        "lua": 0.0
+      },
+      "max_cos": 0.189,
+      "max_lex": 0.091,
+      "top_lex_doc": "legacy-theo-doi-sau-khi-nho-giup"
+    },
+    {
+      "query": "giải phương trình bậc hai",
+      "tokens": [
+        "giai",
+        "phuong",
+        "trinh",
+        "bac",
+        "hai"
+      ],
+      "token_chunk_share": {
+        "giai": 0.0,
+        "phuong": 0.0,
+        "trinh": 0.006,
+        "bac": 0.0,
+        "hai": 0.609
+      },
+      "max_cos": 0.299,
+      "max_lex": 0.167,
+      "top_lex_doc": "legacy-theo-doi-sau-khi-nho-giup"
+    },
+    {
+      "query": "tỷ số bóng đá đêm qua",
+      "tokens": [
+        "ty",
+        "so",
+        "bong",
+        "da",
+        "dem",
+        "qua"
+      ],
+      "token_chunk_share": {
+        "ty": 0.0,
+        "so": 0.942,
+        "bong": 0.0,
+        "da": 0.156,
+        "dem": 0.475,
+        "qua": 0.003
+      },
+      "max_cos": 0.203,
+      "max_lex": 0.286,
+      "top_lex_doc": "legacy-bat-nat-la-gi"
+    },
+    {
+      "query": "giá vé máy bay đi huế",
+      "tokens": [
+        "gia",
+        "ve",
+        "may",
+        "bay",
+        "di",
+        "hue"
+      ],
+      "token_chunk_share": {
+        "gia": 0.006,
+        "ve": 0.512,
+        "may": 0.118,
+        "bay": 0.004,
+        "di": 0.036,
+        "hue": 0.0
+      },
+      "max_cos": 0.251,
+      "max_lex": 0.231,
+      "top_lex_doc": "legacy-tong-dai-111"
+    },
+    {
+      "query": "cách thay lốp xe đạp",
+      "tokens": [
+        "cach",
+        "thay",
+        "lop",
+        "xe",
+        "dap"
+      ],
+      "token_chunk_share": {
+        "cach": 0.124,
+        "thay": 0.554,
+        "lop": 0.464,
+        "xe": 0.0,
+        "dap": 0.0
+      },
+      "max_cos": 0.241,
+      "max_lex": 0.231,
+      "top_lex_doc": "mp-bystander-01"
+    },
+    {
+      "query": "nguồn gốc của trà ô long",
+      "tokens": [
+        "nguon",
+        "goc",
+        "tra",
+        "long"
+      ],
+      "token_chunk_share": {
+        "nguon": 0.001,
+        "goc": 0.124,
+        "tra": 0.123,
+        "long": 0.0
+      },
+      "max_cos": 0.143,
+      "max_lex": 0.167,
+      "top_lex_doc": "legacy-bat-nat-la-gi"
+    },
+    {
+      "query": "chu vi hình tròn là gì",
+      "tokens": [
+        "chu",
+        "vi",
+        "hinh",
+        "tron"
+      ],
+      "token_chunk_share": {
+        "chu": 0.479,
+        "vi": 0.006,
+        "hinh": 0.037,
+        "tron": 0.0
+      },
+      "max_cos": 0.283,
+      "max_lex": 0.231,
+      "top_lex_doc": "mp-evidence-01"
+    }
+  ],
+  "test_top1_wrong_doc_examples": [
+    [
+      "parents-teachers -> legacy-noi-chuyen-voi-nguoi-cham-soc",
+      4
+    ],
+    [
+      "platform-reporting -> legacy-chan-va-bao-cao-noi-dung",
+      3
+    ],
+    [
+      "school-procedure-vn -> legacy-bat-nat-la-gi",
+      2
+    ],
+    [
+      "bystander -> mp-exclusion-02",
+      2
+    ],
+    [
+      "bystander -> legacy-noi-chuyen-voi-nguoi-cham-soc",
+      2
+    ],
+    [
+      "parents-teachers -> legacy-bat-nat-la-gi",
+      2
+    ],
+    [
+      "urgent-safety -> legacy-noi-chuyen-voi-giao-vien",
+      2
+    ],
+    [
+      "evidence -> legacy-tom-tat-trung-tinh",
+      1
+    ],
+    [
+      "evidence -> legacy-tong-dai-111",
+      1
+    ],
+    [
+      "help-seeking -> mp-help-seeking-03",
+      1
+    ]
+  ]
+}

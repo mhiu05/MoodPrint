@@ -1,0 +1,110 @@
+/* Student-only density: School Admin keeps its independent composition. */
+.app-main .page-content {
+  padding-top: max(24px, env(safe-area-inset-top));
+}
+.page-content .page-heading {
+  margin-bottom: 16px;
+}
+.page-content .page-heading h1 {
+  font-size: 28px;
+}
+.page-content .section-heading {
+  margin-block: 24px 12px;
+}
+.page-content .stack > section > .section-heading {
+  margin-top: 0;
+}
+.page-content .empty-state {
+  padding-block: 28px;
+}
+.page-content .home-welcome {
+  margin-bottom: 18px;
+}
+.page-content .ai-entry {
+  min-height: 220px;
+  padding: 24px;
+}
+.page-content .ai-entry h2 {
+  font-size: 23px;
+  margin-block: 16px 8px;
+}
+.page-content .ai-fixture-entry {
+  margin-top: 0;
+  padding-block: 18px;
+}
+.support-page .support-paths {
+  margin-block: 0 8px;
+}
+.support-page .support-path-top {
+  margin-bottom: 14px;
+}
+.support-page .support-path h2 {
+  margin-top: 0;
+}
+.support-page .support-path p {
+  line-height: 1.65;
+  margin-bottom: 16px;
+}
+.support-page .support-soft-empty {
+  padding-block: 18px;
+}
+@media (max-width: 767px) {
+  .app-main .page-content {
+    padding: max(18px, env(safe-area-inset-top)) 16px
+      calc(100px + env(safe-area-inset-bottom));
+  }
+  .page-content .page-heading h1 {
+    font-size: 25px;
+  }
+  .page-content .home-hero {
+    min-height: 240px;
+  }
+  .page-content .home-welcome h1 {
+    font-size: 25px;
+  }
+  .page-content .ai-entry-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .page-content .ai-entry {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 5px 16px;
+    min-height: 0;
+    padding: 20px;
+  }
+  .page-content .ai-entry > svg {
+    grid-row: 1 / 4;
+    width: 25px;
+  }
+  .page-content .ai-entry h2 {
+    margin: 0;
+    font-size: 21px;
+  }
+  .page-content .ai-entry p {
+    grid-column: 2;
+    margin: 0;
+    font-size: 14px;
+  }
+  .page-content .ai-entry > span {
+    grid-column: 2;
+    margin-top: 8px;
+    font-size: 13px;
+  }
+  .page-content .ai-fixture-entry {
+    gap: 14px;
+  }
+  .support-page .support-path {
+    min-height: 0;
+    padding-block: 20px;
+  }
+  .support-page .support-path h2 {
+    font-size: 19px;
+  }
+  .support-page .support-urgent-entry {
+    padding: 16px;
+  }
+  .page-content .heading-row {
+    gap: 10px;
+  }
+}

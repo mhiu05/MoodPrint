@@ -1,0 +1,14 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path=public,extensions;
+select no_plan();
+insert into auth.users(id) values ('00000000-0000-4000-8000-000000000001');
+insert into app.user_memories(id,owner_id,category,content,content_hash,source_kind) values ('40000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001','support_person','Bạn thân của mình','hash-a','user_created');
+select throws_ok($$insert into app.user_memories(owner_id,category,content,content_hash,source_kind) values ('00000000-0000-4000-8000-000000000001','support_person','Bạn thân của mình','hash-a','user_created')$$,'23505',null,'active normalized content hash deduplicates');
+select ok((select search @@ plainto_tsquery('simple','ban than') from app.user_memories),'accentless full text search matches Vietnamese');
+update app.user_memories set status='superseded' where id='40000000-0000-4000-8000-000000000001';
+select lives_ok($$insert into app.user_memories(owner_id,category,content,content_hash,source_kind,supersedes_id) values ('00000000-0000-4000-8000-000000000001','support_person','Bạn thân của mình','hash-a','user_created','40000000-0000-4000-8000-000000000001')$$,'superseded hash can have one new active version');
+select is((select version from app.user_memories where id='40000000-0000-4000-8000-000000000001'),2,'updates bump version');
+select throws_ok($$insert into app.memory_candidates(owner_id,category,content,source_kind) values ('00000000-0000-4000-8000-000000000001','context',repeat('x',501),'agent_proposed')$$,'23514',null,'candidate content length enforced');
+select * from finish();
+rollback;

@@ -1,0 +1,20 @@
+{
+  "run_id": "live-dev2",
+  "suite": "live",
+  "groups": [
+    "knowledge",
+    "approval",
+    "memory",
+    "injection"
+  ],
+  "repeat": 1,
+  "effort": "low",
+  "model": "gpt-6-luna",
+  "openai_agents": "0.24.0",
+  "openai": "3.46.0",
+  "commit": "bf27e0608e25",
+  "prompt_version": "companion_v3",
+  "tools_version": "77f3941b03fdb67a",
+  "corpus_version": "synthetic-fixture-v1",
+  "started_at": "2026-11-08T15:46:29.462091+00:00"
+}

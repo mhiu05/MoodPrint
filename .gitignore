@@ -1,0 +1,52 @@
+﻿# Dependencies
+node_modules/
+
+# Build output and coverage
+dist/
+build/
+coverage/
+
+# Test runner artifacts
+playwright-report/
+test-results/
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+.local/
+.local*
+
+# Logs and temporary files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+debug.log
+*.tmp
+*.temp
+*.out
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Local tool and database state
+.playwright-mcp/
+supabase/.branches/
+
+# Machine-specific IDE and MCP configuration
+.claude/settings.local.json
+.cursor/mcp.json
+.mcp.json
+
+# Editor and operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/

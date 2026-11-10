@@ -1,0 +1,308 @@
+{
+  "ActionPlan": {
+    "$defs": {
+      "PlanItem": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "notes": {
+            "default": "",
+            "title": "Notes",
+            "type": "string"
+          },
+          "priority": {
+            "default": "normal",
+            "enum": [
+              "high",
+              "normal"
+            ],
+            "title": "Priority",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "title": "Reason",
+            "type": "string"
+          },
+          "status": {
+            "default": "not_started",
+            "enum": [
+              "not_started",
+              "doing",
+              "done"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "PlanItem",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "caseId": {
+        "format": "uuid",
+        "title": "Caseid",
+        "type": "string"
+      },
+      "chosenOptionId": {
+        "default": "",
+        "title": "Chosenoptionid",
+        "type": "string"
+      },
+      "createdAt": {
+        "format": "date-time",
+        "title": "Createdat",
+        "type": "string"
+      },
+      "goal": {
+        "default": "",
+        "title": "Goal",
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      },
+      "items": {
+        "items": {
+          "$ref": "#/$defs/PlanItem"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "nextReviewDate": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Nextreviewdate"
+      },
+      "outcomeNotes": {
+        "default": "",
+        "title": "Outcomenotes",
+        "type": "string"
+      },
+      "ownerId": {
+        "format": "uuid",
+        "title": "Ownerid",
+        "type": "string"
+      },
+      "status": {
+        "default": "draft",
+        "enum": [
+          "draft",
+          "active",
+          "paused",
+          "completed"
+        ],
+        "title": "Status",
+        "type": "string"
+      },
+      "updatedAt": {
+        "format": "date-time",
+        "title": "Updatedat",
+        "type": "string"
+      },
+      "version": {
+        "default": 1,
+        "minimum": 1,
+        "title": "Version",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "id",
+      "caseId",
+      "ownerId",
+      "createdAt",
+      "updatedAt"
+    ],
+    "title": "ActionPlan",
+    "type": "object"
+  },
+  "PlanItem": {
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      },
+      "label": {
+        "minLength": 1,
+        "title": "Label",
+        "type": "string"
+      },
+      "notes": {
+        "default": "",
+        "title": "Notes",
+        "type": "string"
+      },
+      "priority": {
+        "default": "normal",
+        "enum": [
+          "high",
+          "normal"
+        ],
+        "title": "Priority",
+        "type": "string"
+      },
+      "reason": {
+        "default": "",
+        "title": "Reason",
+        "type": "string"
+      },
+      "status": {
+        "default": "not_started",
+        "enum": [
+          "not_started",
+          "doing",
+          "done"
+        ],
+        "title": "Status",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "label"
+    ],
+    "title": "PlanItem",
+    "type": "object"
+  },
+  "PlanUpsert": {
+    "$defs": {
+      "PlanItem": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "notes": {
+            "default": "",
+            "title": "Notes",
+            "type": "string"
+          },
+          "priority": {
+            "default": "normal",
+            "enum": [
+              "high",
+              "normal"
+            ],
+            "title": "Priority",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "title": "Reason",
+            "type": "string"
+          },
+          "status": {
+            "default": "not_started",
+            "enum": [
+              "not_started",
+              "doing",
+              "done"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "PlanItem",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "chosenOptionId": {
+        "default": "",
+        "title": "Chosenoptionid",
+        "type": "string"
+      },
+      "goal": {
+        "default": "",
+        "title": "Goal",
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      },
+      "items": {
+        "items": {
+          "$ref": "#/$defs/PlanItem"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "nextReviewDate": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Nextreviewdate"
+      },
+      "outcomeNotes": {
+        "default": "",
+        "title": "Outcomenotes",
+        "type": "string"
+      },
+      "status": {
+        "default": "draft",
+        "enum": [
+          "draft",
+          "active",
+          "paused",
+          "completed"
+        ],
+        "title": "Status",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id"
+    ],
+    "title": "PlanUpsert",
+    "type": "object"
+  }
+}

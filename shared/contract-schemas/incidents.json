@@ -1,0 +1,566 @@
+{
+  "CaseDetail": {
+    "$defs": {
+      "PlanProgress": {
+        "additionalProperties": false,
+        "properties": {
+          "done": {
+            "minimum": 0,
+            "title": "Done",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "done",
+          "total"
+        ],
+        "title": "PlanProgress",
+        "type": "object"
+      },
+      "TimelineEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "caseId": {
+            "format": "uuid",
+            "title": "Caseid",
+            "type": "string"
+          },
+          "description": {
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "evidenceIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Evidenceids",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "needsReview": {
+            "default": false,
+            "title": "Needsreview",
+            "type": "boolean"
+          },
+          "place": {
+            "default": "",
+            "title": "Place",
+            "type": "string"
+          },
+          "provenance": {
+            "default": "user_entered",
+            "enum": [
+              "user_entered",
+              "ai_extracted",
+              "user_confirmed"
+            ],
+            "title": "Provenance",
+            "type": "string"
+          },
+          "timePrecision": {
+            "default": "unknown",
+            "enum": [
+              "exact",
+              "day",
+              "week",
+              "unknown"
+            ],
+            "title": "Timeprecision",
+            "type": "string"
+          },
+          "when": {
+            "default": "",
+            "title": "When",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "description",
+          "caseId"
+        ],
+        "title": "TimelineEvent",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "categoryTags": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Categorytags",
+        "type": "array"
+      },
+      "createdAt": {
+        "format": "date-time",
+        "title": "Createdat",
+        "type": "string"
+      },
+      "events": {
+        "items": {
+          "$ref": "#/$defs/TimelineEvent"
+        },
+        "title": "Events",
+        "type": "array"
+      },
+      "evidenceIds": {
+        "items": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "title": "Evidenceids",
+        "type": "array"
+      },
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      },
+      "impactTags": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Impacttags",
+        "type": "array"
+      },
+      "linkedPlanId": {
+        "anyOf": [
+          {
+            "format": "uuid",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Linkedplanid"
+      },
+      "occurredAt": {
+        "default": "",
+        "title": "Occurredat",
+        "type": "string"
+      },
+      "ownerId": {
+        "format": "uuid",
+        "title": "Ownerid",
+        "type": "string"
+      },
+      "people": {
+        "default": "",
+        "title": "People",
+        "type": "string"
+      },
+      "perspective": {
+        "enum": [
+          "self",
+          "witness"
+        ],
+        "title": "Perspective",
+        "type": "string"
+      },
+      "place": {
+        "default": "",
+        "title": "Place",
+        "type": "string"
+      },
+      "planProgress": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/PlanProgress"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
+      "status": {
+        "enum": [
+          "draft",
+          "active",
+          "monitoring",
+          "closed"
+        ],
+        "title": "Status",
+        "type": "string"
+      },
+      "summary": {
+        "title": "Summary",
+        "type": "string"
+      },
+      "template": {
+        "title": "Template",
+        "type": "string"
+      },
+      "title": {
+        "title": "Title",
+        "type": "string"
+      },
+      "tried": {
+        "default": "",
+        "title": "Tried",
+        "type": "string"
+      },
+      "trustedPerson": {
+        "default": "",
+        "title": "Trustedperson",
+        "type": "string"
+      },
+      "updatedAt": {
+        "format": "date-time",
+        "title": "Updatedat",
+        "type": "string"
+      },
+      "version": {
+        "default": 1,
+        "minimum": 1,
+        "title": "Version",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "id",
+      "ownerId",
+      "title",
+      "status",
+      "createdAt",
+      "updatedAt",
+      "template",
+      "perspective",
+      "summary"
+    ],
+    "title": "CaseDetail",
+    "type": "object"
+  },
+  "CaseQuery": {
+    "additionalProperties": false,
+    "properties": {
+      "cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Cursor"
+      },
+      "limit": {
+        "default": 50,
+        "maximum": 100,
+        "minimum": 1,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "q": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Q"
+      },
+      "sort": {
+        "default": "updated",
+        "enum": [
+          "updated",
+          "title"
+        ],
+        "title": "Sort",
+        "type": "string"
+      },
+      "status": {
+        "anyOf": [
+          {
+            "enum": [
+              "draft",
+              "active",
+              "monitoring",
+              "closed"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Status"
+      }
+    },
+    "title": "CaseQuery",
+    "type": "object"
+  },
+  "CaseSummary": {
+    "$defs": {
+      "PlanProgress": {
+        "additionalProperties": false,
+        "properties": {
+          "done": {
+            "minimum": 0,
+            "title": "Done",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "done",
+          "total"
+        ],
+        "title": "PlanProgress",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "categoryTags": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Categorytags",
+        "type": "array"
+      },
+      "createdAt": {
+        "format": "date-time",
+        "title": "Createdat",
+        "type": "string"
+      },
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      },
+      "ownerId": {
+        "format": "uuid",
+        "title": "Ownerid",
+        "type": "string"
+      },
+      "planProgress": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/PlanProgress"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
+      "status": {
+        "enum": [
+          "draft",
+          "active",
+          "monitoring",
+          "closed"
+        ],
+        "title": "Status",
+        "type": "string"
+      },
+      "title": {
+        "title": "Title",
+        "type": "string"
+      },
+      "updatedAt": {
+        "format": "date-time",
+        "title": "Updatedat",
+        "type": "string"
+      },
+      "version": {
+        "default": 1,
+        "minimum": 1,
+        "title": "Version",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "id",
+      "ownerId",
+      "title",
+      "status",
+      "createdAt",
+      "updatedAt"
+    ],
+    "title": "CaseSummary",
+    "type": "object"
+  },
+  "EventCreate": {
+    "additionalProperties": false,
+    "properties": {
+      "description": {
+        "minLength": 1,
+        "title": "Description",
+        "type": "string"
+      },
+      "evidenceIds": {
+        "items": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "title": "Evidenceids",
+        "type": "array"
+      },
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      },
+      "needsReview": {
+        "default": false,
+        "title": "Needsreview",
+        "type": "boolean"
+      },
+      "place": {
+        "default": "",
+        "title": "Place",
+        "type": "string"
+      },
+      "provenance": {
+        "default": "user_entered",
+        "enum": [
+          "user_entered",
+          "ai_extracted",
+          "user_confirmed"
+        ],
+        "title": "Provenance",
+        "type": "string"
+      },
+      "timePrecision": {
+        "default": "unknown",
+        "enum": [
+          "exact",
+          "day",
+          "week",
+          "unknown"
+        ],
+        "title": "Timeprecision",
+        "type": "string"
+      },
+      "when": {
+        "default": "",
+        "title": "When",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "description"
+    ],
+    "title": "EventCreate",
+    "type": "object"
+  },
+  "PlanProgress": {
+    "additionalProperties": false,
+    "properties": {
+      "done": {
+        "minimum": 0,
+        "title": "Done",
+        "type": "integer"
+      },
+      "total": {
+        "minimum": 0,
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "done",
+      "total"
+    ],
+    "title": "PlanProgress",
+    "type": "object"
+  },
+  "TimelineEvent": {
+    "additionalProperties": false,
+    "properties": {
+      "caseId": {
+        "format": "uuid",
+        "title": "Caseid",
+        "type": "string"
+      },
+      "description": {
+        "minLength": 1,
+        "title": "Description",
+        "type": "string"
+      },
+      "evidenceIds": {
+        "items": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "title": "Evidenceids",
+        "type": "array"
+      },
+      "id": {
+        "format": "uuid",
+        "title": "Id",
+        "type": "string"
+      },
+      "needsReview": {
+        "default": false,
+        "title": "Needsreview",
+        "type": "boolean"
+      },
+      "place": {
+        "default": "",
+        "title": "Place",
+        "type": "string"
+      },
+      "provenance": {
+        "default": "user_entered",
+        "enum": [
+          "user_entered",
+          "ai_extracted",
+          "user_confirmed"
+        ],
+        "title": "Provenance",
+        "type": "string"
+      },
+      "timePrecision": {
+        "default": "unknown",
+        "enum": [
+          "exact",
+          "day",
+          "week",
+          "unknown"
+        ],
+        "title": "Timeprecision",
+        "type": "string"
+      },
+      "when": {
+        "default": "",
+        "title": "When",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "description",
+      "caseId"
+    ],
+    "title": "TimelineEvent",
+    "type": "object"
+  }
+}

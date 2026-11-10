@@ -1,0 +1,17 @@
+source_id = "platform-help-general"
+kind = "report"
+publisher = "Trung tâm trợ giúp mạng xã hội"
+title = "Trung tâm trợ giúp mạng xã hội"
+language = "vi"
+country_scope = ["VN"]
+authority_tier = 2
+licence_class = "unverified"
+licence_note = "Điều khoản nền tảng thường bảo lưu bản quyền."
+evidence = "Điều khoản nền tảng thường bảo lưu bản quyền."
+[scores]
+authority = 2
+relevance = 2
+licence = 0
+language = 2
+applicability = 2
+freshness = 1

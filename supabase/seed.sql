@@ -1,0 +1,1 @@
+-- Local fixtures are created and removed by tests. Never seed hosted users.

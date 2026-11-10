@@ -1,0 +1,55 @@
+{
+  "Page": {
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "items": {},
+        "title": "Items",
+        "type": "array"
+      },
+      "nextCursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Nextcursor"
+      }
+    },
+    "required": [
+      "items"
+    ],
+    "title": "Page",
+    "type": "object"
+  },
+  "PageQuery": {
+    "additionalProperties": false,
+    "properties": {
+      "cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Cursor"
+      },
+      "limit": {
+        "default": 50,
+        "maximum": 100,
+        "minimum": 1,
+        "title": "Limit",
+        "type": "integer"
+      }
+    },
+    "title": "PageQuery",
+    "type": "object"
+  }
+}
