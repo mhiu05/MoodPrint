@@ -118,7 +118,16 @@ async def propose_case_event(
     place: str = "",
     evidence_ids: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Draft a timeline event for the user to review. Nothing is saved by this call."""
+    """Draft a timeline event for review; this does not save the event.
+
+    Args:
+        case_id: Copy the exact case UUID from context or get_case_context; never reconstruct it.
+        when: For exact precision, a timezone-aware ISO datetime with T and an explicit
+            offset, e.g. 2026-11-09T10:00:00+07:00. For day/week, YYYY-MM-DD.
+            For unknown, an empty string. Never guess an offset or AM/PM; ask the
+            user or use only the date if that is all they know.
+        time_precision: Match the user's actual certainty, not the desired display format.
+    """
     context = ctx.context
     deps = context.deps
     if deps.proposals is None:
@@ -153,7 +162,12 @@ async def propose_case_event(
             evidence_ids=parsed_evidence,
         )
     except ValueError:
-        return _error("invalid_time", "Ngày giờ không khớp mức chính xác đã chọn.")
+        return _error(
+            "invalid_time",
+            "Ngày giờ không khớp mức chính xác: exact cần timezone-aware ISO datetime "
+            "(YYYY-MM-DDTHH:MM:SS+hh:mm); day/week dùng YYYY-MM-DD; unknown dùng chuỗi rỗng. "
+            "Không tự đoán múi giờ hoặc sáng/tối; hãy hỏi người dùng khi chưa rõ.",
+        )
     try:
         case = await context.services.incidents.get_case(context.auth, target)
         names: list[str] = []
@@ -238,7 +252,7 @@ def incident_tools() -> list[ToolSpec]:
         ),
         ToolSpec(
             propose_case_event,
-            ToolPolicy("propose_case_event", "1", "prepare", False, 8, 3),
+            ToolPolicy("propose_case_event", "2", "prepare", False, 8, 3),
             "Soạn một mốc cho dòng thời gian",
         ),
         ToolSpec(

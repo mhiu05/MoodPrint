@@ -227,6 +227,32 @@ async def test_invalid_content_is_refused_before_anything_is_stored(override, co
     assert out["error"]["code"] == code and store.rows == {}
 
 
+async def test_exact_time_error_explains_the_missing_timezone_without_guessing_one() -> None:
+    owner, case_id, _, store, writer, services = make_world()
+    out = await propose(
+        make_ctx(owner, services, store, writer),
+        case_id,
+        when="2026-11-09T10:00:00",
+        time_precision="exact",
+    )
+    assert out["error"]["code"] == "invalid_time"
+    assert "timezone-aware ISO" in out["error"]["message"]
+    assert "YYYY-MM-DD" in out["error"]["message"]
+    assert store.rows == {} and writer.calls == 0
+
+
+async def test_exact_time_preserves_the_explicit_offset_in_the_approval_payload() -> None:
+    owner, case_id, _, store, writer, services = make_world()
+    when = "2026-11-09T10:00:00+07:00"
+    out = await propose(
+        make_ctx(owner, services, store, writer), case_id, when=when, time_precision="exact"
+    )
+    stored = store.rows[UUID(out["proposalId"])]
+    assert stored.payload["event"]["when"] == when
+    assert stored.preview["when"] == when
+    assert writer.calls == 0
+
+
 async def test_other_users_case_or_evidence_is_not_found() -> None:
     owner, case_id, evidence_id, store, writer, services = make_world()
     intruder = make_ctx(uuid4(), services, store, writer)

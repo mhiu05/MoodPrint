@@ -260,7 +260,7 @@ class Harness:
                 case = await self.case("Synthetic " + scenario)
                 conversation = await self.conversation(scenario, case_id=case)
                 prompt = (
-                    "Hôm qua 9/11/2026 lúc 10 giờ, bạn A nhắn 'đừng cho An vào nhóm' trong nhóm lớp. "
+                    "Hôm qua 9/11/2026 lúc 10 giờ sáng (UTC+07:00), bạn A nhắn 'đừng cho An vào nhóm' trong nhóm lớp. "
                     "Mình trực tiếp đọc tin nhắn. Mình đang an toàn. Giúp mình soạn một mốc trung lập cho hồ sơ này để xem trước; chưa lưu nhé."
                     if kind == "event"
                     else "Mình muốn nhờ cô chủ nhiệm hỗ trợ chuyện bị loại khỏi nhóm học tập. "
