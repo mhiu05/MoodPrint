@@ -48,13 +48,19 @@ if (supabase !== "https://xhlshihobyxrgfqrdafh.supabase.co")
 const api = "http://127.0.0.1:8000";
 const frontend = "http://127.0.0.1:5173";
 const key = env("SUPABASE_PUBLISHABLE_KEY");
-const user = manifest.users[0];
+const actor =
+  process.argv.find((x) => x.startsWith("--actor="))?.slice(8) ?? "A";
+if (!["A", "B"].includes(actor))
+  throw new Error("Only tracked actors A/B are authorized");
+const user = manifest.users[actor === "B" ? 1 : 0];
 const receipt = {
   source_commit: execFileSync("git", ["rev-parse", "HEAD"], {
     cwd: root,
     encoding: "utf8",
   }).trim(),
   model: "gpt-6-luna",
+  actor,
+  owner_id: user.id,
   mode: "GENUINE_LOCAL_RUNTIME_HOSTED_SUPABASE",
   started_at: new Date().toISOString(),
   checks: [],
@@ -164,6 +170,7 @@ async function say(id, prompt) {
     scenario_id: id,
     prompt_version: run?.promptVersion ?? null,
     source_commit: receipt.source_commit,
+    persisted_run: run,
     model: "gpt-6-luna",
     user_message: prompt,
     response: answer?.content ?? null,
@@ -228,7 +235,7 @@ try {
       await page.setViewportSize({ width: 1440, height: 1000 });
     },
   );
-  await check("UI incident and Action Plan restoration", async () => {
+  await check("UI incident restoration and Action Plan route", async () => {
     const cases = await apiJson("/v1/cases");
     const selected = cases.items[0];
     expect(selected).toBeTruthy();
@@ -241,7 +248,13 @@ try {
   });
   await check("UI evidence and analysis restoration", async () => {
     const saved = JSON.parse(
-      await readFile(path.join(output, "evidence-initial.json"), "utf8"),
+      await readFile(
+        path.join(
+          output,
+          actor === "B" ? "evidence-actor-b.json" : "evidence-initial.json",
+        ),
+        "utf8",
+      ),
     );
     const analysis = saved.records.find(
       (r) => r.scenario_id === "D03-real-image-analysis",

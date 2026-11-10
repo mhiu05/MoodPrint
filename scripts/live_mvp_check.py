@@ -731,7 +731,9 @@ class Harness:
             )
         self.save()
 
-    async def restore(self):
+    async def persistence_snapshot(self):
+        import hashlib
+
         manifest = read_manifest(USERS)
         resources = {
             kind: [
@@ -742,19 +744,51 @@ class Harness:
             ]
             for kind, ids in manifest.get("resources", {}).items()
         }
-        for conversation in resources.get("conversations", []):
-            result = await self.api("GET", f"/v1/conversations/{conversation}/messages")
-            self.check("Restart restores conversation " + conversation, bool(result["items"]))
-        memories = await self.api("GET", "/v1/memories")
-        self.check("Restart restores approved memory", bool(memories["items"]))
-        for evidence in resources.get("evidence", []):
-            restored = await self.api("GET", f"/v1/evidence/{evidence}")
-            self.check(
-                "Restart restores evidence " + evidence, restored["uploadStatus"] == "uploaded"
+        endpoints = ["/v1/memories"]
+        for kind, template in [
+            ("conversations", "/v1/conversations/{id}/messages"),
+            ("cases", "/v1/cases/{id}"),
+            ("evidence", "/v1/evidence/{id}"),
+            ("roleplay_sessions", "/v1/roleplay/sessions/{id}"),
+        ]:
+            endpoints.extend(template.format(id=id) for id in resources.get(kind, []))
+        observed = []
+        for endpoint in endpoints:
+            payload = await self.api("GET", endpoint)
+            observed.append(
+                {
+                    "endpoint": endpoint,
+                    "sha256": hashlib.sha256(
+                        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+                    ).hexdigest(),
+                    "item_count": len(payload["items"]) if "items" in payload else None,
+                }
             )
-        for session in resources.get("roleplay_sessions", []):
-            restored = await self.api("GET", f"/v1/roleplay/sessions/{session}")
-            self.check("Restart restores roleplay " + session, restored["turnCount"] >= 1)
+        return observed
+
+    async def snapshot(self):
+        self.records = await self.persistence_snapshot()
+        self.check("Authenticated persistence baseline captured", bool(self.records))
+
+    async def restore(self):
+        baseline = json.loads(
+            (OUTPUT / f"snapshot-before-restart-{self.actor.lower()}.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        if baseline.get("group") != "snapshot" or baseline.get("owner_id") != self.owner_id:
+            raise ValueError("A genuine pre-restart snapshot for this synthetic owner is required")
+        self.records = await self.persistence_snapshot()
+        expected = {row["endpoint"]: row["sha256"] for row in baseline["records"]}
+        self.check(
+            "Restart restores the same tracked resources",
+            set(expected) == {r["endpoint"] for r in self.records},
+        )
+        for row in self.records:
+            self.check(
+                "Restart preserves exact persisted payload " + row["endpoint"],
+                row["sha256"] == expected.get(row["endpoint"]),
+            )
 
 
 async def execute(group, label, actor="A"):
@@ -787,6 +821,8 @@ async def execute(group, label, actor="A"):
             await harness.evidence()
         elif group == "restore":
             await harness.restore()
+        elif group == "snapshot":
+            await harness.snapshot()
         else:
             raise ValueError("Unknown live acceptance group")
         harness.save()
@@ -821,6 +857,7 @@ def main():
             "auth-security",
             "evidence",
             "restore",
+            "snapshot",
             "cleanup",
         ],
     )
