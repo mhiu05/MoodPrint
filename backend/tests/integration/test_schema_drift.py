@@ -1,0 +1,98 @@
+"""Catch an added, removed, mistyped, or nullable ORM/database column."""
+
+import importlib
+
+import pytest
+from app.core.db import Base
+from sqlalchemy import inspect
+from sqlalchemy.dialects import postgresql
+
+pytestmark = pytest.mark.integration
+
+# Additive tables owned by a later phase (CC-P3-002). Each name is explicit: an unknown table
+# still fails this test. They carry no ORM model, so only their presence and row-level security
+# are asserted here; their columns/policies are pinned by that phase's pgTAP suites.
+PHASE_TABLES = {
+    # Phase 3 (feat/agent-companion, *_ag_* migrations)
+    "agent_proposals",
+    "analysis_requests",
+    "roleplay_sessions",
+    "message_attachments",
+    "message_assessments",
+}
+
+
+async def test_models_match_database(db_engine):
+    for name in (
+        "profiles",
+        "conversations",
+        "memory",
+        "incidents",
+        "plans",
+        "evidence",
+        "contacts",
+        "support",
+        "sharing",
+        "knowledge_state",
+    ):
+        importlib.import_module(f"app.modules.{name}.models")
+    expected_names = {
+        "profiles",
+        "audit_events",
+        "conversations",
+        "messages",
+        "agent_runs",
+        "tool_approvals",
+        "memory_candidates",
+        "user_memories",
+        "cases",
+        "case_events",
+        "evidence_items",
+        "case_event_evidence",
+        "evidence_derivatives",
+        "action_plans",
+        "plan_items",
+        "trusted_contacts",
+        "support_drafts",
+        "knowledge_article_states",
+        "schools",
+        "school_memberships",
+        "case_shares",
+        "case_share_evidence",
+    }
+    models = {table.name: table for table in Base.metadata.tables.values() if table.schema == "app"}
+    assert set(models) == expected_names
+
+    async with db_engine.connect() as connection:
+        live = await connection.run_sync(
+            lambda conn: {
+                name: inspect(conn).get_columns(name, schema="app")
+                for name in inspect(conn).get_table_names(schema="app")
+            }
+        )
+    unexpected = set(live) - set(models) - PHASE_TABLES
+    assert not unexpected, f"unexpected app tables: {sorted(unexpected)}"
+    assert set(models) <= set(live), f"missing app tables: {sorted(set(models) - set(live))}"
+    async with db_engine.connect() as connection:
+        no_rls = (
+            (
+                await connection.exec_driver_sql(
+                    "select relname from pg_class c join pg_namespace n on n.oid = c.relnamespace "
+                    "where n.nspname = 'app' and c.relkind = 'r' and not c.relrowsecurity"
+                )
+            )
+            .scalars()
+            .all()
+        )
+    assert not no_rls, f"app tables without row-level security: {sorted(no_rls)}"
+    dialect = postgresql.dialect()
+    for name, table in models.items():
+        actual = {
+            column["name"]: (str(column["type"].compile(dialect=dialect)), column["nullable"])
+            for column in live[name]
+        }
+        expected = {
+            column.name: (str(column.type.compile(dialect=dialect)), column.nullable)
+            for column in table.columns
+        }
+        assert actual == expected, name

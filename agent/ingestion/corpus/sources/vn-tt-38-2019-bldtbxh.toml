@@ -1,0 +1,17 @@
+source_id = "vn-tt-38-2019-bldtbxh"
+kind = "report"
+publisher = "Thông tư liên quan Nghị định 80 năm 2019"
+title = "Thông tư liên quan Nghị định 80 năm 2019"
+language = "vi"
+country_scope = ["VN"]
+authority_tier = 2
+licence_class = "unverified"
+licence_note = "Tên đầy đủ chưa xác minh."
+evidence = "Tên đầy đủ chưa xác minh."
+[scores]
+authority = 2
+relevance = 2
+licence = 0
+language = 2
+applicability = 2
+freshness = 1

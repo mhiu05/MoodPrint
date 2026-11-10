@@ -1,0 +1,74 @@
+{
+  "status": "BLOCKED",
+  "planned_slots": 501,
+  "requests_max_by_plan": {
+    "final-fixture": 1638,
+    "real-knowledge": 480,
+    "s06-mechanisms": 300
+  },
+  "requests_max": 2418,
+  "tokens_max": 30060000,
+  "request_cap_tokens_envelope": 667600128,
+  "usd_max_historical_snapshot": 15.03,
+  "assumptions": {
+    "input_cap": 272000,
+    "existing_per_slot_max_tokens_per_run": 60000,
+    "usd_bound": "all tokens billed at highest output unit price (conservative)",
+    "output_cap": 4096,
+    "pricing_verified_on": "2026-11-08",
+    "no_cached_discount": true,
+    "no_retries": true,
+    "compaction": "not wired in this eval harness",
+    "Voyage": "separate authorization/metering required by real adapter factory"
+  },
+  "approval_request": {
+    "approved_by": null,
+    "approved_on": null,
+    "existing_cumulative_ledger": "C:\\Users\\minhh\\orca\\workspaces\\MoodPrint\\agent-companin\\.local\\eval-spend.jsonl",
+    "additional_calls": null,
+    "additional_tokens": null,
+    "additional_usd": null,
+    "expiry": null,
+    "scopes": null,
+    "published_corpus_version": null,
+    "corpus_manifest_sha256": null,
+    "synthetic_data_only": true,
+    "no_model_judge": true,
+    "hosted_excluded": true
+  },
+  "budget_evidence": {
+    "status": "BLOCKED",
+    "reason": "no paid execution authorized; cumulative call cap exhausted",
+    "budget_sha256": "e1a478a093e0e609a258f08adedeae5b1407549ccd4f5b6092bd7581f7240d47",
+    "ledger_sha256": "87172cf780ea8ef88cd4b51a522aca1b7005f1e5a4d45bc0280e79d594ebfebf",
+    "approved_limits": {
+      "model": "gpt-6-luna",
+      "max_usd": 2.9,
+      "max_tokens_total": 8000000,
+      "max_tokens_per_run": 60000,
+      "max_calls_total": 900,
+      "max_output_tokens_per_request": 4096,
+      "scopes": [
+        "phase3-live-compat",
+        "phase3-eval"
+      ],
+      "expires_on": "2026-11-12T00:00:00+00:00",
+      "pricing": {
+        "verified_on": "2026-11-08",
+        "source": "https://developers.openai.com/api/docs/pricing",
+        "service_tier": "default",
+        "max_input_tokens": 272000,
+        "price_usd_per_mtok": {
+          "input": 0.1,
+          "cached_input": 0.01,
+          "output": 0.5
+        }
+      }
+    },
+    "calls": 900,
+    "committed_usd": 0.16324955,
+    "spent_tokens": 1796840,
+    "held_tokens": 33326,
+    "unknown_calls": 6
+  }
+}

@@ -1,0 +1,21 @@
+source_id = "vn-luat-tre-em-vbhn108-2025"
+kind = "law"
+publisher = "Văn phòng Quốc hội"
+title = "Luật Trẻ em — văn bản hợp nhất 108/VBHN-VPQH ngày 27-08-2025"
+url = "https://vanban.chinhphu.vn/?docid=215227&pageid=27160"
+language = "vi"
+country_scope = ["VN"]
+authority_tier = 1
+licence_class = "open_reuse"
+licence_note = "Legal text only, excluding portal commentary, photographs and layout. Reuse basis: Intellectual Property Law Article 15(2), latest official consolidation 160/2026/VBHN-LQ-VPQH, PDF page 14 (printed Gazette page 15); https://congbaocdn.chinhphu.vn/180507251028987904/2026/10/6/470657-1791273236_v1_1791273883_signed.pdf"
+licence_quote = "Văn bản quy phạm pháp luật (Luật Sở hữu trí tuệ, Điều 15 khoản 2)."
+verified_on = "2026-11-09"
+retrieved_on = "2026-11-09"
+evidence = "Official 40-page consolidated text, original/luat-tre-em-108-vbhn-vpqh-2025.pdf SHA256 97ba73c1f8cd155dbeca5d96e9dc993b8410f4bffe60592f443ca8039735c0ed. Identity and Articles 1, 6(11), 21, 27, 51 read from primary PDF. Page 1 lists amendments effective through 01-01-2026. This is a distinct revision; old vn-luat-tre-em-2016 remains untouched. No comprehensive current-status certification or human proofreading claimed."
+[scores]
+authority = 3
+relevance = 3
+licence = 3
+language = 3
+applicability = 3
+freshness = 2

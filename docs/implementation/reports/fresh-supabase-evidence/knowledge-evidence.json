@@ -1,0 +1,289 @@
+{
+  "rehearsal": {
+    "failed_validation_rolls_back_every_row": true,
+    "version": "kb-20261110-98",
+    "published": true,
+    "idempotent": false,
+    "documents": 57,
+    "chunks": 80,
+    "citation_problems": [],
+    "embedding_model": "voyage-4",
+    "payload_sha256": "5507bbf016855919aea6164d23cae48e4032d45e377fd8e0a2890bb5b2e1333c",
+    "replay_idempotent": true,
+    "database_citation_drift_rejected": true,
+    "local_fixture_changes_rolled_back": true
+  },
+  "published": {
+    "project_ref": "xhlshihobyxrgfqrdafh",
+    "head": "42eee54bb92572783cb6d7466eeb7f5867e8f3ac",
+    "version": "kb-20261109-07",
+    "manifest_sha256": "f5e14a3b96c14c8aed2ba3d144d29e680c52132861b18c470185a07e8343ffe8",
+    "payload_sha256": "5507bbf016855919aea6164d23cae48e4032d45e377fd8e0a2890bb5b2e1333c",
+    "database_hostname": "aws-0-ap-northeast-2.pooler.supabase.com",
+    "migration_history": [
+      [
+        "20261107100631",
+        "f0_extensions_roles"
+      ],
+      [
+        "20261107100639",
+        "f0_private_helpers"
+      ],
+      [
+        "20261107100645",
+        "f0_profiles"
+      ],
+      [
+        "20261107100649",
+        "f0_conversations"
+      ],
+      [
+        "20261107100653",
+        "f0_agent_store"
+      ],
+      [
+        "20261107100719",
+        "f0_memory"
+      ],
+      [
+        "20261107100725",
+        "f0_storage_bucket"
+      ],
+      [
+        "20261107100731",
+        "f0_reconciler"
+      ],
+      [
+        "20261107103611",
+        "f0_memory_candidate_provenance"
+      ],
+      [
+        "20261107104050",
+        "f0_memory_retrieval_metadata"
+      ],
+      [
+        "20261107121921",
+        "f0_covering_fk_indexes"
+      ],
+      [
+        "20261107124427",
+        "f1_cases"
+      ],
+      [
+        "20261107124432",
+        "f1_evidence"
+      ],
+      [
+        "20261107124440",
+        "f1_plans_support"
+      ],
+      [
+        "20261107124450",
+        "f1_sharing"
+      ],
+      [
+        "20261107130219",
+        "f1_upload_rate_counter"
+      ],
+      [
+        "20261107140312",
+        "f1_account_deletion_guard"
+      ],
+      [
+        "20261108100100",
+        "ag_proposals"
+      ],
+      [
+        "20261108100200",
+        "ag_analysis_requests"
+      ],
+      [
+        "20261108100300",
+        "ag_roleplay_sessions"
+      ],
+      [
+        "20261108100400",
+        "ag_message_attachments"
+      ],
+      [
+        "20261108100500",
+        "ag_message_assessments"
+      ],
+      [
+        "20261108190000",
+        "kb_schema"
+      ],
+      [
+        "20261109132352",
+        "kb_fix_private_ingestion_privileges"
+      ]
+    ],
+    "existing_versions": [
+      [
+        "kb-20261109-07",
+        "published"
+      ]
+    ],
+    "documents": 57,
+    "chunks": 80,
+    "published": true,
+    "idempotent": true,
+    "citation_problems": [],
+    "embedding_model": "voyage-4"
+  },
+  "functional_search": {
+    "source_commit": "d31042cb385d705c62d1dfa998a620983ebfe0fc",
+    "model": "gpt-6-luna",
+    "group": "auth-security",
+    "judge": "Codex direct review; separate grades file",
+    "records": [
+      {
+        "scenario_id": "KB-functional",
+        "published_corpus": {
+          "version": "kb-20261109-07",
+          "documents": 57,
+          "chunks": 80,
+          "publishedAt": "2026-11-10"
+        },
+        "search": {
+          "status": "ok",
+          "corpusVersion": "kb-20261109-07",
+          "mode": "hybrid",
+          "degraded": false,
+          "latencyMs": 3983,
+          "chunks": [
+            {
+              "chunkId": "kb-evid-luu-truoc-khi-chan#000-10d2cae1",
+              "text": "Khi chặn một tài khoản, bạn có thể không còn thấy cuộc trò chuyện hoặc trang của họ. Khi người kia xóa bài hoặc thu hồi tin nhắn, bằng chứng biến mất. Vì vậy hãy chụp và lưu trước, rồi mới chặn. Sao lưu ở chỗ an toàn. Giữ ít nhất hai bản: một trên thiết bị của bạn, một ở nơi khác như gửi cho người lớn tin cậy hoặc lưu trong tài khoản riêng của bạn. Đừng chuyển bằng chứng cho bạn bè để họ \"giữ giúp\", vì nội dung có thể bị lan ra. Nếu thiết bị của bạn có thể bị người khác dùng, hãy đặt mật khẩu và kiểm tra ai biết mã mở khóa. Khi tin nhắn tự mất. Một số ứng dụng cho tin nhắn tự hủy hoặc ảnh xem một lần. Hãy chụp màn hình hoặc nhờ người lớn quay lại màn hình trước khi tin biến mất. Ghi rõ lý do bản chụp có thể không đầy đủ, và ghi lại lời của người gửi ngay khi bạn nhớ.",
+              "score": 1.0,
+              "matchKind": "hybrid",
+              "citation": {
+                "sourceId": "mp-authored",
+                "documentId": "kb-evid-luu-truoc-khi-chan",
+                "title": "Thứ tự an toàn: lưu, sao lưu, rồi mới chặn hoặc xóa",
+                "publisher": "MoodPrint biên soạn — dựa trên MoodPrint",
+                "url": null,
+                "section": "Vì sao thứ tự quan trọng",
+                "publishedAt": null,
+                "lastReviewed": "2026-11-09",
+                "applicability": "Thẻ biên soạn của MoodPrint cho học sinh tại Việt Nam; không thay thế tư vấn pháp lý, y tế hoặc tâm lý.",
+                "countryScope": [
+                  "VN"
+                ]
+              }
+            },
+            {
+              "chunkId": "kb-evid-dieu-khong-nen#001-cc64b28f",
+              "text": "Đừng chỉnh bản chụp, đừng nhờ bạn nhắn tin để \"bẫy\" người kia nói điều xấu. Bằng chứng càng nguyên vẹn thì càng đáng tin.",
+              "score": 0.9807692307692308,
+              "matchKind": "hybrid",
+              "citation": {
+                "sourceId": "mp-authored",
+                "documentId": "kb-evid-dieu-khong-nen",
+                "title": "Khi giữ bằng chứng, những điều không nên làm",
+                "publisher": "MoodPrint biên soạn — dựa trên MoodPrint",
+                "url": null,
+                "section": "Không sửa, không dàn dựng",
+                "publishedAt": null,
+                "lastReviewed": "2026-11-09",
+                "applicability": "Thẻ biên soạn của MoodPrint cho học sinh tại Việt Nam; không thay thế tư vấn pháp lý, y tế hoặc tâm lý.",
+                "countryScope": [
+                  "VN"
+                ]
+              }
+            },
+            {
+              "chunkId": "kb-evid-chup-man-hinh#000-774c6c9f",
+              "text": "Một bản chụp tốt có đủ bốn thứ: tên hoặc tên tài khoản của người gửi, nội dung, ngày giờ, và những dòng trước sau để thấy ngữ cảnh. Một dòng chữ cắt riêng lẻ dễ bị nghi ngờ hoặc bị hiểu sai. Hãy chụp từ đầu cuộc trò chuyện ngược xuống khi có thể. Giữ nguyên bản. Không cắt, không tô, không chỉnh sửa ảnh. Nếu cần che thông tin để chia sẻ, hãy làm bản sao và giữ bản gốc. Lưu cả bản chụp lẫn đường dẫn của bài đăng hoặc hồ sơ. Kiểm tra giờ trên máy của bạn đã đúng chưa, vì ngày giờ ở bản chụp phụ thuộc vào đó. Đặt tên và cất giữ. Đặt tên tệp theo ngày, ví dụ \"2026-11-03-tin-nhan-ban-A\". Lưu vào một thư mục riêng và gửi một bản cho người lớn bạn tin hoặc lưu vào chỗ không bị người khác truy cập. Thêm một dòng ghi chú: đây là gì, ở ứng dụng nào, bạn nhận lúc nào.",
+              "score": 0.9622641509433962,
+              "matchKind": "hybrid",
+              "citation": {
+                "sourceId": "mp-authored",
+                "documentId": "kb-evid-chup-man-hinh",
+                "title": "Cách chụp màn hình tin nhắn và bài đăng để dùng được làm bằng chứng",
+                "publisher": "MoodPrint biên soạn — dựa trên MoodPrint",
+                "url": null,
+                "section": "Chụp đủ để người khác hiểu",
+                "publishedAt": null,
+                "lastReviewed": "2026-11-09",
+                "applicability": "Thẻ biên soạn của MoodPrint cho học sinh tại Việt Nam; không thay thế tư vấn pháp lý, y tế hoặc tâm lý.",
+                "countryScope": [
+                  "VN"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "checks": [
+      {
+        "name": "Auth a profile identity",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "Auth b profile identity",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "Invalid JWT rejected",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "Unauthenticated profile rejected",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "Real hosted refresh token",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "Real hosted logout",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "Logged-out refresh token rejected",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "Real hosted relogin",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "User-editable metadata exercised",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "Metadata cannot enable school administration",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "Real Knowledge Hub published corpus",
+        "passed": true,
+        "detail": null
+      },
+      {
+        "name": "Real Knowledge Hub search",
+        "passed": true,
+        "detail": null
+      }
+    ],
+    "ledger": {
+      "calls": 900,
+      "committed_usd": 0.16324955,
+      "spent_tokens": 1796840,
+      "reserved_tokens": 33326,
+      "unknown_calls": 6
+    }
+  }
+}

@@ -1,0 +1,185 @@
+# Benchmark v2 authoring source. Format: topic | style | query | relevant (alias:grade, ...)
+# styles: std, slang, narr, eng, nodiac (typed without diacritics by hand), auto (written with
+# diacritics here; build_v2.py strips them to make a no-diacritic variant).
+# grade 2 = answers the need directly, 1 = useful in part. Aliases are expanded in build_v2.py.
+# Authored by the same coding agent that wrote the corpus: no independent human validation.
+cyber|std|làm sao để lưu tin nhắn đe dọa trước khi bị xóa|cyber-tin-nhan-doa:2,evid-luu-truoc-khi-chan:2,evid-chup-man-hinh:1
+cyber|std|có người tạo tài khoản mạo danh mình trên mạng xã hội phải làm gì|cyber-tai-khoan-gia:2,plat-luu-chan-bao-cao:1
+cyber|std|bạn cùng lớp đăng ảnh chế giễu mình lên nhóm lớp|cyber-bai-dang-boc-phot:2,by-thay-tren-mang:1,plat-roi-nhom-chat:1
+cyber|std|bị dọa tung ảnh nhạy cảm nếu không gửi thêm|cyber-anh-rieng-tong-tien:2
+cyber|auto|đối phương nhắn tin chửi bới liên tục mỗi tối|cyber-tin-nhan-doa:2,plat-luu-chan-bao-cao:1
+cyber|slang|bị group lớp bóc phốt trên mạng, nhục quá|cyber-bai-dang-boc-phot:2,emo-phan-ung-thuong-gap:1
+cyber|slang|thằng kia dọa lộ ảnh của mình rồi đòi tiền|cyber-anh-rieng-tong-tien:2
+cyber|slang|bị troll dưới bài đăng của mình mãi|cyber-bai-dang-boc-phot:2,plat-luu-chan-bao-cao:1
+cyber|narr|tối qua có số lạ nhắn bảo sẽ đánh mình, mình không dám ngủ|cyber-tin-nhan-doa:2,urg-bi-doa-thoi-gian-cu-the:1,emo-phan-ung-thuong-gap:1
+cyber|narr|hình như có người giả làm mình nhắn tin cho bạn bè mình|cyber-tai-khoan-gia:2
+cyber|eng|bị cyberbully trên TikTok thì report sao|plat-luu-chan-bao-cao:2,cyber-bai-dang-boc-phot:1,evid-luu-truoc-khi-chan:1
+cyber|eng|có người spam inbox đe dọa mình, block luôn được không|cyber-tin-nhan-doa:2,plat-luu-chan-bao-cao:2
+cyber|nodiac|bi ban nhan tin de doa trong nhom lop|cyber-tin-nhan-doa:2,plat-roi-nhom-chat:1
+cyber|nodiac|co nguoi gia mao tai khoan facebook cua minh|cyber-tai-khoan-gia:2
+cyber|nodiac|bi dua anh rieng len mang phai lam sao|cyber-anh-rieng-tong-tien:2,cyber-bai-dang-boc-phot:1
+cyber|std|nhóm chat lớp toàn người chế nhạo mình nên rời hay ở lại|plat-roi-nhom-chat:2,excl-bi-loai-khoi-nhom:1
+cyber|slang|bị hack acc rồi đăng bậy bạ|cyber-tai-khoan-gia:2
+cyber|narr|có clip của mình bị quay lén rồi chuyền nhau xem|cyber-bai-dang-boc-phot:2,cyber-anh-rieng-tong-tien:1
+cyber|std|người lạ trên mạng đòi xem ảnh riêng của tôi|cyber-anh-rieng-tong-tien:2
+cyber|std|bị nhắn tin dọa đánh sau giờ học ngày mai|urg-bi-doa-thoi-gian-cu-the:2,cyber-tin-nhan-doa:2
+evidence|std|cách chụp màn hình để làm bằng chứng|evid-chup-man-hinh:2,L-luu-anh:2,evid-luu-truoc-khi-chan:1
+evidence|std|nên viết nhật ký sự việc như thế nào|evid-nhat-ky-su-viec:2,L-tom-tat:1
+evidence|std|nên chặn trước hay lưu bằng chứng trước|evid-luu-truoc-khi-chan:2,plat-luu-chan-bao-cao:1
+evidence|std|có được đăng bằng chứng lên mạng để tố cáo không|evid-dieu-khong-nen:2
+evidence|slang|chụp màn hình sao cho khỏi bị bảo là fake|evid-chup-man-hinh:2
+evidence|slang|ghi lại chuyện bị bắt nạt kiểu gì cho gọn|evid-nhat-ky-su-viec:2,L-bat-nat-la-gi:1
+evidence|narr|mình sợ tin nhắn bị người ta thu hồi mất, giữ thế nào|evid-luu-truoc-khi-chan:2,evid-chup-man-hinh:1,cyber-tin-nhan-doa:1
+evidence|narr|mình có ảnh riêng của bạn khác trong tin nhắn, có nên gửi cho thầy cô không|evid-dieu-khong-nen:2,by-thay-tren-mang:1,cyber-anh-rieng-tong-tien:1
+evidence|eng|screenshot chat thế nào mới tính là evidence|evid-chup-man-hinh:2
+evidence|nodiac|luu bang chung tin nhan nhu the nao|evid-chup-man-hinh:2,evid-luu-truoc-khi-chan:1
+evidence|nodiac|co nen vao tai khoan no de lay bang chung khong|evid-dieu-khong-nen:2
+evidence|auto|vết thương nên chụp ảnh thế nào để làm bằng chứng|phys-sau-khi-bi-thuong:2
+evidence|slang|tin nhắn tự xóa thì làm sao giữ|evid-luu-truoc-khi-chan:2,cyber-tin-nhan-doa:1
+evidence|std|bằng chứng nên cất ở đâu cho an toàn|evid-luu-truoc-khi-chan:2,evid-chup-man-hinh:1
+help-seeking|std|nên nói chuyện với ai khi bị bắt nạt ở trường|help-chon-nguoi-nao:2,L-giao-vien:1,L-cham-soc:1
+help-seeking|std|câu mở đầu để kể với cô giáo|help-cau-mo-loi:2,L-giao-vien:2
+help-seeking|std|mình sợ bị trả thù nếu mách thầy cô|help-so-tra-thu:2
+help-seeking|auto|tổng đài 111 là gì, có mất tiền không|L-111:2,help-chon-nguoi-nao:1
+help-seeking|slang|ngại kể với mẹ lắm, nói sao đây|L-cham-soc:2,help-cau-mo-loi:2
+help-seeking|slang|sợ bị gọi là đồ mách lẻo|help-so-tra-thu:2
+help-seeking|narr|mình bị bắt nạt hơn một tháng rồi mà chưa dám nói với ai|help-chon-nguoi-nao:2,help-cau-mo-loi:2
+help-seeking|narr|cô giáo bảo đừng để ý nữa nhưng mình vẫn bị|help-chon-nguoi-nao:2,school-theo-doi-leo-thang:1
+help-seeking|eng|how do i tell my teacher about bullying|help-cau-mo-loi:2,L-giao-vien:2
+help-seeking|nodiac|minh nen noi voi ai khi bi ban be co lap|help-chon-nguoi-nao:2,excl-bi-loai-khoi-nhom:1
+help-seeking|nodiac|goi 111 thi ai nghe may|L-111:2
+help-seeking|std|nhắn tin cho giáo viên chủ nhiệm về chuyện bắt nạt như thế nào|help-cau-mo-loi:2,L-giao-vien:1
+help-seeking|std|viết một tóm tắt ngắn để đưa cho người lớn|L-tom-tat:2,evid-nhat-ky-su-viec:1
+help-seeking|std|sau khi kể với thầy cô thì nên hỏi lại khi nào|L-theo-doi:2,school-theo-doi-leo-thang:2
+physical|std|bị bạn đẩy ngã ở hành lang thì làm gì ngay|phys-ngay-luc-bi-danh:2,phys-sau-khi-bi-thuong:1
+physical|std|sau khi bị đánh có cần đi khám không|phys-sau-khi-bi-thuong:2,phys-ngay-luc-bi-danh:1
+physical|std|bạn giật cặp sách của mình|phys-do-dac-cap-sach:2
+physical|std|bị chặn ở nhà vệ sinh sau giờ học|phys-noi-vang-nguoi:2,urg-duong-ve-nha:1
+physical|slang|bị tụi nó vây đánh sau trường|phys-ngay-luc-bi-danh:2,urg-dang-nguy-hiem:1,phys-noi-vang-nguoi:1,phys-sau-khi-bi-thuong:1
+physical|slang|bị giấu đồ hoài, giật điện thoại luôn|phys-do-dac-cap-sach:2
+physical|narr|ngã đập đầu xuống sân sau khi bị xô, giờ hơi chóng mặt|phys-sau-khi-bi-thuong:2,phys-ngay-luc-bi-danh:1
+physical|narr|tan học nào cũng có người đứng chờ ở cổng sau|phys-noi-vang-nguoi:2,urg-duong-ve-nha:2
+physical|eng|someone pushed me down the stairs what do i do|phys-ngay-luc-bi-danh:2,phys-sau-khi-bi-thuong:1
+physical|nodiac|bi xo day o san truong|phys-ngay-luc-bi-danh:2
+physical|nodiac|bi danh co can chup anh vet thuong khong|phys-sau-khi-bi-thuong:2
+physical|auto|có nên đánh trả khi bị đánh|phys-ngay-luc-bi-danh:2
+verbal-social|std|bị đặt biệt danh xấu về ngoại hình|verb-biet-danh-ngoai-hinh:2
+verbal-social|std|bị đồn thổi chuyện không đúng sự thật trong lớp|verb-tin-don-noi-xau:2
+verbal-social|auto|bị cả lớp cười khi phát biểu|verb-bi-nhai-cuoi-nhao:2
+verbal-social|slang|bị trêu mập suốt, chịu hết nổi|verb-biet-danh-ngoai-hinh:2,emo-phan-ung-thuong-gap:1
+verbal-social|slang|bị nhại giọng hoài|verb-bi-nhai-cuoi-nhao:2
+verbal-social|narr|có đứa bịa chuyện về mình rồi cả khối biết hết|verb-tin-don-noi-xau:2,cyber-bai-dang-boc-phot:1
+verbal-social|narr|đi qua là bị nói tục, mình không muốn đến lớp nữa|verb-bi-nhai-cuoi-nhao:2,emo-phan-ung-thuong-gap:1
+verbal-social|eng|classmates keep making fun of my accent|verb-bi-nhai-cuoi-nhao:2,verb-biet-danh-ngoai-hinh:1
+verbal-social|nodiac|bi dat biet danh xau xi|verb-biet-danh-ngoai-hinh:2
+verbal-social|nodiac|bi noi xau sau lung phai lam sao|verb-tin-don-noi-xau:2
+exclusion|std|bị nhóm bạn loại ra khỏi nhóm học tập|excl-bi-loai-khoi-nhom:2
+exclusion|auto|không ai chơi cùng mình ở lớp|excl-bi-pho-lo-o-lop:2,excl-bi-loai-khoi-nhom:1
+exclusion|std|bạn bắt mình làm bài hộ nếu muốn chơi chung|excl-ep-lam-theo-nhom:2
+exclusion|slang|bị cả hội bơ, nhắn không ai rep|excl-bi-pho-lo-o-lop:2
+exclusion|slang|bị kick khỏi group chat|excl-bi-loai-khoi-nhom:2,plat-roi-nhom-chat:1
+exclusion|narr|ăn trưa một mình cả tuần rồi|excl-bi-pho-lo-o-lop:2,emo-phan-ung-thuong-gap:1
+exclusion|narr|tụi nó bảo phải đưa tiền ăn sáng mới cho vào nhóm|excl-ep-lam-theo-nhom:2
+exclusion|eng|my friends all stopped talking to me after a fight|excl-bi-loai-khoi-nhom:2,excl-bi-pho-lo-o-lop:1
+exclusion|nodiac|bi co lap trong lop|excl-bi-loai-khoi-nhom:2,excl-bi-pho-lo-o-lop:1
+exclusion|nodiac|bi ep lam theo nhom neu khong bi bo roi|excl-ep-lam-theo-nhom:2
+school-procedure-vn|std|nhà trường phải làm gì khi có bạo lực học đường|school-quy-trinh-khung:2,ND80:1,legal-nd80-tong-quan:1,phys-sau-khi-bi-thuong:1
+school-procedure-vn|auto|chuẩn bị gì trước khi gặp ban giám hiệu|school-chuan-bi-gap-thay-co:2
+school-procedure-vn|std|đã báo rồi mà trường không giải quyết thì làm gì|school-theo-doi-leo-thang:2,legal-khi-nao-bao-cong-an:1,school-quy-trinh-khung:1
+school-procedure-vn|std|trường có kênh nào để học sinh báo tin|legal-quyen-nguoi-hoc:2,ND80:1
+school-procedure-vn|slang|báo cô rồi mà vẫn y như cũ|school-theo-doi-leo-thang:2
+school-procedure-vn|narr|ba mẹ muốn lên trường nói chuyện nhưng mình chưa biết nên đưa gì|school-chuan-bi-gap-thay-co:2,pt-cha-me-lang-nghe:1
+school-procedure-vn|narr|mình đã nộp đơn cho nhà trường tuần trước nhưng chưa ai trả lời|school-theo-doi-leo-thang:2,L-theo-doi:1
+school-procedure-vn|eng|what should the school do when i report bullying|school-quy-trinh-khung:2,pt-giao-vien-tiep-nhan:1
+school-procedure-vn|nodiac|truong co phai bao cho phu huynh khong|school-quy-trinh-khung:2,ND80:1,legal-quyen-nguoi-hoc:1
+school-procedure-vn|nodiac|gap giao vien can mang theo nhung gi|school-chuan-bi-gap-thay-co:2
+legal-vn|std|nghị định 80 năm 2017 quy định gì|legal-nd80-tong-quan:2,ND80:2,legal-quyen-nguoi-hoc:1
+legal-vn|std|định nghĩa bạo lực học đường theo pháp luật|legal-nd80-tong-quan:2,ND80:2,def-ba-dau-hieu:1
+legal-vn|auto|khi nào nhà trường phải báo công an|legal-khi-nao-bao-cong-an:2,school-quy-trinh-khung:1,ND80:1
+legal-vn|std|học sinh có quyền gì khi bị bắt nạt ở trường|legal-quyen-nguoi-hoc:2,ND80:1
+legal-vn|slang|luật có cấm bắt nạt không|legal-nd80-tong-quan:2,ND80:1,def-ba-dau-hieu:1
+legal-vn|narr|mẹ mình hỏi có văn bản nào quy định trách nhiệm của trường không|legal-nd80-tong-quan:2,legal-quyen-nguoi-hoc:1,ND80:1
+legal-vn|eng|is there a vietnamese law about school violence|legal-nd80-tong-quan:2,ND80:1,legal-khi-nao-bao-cong-an:1
+legal-vn|nodiac|nghi dinh 80 co hieu luc tu khi nao|ND80:2,legal-nd80-tong-quan:2
+bystander|std|thấy bạn bị bắt nạt thì mình nên làm gì|by-chung-kien-tai-cho:2
+bystander|std|bạn kể bị bắt nạt và xin đừng nói ai|by-ban-ke-bi-mat:2
+bystander|auto|thấy bài đăng nói xấu bạn mình trên mạng|by-thay-tren-mang:2,cyber-bai-dang-boc-phot:1
+bystander|slang|thấy tụi nó hành bạn mà sợ không dám nói|by-chung-kien-tai-cho:2,help-so-tra-thu:1
+bystander|slang|bạn thân bị đồn bậy, mình giúp gì được|by-chung-kien-tai-cho:2,by-thay-tren-mang:1,verb-tin-don-noi-xau:1
+bystander|narr|bạn mình bảo bị ép đưa tiền cho nhóm lớp trên, mình có nên báo thầy không|by-ban-ke-bi-mat:2,excl-ep-lam-theo-nhom:1
+bystander|eng|my friend is being bullied how can i help|by-chung-kien-tai-cho:2,by-ban-ke-bi-mat:1
+bystander|nodiac|thay ban bi danh co nen quay phim khong|by-chung-kien-tai-cho:2
+emotional-impact|std|bị bắt nạt xong thấy sợ đến trường là bình thường không|emo-phan-ung-thuong-gap:2
+emotional-impact|auto|cách bình tĩnh lại khi đang hoảng|emo-binh-tinh-nhanh:2,L-lo-lang:2
+emotional-impact|std|khi nào cần tìm người giúp ngay vì tâm trạng|emo-khi-nao-can-giup-ngay:2
+emotional-impact|slang|đau bụng mỗi sáng đi học, có phải do bị bắt nạt|emo-phan-ung-thuong-gap:2
+emotional-impact|slang|mình muốn biến mất luôn cho rồi|emo-khi-nao-can-giup-ngay:2
+emotional-impact|narr|mấy đêm rồi không ngủ được vì nghĩ tới chuyện ở lớp|emo-phan-ung-thuong-gap:2,emo-binh-tinh-nhanh:1
+emotional-impact|narr|tim đập nhanh, tay run mỗi lần thấy bạn ấy|emo-binh-tinh-nhanh:2,emo-phan-ung-thuong-gap:1
+emotional-impact|eng|feeling anxious about school every day what helps|emo-phan-ung-thuong-gap:2,emo-binh-tinh-nhanh:1,L-lo-lang:1
+emotional-impact|nodiac|lam sao de bot so khi den truong|emo-phan-ung-thuong-gap:2,emo-binh-tinh-nhanh:1
+emotional-impact|nodiac|tho the nao de bot hoang|emo-binh-tinh-nhanh:2
+parents-teachers|std|con kể bị bắt nạt thì cha mẹ nên phản ứng thế nào|pt-cha-me-lang-nghe:2,pt-ke-hoach-an-toan-gia-dinh:1
+parents-teachers|std|giáo viên nhận báo cáo bắt nạt cần làm gì đầu tiên|pt-giao-vien-tiep-nhan:2,school-quy-trinh-khung:1,ND80:1
+parents-teachers|auto|lập kế hoạch an toàn cho con ở nhà và trường|pt-ke-hoach-an-toan-gia-dinh:2
+parents-teachers|slang|con tôi bị bắt nạt, tôi có nên lao lên trường ngay không|pt-cha-me-lang-nghe:2,school-chuan-bi-gap-thay-co:1
+parents-teachers|narr|tôi là giáo viên chủ nhiệm, em học sinh khóc và nói bị bạn dọa|pt-giao-vien-tiep-nhan:2
+parents-teachers|narr|con tôi dạo này ngại đi học, hỏi thì không nói gì|pt-cha-me-lang-nghe:2,pt-ke-hoach-an-toan-gia-dinh:1
+parents-teachers|eng|my child is being bullied what should i do as a parent|pt-cha-me-lang-nghe:2,pt-ke-hoach-an-toan-gia-dinh:1
+parents-teachers|nodiac|phu huynh nen noi gi voi con bi ban be co lap|pt-cha-me-lang-nghe:2
+platform-reporting|std|chặn và báo cáo tài khoản bắt nạt trên mạng xã hội|plat-luu-chan-bao-cao:2,L-chan-bao-cao:2
+platform-reporting|std|rời khỏi nhóm chat đang chế giễu mình|plat-roi-nhom-chat:2
+platform-reporting|auto|báo cáo tài khoản giả mạo|cyber-tai-khoan-gia:2,plat-luu-chan-bao-cao:1
+platform-reporting|slang|block với report khác nhau chỗ nào|plat-luu-chan-bao-cao:2,L-chan-bao-cao:1
+platform-reporting|slang|tắt thông báo group cho đỡ phiền|plat-roi-nhom-chat:2
+platform-reporting|narr|mình muốn khóa trang cá nhân để người lạ không xem được|plat-roi-nhom-chat:2
+platform-reporting|eng|should i block or report the account harassing me|plat-luu-chan-bao-cao:2,L-chan-bao-cao:1
+platform-reporting|nodiac|bao cao bai dang xuc pham co bi lo ten khong|plat-luu-chan-bao-cao:2
+urgent-safety|std|đang bị đe dọa ngay bây giờ thì gọi ai|urg-dang-nguy-hiem:2,L-111:1,urg-bi-doa-thoi-gian-cu-the:1
+urgent-safety|std|sợ phải đi về một mình sau giờ học|urg-duong-ve-nha:2,phys-noi-vang-nguoi:1,pt-ke-hoach-an-toan-gia-dinh:1
+urgent-safety|std|bị dọa sẽ bị đánh vào ngày mai ở cổng trường|urg-bi-doa-thoi-gian-cu-the:2
+urgent-safety|auto|số điện thoại khẩn cấp khi bị bạo lực|urg-dang-nguy-hiem:2,L-111:2
+urgent-safety|slang|có người đang đứng chờ mình ngoài cổng, mình sợ ra|urg-duong-ve-nha:2,urg-dang-nguy-hiem:1
+urgent-safety|slang|bị đi theo về nhà|urg-duong-ve-nha:2,urg-dang-nguy-hiem:2,pt-ke-hoach-an-toan-gia-dinh:1
+urgent-safety|narr|nó nhắn là chiều nay đợi ở sau nhà để xe, mình có nên đến không|urg-bi-doa-thoi-gian-cu-the:2
+urgent-safety|eng|i'm in danger right now at school who to call|urg-dang-nguy-hiem:2,L-111:1
+urgent-safety|nodiac|co nguoi doa danh toi chieu nay|urg-bi-doa-thoi-gian-cu-the:2,urg-dang-nguy-hiem:1
+urgent-safety|nodiac|bi chan duong sau gio hoc|urg-duong-ve-nha:2,phys-noi-vang-nguoi:1
+definition|std|thế nào được coi là bắt nạt học đường|def-ba-dau-hieu:2,L-bat-nat-la-gi:2,def-cac-hinh-thuc:1,ND80:1
+definition|std|trêu đùa và bắt nạt khác nhau chỗ nào|def-dua-hay-bat-nat:2,def-ba-dau-hieu:1
+definition|std|có những hình thức bắt nạt nào|def-cac-hinh-thuc:2
+definition|slang|bạn đùa dai thế có tính là bắt nạt không|def-dua-hay-bat-nat:2,def-ba-dau-hieu:1
+definition|narr|mình không chắc việc nhóm kia làm có phải bắt nạt hay chỉ là đùa|def-dua-hay-bat-nat:2,def-ba-dau-hieu:2,L-bat-nat-la-gi:1
+definition|narr|bị cô lập và bị nói xấu có tính là bắt nạt không|def-cac-hinh-thuc:2,def-ba-dau-hieu:1,excl-bi-loai-khoi-nhom:1
+definition|eng|what counts as bullying at school|def-ba-dau-hieu:2,def-cac-hinh-thuc:1,L-bat-nat-la-gi:2,ND80:1
+definition|nodiac|bat nat la gi|L-bat-nat-la-gi:2,def-ba-dau-hieu:2,def-cac-hinh-thuc:1
+none|oos|công thức làm bánh flan|
+none|oos|thời tiết Hà Nội ngày mai|
+none|oos|giải bài toán tích phân từng phần|
+none|oos|cách đánh bóng bàn cho người mới|
+none|oos|tỷ số trận chung kết sea games|
+none|oos|cách xóa tin nhắn rác cho đỡ đầy bộ nhớ điện thoại|
+none|oos|xem phim hành động mới nhất|
+none|oos|mẹo học từ vựng tiếng anh nhanh|
+none|oos|giá vàng hôm nay|
+none|oos|cách trồng cây xương rồng|
+none|oos|thuật toán sắp xếp nhanh quicksort|
+none|oos|làm sao để bắt cá ở ao|
+none|oos|lịch thi đấu bóng đá ngoại hạng anh|
+none|oos|cách chặn quảng cáo trên trình duyệt web|
+none|oos|đăng ký tài khoản ngân hàng online|
+none|oos|kể chuyện cổ tích cho bé|
+none|oos|điều kiện xét tuyển đại học năm nay|
+none|oos|báo cáo thực hành môn hóa lớp 9|
+none|oos|bài hát nhạc trẻ mới ra|
+none|oos|dịch câu này sang tiếng anh giúp mình|
+none|gap|mức phạt tiền cho học sinh đánh bạn là bao nhiêu|
+none|gap|học sinh bao nhiêu tuổi thì phải chịu trách nhiệm hình sự|
+none|gap|quy chế xử lý kỷ luật học sinh của trường THCS Nguyễn Du|
+none|gap|thủ tục chuyển trường khi bị bắt nạt|
+none|gap|bắt nạt ở nơi làm việc thì xử lý thế nào|
+none|gap|thuốc gì chữa trầm cảm cho học sinh|
+none|gap|luật chống bắt nạt học đường ở Mỹ quy định gì|
+none|gap|số điện thoại hiệu trưởng trường mình|
+none|gap|địa chỉ trung tâm tư vấn tâm lý học sinh ở Đà Nẵng|
+none|gap|được bồi thường bao nhiêu tiền viện phí khi bị đánh ở trường|

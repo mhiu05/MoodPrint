@@ -1,0 +1,19 @@
+source_id = "moet-portal"
+kind = "guideline"
+publisher = "Bộ Giáo dục và Đào tạo"
+title = "Cổng thông tin Bộ Giáo dục và Đào tạo"
+url = "https://moet.gov.vn/"
+language = "vi"
+country_scope = ["VN"]
+authority_tier = 1
+licence_class = "reference_only"
+licence_note = "Trang ghi bản quyền thuộc Bộ GD&ĐT. Không nhúng văn bản chưa đối chiếu điều khoản."
+verified_on = "2026-11-08"
+evidence = "Trang chủ moet.gov.vn được đọc 2026-11-08; không thấy cẩm nang bắt nạt được phép tái sử dụng."
+[scores]
+authority = 3
+relevance = 2
+licence = 1
+language = 3
+applicability = 3
+freshness = 3

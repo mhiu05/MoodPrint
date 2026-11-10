@@ -1,0 +1,9 @@
+{
+  "after_db_ready": [
+    {
+      "name": "knowledge-seed",
+      "cmd": ["python", "scripts/e2e_seed.py"],
+      "optional": true
+    }
+  ]
+}

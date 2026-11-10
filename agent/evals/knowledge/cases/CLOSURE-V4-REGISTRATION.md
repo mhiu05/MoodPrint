@@ -1,0 +1,16 @@
+# V4 supplemental retrieval protocol (frozen before execution)
+
+The implementation and ranking configuration remain locked at `5de00ced` / `evidence-support-v2`. This additional set was designed AFTER the V3 results were inspected: V3 has 13 primary topics and a narrower style distribution. It is a coverage repair, not an independent untouched holdout, and does not replace V3 or the original inspected v2 evidence.
+
+`benchmark_v4.freeze.json` pins normalized LF bytes, labels, corpus and source. Commit both dataset and freeze before executing any V4 retrieval. No implementation tuning, relabelling, selective dropping or method selection after results. Report failures as measured.
+
+- 180 queries: 150 answerable variants (30 situations x 5) and 30 negatives (10 in-domain gaps, 20 out of scope).
+- All 14 original subject groups; positive styles: 50 standard, 35 without diacritics, 30 slang, 25 narrative, 10 English. Positive language filter remains Vietnamese corpus material, including English queries.
+- Template/style variants are correlated. The same coding agent read the full source cards and authored the queries, primary labels and four graded secondary-document labels. No independent human annotation, blind authorship or exhaustive pooled relevance review is claimed. The negative set is small, mostly standard Vietnamese and scope-focused.
+- Mixed/ambiguous wording, composite requests with multiple answer-bearing cards, exact supported/unsupported facts, foreign legal scope, institutional rules, clinical insufficiency and unrelated tasks are represented.
+- Development stays the already inspected v2 dev split. Production stays vector-led locked ranking + support, unchanged thresholds/per-document cap. Compare `topic_only`, `locked`, `A_lexical_only`, `B_vector_only`, `C_hybrid_rrf`, `Cprime_blend` on the same corpus `kb-20261109-07` and cached query vectors. Reranking and other embedding models are NOT_RUN (not authorized).
+- Use existing `run_closure.py --split test --freeze ... --cases ...`, with the original cumulative Voyage ledger and authorized synthetic embeddings only. No paid judge/OpenAI calls. The first method may populate the embedding cache; its latency fields must not be described as cache-only. Other methods reuse it. Fresh provider latency is already measured separately on the frozen V3 systematic sample.
+- Report Recall@5/10, hit@5, MRR@10, nDCG@10, P@1, no-result/gap/OOS accuracy, false-result/false-no-result, citation integrity, latency and per-case errors. Required point targets remain Recall@5 >= .80, no-result >= .90 and citations = 1.00. Do not reject answerable queries just to improve no-result.
+- The runner's seeded per-query bootstrap is descriptive and optimistic because variants share seeds. Also report Wilson intervals for binary outcomes; do not interpret a small correlated synthetic set as population or safety assurance.
+
+V3 registration's statement that all 14 topics were represented referred to intended design; actual primary-topic coverage was 13 (missing `verbal-social`). This erratum preserves the earlier file and all results. V4 explicitly adds that topic and matches the original positive style counts. The freeze is a reproducibility record, not external validation.

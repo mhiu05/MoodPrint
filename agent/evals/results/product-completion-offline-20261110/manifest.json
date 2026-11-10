@@ -1,0 +1,345 @@
+{
+  "schema_version": 1,
+  "execution_mode": "SCRIPTED_OFFLINE",
+  "live_status": "NOT_RUN",
+  "paid_provider_calls": 0,
+  "semantic_quality_status": "NOT_GRADED",
+  "cases": 20,
+  "checks": 151,
+  "failed_checks": 0,
+  "provenance": {
+    "source_commit": "e02abdfab5221ffc7b620104194387ab15e6feb1",
+    "source_sha256": "017623e704cda8838a0f104b4427966c328a30b51be49775acd17dbf1887b52a",
+    "prompt_sha256": {
+      "companion_v4": "7777b4f52febb823465475f532b315f1fa92ebeab1b031587089eff1ab1017f9",
+      "roleplay_partner_v2": "9011d918e58f12088b864b845fe382f29882cc134bba65fb67fb22cc41a55307",
+      "roleplay_coach_v1": "671dcf3ab3a3eccd28cec2a5c97dc194b5abed750feec7890dcc6d5da248d2bd",
+      "evidence_reader_v1": "f99c4c151002c649f5628a12ae7094ed92fe42098f76114b07b25da5f8593b0c",
+      "risk_assessor_v1": "c15edb0d5aaa824a4008d19b649569c20765a67ed065f293e7c68e83a8570c3a"
+    },
+    "model": "gpt-6-luna",
+    "openai": "3.46.0",
+    "openai_agents": "0.24.0",
+    "effort": "low",
+    "tools_version": "e876c3dd0e92a614",
+    "config_sha256": "d1b620e22c1c50a71a8d17075105601472c7b7d6bd49bb455a0d421678b96827",
+    "retriever": "fixture",
+    "corpus_version": "synthetic-fixture-v1",
+    "corpus_sha256": "7a572b06a0a52e9e44315cabe7e92127eb6645aa80074739843ac0f74ed83f2d",
+    "product_cases_sha256": "502c60d0424a6a4384b88adfef0b307f2a9775a2d2b9c2557cb767c50049f555"
+  },
+  "provenance_id": "4abdcc320f836a790672d5221af95b8e9510203027b5bc63df9879e3a0b2bd63",
+  "authorization_request": {
+    "status": "NOT_AUTHORIZED",
+    "scope": "phase3-eval",
+    "model": "gpt-6-luna",
+    "repeat": 3,
+    "max_provider_requests": 690,
+    "max_tokens": 3600000,
+    "requires_existing_cumulative_ledger": true,
+    "no_paid_judge": true,
+    "note": "Planning bound only; existing exhausted authorization is unchanged."
+  },
+  "live_slots": [
+    {
+      "case_id": "PC-01",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-01",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-01",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-02",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-02",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-02",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-03",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-03",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-03",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-04",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-04",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-04",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-05",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-05",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-05",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-06",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-06",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-06",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-07",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-07",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-07",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-08",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-08",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-08",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-09",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-09",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-09",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-10",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-10",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-10",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-11",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-11",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-11",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-12",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-12",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-12",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-13",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-13",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-13",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-14",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-14",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-14",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-15",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-15",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-15",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-16",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-16",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-16",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-17",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-17",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-17",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-18",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-18",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-18",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-19",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-19",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-19",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-20",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-20",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "PC-20",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    }
+  ]
+}

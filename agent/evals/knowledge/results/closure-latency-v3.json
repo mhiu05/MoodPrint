@@ -1,0 +1,377 @@
+{
+  "scope": "fresh live Voyage embeddings + authenticated PostgreSQL + evidence support; synthetic frozen every-sixth case; not another quality holdout",
+  "cases": 20,
+  "warmups": 5,
+  "repeats": 3,
+  "measurements": 60,
+  "p50_ms": 355.71470000013505,
+  "p95_ms": 759.6252999996977,
+  "provider_calls_including_warmups": 65,
+  "tokens": 1200,
+  "records": [
+    {
+      "id": "V3A01-1",
+      "repeat": 1,
+      "latency_ms": 437.87369999972725,
+      "status": "ok"
+    },
+    {
+      "id": "V3A03-1",
+      "repeat": 1,
+      "latency_ms": 941.4308000000347,
+      "status": "ok"
+    },
+    {
+      "id": "V3A05-1",
+      "repeat": 1,
+      "latency_ms": 321.40560000016194,
+      "status": "ok"
+    },
+    {
+      "id": "V3A07-1",
+      "repeat": 1,
+      "latency_ms": 369.3857999996908,
+      "status": "ok"
+    },
+    {
+      "id": "V3A09-1",
+      "repeat": 1,
+      "latency_ms": 726.298499999757,
+      "status": "ok"
+    },
+    {
+      "id": "V3A11-1",
+      "repeat": 1,
+      "latency_ms": 318.9719000001787,
+      "status": "ok"
+    },
+    {
+      "id": "V3A13-1",
+      "repeat": 1,
+      "latency_ms": 313.78940000013245,
+      "status": "ok"
+    },
+    {
+      "id": "V3A15-1",
+      "repeat": 1,
+      "latency_ms": 420.84499999964464,
+      "status": "ok"
+    },
+    {
+      "id": "V3A17-1",
+      "repeat": 1,
+      "latency_ms": 325.0545000000784,
+      "status": "ok"
+    },
+    {
+      "id": "V3A19-1",
+      "repeat": 1,
+      "latency_ms": 848.9153999998962,
+      "status": "ok"
+    },
+    {
+      "id": "V3A21-1",
+      "repeat": 1,
+      "latency_ms": 433.5635999996157,
+      "status": "ok"
+    },
+    {
+      "id": "V3A23-1",
+      "repeat": 1,
+      "latency_ms": 353.80609999992885,
+      "status": "ok"
+    },
+    {
+      "id": "V3A25-1",
+      "repeat": 1,
+      "latency_ms": 324.8774000003323,
+      "status": "ok"
+    },
+    {
+      "id": "V3A27-1",
+      "repeat": 1,
+      "latency_ms": 720.807799999875,
+      "status": "ok"
+    },
+    {
+      "id": "V3A29-1",
+      "repeat": 1,
+      "latency_ms": 340.5558999997993,
+      "status": "ok"
+    },
+    {
+      "id": "V3N01",
+      "repeat": 1,
+      "latency_ms": 327.54419999992024,
+      "status": "no_results"
+    },
+    {
+      "id": "V3N07",
+      "repeat": 1,
+      "latency_ms": 325.22259999996095,
+      "status": "no_results"
+    },
+    {
+      "id": "V3N13",
+      "repeat": 1,
+      "latency_ms": 314.27769999982047,
+      "status": "no_results"
+    },
+    {
+      "id": "V3N19",
+      "repeat": 1,
+      "latency_ms": 759.6252999996977,
+      "status": "no_results"
+    },
+    {
+      "id": "V3N25",
+      "repeat": 1,
+      "latency_ms": 371.5330999998514,
+      "status": "no_results"
+    },
+    {
+      "id": "V3A01-1",
+      "repeat": 2,
+      "latency_ms": 421.10360000015135,
+      "status": "ok"
+    },
+    {
+      "id": "V3A03-1",
+      "repeat": 2,
+      "latency_ms": 320.4284999997071,
+      "status": "ok"
+    },
+    {
+      "id": "V3A05-1",
+      "repeat": 2,
+      "latency_ms": 401.4254000003348,
+      "status": "ok"
+    },
+    {
+      "id": "V3A07-1",
+      "repeat": 2,
+      "latency_ms": 404.6698000001925,
+      "status": "ok"
+    },
+    {
+      "id": "V3A09-1",
+      "repeat": 2,
+      "latency_ms": 311.7809999998826,
+      "status": "ok"
+    },
+    {
+      "id": "V3A11-1",
+      "repeat": 2,
+      "latency_ms": 327.71409999986645,
+      "status": "ok"
+    },
+    {
+      "id": "V3A13-1",
+      "repeat": 2,
+      "latency_ms": 336.6261000001032,
+      "status": "ok"
+    },
+    {
+      "id": "V3A15-1",
+      "repeat": 2,
+      "latency_ms": 314.5104000000174,
+      "status": "ok"
+    },
+    {
+      "id": "V3A17-1",
+      "repeat": 2,
+      "latency_ms": 310.20200000011755,
+      "status": "ok"
+    },
+    {
+      "id": "V3A19-1",
+      "repeat": 2,
+      "latency_ms": 326.45370000000185,
+      "status": "ok"
+    },
+    {
+      "id": "V3A21-1",
+      "repeat": 2,
+      "latency_ms": 351.71700000000783,
+      "status": "ok"
+    },
+    {
+      "id": "V3A23-1",
+      "repeat": 2,
+      "latency_ms": 312.5310999998874,
+      "status": "ok"
+    },
+    {
+      "id": "V3A25-1",
+      "repeat": 2,
+      "latency_ms": 365.5405999998038,
+      "status": "ok"
+    },
+    {
+      "id": "V3A27-1",
+      "repeat": 2,
+      "latency_ms": 364.18959999991785,
+      "status": "ok"
+    },
+    {
+      "id": "V3A29-1",
+      "repeat": 2,
+      "latency_ms": 390.17459999968196,
+      "status": "ok"
+    },
+    {
+      "id": "V3N01",
+      "repeat": 2,
+      "latency_ms": 320.04319999987274,
+      "status": "no_results"
+    },
+    {
+      "id": "V3N07",
+      "repeat": 2,
+      "latency_ms": 412.3669000000518,
+      "status": "no_results"
+    },
+    {
+      "id": "V3N13",
+      "repeat": 2,
+      "latency_ms": 322.02430000006643,
+      "status": "no_results"
+    },
+    {
+      "id": "V3N19",
+      "repeat": 2,
+      "latency_ms": 367.47409999998126,
+      "status": "no_results"
+    },
+    {
+      "id": "V3N25",
+      "repeat": 2,
+      "latency_ms": 545.4875999998876,
+      "status": "no_results"
+    },
+    {
+      "id": "V3A01-1",
+      "repeat": 3,
+      "latency_ms": 324.2399999999179,
+      "status": "ok"
+    },
+    {
+      "id": "V3A03-1",
+      "repeat": 3,
+      "latency_ms": 371.1441999998897,
+      "status": "ok"
+    },
+    {
+      "id": "V3A05-1",
+      "repeat": 3,
+      "latency_ms": 368.7473999998474,
+      "status": "ok"
+    },
+    {
+      "id": "V3A07-1",
+      "repeat": 3,
+      "latency_ms": 308.6881999997786,
+      "status": "ok"
+    },
+    {
+      "id": "V3A09-1",
+      "repeat": 3,
+      "latency_ms": 339.49810000012803,
+      "status": "ok"
+    },
+    {
+      "id": "V3A11-1",
+      "repeat": 3,
+      "latency_ms": 322.8572000002714,
+      "status": "ok"
+    },
+    {
+      "id": "V3A13-1",
+      "repeat": 3,
+      "latency_ms": 391.41079999990325,
+      "status": "ok"
+    },
+    {
+      "id": "V3A15-1",
+      "repeat": 3,
+      "latency_ms": 427.2615999998379,
+      "status": "ok"
+    },
+    {
+      "id": "V3A17-1",
+      "repeat": 3,
+      "latency_ms": 349.9314000000595,
+      "status": "ok"
+    },
+    {
+      "id": "V3A19-1",
+      "repeat": 3,
+      "latency_ms": 324.4763000002422,
+      "status": "ok"
+    },
+    {
+      "id": "V3A21-1",
+      "repeat": 3,
+      "latency_ms": 413.1373000000167,
+      "status": "ok"
+    },
+    {
+      "id": "V3A23-1",
+      "repeat": 3,
+      "latency_ms": 384.48120000020936,
+      "status": "ok"
+    },
+    {
+      "id": "V3A25-1",
+      "repeat": 3,
+      "latency_ms": 364.5007000000078,
+      "status": "ok"
+    },
+    {
+      "id": "V3A27-1",
+      "repeat": 3,
+      "latency_ms": 393.17010000013397,
+      "status": "ok"
+    },
+    {
+      "id": "V3A29-1",
+      "repeat": 3,
+      "latency_ms": 357.62330000034126,
+      "status": "ok"
+    },
+    {
+      "id": "V3N01",
+      "repeat": 3,
+      "latency_ms": 374.1888999998082,
+      "status": "no_results"
+    },
+    {
+      "id": "V3N07",
+      "repeat": 3,
+      "latency_ms": 904.0841999999429,
+      "status": "no_results"
+    },
+    {
+      "id": "V3N13",
+      "repeat": 3,
+      "latency_ms": 337.042399999973,
+      "status": "no_results"
+    },
+    {
+      "id": "V3N19",
+      "repeat": 3,
+      "latency_ms": 314.55670000013924,
+      "status": "no_results"
+    },
+    {
+      "id": "V3N25",
+      "repeat": 3,
+      "latency_ms": 316.35080000023663,
+      "status": "no_results"
+    }
+  ],
+  "source_sha": "bfb7f594c1fc1ff57aada78056cd36bbd828d4cd",
+  "support_sha256_lf": "c0be2db67d26e252031843cec7de71d5c5914d909946903ea10532bfaa844b14",
+  "corpus_version": "kb-20261109-07",
+  "corpus_sha256": "f5e14a3b96c14c8aed2ba3d144d29e680c52132861b18c470185a07e8343ffe8"
+}

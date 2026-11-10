@@ -1,0 +1,263 @@
+{
+  "audit": {
+    "commit": "790c4ed2bac9edac4c9eb632be51ec9d5df6fa0a",
+    "passed": true,
+    "receipt_sha256": "06dee22c85c71b617aed44058dc237b7d1c564120af8439e4c64c773e2abb675",
+    "verified_log_hashes": 13,
+    "exact_command_plan": true,
+    "phase1": ".local/stacks/fresh-bootstrap/phase1-gate.json",
+    "migration_orders": [
+      "kb-first",
+      "ag-first"
+    ],
+    "pgtap_assertions": 479,
+    "integration_tests": 150,
+    "agent_unit_tests": 802,
+    "demo_e2e_tests": 13,
+    "scripted_e2e_tests": 38
+  },
+  "before": {
+    "version": 1,
+    "project_ref": "xhlshihobyxrgfqrdafh",
+    "head": "790c4ed2bac9edac4c9eb632be51ec9d5df6fa0a",
+    "history": [
+      [
+        "20261107100631",
+        "f0_extensions_roles"
+      ],
+      [
+        "20261107100639",
+        "f0_private_helpers"
+      ],
+      [
+        "20261107100645",
+        "f0_profiles"
+      ],
+      [
+        "20261107100649",
+        "f0_conversations"
+      ],
+      [
+        "20261107100653",
+        "f0_agent_store"
+      ],
+      [
+        "20261107100719",
+        "f0_memory"
+      ],
+      [
+        "20261107100725",
+        "f0_storage_bucket"
+      ],
+      [
+        "20261107100731",
+        "f0_reconciler"
+      ],
+      [
+        "20261107103611",
+        "f0_memory_candidate_provenance"
+      ],
+      [
+        "20261107104050",
+        "f0_memory_retrieval_metadata"
+      ],
+      [
+        "20261107121921",
+        "f0_covering_fk_indexes"
+      ],
+      [
+        "20261107124427",
+        "f1_cases"
+      ],
+      [
+        "20261107124432",
+        "f1_evidence"
+      ],
+      [
+        "20261107124440",
+        "f1_plans_support"
+      ],
+      [
+        "20261107124450",
+        "f1_sharing"
+      ],
+      [
+        "20261107130219",
+        "f1_upload_rate_counter"
+      ],
+      [
+        "20261107140312",
+        "f1_account_deletion_guard"
+      ]
+    ],
+    "pending": [
+      {
+        "path": "supabase/migrations/20261108100100_ag_proposals.sql",
+        "version": "20261108100100",
+        "name": "ag_proposals",
+        "sha256": "4d6e013dc3a0f33d0b55e4cdad80aa31d5d49ed452d966b72eca7477530460b5",
+        "introducing_commit": "fb9d7cc1b5bc92ba5872d540a745c9e4ca210fa6"
+      },
+      {
+        "path": "supabase/migrations/20261108100200_ag_analysis_requests.sql",
+        "version": "20261108100200",
+        "name": "ag_analysis_requests",
+        "sha256": "759ace1d836983225bb3b1bf22afbd9b8405469229cb87f5ea8e89d35fb0ef51",
+        "introducing_commit": "fb9d7cc1b5bc92ba5872d540a745c9e4ca210fa6"
+      },
+      {
+        "path": "supabase/migrations/20261108100300_ag_roleplay_sessions.sql",
+        "version": "20261108100300",
+        "name": "ag_roleplay_sessions",
+        "sha256": "e9a128eddf3b7e5e53cfd64d59050a5a47b8477b97f3c0284067d5e5a3cf271c",
+        "introducing_commit": "fb9d7cc1b5bc92ba5872d540a745c9e4ca210fa6"
+      },
+      {
+        "path": "supabase/migrations/20261108100400_ag_message_attachments.sql",
+        "version": "20261108100400",
+        "name": "ag_message_attachments",
+        "sha256": "fda06a98e5fd5e2cc7cc871fec6b97698138372fe2c3ba998031a96ee2e029b8",
+        "introducing_commit": "fb9d7cc1b5bc92ba5872d540a745c9e4ca210fa6"
+      },
+      {
+        "path": "supabase/migrations/20261108100500_ag_message_assessments.sql",
+        "version": "20261108100500",
+        "name": "ag_message_assessments",
+        "sha256": "4a54291d6ca7fc856948284a7a987b06316600e6a39fd6e3b675a3b5d8ec19aa",
+        "introducing_commit": "fb9d7cc1b5bc92ba5872d540a745c9e4ca210fa6"
+      },
+      {
+        "path": "supabase/migrations/20261108190000_kb_schema.sql",
+        "version": "20261108190000",
+        "name": "kb_schema",
+        "sha256": "99d5181c414dcbf783caf58cb8e457f33e8668bda48d3cf6cbc6c0bc6c159b28",
+        "introducing_commit": "1f2b276678ff0293b3c26ed01d2795ce0e8e5ddc"
+      },
+      {
+        "path": "supabase/migrations/20261109132352_kb_fix_private_ingestion_privileges.sql",
+        "version": "20261109132352",
+        "name": "kb_fix_private_ingestion_privileges",
+        "sha256": "1d734922db72711b72ba197fdff3b454aa8c8b921915b11292e10e499e4a7299",
+        "introducing_commit": "4af293fa7090ea230fd766b20e38c6ede8369f7c"
+      }
+    ],
+    "provenance": {
+      "migration_source": "git:HEAD",
+      "cli_version": "2.122.1",
+      "history_source": "supabase_migrations.schema_migrations"
+    },
+    "passed": true,
+    "cli_dry_run": true
+  },
+  "after": {
+    "version": 1,
+    "project_ref": "xhlshihobyxrgfqrdafh",
+    "head": "2b96692343c23c265ce0035a2018dac5c8d43535",
+    "history": [
+      [
+        "20261107100631",
+        "f0_extensions_roles"
+      ],
+      [
+        "20261107100639",
+        "f0_private_helpers"
+      ],
+      [
+        "20261107100645",
+        "f0_profiles"
+      ],
+      [
+        "20261107100649",
+        "f0_conversations"
+      ],
+      [
+        "20261107100653",
+        "f0_agent_store"
+      ],
+      [
+        "20261107100719",
+        "f0_memory"
+      ],
+      [
+        "20261107100725",
+        "f0_storage_bucket"
+      ],
+      [
+        "20261107100731",
+        "f0_reconciler"
+      ],
+      [
+        "20261107103611",
+        "f0_memory_candidate_provenance"
+      ],
+      [
+        "20261107104050",
+        "f0_memory_retrieval_metadata"
+      ],
+      [
+        "20261107121921",
+        "f0_covering_fk_indexes"
+      ],
+      [
+        "20261107124427",
+        "f1_cases"
+      ],
+      [
+        "20261107124432",
+        "f1_evidence"
+      ],
+      [
+        "20261107124440",
+        "f1_plans_support"
+      ],
+      [
+        "20261107124450",
+        "f1_sharing"
+      ],
+      [
+        "20261107130219",
+        "f1_upload_rate_counter"
+      ],
+      [
+        "20261107140312",
+        "f1_account_deletion_guard"
+      ],
+      [
+        "20261108100100",
+        "ag_proposals"
+      ],
+      [
+        "20261108100200",
+        "ag_analysis_requests"
+      ],
+      [
+        "20261108100300",
+        "ag_roleplay_sessions"
+      ],
+      [
+        "20261108100400",
+        "ag_message_attachments"
+      ],
+      [
+        "20261108100500",
+        "ag_message_assessments"
+      ],
+      [
+        "20261108190000",
+        "kb_schema"
+      ],
+      [
+        "20261109132352",
+        "kb_fix_private_ingestion_privileges"
+      ]
+    ],
+    "pending": [],
+    "provenance": {
+      "migration_source": "git:HEAD",
+      "cli_version": "2.122.1",
+      "history_source": "supabase_migrations.schema_migrations"
+    },
+    "passed": true,
+    "cli_dry_run": true
+  }
+}

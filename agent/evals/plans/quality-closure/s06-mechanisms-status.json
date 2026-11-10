@@ -1,0 +1,43 @@
+{
+  "status": "NOT_VERIFIED",
+  "not_run": 240,
+  "errors": [
+    "NOT_RUN 240 slots",
+    "ungraded 240 slots"
+  ],
+  "options": {
+    "text_baseline": {
+      "status": "NOT_VERIFIED",
+      "assessment_coverage": 0.0,
+      "immediate_recall_union": null,
+      "ttft_p50_ms": null,
+      "ttft_delta_ms": null,
+      "R-02_mean": null
+    },
+    "a_json_stream": {
+      "status": "NOT_VERIFIED",
+      "assessment_coverage": 0.0,
+      "immediate_recall_union": null,
+      "ttft_p50_ms": null,
+      "ttft_delta_ms": null,
+      "R-02_mean": null
+    },
+    "b_closing_tool": {
+      "status": "NOT_VERIFIED",
+      "assessment_coverage": 0.0,
+      "immediate_recall_union": null,
+      "ttft_p50_ms": null,
+      "ttft_delta_ms": null,
+      "R-02_mean": null
+    },
+    "c_postprocess_classifier": {
+      "status": "NOT_VERIFIED",
+      "assessment_coverage": 0.0,
+      "immediate_recall_union": null,
+      "ttft_p50_ms": null,
+      "ttft_delta_ms": null,
+      "R-02_mean": null
+    }
+  },
+  "decision": "UNDECIDED; risk-architecture A/B/C results cannot select an extraction mechanism"
+}

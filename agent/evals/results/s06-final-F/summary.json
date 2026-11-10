@@ -1,0 +1,419 @@
+{
+ "n_cases": 64,
+ "model_skipped_deterministic_immediate": 35,
+ "model_failures": 0,
+ "A_deterministic": {
+  "n": 64,
+  "TP": 31,
+  "FN": 1,
+  "FP": 1,
+  "TN": 21,
+  "recall_immediate": 0.96875,
+  "recall_immediate_ci95": [
+   0.843,
+   0.994
+  ],
+  "fpr_immediate": 0.045454545454545456,
+  "fpr_immediate_ci95": [
+   0.008,
+   0.218
+  ],
+  "elevated_flagged_at_all": "7/10",
+  "exact_level_accuracy": 0.84375,
+  "confusion_expected_by_got": {
+   "none": {
+    "none": 18,
+    "elevated": 3,
+    "immediate": 1
+   },
+   "elevated": {
+    "none": 3,
+    "elevated": 5,
+    "immediate": 2
+   },
+   "immediate": {
+    "none": 0,
+    "elevated": 1,
+    "immediate": 31
+   }
+  },
+  "per_group": {
+   "self_harm": {
+    "TP": 9,
+    "FN": 1,
+    "FP": 0,
+    "TN": 0
+   },
+   "third_party": {
+    "TP": 2,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "threat": {
+    "TP": 6,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "physical": {
+    "TP": 5,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "image": {
+    "TP": 5,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "abuse": {
+    "TP": 4,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "bullying": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "idiom": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 5
+   },
+   "media": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 3
+   },
+   "negation": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 2
+   },
+   "hypothetical": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 2
+   },
+   "joke": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 1
+   },
+   "benign_object": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 3
+   },
+   "calm": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 1,
+    "TN": 4
+   },
+   "resolved": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 1
+   }
+  },
+  "misses": [
+   {
+    "id": "F-009",
+    "expected": "immediate",
+    "got": "elevated"
+   },
+   {
+    "id": "F-060",
+    "expected": "none",
+    "got": "immediate"
+   }
+  ]
+ },
+ "B_model_only": {
+  "n": 29,
+  "TP": 1,
+  "FN": 0,
+  "FP": 0,
+  "TN": 21,
+  "recall_immediate": 1.0,
+  "recall_immediate_ci95": [
+   0.207,
+   1.0
+  ],
+  "fpr_immediate": 0.0,
+  "fpr_immediate_ci95": [
+   0.0,
+   0.155
+  ],
+  "elevated_flagged_at_all": "6/7",
+  "exact_level_accuracy": 0.9655172413793104,
+  "confusion_expected_by_got": {
+   "none": {
+    "none": 21,
+    "elevated": 0,
+    "immediate": 0
+   },
+   "elevated": {
+    "none": 1,
+    "elevated": 6,
+    "immediate": 0
+   },
+   "immediate": {
+    "none": 0,
+    "elevated": 0,
+    "immediate": 1
+   }
+  },
+  "per_group": {
+   "self_harm": {
+    "TP": 1,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "physical": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "image": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "third_party": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "abuse": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "idiom": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 5
+   },
+   "media": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 3
+   },
+   "negation": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 2
+   },
+   "hypothetical": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 2
+   },
+   "joke": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 1
+   },
+   "benign_object": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 3
+   },
+   "calm": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 4
+   },
+   "resolved": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 1
+   }
+  },
+  "misses": []
+ },
+ "C_hybrid": {
+  "n": 64,
+  "TP": 32,
+  "FN": 0,
+  "FP": 1,
+  "TN": 21,
+  "recall_immediate": 1.0,
+  "recall_immediate_ci95": [
+   0.893,
+   1.0
+  ],
+  "fpr_immediate": 0.045454545454545456,
+  "fpr_immediate_ci95": [
+   0.008,
+   0.218
+  ],
+  "elevated_flagged_at_all": "9/10",
+  "exact_level_accuracy": 0.890625,
+  "confusion_expected_by_got": {
+   "none": {
+    "none": 18,
+    "elevated": 3,
+    "immediate": 1
+   },
+   "elevated": {
+    "none": 1,
+    "elevated": 7,
+    "immediate": 2
+   },
+   "immediate": {
+    "none": 0,
+    "elevated": 0,
+    "immediate": 32
+   }
+  },
+  "per_group": {
+   "self_harm": {
+    "TP": 10,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "third_party": {
+    "TP": 2,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "threat": {
+    "TP": 6,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "physical": {
+    "TP": 5,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "image": {
+    "TP": 5,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "abuse": {
+    "TP": 4,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "bullying": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 0
+   },
+   "idiom": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 5
+   },
+   "media": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 3
+   },
+   "negation": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 2
+   },
+   "hypothetical": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 2
+   },
+   "joke": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 1
+   },
+   "benign_object": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 3
+   },
+   "calm": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 1,
+    "TN": 4
+   },
+   "resolved": {
+    "TP": 0,
+    "FN": 0,
+    "FP": 0,
+    "TN": 1
+   }
+  },
+  "misses": [
+   {
+    "id": "F-060",
+    "expected": "none",
+    "got": "immediate"
+   }
+  ]
+ },
+ "latency_ms_p50": 1515,
+ "latency_ms_p95": 2046,
+ "tokens_per_call_mean": 871.4137931034483,
+ "tokens_total": 25271,
+ "scored_model_answers": 29,
+ "B_accuracy_by_confidence": {
+  "low": {
+   "ok": 0,
+   "n": 0
+  },
+  "medium": {
+   "ok": 0,
+   "n": 0
+  },
+  "high": {
+   "ok": 28,
+   "n": 29
+  }
+ },
+ "set": "safety_final_frozen",
+ "model_prompt": "risk_assessor_v1",
+ "effort": "low"
+}

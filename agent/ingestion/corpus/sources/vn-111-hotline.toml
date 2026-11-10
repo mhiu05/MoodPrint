@@ -1,0 +1,19 @@
+source_id = "vn-111-hotline"
+kind = "hotline"
+publisher = "Tổng đài quốc gia bảo vệ trẻ em 111"
+title = "Số điện thoại bảo vệ trẻ em"
+url = "https://tongdai111.vn/"
+language = "vi"
+country_scope = ["VN"]
+authority_tier = 1
+licence_class = "reference_only"
+licence_note = "Trang ghi bản quyền thuộc Tổng đài 111. Chỉ dùng sự kiện số 111, 24/7, miễn phí."
+verified_on = "2026-11-08"
+evidence = "Trang tongdai111.vn được đọc 2026-11-08: 111, 24/24, miễn phí cước gọi."
+[scores]
+authority = 3
+relevance = 3
+licence = 1
+language = 3
+applicability = 3
+freshness = 2
