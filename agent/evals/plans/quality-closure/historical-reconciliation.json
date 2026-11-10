@@ -1,0 +1,86 @@
+{
+  "20261108-220703": {
+    "status": "NOT_VERIFIED",
+    "reason": "LEGACY_UNATTRIBUTABLE: no pinned manifest/prompt hashes",
+    "historical_prompt_version": "companion_v4",
+    "credited_current_slots": 0
+  },
+  "closure-a03": {
+    "status": "NOT_VERIFIED",
+    "reason": "LEGACY_UNATTRIBUTABLE: no pinned manifest/prompt hashes",
+    "historical_prompt_version": "companion_v4",
+    "credited_current_slots": 0
+  },
+  "det-dev1": {
+    "status": "NOT_VERIFIED",
+    "reason": "LEGACY_UNATTRIBUTABLE: no pinned manifest/prompt hashes",
+    "historical_prompt_version": "companion_v2",
+    "credited_current_slots": 0
+  },
+  "final-a": {
+    "status": "NOT_VERIFIED",
+    "reason": "LEGACY_UNATTRIBUTABLE: no pinned manifest/prompt hashes",
+    "historical_prompt_version": "companion_v3",
+    "credited_current_slots": 0
+  },
+  "final-b": {
+    "status": "NOT_VERIFIED",
+    "reason": "LEGACY_UNATTRIBUTABLE: no pinned manifest/prompt hashes",
+    "historical_prompt_version": "companion_v3",
+    "credited_current_slots": 0
+  },
+  "final2-a": {
+    "status": "NOT_VERIFIED",
+    "reason": "LEGACY_UNATTRIBUTABLE: no pinned manifest/prompt hashes",
+    "historical_prompt_version": "companion_v3",
+    "credited_current_slots": 0
+  },
+  "final2-a-reasserted-A03split": {
+    "status": "NOT_VERIFIED",
+    "reason": "LEGACY_UNATTRIBUTABLE: no pinned manifest/prompt hashes",
+    "historical_prompt_version": "companion_v3",
+    "credited_current_slots": 0
+  },
+  "final2-a-reasserted-A27A28": {
+    "status": "NOT_VERIFIED",
+    "reason": "LEGACY_UNATTRIBUTABLE: no pinned manifest/prompt hashes",
+    "historical_prompt_version": "companion_v3",
+    "credited_current_slots": 0
+  },
+  "final2-b": {
+    "status": "NOT_VERIFIED",
+    "reason": "LEGACY_UNATTRIBUTABLE: no pinned manifest/prompt hashes",
+    "historical_prompt_version": "companion_v3",
+    "credited_current_slots": 0
+  },
+  "final2-b-reasserted-A27A28": {
+    "status": "NOT_VERIFIED",
+    "reason": "LEGACY_UNATTRIBUTABLE: no pinned manifest/prompt hashes",
+    "historical_prompt_version": "companion_v3",
+    "credited_current_slots": 0
+  },
+  "final2-medium": {
+    "status": "NOT_VERIFIED",
+    "reason": "LEGACY_UNATTRIBUTABLE: no pinned manifest/prompt hashes",
+    "historical_prompt_version": "companion_v3",
+    "credited_current_slots": 0
+  },
+  "live-dev1": {
+    "status": "NOT_VERIFIED",
+    "reason": "LEGACY_UNATTRIBUTABLE: no pinned manifest/prompt hashes",
+    "historical_prompt_version": "companion_v2",
+    "credited_current_slots": 0
+  },
+  "live-dev2": {
+    "status": "NOT_VERIFIED",
+    "reason": "LEGACY_UNATTRIBUTABLE: no pinned manifest/prompt hashes",
+    "historical_prompt_version": "companion_v3",
+    "credited_current_slots": 0
+  },
+  "live-dev2-approval": {
+    "status": "NOT_VERIFIED",
+    "reason": "LEGACY_UNATTRIBUTABLE: no pinned manifest/prompt hashes",
+    "historical_prompt_version": "companion_v3",
+    "credited_current_slots": 0
+  }
+}

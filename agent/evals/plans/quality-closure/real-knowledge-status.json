@@ -1,0 +1,514 @@
+{
+  "status": "NOT_VERIFIED",
+  "errors": [
+    "NOT_RUN: ('know-01', 1)",
+    "missing assertion: ('know-01', 1)",
+    "ungraded: ('know-01', 1, 'R-01')",
+    "NOT_RUN: ('know-01', 2)",
+    "missing assertion: ('know-01', 2)",
+    "ungraded: ('know-01', 2, 'R-01')",
+    "NOT_RUN: ('know-01', 3)",
+    "missing assertion: ('know-01', 3)",
+    "ungraded: ('know-01', 3, 'R-01')",
+    "NOT_RUN: ('know-02', 1)",
+    "missing assertion: ('know-02', 1)",
+    "ungraded: ('know-02', 1, 'R-01')",
+    "NOT_RUN: ('know-02', 2)",
+    "missing assertion: ('know-02', 2)",
+    "ungraded: ('know-02', 2, 'R-01')",
+    "NOT_RUN: ('know-02', 3)",
+    "missing assertion: ('know-02', 3)",
+    "ungraded: ('know-02', 3, 'R-01')",
+    "NOT_RUN: ('know-03', 1)",
+    "missing assertion: ('know-03', 1)",
+    "ungraded: ('know-03', 1, 'R-01')",
+    "NOT_RUN: ('know-03', 2)",
+    "missing assertion: ('know-03', 2)",
+    "ungraded: ('know-03', 2, 'R-01')",
+    "NOT_RUN: ('know-03', 3)",
+    "missing assertion: ('know-03', 3)",
+    "ungraded: ('know-03', 3, 'R-01')",
+    "NOT_RUN: ('know-04', 1)",
+    "missing assertion: ('know-04', 1)",
+    "ungraded: ('know-04', 1, 'R-01')",
+    "NOT_RUN: ('know-04', 2)",
+    "missing assertion: ('know-04', 2)",
+    "ungraded: ('know-04', 2, 'R-01')",
+    "NOT_RUN: ('know-04', 3)",
+    "missing assertion: ('know-04', 3)",
+    "ungraded: ('know-04', 3, 'R-01')",
+    "NOT_RUN: ('know-05', 1)",
+    "missing assertion: ('know-05', 1)",
+    "ungraded: ('know-05', 1, 'R-01')",
+    "NOT_RUN: ('know-05', 2)",
+    "missing assertion: ('know-05', 2)",
+    "ungraded: ('know-05', 2, 'R-01')",
+    "NOT_RUN: ('know-05', 3)",
+    "missing assertion: ('know-05', 3)",
+    "ungraded: ('know-05', 3, 'R-01')",
+    "NOT_RUN: ('know-06', 1)",
+    "missing assertion: ('know-06', 1)",
+    "ungraded: ('know-06', 1, 'R-01')",
+    "NOT_RUN: ('know-06', 2)",
+    "missing assertion: ('know-06', 2)",
+    "ungraded: ('know-06', 2, 'R-01')",
+    "NOT_RUN: ('know-06', 3)",
+    "missing assertion: ('know-06', 3)",
+    "ungraded: ('know-06', 3, 'R-01')",
+    "NOT_RUN: ('know-07', 1)",
+    "missing assertion: ('know-07', 1)",
+    "ungraded: ('know-07', 1, 'R-05')",
+    "NOT_RUN: ('know-07', 2)",
+    "missing assertion: ('know-07', 2)",
+    "ungraded: ('know-07', 2, 'R-05')",
+    "NOT_RUN: ('know-07', 3)",
+    "missing assertion: ('know-07', 3)",
+    "ungraded: ('know-07', 3, 'R-05')",
+    "NOT_RUN: ('know-08', 1)",
+    "missing assertion: ('know-08', 1)",
+    "ungraded: ('know-08', 1, 'R-05')",
+    "NOT_RUN: ('know-08', 2)",
+    "missing assertion: ('know-08', 2)",
+    "ungraded: ('know-08', 2, 'R-05')",
+    "NOT_RUN: ('know-08', 3)",
+    "missing assertion: ('know-08', 3)",
+    "ungraded: ('know-08', 3, 'R-05')",
+    "NOT_RUN: ('know-09', 1)",
+    "missing assertion: ('know-09', 1)",
+    "ungraded: ('know-09', 1, 'R-05')",
+    "NOT_RUN: ('know-09', 2)",
+    "missing assertion: ('know-09', 2)",
+    "ungraded: ('know-09', 2, 'R-05')",
+    "NOT_RUN: ('know-09', 3)",
+    "missing assertion: ('know-09', 3)",
+    "ungraded: ('know-09', 3, 'R-05')",
+    "NOT_RUN: ('know-10', 1)",
+    "missing assertion: ('know-10', 1)",
+    "ungraded: ('know-10', 1, 'R-01')",
+    "NOT_RUN: ('know-10', 2)",
+    "missing assertion: ('know-10', 2)",
+    "ungraded: ('know-10', 2, 'R-01')",
+    "NOT_RUN: ('know-10', 3)",
+    "missing assertion: ('know-10', 3)",
+    "ungraded: ('know-10', 3, 'R-01')",
+    "NOT_RUN: ('know-11', 1)",
+    "missing assertion: ('know-11', 1)",
+    "ungraded: ('know-11', 1, 'R-01')",
+    "NOT_RUN: ('know-11', 2)",
+    "missing assertion: ('know-11', 2)",
+    "ungraded: ('know-11', 2, 'R-01')",
+    "NOT_RUN: ('know-11', 3)",
+    "missing assertion: ('know-11', 3)",
+    "ungraded: ('know-11', 3, 'R-01')",
+    "NOT_RUN: ('know-12', 1)",
+    "missing assertion: ('know-12', 1)",
+    "ungraded: ('know-12', 1, 'R-01')",
+    "NOT_RUN: ('know-12', 2)",
+    "missing assertion: ('know-12', 2)",
+    "ungraded: ('know-12', 2, 'R-01')",
+    "NOT_RUN: ('know-12', 3)",
+    "missing assertion: ('know-12', 3)",
+    "ungraded: ('know-12', 3, 'R-01')",
+    "NOT_RUN: ('know-13', 1)",
+    "missing assertion: ('know-13', 1)",
+    "ungraded: ('know-13', 1, 'R-01')",
+    "NOT_RUN: ('know-13', 2)",
+    "missing assertion: ('know-13', 2)",
+    "ungraded: ('know-13', 2, 'R-01')",
+    "NOT_RUN: ('know-13', 3)",
+    "missing assertion: ('know-13', 3)",
+    "ungraded: ('know-13', 3, 'R-01')",
+    "NOT_RUN: ('know-14', 1)",
+    "missing assertion: ('know-14', 1)",
+    "ungraded: ('know-14', 1, 'R-01')",
+    "NOT_RUN: ('know-14', 2)",
+    "missing assertion: ('know-14', 2)",
+    "ungraded: ('know-14', 2, 'R-01')",
+    "NOT_RUN: ('know-14', 3)",
+    "missing assertion: ('know-14', 3)",
+    "ungraded: ('know-14', 3, 'R-01')",
+    "NOT_RUN: ('know-15', 1)",
+    "missing assertion: ('know-15', 1)",
+    "ungraded: ('know-15', 1, 'R-01')",
+    "NOT_RUN: ('know-15', 2)",
+    "missing assertion: ('know-15', 2)",
+    "ungraded: ('know-15', 2, 'R-01')",
+    "NOT_RUN: ('know-15', 3)",
+    "missing assertion: ('know-15', 3)",
+    "ungraded: ('know-15', 3, 'R-01')",
+    "NOT_RUN: ('know-16', 1)",
+    "missing assertion: ('know-16', 1)",
+    "ungraded: ('know-16', 1, 'R-01')",
+    "NOT_RUN: ('know-16', 2)",
+    "missing assertion: ('know-16', 2)",
+    "ungraded: ('know-16', 2, 'R-01')",
+    "NOT_RUN: ('know-16', 3)",
+    "missing assertion: ('know-16', 3)",
+    "ungraded: ('know-16', 3, 'R-01')",
+    "NOT_RUN: ('know-17', 1)",
+    "missing assertion: ('know-17', 1)",
+    "ungraded: ('know-17', 1, 'R-01')",
+    "NOT_RUN: ('know-17', 2)",
+    "missing assertion: ('know-17', 2)",
+    "ungraded: ('know-17', 2, 'R-01')",
+    "NOT_RUN: ('know-17', 3)",
+    "missing assertion: ('know-17', 3)",
+    "ungraded: ('know-17', 3, 'R-01')",
+    "NOT_RUN: ('know-18', 1)",
+    "missing assertion: ('know-18', 1)",
+    "ungraded: ('know-18', 1, 'R-01')",
+    "NOT_RUN: ('know-18', 2)",
+    "missing assertion: ('know-18', 2)",
+    "ungraded: ('know-18', 2, 'R-01')",
+    "NOT_RUN: ('know-18', 3)",
+    "missing assertion: ('know-18', 3)",
+    "ungraded: ('know-18', 3, 'R-01')",
+    "NOT_RUN: ('know-19', 1)",
+    "missing assertion: ('know-19', 1)",
+    "ungraded: ('know-19', 1, 'R-05')",
+    "NOT_RUN: ('know-19', 2)",
+    "missing assertion: ('know-19', 2)",
+    "ungraded: ('know-19', 2, 'R-05')",
+    "NOT_RUN: ('know-19', 3)",
+    "missing assertion: ('know-19', 3)",
+    "ungraded: ('know-19', 3, 'R-05')",
+    "NOT_RUN: ('know-20', 1)",
+    "missing assertion: ('know-20', 1)",
+    "ungraded: ('know-20', 1, 'R-01')",
+    "NOT_RUN: ('know-20', 2)",
+    "missing assertion: ('know-20', 2)",
+    "ungraded: ('know-20', 2, 'R-01')",
+    "NOT_RUN: ('know-20', 3)",
+    "missing assertion: ('know-20', 3)",
+    "ungraded: ('know-20', 3, 'R-01')"
+  ],
+  "planned": 60,
+  "executed": 0,
+  "not_run": 60,
+  "slots": [
+    {
+      "case_id": "know-01",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-01",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-01",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-02",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-02",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-02",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-03",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-03",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-03",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-04",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-04",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-04",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-05",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-05",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-05",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-06",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-06",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-06",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-07",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-07",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-07",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-08",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-08",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-08",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-09",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-09",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-09",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-10",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-10",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-10",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-11",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-11",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-11",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-12",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-12",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-12",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-13",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-13",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-13",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-14",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-14",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-14",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-15",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-15",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-15",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-16",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-16",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-16",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-17",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-17",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-17",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-18",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-18",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-18",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-19",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-19",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-19",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-20",
+      "repeat": 1,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-20",
+      "repeat": 2,
+      "status": "NOT_RUN"
+    },
+    {
+      "case_id": "know-20",
+      "repeat": 3,
+      "status": "NOT_RUN"
+    }
+  ],
+  "rubric_case_minima": {},
+  "p1_case_passes": {
+    "know-01": false,
+    "know-02": false,
+    "know-03": false,
+    "know-04": false,
+    "know-05": false,
+    "know-06": false,
+    "know-07": false,
+    "know-08": false,
+    "know-09": false,
+    "know-10": false,
+    "know-11": false,
+    "know-12": false,
+    "know-13": false,
+    "know-14": false,
+    "know-15": false,
+    "know-16": false,
+    "know-17": false,
+    "know-18": false,
+    "know-19": false,
+    "know-20": false
+  },
+  "ungraded": 60
+}

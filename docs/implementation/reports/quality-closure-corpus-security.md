@@ -23,9 +23,9 @@ ND80's identity and original effective date are confirmed by its official page a
 
 | New authored card | Source/locator | Added substance |
 |---|---|---|
-| `kb-legal-rieng-tu-duoi16` | 108/2025 Articles 1, 6(11), 21; PDF pp2,4,8 | Under-16 privacy boundary; disclosure consent from age 7; does not purport to state every data-processing rule |
-| `kb-legal-bao-tin-xam-hai` | Articles 1, 51(1)-(3); PDF pp2,15-16 | Adult/organization reporting responsibilities, reception/verification and statutory national hotline; no invented number or deadline |
-| `kb-school-nha-giao-tt03-2026` | TT03 Articles 5(3)-(4), 15(1)-(2); PDF pp3,7 | Teacher listening/support/reporting duties, unlawful disclosure prohibition and precise partial repeal of TT06 |
+| `kb-legal-rieng-tu-duoi16` | 108/2025 Articles 1, 6(11), 21; PDF pp2, 4, 8 | Under-16 privacy boundary; disclosure consent from age 7; does not purport to state every data-processing rule |
+| `kb-legal-bao-tin-xam-hai` | Articles 1, 51(1)-(3); PDF pp2, 15-16 | Adult/organization reporting responsibilities, reception/verification and statutory national hotline; no invented number or deadline |
+| `kb-school-nha-giao-tt03-2026` | TT03 Articles 5(3)-(4), 15(1)-(2); PDF pp3, 7 | Teacher listening/support/reporting duties, unlawful disclosure prohibition and precise partial repeal of TT06 |
 
 Each card separates statutory summary from MoodPrint practical suggestions. Each has an agent-only claim/source `_review` note; human and professional review remain pending. No padding, repeated paragraphs, invented endorsements, named-school rules, sanctions, legal-case conclusions or guaranteed outcomes were added.
 
@@ -45,7 +45,7 @@ The migration revokes every table and column privilege on this single table from
 
 ## Verification evidence
 
-All local commands used synthetic data or public legal documents. This agent made no Voyage/OpenAI call, hosted migration, hosted publication, branch/worktree creation, commit or push. `.gitignore` was not changed.
+Source/schema authoring used public legal documents and synthetic tests. Later integrated embedding, publication, normal commits/pushes and retrieval measurements are recorded in the overall/retrieval reports. No OpenAI paid call, hosted action or new branch/worktree occurred. `.gitignore` was not changed.
 
 | Check | Result |
 |---|---|
@@ -59,9 +59,9 @@ All local commands used synthetic data or public legal documents. This agent mad
 | Two final offline `ingest build` runs | Exit 0; 57 documents / 80 chunks each; no serializer warning |
 | Repeat-build byte comparison | `documents.jsonl`, `chunks.jsonl`, `report.json` all byte-identical |
 | `git diff --check` on owned paths | Exit 0; checkout line-ending notices only |
-| Final database pgTAP | Exit0:21files/479assertions PASS, including new19; clean final source chronology after the order checker reset |
-| Migration order | Exit0:VERIFIED kb-first and ag-first, each reset from empty; source migration bytes unchanged |
-| Full combined integration | Exit0:149passed/1563deselected;13new permission cases included |
+| Final database pgTAP | Exit 0: 21 files / 479 assertions PASS, including 19 new assertions; clean final source chronology after the order checker reset |
+| Migration order | Exit 0: VERIFIED kb-first and ag-first, each reset from empty; source migration bytes unchanged |
+| Full combined integration | Exit 0: 149 passed / 1587 deselected in the final rerun; 13 new permission cases included |
 
 The first corpus build exposed a quoted date in new card front matter, causing a Pydantic serializer warning. It was corrected to a TOML date before the final digest was frozen, and both final builds were warning-free. The official TT03 PDF reports duplicate `/Info` keys in pypdf; the cited pages were checked visually and the signed original was preserved unchanged.
 
@@ -69,10 +69,10 @@ Final build artifacts: `.local/corpus/quality-closure-build-1` and `-2` (untrack
 
 ## Remaining gates
 
-- Clean-init, both migration orders, pgTAP479 and integration149 are now measured. Overall final-SHA regression/CI are recorded by root in the main closure report.
+- Clean-init, both migration orders, pgTAP 479 and integration 149 are now measured. Overall final-SHA regression/CI are recorded by root in the main closure report.
 - The new corpus has not been given a retrieval-quality pass in this report. The old no-result failure remains historical evidence; root owns new-version measurements on its frozen dataset.
 - ND80 current legal status and human proofreading remain unresolved; all older card wording and benchmark labels still need independent review.
 - Six-source and 350-chunk targets remain unmet, without padding.
 - Independent urgency dataset/safety review, live repeats/budgets, Voyage opt-out and real-student data approvals are outside this workstream and remain explicit gates. Nothing here changes PHASE_2, PHASE_3 or G_INTEGRATION to VERIFIED.
 
-Integration setup correction: the first combined run had145passes/4failures because the new anon tests attempted SETROLEanon through moodprint_api, which correctly lacks that membership. The tests now switch the admin test session to anon, while runtime/authenticated checks still use actual runtime credentials. No role membership or grant was broadened. The complete suite was re-run,149passed.
+Integration setup correction: the first combined run had 145 passes / 4 failures because the new anon tests attempted SET ROLE anon through moodprint_api, which correctly lacks that membership. The tests now switch the admin test session to anon, while runtime/authenticated checks still use actual runtime credentials. No role membership or grant was broadened. The complete suite was re-run, 149 passed.
