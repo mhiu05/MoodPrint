@@ -201,6 +201,19 @@ _PRESENT_CONTACT: Final = re.compile(
     r"\b(?:nhin thay|thay)\b.{0,35}\b(?:o cong|truoc nha|ngoai cua)\b|"
     r"\b(?:o cong|truoc nha|ngoai cua) roi\b"
 )
+_PASSIVE_PHYSICAL: Final = re.compile(
+    r"\bbi (?:(?:(?:mot|hai|ba|ca) )?(?:ban(?: ay| do)?|nhom(?: ban| nguoi)?|"
+    r"nguoi(?: do| ay| la)?)(?: \w+){0,1} )?"
+    r"(?:danh(?! (?:gia|thuc|bai|van|dau|so|may|dan|chu|rang)\b)|dam|xo day|xo|hanh hung|tan cong)\b"
+)
+_ABSTRACT_QUOTE: Final = re.compile(
+    r"\b(?:cau|tinh huong|vi du|bai tap) gia dinh(?: (?:nhu sau|la|rang))?$"
+)
+_NEGATED_HARM_PREFIX: Final = re.compile(
+    r"^khong (?:co )?ai (?:(?:dang|dinh|se|chuan bi) )?"
+    r"(?:(?:chan (?:cua|duong)|danh|dap|dam|tat|tan cong) (?:hay|hoac) "
+    r"(?:(?:dang|dinh|se|chuan bi) )?)*$"
+)
 
 
 def _conditional_self_plan(clause: str) -> bool:
@@ -222,6 +235,15 @@ def _p(group: str, level: UrgencyLevel, pattern: str, intrinsic: bool = False) -
 
 
 _RULES: Final[tuple[_P, ...]] = (
+    _p(
+        "self_harm",
+        "immediate",
+        r"(?:^(?:(?:nam ngoai|nam truoc|thang truoc|tuan truoc|truoc day) )?"
+        r"(?:minh|em|toi|con|to) (?:uoc gi|mong|muon)|\b(?:uoc gi|mong) "
+        r"(?:(?:sang mai|ngay mai|toi nay|sau nay) )?(?:minh|toi|to)) "
+        r"khong (?:phai )?(?:thuc day|tinh day) nua\b",
+        True,
+    ),
     _p("self_harm", "immediate", _OVERDOSE.pattern),
     # --- self harm: active intent / plan / means ---------------------------------------------
     _p("self_harm", "immediate", r"\bmuon (?:chet|tu tu|tu sat|tu ket lieu)\b"),
@@ -398,6 +420,13 @@ _RULES: Final[tuple[_P, ...]] = (
         r"\bgiup voi\b.{0,40}\b(?:danh|keo|dap|da)\b|\b(?:danh|keo|dap|da)\b.{0,40}\bgiup voi\b",
     ),
     # --- physical harm ------------------------------------------------------------------------
+    _p("physical", "elevated", _PASSIVE_PHYSICAL.pattern),
+    _p(
+        "physical",
+        "immediate",
+        r"\b(?:dang|van) chan (?:cua|duong)\b.{0,60}\b(?:chuan bi|dinh|toan|sap|se) "
+        r"(?:danh|dap|dam|tat|tan cong) (?:minh|em|toi)\b",
+    ),
     _p(
         "physical",
         "elevated",
@@ -552,6 +581,10 @@ def _clause_signals(clause: str, *, quoted: bool) -> list[tuple[str, UrgencyLeve
         match = pattern.search(clause)
         if match is None:
             continue
+        if group in {"physical", "threat", "violence"} and _NEGATED_HARM_PREFIX.fullmatch(
+            clause[: match.start()]
+        ):
+            continue
         if _negated(clause, match.start(), intrinsic):
             continue
         level = base
@@ -620,6 +653,8 @@ def _clause_signals(clause: str, *, quoted: bool) -> list[tuple[str, UrgencyLeve
             elif (imminent or _PRESENT_CONTACT.search(clause)) and (
                 _FEAR.search(clause) or "tiep" in clause
             ):
+                level = "immediate"
+            elif _PASSIVE_PHYSICAL.search(clause) and re.search(r"\bdang bi\b", clause):
                 level = "immediate"
             elif (
                 third
@@ -1037,15 +1072,18 @@ def assess_urgency(text: str, *, prior: Sequence[str] = ()) -> UrgencyAssessment
                 signals.add(group)
                 levels.append(level)
 
-    quoted_spans = [m.group(1) or m.group(2) for m in _QUOTES.finditer(text)]
+    quoted_spans = list(_QUOTES.finditer(text))
     unquoted = _QUOTES.sub(" ", text)
     absorb(unquoted, quoted=False)
     frame = fold(unquoted)
     playful = bool(_JOKE.search(frame)) and not _FEAR.search(frame)
-    if not _MEDIA.search(frame) and not playful:  # lyrics, film lines and jokes are not threats
+    if not _MEDIA.search(frame) and not playful:
         for span in quoted_spans:
+            prefix = fold(re.split(r"[.!?;\n]", text[: span.start()])[-1])
+            if _ABSTRACT_QUOTE.search(prefix):
+                continue  # only this explicitly introduced hypothetical quote
             # A quoted threat the user received is still a threat; quoted ideation is softened.
-            absorb(span, quoted=True)
+            absorb(span.group(1) or span.group(2), quoted=True)
     best = _top(levels)
 
     folded_all = fold(_QUOTES.sub(" ", text))
