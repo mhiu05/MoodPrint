@@ -438,6 +438,59 @@ describe("approval dialog", () => {
 });
 
 describe("restore and failure behaviour", () => {
+  it.each(["interrupted", "failed"])(
+    "reopening an unanswered %s run offers retry with its original client id",
+    async (status) => {
+      const service = fake({
+        conversations: {
+          ...fake().conversations,
+          messages: vi.fn(async () => [
+            {
+              id: "stored-user",
+              role: "user",
+              content: "Mình muốn nói chuyện riêng với cô.",
+              citations: [],
+              clientMessageId: "original-client-id",
+              runId: "old-run",
+              createdAt: "",
+            },
+          ]),
+        } as LiveCompanion["conversations"],
+        run: vi.fn(async () => ({
+          id: "old-run",
+          conversationId: "conv-1",
+          status,
+          errorCode:
+            status === "interrupted" ? "heartbeat_lost" : "model_timeout",
+        })),
+        send: vi.fn(() =>
+          events(
+            completed("Mình nghe bạn."),
+            ev("run.completed", { status: "completed" }),
+          ),
+        ),
+      });
+      renderThread(service);
+      expect(await screen.findByRole("alert")).toBeVisible();
+      await userEvent.click(
+          screen.getByRole("button", { name: "Thử lại" }),
+      );
+      await waitFor(() =>
+        expect(service.send).toHaveBeenCalledWith(
+          "conv-1",
+          {
+            clientMessageId: "original-client-id",
+            content: "Mình muốn nói chuyện riêng với cô.",
+          },
+          expect.anything(),
+        ),
+      );
+      expect(
+        screen.getAllByText("Mình muốn nói chuyện riêng với cô."),
+      ).toHaveLength(1);
+      expect(await screen.findByText("Mình nghe bạn.")).toBeVisible();
+    },
+  );
   it("keeps the chosen own case when starting a conversation from a case link", async () => {
     useWorkspaceStore.getState().reset();
     useWorkspaceStore.getState().login("USER-AN");

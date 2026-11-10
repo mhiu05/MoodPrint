@@ -49,6 +49,8 @@ export const failureCopy: Record<string, string> = {
   upstream_error: "Dịch vụ AI tạm thời chưa phản hồi. Bạn có thể thử lại.",
   internal_error: "Chưa thể hoàn tất lượt trò chuyện. Bạn có thể thử lại.",
   network_error: "Mất kết nối. Nội dung của bạn vẫn được giữ; hãy thử lại.",
+  heartbeat_lost:
+    "Lượt trả lời bị gián đoạn. Nội dung của bạn vẫn được giữ; bạn có thể thử lại.",
   quota_exceeded: "Hôm nay bạn đã dùng hết lượt trò chuyện với AI.",
   rate_limited: "Bạn đã gửi nhiều tin nhắn. Hãy thử lại sau ít phút.",
   not_ready: "Trò chuyện AI chưa được cấu hình.",
@@ -160,6 +162,34 @@ export function useLiveChat(service: LiveCompanion, conversationId: string) {
               setLoaded(true);
               return;
             }
+          }
+          const unanswered = [...turns]
+            .reverse()
+            .find(
+              (turn) =>
+                turn.runId === lastRun &&
+                turn.role === "user" &&
+                turn.clientMessageId,
+            );
+          const hasAnswer = turns.some(
+            (turn) => turn.runId === lastRun && turn.role === "assistant",
+          );
+          if (
+            ["interrupted", "failed"].includes(run.status) &&
+            unanswered &&
+            !hasAnswer
+          ) {
+            failed.current = {
+              clientMessageId: unanswered.clientMessageId!,
+              content: unanswered.content,
+            };
+            const code =
+              run.status === "interrupted"
+                ? "heartbeat_lost"
+                : (run.errorCode ?? "internal_error");
+            setError({ code, message: describeFailure(code), retryable: true });
+            setStatus("failed");
+            return;
           }
         }
         setStatus("idle");

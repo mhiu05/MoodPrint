@@ -218,7 +218,7 @@ class ConversationService:
                     .mappings()
                     .first()
                 )
-                if existing["status"] in ("failed", "cancelled") and not answer:
+                if existing["status"] in ("failed", "cancelled", "interrupted") and not answer:
                     # Same message, same client id, no answer: this is a retry. Run it again as a new
                     # run on the stored message instead of replaying the failure (which has no
                     # terminal event and could never succeed).

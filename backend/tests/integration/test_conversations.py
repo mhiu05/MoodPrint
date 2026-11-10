@@ -78,8 +78,8 @@ async def test_begin_turn_concurrent_idempotency_and_usage(db_engine, identities
     await service.delete(a, conversation["id"])
 
 
-@pytest.mark.parametrize("terminal", ["failed", "cancelled"])
-async def test_retry_of_a_failed_or_cancelled_turn_reruns_the_same_message(
+@pytest.mark.parametrize("terminal", ["failed", "cancelled", "interrupted"])
+async def test_retry_of_an_unanswered_terminal_turn_reruns_the_same_message(
     db_engine, identities, terminal
 ):
     """A retry (same client id, no answer) is a new run on the stored message, not a replay of the
