@@ -2,6 +2,7 @@
 import { chromium, expect as baseExpect } from "@playwright/test";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 
 const root = path.resolve(process.cwd(), "..");
 const output = path.join(root, ".local/fresh-supabase");
@@ -49,6 +50,10 @@ const frontend = "http://127.0.0.1:5173";
 const key = env("SUPABASE_PUBLISHABLE_KEY");
 const user = manifest.users[0];
 const receipt = {
+  source_commit: execFileSync("git", ["rev-parse", "HEAD"], {
+    cwd: root,
+    encoding: "utf8",
+  }).trim(),
   model: "gpt-6-luna",
   mode: "GENUINE_LOCAL_RUNTIME_HOSTED_SUPABASE",
   started_at: new Date().toISOString(),
@@ -153,9 +158,12 @@ async function say(id, prompt) {
   const answer = events
     .filter((event) => event.event === "message.completed")
     .at(-1)?.data;
+  const runId = events[0]?.runId;
+  const run = runId ? await apiJson(`/v1/runs/${runId}`) : null;
   receipt.outputs.push({
     scenario_id: id,
-    prompt_version: "companion_v4",
+    prompt_version: run?.promptVersion ?? null,
+    source_commit: receipt.source_commit,
     model: "gpt-6-luna",
     user_message: prompt,
     response: answer?.content ?? null,
