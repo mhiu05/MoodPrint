@@ -146,3 +146,29 @@ async def test_standard_tier_is_explicit_before_the_existing_budget_boundary():
             )
     assert len(seen) == 1
     assert seen[0]["service_tier"] == "default"
+
+
+async def test_complete_metered_wrapper_shutdown_closes_the_inner_connection_pool(tmp_path):
+    from evals.budget import GuardedTransport
+
+    provider = module()
+
+    class Pool(httpx.AsyncBaseTransport):
+        closed = False
+
+        async def handle_async_request(self, request):
+            pytest.fail("Shutdown must not send any provider request")
+
+        async def aclose(self):
+            self.closed = True
+
+    pool = Pool()
+    # No generation is requested; the ledger is never accessed in this lifetime probe.
+    guard = GuardedTransport(pool, None, run_id="synthetic-shutdown")
+    client = httpx.AsyncClient(
+        transport=provider.RecordingTransport(
+            provider.DefaultTierTransport(guard), tmp_path / "unused-trace.jsonl"
+        )
+    )
+    await client.aclose()
+    assert pool.closed

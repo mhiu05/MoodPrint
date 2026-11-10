@@ -20,6 +20,7 @@ from uuid import uuid4
 import httpx
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "agent"))
 
 from evals.budget import BudgetLedger, load_budget  # noqa: E402

@@ -480,6 +480,9 @@ class GuardedTransport(httpx.AsyncBaseTransport):
     def __init__(self, inner: httpx.AsyncBaseTransport, ledger: BudgetLedger, *, run_id: str):
         self._inner, self._ledger, self._run_id = inner, ledger, run_id
 
+    async def aclose(self) -> None:
+        await self._inner.aclose()
+
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
         if request.url.host != PAID_HOST or not request.url.path.startswith(PAID_PATH_PREFIX):
             raise BudgetError("only the Responses endpoint is budgeted; request refused")
