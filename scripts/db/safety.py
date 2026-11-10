@@ -102,6 +102,23 @@ def require_local_gate(root: Path, head: str, *, phase: int) -> None:
             or not includes("scripts/dev/migration_order_check.py")
         ):
             raise ValueError("Phase 23 gate requires Phase 1, E2E --run and both migration orders")
+        if phase == 23:
+            evidence_root = (root / ".local").resolve()
+            if not evidence_root.is_relative_to(root.resolve()):
+                raise ValueError("Phase 23 log evidence escapes the worktree")
+            for check in checks:
+                name, digest = check.get("log"), check.get("log_sha256")
+                if not isinstance(name, str) or not isinstance(digest, str):
+                    raise ValueError("Phase 23 requires recorded command log evidence")
+                log = (root / name).resolve()
+                if Path(name).is_absolute() or not log.is_relative_to(evidence_root):
+                    raise ValueError("Phase 23 log evidence escapes the worktree")
+                if (
+                    not re.fullmatch(r"[0-9a-f]{64}", digest)
+                    or not log.is_file()
+                    or hashlib.sha256(log.read_bytes()).hexdigest() != digest
+                ):
+                    raise ValueError("Phase 23 command log evidence is missing or changed")
 
 
 def is_generated_runtime_url(database_url: str) -> bool:

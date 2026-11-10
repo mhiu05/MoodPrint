@@ -101,6 +101,17 @@ def setup(tmp_path, monkeypatch, *, old_pending=False):
         {"command": ["python", "scripts/e2e_stack.py", "--run"], "returncode": 0},
         {"command": ["python", "scripts/dev/migration_order_check.py"], "returncode": 0},
     ] + [{"command": ["python", "scripts/check.py"], "returncode": 0}] * 9
+    import hashlib
+
+    # Transport doubles produce real, immutable local log artifacts as well as exit codes.
+    checks = [dict(check) for check in checks]
+    for index, check in enumerate(checks):
+        log = local / f"check-{index}.log"
+        log.write_text("Synthetic unit CLI result")
+        check.update(
+            log=log.relative_to(tmp_path).as_posix(),
+            log_sha256=hashlib.sha256(log.read_bytes()).hexdigest(),
+        )
     (local / "phase23-gate.json").write_text(
         json.dumps({"commit": HEAD, "passed": True, "scope": "local_phase23", "checks": checks})
     )

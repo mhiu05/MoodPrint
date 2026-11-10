@@ -172,8 +172,8 @@ def test_direct_target_rejects_non_admin_role() -> None:
         )
 
 
-def phase23_receipt():
-    return {
+def phase23_receipt(root=None):
+    receipt = {
         "commit": "verified-head",
         "passed": True,
         "scope": "local_phase23",
@@ -184,6 +184,18 @@ def phase23_receipt():
         ]
         + [{"command": ["python", "scripts/check.py"], "returncode": 0} for _ in range(9)],
     }
+    if root is not None:
+        import hashlib
+
+        (root / ".local").mkdir(exist_ok=True)
+        for index, check in enumerate(receipt["checks"]):
+            log = root / f".local/check-{index}.log"
+            log.write_text("Synthetic unit transport result")
+            check.update(
+                log=log.relative_to(root).as_posix(),
+                log_sha256=hashlib.sha256(log.read_bytes()).hexdigest(),
+            )
+    return receipt
 
 
 @pytest.mark.parametrize(
@@ -231,7 +243,7 @@ def test_phase23_receipt_rejects_missing_stale_or_incomplete_checks(tmp_path, mu
 
 def test_complete_phase23_gate_is_accepted(tmp_path):
     (tmp_path / ".local").mkdir()
-    (tmp_path / ".local/phase23-gate.json").write_text(json.dumps(phase23_receipt()))
+    (tmp_path / ".local/phase23-gate.json").write_text(json.dumps(phase23_receipt(tmp_path)))
     safety.require_local_gate(tmp_path, "verified-head", phase=23)
 
 
@@ -272,4 +284,30 @@ def test_phase23_requires_twelve_real_command_results(tmp_path, check):
     (tmp_path / ".local").mkdir()
     (tmp_path / ".local/phase23-gate.json").write_text(json.dumps(receipt))
     with pytest.raises(ValueError):
+        safety.require_local_gate(tmp_path, "verified-head", phase=23)
+
+
+@pytest.mark.parametrize("mutation", ["missing", "tampered", "outside"])
+def test_phase23_receipt_requires_its_recorded_command_logs(tmp_path, mutation):
+    import hashlib
+
+    receipt = phase23_receipt()
+    local = tmp_path / ".local"
+    local.mkdir()
+    for index, check in enumerate(receipt["checks"]):
+        log = local / f"check-{index}.log"
+        log.write_text("Synthetic unit transport result")
+        check.update(
+            log=log.relative_to(tmp_path).as_posix(),
+            log_sha256=hashlib.sha256(log.read_bytes()).hexdigest(),
+        )
+    first = receipt["checks"][0]
+    if mutation == "missing":
+        (tmp_path / first["log"]).unlink()
+    elif mutation == "tampered":
+        (tmp_path / first["log"]).write_text("Changed after the gate")
+    else:
+        first["log"] = "../outside.log"
+    (local / "phase23-gate.json").write_text(json.dumps(receipt))
+    with pytest.raises(ValueError, match="log|evidence"):
         safety.require_local_gate(tmp_path, "verified-head", phase=23)

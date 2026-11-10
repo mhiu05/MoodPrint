@@ -118,6 +118,7 @@ def verify(root: Path, name: str, offset: int) -> int:
         if clean_head(root) != head:
             raise ValueError("Source commit changed during Phase 23 verification")
         status.update(passed=True, timestamp=datetime.now(UTC).isoformat())
+        (output / "status.json").write_text(json.dumps(status, indent=2), encoding="utf-8")
         temporary = receipt.with_suffix(".tmp")
         temporary.write_text(json.dumps(status, indent=2), encoding="utf-8")
         temporary.replace(receipt)

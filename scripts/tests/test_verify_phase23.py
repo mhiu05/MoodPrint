@@ -81,6 +81,10 @@ def test_complete_gate_receipt_is_consumable_and_has_real_command_provenance(
     assert receipt["commit"] == head
     assert len(receipt["checks"]) >= 12
     assert all(check["returncode"] == 0 and check["log_sha256"] for check in receipt["checks"])
+    status = json.loads(
+        (repository / ".local/verification/phase23-fixture-400/status.json").read_text()
+    )
+    assert status["passed"] is True
     from db.safety import require_local_gate
 
     require_local_gate(repository, head, phase=23)
