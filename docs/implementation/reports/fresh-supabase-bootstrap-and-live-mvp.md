@@ -260,4 +260,4 @@ Hai test accounts đã bị xóa; manifest cũ không dùng để login lại. N
 
 Frontend/backend được để chạy local nếu process còn sống; trạng thái cuối và PID manifest được ghi trong final handoff. Không thay đổi `main`, tạo branch/worktree mới, force-push, deploy công khai hoặc đưa dữ liệu học sinh thật vào hệ thống.
 
-File index và SHA-256 của các artifact: [evidence-manifest.json](fresh-supabase-evidence/evidence-manifest.json). Các kiểm tra và nhận xét không đạt được giữ cùng kết quả thành công để owner có thể xem lại toàn bộ quá trình.
+File index và SHA-256 của các artifact: [evidence-manifest.json](fresh-supabase-evidence/evidence-manifest.json). Hash áp dụng cho bytes được lưu trong Git; JSON dùng xuống dòng LF. Các kiểm tra và nhận xét không đạt được giữ cùng kết quả thành công để owner có thể xem lại toàn bộ quá trình.
