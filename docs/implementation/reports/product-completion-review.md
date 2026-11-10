@@ -48,7 +48,7 @@ P2 còn lại: một số landmark phụ chưa đặt tên phân biệt, NotFoun
 
 Runtime giữ **OpenAI Agents SDK**, model cấu hình `gpt-6-luna`, Companion `companion_v4`, partner `roleplay_partner_v2`, coach `roleplay_coach_v1`, reader `evidence_reader_v1`, risk assessor `risk_assessor_v1`. Năm prompt không bị sửa; hash/version trong artifact. Harness mới dùng `CompanionRuntime`, tool registry, session SDK, `EvalDomain` và `ScriptedModel` có sẵn. SQLite session chỉ là unit harness cô lập, không dùng để tuyên bố hosted acceptance.
 
-Artifact hiện hành: [`product-completion-20261110-verified`](../../../agent/evals/results/product-completion-20261110-verified/manifest.json), **20 ca / 151 checks / 0 lỗi / 0 paid calls**, exit 0. Outputs giữ tool trace, history, preview/binding/payload, quyết định duyệt, trạng thái/counter writer và hash output/case/source. Các run development trước đó được giữ. Lời đáp script không được chấm là trí thông minh; `semantic_quality_status=NOT_GRADED`, 60 live slots `NOT_RUN`.
+Artifact hiện hành: [`product-completion-20261110-committed`](../../../agent/evals/results/product-completion-20261110-committed/manifest.json), **20 ca / 151 checks / 0 lỗi / 0 paid calls**, exit 0, source commit **`d07c4ba9b59a1df82433db6fac2fbe3e3b6bfb12`**. Outputs giữ tool trace, history, preview/binding/payload, quyết định duyệt, trạng thái/counter writer và hash output/case/source. Các run development trước đó được giữ. Lời đáp script không được chấm là trí thông minh; `semantic_quality_status=NOT_GRADED`, 60 live slots `NOT_RUN`.
 
 Một lỗi detector được tìm thấy: tiết lộ người khác chạm vùng riêng tư chỉ nêu bộ phận cơ thể bị bỏ sót. Bổ sung concept có actor/passive và minimal pairs; review tìm thêm false positive tự chăm sóc đã được sửa. **13 regression development** phân biệt hiện tại/quá khứ, phủ định, hỏi kiến thức, phim, tự vệ sinh/khám bệnh và người tác động. Không xem đây là tập độc lập hay bằng chứng đạt Q3-03; present-danger Q3-04 và threshold không bị hạ.
 
@@ -90,7 +90,7 @@ Thay đổi hosted dự kiến là **các migration đã có**: `20261108100100_
 | scripted local `e2e_stack.py --run --project real --name int --offset 300 --agent scripted` | 0; **37 passed** trong 7.2 phút và **1 urgent test passed**. Chạy lại `--grep PC-UI` trên delta consent cuối: **1 passed** trong 10.0s, kiểm cả mặc định không consent, thoát phiên, opt-in và bảy viewport |
 | `node scripts/audit-product.mjs`, final `--recheck --recheck-route=case-detail:320` | 0; 252 sweep + 19 behavior checks; axe/browser/network như mục B |
 | hosted `hosted_product.py --prepare`, `--run`, `node frontend/scripts/hosted-product.mjs`, `--cleanup` | 0 ở final; 22 PASS / 0 FAIL / 7 BLOCKED; refresh/restart/cleanup exact paths có receipt |
-| offline `agent/evals/product.py --out ...product-completion-20261110-verified` | 0; 20 ca / 151 checks; 60 live NOT_RUN |
+| offline `python -m agent.evals.product --out ...product-completion-20261110-committed` | 0; 20 ca / 151 checks; 60 live NOT_RUN; provenance trỏ commit nguồn đã push |
 
 Các lần đỏ không bị xóa: chat/analysis/roleplay regression trước sửa; clock-skew hosted 401; initial hosted wait/selector assumptions; preflight dùng to_regclass thiếu schema usage trước khi chuyển metadata read; native PowerShell stderr hiển thị NativeCommandError cho intentional fake-provider failure dù harness hoàn tất; một lần runner từ chối ghi đè artifact có sẵn; pgTAP 4 failures do assertion toàn bảng; PC-UI phát hiện case link 422; roleplay response cũ có thể ghi đè trạng thái đã thoát. Các lỗi sản phẩm được sửa với regression; fixture/harness assumptions được ghi khác với product defect. Không suppress browser5xx để xanh.
 
@@ -100,7 +100,9 @@ Khi bàn giao, frontend tại `http://localhost:5173` và backend tại `http://
 
 ## F. Git và CI
 
-Starting SHA và upstream sau fetch: **`e02abdfab5221ffc7b620104194387ab15e6feb1`**, cây sạch, đúng repository/worktree. Không branch/worktree mới, không sửa main, không force-push/reset history. Thay đổi thuộc UI/case handoff/auth verification, agent scripted product protocol/safety regression, hosted guard utilities, scoped SQL tests và tài liệu/bằng chứng. Danh sách chính xác: `git diff --name-only e02abdf..HEAD`.
+Starting SHA và upstream sau fetch: **`e02abdfab5221ffc7b620104194387ab15e6feb1`**, cây sạch, đúng repository/worktree. Không branch/worktree mới, không sửa main, không force-push/reset history. Thay đổi thuộc UI/case handoff/auth verification, agent scripted product protocol/safety regression, hosted guard utilities, scoped SQL tests và tài liệu/bằng chứng. [Danh sách 72 file](../../quality/product-completion/changed-files.txt) có thể tái tạo bằng `git diff --name-only e02abdf..HEAD`.
+
+Commit chức năng [`d07c4ba9b59a1df82433db6fac2fbe3e3b6bfb12`](https://github.com/mhiu05/MoodPrint/commit/d07c4ba9b59a1df82433db6fac2fbe3e3b6bfb12), `fix: complete product journeys and harden companion recovery`, đã push thường; local/upstream/remote SHA khớp. [CI source run](https://github.com/mhiu05/MoodPrint/actions/runs/42746841685) **SUCCESS**, cả `offline` và `integration`, trên đúng SHA này: Python 1640, frontend 159, pgTAP/API và browser demo/scripted đều đạt. Commit bàn giao tiếp theo, `docs: record product completion acceptance evidence`, chỉ bổ sung kết quả, artifact gắn source commit và báo cáo; CI riêng trên SHA bàn giao được kiểm tiếp trước handoff.
 
 Commit source và commit evidence/report được ghi trong ledger bàn giao. SHA cuối của chính report không thể nhúng vào byte của commit chứa nó: xác định bằng `git log -1 --format=%H -- docs/implementation/reports/product-completion-review.md`, kiểm `git ls-remote origin refs/heads/mhiu05/feat-refactor`. CI workflow [Foundation](https://github.com/mhiu05/MoodPrint/actions/workflows/ci.yml) chạy trên SHA được push; kết quả và URL run chính xác được kiểm lại, lưu `.local/product-completion/delivery-receipt.json` và nêu trong handoff cuối. Không dùng CI SHA cũ để tuyên bố SHA cuối xanh.
 
@@ -111,9 +113,9 @@ Commit source và commit evidence/report được ghi trong ledger bàn giao. SH
 | P0 / External blocker | Hosted thiếu schema Phase 2/3: chặn Companion/approval/analysis/roleplay/Knowledge thật. Owner cần duyệt forward migration plan riêng; chưa thực thi |
 | P0 / External blocker về an toàn | Q3-03 chưa được chứng minh; independent Vietnamese safety review còn thiếu. Không dùng với dữ liệu học sinh thật |
 | External blocker | Paid live budget hết 900/900; chưa kiểm chất lượng model thật trên protocol sản phẩm. Amendment và live mapping như mục C |
-| External blocker | Không thử public hosted signup/email verification/reset delivery; giữ settings thật và không gửi email thử hàng loạt. Genuine expired hosted JWT chưa có fixture |
+| External blocker / giới hạn kiểm thử | Không thử public hosted signup/email verification/reset delivery; giữ settings thật và không gửi email thử hàng loạt. Genuine expired hosted JWT chưa có fixture. Individual case DELETE hosted chưa thử vì route gọi global purge; seam chặn thao tác này, account cleanup chỉ dùng hai exact synthetic owners |
 | P2 | Moderate landmark/NotFound heading và contrast incomplete manual review; Chromium emulation chưa thay kiểm thiết bị/AT vật lý |
 | P2 | Bundle-size warning và 7 npm moderate advisories cần đánh giá dependency riêng, không nâng major tự động |
 | Deferred / ngoài phạm vi | Voice thật, liên hệ trường/cơ quan, deployment/AWS, release, nghiên cứu RAG, paid judge |
 
-Không còn P0/P1 do phần sửa đã biết được cố tình bỏ qua. Các blocker trên vẫn ngăn tuyên bố hoàn tất nghiệm thu toàn bộ hosted MVP; unit/code tồn tại không thay bằng chứng UI.
+Review độc lập cuối không tìm thấy finding P0/P1 chưa xử lý trong diff. Các blocker trên vẫn ngăn tuyên bố hoàn tất nghiệm thu toàn bộ hosted MVP; unit/code tồn tại không thay bằng chứng UI.
