@@ -187,7 +187,15 @@ export function useLiveChat(service: LiveCompanion, conversationId: string) {
               run.status === "interrupted"
                 ? "heartbeat_lost"
                 : (run.errorCode ?? "internal_error");
-            setError({ code, message: describeFailure(code), retryable: true });
+            setError({
+              code,
+              message: describeFailure(code),
+              retryable: ![
+                "model_refusal",
+                "max_turns",
+                "tool_budget_exceeded",
+              ].includes(code),
+            });
             setStatus("failed");
             return;
           }

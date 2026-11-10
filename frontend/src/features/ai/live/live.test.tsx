@@ -438,6 +438,33 @@ describe("approval dialog", () => {
 });
 
 describe("restore and failure behaviour", () => {
+  it.each(["model_refusal", "max_turns", "tool_budget_exceeded"])(
+    "restoring %s preserves the original nonretryable classification",
+    async (errorCode) => {
+      const service = fake();
+      service.conversations.messages = vi.fn(async () => [
+        {
+          id: "user",
+          role: "user" as const,
+          content: "Synthetic request",
+          citations: [],
+          clientMessageId: "client",
+          runId: "failed-run",
+          createdAt: "",
+        },
+      ]);
+      service.run = vi.fn(async () => ({
+        id: "failed-run",
+        conversationId: "conv-1",
+        status: "failed",
+        errorCode,
+      }));
+      renderThread(service);
+      expect(await screen.findByRole("alert")).toBeVisible();
+      expect(screen.queryByRole("button", { name: "Thử lại" })).toBeNull();
+      expect(service.send).not.toHaveBeenCalled();
+    },
+  );
   it.each(["interrupted", "failed"])(
     "reopening an unanswered %s run offers retry with its original client id",
     async (status) => {
@@ -472,9 +499,7 @@ describe("restore and failure behaviour", () => {
       });
       renderThread(service);
       expect(await screen.findByRole("alert")).toBeVisible();
-      await userEvent.click(
-          screen.getByRole("button", { name: "Thử lại" }),
-      );
+      await userEvent.click(screen.getByRole("button", { name: "Thử lại" }));
       await waitFor(() =>
         expect(service.send).toHaveBeenCalledWith(
           "conv-1",
