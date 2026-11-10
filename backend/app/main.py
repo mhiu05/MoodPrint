@@ -1,6 +1,7 @@
 """Single deployment: API, agent runtime and narrow recovery jobs."""
 
 import asyncio
+from collections.abc import Callable
 from contextlib import asynccontextmanager, suppress
 from typing import Literal
 
@@ -10,9 +11,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from moodprint_shared.config import AppConfig
 from moodprint_shared.contracts.base import FrozenDTO
 from moodprint_shared.contracts.errors import ErrorEnvelope
+from moodprint_shared.contracts.knowledge import KnowledgeRetriever
 from moodprint_shared.env import EnvSettings, get_settings
 from moodprint_shared.logging import configure_logging
+from openai import AsyncOpenAI
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.agent_gateway.wiring import build_runtime
 from app.api.v1 import analyses_router, knowledge_router, roleplay_router
@@ -47,7 +51,14 @@ class ReadyReply(FrozenDTO):
     status: Literal["ready"] = "ready"
 
 
-def create_app(settings: EnvSettings | None = None, cfg: AppConfig | None = None) -> FastAPI:
+def create_app(
+    settings: EnvSettings | None = None,
+    cfg: AppConfig | None = None,
+    *,
+    model_client_factory: Callable[[EnvSettings], AsyncOpenAI | None] | None = None,
+    knowledge_factory: Callable[[AsyncEngine, EnvSettings, AppConfig], KnowledgeRetriever]
+    | None = None,
+) -> FastAPI:
     settings = settings or get_settings()
     cfg = cfg or AppConfig()
 
@@ -60,18 +71,21 @@ def create_app(settings: EnvSettings | None = None, cfg: AppConfig | None = None
             app.state.verifier = JwtVerifier(settings, cfg, http)
             app.state.auth_admin = AuthAdmin(settings, http)
             app.state.storage = StorageGateway(settings, cfg, http)
-            from openai import AsyncOpenAI
-
             model_client = None
             background_tasks = []
             app.state.run_tasks = set()
             try:
-                model_client = (
-                    AsyncOpenAI(api_key=settings.openai_api_key.get_secret_value())
-                    if settings.openai_api_key
-                    else None
+                if model_client_factory is not None:
+                    model_client = model_client_factory(settings)
+                else:
+                    model_client = (
+                        AsyncOpenAI(api_key=settings.openai_api_key.get_secret_value())
+                        if settings.openai_api_key
+                        else None
+                    )
+                app.state.knowledge = (knowledge_factory or build_knowledge_retriever)(
+                    engine, settings, cfg
                 )
-                app.state.knowledge = build_knowledge_retriever(engine, settings, cfg)
                 app.state.runtime = build_runtime(cfg, model_client)
                 background_tasks.append(
                     asyncio.create_task(
