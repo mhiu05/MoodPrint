@@ -83,13 +83,17 @@ export function useLiveChat(service: LiveCompanion, conversationId: string) {
   // Stop was pressed before the server told us the run id: cancel as soon as it arrives.
   const stopRequested = useRef(false);
   const abort = useRef<AbortController | null>(null);
-  const [hasRequest, setHasRequest] = useState(false);
   const failed = useRef<{ clientMessageId: string; content: string } | null>(
     null,
   );
   const buffer = useRef("");
   const frame = useRef<number | null>(null);
   const alive = useRef(true);
+  const recoveryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recoveryGeneration = useRef(0);
+  const invalidateRecovery = useCallback(() => {
+    recoveryGeneration.current += 1;
+  }, []);
 
   const flush = useCallback(() => {
     frame.current = null;
@@ -111,46 +115,65 @@ export function useLiveChat(service: LiveCompanion, conversationId: string) {
     [flush],
   );
 
-  const restore = useCallback(async () => {
-    setStatus("recovering");
-    try {
-      const turns = await service.conversations.messages(conversationId);
-      if (!alive.current) return;
-      setMessages(
-        turns.map(toMessage).filter((m): m is LiveMessage => m !== null),
-      );
-      const lastRun = [...turns].reverse().find((t) => t.runId)?.runId;
-      setApproval(null);
-      if (lastRun) {
-        const run = await service.run(lastRun);
-        if (run.status === "awaiting_approval") {
-          const [pending] = await service.pendingApprovals(lastRun);
-          if (pending && alive.current) {
-            setApproval({
-              runId: lastRun,
-              approvalId: pending.id,
-              tool: pending.tool,
-              label: String(pending.preview.summary ?? pending.tool),
-              preview: pending.preview,
-              expiresAt: pending.expiresAt,
-            });
+  const restore = useCallback(
+    async function restoreTranscript() {
+      if (recoveryTimer.current !== null) clearTimeout(recoveryTimer.current);
+      recoveryTimer.current = null;
+      const generation = ++recoveryGeneration.current;
+      const current = () =>
+        alive.current && generation === recoveryGeneration.current;
+      setStatus("recovering");
+      setError(null);
+      try {
+        const turns = await service.conversations.messages(conversationId);
+        if (!current()) return;
+        setMessages(
+          turns.map(toMessage).filter((m): m is LiveMessage => m !== null),
+        );
+        const lastRun = [...turns].reverse().find((t) => t.runId)?.runId;
+        setApproval(null);
+        if (lastRun) {
+          const run = await service.run(lastRun);
+          if (!current()) return;
+          if (run.status === "running" || run.status === "queued") {
             runId.current = lastRun;
-            setStatus("awaiting_approval");
-            setLoaded(true);
+            recoveryTimer.current = setTimeout(
+              () => void restoreTranscript(),
+              1500,
+            );
             return;
           }
+          if (run.status === "awaiting_approval") {
+            const [pending] = await service.pendingApprovals(lastRun);
+            if (!current()) return;
+            if (pending) {
+              setApproval({
+                runId: lastRun,
+                approvalId: pending.id,
+                tool: pending.tool,
+                label: String(pending.preview.summary ?? pending.tool),
+                preview: pending.preview,
+                expiresAt: pending.expiresAt,
+              });
+              runId.current = lastRun;
+              setStatus("awaiting_approval");
+              setLoaded(true);
+              return;
+            }
+          }
         }
+        setStatus("idle");
+      } catch (cause) {
+        if (!current()) return;
+        const code = (cause as { code?: string }).code ?? "network_error";
+        setError({ code, message: describeFailure(code), retryable: true });
+        setStatus("failed");
+      } finally {
+        if (current()) setLoaded(true);
       }
-      setStatus("idle");
-    } catch (cause) {
-      if (!alive.current) return;
-      const code = (cause as { code?: string }).code ?? "network_error";
-      setError({ code, message: describeFailure(code), retryable: true });
-      setStatus("failed");
-    } finally {
-      if (alive.current) setLoaded(true);
-    }
-  }, [service, conversationId]);
+    },
+    [service, conversationId],
+  );
 
   useEffect(() => {
     alive.current = true;
@@ -160,10 +183,12 @@ export function useLiveChat(service: LiveCompanion, conversationId: string) {
     });
     return () => {
       alive.current = false; // leaving the page or switching workspace stops all state writes
+      invalidateRecovery();
       abort.current?.abort();
       if (frame.current !== null) cancelAnimationFrame(frame.current);
+      if (recoveryTimer.current !== null) clearTimeout(recoveryTimer.current);
     };
-  }, [restore]);
+  }, [restore, invalidateRecovery]);
 
   const consume = useCallback(
     async (events: AsyncIterable<LiveEvent>) => {
@@ -257,6 +282,9 @@ export function useLiveChat(service: LiveCompanion, conversationId: string) {
         if (!terminal && alive.current) throw new Error("stream ended early");
       } catch (cause) {
         if (!alive.current || abort.current?.signal.aborted) return;
+        // No run was created: restoring an empty server transcript would erase the
+        // user's unsent text and hide the failed submit. Let begin keep it for retry.
+        if (!runId.current) throw cause;
         // The run keeps going on the server: recover the transcript instead of guessing.
         setError({
           code: "network_error",
@@ -276,6 +304,8 @@ export function useLiveChat(service: LiveCompanion, conversationId: string) {
 
   const begin = useCallback(
     async (content: string, clientMessageId: string, appendUser: boolean) => {
+      recoveryGeneration.current++;
+      if (recoveryTimer.current !== null) clearTimeout(recoveryTimer.current);
       abort.current = new AbortController();
       runId.current = null; // never cancel the previous turn's run by mistake
       stopRequested.current = false;
@@ -284,7 +314,6 @@ export function useLiveChat(service: LiveCompanion, conversationId: string) {
       setApproval(null);
       setStatus("streaming");
       failed.current = { clientMessageId, content };
-      setHasRequest(true);
       setMessages((current) => [
         ...current.filter((m) => !m.streaming),
         ...(appendUser
@@ -320,7 +349,13 @@ export function useLiveChat(service: LiveCompanion, conversationId: string) {
         setError({
           code,
           message: describeFailure(code),
-          retryable: code === "network_error",
+          retryable: ![
+            "not_ready",
+            "quota_exceeded",
+            "unauthorized",
+            "forbidden",
+            "not_found",
+          ].includes(code),
         });
         setStatus("failed");
         setMessages((current) => current.filter((m) => !m.streaming));
@@ -336,20 +371,32 @@ export function useLiveChat(service: LiveCompanion, conversationId: string) {
   /** Retry re-sends the *same* clientMessageId so the server never duplicates the turn. */
   const retry = useCallback(async () => {
     const last = failed.current;
-    if (!last) return;
+    if (!last) return restore();
     await begin(last.content, last.clientMessageId, false);
-  }, [begin]);
+  }, [begin, restore]);
 
   const stop = useCallback(async () => {
-    if (runId.current)
-      await service.cancel(runId.current).catch(() => undefined);
-    else stopRequested.current = true;
-  }, [service]);
+    if (runId.current) {
+      try {
+        await service.cancel(runId.current);
+        if (status === "awaiting_approval" || status === "recovering")
+          await restore();
+      } catch {
+        setError({
+          code: "network_error",
+          message: "Chưa dừng được lượt này. Hãy kiểm tra kết nối và thử lại.",
+          retryable: false,
+        });
+      }
+    } else stopRequested.current = true;
+  }, [service, status, restore]);
 
   const decide = useCallback(
     async (decision: "approve" | "reject") => {
       const current = approval;
       if (!current) return;
+      recoveryGeneration.current++;
+      if (recoveryTimer.current !== null) clearTimeout(recoveryTimer.current);
       abort.current = new AbortController();
       setApproval(null);
       setError(null);
@@ -389,6 +436,6 @@ export function useLiveChat(service: LiveCompanion, conversationId: string) {
     decide,
     dismissApproval,
     restore,
-    canRetry: hasRequest && status === "failed",
+    canRetry: status === "failed",
   };
 }

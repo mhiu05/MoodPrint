@@ -356,6 +356,7 @@ test.describe("evidence analysis through the real stack (E-AG-06)", () => {
 
       // Reload: the server still has the result; asking again with the same id is not a second model call.
       await page.reload();
+      await expect(page.getByTestId("analysis-result")).toBeVisible();
       const again = await apiJson("/v1/analyses", await tokenFor(user.email), {
         method: "POST",
         body: JSON.stringify({

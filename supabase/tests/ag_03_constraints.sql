@@ -73,11 +73,11 @@ reset role;
 
 -- P-AG-05: cascades clean everything up.
 delete from app.conversations where id='10000000-0000-4000-8000-0000000000a1';
-select is((select count(*)::int from app.agent_proposals),0,'deleting a conversation removes its proposals');
-select is((select count(*)::int from app.roleplay_sessions),0,'deleting a conversation removes its roleplay session');
-select is((select count(*)::int from app.message_attachments),0,'deleting a conversation removes attachments');
-select is((select count(*)::int from app.message_assessments),0,'deleting a conversation removes assessments');
+select is((select count(*)::int from app.agent_proposals where owner_id='00000000-0000-4000-8000-0000000000a1'),0,'deleting a conversation removes its proposals');
+select is((select count(*)::int from app.roleplay_sessions where owner_id='00000000-0000-4000-8000-0000000000a1'),0,'deleting a conversation removes its roleplay session');
+select is((select count(*)::int from app.message_attachments where owner_id='00000000-0000-4000-8000-0000000000a1'),0,'deleting a conversation removes attachments');
+select is((select count(*)::int from app.message_assessments where owner_id='00000000-0000-4000-8000-0000000000a1'),0,'deleting a conversation removes assessments');
 delete from auth.users where id='00000000-0000-4000-8000-0000000000a1';
-select is((select count(*)::int from app.analysis_requests),0,'deleting the user removes analysis requests');
+select is((select count(*)::int from app.analysis_requests where owner_id='00000000-0000-4000-8000-0000000000a1'),0,'deleting the user removes analysis requests');
 select * from finish();
 rollback;

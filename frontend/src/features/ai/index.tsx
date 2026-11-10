@@ -49,7 +49,7 @@ export function AIHub() {
         action={
           <div className="actions">
             <AgentStatusOrb state="idle" size={32} showLabel={false} />
-            <Badge tone="lavender">{live ? "AI thật" : "AI mô phỏng"}</Badge>
+            <Badge tone="lavender">{live ? "AI kết nối" : "AI mô phỏng"}</Badge>
           </div>
         }
       />
@@ -69,7 +69,11 @@ export function AIHub() {
         <Link className="ai-entry ai-entry-chat" to="/ai/chat">
           <MessageCircle size={30} />
           <h2>Trò chuyện</h2>
-          <p>Thử một tình huống mẫu, làm rõ điều đã biết và điều còn thiếu.</p>
+          <p>
+            {live
+              ? "Kể chuyện theo cách của bạn, làm rõ điều đã biết và điều còn thiếu."
+              : "Thử một tình huống mẫu, làm rõ điều đã biết và điều còn thiếu."}
+          </p>
           <span>
             Bắt đầu kể <ArrowRight size={18} />
           </span>

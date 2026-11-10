@@ -34,6 +34,7 @@ import {
 } from "../../components/ui";
 import { copyText, downloadText, formatDate, normalize } from "../../lib/utils";
 import { getServices } from "../../services/composition";
+import { asLive } from "../../services/composition/companion-types";
 import { ApiError } from "../../services/http/client";
 import type { Evidence, Incident, TimelineEvent } from "../../types";
 import {
@@ -444,10 +445,21 @@ export function CaseDetail() {
         description={`Cập nhật ${formatDate(item.updatedAt)} · ${item.perspective === "witness" ? "Góc nhìn người chứng kiến" : "Điều mình trải qua"}`}
         back="/cases"
         action={
-          <LinkButton to={`${base}/edit`} variant="secondary">
-            <Pencil size={17} />
-            Bổ sung hồ sơ
-          </LinkButton>
+          <div className="actions">
+            <LinkButton to={`${base}/edit`} variant="secondary">
+              <Pencil size={17} />
+              Bổ sung hồ sơ
+            </LinkButton>
+            <LinkButton to={`/ai/chat?caseId=${item.id}`} variant="secondary">
+              Trao đổi về hồ sơ
+            </LinkButton>
+            <LinkButton
+              to={`/ai/roleplay?caseId=${item.id}`}
+              variant="secondary"
+            >
+              Luyện cách trình bày
+            </LinkButton>
+          </div>
         }
       />
       <div className="case-heading-tools">
@@ -1221,7 +1233,8 @@ function EvidenceCard({
             {item.storedMimeType ?? "Chưa rõ định dạng"}
           </p>
           <Notice>
-            Tệp gốc đã được lưu riêng tư. AI chưa phân tích nội dung tệp này.
+            Tệp gốc được lưu riêng tư. Kết quả AI và phần bạn chỉnh không thay
+            thế bản gốc.
           </Notice>
           <Button
             variant="secondary"
@@ -1231,6 +1244,17 @@ function EvidenceCard({
             <Download size={16} />
             {downloading ? "Đang chuẩn bị…" : "Tải tệp gốc"}
           </Button>
+          {asLive(getServices().companion) &&
+            ["image/png", "image/jpeg", "image/webp"].includes(
+              item.storedMimeType ?? "",
+            ) && (
+              <Link
+                className="button secondary"
+                to={`/ai/analysis/new?${new URLSearchParams({ evidenceId: item.id, ...(item.caseId ? { caseId: item.caseId } : {}) })}`}
+              >
+                Xem và phân tích ảnh bằng AI
+              </Link>
+            )}
         </>
       )}
       {failure && <Notice tone="error">{failure}</Notice>}

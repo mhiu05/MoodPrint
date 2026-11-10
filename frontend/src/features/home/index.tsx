@@ -279,7 +279,7 @@ export function HomePage() {
                 : "Bạn có thể tạm dừng và quay lại bất cứ lúc nào. Những thay đổi đã lưu được giữ trong tài khoản của bạn.",
             )
           }
-          aria-label="Về nhịp trải nghiệm của bạn"
+          aria-label="Tìm hiểu về nhịp trải nghiệm của bạn"
         >
           Tìm hiểu
         </Button>

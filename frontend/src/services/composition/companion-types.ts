@@ -132,7 +132,11 @@ export type CompanionService = { readonly live: true };
 export interface LiveCompanion extends CompanionService {
   conversations: {
     list(): Promise<ConversationSummary[]>;
-    create(input: { id: string; title?: string }): Promise<ConversationSummary>;
+    create(input: {
+      id: string;
+      title?: string;
+      linkedCaseId?: string | null;
+    }): Promise<ConversationSummary>;
     remove(id: string): Promise<void>;
     messages(id: string): Promise<ChatTurn[]>;
     attachments(id: string): Promise<Record<string, string[]>>;

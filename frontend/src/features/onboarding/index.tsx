@@ -50,6 +50,7 @@ export function WelcomePage() {
         </PageMotion>
         <div
           className="welcome-dots"
+          role="group"
           aria-label={`Trang ${number} trong 4 trang`}
         >
           {steps.map((_, i) => (

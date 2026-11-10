@@ -19,13 +19,16 @@ const remember = (value: string) => {
     /* Session storage optional. */
   }
 };
-export async function hydrateWorkspace(): Promise<void> {
+export async function hydrateWorkspace(
+  options: { background?: boolean } = {},
+): Promise<void> {
   const state = useWorkspaceStore.getState();
   const userId = state.workspace.userId;
   if (state.workspace.kind !== "real" || !userId) return;
   if (hydrateTask?.userId === userId) return hydrateTask.promise;
   const task = (async () => {
-    useWorkspaceStore.setState({ hydration: { status: "loading" } });
+    if (!options.background)
+      useWorkspaceStore.setState({ hydration: { status: "loading" } });
     try {
       const services = getServices();
       const [profile, cases, evidence, contacts, drafts, articleStates] =
@@ -63,7 +66,10 @@ export async function hydrateWorkspace(): Promise<void> {
         hydration: { status: "ready" },
       });
     } catch (error) {
-      if (useWorkspaceStore.getState().workspace.userId === userId)
+      if (
+        !options.background &&
+        useWorkspaceStore.getState().workspace.userId === userId
+      )
         useWorkspaceStore.setState({
           hydration: {
             status: "error",

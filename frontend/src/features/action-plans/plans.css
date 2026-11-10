@@ -51,6 +51,16 @@
   gap: 24px;
   align-items: start;
 }
+.plan-layout > .stack {
+  min-width: 0;
+}
+.plan-goal .heading-row {
+  flex-wrap: wrap;
+}
+.plan-goal .heading-row .button {
+  white-space: normal;
+  max-width: 100%;
+}
 .plan-goal .field {
   margin-top: 20px;
 }

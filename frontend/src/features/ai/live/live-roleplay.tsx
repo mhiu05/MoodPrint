@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Button, EmptyState, Notice, PageHeader } from "../../../components/ui";
 import type {
   LiveCompanion,
@@ -9,6 +9,7 @@ import type {
 } from "../../../services/composition/companion-types";
 import { Thread, UrgentBlock } from "./live-chat";
 import { describeFailure } from "./use-live-chat";
+import { useWorkspaceStore } from "../../../app/store";
 import "./live.css";
 
 const roleNames: Record<RoleplayRole, string> = {
@@ -73,27 +74,75 @@ export function LiveRoleplayPage({ service }: { service: LiveCompanion }) {
   const [difficulty, setDifficulty] = useState(1);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [history, setHistory] = useState<RoleplaySessionView[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [attempt, setAttempt] = useState(0);
+  const [useCase, setUseCase] = useState(false);
+  const cases = useWorkspaceStore((s) => s.cases);
+  const user = useWorkspaceStore((s) => s.user);
+  const linkedCase = cases.find(
+    (c) => c.id === query.get("caseId") && c.ownerId === user?.id,
+  );
+  const activeId = session?.id;
+  const sessionRevision = useRef(0);
+  const activeSession = useRef<string | null>(null);
 
   useEffect(() => {
-    service.roleplay
-      .scenarios()
-      .then(setScenarios)
-      .catch((cause) =>
-        setError(
-          describeFailure(
-            (cause as { code?: string }).code ?? "internal_error",
+    let current = true;
+    Promise.all([service.roleplay.scenarios(), service.roleplay.list()])
+      .then(([choices, sessions]) => {
+        if (!current) return;
+        setScenarios(choices);
+        setHistory(sessions);
+      })
+      .catch(
+        (cause) =>
+          current &&
+          setError(
+            describeFailure(
+              (cause as { code?: string }).code ?? "internal_error",
+            ),
           ),
-        ),
-      );
-  }, [service]);
+      )
+      .finally(() => {
+        if (current) setLoading(false);
+      });
+    return () => {
+      current = false;
+    };
+  }, [service, attempt]);
   const sessionId = query.get("session");
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId || sessionId === activeId) return;
+    let current = true;
+    const revision = sessionRevision.current;
     service.roleplay
       .get(sessionId)
-      .then(setSession)
-      .catch(() => setError("Không mở lại được buổi luyện này."));
-  }, [service, sessionId]);
+      .then((view) => {
+        if (current && revision === sessionRevision.current) {
+          activeSession.current = view.status === "active" ? view.id : null;
+          setSession(view);
+        }
+      })
+      .catch(() => {
+        if (current)
+          setError(
+            "Không mở lại được buổi luyện này. Bạn có thể thử tải lại hoặc chọn tình huống mới.",
+          );
+      });
+    return () => {
+      current = false;
+    };
+  }, [service, sessionId, attempt, activeId]);
+
+  const reset = () => {
+    sessionRevision.current++;
+    activeSession.current = null;
+    setSession(null);
+    setUseCase(false);
+    setError("");
+    setQuery(linkedCase ? { caseId: linkedCase.id } : {});
+  };
 
   const visible = (scenarios ?? []).filter(
     (s) => !role || !(role in roleNames) || s.role === role,
@@ -110,10 +159,15 @@ export function LiveRoleplayPage({ service }: { service: LiveCompanion }) {
         scenarioKey: picked.key,
         userGoal: goal.trim(),
         difficulty,
-        useCaseContext: false,
+        linkedCaseId: linkedCase && useCase ? linkedCase.id : null,
+        useCaseContext: !!linkedCase && useCase,
       });
+      activeSession.current = created.id;
       setSession(created);
-      setQuery({ session: created.id });
+      setQuery({
+        session: created.id,
+        ...(linkedCase ? { caseId: linkedCase.id } : {}),
+      });
     } catch (cause) {
       // Typed goal and choices stay on screen so nothing has to be re-entered.
       setError(
@@ -124,19 +178,26 @@ export function LiveRoleplayPage({ service }: { service: LiveCompanion }) {
     }
   };
   const refresh = useCallback(() => {
-    if (session)
+    if (activeSession.current !== activeId) return;
+    const revision = sessionRevision.current;
+    if (activeId)
       service.roleplay
-        .get(session.id)
-        .then(setSession)
+        .get(activeId)
+        .then((view) => {
+          if (revision === sessionRevision.current) setSession(view);
+        })
         .catch(() => undefined);
-  }, [service, session]);
+  }, [service, activeId]);
   const finish = async () => {
     if (!session) return;
+    sessionRevision.current++;
+    activeSession.current = null;
     setBusy(true);
     setError("");
     try {
       setSession(await service.roleplay.complete(session.id));
     } catch (cause) {
+      activeSession.current = session.id;
       setError(
         describeFailure((cause as { code?: string }).code ?? "internal_error"),
       );
@@ -145,14 +206,35 @@ export function LiveRoleplayPage({ service }: { service: LiveCompanion }) {
     }
   };
   const leave = async () => {
-    if (!session) return;
-    setSession(await service.roleplay.abandon(session.id));
+    if (!session || busy) return;
+    sessionRevision.current++;
+    activeSession.current = null;
+    setBusy(true);
+    setError("");
+    try {
+      setSession(await service.roleplay.abandon(session.id));
+    } catch {
+      activeSession.current = session.id;
+      setError(
+        "Chưa kết thúc được buổi luyện. Hãy thử lại; nội dung vẫn được giữ.",
+      );
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (session)
     return (
       <div className="ai-feature stack" data-testid="roleplay-live">
-        <PageHeader title={session.scenarioTitle} back="/ai/roleplay" />
+        <PageHeader title={session.scenarioTitle} back="/ai" />
+        {(session.linkedCaseId || linkedCase) && (
+          <Link
+            className="button secondary"
+            to={`/cases/${session.linkedCaseId ?? linkedCase?.id}`}
+          >
+            Trở lại hồ sơ
+          </Link>
+        )}
         <div className="live-roleplay-banner" role="note">
           Diễn tập — đây không phải người thật. Bạn đang luyện nói với{" "}
           {roleNames[session.role].toLowerCase()} do AI đóng vai. Lượt{" "}
@@ -180,7 +262,11 @@ export function LiveRoleplayPage({ service }: { service: LiveCompanion }) {
               >
                 Kết thúc & nhận phản hồi
               </Button>
-              <Button variant="ghost" onClick={() => void leave()}>
+              <Button
+                disabled={busy}
+                variant="ghost"
+                onClick={() => void leave()}
+              >
                 Thoát, không cần phản hồi
               </Button>
             </div>
@@ -188,13 +274,7 @@ export function LiveRoleplayPage({ service }: { service: LiveCompanion }) {
         ) : session.status === "completed" ? (
           <>
             <Feedback session={session} />
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setSession(null);
-                setQuery({});
-              }}
-            >
+            <Button variant="secondary" onClick={reset}>
               Luyện một tình huống khác
             </Button>
           </>
@@ -202,6 +282,7 @@ export function LiveRoleplayPage({ service }: { service: LiveCompanion }) {
           <EmptyState
             title="Buổi luyện đã kết thúc"
             description="Bạn có thể bắt đầu một buổi mới."
+            action={<Button onClick={reset}>Luyện một tình huống khác</Button>}
           />
         )}
       </div>
@@ -217,7 +298,39 @@ export function LiveRoleplayPage({ service }: { service: LiveCompanion }) {
       {error && (
         <div className="live-error" role="alert">
           {error}
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setError("");
+              setAttempt((n) => n + 1);
+            }}
+          >
+            Thử lại
+          </Button>
         </div>
+      )}
+      {loading && <p role="status">Đang tải tình huống và các buổi luyện…</p>}
+      {history.length > 0 && (
+        <section aria-label="Buổi luyện đã lưu">
+          <h2>Buổi luyện của bạn</h2>
+          <div className="stack">
+            {history.slice(0, 10).map((item) => (
+              <Button
+                key={item.id}
+                variant="secondary"
+                onClick={() =>
+                  setQuery({
+                    session: item.id,
+                    ...(item.linkedCaseId ? { caseId: item.linkedCaseId } : {}),
+                  })
+                }
+              >
+                {item.status === "active" ? "Tiếp tục" : "Xem lại"}:{" "}
+                {item.scenarioTitle}
+              </Button>
+            ))}
+          </div>
+        </section>
       )}
       <fieldset className="live-pick">
         <legend>Chọn tình huống</legend>
@@ -258,6 +371,17 @@ export function LiveRoleplayPage({ service }: { service: LiveCompanion }) {
             <option value={3}>3 — bận nhưng công bằng</option>
           </select>
           <p>Mặc định AI không đọc hồ sơ của bạn khi diễn tập.</p>
+          {linkedCase && (
+            <label>
+              <input
+                type="checkbox"
+                checked={useCase}
+                onChange={(e) => setUseCase(e.target.checked)}
+              />{" "}
+              Cho AI dùng tóm tắt hồ sơ “{linkedCase.title}” trong buổi luyện
+              này
+            </label>
+          )}
           <Button disabled={busy} onClick={() => void start()}>
             Bắt đầu diễn tập
           </Button>

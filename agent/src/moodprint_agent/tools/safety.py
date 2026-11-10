@@ -749,6 +749,18 @@ _C_TOUCH: Final = re.compile(
     r"\b(?:so|cham vao|om|hon|vao phong|sờ|bat nat|coi (?:dai|quan)|goi (?:em|minh) (?:ra|vao|sang|lai)|"
     r"o lai mot minh|chi rieng)\b"
 )
+# A disclosure can name the body area rather than use "chạm vào mình". Keep it in
+# the composition layer so negation, past tense, media and information-seeking
+# framing retain the same handling as the other contact concepts.
+_C_INTIMATE_TOUCH: Final = re.compile(
+    r"\b(?:cham|so|dung) (?:vao )?(?:vung kin|cho kin|bo phan sinh duc) (?:cua )?(?:minh|em|toi)\b"
+)
+# Require an external actor or passive disclosure: ordinary self-care and a
+# consensual medical examination must not acquire an abuse signal from this rule.
+_C_OTHER_TOUCH_ACTOR: Final = re.compile(
+    r"\b(?:(?:nguoi (?:do|ay|khac|ta)|(?:mot|co) nguoi|ai do|ban (?:ay|do)|chu(?: ho)?|"
+    r"anh ho|chi ho|bo|cha|me|ba|ong|thay|co giao|bac(?! si\b)|hang xom)(?: \w+){0,3}|bi) $"
+)
 _C_ACCESS: Final = re.compile(
     r"\b(?:ban dem|khong co ai|dung noi|toi nay|cuoi tuan|lai den|lai o|o nha|o lai|hom truoc|"
     r"bao em|bao minh)\b"
@@ -949,6 +961,9 @@ def _compose(clause: str, *, quoted: bool) -> list[tuple[str, UrgencyLevel]]:
 
     # -- abuse -----------------------------------------------------------------------------------
     adult = bool(_C_ADULT.search(clause))
+    contact = _C_INTIMATE_TOUCH.search(clause)
+    if contact and ok(_C_INTIMATE_TOUCH) and _C_OTHER_TOUCH_ACTOR.search(clause[: contact.start()]):
+        out.append(("abuse", soft))
     if adult and _C_TOUCH.search(clause) and victim and (_C_ACCESS.search(clause) or now):
         out.append(("abuse", soft))
     if (

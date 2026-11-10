@@ -16,6 +16,6 @@ Bootstrap tạo `.local/test.env` riêng cho test, không đọc hoặc ghi đè
 
 `/health` không gọi dependency. `/ready` kiểm DB và JWKS. Các route `/v1` xác thực JWT ES256; UoW dùng claims đã verify và `SET LOCAL ROLE authenticated` cho từng transaction. Schema ứng dụng không được expose qua Data API.
 
-Companion Phase 0 chỉ có diagnostic tool. Offline tests dùng SDK `ScriptedModel`, không cần OpenAI key. Live call chỉ dùng model đã duyệt và cần cost ceiling riêng. Frontend Phase 0 giữ nguyên demo; Phase 1 chưa được triển khai khi G0 chưa đạt.
+Companion hiện có persistent sessions, context/memory, nguồn tri thức, đề xuất mốc sự việc/kế hoạch có approval, phân tích ảnh có consent và roleplay nhiều lượt. Offline tests dùng SDK `ScriptedModel`, không cần OpenAI key. Live call chỉ dùng model đã duyệt, qua ngân sách/ledger hiện có; authorization cũ đã hết 900/900 calls. Không tạo client trả phí cho audit không được phép.
 
-Xem `docs/implementation/reports/phase-0-report.md` tại repository root để biết bằng chứng và blocker thực tế. Chỉ dùng synthetic data; chưa sẵn sàng cho dữ liệu học sinh thật.
+Audit Supabase hosted chỉ định dùng `scripts/hosted_product.py`, tách khỏi test local: [hướng dẫn](../docs/quality/product-completion/hosted.md). Nó tắt worker toàn cục và khóa user/path theo manifest. Không dùng trực tiếp lifespan production để audit bản ghi synthetic trong DB dùng chung. Xem [báo cáo sản phẩm](../docs/implementation/reports/product-completion-review.md) cho bằng chứng và schema blocker; không tự áp dụng migration hosted. Chỉ dùng synthetic data; chưa sẵn sàng cho dữ liệu học sinh thật.

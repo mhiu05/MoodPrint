@@ -43,6 +43,6 @@ with gone as (delete from app.user_memories returning 1) select is(count(*)::int
 select throws_ok($$insert into app.conversations(owner_id) values ('00000000-0000-4000-8000-000000000002')$$,'42501',null,'A cannot create rows for B');
 select throws_ok($$update app.conversations set owner_id='00000000-0000-4000-8000-000000000002' where title='A'$$,'42501',null,'A cannot reassign ownership');
 reset role;
-select is((select content from app.messages limit 1),'synthetic private message','cross-owner mutation did not affect stored content');
+select is((select content from app.messages where id='30000000-0000-4000-8000-000000000002'),'synthetic private message','cross-owner mutation did not affect stored content');
 select * from finish();
 rollback;

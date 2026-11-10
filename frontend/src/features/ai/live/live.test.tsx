@@ -7,14 +7,15 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import type {
   LiveCompanion,
   LiveEvent,
 } from "../../../services/composition/companion-types";
-import { Thread } from "./live-chat";
+import { LiveChatPage, Thread } from "./live-chat";
 import { LiveAnalysisPage } from "./live-analysis";
 import { LiveRoleplayPage } from "./live-roleplay";
+import { useWorkspaceStore } from "../../../app/store";
 
 // Minimal stand-in for user-event (not a dependency of this project).
 const userEvent = {
@@ -36,9 +37,10 @@ const userEvent = {
 };
 
 const evidenceList = vi.fn();
+const evidenceReview = vi.fn();
 vi.mock("../../../services/composition", () => ({
   getServices: () => ({
-    evidence: { list: evidenceList, review: vi.fn() },
+    evidence: { list: evidenceList, review: evidenceReview },
   }),
 }));
 
@@ -139,9 +141,28 @@ beforeEach(() => {
   })) as unknown as typeof window.matchMedia;
   seq = 0;
   evidenceList.mockReset();
+  evidenceReview.mockReset();
 });
 
 describe("live chat", () => {
+  it("keeps a way back to history and urgent support inside the immersive conversation", async () => {
+    render(
+      <MemoryRouter initialEntries={["/ai/chat/conv-1"]}>
+        <Routes>
+          <Route
+            path="/ai/chat/:sessionId"
+            element={<LiveChatPage service={fake()} />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByRole("link", { name: "Lịch sử trò chuyện" }),
+    ).toHaveAttribute("href", "/ai/chat");
+    expect(
+      screen.getByRole("link", { name: "Tìm hỗ trợ ngay" }),
+    ).toHaveAttribute("href", "/support/urgent");
+  });
   it("streams, shows tool progress and chips only for verified citations", async () => {
     const service = fake({
       send: vi.fn(() =>
@@ -417,6 +438,145 @@ describe("approval dialog", () => {
 });
 
 describe("restore and failure behaviour", () => {
+  it("keeps the chosen own case when starting a conversation from a case link", async () => {
+    useWorkspaceStore.getState().reset();
+    useWorkspaceStore.getState().login("USER-AN");
+    const service = fake();
+    service.conversations.create = vi
+      .fn()
+      .mockImplementation(async (input) => ({
+        ...input,
+        linkedCaseId: input.linkedCaseId ?? null,
+        createdAt: "2026-11-10",
+        lastMessageAt: null,
+      }));
+    render(
+      <MemoryRouter initialEntries={["/ai/chat?caseId=CASE-AN-001"]}>
+        <Routes>
+          <Route path="/ai/chat" element={<LiveChatPage service={service} />} />
+          <Route
+            path="/ai/chat/:sessionId"
+            element={<LiveChatPage service={service} />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByLabelText("Hồ sơ muốn trao đổi")).toHaveValue(
+      "CASE-AN-001",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /Cuộc trò chuyện mới/ }),
+    );
+    expect(service.conversations.create).toHaveBeenCalledWith(
+      expect.objectContaining({ linkedCaseId: "CASE-AN-001" }),
+    );
+    expect(
+      await screen.findByRole("link", { name: /Trở lại hồ sơ/ }),
+    ).toHaveAttribute("href", "/cases/CASE-AN-001");
+  });
+  it("cancels a pending recovery poll before a new streamed message starts", async () => {
+    const turns = [
+      {
+        id: "old-u",
+        role: "user",
+        content: "Lượt cũ",
+        citations: [],
+        clientMessageId: "old",
+        runId: "old-run",
+        createdAt: "",
+      },
+    ];
+    let cancelled = false;
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const service = fake({
+      conversations: {
+        ...fake().conversations,
+        messages: vi.fn(async () => turns),
+      } as LiveCompanion["conversations"],
+      run: vi.fn(async () => ({
+        id: "old-run",
+        conversationId: "conv-1",
+        status: cancelled ? "cancelled" : "running",
+        errorCode: null,
+      })),
+      cancel: vi.fn(async () => {
+        cancelled = true;
+        return "cancelled";
+      }),
+      send: vi.fn(async function* () {
+        yield ev("run.started", {
+          runId: "new-run",
+          conversationId: "conv-1",
+          messageId: "m",
+        });
+        await gate;
+        yield completed("Lượt mới vẫn hoạt động");
+        yield ev("run.completed", { status: "completed" });
+      }),
+    });
+    renderThread(service);
+    await userEvent.click(await screen.findByRole("button", { name: /Dừng/ }));
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: /Dừng/ })).toBeNull(),
+    );
+    await userEvent.type(
+      screen.getByLabelText("Điều bạn muốn kể"),
+      "Lời nhắn mới{Enter}",
+    );
+    await new Promise((resolve) => setTimeout(resolve, 1700));
+    expect(screen.getByText("Lời nhắn mới")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Dừng/ })).toBeTruthy();
+    release();
+    expect(await screen.findByText("Lượt mới vẫn hoạt động")).toBeTruthy();
+  });
+  it("keeps a message and an actionable error when submission fails before a run is created", async () => {
+    const service = fake({
+      send: vi.fn(async function* () {
+        yield await Promise.reject({ code: "internal_error" });
+      }),
+    });
+    renderThread(service);
+    await say("Mình muốn hiểu trước{Enter}");
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "Chưa thể hoàn tất",
+    );
+    expect(screen.getByText("Mình muốn hiểu trước")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Thử lại" })).toBeTruthy();
+  });
+  it("lets the user retry loading a conversation before sending any message", async () => {
+    const service = fake();
+    service.conversations.messages = vi
+      .fn()
+      .mockRejectedValueOnce({ code: "network_error" })
+      .mockResolvedValueOnce([]);
+    renderThread(service);
+    await screen.findByRole("alert");
+    await userEvent.click(screen.getByRole("button", { name: "Thử lại" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(screen.getByText(/Bạn muốn kể điều gì/)).toBeTruthy();
+  });
+
+  it("shows an actionable create error and preserves a usable new-conversation button", async () => {
+    const service = fake();
+    service.conversations.create = vi
+      .fn()
+      .mockRejectedValue({ code: "network_error" });
+    render(
+      <MemoryRouter>
+        <LiveChatPage service={service} />
+      </MemoryRouter>,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /Cuộc trò chuyện mới/ }),
+    );
+    expect((await screen.findByRole("alert")).textContent).toContain("kết nối");
+    expect(
+      screen.getByRole("button", { name: /Cuộc trò chuyện mới/ }),
+    ).not.toBeDisabled();
+  });
   it("reopening restores the transcript and a pending approval", async () => {
     const service = fake({
       conversations: {
@@ -485,6 +645,117 @@ describe("live analysis", () => {
     originalFilename: "man-hinh.png",
     storedMimeType: "image/png",
   };
+  it("waits for a slow recovery read before scheduling another poll", async () => {
+    evidenceList.mockResolvedValue([image]);
+    const service = fake();
+    service.analyses.get = vi
+      .fn()
+      .mockResolvedValueOnce({
+        id: "slow",
+        evidenceId: "e1",
+        status: "running",
+      })
+      .mockImplementation(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 1800));
+        return {
+          id: "slow",
+          evidenceId: "e1",
+          status: "succeeded",
+          reading: {
+            extractedText: [],
+            observations: ["Kết quả tải chậm"],
+            inferences: [],
+            uncertainties: [],
+            limitations: [],
+            needsUserReview: true,
+          },
+        };
+      });
+    render(
+      <MemoryRouter initialEntries={["/ai/analysis/slow"]}>
+        <Routes>
+          <Route
+            path="/ai/analysis/:analysisId"
+            element={<LiveAnalysisPage service={service} />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(
+      await screen.findByText("Kết quả tải chậm", {}, { timeout: 6000 }),
+    ).toBeTruthy();
+  }, 9000);
+  it("restores a saved reading from its URL without requesting another analysis", async () => {
+    evidenceList.mockResolvedValue([image, { ...image, id: "e2" }]);
+    const service = fake();
+    service.analyses.get = vi.fn().mockResolvedValue({
+      id: "analysis-saved",
+      evidenceId: "e2",
+      status: "succeeded",
+      reading: {
+        extractedText: [],
+        observations: ["Nội dung đã lưu"],
+        inferences: [],
+        uncertainties: [],
+        limitations: [],
+        needsUserReview: true,
+      },
+    });
+    render(
+      <MemoryRouter
+        initialEntries={["/ai/analysis/analysis-saved?evidenceId=e1"]}
+      >
+        <Routes>
+          <Route
+            path="/ai/analysis/:analysisId"
+            element={<LiveAnalysisPage service={service} />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText("Nội dung đã lưu")).toBeTruthy();
+    expect(service.analyses.create).not.toHaveBeenCalled();
+    evidenceReview.mockRejectedValueOnce({ code: "network_error" });
+    await userEvent.type(
+      screen.getByLabelText("Nội dung bạn sửa"),
+      "Phần mình chỉnh lại",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Lưu bản chỉnh" }),
+    );
+    expect((await screen.findByRole("alert")).textContent).toContain("lưu");
+    expect(screen.getByLabelText("Nội dung bạn sửa")).toHaveValue(
+      "Phần mình chỉnh lại",
+    );
+    expect(screen.queryByText("Đã lưu bản bạn chỉnh.")).toBeNull();
+    evidenceReview.mockResolvedValueOnce(image);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Lưu bản chỉnh" }),
+    );
+    expect(await screen.findByText("Đã lưu bản bạn chỉnh.")).toBeTruthy();
+    expect(evidenceReview).toHaveBeenLastCalledWith(
+      "e2",
+      expect.objectContaining({ userEditedText: "Phần mình chỉnh lại" }),
+    );
+  });
+  it("requires fresh consent when the selected image changes", async () => {
+    evidenceList.mockResolvedValue([
+      image,
+      { ...image, id: "e2", originalFilename: "anh-khac.png" },
+    ]);
+    render(
+      <MemoryRouter>
+        <LiveAnalysisPage service={fake()} />
+      </MemoryRouter>,
+    );
+    await userEvent.click(await screen.findByLabelText(/man-hinh\.png/));
+    await userEvent.click(screen.getByLabelText(/Tôi đồng ý gửi ảnh này/));
+    await userEvent.click(screen.getByLabelText(/anh-khac\.png/));
+    expect(screen.getByLabelText(/Tôi đồng ý gửi ảnh này/)).not.toBeChecked();
+    expect(
+      screen.getByRole("button", { name: "Phân tích ảnh" }),
+    ).toBeDisabled();
+  });
   it("sends nothing until the user consents, and lists only supported images", async () => {
     evidenceList.mockResolvedValue([
       image,
@@ -575,9 +846,154 @@ describe("live analysis", () => {
     );
     expect(screen.getByRole("button", { name: "Thử lại" })).toBeTruthy();
   });
+  it("a terminal analysis failure can start a fresh consented request instead of reloading the same failed result", async () => {
+    evidenceList.mockResolvedValue([image]);
+    const service = fake();
+    const failed = {
+      id: "failed-reading",
+      evidenceId: "e1",
+      status: "failed",
+      errorCode: "upstream_error",
+      reading: null,
+    };
+    service.analyses.get = vi.fn().mockResolvedValue(failed);
+    render(
+      <MemoryRouter initialEntries={["/ai/analysis/failed-reading"]}>
+        <Routes>
+          <Route
+            path="/ai/analysis/:analysisId"
+            element={<LiveAnalysisPage service={service} />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await screen.findByRole("alert");
+    await userEvent.click(screen.getByRole("button", { name: "Thử lại" }));
+    expect(await screen.findByLabelText(/man-hinh\.png/)).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
 });
 
 describe("live roleplay", () => {
+  it("starts another practice with case-context consent off again", async () => {
+    useWorkspaceStore.getState().reset();
+    useWorkspaceStore.getState().login("USER-AN");
+    const scenario = {
+      key: "teacher-k",
+      role: "teacher",
+      title: "Kể với cô",
+      context: "c",
+      defaultGoal: "Mở lời",
+    };
+    const session = {
+      id: "s-reset",
+      conversationId: "c-reset",
+      role: "teacher",
+      scenarioKey: scenario.key,
+      scenarioTitle: scenario.title,
+      scenarioContext: "",
+      userGoal: "Mở lời",
+      difficulty: 1,
+      useCaseContext: true,
+      linkedCaseId: "CASE-AN-001",
+      status: "active",
+      turnCount: 0,
+      maxTurns: 30,
+      safetyLocked: false,
+      feedback: null,
+      createdAt: "",
+      completedAt: null,
+    };
+    const service = fake();
+    service.roleplay.scenarios = vi.fn().mockResolvedValue([scenario]);
+    service.roleplay.create = vi.fn().mockResolvedValue(session);
+    service.roleplay.get = vi.fn().mockResolvedValue(session);
+    service.roleplay.abandon = vi
+      .fn()
+      .mockResolvedValue({ ...session, status: "abandoned" });
+    render(
+      <MemoryRouter initialEntries={["/ai/roleplay?caseId=CASE-AN-001"]}>
+        <LiveRoleplayPage service={service} />
+      </MemoryRouter>,
+    );
+    await userEvent.click(await screen.findByLabelText(/Kể với cô/));
+    await userEvent.click(screen.getByLabelText(/Cho AI dùng tóm tắt hồ sơ/));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Bắt đầu diễn tập" }),
+    );
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Thoát, không cần phản hồi" }),
+    );
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Luyện một tình huống khác" }),
+    );
+    expect(
+      screen.getByLabelText(/Cho AI dùng tóm tắt hồ sơ/),
+    ).not.toBeChecked();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Bắt đầu diễn tập" }),
+    );
+    expect(service.roleplay.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({ linkedCaseId: null, useCaseContext: false }),
+    );
+  });
+  it("does not continuously fetch the session after an idle transcript is restored", async () => {
+    const service = fake();
+    const session = {
+      id: "s-loop",
+      conversationId: "c-loop",
+      role: "teacher",
+      scenarioKey: "k",
+      scenarioTitle: "Thử nói với cô",
+      scenarioContext: "",
+      userGoal: "Mở lời",
+      difficulty: 1,
+      useCaseContext: false,
+      linkedCaseId: null,
+      status: "active",
+      turnCount: 0,
+      maxTurns: 30,
+      safetyLocked: false,
+      feedback: null,
+      createdAt: "",
+      completedAt: null,
+    };
+    let reads = 0;
+    service.roleplay.get = vi.fn(async () => {
+      reads++;
+      if (reads > 3) return new Promise(() => {});
+      return { ...session };
+    }) as never;
+    render(
+      <MemoryRouter initialEntries={["/ai/roleplay?session=s-loop"]}>
+        <LiveRoleplayPage service={service} />
+      </MemoryRouter>,
+    );
+    await screen.findByText(/Bạn muốn kể điều gì/);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(reads).toBeLessThanOrEqual(2);
+  });
+
+  it("offers persisted sessions so a returning student can resume after leaving the page", async () => {
+    const service = fake();
+    service.roleplay.list = vi.fn().mockResolvedValue([
+      {
+        id: "s-old",
+        scenarioTitle: "Kể chuyện với mẹ",
+        role: "parent",
+        status: "active",
+        turnCount: 2,
+      },
+    ]);
+    render(
+      <MemoryRouter>
+        <LiveRoleplayPage service={service} />
+      </MemoryRouter>,
+    );
+    expect(
+      await screen.findByRole("button", { name: /Tiếp tục.*Kể chuyện với mẹ/ }),
+    ).toBeTruthy();
+  });
   it("labels the partner as not a real person and creates a session from the chosen scenario", async () => {
     const scenario = {
       key: "teacher-group-chat",

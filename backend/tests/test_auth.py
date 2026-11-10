@@ -59,6 +59,25 @@ async def test_valid_token(auth_setup):
     assert "claims_json=" not in repr(auth)
 
 
+async def test_recently_issued_hosted_token_tolerates_small_issuer_clock_skew(auth_setup):
+    auth = await verify(auth_setup, {"iat": int(time.time()) + 2})
+    assert str(auth.user_id) == auth_setup[3]["sub"]
+
+
+@pytest.mark.parametrize("issued_at", ["invalid", None, "future"])
+async def test_invalid_issue_time_is_rejected(auth_setup, issued_at):
+    value = int(time.time()) + 60 if issued_at == "future" else issued_at
+    with pytest.raises(DomainError) as error:
+        await verify(auth_setup, {"iat": value})
+    assert error.value.code == "unauthenticated"
+
+
+async def test_clock_skew_never_extends_token_expiration(auth_setup):
+    with pytest.raises(DomainError) as error:
+        await verify(auth_setup, {"exp": int(time.time()) - 1})
+    assert error.value.code == "unauthenticated"
+
+
 @pytest.mark.parametrize(
     "overrides",
     [

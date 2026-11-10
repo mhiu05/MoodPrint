@@ -7,7 +7,7 @@ Học sinh 11–17 tuổi; School Admin Demo là khán giả riêng với dữ l
 ## Product Purpose
 Giúp hiểu tình huống, kể và làm rõ, ghi nhận, chuẩn bị bước tiếp theo, luyện nói và tìm người hỗ trợ.
 ## Capabilities and Constraints
-React/Vite/TypeScript. Bắt buộc mock account, 4 tab Home/AI/Hồ sơ/Support. Action Plan bên trong hồ sơ. 100% mock; không backend/AI/OCR/voice/cloud/send thật. Spec chính: ../docs/prototype/01–08.
+React/Vite/TypeScript + FastAPI + Agents SDK + Supabase Auth/PostgreSQL/Storage. Hai workspace: tài khoản thật với quyền sở hữu dữ liệu và demo độc lập trong trình duyệt. 4 tab Home/AI/Hồ sơ/Support; Action Plan bên trong hồ sơ. Companion kết nối là opt-in, có approval/consent trước thao tác tương ứng; voice là demo. Không tự gửi tin cho trường/người khác. Tài liệu prototype là baseline thiết kế; trạng thái hiện tại xem ../docs/implementation/reports/product-completion-review.md. Chỉ thử nội dung hư cấu, không deploy.
 ## Brand Commitments
 Calm, supportive, tuổi phù hợp, tiếng Việt, không phán xét; uncertainty minh bạch, không ẩn danh tuyệt đối.
 ## Evidence on Hand

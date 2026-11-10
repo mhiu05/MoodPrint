@@ -128,6 +128,7 @@ class ApiConfig:
     jwks_cache_ttl_s: int = 600
     jwks_unknown_kid_refresh_s: int = 60
     jwt_algorithms: tuple[str, ...] = ("ES256",)
+    jwt_iat_clock_skew_s: int = 5
     default_page_size: int = 50
     max_page_size: int = 100
     reconcile_interval_s: float = 30

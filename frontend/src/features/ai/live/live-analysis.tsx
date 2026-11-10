@@ -1,4 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import { Button, EmptyState, Notice, PageHeader } from "../../../components/ui";
 import { AgentStatusOrb } from "../../../animations/AgentStatusOrb";
 import { getServices } from "../../../services/composition";
@@ -13,6 +19,7 @@ import { describeFailure } from "./use-live-chat";
 import "./live.css";
 
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const confidenceLabels = { high: "cao", medium: "vừa", low: "thấp" };
 export const consentText =
   "Ảnh này sẽ được gửi tới mô hình AI để đọc. Hệ thống yêu cầu không lưu phản hồi trên máy chủ AI, " +
   "nhưng điều đó không có nghĩa là dữ liệu bị xóa hoàn toàn. Bản gốc của bạn không bị thay đổi.";
@@ -30,7 +37,11 @@ export function ReadingView({ reading }: { reading: AnalysisReading }) {
           <ul>
             {reading.extractedText.map((item, index) => (
               <li key={index}>
-                “{item.text}” <small>(độ tin cậy: {item.confidence})</small>
+                “{item.text}”{" "}
+                <small>
+                  (AI tự đánh giá độ rõ: {confidenceLabels[item.confidence]};
+                  bạn cần kiểm tra lại)
+                </small>
               </li>
             ))}
           </ul>
@@ -71,6 +82,9 @@ export function ReadingView({ reading }: { reading: AnalysisReading }) {
 }
 
 export function LiveAnalysisPage({ service }: { service: LiveCompanion }) {
+  const { analysisId } = useParams();
+  const [query] = useSearchParams();
+  const navigate = useNavigate();
   const [items, setItems] = useState<Evidence[] | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [selected, setSelected] = useState<Evidence | null>(null);
@@ -80,16 +94,65 @@ export function LiveAnalysisPage({ service }: { service: LiveCompanion }) {
   const [message, setMessage] = useState("");
   const [correction, setCorrection] = useState("");
   const [saved, setSaved] = useState(false);
-  const load = () => {
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  const requestedEvidence = query.get("evidenceId");
+  const requestedCase = query.get("caseId");
+  const load = useCallback(() => {
     getServices()
       .evidence.list()
       .then((all) => {
         setItems(all.filter(eligible));
+        const chosen = all.find(
+          (item) => item.id === requestedEvidence && eligible(item),
+        );
+        if (chosen) setSelected(chosen);
         setLoadError(false);
       })
       .catch(() => setLoadError(true));
-  };
-  useEffect(load, []);
+  }, [requestedEvidence]);
+  useEffect(load, [load]);
+
+  useEffect(() => {
+    if (!analysisId || analysisId === "new") return;
+    let current = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const startedAt = Date.now();
+    const read = async () => {
+      try {
+        const view = await service.analyses.get(analysisId);
+        if (!current) return;
+        setResult(view);
+        setMessage(
+          view.status === "failed"
+            ? describeFailure(view.errorCode ?? "internal_error")
+            : "",
+        );
+        if (view.status === "running") {
+          if (Date.now() - startedAt > 180000)
+            setMessage(
+              "Kết quả chưa sẵn sàng sau thời gian chờ. Bạn có thể thử tải lại sau; không cần gửi ảnh lần nữa.",
+            );
+          else timer = setTimeout(() => void read(), 1500);
+        }
+      } catch {
+        if (current)
+          setMessage(
+            "Chưa mở lại được kết quả này. Hãy thử tải lại; bạn không cần gửi ảnh lần nữa.",
+          );
+      }
+    };
+    void read();
+    return () => {
+      current = false;
+      clearTimeout(timer);
+    };
+  }, [service, analysisId, attempt]);
+
+  const selectedImage = result
+    ? (items?.find((item) => item.id === result.evidenceId) ?? null)
+    : selected;
 
   const start = async () => {
     if (!selected || !agreed) return; // no consent, no request
@@ -103,6 +166,10 @@ export function LiveAnalysisPage({ service }: { service: LiveCompanion }) {
         consentVersion: ANALYSIS_CONSENT_VERSION,
       });
       setResult(view);
+      navigate(
+        `/ai/analysis/${id}${requestedCase ? `?caseId=${encodeURIComponent(requestedCase)}` : ""}`,
+        { replace: true },
+      );
       if (view.status === "failed")
         setMessage(describeFailure(view.errorCode ?? "internal_error"));
     } catch (cause) {
@@ -111,6 +178,7 @@ export function LiveAnalysisPage({ service }: { service: LiveCompanion }) {
       try {
         const view = await service.analyses.get(id);
         setResult(view);
+        navigate(`/ai/analysis/${id}`, { replace: true });
         if (view.status === "failed")
           setMessage(describeFailure(view.errorCode ?? code));
       } catch {
@@ -122,12 +190,22 @@ export function LiveAnalysisPage({ service }: { service: LiveCompanion }) {
   };
 
   const saveCorrection = async () => {
-    if (!selected || !correction.trim()) return;
-    await getServices().evidence.review(selected.id, {
-      userEditedText: correction.trim(),
-      reviewStatus: "corrected",
-    });
-    setSaved(true);
+    if (!selectedImage || !correction.trim() || saving) return;
+    setSaving(true);
+    setSaveError("");
+    try {
+      await getServices().evidence.review(selectedImage.id, {
+        userEditedText: correction.trim(),
+        reviewStatus: "corrected",
+      });
+      setSaved(true);
+    } catch {
+      setSaveError(
+        "Chưa lưu được bản chỉnh. Nội dung vẫn ở đây; hãy thử lưu lại.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -135,8 +213,9 @@ export function LiveAnalysisPage({ service }: { service: LiveCompanion }) {
       <PageHeader
         title="Phân tích ảnh bằng AI"
         description="Chọn một ảnh bạn đã tải lên. AI chỉ đọc khi bạn đồng ý."
-        back="/ai"
+        back={requestedCase ? `/cases/${requestedCase}/evidence` : "/ai"}
       />
+      {!items && !loadError && <p role="status">Đang tải danh sách ảnh…</p>}
       {loadError && (
         <Notice>
           Chưa tải được danh sách ảnh.{" "}
@@ -149,6 +228,14 @@ export function LiveAnalysisPage({ service }: { service: LiveCompanion }) {
         <EmptyState
           title="Chưa có ảnh phù hợp"
           description="Hãy tải một ảnh JPEG, PNG hoặc WebP lên phần bằng chứng trước."
+          action={
+            <Link
+              className="button secondary"
+              to={requestedCase ? `/cases/${requestedCase}/evidence` : "/cases"}
+            >
+              Mở bằng chứng trong hồ sơ
+            </Link>
+          }
         />
       )}
       {items && items.length > 0 && !result && (
@@ -160,7 +247,10 @@ export function LiveAnalysisPage({ service }: { service: LiveCompanion }) {
                 type="radio"
                 name="evidence"
                 checked={selected?.id === item.id}
-                onChange={() => setSelected(item)}
+                onChange={() => {
+                  setSelected(item);
+                  setAgreed(false);
+                }}
               />{" "}
               {item.originalFilename ?? "Ảnh"}
             </label>
@@ -183,7 +273,7 @@ export function LiveAnalysisPage({ service }: { service: LiveCompanion }) {
           </Button>
         </div>
       )}
-      {running && (
+      {(running || (result?.status === "running" && !message)) && (
         <div className="live-working" role="status">
           <AgentStatusOrb state="analyzing" size={32} showLabel={false} />
           <span>
@@ -195,13 +285,37 @@ export function LiveAnalysisPage({ service }: { service: LiveCompanion }) {
       {message && (
         <div className="live-error" role="alert">
           <span>{message}</span>
-          <Button variant="secondary" onClick={() => setResult(null)}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              if (
+                result?.status === "failed" ||
+                result?.status === "cancelled"
+              ) {
+                setResult(null);
+                setMessage("");
+                setAgreed(false);
+                navigate(
+                  `/ai/analysis/new${requestedCase ? `?caseId=${encodeURIComponent(requestedCase)}` : ""}`,
+                  { replace: true },
+                );
+              } else if (analysisId && analysisId !== "new")
+                setAttempt((n) => n + 1);
+              else {
+                setResult(null);
+                setMessage("");
+              }
+            }}
+          >
             Thử lại
           </Button>
         </div>
       )}
       {result?.status === "succeeded" && result.reading && (
         <>
+          {selectedImage && (
+            <p>Ảnh gốc: {selectedImage.originalFilename ?? "Ảnh đã tải lên"}</p>
+          )}
           <ReadingView reading={result.reading} />
           <section className="live-correction">
             <h3>Bạn chỉnh lại</h3>
@@ -222,14 +336,31 @@ export function LiveAnalysisPage({ service }: { service: LiveCompanion }) {
               }}
             />
             <Button
-              disabled={!correction.trim()}
+              disabled={!correction.trim() || saving || !selectedImage}
               onClick={() => void saveCorrection()}
             >
               Lưu bản chỉnh
             </Button>
             {saved && <p role="status">Đã lưu bản bạn chỉnh.</p>}
+            {saveError && <p role="alert">{saveError}</p>}
           </section>
         </>
+      )}
+      {result && result.status !== "running" && (
+        <Link
+          className="button secondary"
+          to="/ai/analysis/new"
+          onClick={() => {
+            setResult(null);
+            setSelected(null);
+            setAgreed(false);
+            setMessage("");
+            setCorrection("");
+            setSaved(false);
+          }}
+        >
+          Chọn ảnh khác
+        </Link>
       )}
     </div>
   );

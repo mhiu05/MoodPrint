@@ -42,7 +42,11 @@ export function createCompanionHttp(client: StreamClient): LiveCompanion {
       create: (input) =>
         api<ConversationSummary>(
           "/v1/conversations",
-          jsonBody("POST", { id: input.id, title: input.title ?? "" }),
+          jsonBody("POST", {
+            id: input.id,
+            title: input.title ?? "",
+            ...(input.linkedCaseId ? { linkedCaseId: input.linkedCaseId } : {}),
+          }),
         ),
       remove: async (id) => {
         await api(`/v1/conversations/${id}`, { method: "DELETE" });

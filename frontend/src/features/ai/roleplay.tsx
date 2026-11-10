@@ -42,10 +42,14 @@ import type { Role } from "../../mocks/scenarios";
 import type { ChatMessage, RoleplaySession } from "../../types";
 
 export function RoleplayPage() {
+  const [contextQuery] = useSearchParams();
   const real = useWorkspaceStore((state) => state.workspace.kind === "real");
   const companion = real ? asLive(getServices().companion) : null;
   return companion ? (
-    <LiveRoleplayPage service={companion} />
+    <LiveRoleplayPage
+      key={contextQuery.get("caseId") ?? "none"}
+      service={companion}
+    />
   ) : (
     <SimulatedRoleplayPage />
   );

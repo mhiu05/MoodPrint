@@ -51,12 +51,18 @@ class ConversationService:
                 "case": linked_case_id,
                 "article": source_article_id,
             }
-            # Phase 0 has no case service: do not accept an unvalidated domain link.
+            # Validate the domain link under the same authenticated transaction.
+            # RLS and the composite foreign key retain the owner boundary.
             if linked_case_id is not None:
-                raise ApiError("validation_failed", "Liên kết hồ sơ chưa khả dụng.", 422)
+                target = await uow.session.scalar(
+                    text("SELECT id FROM app.cases WHERE id=:case AND owner_id=:owner"),
+                    params,
+                )
+                if target is None:
+                    raise NotFound()
             await uow.session.execute(
                 text(
-                    "INSERT INTO app.conversations(id,owner_id,title,source_article_id) VALUES(:id,:owner,:title,:article) ON CONFLICT(id) DO NOTHING"
+                    "INSERT INTO app.conversations(id,owner_id,title,linked_case_id,source_article_id) VALUES(:id,:owner,:title,:case,:article) ON CONFLICT(id) DO NOTHING"
                 ),
                 params,
             )

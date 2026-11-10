@@ -1,11 +1,64 @@
 /* Live Companion UI. Reuses the existing tokens; adds only what the simulated chat lacks. */
 .live-thread {
-  display: grid;
-  grid-template-rows: auto 1fr auto;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-3, 12px);
   max-width: 760px;
   margin: 0 auto;
   padding: var(--space-4, 16px);
+  width: 100%;
+  min-width: 0;
+}
+.live-chat-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+}
+.live-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 16px;
+  padding: 4px 16px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.live-navigation a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 0.875rem;
+}
+.live-list-content {
+  overflow-y: auto;
+  padding: 20px 16px;
+}
+.live-chat-page > .live-thread {
+  flex: 1;
+  min-height: 0;
+}
+.live-thread-body {
+  min-width: 0;
+}
+.live-chat-page .live-thread-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.live-chat-page .live-messages {
+  min-height: 0;
+}
+.live-pick {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.live-pick label {
+  display: block;
+  padding: 8px 0;
 }
 .live-thread-head {
   display: flex;
@@ -100,6 +153,7 @@
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--line, #c7d2d8);
+  min-width: 0;
 }
 .live-urgent {
   padding: 14px;
@@ -110,6 +164,7 @@
 .live-citations ul {
   list-style: none;
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   padding: 0;
   margin: 8px 0 0;
@@ -165,6 +220,7 @@
 }
 .live-preview dd {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 .live-memory,
 .live-memory-list {
@@ -184,6 +240,7 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
+  flex-wrap: wrap;
 }
 .live-roleplay-banner {
   padding: 8px 12px;

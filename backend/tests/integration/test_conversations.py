@@ -2,6 +2,8 @@ from uuid import uuid4
 
 import pytest
 from app.modules.conversations.service import ConversationService
+from app.modules.incidents.schemas import CaseCreate
+from app.modules.incidents.service import IncidentService
 from moodprint_shared.contracts.conversations import RunUsage, TurnResult
 from moodprint_shared.contracts.errors import NotFound, RunInProgress
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -9,6 +11,22 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from backend.tests.integration.conftest import local_value
 
 pytestmark = pytest.mark.integration
+
+
+async def test_linked_case_is_persisted_and_rejects_foreign_or_missing_ownership(
+    db_engine, identities
+):
+    a, b = identities
+    case = await IncidentService(db_engine).create(
+        a, CaseCreate(id=uuid4(), title="Synthetic linked case")
+    )
+    service = ConversationService(db_engine)
+    conversation = await service.create(a, uuid4(), linked_case_id=case.id)
+    assert (await service.get(a, conversation["id"]))["linked_case_id"] == case.id
+    with pytest.raises(NotFound):
+        await service.create(b, uuid4(), linked_case_id=case.id)
+    with pytest.raises(NotFound):
+        await service.create(a, uuid4(), linked_case_id=uuid4())
 
 
 async def test_session_survives_engine_restart_utf8_and_owner(db_engine, identities):

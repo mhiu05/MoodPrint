@@ -82,8 +82,18 @@ class JwtVerifier:
                 algorithms=[alg],
                 audience="authenticated",
                 issuer=self.settings.supabase_url.rstrip("/") + "/auth/v1",
-                options={"require": ["exp", "sub", "aud", "iss", "role"]},
+                # Hosted issuer clocks may lead this machine slightly. Check only
+                # iat with bounded skew below; exp and nbf retain strict validation.
+                options={"require": ["exp", "sub", "aud", "iss", "role"], "verify_iat": False},
             )
+            if "iat" in claims:
+                issued_at = claims["iat"]
+                if (
+                    isinstance(issued_at, bool)
+                    or not isinstance(issued_at, int)
+                    or issued_at > time.time() + self.cfg.api.jwt_iat_clock_skew_s
+                ):
+                    raise unauthenticated()
             if claims.get("role") != "authenticated" or claims.get("is_anonymous") is True:
                 raise unauthenticated()
             user_id = UUID(claims["sub"])

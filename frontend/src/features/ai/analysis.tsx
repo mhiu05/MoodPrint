@@ -35,10 +35,11 @@ const labelTime = (value: string) =>
     : "16/10 · không rõ giờ";
 
 export function AnalysisPage() {
+  const { analysisId } = useParams();
   const real = useWorkspaceStore((state) => state.workspace.kind === "real");
   const companion = real ? asLive(getServices().companion) : null;
   return companion ? (
-    <LiveAnalysisPage service={companion} />
+    <LiveAnalysisPage key={analysisId} service={companion} />
   ) : (
     <SimulatedAnalysisPage />
   );

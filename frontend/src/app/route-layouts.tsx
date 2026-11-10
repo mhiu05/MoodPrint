@@ -1,11 +1,5 @@
 import { Suspense, useEffect } from "react";
-import {
-  Navigate,
-  Outlet,
-  useLocation,
-  useNavigate,
-  useRouteError,
-} from "react-router-dom";
+import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useWorkspaceStore } from "./store";
 import { useVisualViewport } from "../hooks/useVisualViewport";
 import { Toast } from "../components/layout/StudentShell";
@@ -101,16 +95,11 @@ export function NotFound() {
   );
 }
 export function RouteError() {
-  const error = useRouteError();
   return (
     <main className="page-content">
       <EmptyState
         title="Trang cần được mở lại"
-        description={
-          error instanceof Error
-            ? error.message
-            : "Có lỗi khi tải trang. Hãy mở lại để tiếp tục."
-        }
+        description="Có lỗi khi tải trang. Hãy mở lại để tiếp tục. Những nội dung đã lưu vẫn nằm trong tài khoản của bạn."
         action={<LinkButton to="/">Mở lại MoodPrint</LinkButton>}
       />
     </main>
