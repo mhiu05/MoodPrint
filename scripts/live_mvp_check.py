@@ -79,8 +79,10 @@ def parse_sse(raw: str) -> dict:
 
 
 class Harness:
-    def __init__(self, group: str, label: str):
-        self.values, self.group, self.label = load_values(), group, label
+    def __init__(self, group: str, label: str, actor: str = "A"):
+        if actor not in {"A", "B"}:
+            raise ValueError("Only the two tracked synthetic actors are authorized")
+        self.values, self.group, self.label, self.actor = load_values(), group, label, actor
         self.head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
         self.records, self.checks, self.tokens = [], [], []
         self.http = httpx.AsyncClient(base_url=API, timeout=150, trust_env=False)
@@ -88,6 +90,10 @@ class Harness:
 
     async def start(self):
         self.manifest = read_manifest(USERS)
+        self.default_owner_id = self.manifest["users"][0]["id"]
+        if self.actor == "B":
+            self.manifest["users"] = self.manifest["users"][::-1]
+        self.owner_id = self.manifest["users"][0]["id"]
         for user in self.manifest["users"]:
             response = await self.upstream.post(
                 self.values["SUPABASE_URL"] + "/auth/v1/token?grant_type=password",
@@ -120,6 +126,8 @@ class Harness:
                     "source_commit": self.head,
                     "model": "gpt-6-luna",
                     "group": self.group,
+                    "actor": self.actor,
+                    "owner_id": getattr(self, "owner_id", None),
                     "judge": "Codex direct review; separate grades file",
                     "records": self.records,
                     "checks": self.checks,
@@ -146,6 +154,7 @@ class Harness:
         values = data.setdefault("resources", {}).setdefault(kind, [])
         if id not in values:
             values.append(id)
+        data.setdefault("resource_owners", {}).setdefault(kind, {})[id] = self.owner_id
         write_manifest(USERS, data)
 
     async def conversation(self, title, *, case_id=None):
@@ -177,6 +186,13 @@ class Harness:
         self, scenario, conversation, prompt, *, client_id=None, decision=None, attachments=None
     ):
         before = ledger_snapshot()
+        started_at = datetime.now(UTC).isoformat()
+        provider_log = OUTPUT / "model-http.jsonl"
+        trace_before = (
+            len(provider_log.read_text(encoding="utf-8").splitlines())
+            if provider_log.exists()
+            else 0
+        )
         if decision:
             endpoint = f"/v1/runs/{decision['run_id']}/approvals/{decision['approval_id']}"
             body = {"decision": decision["decision"]}
@@ -197,6 +213,7 @@ class Harness:
                 "events": [],
                 "approvals": [],
                 "run_id": None,
+                "error_code": response.json().get("error", {}).get("code"),
             }
         else:
             result = {"http_status": 200, **parse_sse(response.text)}
@@ -209,11 +226,27 @@ class Harness:
             "user_message": prompt,
             "client_message_id": body.get("clientMessageId"),
             "decision": decision,
-            "started_at": datetime.now(UTC).isoformat(),
+            "started_at": started_at,
+            "finished_at": datetime.now(UTC).isoformat(),
             "ledger_before": before,
             "ledger_after": ledger_snapshot(),
             **result,
         }
+        if provider_log.exists():
+            record["provider_requests"] = [
+                {
+                    "request_id": row["request_id"],
+                    "http_status": row["http_status"],
+                    "usage": (row.get("response") or {}).get("usage"),
+                    "response_body_sha256": row["response_body_sha256"],
+                }
+                for row in [
+                    json.loads(line)
+                    for line in provider_log.read_text(encoding="utf-8").splitlines()[trace_before:]
+                ]
+            ]
+        if result.get("run_id"):
+            record["persisted_run"] = await self.api("GET", f"/v1/runs/{result['run_id']}")
         self.records.append(record)
         self.save()
         print(f"LIVE {scenario}: HTTP {result['http_status']}; {result.get('status')}", flush=True)
@@ -677,6 +710,12 @@ class Harness:
             "Mình đính kèm một ảnh chụp tin nhắn tổng hợp để thử. Bạn giúp đọc những gì thấy được trong ảnh, phân biệt với suy đoán, và cho mình xem yêu cầu đồng ý trước khi gửi ảnh cho AI nhé.",
             attachments=[evidence],
         )
+        if not waiting["approvals"] and waiting.get("response"):
+            waiting = await self.stream(
+                "D06-chat-explicit-consent",
+                conversation,
+                "Mình đồng ý cho AI đọc ảnh tổng hợp đã đính kèm. Hãy mở hộp thoại để mình xác nhận việc gửi ảnh cho AI nhé.",
+            )
         self.check("D06 Companion requests image consent", bool(waiting["approvals"]))
         if waiting["approvals"]:
             approval = waiting["approvals"][0]
@@ -693,7 +732,16 @@ class Harness:
         self.save()
 
     async def restore(self):
-        resources = read_manifest(USERS).get("resources", {})
+        manifest = read_manifest(USERS)
+        resources = {
+            kind: [
+                id
+                for id in ids
+                if manifest.get("resource_owners", {}).get(kind, {}).get(id, self.default_owner_id)
+                == self.owner_id
+            ]
+            for kind, ids in manifest.get("resources", {}).items()
+        }
         for conversation in resources.get("conversations", []):
             result = await self.api("GET", f"/v1/conversations/{conversation}/messages")
             self.check("Restart restores conversation " + conversation, bool(result["items"]))
@@ -709,7 +757,7 @@ class Harness:
             self.check("Restart restores roleplay " + session, restored["turnCount"] >= 1)
 
 
-async def execute(group, label):
+async def execute(group, label, actor="A"):
     if group == "setup":
         async with httpx.AsyncClient(transport=ProjectTransport(), timeout=30) as client:
             await prepare(load_values(), USERS, client)
@@ -722,7 +770,7 @@ async def execute(group, label):
         return 0
     if (OUTPUT / f"{group}-{label}.json").exists():
         raise ValueError("Preserve previous evidence: select a new --label for an authorized rerun")
-    harness = Harness(group, label)
+    harness = Harness(group, label, actor)
     try:
         await harness.start()
         if group in {"core", "context", "safety"}:
@@ -777,9 +825,10 @@ def main():
         ],
     )
     parser.add_argument("--label", default="initial")
+    parser.add_argument("--actor", choices=["A", "B"], default="A")
     args = parser.parse_args()
     try:
-        return asyncio.run(execute(args.group, args.label))
+        return asyncio.run(execute(args.group, args.label, args.actor))
     except Exception as error:
         print(
             f"Live acceptance failed ({type(error).__name__}); preserve the exact local manifest."
