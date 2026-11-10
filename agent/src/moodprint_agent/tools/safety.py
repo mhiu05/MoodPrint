@@ -98,6 +98,7 @@ def fold(text: str) -> str:
     # "đừng" (don't) vs "đứng" (stand) and "từng" (once) vs the verb "tung" (to leak).
     lowered = re.sub("đừng", "dungz", lowered)
     lowered = re.sub("từng", "tungz", lowered)
+    lowered = re.sub(r"\bvậy\b", "vayz", lowered)  # demonstrative, not "vây" (surround)
     lowered = re.sub("kiểm tra", "kiemtra", lowered)  # exam, not "kiếm" (sword)
     lowered = re.sub("biệt danh", "bietdanh", lowered)  # nickname, not "danh" (to hit)
     decomposed = unicodedata.normalize("NFD", lowered.replace("đ", "d"))
@@ -745,7 +746,7 @@ _C_FOLLOW: Final = re.compile(
     # Folding conflates "chờ mình" (waiting for me) with "cho mình" (give me).
     # Exclude explicit help-request complements from this concept only; a separate
     # disclosure of present contact or violence must still escalate normally.
-    r"\b(?:bam theo|theo sau|theo doi|di theo|vay|chan (?:minh|em|toi|duong|cua)|"
+    r"\b(?:bam theo|theo sau|theo doi|di theo|(?<!nhu )vay|chan (?:minh|em|toi|duong|cua)|"
     r"cho (?:minh|em|toi)(?! (?:biet\b|cach\b|loi khuyen\b|goi y\b|"
     r"(?:mot|vai|hai|ba) (?:buoc|cach|goi y|vi du|loi khuyen)\b))|"
     r"cho truoc|dung (?:cho|truoc|ngoai)|go cua|den tim|den nha|rinh|lon vao|keo (?:minh|em|toi)|"

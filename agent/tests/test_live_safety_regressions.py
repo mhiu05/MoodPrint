@@ -7,6 +7,17 @@ from moodprint_agent.tools.safety import assess_urgency
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
+        (
+            "Mình không bị ai đe dọa và đang an toàn. Trong bài học có câu giả định "
+            "'bạn ấy sẽ đánh mình ở cổng trường'. Với tình huống giả định như vậy, "
+            "nên tìm người lớn thế nào?",
+            "none",
+        ),
+        ("Ho dang vay minh ngay luc nay, minh so.", "immediate"),
+        (
+            "Minh dang an toan. Voi tinh huong gia dinh nhu vay minh nen tim nguoi lon the nao?",
+            "none",
+        ),
         ("Không ai đang chặn cửa, bạn Bình đang đánh mình ngay bây giờ và mình sợ.", "immediate"),
         ("Không ai đang chặn cửa, anh ấy đang dọa sẽ chém mình ngay bây giờ.", "immediate"),
         ("Mình ước gì bạn ấy không phải thức dậy nữa.", "none"),
