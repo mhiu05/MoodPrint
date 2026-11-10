@@ -21,7 +21,7 @@ def test_plan_pins_every_repeat_and_not_run():
         ("one", 2, "NOT_RUN"),
         ("one", 3, "NOT_RUN"),
     ]
-    assert len(manifest["provenance"]["prompt_sha256"]["companion_v4"]) == 64
+    assert len(manifest["provenance"]["prompt_sha256"]["companion_v5"]) == 64
     report = reconcile(manifest, [], [], [])
     assert report["status"] == "NOT_VERIFIED" and report["not_run"] == 3
 
@@ -134,7 +134,7 @@ def test_compare_rejects_prompt_drift():
     manifest, outputs, checks, grades = evidence()
     report = reconcile(manifest, outputs, checks, grades)
     other = copy.deepcopy(manifest)
-    other["provenance"]["prompt_sha256"]["companion_v4"] = "0" * 64
+    other["provenance"]["prompt_sha256"]["companion_v5"] = "0" * 64
     assert compare(manifest, report, other, report)["comparable"] is False
 
 

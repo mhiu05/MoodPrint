@@ -86,5 +86,5 @@ def test_runtime_factory_registers_the_phase3_inventory_without_database_or_clie
     assert "get_server_time" not in names
     assert names == sorted(runtime.registry.names())
     assert {"knowledge_search", "save_confirmed_event", "save_plan", "propose_memory"} <= set(names)
-    assert runtime.prompt_version == "companion_v4"
+    assert runtime.prompt_version == "companion_v5"
     assert build_runtime(AppConfig(), None).tools_version == runtime.tools_version

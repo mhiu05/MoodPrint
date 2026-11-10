@@ -63,7 +63,7 @@ async def test_product_artifacts_bind_each_trace_to_the_prompt_snapshot(tmp_path
     assert manifest["live_status"] == "NOT_RUN" and manifest["paid_provider_calls"] == 0
     assert manifest["authorization_request"]["max_provider_requests"] == 690
     assert manifest["authorization_request"]["max_tokens"] == 3600000
-    assert len(manifest["provenance"]["prompt_sha256"]["companion_v4"]) == 64
+    assert len(manifest["provenance"]["prompt_sha256"]["companion_v5"]) == 64
     assert digest(manifest["provenance"]) == manifest["provenance_id"]
     cases = {c["id"]: c for c in load_cases()}
     for row in rows:

@@ -24,6 +24,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "agent"))
 
 from evals.budget import BudgetLedger, load_budget  # noqa: E402
+from moodprint_agent.companion import PROMPT_VERSION  # noqa: E402
 
 from scripts.hosted_product import (  # noqa: E402
     ProjectTransport,
@@ -201,7 +202,7 @@ class Harness:
             result = {"http_status": 200, **parse_sse(response.text)}
         record = {
             "scenario_id": scenario,
-            "prompt_version": "companion_v4",
+            "prompt_version": PROMPT_VERSION,
             "model": "gpt-6-luna",
             "source_commit": self.head,
             "conversation_id": conversation,
