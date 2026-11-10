@@ -707,7 +707,12 @@ _C_PERP: Final = re.compile(
     r"may anh|anh lop \d+|anh lop tren|xe|ten do|thang do|gia dinh|ong ay|nguoi yeu cu|nguoi yeu)\b"
 )
 _C_FOLLOW: Final = re.compile(
-    r"\b(?:bam theo|theo sau|theo doi|di theo|vay|chan (?:minh|em|toi|duong)|cho (?:minh|em|toi)|"
+    # Folding conflates "chờ mình" (waiting for me) with "cho mình" (give me).
+    # Exclude explicit help-request complements from this concept only; a separate
+    # disclosure of present contact or violence must still escalate normally.
+    r"\b(?:bam theo|theo sau|theo doi|di theo|vay|chan (?:minh|em|toi|duong|cua)|"
+    r"cho (?:minh|em|toi)(?! (?:biet\b|cach\b|loi khuyen\b|goi y\b|"
+    r"(?:mot|vai|hai|ba) (?:buoc|cach|goi y|vi du|loi khuyen)\b))|"
     r"cho truoc|dung (?:cho|truoc|ngoai)|go cua|den tim|den nha|rinh|lon vao|keo (?:minh|em|toi)|"
     r"len tim|cam (?:dao|gay|vu khi)|rut dien thoai)\b"
 )

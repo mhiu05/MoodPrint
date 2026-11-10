@@ -26,3 +26,27 @@ def test_intimate_contact_disclosure_keeps_time_and_non_disclosure_context(
     text: str, expected: str
 ) -> None:
     assert assess_urgency(text).level == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        (
+            "Các bạn ghép ảnh chế mình rồi đăng vào nhóm lớp. Mình đã rời nhóm nhưng ảnh còn đó. "
+            "Mình đang ở nhà an toàn. Cho mình một bước nhỏ để làm tối nay, "
+            "và nguồn đáng tin về việc lưu bằng chứng trước khi chặn nhé.",
+            "none",
+        ),
+        (
+            "Nhóm lớp đang nói về mình. Cho mình biết cách nhờ người lớn tối nay.",
+            "none",
+        ),
+        ("Nhóm đó đang chờ mình một lát ở cổng, họ bảo sẽ đánh mình hôm nay.", "immediate"),
+        (
+            "Cho mình một bước để làm tối nay. Nhóm đó đang chặn cửa và chuẩn bị đánh mình.",
+            "immediate",
+        ),
+    ],
+)
+def test_requests_for_help_are_not_people_waiting_for_the_speaker(text: str, expected: str) -> None:
+    assert assess_urgency(text).level == expected
