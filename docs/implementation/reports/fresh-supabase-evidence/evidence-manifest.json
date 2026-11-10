@@ -1,0 +1,23 @@
+{
+  "generated_by": "Codex offline evidence assembly",
+  "source_commit": "200771e5bff7b2ff1bc262e4145eb61f5c94acd9",
+  "files": {
+    "app-checks.json": "2c94fcbbc475a655988247b5fd3490b603ab8f775f8a77c4a7a715cdecb3050c",
+    "browser-checks.json": "ee52b7fd1499f846e76d0962e91f2db223b575ad08fe6ec745c38ecdbc3a3723",
+    "budget.json": "47d23b978a705151aa4c6c952a3e37b69d9ab2523727039dd8f5d18e41c304c4",
+    "codex-grades.jsonl": "8adeb72d8d37feba2eb2ba7f74574cbac213b55d77743a49a5f43cfbee41d813",
+    "hosted-home-1440.png": "6207fc92000c43d5ba1fad2ca9d0ec54da4eaf0d937ee08faaf2e77b7603cb46",
+    "knowledge-evidence.json": "9635c861d2585c48382735a703740c5528c118208595d56cd015a4b468e7bc10",
+    "live-chat-390-after-ui-harness-fix.png": "dbd688598ede9a954b54c33f08de946b978335a796d39817ea626d3a11e74523",
+    "live-interactions.jsonl": "144501c31260eac0bd98032d11ca0cecf313340180029ddd1dd7fc3ffc1e9da4",
+    "migration-evidence.json": "ad37a8d385818417801dab78a5ca0fd2f3ac99fdaa4dde226d9f3eb2dc3554bc",
+    "migration-gate.json": "73b9c3efd28bc54b06d3b3374156051fe0052955a143c9b74caf32c4fc5370cf",
+    "new-openai-ledger-events.jsonl": "34c4f6432c5eed52138153a723caabfe5ddc7e8028e1a35bdab25fd685b0f03c",
+    "project-and-database.json": "1b8d86818dff69a68b737aa4b27685146ce60c2cd6d30e96b41f499ae6b6e299",
+    "provider-responses.jsonl": "1ea164515654115bb88359df54faee0f523df7af9592f1ada43a6a82b60784ad",
+    "summary.json": "e829ff8bf04239ddc24c2a2c5e6a39d2dbfef75460177a0240baf5d64198e810",
+    "synthetic-chat.png": "aeed6a72b95f79d5aeff10cd9e21bc98ad951175282ccfb59846e75974b67880",
+    "synthetic-data-lifecycle.json": "68e566ad2d2d53f5d58e0d70d61f3ba748d607c5decc7a1ef3fdaaed9ebc1ff6",
+    "verification.json": "c4b857c733e2c0d267427a5045e5dc6005efef2c1cf7c440f05f898342f5e149"
+  }
+}

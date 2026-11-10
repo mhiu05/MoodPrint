@@ -1,0 +1,539 @@
+{
+  "browser-product-genuine": {
+    "source_commit": "6bf6ee45afcf365e4c15b8f0c24748d239d2f77e",
+    "runtime": "app.main:create_app with metered real providers",
+    "started_at": "2026-11-10T08:32:18.433Z",
+    "project_ref": "xhlshihobyxrgfqrdafh",
+    "users": [
+      {
+        "slot": "a",
+        "id": "f0207bf6-903c-4613-8f66-e7a1dd30ef50"
+      },
+      {
+        "slot": "b",
+        "id": "e713f359-f050-4969-87df-8c96fbdd37e5"
+      }
+    ],
+    "checks": [
+      {
+        "name": "real Auth token and manifest ownership A/B",
+        "status": "passed"
+      },
+      {
+        "name": "invalid login shows an error and retains auth route",
+        "status": "passed"
+      },
+      {
+        "name": "normal UI login opens real Home",
+        "status": "passed"
+      },
+      {
+        "name": "Home to wizard saves a draft and reloads persisted data",
+        "status": "passed"
+      },
+      {
+        "name": "edit draft uploads PNG through real Storage and activates case",
+        "status": "passed"
+      },
+      {
+        "name": "signed download returns exact uploaded PNG bytes",
+        "status": "passed"
+      },
+      {
+        "name": "timeline event add and edit persists after reload",
+        "status": "passed"
+      },
+      {
+        "name": "plan save and Home checklist persist after reload",
+        "status": "passed"
+      },
+      {
+        "name": "logout and fresh login preserve case timeline and checklist",
+        "status": "passed"
+      },
+      {
+        "name": "Support trusted contact persists without external messages",
+        "status": "passed"
+      },
+      {
+        "name": "Support draft is persisted and explicitly not sent",
+        "status": "passed"
+      },
+      {
+        "name": "profile nickname update persists after reload",
+        "status": "passed"
+      },
+      {
+        "name": "meaningful desktop Home and mobile case screenshots",
+        "status": "passed"
+      },
+      {
+        "name": "User B cannot read or update A memory",
+        "status": "passed"
+      },
+      {
+        "name": "User B case read and write return 404",
+        "status": "passed"
+      },
+      {
+        "name": "User B plan read and item write return 404",
+        "status": "passed"
+      },
+      {
+        "name": "User B evidence read signed URL and deletion return 404",
+        "status": "passed"
+      },
+      {
+        "name": "User B conversation read and deletion return 404",
+        "status": "passed"
+      },
+      {
+        "name": "missing and invalid tokens cannot access authenticated API",
+        "status": "passed"
+      },
+      {
+        "name": "User B UI cannot open A direct case route",
+        "status": "passed"
+      },
+      {
+        "name": "genuine local runtime readiness",
+        "status": "passed"
+      },
+      {
+        "name": "genuine expired signed JWT",
+        "status": "blocked",
+        "detail": "No genuine expired token fixture is available. Missing/invalid token checks passed separately; no signing keys or Auth settings were changed."
+      },
+      {
+        "name": "browser sends no requests outside audited hosts or email operations",
+        "status": "passed"
+      }
+    ],
+    "resources": {
+      "created_case_ids": [
+        "0551f601-6abc-47bd-bb0a-d5c57c055d11"
+      ],
+      "case_id": "0551f601-6abc-47bd-bb0a-d5c57c055d11",
+      "evidence_id": "66ddb24b-a6c0-4f36-8f35-45ccc41ab87b",
+      "event_ids": [
+        "100dc8c9-0140-4379-ad62-56df7fcb6220",
+        "41282a91-1358-4ad8-9a8d-af4615089c47"
+      ],
+      "plan_id": "481b6071-3384-4b83-a778-f96001ec755a",
+      "plan_item_ids": [
+        "c3f9d816-7ae1-41bf-8806-92b30832cac8",
+        "02b7b1fe-7a0f-45ff-a48e-8c37a947dff4",
+        "9ba146bb-505c-4aec-b519-bf407d88e231"
+      ],
+      "contact_ids": [
+        "306a5acf-2178-4677-a8ef-84187e742772"
+      ],
+      "support_draft_id": "abf78128-8c31-47d7-9179-0a9244b19871",
+      "memory_id": "ed042f4f-e31f-4a00-8314-3518f29caf0e",
+      "conversation_id": "5d352b71-c6d8-40cb-8f10-3d04412eb592"
+    },
+    "screenshots": [
+      "hosted-home-1440.png",
+      "hosted-case-390.png"
+    ],
+    "forbidden_requests": [],
+    "page_errors": [],
+    "browser_http_errors": [],
+    "api_errors": [
+      {
+        "path": "/v1/cases/0551f601-6abc-47bd-bb0a-d5c57c055d11/plan",
+        "status": 404,
+        "code": "not_found",
+        "details": {}
+      },
+      {
+        "path": "/v1/cases/0551f601-6abc-47bd-bb0a-d5c57c055d11/plan",
+        "status": 404,
+        "code": "not_found",
+        "details": {}
+      }
+    ],
+    "finished_at": "2026-11-10T08:37:26.119Z",
+    "counts": {
+      "passed": 22,
+      "failed": 0,
+      "blocked": 1
+    }
+  },
+  "browser-live-actor-b": {
+    "source_commit": "2b96692343c23c265ce0035a2018dac5c8d43535",
+    "model": "gpt-6-luna",
+    "actor": "B",
+    "owner_id": "e713f359-f050-4969-87df-8c96fbdd37e5",
+    "mode": "GENUINE_LOCAL_RUNTIME_HOSTED_SUPABASE",
+    "started_at": "2026-11-10T09:01:37.632Z",
+    "checks": [
+      {
+        "name": "UI real Supabase login and Home",
+        "passed": true
+      },
+      {
+        "name": "UI new conversation, actual model, follow-up and reload",
+        "passed": false,
+        "error_type": "TimeoutError",
+        "detail": "page.waitForResponse: Timeout 90000ms exceeded while waiting for event \"response\""
+      },
+      {
+        "name": "UI incident restoration and Action Plan route",
+        "passed": true
+      },
+      {
+        "name": "UI evidence and analysis restoration",
+        "passed": true
+      },
+      {
+        "name": "UI roleplay saved feedback and exit",
+        "passed": true
+      },
+      {
+        "name": "UI Knowledge Hub, Support and Profile",
+        "passed": false,
+        "error_type": "Error",
+        "detail": "expect(locator).toBeVisible() failed"
+      },
+      {
+        "name": "UI logout/login retains persisted conversation",
+        "passed": false,
+        "error_type": "Error",
+        "detail": "page.goto: url: expected string, got undefined"
+      },
+      {
+        "name": "UI no forbidden network traffic or page exceptions",
+        "passed": true
+      }
+    ],
+    "outputs": [],
+    "screenshots": [],
+    "page_errors": [],
+    "forbidden_requests": [],
+    "finished_at": "2026-11-10T09:05:45.810Z"
+  },
+  "browser-live-after-ui-harness-fix": {
+    "source_commit": "200771e5bff7b2ff1bc262e4145eb61f5c94acd9",
+    "model": "gpt-6-luna",
+    "actor": "B",
+    "owner_id": "e713f359-f050-4969-87df-8c96fbdd37e5",
+    "mode": "GENUINE_LOCAL_RUNTIME_HOSTED_SUPABASE",
+    "started_at": "2026-11-10T09:06:11.543Z",
+    "checks": [
+      {
+        "name": "UI real Supabase login and Home",
+        "passed": true
+      },
+      {
+        "name": "UI new conversation, actual model, follow-up and reload",
+        "passed": true
+      },
+      {
+        "name": "UI incident restoration and Action Plan route",
+        "passed": true
+      },
+      {
+        "name": "UI evidence and analysis restoration",
+        "passed": true
+      },
+      {
+        "name": "UI roleplay saved feedback and exit",
+        "passed": true
+      },
+      {
+        "name": "UI Knowledge Hub, Support and Profile",
+        "passed": true
+      },
+      {
+        "name": "UI logout/login retains persisted conversation",
+        "passed": true
+      },
+      {
+        "name": "UI no forbidden network traffic or page exceptions",
+        "passed": true
+      }
+    ],
+    "outputs": [
+      {
+        "scenario_id": "UI-A-first",
+        "prompt_version": "companion_v5",
+        "source_commit": "200771e5bff7b2ff1bc262e4145eb61f5c94acd9",
+        "persisted_run": {
+          "id": "e7b450af-bc10-46ce-8176-989b7ea25f69",
+          "conversationId": "85a8617d-ce7d-49fa-b705-ce450b3f4f49",
+          "status": "completed",
+          "model": "gpt-6-luna",
+          "promptVersion": "companion_v5",
+          "toolsVersion": "24b3f1f39259b1bf",
+          "errorCode": null,
+          "usage": {
+            "inputTokens": 2481,
+            "outputTokens": 77,
+            "totalTokens": 2558,
+            "requests": 1,
+            "toolCalls": 0,
+            "latencyMs": 5925
+          }
+        },
+        "model": "gpt-6-luna",
+        "user_message": "Mình đang ở nhà an toàn. Hôm qua bạn cùng nhóm giấu cặp của mình. Mình chưa muốn báo ngay; bạn nghe mình một chút được không?",
+        "response": "Ừ, mình nghe bạn đây. Bạn đang ở nhà an toàn, và bạn kể rằng hôm qua bạn cùng nhóm đã giấu cặp của bạn. Bạn chưa muốn báo ngay—mình sẽ không thúc ép. Chuyện đó chắc khiến bạn bực hoặc lo lắng. Nếu muốn, bạn kể thêm lúc đó bạn cảm thấy thế nào nhé.",
+        "structured": {
+          "reply": "Ừ, mình nghe bạn đây. Bạn đang ở nhà an toàn, và bạn kể rằng hôm qua bạn cùng nhóm đã giấu cặp của bạn. Bạn chưa muốn báo ngay—mình sẽ không thúc ép. Chuyện đó chắc khiến bạn bực hoặc lo lắng. Nếu muốn, bạn kể thêm lúc đó bạn cảm thấy thế nào nhé.",
+          "observedFacts": [],
+          "userReportedFacts": [],
+          "possiblePatterns": [],
+          "uncertainties": [],
+          "clarifyingQuestion": null,
+          "safeOptions": [],
+          "urgency": "none",
+          "citations": []
+        },
+        "citations": [],
+        "events": [
+          {
+            "v": 1,
+            "seq": 1,
+            "runId": "e7b450af-bc10-46ce-8176-989b7ea25f69",
+            "event": "run.started",
+            "data": {
+              "runId": "e7b450af-bc10-46ce-8176-989b7ea25f69",
+              "conversationId": "85a8617d-ce7d-49fa-b705-ce450b3f4f49",
+              "messageId": "aa3c6d13-9d78-4c0c-9182-6e72db4e9e0a"
+            }
+          },
+          {
+            "v": 1,
+            "seq": 74,
+            "runId": "e7b450af-bc10-46ce-8176-989b7ea25f69",
+            "event": "message.completed",
+            "data": {
+              "messageId": "aa3c6d13-9d78-4c0c-9182-6e72db4e9e0a",
+              "content": "Ừ, mình nghe bạn đây. Bạn đang ở nhà an toàn, và bạn kể rằng hôm qua bạn cùng nhóm đã giấu cặp của bạn. Bạn chưa muốn báo ngay—mình sẽ không thúc ép. Chuyện đó chắc khiến bạn bực hoặc lo lắng. Nếu muốn, bạn kể thêm lúc đó bạn cảm thấy thế nào nhé.",
+              "citations": [],
+              "structured": {
+                "reply": "Ừ, mình nghe bạn đây. Bạn đang ở nhà an toàn, và bạn kể rằng hôm qua bạn cùng nhóm đã giấu cặp của bạn. Bạn chưa muốn báo ngay—mình sẽ không thúc ép. Chuyện đó chắc khiến bạn bực hoặc lo lắng. Nếu muốn, bạn kể thêm lúc đó bạn cảm thấy thế nào nhé.",
+                "observedFacts": [],
+                "userReportedFacts": [],
+                "possiblePatterns": [],
+                "uncertainties": [],
+                "clarifyingQuestion": null,
+                "safeOptions": [],
+                "urgency": "none",
+                "citations": []
+              }
+            }
+          },
+          {
+            "v": 1,
+            "seq": 75,
+            "runId": "e7b450af-bc10-46ce-8176-989b7ea25f69",
+            "event": "run.usage",
+            "data": {
+              "inputTokens": 2481,
+              "outputTokens": 77,
+              "totalTokens": 2558,
+              "requests": 1,
+              "toolCalls": 0,
+              "latencyMs": 5925
+            }
+          },
+          {
+            "v": 1,
+            "seq": 76,
+            "runId": "e7b450af-bc10-46ce-8176-989b7ea25f69",
+            "event": "run.completed",
+            "data": {
+              "status": "completed"
+            }
+          }
+        ]
+      },
+      {
+        "scenario_id": "UI-B-follow-up",
+        "prompt_version": "companion_v5",
+        "source_commit": "200771e5bff7b2ff1bc262e4145eb61f5c94acd9",
+        "persisted_run": {
+          "id": "1e50831e-ac4b-4246-a786-da8aa408b9e4",
+          "conversationId": "85a8617d-ce7d-49fa-b705-ce450b3f4f49",
+          "status": "completed",
+          "model": "gpt-6-luna",
+          "promptVersion": "companion_v5",
+          "toolsVersion": "24b3f1f39259b1bf",
+          "errorCode": null,
+          "usage": {
+            "inputTokens": 6676,
+            "outputTokens": 179,
+            "totalTokens": 6855,
+            "requests": 2,
+            "toolCalls": 1,
+            "latencyMs": 18475
+          }
+        },
+        "model": "gpt-6-luna",
+        "user_message": "Mình nói rõ thêm: chuyện xảy ra đúng một lần thôi. Cho mình một bước nhỏ để nói ranh giới với bạn, không cần đối chất với cả nhóm.",
+        "response": "Một bước nhỏ là nhắn riêng cho bạn ấy, lúc bạn thấy thoải mái: **“Hôm qua cặp mình bị giấu. Mình không thích chuyện đó—lần sau đừng giấu đồ của mình nhé.”** Bạn chỉ cần nói câu này rồi dừng lại; không cần tranh luận hay đối chất với cả nhóm. [1]\n\nNếu bạn lo bạn ấy có thể phản ứng không an toàn, đừng nói một mình—có thể nhờ một người lớn đáng tin ở gần.",
+        "structured": {
+          "reply": "Một bước nhỏ là nhắn riêng cho bạn ấy, lúc bạn thấy thoải mái: **“Hôm qua cặp mình bị giấu. Mình không thích chuyện đó—lần sau đừng giấu đồ của mình nhé.”** Bạn chỉ cần nói câu này rồi dừng lại; không cần tranh luận hay đối chất với cả nhóm. [1]\n\nNếu bạn lo bạn ấy có thể phản ứng không an toàn, đừng nói một mình—có thể nhờ một người lớn đáng tin ở gần.",
+          "observedFacts": [],
+          "userReportedFacts": [],
+          "possiblePatterns": [],
+          "uncertainties": [],
+          "clarifyingQuestion": null,
+          "safeOptions": [],
+          "urgency": "none",
+          "citations": [
+            {
+              "sourceId": "mp-authored",
+              "documentId": "kb-phys-do-dac-cap-sach",
+              "title": "Bị giật cặp, giấu hoặc làm hỏng đồ dùng",
+              "publisher": "MoodPrint biên soạn — dựa trên MoodPrint",
+              "url": null,
+              "section": "Đừng giành lại bằng xô đẩy",
+              "publishedAt": null,
+              "lastReviewed": "2026-11-09",
+              "applicability": "Thẻ biên soạn của MoodPrint cho học sinh tại Việt Nam; không thay thế tư vấn pháp lý, y tế hoặc tâm lý.",
+              "countryScope": [
+                "VN"
+              ]
+            }
+          ]
+        },
+        "citations": [
+          {
+            "sourceId": "mp-authored",
+            "documentId": "kb-phys-do-dac-cap-sach",
+            "title": "Bị giật cặp, giấu hoặc làm hỏng đồ dùng",
+            "publisher": "MoodPrint biên soạn — dựa trên MoodPrint",
+            "url": null,
+            "section": "Đừng giành lại bằng xô đẩy",
+            "publishedAt": null,
+            "lastReviewed": "2026-11-09",
+            "applicability": "Thẻ biên soạn của MoodPrint cho học sinh tại Việt Nam; không thay thế tư vấn pháp lý, y tế hoặc tâm lý.",
+            "countryScope": [
+              "VN"
+            ]
+          }
+        ],
+        "events": [
+          {
+            "v": 1,
+            "seq": 1,
+            "runId": "1e50831e-ac4b-4246-a786-da8aa408b9e4",
+            "event": "run.started",
+            "data": {
+              "runId": "1e50831e-ac4b-4246-a786-da8aa408b9e4",
+              "conversationId": "85a8617d-ce7d-49fa-b705-ce450b3f4f49",
+              "messageId": "98c4f69e-4409-4b33-9ee0-beb3814ee4fa"
+            }
+          },
+          {
+            "v": 1,
+            "seq": 2,
+            "runId": "1e50831e-ac4b-4246-a786-da8aa408b9e4",
+            "event": "tool.started",
+            "data": {
+              "callId": "call_ZQWsBTz5C80WGfbBjzAY1zYT",
+              "tool": "knowledge_search",
+              "label": "Tra cứu nguồn tin cậy"
+            }
+          },
+          {
+            "v": 1,
+            "seq": 3,
+            "runId": "1e50831e-ac4b-4246-a786-da8aa408b9e4",
+            "event": "tool.completed",
+            "data": {
+              "callId": "call_ZQWsBTz5C80WGfbBjzAY1zYT",
+              "tool": "knowledge_search",
+              "ok": true
+            }
+          },
+          {
+            "v": 1,
+            "seq": 112,
+            "runId": "1e50831e-ac4b-4246-a786-da8aa408b9e4",
+            "event": "message.completed",
+            "data": {
+              "messageId": "98c4f69e-4409-4b33-9ee0-beb3814ee4fa",
+              "content": "Một bước nhỏ là nhắn riêng cho bạn ấy, lúc bạn thấy thoải mái: **“Hôm qua cặp mình bị giấu. Mình không thích chuyện đó—lần sau đừng giấu đồ của mình nhé.”** Bạn chỉ cần nói câu này rồi dừng lại; không cần tranh luận hay đối chất với cả nhóm. [1]\n\nNếu bạn lo bạn ấy có thể phản ứng không an toàn, đừng nói một mình—có thể nhờ một người lớn đáng tin ở gần.",
+              "citations": [
+                {
+                  "sourceId": "mp-authored",
+                  "documentId": "kb-phys-do-dac-cap-sach",
+                  "title": "Bị giật cặp, giấu hoặc làm hỏng đồ dùng",
+                  "publisher": "MoodPrint biên soạn — dựa trên MoodPrint",
+                  "url": null,
+                  "section": "Đừng giành lại bằng xô đẩy",
+                  "publishedAt": null,
+                  "lastReviewed": "2026-11-09",
+                  "applicability": "Thẻ biên soạn của MoodPrint cho học sinh tại Việt Nam; không thay thế tư vấn pháp lý, y tế hoặc tâm lý.",
+                  "countryScope": [
+                    "VN"
+                  ]
+                }
+              ],
+              "structured": {
+                "reply": "Một bước nhỏ là nhắn riêng cho bạn ấy, lúc bạn thấy thoải mái: **“Hôm qua cặp mình bị giấu. Mình không thích chuyện đó—lần sau đừng giấu đồ của mình nhé.”** Bạn chỉ cần nói câu này rồi dừng lại; không cần tranh luận hay đối chất với cả nhóm. [1]\n\nNếu bạn lo bạn ấy có thể phản ứng không an toàn, đừng nói một mình—có thể nhờ một người lớn đáng tin ở gần.",
+                "observedFacts": [],
+                "userReportedFacts": [],
+                "possiblePatterns": [],
+                "uncertainties": [],
+                "clarifyingQuestion": null,
+                "safeOptions": [],
+                "urgency": "none",
+                "citations": [
+                  {
+                    "sourceId": "mp-authored",
+                    "documentId": "kb-phys-do-dac-cap-sach",
+                    "title": "Bị giật cặp, giấu hoặc làm hỏng đồ dùng",
+                    "publisher": "MoodPrint biên soạn — dựa trên MoodPrint",
+                    "url": null,
+                    "section": "Đừng giành lại bằng xô đẩy",
+                    "publishedAt": null,
+                    "lastReviewed": "2026-11-09",
+                    "applicability": "Thẻ biên soạn của MoodPrint cho học sinh tại Việt Nam; không thay thế tư vấn pháp lý, y tế hoặc tâm lý.",
+                    "countryScope": [
+                      "VN"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "v": 1,
+            "seq": 113,
+            "runId": "1e50831e-ac4b-4246-a786-da8aa408b9e4",
+            "event": "run.usage",
+            "data": {
+              "inputTokens": 6676,
+              "outputTokens": 179,
+              "totalTokens": 6855,
+              "requests": 2,
+              "toolCalls": 1,
+              "latencyMs": 18475
+            }
+          },
+          {
+            "v": 1,
+            "seq": 114,
+            "runId": "1e50831e-ac4b-4246-a786-da8aa408b9e4",
+            "event": "run.completed",
+            "data": {
+              "status": "completed"
+            }
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "live-chat-390-after-ui-harness-fix.png"
+    ],
+    "page_errors": [],
+    "forbidden_requests": [],
+    "conversation_url": "http://127.0.0.1:5173/ai/chat/85a8617d-ce7d-49fa-b705-ce450b3f4f49",
+    "finished_at": "2026-11-10T09:08:37.500Z"
+  }
+}

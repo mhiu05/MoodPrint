@@ -1,0 +1,188 @@
+{
+  "commit": "790c4ed2bac9edac4c9eb632be51ec9d5df6fa0a",
+  "scope": "local_phase23",
+  "passed": true,
+  "checks": [
+    {
+      "command": [
+        "C:\\Users\\minhh\\orca\\workspaces\\MoodPrint\\mhiu05-feat-refactor\\.venv\\Scripts\\python.exe",
+        "scripts/dev/migration_scope_check.py"
+      ],
+      "returncode": 0,
+      "log": ".local/verification/phase23-fresh-bootstrap-400/check-01.log",
+      "log_sha256": "27f358eb47255a66a541ca46bd4bf8c031e5c906e77905d44282305530e9ee66",
+      "started_at": "2026-11-10T06:45:27.130709+00:00",
+      "finished_at": "2026-11-10T06:45:27.316987+00:00"
+    },
+    {
+      "command": [
+        "C:\\Users\\minhh\\orca\\workspaces\\MoodPrint\\mhiu05-feat-refactor\\.venv\\Scripts\\python.exe",
+        "scripts/dev/supabase_worktree.py",
+        "start",
+        "--name",
+        "fresh-bootstrap",
+        "--offset",
+        "400",
+        "--lite"
+      ],
+      "returncode": 0,
+      "log": ".local/verification/phase23-fresh-bootstrap-400/check-02.log",
+      "log_sha256": "3d1f42be711635dcc6611f3c5f2ee739756fe2f9ce3d04ddb8efea7588ed2cf6",
+      "started_at": "2026-11-10T06:45:27.402077+00:00",
+      "finished_at": "2026-11-10T06:45:31.545689+00:00"
+    },
+    {
+      "command": [
+        "C:\\Users\\minhh\\orca\\workspaces\\MoodPrint\\mhiu05-feat-refactor\\.venv\\Scripts\\python.exe",
+        "scripts/dev/bootstrap_local_db.py",
+        "--name",
+        "fresh-bootstrap",
+        "--offset",
+        "400"
+      ],
+      "returncode": 0,
+      "log": ".local/verification/phase23-fresh-bootstrap-400/check-03.log",
+      "log_sha256": "8324923af17d85dc7fd6796960a2aed12266e87d0a04b6a2a8b0475d2ce16100",
+      "started_at": "2026-11-10T06:45:31.625721+00:00",
+      "finished_at": "2026-11-10T06:45:34.995428+00:00"
+    },
+    {
+      "command": [
+        "C:\\Users\\minhh\\orca\\workspaces\\MoodPrint\\mhiu05-feat-refactor\\.venv\\Scripts\\python.exe",
+        "scripts/verify_phase1.py"
+      ],
+      "returncode": 0,
+      "log": ".local/verification/phase23-fresh-bootstrap-400/check-04.log",
+      "log_sha256": "10f0c2204c91ca8a2542b5445176f7a29c8a12452a2636558703ee639ad187e7",
+      "started_at": "2026-11-10T06:45:35.085715+00:00",
+      "finished_at": "2026-11-10T07:04:43.686826+00:00"
+    },
+    {
+      "command": [
+        "C:\\Users\\minhh\\orca\\workspaces\\MoodPrint\\mhiu05-feat-refactor\\.venv\\Scripts\\python.exe",
+        "scripts/dev/migration_order_check.py"
+      ],
+      "returncode": 0,
+      "log": ".local/verification/phase23-fresh-bootstrap-400/check-05.log",
+      "log_sha256": "3e0cce598673fdcac8e9b109144e23683282fc5952501e6de5a4ef6194f9b22c",
+      "started_at": "2026-11-10T07:04:43.814244+00:00",
+      "finished_at": "2026-11-10T07:06:57.017542+00:00"
+    },
+    {
+      "command": [
+        "C:\\Users\\minhh\\orca\\workspaces\\MoodPrint\\mhiu05-feat-refactor\\.venv\\Scripts\\python.exe",
+        "scripts/dev/bootstrap_local_db.py",
+        "--name",
+        "fresh-bootstrap",
+        "--offset",
+        "400"
+      ],
+      "returncode": 0,
+      "log": ".local/verification/phase23-fresh-bootstrap-400/check-06.log",
+      "log_sha256": "8324923af17d85dc7fd6796960a2aed12266e87d0a04b6a2a8b0475d2ce16100",
+      "started_at": "2026-11-10T07:06:57.125478+00:00",
+      "finished_at": "2026-11-10T07:07:00.839122+00:00"
+    },
+    {
+      "command": [
+        "C:\\Users\\minhh\\orca\\workspaces\\MoodPrint\\mhiu05-feat-refactor\\.venv\\Scripts\\python.exe",
+        "scripts/dev/supabase_worktree.py",
+        "test",
+        "--name",
+        "fresh-bootstrap",
+        "--offset",
+        "400"
+      ],
+      "returncode": 0,
+      "log": ".local/verification/phase23-fresh-bootstrap-400/check-07.log",
+      "log_sha256": "b6770990e55e3ff49d719e4e8e4b3e994c0a962e52718dbc4431fa6554a663e0",
+      "started_at": "2026-11-10T07:07:00.964992+00:00",
+      "finished_at": "2026-11-10T07:07:07.122328+00:00"
+    },
+    {
+      "command": [
+        "C:\\Users\\minhh\\orca\\workspaces\\MoodPrint\\mhiu05-feat-refactor\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "-m",
+        "integration",
+        "-q",
+        "-rA"
+      ],
+      "returncode": 0,
+      "log": ".local/verification/phase23-fresh-bootstrap-400/check-08.log",
+      "log_sha256": "3f323fd6b10c852c986bb162e394def2bdccf33864f350bf278b2effe7493e20",
+      "started_at": "2026-11-10T07:07:07.254738+00:00",
+      "finished_at": "2026-11-10T07:08:54.380751+00:00"
+    },
+    {
+      "command": [
+        "C:\\Users\\minhh\\orca\\workspaces\\MoodPrint\\mhiu05-feat-refactor\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "agent/tests",
+        "-q"
+      ],
+      "returncode": 0,
+      "log": ".local/verification/phase23-fresh-bootstrap-400/check-09.log",
+      "log_sha256": "61a873d9f24f56d35d9ac4410c36c2ca2bedcb2b10f8092f195856a6c486ccf6",
+      "started_at": "2026-11-10T07:08:54.477348+00:00",
+      "finished_at": "2026-11-10T07:09:55.598911+00:00"
+    },
+    {
+      "command": [
+        "C:\\Users\\minhh\\orca\\workspaces\\MoodPrint\\mhiu05-feat-refactor\\.venv\\Scripts\\python.exe",
+        "scripts/export_contract_schemas.py",
+        "--check"
+      ],
+      "returncode": 0,
+      "log": ".local/verification/phase23-fresh-bootstrap-400/check-10.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "started_at": "2026-11-10T07:09:55.707391+00:00",
+      "finished_at": "2026-11-10T07:09:56.324309+00:00"
+    },
+    {
+      "command": [
+        "C:\\Users\\minhh\\orca\\workspaces\\MoodPrint\\mhiu05-feat-refactor\\.venv\\Scripts\\python.exe",
+        "scripts/export_openapi.py",
+        "--check"
+      ],
+      "returncode": 0,
+      "log": ".local/verification/phase23-fresh-bootstrap-400/check-11.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "started_at": "2026-11-10T07:09:56.403098+00:00",
+      "finished_at": "2026-11-10T07:10:03.034351+00:00"
+    },
+    {
+      "command": [
+        "C:\\Users\\minhh\\orca\\workspaces\\MoodPrint\\mhiu05-feat-refactor\\.venv\\Scripts\\python.exe",
+        "scripts/e2e_stack.py",
+        "--run",
+        "--project",
+        "demo"
+      ],
+      "returncode": 0,
+      "log": ".local/verification/phase23-fresh-bootstrap-400/check-12.log",
+      "log_sha256": "af4bafbfc25bbf73fde6da82cc26dcecf81e9b64c0d66f64faf7283942932aa8",
+      "started_at": "2026-11-10T07:10:03.135508+00:00",
+      "finished_at": "2026-11-10T07:13:58.893182+00:00"
+    },
+    {
+      "command": [
+        "C:\\Users\\minhh\\orca\\workspaces\\MoodPrint\\mhiu05-feat-refactor\\.venv\\Scripts\\python.exe",
+        "scripts/e2e_stack.py",
+        "--run",
+        "--project",
+        "real"
+      ],
+      "returncode": 0,
+      "log": ".local/verification/phase23-fresh-bootstrap-400/check-13.log",
+      "log_sha256": "3064fa36c8e9b752a26fd6080aa13140ce6ce5cff242f14eac7ef45e0b126d91",
+      "started_at": "2026-11-10T07:13:58.997774+00:00",
+      "finished_at": "2026-11-10T07:21:18.330573+00:00"
+    }
+  ],
+  "stack": "fresh-bootstrap",
+  "offset": 400,
+  "timestamp": "2026-11-10T07:21:18.437503+00:00"
+}
