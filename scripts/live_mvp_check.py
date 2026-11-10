@@ -742,6 +742,16 @@ async def execute(group, label):
             raise ValueError("Unknown live acceptance group")
         harness.save()
         return int(any(not c["passed"] for c in harness.checks))
+    except Exception as error:
+        harness.check(
+            group + " execution",
+            False,
+            {
+                "error_type": type(error).__name__,
+                "detail": str(error) if isinstance(error, RuntimeError) else None,
+            },
+        )
+        return 1
     finally:
         await harness.close()
 

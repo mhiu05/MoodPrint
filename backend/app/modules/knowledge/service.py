@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 
 from moodprint_agent.knowledge.ingest.topics import PRODUCTION_TOPICS
 from moodprint_agent.knowledge.retriever import PgVectorKnowledgeRetriever
@@ -219,11 +220,14 @@ class KnowledgeService:
         )
         if row is None:
             raise NotFound()
+        published = row["published_at"]
+        if isinstance(published, datetime):
+            published = published.astimezone(UTC).date()
         return CorpusRead(
             version=str(row["version"]),
             documents=int(row["documents"]),
             chunks=int(row["chunks"]),
-            published_at=row["published_at"],
+            published_at=published,
         )
 
     async def _one(self, sql: str, params: dict[str, object]):
