@@ -17,7 +17,7 @@ values
   ('kb-20261108-02', 'building', 'hashing', 1024, repeat('b', 64), 'pgtap');
 
 insert into knowledge.sources (source_id, kind, publisher, title, language, country_scope, authority_tier, licence_class, licence_quote, verified_on)
-values ('mp-pgtap', 'authored', 'MoodPrint', 'pgTAP', 'vi', array['VN'], 4, 'authored', 'test', '2026-11-08');
+values ('mp-pgtap', 'authored', 'SafeVoice', 'pgTAP', 'vi', array['VN'], 4, 'authored', 'test', '2026-11-08');
 
 insert into knowledge.source_confidential (source_id, licence_note) values ('mp-pgtap', 'private note');
 

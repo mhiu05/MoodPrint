@@ -8,13 +8,13 @@ from typing import Literal
 import httpx
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.base import FrozenDTO
-from moodprint_shared.contracts.errors import ErrorEnvelope
-from moodprint_shared.contracts.knowledge import KnowledgeRetriever
-from moodprint_shared.env import EnvSettings, get_settings
-from moodprint_shared.logging import configure_logging
 from openai import AsyncOpenAI
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.base import FrozenDTO
+from safevoice_shared.contracts.errors import ErrorEnvelope
+from safevoice_shared.contracts.knowledge import KnowledgeRetriever
+from safevoice_shared.env import EnvSettings, get_settings
+from safevoice_shared.logging import configure_logging
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -110,7 +110,7 @@ def create_app(
                 await engine.dispose()
 
     app = FastAPI(
-        title="MoodPrint API",
+        title="SafeVoice API",
         version="1.0.0",
         lifespan=lifespan,
         responses={

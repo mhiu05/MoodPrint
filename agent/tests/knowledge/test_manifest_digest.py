@@ -5,7 +5,7 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from moodprint_agent.knowledge.ingest.manifest import load_manifest
+from safevoice_agent.knowledge.ingest.manifest import load_manifest
 
 CORPUS = Path(__file__).resolve().parents[2] / "ingestion" / "corpus"
 

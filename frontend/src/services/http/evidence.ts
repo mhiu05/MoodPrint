@@ -131,7 +131,7 @@ export function createEvidencePort(api: ApiClient): EvidencePort {
     getDownloadUrl: (id) => api(`/v1/evidence/${id}/download-url`),
     upload(file, metadata = {}, callbacks = {}) {
       const owner = currentOwner();
-      const recoveryKey = `moodprint-upload-draft-v1:${owner}:${encodeURIComponent(file.name)}:${file.size}:${file.lastModified}:${metadata.caseId ?? ""}`;
+      const recoveryKey = `safevoice-upload-draft-v1:${owner}:${encodeURIComponent(file.name)}:${file.size}:${file.lastModified}:${metadata.caseId ?? ""}`;
       let id: string = crypto.randomUUID();
       let recovered = false;
       try {
@@ -217,7 +217,7 @@ export function createEvidencePort(api: ApiClient): EvidencePort {
             removeFingerprintOnSuccess: true,
             // The same owner/file can find its pending evidence after a page reload.
             fingerprint: async () =>
-              `moodprint-upload-v1:${owner}:${file.name}:${file.type}:${file.size}:${file.lastModified}:${metadata.caseId ?? ""}`,
+              `safevoice-upload-v1:${owner}:${file.name}:${file.type}:${file.size}:${file.lastModified}:${metadata.caseId ?? ""}`,
             metadata: {
               bucketName: signed.bucketName,
               objectName: signed.objectName,

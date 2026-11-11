@@ -15,7 +15,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import pytest
-from moodprint_agent.tools.safety import (
+from safevoice_agent.tools.safety import (
     EMERGENCY_BLOCK,
     NONE,
     assess_conversation,

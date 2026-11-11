@@ -7,7 +7,7 @@ from uuid import uuid4
 
 import pytest
 from dotenv import dotenv_values
-from moodprint_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.auth import AuthContext
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine

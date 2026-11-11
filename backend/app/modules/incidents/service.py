@@ -6,15 +6,15 @@ import json
 from datetime import date, datetime
 from uuid import UUID
 
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.incidents import (
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.incidents import (
     CaseDetail,
     CaseQuery,
     CaseSummary,
     EventCreate,
     TimelineEvent,
 )
-from moodprint_shared.contracts.paging import Page
+from safevoice_shared.contracts.paging import Page
 from sqlalchemy import and_, delete, func, or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession

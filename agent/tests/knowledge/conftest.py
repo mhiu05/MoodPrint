@@ -6,7 +6,7 @@ import asyncio
 from collections.abc import Iterator
 
 import pytest
-from moodprint_agent.knowledge.ingest.runtime import engine_for, rollback_version
+from safevoice_agent.knowledge.ingest.runtime import engine_for, rollback_version
 from sqlalchemy import text
 
 from .kb_env import load_test_env

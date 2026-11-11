@@ -6,10 +6,10 @@ import unicodedata
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.errors import NotFound, VersionConflict
-from moodprint_shared.contracts.memory import (
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.errors import NotFound, VersionConflict
+from safevoice_shared.contracts.memory import (
     CandidateDecision,
     Memory,
     MemoryCandidate,

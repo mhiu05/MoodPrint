@@ -5,8 +5,8 @@ import inspect
 import asyncpg
 import pytest
 from app.core.db import create_engine
-from moodprint_shared.config import AppConfig
 from pydantic import SecretStr
+from safevoice_shared.config import AppConfig
 
 
 @pytest.mark.asyncio
@@ -26,7 +26,7 @@ async def test_libpq_sslmode_is_translated_for_asyncpg(settings, monkeypatch, mo
     settings = settings.model_copy(
         update={
             "database_url": SecretStr(
-                "postgresql+asyncpg://moodprint_api:synthetic@127.0.0.1:54322/postgres"
+                "postgresql+asyncpg://safevoice_api:synthetic@127.0.0.1:54322/postgres"
                 f"?sslmode={mode}"
             )
         }

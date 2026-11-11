@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from datetime import date
 
-from moodprint_shared.contracts.base import FrozenDTO
 from pydantic import RootModel
+from safevoice_shared.contracts.base import FrozenDTO
 
 
 class CitationRead(FrozenDTO):

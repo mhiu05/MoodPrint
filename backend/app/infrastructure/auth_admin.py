@@ -1,6 +1,6 @@
 import httpx
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.env import EnvSettings
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.env import EnvSettings
 
 from app.core.errors import ApiError
 

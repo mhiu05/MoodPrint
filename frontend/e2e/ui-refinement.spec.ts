@@ -14,7 +14,7 @@ test("mock processing keeps the compact companion identity stable", async ({
   const during = await page.locator(".chat-topbar").boundingBox();
   expect(during!.height).toBe(before!.height);
   await expect(
-    page.getByRole("heading", { name: "MoodPrint", exact: true }),
+    page.getByRole("heading", { name: "SafeVoice", exact: true }),
   ).toBeVisible();
 });
 

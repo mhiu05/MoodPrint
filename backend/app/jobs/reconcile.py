@@ -25,8 +25,8 @@ async def reconcile_loop(engine, interval_s: float = 30, stale_seconds: int = 18
 
 
 async def main():
-    from moodprint_shared.config import AppConfig
-    from moodprint_shared.env import get_settings
+    from safevoice_shared.config import AppConfig
+    from safevoice_shared.env import get_settings
 
     from app.core.db import create_engine
 

@@ -5,8 +5,8 @@ from datetime import UTC, datetime, timedelta
 from urllib.parse import quote
 
 import httpx
-from moodprint_shared.config import AppConfig
-from moodprint_shared.env import EnvSettings
+from safevoice_shared.config import AppConfig
+from safevoice_shared.env import EnvSettings
 
 from app.core.errors import ApiError
 

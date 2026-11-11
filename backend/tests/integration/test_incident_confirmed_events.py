@@ -12,7 +12,7 @@ from app.modules.evidence.schemas import NoteCreate, UploadCreate
 from app.modules.evidence.service import EvidenceService
 from app.modules.incidents.schemas import CaseCreate
 from app.modules.incidents.service import IncidentService
-from moodprint_shared.contracts.incidents import EventCreate
+from safevoice_shared.contracts.incidents import EventCreate
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 

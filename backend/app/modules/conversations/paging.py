@@ -3,12 +3,12 @@
 from collections.abc import Sequence
 from uuid import UUID
 
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.conversations import ChatMessage
-from moodprint_shared.contracts.errors import NotFound
-from moodprint_shared.contracts.memory import Memory, MemoryCandidate
-from moodprint_shared.contracts.paging import Page
 from pydantic import BaseModel
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.conversations import ChatMessage
+from safevoice_shared.contracts.errors import NotFound
+from safevoice_shared.contracts.memory import Memory, MemoryCandidate
+from safevoice_shared.contracts.paging import Page
 from sqlalchemy import text
 from sqlalchemy.engine import RowMapping
 from sqlalchemy.ext.asyncio import AsyncEngine

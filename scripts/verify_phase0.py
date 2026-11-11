@@ -30,8 +30,8 @@ def main() -> int:
     )
     args = parser.parse_args()
     # The gate resets the local database. Refuse while E2E owns the local API/Vite.
-    offset = int(os.environ.get("MOODPRINT_PORT_OFFSET", "0"))
-    name = os.environ.get("MOODPRINT_STACK_NAME", "foundation")
+    offset = int(os.environ.get("SAFEVOICE_PORT_OFFSET", "0"))
+    name = os.environ.get("SAFEVOICE_STACK_NAME", "foundation")
     for port in (8008 + offset, 5178 + offset):
         with socket.socket() as connection:
             if connection.connect_ex(("127.0.0.1", port)) == 0:

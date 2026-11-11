@@ -91,8 +91,8 @@ def build_environment(
     frontend_url: str | None = None,
     api_url: str | None = None,
 ) -> dict[str, str]:
-    name = name or inherited.get("MOODPRINT_STACK_NAME", "foundation")
-    offset = int(inherited.get("MOODPRINT_PORT_OFFSET", "0")) if offset is None else offset
+    name = name or inherited.get("SAFEVOICE_STACK_NAME", "foundation")
+    offset = int(inherited.get("SAFEVOICE_PORT_OFFSET", "0")) if offset is None else offset
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,39}", name) or not 0 <= offset <= 9000:
         raise ValueError("Invalid local stack name or port offset")
     frontend_url = frontend_url or f"http://127.0.0.1:{5178 + offset}"
@@ -123,8 +123,8 @@ def build_environment(
             "APP_ENV": "test",
             "PYTHONUNBUFFERED": "1",
             "PYTHONIOENCODING": "utf-8",
-            "MOODPRINT_STACK_NAME": name,
-            "MOODPRINT_PORT_OFFSET": str(offset),
+            "SAFEVOICE_STACK_NAME": name,
+            "SAFEVOICE_PORT_OFFSET": str(offset),
             "CORS_ALLOWED_ORIGINS": frontend_url,
             "VITE_PUBLIC_SUPABASE_URL": local["SUPABASE_URL"],
             "VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY": local["SUPABASE_PUBLISHABLE_KEY"],
@@ -145,13 +145,13 @@ def output_directory(environment: dict[str, str]) -> Path:
     return (
         ROOT
         / ".local/e2e"
-        / (f"{environment['MOODPRINT_STACK_NAME']}-{environment['MOODPRINT_PORT_OFFSET']}")
+        / (f"{environment['SAFEVOICE_STACK_NAME']}-{environment['SAFEVOICE_PORT_OFFSET']}")
     )
 
 
 def default_environment_file(name: str | None = None, offset: int | None = None) -> Path:
-    name = name or os.environ.get("MOODPRINT_STACK_NAME", "foundation")
-    offset = int(os.environ.get("MOODPRINT_PORT_OFFSET", "0")) if offset is None else offset
+    name = name or os.environ.get("SAFEVOICE_STACK_NAME", "foundation")
+    offset = int(os.environ.get("SAFEVOICE_PORT_OFFSET", "0")) if offset is None else offset
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,39}", name) or not 0 <= offset <= 9000:
         raise ValueError("Invalid local stack name or port offset")
     return ROOT / (
@@ -163,7 +163,7 @@ def default_environment_file(name: str | None = None, offset: int | None = None)
 
 def demo_environment(offset: int) -> dict[str, str]:
     # Synthetic placeholders are never sent: demo clears all VITE_PUBLIC values.
-    database = f"postgresql+asyncpg://moodprint_api:synthetic@127.0.0.1:{54322 + offset}/postgres"
+    database = f"postgresql+asyncpg://safevoice_api:synthetic@127.0.0.1:{54322 + offset}/postgres"
     return {
         "APP_ENV": "test",
         "SUPABASE_URL": f"http://127.0.0.1:{54321 + offset}",
@@ -359,9 +359,9 @@ def main() -> int:
         "--run", action="store_true", help="Run headless Playwright and stop child processes"
     )
     parser.add_argument("--project", choices=["real", "demo", "all"], default="real")
-    parser.add_argument("--name", default=os.environ.get("MOODPRINT_STACK_NAME", "foundation"))
+    parser.add_argument("--name", default=os.environ.get("SAFEVOICE_STACK_NAME", "foundation"))
     parser.add_argument(
-        "--offset", type=int, default=int(os.environ.get("MOODPRINT_PORT_OFFSET", "0"))
+        "--offset", type=int, default=int(os.environ.get("SAFEVOICE_PORT_OFFSET", "0"))
     )
     parser.add_argument("--env-file", type=Path)
     parser.add_argument("--agent", choices=["scripted", "live"], default="scripted")

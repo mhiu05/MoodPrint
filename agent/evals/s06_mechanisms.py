@@ -12,7 +12,7 @@ from typing import Any
 
 from evals.cases_io import load_cases
 from evals.provenance import build_manifest, digest
-from moodprint_shared.contracts.agent import CompanionTurn
+from safevoice_shared.contracts.agent import CompanionTurn
 
 MECHANISMS = ("text_baseline", "a_json_stream", "b_closing_tool", "c_postprocess_classifier")
 # The closing-tool payload is read from the same streamed response; no tool-result

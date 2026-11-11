@@ -1,8 +1,8 @@
 from datetime import datetime
 from uuid import UUID
 
-from moodprint_shared.contracts.base import FrozenDTO
 from pydantic import Field, field_validator
+from safevoice_shared.contracts.base import FrozenDTO
 
 
 class ContactCreate(FrozenDTO):

@@ -18,8 +18,8 @@ def values():
         "SUPABASE_URL": "http://127.0.0.1:54321",
         "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_synthetic",
         "SUPABASE_SECRET_KEY": "synthetic-local-secret",
-        "DATABASE_URL": "postgresql+asyncpg://moodprint_api:synthetic@127.0.0.1:54322/postgres",
-        "TEST_DATABASE_URL": "postgresql+asyncpg://moodprint_api:synthetic@127.0.0.1:54322/postgres",
+        "DATABASE_URL": "postgresql+asyncpg://safevoice_api:synthetic@127.0.0.1:54322/postgres",
+        "TEST_DATABASE_URL": "postgresql+asyncpg://safevoice_api:synthetic@127.0.0.1:54322/postgres",
         "TEST_ADMIN_DATABASE_URL": "postgresql+asyncpg://postgres:synthetic@127.0.0.1:54322/postgres",
     }
 
@@ -88,8 +88,8 @@ def test_worktree_ports_and_output_are_isolated(offset):
     assert child["E2E_BASE_URL"] == f"http://127.0.0.1:{5178 + offset}"
     assert child["E2E_API_URL"] == f"http://127.0.0.1:{8008 + offset}"
     assert child["E2E_MAIL_URL"] == f"http://127.0.0.1:{54324 + offset}"
-    assert child["MOODPRINT_STACK_NAME"] == f"probe-{offset}"
-    assert child["MOODPRINT_PORT_OFFSET"] == str(offset)
+    assert child["SAFEVOICE_STACK_NAME"] == f"probe-{offset}"
+    assert child["SAFEVOICE_PORT_OFFSET"] == str(offset)
     assert stack.output_directory(child).name == f"probe-{offset}-{offset}"
 
 
@@ -136,7 +136,7 @@ def test_lite_stack_and_redirects_are_worktree_specific(tmp_path, monkeypatch):
     import tomllib
 
     config = tomllib.loads((path / "supabase/config.toml").read_text())
-    assert config["project_id"] == "moodprint-kb"
+    assert config["project_id"] == "safevoice-kb"
     assert config["db"]["port"] == 54422
     assert config["studio"]["enabled"] is False
     assert config["auth"]["site_url"] == "http://127.0.0.1:5278"

@@ -15,11 +15,11 @@ from app.modules.conversations.service import ConversationService
 from app.modules.incidents.schemas import CaseCreate, EventWrite
 from app.modules.incidents.service import IncidentService
 from app.modules.memory.service import MemoryService
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_agent.tools.factory import build_registry
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.memory import CandidateDecision, MemoryCandidateCreate, MemoryCreate
-from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_agent.tools.factory import build_registry
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.memory import CandidateDecision, MemoryCandidateCreate, MemoryCreate
+from safevoice_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 

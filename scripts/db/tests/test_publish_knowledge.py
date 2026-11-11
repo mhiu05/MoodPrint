@@ -24,9 +24,9 @@ def module():
 
 @pytest.fixture
 def build(tmp_path):
-    from moodprint_agent.knowledge.embedder import HashingEmbedder
-    from moodprint_agent.knowledge.ingest.build import build_corpus
-    from moodprint_agent.knowledge.ingest.embed import read_jsonl, write_vectors
+    from safevoice_agent.knowledge.embedder import HashingEmbedder
+    from safevoice_agent.knowledge.ingest.build import build_corpus
+    from safevoice_agent.knowledge.ingest.embed import read_jsonl, write_vectors
 
     # Real curated source, tiny deterministic vectors at the offline test boundary.
     manifest = ROOT / "agent/ingestion/corpus/manifest.toml"

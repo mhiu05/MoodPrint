@@ -16,13 +16,13 @@ from dataclasses import replace
 from pathlib import Path
 
 from dotenv import dotenv_values
-from moodprint_agent.knowledge.embedder import VoyageEmbedder
-from moodprint_agent.knowledge.ingest.budget import commit, reserve, snapshot
-from moodprint_agent.knowledge.retriever import PgVectorKnowledgeRetriever
-from moodprint_agent.knowledge.scoring import RawHit, score_hits
-from moodprint_shared.config import KnowledgeConfig
-from moodprint_shared.contracts.knowledge import KnowledgeQuery, RetrievalScope
-from moodprint_shared.knowledge_support import VERSION, assess_support
+from safevoice_agent.knowledge.embedder import VoyageEmbedder
+from safevoice_agent.knowledge.ingest.budget import commit, reserve, snapshot
+from safevoice_agent.knowledge.retriever import PgVectorKnowledgeRetriever
+from safevoice_agent.knowledge.scoring import RawHit, score_hits
+from safevoice_shared.config import KnowledgeConfig
+from safevoice_shared.contracts.knowledge import KnowledgeQuery, RetrievalScope
+from safevoice_shared.knowledge_support import VERSION, assess_support
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine

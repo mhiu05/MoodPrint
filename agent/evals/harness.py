@@ -14,26 +14,26 @@ from uuid import UUID, uuid4
 from agents import SQLiteSession
 from evals.cases_io import Case
 from evals.fakes import CASE_ID, OWNER, EvalDomain, RecordingKnowledge, StoreAdapter
-from moodprint_agent.budget import RunToolBudget
-from moodprint_agent.evidence.image import prepare_image
-from moodprint_agent.evidence.reader import EvidenceReader
-from moodprint_agent.roleplay.feedback import RoleplayCoach
-from moodprint_agent.roleplay.models import RoleplayContext
-from moodprint_agent.roleplay.scenarios import scenario_for
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_agent.tools.context import CompanionToolContext, ToolDeps
-from moodprint_agent.tools.factory import build_registry
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.agent import AgentServices
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.context import (
+from openai import AsyncOpenAI
+from safevoice_agent.budget import RunToolBudget
+from safevoice_agent.evidence.image import prepare_image
+from safevoice_agent.evidence.reader import EvidenceReader
+from safevoice_agent.roleplay.feedback import RoleplayCoach
+from safevoice_agent.roleplay.models import RoleplayContext
+from safevoice_agent.roleplay.scenarios import scenario_for
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_agent.tools.context import CompanionToolContext, ToolDeps
+from safevoice_agent.tools.factory import build_registry
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.agent import AgentServices
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.context import (
     ContextBundle,
     ContextSection,
     Provenance,
 )
-from moodprint_shared.contracts.knowledge import KnowledgeRetriever
-from moodprint_shared.contracts.streaming import StreamEvent
-from openai import AsyncOpenAI
+from safevoice_shared.contracts.knowledge import KnowledgeRetriever
+from safevoice_shared.contracts.streaming import StreamEvent
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 NOW = datetime(2026, 11, 8, tzinfo=UTC)

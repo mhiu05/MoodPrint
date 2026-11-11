@@ -37,7 +37,7 @@ describe("canonical demo state", () => {
       reviewStatus: "confirmed",
       limitations: [],
     });
-    sessionStorage.setItem("moodprint-plan-draft-v1:USER-AN:CASE-AN-001", "{}");
+    sessionStorage.setItem("safevoice-plan-draft-v1:USER-AN:CASE-AN-001", "{}");
     store.deleteCase("CASE-AN-001");
     expect(useDemoStore.getState().chats[0].linkedCaseId).toBeUndefined();
     expect(useDemoStore.getState().analyses[0].caseId).toBeUndefined();
@@ -46,7 +46,7 @@ describe("canonical demo state", () => {
         ?.originalText,
     ).toBe("Mẫu");
     expect(
-      sessionStorage.getItem("moodprint-plan-draft-v1:USER-AN:CASE-AN-001"),
+      sessionStorage.getItem("safevoice-plan-draft-v1:USER-AN:CASE-AN-001"),
     ).toBeNull();
   });
   beforeEach(() => useDemoStore.getState().reset());
@@ -116,20 +116,20 @@ describe("canonical demo state", () => {
   });
   it("reset removes recoverable form drafts as well as canonical data", () => {
     sessionStorage.setItem(
-      "moodprint-case-draft-v1:USER-AN:new",
+      "safevoice-case-draft-v1:USER-AN:new",
       '{"summary":"demo"}',
     );
     sessionStorage.setItem(
-      "moodprint-plan-draft-v1:USER-AN:CASE-AN-001",
+      "safevoice-plan-draft-v1:USER-AN:CASE-AN-001",
       '{"goal":"demo"}',
     );
     sessionStorage.setItem("unrelated-app", "keep");
     useDemoStore.getState().reset();
     expect(
-      sessionStorage.getItem("moodprint-case-draft-v1:USER-AN:new"),
+      sessionStorage.getItem("safevoice-case-draft-v1:USER-AN:new"),
     ).toBeNull();
     expect(
-      sessionStorage.getItem("moodprint-plan-draft-v1:USER-AN:CASE-AN-001"),
+      sessionStorage.getItem("safevoice-plan-draft-v1:USER-AN:CASE-AN-001"),
     ).toBeNull();
     expect(sessionStorage.getItem("unrelated-app")).toBe("keep");
   });

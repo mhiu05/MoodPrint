@@ -11,7 +11,7 @@ import { stopActiveUploads } from "./http/evidence";
 let initialization: Promise<void> | undefined;
 let hydrateTask: { userId: string; promise: Promise<void> } | undefined;
 let authSubscribed = false;
-const lastWorkspace = "moodprint-last-workspace-v1";
+const lastWorkspace = "safevoice-last-workspace-v1";
 const remember = (value: string) => {
   try {
     sessionStorage.setItem(lastWorkspace, value);
@@ -188,8 +188,8 @@ export async function logoutWorkspace() {
 }
 export function clearDemoData() {
   try {
-    localStorage.removeItem("moodprint-demo");
-    localStorage.removeItem("moodprint-school-demo");
+    localStorage.removeItem("safevoice-demo");
+    localStorage.removeItem("safevoice-school-demo");
   } catch {
     throw new Error("Chưa xóa được dữ liệu demo trong trình duyệt này.");
   }

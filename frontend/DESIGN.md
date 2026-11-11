@@ -1,4 +1,4 @@
-# MoodPrint UI
+# SafeVoice UI
 
 Quy ước giao diện hiện có được triển khai trong [global.css](src/styles/global.css) và [refinement.css](src/styles/refinement.css). Phạm vi từng phần được mô tả ở [tính năng](../README.md#tính-năng-chính) và [kiến trúc](../README.md#kiến-trúc-hệ-thống). Student surfaces là Operate; Knowledge là Read; welcome là giới thiệu sản phẩm trong app.
 

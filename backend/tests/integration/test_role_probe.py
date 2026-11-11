@@ -34,7 +34,7 @@ def hosted_values() -> dict[str, str]:
     return {
         "SUPABASE_URL": "https://xhlshihobyxrgfqrdafh.supabase.co",
         "SUPABASE_DB_URL": "postgresql://postgres.xhlshihobyxrgfqrdafh:synthetic-admin@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres",
-        "DATABASE_URL": "postgresql+asyncpg://moodprint_api.xhlshihobyxrgfqrdafh:synthetic-runtime@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres",
+        "DATABASE_URL": "postgresql+asyncpg://safevoice_api.xhlshihobyxrgfqrdafh:synthetic-runtime@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres",
     }
 
 
@@ -49,8 +49,8 @@ def test_missing_runtime_credential_is_rejected_before_http() -> None:
 @pytest.mark.parametrize(
     "runtime",
     [
-        "postgresql+asyncpg://moodprint_api:synthetic-runtime@db.otherproject.supabase.co:5432/postgres",
-        "postgresql+asyncpg://moodprint_api.otherproject:synthetic-runtime@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres",
+        "postgresql+asyncpg://safevoice_api:synthetic-runtime@db.otherproject.supabase.co:5432/postgres",
+        "postgresql+asyncpg://safevoice_api.otherproject:synthetic-runtime@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres",
         "postgresql+asyncpg://postgres.xhlshihobyxrgfqrdafh:synthetic-runtime@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres",
     ],
 )
@@ -66,15 +66,15 @@ def test_foreign_or_privileged_runtime_is_rejected(probe, runtime: str) -> None:
     ("runtime", "mode"),
     [
         (
-            "postgresql+asyncpg://moodprint_api.xhlshihobyxrgfqrdafh:synthetic-runtime@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres",
+            "postgresql+asyncpg://safevoice_api.xhlshihobyxrgfqrdafh:synthetic-runtime@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres",
             "session_pooler",
         ),
         (
-            "postgresql+asyncpg://moodprint_api.xhlshihobyxrgfqrdafh:synthetic-runtime@aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres",
+            "postgresql+asyncpg://safevoice_api.xhlshihobyxrgfqrdafh:synthetic-runtime@aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres",
             "transaction_pooler",
         ),
         (
-            "postgresql+asyncpg://moodprint_api:synthetic-runtime@db.xhlshihobyxrgfqrdafh.supabase.co:5432/postgres",
+            "postgresql+asyncpg://safevoice_api:synthetic-runtime@db.xhlshihobyxrgfqrdafh.supabase.co:5432/postgres",
             "direct",
         ),
     ],

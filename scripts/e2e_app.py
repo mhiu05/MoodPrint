@@ -5,7 +5,7 @@ from dataclasses import replace
 from importlib import import_module
 
 from app.main import create_app as create_foundation_app
-from moodprint_shared.config import AppConfig
+from safevoice_shared.config import AppConfig
 
 
 def optional_module(name: str):
@@ -34,7 +34,7 @@ def create_app():
         async with original(application):
             if application.state.settings.app_env != "test":
                 raise ValueError("Scripted E2E app requires APP_ENV=test")
-            scenarios = optional_module("moodprint_agent.testing.scripted_scenarios")
+            scenarios = optional_module("safevoice_agent.testing.scripted_scenarios")
             if scenarios is not None:
                 application.state.runtime = scenarios.build_e2e_runtime(application.state.cfg)
             # Phase 2 owns this optional factory. Absence is expected before P2.

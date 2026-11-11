@@ -31,7 +31,7 @@ The Gazette landing page for 108/2025 displays a placeholder effective date of 0
 - `kb-legal-bao-tin-xam-hai`: reporting responsibilities, reception/verification and the statutory national-hotline provision. It does not invent a telephone number, filing deadline, local directory or guaranteed outcome.
 - `kb-school-nha-giao-tt03-2026`: teacher listening/support duties, reporting discovered violence/abuse, unlawful disclosure prohibition and the precise TT06 partial-repeal relation.
 
-All three separate statutory summaries from MoodPrint practical suggestions. Each has claim-level `_review` notes recording agent-only checking and PENDING human review. No existing authored card, original ND80 excerpt, source record, benchmark label or historical corpus version was modified. No padding, repeated paragraphs or manufactured source endorsements were added.
+All three separate statutory summaries from SafeVoice practical suggestions. Each has claim-level `_review` notes recording agent-only checking and PENDING human review. No existing authored card, original ND80 excerpt, source record, benchmark label or historical corpus version was modified. No padding, repeated paragraphs or manufactured source endorsements were added.
 
 Old source metadata still describes the earlier audit and is immutable for old citations; these findings are recorded separately, and new admissions use distinct IDs. There are now 15 registry candidates: three `open_reuse`, one `authored`, four `reference_only`, seven `unverified`. Four usable sources still miss the six-source target. The corpus has 57 documents / 80 chunks, far below 350; these targets remain unmet.
 

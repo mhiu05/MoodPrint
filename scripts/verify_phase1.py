@@ -35,8 +35,8 @@ def main() -> int:
         ([sys.executable, "scripts/e2e_stack.py", "--run", "--project", "demo"], ROOT),
         ([sys.executable, "scripts/e2e_stack.py", "--run", "--project", "real"], ROOT),
     ]
-    name = environment["MOODPRINT_STACK_NAME"]
-    offset = environment["MOODPRINT_PORT_OFFSET"]
+    name = environment["SAFEVOICE_STACK_NAME"]
+    offset = environment["SAFEVOICE_PORT_OFFSET"]
     output = ROOT / ".local/verification" / f"{name}-{offset}"
     output.mkdir(parents=True, exist_ok=True)
     receipt = default_environment_file().parent / "phase1-gate.json"

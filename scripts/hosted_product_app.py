@@ -19,10 +19,10 @@ from app.infrastructure.auth_admin import AuthAdmin
 from app.infrastructure.storage_gateway import StorageGateway
 from app.main import create_app as foundation_app
 from app.modules.knowledge.factory import build_knowledge_retriever
-from moodprint_agent.testing.scripted_scenarios import build_e2e_runtime
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.errors import KnowledgeUnavailable
-from moodprint_shared.env import EnvSettings
+from safevoice_agent.testing.scripted_scenarios import build_e2e_runtime
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.errors import KnowledgeUnavailable
+from safevoice_shared.env import EnvSettings
 from sqlalchemy import text
 
 from scripts.hosted_product import (
@@ -108,7 +108,7 @@ def create_app(
     values: dict[str, str] | None = None, manifest_path: Path = MANIFEST, *, allow_incomplete=False
 ):
     if values is None:
-        if os.environ.get("MOODPRINT_HOSTED_PRODUCT") != "1":
+        if os.environ.get("SAFEVOICE_HOSTED_PRODUCT") != "1":
             raise ValueError("Hosted product factory requires the explicit hosted runner")
         values = dict(os.environ)
     validate_target(values)

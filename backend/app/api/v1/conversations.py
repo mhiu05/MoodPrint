@@ -4,12 +4,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Query, Request, Response
 from fastapi.responses import StreamingResponse
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.base import FrozenDTO
-from moodprint_shared.contracts.conversations import ChatMessage, TurnHandle
-from moodprint_shared.contracts.paging import Page
-from moodprint_shared.contracts.streaming import make_event
 from pydantic import Field
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.base import FrozenDTO
+from safevoice_shared.contracts.conversations import ChatMessage, TurnHandle
+from safevoice_shared.contracts.paging import Page
+from safevoice_shared.contracts.streaming import make_event
 
 from app.agent_gateway.sse import RunStream, produce
 from app.core.auth import get_auth

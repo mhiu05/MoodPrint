@@ -6,8 +6,8 @@ from uuid import uuid4
 
 import pytest
 from dotenv import dotenv_values
-from moodprint_agent.memory.session import make_session
-from moodprint_shared.config import AppConfig
+from safevoice_agent.memory.session import make_session
+from safevoice_shared.config import AppConfig
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine

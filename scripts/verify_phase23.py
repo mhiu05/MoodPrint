@@ -76,7 +76,7 @@ def verify(root: Path, name: str, offset: int) -> int:
         output.mkdir(parents=True, exist_ok=True)
         environment_file = local / f"stacks/{name}/test.env"
         base = {k: v for k, v in os.environ.items() if k.upper() in OS_ENVIRONMENT}
-        base.update(APP_ENV="test", MOODPRINT_STACK_NAME=name, MOODPRINT_PORT_OFFSET=str(offset))
+        base.update(APP_ENV="test", SAFEVOICE_STACK_NAME=name, SAFEVOICE_PORT_OFFSET=str(offset))
         history = []
         checks = check_plan(name, offset)
         for index, command in enumerate(checks, 1):

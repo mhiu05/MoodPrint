@@ -7,7 +7,7 @@ country_scope = ["VN"]
 topics = ["school-procedure-vn", "parents-teachers", "legal-vn"]
 age_bands = ["11-13", "14-17"]
 last_reviewed = 2026-11-09
-applicability = "MoodPrint biên soạn dựa trên Thông tư 03/2026/TT-BGDĐT, Điều 5 và 15; đối chiếu ảnh quét bằng mô hình, chưa có người đọc soát độc lập. Không xác định quy trình riêng hoặc chế tài của từng trường."
+applicability = "SafeVoice biên soạn dựa trên Thông tư 03/2026/TT-BGDĐT, Điều 5 và 15; đối chiếu ảnh quét bằng mô hình, chưa có người đọc soát độc lập. Không xác định quy trình riêng hoặc chế tài của từng trường."
 primary_url = "https://xaydungchinhsach.chinhphu.vn/toan-van-thong-tu-03-2026-tt-bgddt-quy-dinh-quy-tac-ung-xu-cua-nha-giao-119260205093856491.htm"
 [[derived_from]]
 source_id = "vn-tt-03-2026-bgddt"
@@ -23,4 +23,4 @@ locator = "Điều 5 khoản 3–4 (PDF trang 3); Điều 15 khoản 1–2 (PDF 
 
 ## Có thể nhờ giáo viên điều gì?
 
-Gợi ý thực hành của MoodPrint: mô tả điều đã xảy ra, cho biết bạn có an toàn lúc này không và nhờ giáo viên cùng xác định bước bảo vệ tiếp theo. Bạn có thể hỏi ai sẽ tiếp nhận thông tin và đề nghị trao đổi kín đáo. Quy tắc trên không hứa giữ kín tuyệt đối, không nêu số ngày giải quyết hay mức kỷ luật; đừng coi thẻ này là quy trình riêng của trường bạn.
+Gợi ý thực hành của SafeVoice: mô tả điều đã xảy ra, cho biết bạn có an toàn lúc này không và nhờ giáo viên cùng xác định bước bảo vệ tiếp theo. Bạn có thể hỏi ai sẽ tiếp nhận thông tin và đề nghị trao đổi kín đáo. Quy tắc trên không hứa giữ kín tuyệt đối, không nêu số ngày giải quyết hay mức kỷ luật; đừng coi thẻ này là quy trình riêng của trường bạn.

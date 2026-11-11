@@ -10,7 +10,7 @@ Chạy từ gốc repo. Mọi lệnh có `--target test-env` chỉ nhận databa
 
 | Thư mục | Nội dung |
 |---|---|
-| `authored/*.md` | Thẻ biên soạn của MoodPrint (`licence_class = authored`). Mỗi thẻ có front matter TOML và các mục `##`. |
+| `authored/*.md` | Thẻ biên soạn của SafeVoice (`licence_class = authored`). Mỗi thẻ có front matter TOML và các mục `##`. |
 | `legal/*.md` | Chữ của văn bản quy phạm pháp luật, chép từ bản chính thức (`open_reuse`). Bản gốc nằm trong `legal/original/`. |
 | `corpus/sources/*.toml` | Sổ đăng ký nguồn và bằng chứng giấy phép. |
 | `corpus/manifest.toml` | **Sinh ra**, không sửa tay: `uv run python agent/ingestion/make_manifest.py`. |
@@ -24,13 +24,13 @@ tổng hợp; vector hashing không thay thế chất lượng semantic embeddin
 
 ```powershell
 uv run python agent/ingestion/make_manifest.py
-uv run python -m moodprint_agent.knowledge.ingest plan --manifest agent/ingestion/corpus/manifest.toml
-uv run python -m moodprint_agent.knowledge.ingest build --manifest agent/ingestion/corpus/manifest.toml --out .local/corpus/build-1
-uv run python -m moodprint_agent.knowledge.ingest embed --build .local/corpus/build-1 --embedder voyage --budget-tokens 60000
-uv run python -m moodprint_agent.knowledge.ingest store --build .local/corpus/build-1 --manifest agent/ingestion/corpus/manifest.toml --target test-env --version kb-YYYYMMDD-NN
-uv run python -m moodprint_agent.knowledge.ingest validate --target test-env --version kb-YYYYMMDD-NN
-uv run python -m moodprint_agent.knowledge.ingest verify-citations --target test-env --version kb-YYYYMMDD-NN --manifest agent/ingestion/corpus/manifest.toml
-uv run python -m moodprint_agent.knowledge.ingest publish --target test-env --version kb-YYYYMMDD-NN
+uv run python -m safevoice_agent.knowledge.ingest plan --manifest agent/ingestion/corpus/manifest.toml
+uv run python -m safevoice_agent.knowledge.ingest build --manifest agent/ingestion/corpus/manifest.toml --out .local/corpus/build-1
+uv run python -m safevoice_agent.knowledge.ingest embed --build .local/corpus/build-1 --embedder voyage --budget-tokens 60000
+uv run python -m safevoice_agent.knowledge.ingest store --build .local/corpus/build-1 --manifest agent/ingestion/corpus/manifest.toml --target test-env --version kb-YYYYMMDD-NN
+uv run python -m safevoice_agent.knowledge.ingest validate --target test-env --version kb-YYYYMMDD-NN
+uv run python -m safevoice_agent.knowledge.ingest verify-citations --target test-env --version kb-YYYYMMDD-NN --manifest agent/ingestion/corpus/manifest.toml
+uv run python -m safevoice_agent.knowledge.ingest publish --target test-env --version kb-YYYYMMDD-NN
 ```
 
 Mỗi phiên bản là bất biến: sửa nội dung thì tạo số phiên bản mới. `rollback --to <version>` chỉ đưa lại một phiên bản đã `retired`.

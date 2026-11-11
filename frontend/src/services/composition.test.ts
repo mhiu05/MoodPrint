@@ -55,7 +55,7 @@ describe("service composition", () => {
     expect(services.chat.simulated).toBe(true);
     expect(services.analysis.simulated).toBe(true);
     expect(requests).toBe(0);
-    expect(localStorage.getItem("moodprint-sim-v1:owner")).toContain(
+    expect(localStorage.getItem("safevoice-sim-v1:owner")).toContain(
       "Synthetic",
     );
   });

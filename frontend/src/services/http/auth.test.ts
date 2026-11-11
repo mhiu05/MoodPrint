@@ -35,7 +35,7 @@ describe("Auth SDK boundary", () => {
     expect(JSON.stringify(useWorkspaceStore.getState())).not.toContain(
       "synthetic-password",
     );
-    expect(localStorage.getItem("moodprint-demo")).not.toContain(
+    expect(localStorage.getItem("safevoice-demo")).not.toContain(
       "synthetic@example.test",
     );
     expect(useWorkspaceStore.getState().user).toBeNull();

@@ -1,6 +1,6 @@
 """Provision credentials for the existing restricted role without disclosing secrets.
 
-Run: uv run --locked --package moodprint-backend python scripts/db/set_api_role_password.py
+Run: uv run --locked --package safevoice-backend python scripts/db/set_api_role_password.py
 An existing real DATABASE_URL is preserved unless --rotate is explicitly requested.
 """
 
@@ -63,7 +63,7 @@ async def provision(*, rotate: bool) -> None:
     if populated and rotate and not is_generated_runtime_url(current):
         raise ValueError("Existing DATABASE_URL is owner supplied; it cannot be overwritten")
     password = secrets.token_urlsafe(32)
-    username = "moodprint_api" + (f".{PROJECT_REF}" if pooler else "")
+    username = "safevoice_api" + (f".{PROJECT_REF}" if pooler else "")
     netloc = f"{username}:{quote(password, safe='')}@{parsed.hostname}:{parsed.port or 5432}"
     generated = urlunsplit(
         ("postgresql+asyncpg", netloc, parsed.path, urlencode({"sslmode": sslmode}), "")
@@ -90,13 +90,13 @@ async def provision(*, rotate: bool) -> None:
                 )
             role = await connection.fetchrow(
                 "select rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls, rolinherit "
-                "from pg_roles where rolname='moodprint_api'"
+                "from pg_roles where rolname='safevoice_api'"
             )
             if role is None or any(role.values()):
-                raise ValueError("Existing moodprint_api role must have restricted privileges")
+                raise ValueError("Existing safevoice_api role must have restricted privileges")
             # token_urlsafe alphabet has no SQL quote; nevertheless use server quote_literal.
             literal = await connection.fetchval("select quote_literal($1::text)", password)
-            await connection.execute(f"alter role moodprint_api login password {literal}")
+            await connection.execute(f"alter role safevoice_api login password {literal}")
             write_generated_database_url(ROOT / ".env", generated, rotate=rotate)
     finally:
         await connection.close()

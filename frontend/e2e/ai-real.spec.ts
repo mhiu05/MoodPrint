@@ -23,7 +23,7 @@ import {
 async function openChat(page: Page, email: string) {
   // The live Companion is opt-in; the harness does not set the build flag, so switch it on here.
   await page.addInitScript(() =>
-    localStorage.setItem("moodprint:ai-companion", "live"),
+    localStorage.setItem("safevoice:ai-companion", "live"),
   );
   await login(page, email);
   await expect(page).toHaveURL(/\/home$/);
@@ -377,7 +377,7 @@ test("E-AG-15: compact thinking state and cancellation remain reachable on mobil
 
 // E-AG-06: evidence analysis through the real stack. Backend, consent gate, Storage, derivatives,
 // idempotency and the browser UI are real; only the model's answer comes from the deterministic
-// HTTP-boundary fake (agent/src/moodprint_agent/testing/fake_provider.py). Nothing here says anything
+// HTTP-boundary fake (agent/src/safevoice_agent/testing/fake_provider.py). Nothing here says anything
 // about how a real model reads a real screenshot.
 test.describe("evidence analysis through the real stack (E-AG-06)", () => {
   const CONSENT_VERSION = "evidence-analysis-2026-11-08";
@@ -386,7 +386,7 @@ test.describe("evidence analysis through the real stack (E-AG-06)", () => {
 
   async function openAnalysis(page: Page, email: string, png: Buffer) {
     await page.addInitScript(() =>
-      localStorage.setItem("moodprint:ai-companion", "live"),
+      localStorage.setItem("safevoice:ai-companion", "live"),
     );
     await login(page, email);
     await expect(page).toHaveURL(/\/home$/);
@@ -686,7 +686,7 @@ test.describe("roleplay through the real stack (E-AG-07)", () => {
 
   async function openRoleplay(page: Page, email: string) {
     await page.addInitScript(() =>
-      localStorage.setItem("moodprint:ai-companion", "live"),
+      localStorage.setItem("safevoice:ai-companion", "live"),
     );
     await login(page, email);
     await expect(page).toHaveURL(/\/home$/);
@@ -902,7 +902,7 @@ test.describe("roleplay through the real stack (E-AG-07)", () => {
 test.describe("cancellation and network recovery (E-AG-08, E-AG-09)", () => {
   async function openChat(page: Page, email: string) {
     await page.addInitScript(() =>
-      localStorage.setItem("moodprint:ai-companion", "live"),
+      localStorage.setItem("safevoice:ai-companion", "live"),
     );
     await login(page, email);
     await expect(page).toHaveURL(/\/home$/);
@@ -1158,7 +1158,7 @@ test.describe("accessibility, viewports and keyboard (E-AG-13)", () => {
     try {
       await createCaseViaApi(user.email);
       await page.addInitScript(() =>
-        localStorage.setItem("moodprint:ai-companion", "live"),
+        localStorage.setItem("safevoice:ai-companion", "live"),
       );
       await page.emulateMedia({ reducedMotion: "reduce" });
       await login(page, user.email);
@@ -1267,7 +1267,7 @@ test.describe("accessibility, viewports and keyboard (E-AG-13)", () => {
     const user = await createUser();
     try {
       await page.addInitScript(() =>
-        localStorage.setItem("moodprint:ai-companion", "live"),
+        localStorage.setItem("safevoice:ai-companion", "live"),
       );
       await page.emulateMedia({ reducedMotion: "reduce" });
       await login(page, user.email);

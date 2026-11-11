@@ -27,7 +27,7 @@ describe("evidence capability lifecycle", () => {
       lastModified: 123,
     });
     sessionStorage.setItem(
-      `moodprint-upload-draft-v1:owner:synthetic.svg:${file.size}:123:`,
+      `safevoice-upload-draft-v1:owner:synthetic.svg:${file.size}:123:`,
       "pending-existing",
     );
     const paths: string[] = [];

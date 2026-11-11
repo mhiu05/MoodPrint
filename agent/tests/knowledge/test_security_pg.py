@@ -9,11 +9,11 @@ import uuid
 from pathlib import Path
 
 import pytest
-from moodprint_agent.knowledge.embedder import HashingEmbedder
-from moodprint_agent.knowledge.ingest.cli import main
-from moodprint_agent.knowledge.retriever import PgVectorKnowledgeRetriever
-from moodprint_shared.config import KnowledgeConfig
-from moodprint_shared.contracts.knowledge import KnowledgeFilters, KnowledgeQuery, RetrievalScope
+from safevoice_agent.knowledge.embedder import HashingEmbedder
+from safevoice_agent.knowledge.ingest.cli import main
+from safevoice_agent.knowledge.retriever import PgVectorKnowledgeRetriever
+from safevoice_shared.config import KnowledgeConfig
+from safevoice_shared.contracts.knowledge import KnowledgeFilters, KnowledgeQuery, RetrievalScope
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from .fuzz_cases import fuzz_corpus

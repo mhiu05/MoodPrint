@@ -1,5 +1,5 @@
-from moodprint_agent.knowledge.query import lexical_tokens, prepare_query, redact_identifiers
-from moodprint_agent.knowledge.textnorm import fold_vietnamese
+from safevoice_agent.knowledge.query import lexical_tokens, prepare_query, redact_identifiers
+from safevoice_agent.knowledge.textnorm import fold_vietnamese
 
 
 def test_fold_matches_the_school_bullying_example() -> None:

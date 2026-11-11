@@ -18,22 +18,22 @@ import tempfile
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from moodprint_agent.knowledge.ingest.build import build_corpus
-from moodprint_agent.knowledge.ingest.commands import (
+from safety import PROJECT_REF, ROOT, check_history, committed_migrations, load_hosted_env
+from safevoice_agent.knowledge.ingest.build import build_corpus
+from safevoice_agent.knowledge.ingest.commands import (
     _allow_hosts,
     _citation_problems,
     _document_row,
     _source_rows,
 )
-from moodprint_agent.knowledge.ingest.embed import load_chunks, read_jsonl, read_vectors
-from moodprint_agent.knowledge.ingest.manifest import load_manifest
-from moodprint_agent.knowledge.ingest.runtime import (
+from safevoice_agent.knowledge.ingest.embed import load_chunks, read_jsonl, read_vectors
+from safevoice_agent.knowledge.ingest.manifest import load_manifest
+from safevoice_agent.knowledge.ingest.runtime import (
     publish_version,
     store_records,
     validate_version,
 )
-from moodprint_agent.knowledge.textnorm import fold_vietnamese
-from safety import PROJECT_REF, ROOT, check_history, committed_migrations, load_hosted_env
+from safevoice_agent.knowledge.textnorm import fold_vietnamese
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -56,7 +56,7 @@ def load_bundle(build: Path, manifest_path: Path) -> dict:
     chunks = load_chunks(build)
     # Rebuild without network: reject modified text, citation metadata and licence
     # declarations even if someone retained the old report/hash in a build folder.
-    with tempfile.TemporaryDirectory(prefix="moodprint-corpus-audit-") as directory:
+    with tempfile.TemporaryDirectory(prefix="safevoice-corpus-audit-") as directory:
         rebuilt = Path(directory)
         build_corpus(manifest_path, rebuilt)
         if _portable(documents) != _portable(read_jsonl(rebuilt / "documents.jsonl")):

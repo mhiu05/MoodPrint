@@ -1,6 +1,6 @@
 ---
 name: browser-qa
-description: Exercises a running local MoodPrint build in a real browser with agent-browser and returns reproducible, evidence-backed QA findings. Read-only for source code; use for user-journey, responsive, loading/empty/error-state and accessibility checks.
+description: Exercises a running local SafeVoice build in a real browser with agent-browser and returns reproducible, evidence-backed QA findings. Read-only for source code; use for user-journey, responsive, loading/empty/error-state and accessibility checks.
 tools: Read, Glob, Grep, Bash
 model: inherit
 maxTurns: 40

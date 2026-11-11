@@ -59,9 +59,9 @@ def validate_target(values: dict[str, str]) -> None:
         )
         pooler = (
             db.hostname == "aws-0-ap-northeast-2.pooler.supabase.com"
-            and db.username == f"moodprint_api.{PROJECT_REF}"
+            and db.username == f"safevoice_api.{PROJECT_REF}"
         )
-        direct = db.hostname == f"db.{PROJECT_REF}.supabase.co" and db.username == "moodprint_api"
+        direct = db.hostname == f"db.{PROJECT_REF}.supabase.co" and db.username == "safevoice_api"
         db_ok = (
             db.scheme == "postgresql+asyncpg"
             and (pooler or direct)
@@ -77,7 +77,7 @@ def validate_target(values: dict[str, str]) -> None:
     if not api_ok:
         raise ValueError("SUPABASE_URL must identify the exact audited hosted project")
     if not db_ok:
-        raise ValueError("DATABASE_URL must use the audited hosted moodprint_api connection")
+        raise ValueError("DATABASE_URL must use the audited hosted safevoice_api connection")
     for name in ("SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SECRET_KEY"):
         if not values.get(name):
             raise ValueError(f"Missing {name}")
@@ -115,11 +115,11 @@ def build_environment(values: dict[str, str], inherited: dict[str, str]) -> dict
             "APIFY_API_TOKEN": "",
             "VOYAGE_API_KEY": values.get("VOYAGE_API_KEY", ""),
             "OPENAI_AGENTS_DISABLE_TRACING": "1",
-            "MOODPRINT_HOSTED_PRODUCT": "1",
+            "SAFEVOICE_HOSTED_PRODUCT": "1",
             "PYTHONUNBUFFERED": "1",
             "PYTHONIOENCODING": "utf-8",
-            "MOODPRINT_STACK_NAME": "hosted-product",
-            "MOODPRINT_PORT_OFFSET": "100",
+            "SAFEVOICE_STACK_NAME": "hosted-product",
+            "SAFEVOICE_PORT_OFFSET": "100",
             "CORS_ALLOWED_ORIGINS": "http://127.0.0.1:5183",
             "VITE_PUBLIC_SUPABASE_URL": values["SUPABASE_URL"],
             "VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY": values["SUPABASE_PUBLISHABLE_KEY"],

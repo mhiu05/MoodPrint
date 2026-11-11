@@ -1,4 +1,4 @@
-﻿# MoodPrint frontend
+﻿# SafeVoice frontend
 
 React, Vite và TypeScript. Frontend hỗ trợ workspace kết nối Supabase Auth/FastAPI và demo độc lập trên trình duyệt. Xem [tổng quan](../README.md#tính-năng-chính), [tính năng hiện có](../README.md#tính-năng-chính) và [kiến trúc](../README.md#kiến-trúc-hệ-thống). Dùng nội dung hư cấu để trải nghiệm và kiểm thử.
 
@@ -19,13 +19,13 @@ Với workspace kết nối, chạy `npm.cmd run dev`. Vite dùng config mặc �
 
 - `services/composition.ts` chọn adapter theo `workspace.kind`. Component gọi port; lỗi HTTP hiện lỗi và cho thử lại.
 - Supabase JavaScript SDK chỉ dùng Auth, với PKCE, khôi phục phiên và tự làm mới token. Dữ liệu hồ sơ, evidence, kế hoạch, người tin cậy, bản nháp hỗ trợ và trạng thái đọc đi qua FastAPI.
-- Store `useWorkspaceStore` là cache trong bộ nhớ khi đăng nhập thật. Alias `useDemoStore` giữ tương thích prototype. Chỉ workspace demo được persist trong `moodprint-demo`; dữ liệu demo không được chuyển lên server.
-- Companion kết nối (chat, phân tích ảnh có consent, roleplay nhiều lượt, memory và approval) gọi qua FastAPI/Agents SDK. Bật bằng `VITE_PUBLIC_AI_COMPANION=live` hoặc đặt `localStorage` key `moodprint:ai-companion` bằng `live` trước khi tải ứng dụng. Mặc định tắt; cần backend, schema, corpus và provider phù hợp. Demo vẫn mô phỏng khi bật công tắc này. Scripted test không kiểm chứng chất lượng mô hình thật.
-- Khi Companion kết nối chưa bật, chat/phân tích/roleplay mô phỏng được ghi nhãn và nằm riêng tại `moodprint-sim-v1:<userId>`. Voice chỉ là demo; ảnh mẫu không thể gắn vào hồ sơ thật. Knowledge Hub có tìm kiếm qua API thật, bên cạnh bài đọc local; schema/corpus hosted thiếu được báo lỗi, không thay bằng kết quả mẫu.
+- Store `useWorkspaceStore` là cache trong bộ nhớ khi đăng nhập thật. Alias `useDemoStore` giữ tương thích prototype. Chỉ workspace demo được persist trong `safevoice-demo`; dữ liệu demo không được chuyển lên server.
+- Companion kết nối (chat, phân tích ảnh có consent, roleplay nhiều lượt, memory và approval) gọi qua FastAPI/Agents SDK. Bật bằng `VITE_PUBLIC_AI_COMPANION=live` hoặc đặt `localStorage` key `safevoice:ai-companion` bằng `live` trước khi tải ứng dụng. Mặc định tắt; cần backend, schema, corpus và provider phù hợp. Demo vẫn mô phỏng khi bật công tắc này. Scripted test không kiểm chứng chất lượng mô hình thật.
+- Khi Companion kết nối chưa bật, chat/phân tích/roleplay mô phỏng được ghi nhãn và nằm riêng tại `safevoice-sim-v1:<userId>`. Voice chỉ là demo; ảnh mẫu không thể gắn vào hồ sơ thật. Knowledge Hub có tìm kiếm qua API thật, bên cạnh bài đọc local; schema/corpus hosted thiếu được báo lỗi, không thay bằng kết quả mẫu.
 - Evidence thật dùng `tus-js-client`, signed upload capability từ backend, chunk 6 MiB theo cấu hình backend, pause/resume và cấp lại token khi cần. Không ghi đè bản gốc. Signed download URL chỉ dùng tạm thời, không ghi vào store.
 - Hết phiên giữ bản nháp biểu mẫu theo user để đăng nhập lại. Đăng xuất chủ động dừng upload, xóa cache và bản nháp/simulation của user đó. Settings của tài khoản thật có thể xóa dữ liệu demo riêng trên trình duyệt.
 - Support UI lưu nháp/prepared, sao chép và tải `.txt`; lưu không gửi tới trường. Adapter có các phương thức chia sẻ qua API nhưng UI chưa nối đầy đủ hành trình gửi. Các mốc báo cáo demo là mô phỏng do người xem bấm thử.
-- `/demo/school` dùng `moodprint-school-demo` độc lập, chỉ có dữ liệu hư cấu; không đọc/sửa hồ sơ học sinh hay gọi API trường. `/support/urgent` luôn công khai và không phụ thuộc backend; nút 111 mở trình gọi khi người dùng bấm.
+- `/demo/school` dùng `safevoice-school-demo` độc lập, chỉ có dữ liệu hư cấu; không đọc/sửa hồ sơ học sinh hay gọi API trường. `/support/urgent` luôn công khai và không phụ thuộc backend; nút 111 mở trình gọi khi người dùng bấm.
 
 ## Kiểm tra
 

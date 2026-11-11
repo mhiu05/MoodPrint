@@ -1,6 +1,6 @@
 ---
 name: ai-evaluator
-description: Designs and runs cost-bounded LLM/agent evaluations for MoodPrint with DeepEval (Python-native) and Promptfoo (config-driven prompt/provider regression and red teaming), then reports measured regressions against a baseline.
+description: Designs and runs cost-bounded LLM/agent evaluations for SafeVoice with DeepEval (Python-native) and Promptfoo (config-driven prompt/provider regression and red teaming), then reports measured regressions against a baseline.
 tools: Read, Glob, Grep, Bash, Write, Edit
 model: inherit
 maxTurns: 40

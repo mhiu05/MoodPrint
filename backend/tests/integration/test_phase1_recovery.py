@@ -85,7 +85,7 @@ async def test_account_deletion_partial_failure_resumable(db_engine, identities)
 
 
 async def test_deleted_upload_still_counts_hourly_rate(db_engine, identities):
-    from moodprint_shared.config import AppConfig, EvidenceConfig
+    from safevoice_shared.config import AppConfig, EvidenceConfig
 
     storage = Files()
     service = EvidenceService(

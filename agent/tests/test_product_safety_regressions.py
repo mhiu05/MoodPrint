@@ -1,7 +1,7 @@
 """Development regressions found during product audit; never an independent safety set."""
 
 import pytest
-from moodprint_agent.tools.safety import assess_urgency
+from safevoice_agent.tools.safety import assess_urgency
 
 
 @pytest.mark.parametrize(

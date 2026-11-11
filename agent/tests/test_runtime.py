@@ -8,15 +8,15 @@ from uuid import uuid4
 from agents import RunContextWrapper, SQLiteSession
 from agents.testing import ModelStep, ScriptedModel, assistant_message, function_call
 from agents.usage import Usage
-from moodprint_agent.budget import RunToolBudget
-from moodprint_agent.companion import PROMPT_VERSION
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_agent.tools.registry import ToolRegistry
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.agent import AgentServices, AgentToolContext, ToolPolicy
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.context import ContextBundle
-from moodprint_shared.contracts.streaming import STREAM_EVENT_ADAPTER
+from safevoice_agent.budget import RunToolBudget
+from safevoice_agent.companion import PROMPT_VERSION
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_agent.tools.registry import ToolRegistry
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.agent import AgentServices, AgentToolContext, ToolPolicy
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.context import ContextBundle
+from safevoice_shared.contracts.streaming import STREAM_EVENT_ADAPTER
 
 
 def context():
@@ -171,7 +171,7 @@ async def test_runtime_caps_budget_to_configured_total_limit() -> None:
 async def test_approved_memory_is_in_instructions_and_never_in_replay_history() -> None:
     from datetime import UTC, datetime
 
-    from moodprint_shared.contracts.context import ContextSection, Provenance
+    from safevoice_shared.contracts.context import ContextSection, Provenance
 
     ctx, session = context(), SQLiteSession("private-memory")
     ctx.context = ContextBundle(

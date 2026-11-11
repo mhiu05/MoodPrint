@@ -95,7 +95,7 @@ async def test_template_placeholder_is_replaced_without_rotation(setup, capsys):
     runtime = dotenv_values(path)["DATABASE_URL"]
     parsed = urlsplit(runtime)
     assert parsed.scheme == "postgresql+asyncpg"
-    assert parsed.username == "moodprint_api.xhlshihobyxrgfqrdafh"
+    assert parsed.username == "safevoice_api.xhlshihobyxrgfqrdafh"
     assert parsed.hostname == "aws-0-ap-northeast-2.pooler.supabase.com"
     assert parsed.port == 5432 and parsed.path == "/postgres"
     assert parsed.password and len(parsed.password) >= 43

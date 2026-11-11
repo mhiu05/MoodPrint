@@ -1,7 +1,7 @@
 from uuid import UUID
 
-from moodprint_shared.contracts.base import AgeBand, FrozenDTO
 from pydantic import Field, field_validator
+from safevoice_shared.contracts.base import AgeBand, FrozenDTO
 
 
 class Profile(FrozenDTO):

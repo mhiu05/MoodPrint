@@ -2,11 +2,11 @@ import hashlib
 
 import httpx
 import pytest
-from moodprint_agent.knowledge.embedder import HashingEmbedder, VoyageEmbedder
-from moodprint_agent.knowledge.scoring import RawHit, score_hits
-from moodprint_shared.config import KnowledgeConfig
-from moodprint_shared.contracts.errors import KnowledgeTimeout, KnowledgeUnavailable
-from moodprint_shared.contracts.knowledge import SourceCitation
+from safevoice_agent.knowledge.embedder import HashingEmbedder, VoyageEmbedder
+from safevoice_agent.knowledge.scoring import RawHit, score_hits
+from safevoice_shared.config import KnowledgeConfig
+from safevoice_shared.contracts.errors import KnowledgeTimeout, KnowledgeUnavailable
+from safevoice_shared.contracts.knowledge import SourceCitation
 
 
 def _citation(document_id: str) -> SourceCitation:
@@ -14,7 +14,7 @@ def _citation(document_id: str) -> SourceCitation:
         source_id="mp-authored",
         document_id=document_id,
         title="Hỗ trợ",
-        publisher="MoodPrint",
+        publisher="SafeVoice",
         url="https://example.edu.vn/ho-tro",
         section=None,
         published_at=None,
@@ -146,9 +146,9 @@ def test_unknown_provider_attempts_are_not_zero_cost() -> None:
     import asyncio
 
     import httpx
-    from moodprint_agent.knowledge.embedder import VoyageEmbedder
-    from moodprint_shared.config import KnowledgeConfig
-    from moodprint_shared.contracts.errors import KnowledgeTimeout
+    from safevoice_agent.knowledge.embedder import VoyageEmbedder
+    from safevoice_shared.config import KnowledgeConfig
+    from safevoice_shared.contracts.errors import KnowledgeTimeout
 
     async def once():
         def timeout(request):
@@ -173,8 +173,8 @@ def test_success_without_usage_is_still_unknown_cost() -> None:
     import asyncio
 
     import httpx
-    from moodprint_agent.knowledge.embedder import VoyageEmbedder
-    from moodprint_shared.config import KnowledgeConfig
+    from safevoice_agent.knowledge.embedder import VoyageEmbedder
+    from safevoice_shared.config import KnowledgeConfig
 
     async def once():
         async with httpx.AsyncClient(

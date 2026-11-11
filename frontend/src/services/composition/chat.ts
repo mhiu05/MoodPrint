@@ -5,12 +5,12 @@ export { simulatedChat as createChatPort } from "../mock/simulation";
 
 /**
  * The real workspace talks to the backend Companion only when it is switched on:
- * `VITE_PUBLIC_AI_COMPANION=live` at build time, or the `moodprint:ai-companion=live` browser
+ * `VITE_PUBLIC_AI_COMPANION=live` at build time, or the `safevoice:ai-companion=live` browser
  * switch (used by the E2E suite). Off by default so a deployment without a configured model never
  * shows a chat that can only fail. When on, a backend without a model answers 503 `not_ready`,
  * shown as an error, never as sample content. The demo always keeps the simulated chat.
  */
-export const COMPANION_SWITCH = "moodprint:ai-companion";
+export const COMPANION_SWITCH = "safevoice:ai-companion";
 function switchedOn(): boolean {
   if (import.meta.env.VITE_PUBLIC_AI_COMPANION === "live") return true;
   try {

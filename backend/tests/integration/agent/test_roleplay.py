@@ -16,12 +16,12 @@ from app.modules.incidents.schemas import CaseCreate
 from app.modules.incidents.service import IncidentService
 from app.modules.roleplay.schemas import RoleplayCreate
 from app.modules.roleplay.service import RoleplayService
-from moodprint_agent.roleplay.models import Rephrasing, RoleplayFeedback
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_agent.tools.factory import build_registry
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.errors import NotFound
-from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
+from safevoice_agent.roleplay.models import Rephrasing, RoleplayFeedback
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_agent.tools.factory import build_registry
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.errors import NotFound
+from safevoice_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 

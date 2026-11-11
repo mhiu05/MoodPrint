@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 from app.modules.knowledge.service import KnowledgeService
-from moodprint_shared.config import AppConfig
+from safevoice_shared.config import AppConfig
 
 
 @pytest.mark.parametrize(

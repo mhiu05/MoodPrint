@@ -7,8 +7,8 @@ from app.core.errors import ApiError
 from app.modules.incidents.schemas import CaseCreate, CasePatch
 from app.modules.incidents.service import IncidentService
 from app.modules.plans.service import ActionPlanService
-from moodprint_shared.contracts.incidents import CaseQuery, EventCreate
-from moodprint_shared.contracts.plans import PlanItem, PlanUpsert
+from safevoice_shared.contracts.incidents import CaseQuery, EventCreate
+from safevoice_shared.contracts.plans import PlanItem, PlanUpsert
 
 pytestmark = pytest.mark.integration
 

@@ -72,7 +72,7 @@ export function CaseList() {
         : b.updatedAt.localeCompare(a.updatedAt),
     );
   const recoverableDrafts = (() => {
-    const prefix = `moodprint-case-draft-v1:${user?.id}:`;
+    const prefix = `safevoice-case-draft-v1:${user?.id}:`;
     const drafts: { identity: string; title: string }[] = [];
     try {
       for (let index = 0; index < sessionStorage.length; index++) {
@@ -905,7 +905,7 @@ export function CaseDetail() {
               onClick={() =>
                 downloadText(
                   summary,
-                  `moodprint-${item.id}${real ? "" : "-demo"}.txt`,
+                  `safevoice-${item.id}${real ? "" : "-demo"}.txt`,
                 )
               }
             >

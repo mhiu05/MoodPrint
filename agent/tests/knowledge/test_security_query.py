@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import re
 
-from moodprint_agent.knowledge.lexical import chunk_terms, content_bigrams, query_terms
-from moodprint_agent.knowledge.query import prepare_query, redact_identifiers
-from moodprint_agent.knowledge.restore import Restorer
+from safevoice_agent.knowledge.lexical import chunk_terms, content_bigrams, query_terms
+from safevoice_agent.knowledge.query import prepare_query, redact_identifiers
+from safevoice_agent.knowledge.restore import Restorer
 
 from .fuzz_cases import fuzz_corpus
 

@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "agent"))
 
 from evals.budget import decode_body  # noqa: E402
-from moodprint_agent.knowledge.ingest.budget import commit, release, reserve  # noqa: E402
+from safevoice_agent.knowledge.ingest.budget import commit, release, reserve  # noqa: E402
 
 
 class VoyageTransport(httpx.AsyncBaseTransport):

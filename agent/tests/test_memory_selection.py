@@ -4,16 +4,16 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
-from moodprint_agent.memory.compaction import (
+from safevoice_agent.memory.compaction import (
     estimate_items_tokens,
     token_compaction_policy,
 )
-from moodprint_agent.memory.context_builder import DomainSummary, MemoryContextBuilder
-from moodprint_agent.memory.selection import infer_categories, memory_query
-from moodprint_shared.config import AgentConfig, AppConfig, MemoryConfig
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.context import ContextRequest
-from moodprint_shared.contracts.memory import Memory, MemoryHit, MemoryQuery
+from safevoice_agent.memory.context_builder import DomainSummary, MemoryContextBuilder
+from safevoice_agent.memory.selection import infer_categories, memory_query
+from safevoice_shared.config import AgentConfig, AppConfig, MemoryConfig
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.context import ContextRequest
+from safevoice_shared.contracts.memory import Memory, MemoryHit, MemoryQuery
 
 NOW = datetime(2026, 11, 8, tzinfo=UTC)
 USER = UUID("10000000-0000-0000-0000-000000000002")

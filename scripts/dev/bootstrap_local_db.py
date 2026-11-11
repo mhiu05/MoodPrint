@@ -34,14 +34,14 @@ async def bootstrap(workdir: Path, output: Path) -> None:
     connection = await asyncpg.connect(admin_url)
     try:
         literal = await connection.fetchval("select quote_literal($1::text)", password)
-        await connection.execute(f"alter role moodprint_api login password {literal}")
+        await connection.execute(f"alter role safevoice_api login password {literal}")
     finally:
         await connection.close()
     host = f"[{parsed.hostname}]" if parsed.hostname == "::1" else parsed.hostname
     api_db = urlunsplit(
         (
             "postgresql+asyncpg",
-            f"moodprint_api:{quote(password, safe='')}@{host}:{parsed.port or 5432}",
+            f"safevoice_api:{quote(password, safe='')}@{host}:{parsed.port or 5432}",
             parsed.path,
             "",
             "",
@@ -64,14 +64,14 @@ async def bootstrap(workdir: Path, output: Path) -> None:
         "".join(f'{key}="{value}"\n' for key, value in values.items()),
         encoding="utf-8",
     )
-    print("Local moodprint_api login ready; test environment saved without displaying credentials.")
+    print("Local safevoice_api login ready; test environment saved without displaying credentials.")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--name", default=os.environ.get("MOODPRINT_STACK_NAME", "foundation"))
+    parser.add_argument("--name", default=os.environ.get("SAFEVOICE_STACK_NAME", "foundation"))
     parser.add_argument(
-        "--offset", type=int, default=int(os.environ.get("MOODPRINT_PORT_OFFSET", "0"))
+        "--offset", type=int, default=int(os.environ.get("SAFEVOICE_PORT_OFFSET", "0"))
     )
     parser.add_argument("--workdir", type=Path)
     parser.add_argument("--output", type=Path)

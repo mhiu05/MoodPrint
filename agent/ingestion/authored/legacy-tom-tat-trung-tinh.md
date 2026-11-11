@@ -7,15 +7,15 @@ country_scope = ["VN"]
 topics = ["help-seeking"]
 age_bands = ["11-13", "14-17"]
 last_reviewed = 2026-11-09
-applicability = "Tóm tắt biên soạn của MoodPrint cho học sinh tại Việt Nam; không thay thế tư vấn pháp lý."
+applicability = "Tóm tắt biên soạn của SafeVoice cho học sinh tại Việt Nam; không thay thế tư vấn pháp lý."
 legacy_article_id = "KB-19"
 [[derived_from]]
 source_id = "mp-authored"
-locator = "Bài tĩnh trong frontend/src/mocks/data/knowledge.ts (id KB-19); biên soạn nguyên bản bởi MoodPrint, chưa thẩm định bởi chuyên gia bên ngoài."
+locator = "Bài tĩnh trong frontend/src/mocks/data/knowledge.ts (id KB-19); biên soạn nguyên bản bởi SafeVoice, chưa thẩm định bởi chuyên gia bên ngoài."
 +++
 ## Điều cần biết
 
-Ghi ngày, giờ và mô tả sự việc giúp người đọc theo dõi diễn biến. Mẫu trình bày sau là gợi ý biên tập của MoodPrint, không xác minh hay kết luận trách nhiệm.
+Ghi ngày, giờ và mô tả sự việc giúp người đọc theo dõi diễn biến. Mẫu trình bày sau là gợi ý biên tập của SafeVoice, không xác minh hay kết luận trách nhiệm.
 
 ## Một bước bạn có thể thử
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from moodprint_agent.knowledge.restore import Restorer
+from safevoice_agent.knowledge.restore import Restorer
 
 CORPUS = [
     "Bị bạn nhắn tin đe dọa thì hãy chụp màn hình rồi mới chặn người gửi.",

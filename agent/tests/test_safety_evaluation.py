@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from moodprint_agent.tools.safety import UrgencyAssessment
+from safevoice_agent.tools.safety import UrgencyAssessment
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from evals import safety_eval

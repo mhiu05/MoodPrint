@@ -396,7 +396,7 @@ export function LiveChatPage({ service }: { service: LiveCompanion }) {
             key={id}
             service={service}
             conversationId={id}
-            heading="MoodPrint"
+            heading="SafeVoice"
             navigation={
               <Link
                 className="button ghost icon-button"

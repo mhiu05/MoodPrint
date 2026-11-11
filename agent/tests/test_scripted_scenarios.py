@@ -5,14 +5,14 @@ from typing import cast
 from uuid import uuid4
 
 from agents import SQLiteSession
-from moodprint_agent.budget import RunToolBudget
-from moodprint_agent.testing.scripted_scenarios import build_e2e_runtime
-from moodprint_agent.tools.context import CompanionToolContext
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.agent import AgentServices
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.context import ContextBundle
-from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
+from safevoice_agent.budget import RunToolBudget
+from safevoice_agent.testing.scripted_scenarios import build_e2e_runtime
+from safevoice_agent.tools.context import CompanionToolContext
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.agent import AgentServices
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.context import ContextBundle
+from safevoice_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 
 
 def ctx() -> CompanionToolContext:

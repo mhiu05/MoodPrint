@@ -79,7 +79,7 @@ export const supportSources = [
     description:
       "Kênh chính thức tiếp nhận thông tin và hỗ trợ bảo vệ trẻ em. Bạn chủ động chọn mở cuộc gọi trên thiết bị.",
     preparation:
-      "Nếu có thể, chuẩn bị điều đang xảy ra và nơi bạn đang ở. Không cần hoàn thành hồ sơ MoodPrint trước.",
+      "Nếu có thể, chuẩn bị điều đang xảy ra và nơi bạn đang ở. Không cần hoàn thành hồ sơ SafeVoice trước.",
     recipient: "Tổng đài 111",
     icon: "phone",
   },
@@ -88,7 +88,7 @@ export const supportSources = [
     title: "Báo nội dung trên nền tảng",
     tag: "Tự thực hiện ngoài ứng dụng",
     description:
-      "Dùng chức năng báo cáo, chặn và cài đặt riêng tư của nền tảng. MoodPrint không đăng nhập hay thao tác thay bạn.",
+      "Dùng chức năng báo cáo, chặn và cài đặt riêng tư của nền tảng. SafeVoice không đăng nhập hay thao tác thay bạn.",
     preparation:
       "Xem hướng dẫn lưu ngữ cảnh và kiểm tra trung tâm trợ giúp chính thức của nền tảng.",
     recipient: "Nền tảng",

@@ -18,19 +18,19 @@ from uuid import uuid4
 import pytest
 from _live import SCOPE, live_cfg, metered_client, open_ledger
 from evals.budget import BudgetError, BudgetLedger
-from moodprint_agent.budget import RunToolBudget
-from moodprint_agent.evidence.image import prepare_image
-from moodprint_agent.evidence.reader import EvidenceReader
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_agent.tools.context import CompanionToolContext
-from moodprint_agent.tools.factory import build_registry
-from moodprint_agent.tools.registry import diagnostic_registry
-from moodprint_shared.config import OPENAI_MODEL, AppConfig
-from moodprint_shared.contracts.agent import AgentServices
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.context import ContextBundle
-from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 from openai import AsyncOpenAI
+from safevoice_agent.budget import RunToolBudget
+from safevoice_agent.evidence.image import prepare_image
+from safevoice_agent.evidence.reader import EvidenceReader
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_agent.tools.context import CompanionToolContext
+from safevoice_agent.tools.factory import build_registry
+from safevoice_agent.tools.registry import diagnostic_registry
+from safevoice_shared.config import OPENAI_MODEL, AppConfig
+from safevoice_shared.contracts.agent import AgentServices
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.context import ContextBundle
+from safevoice_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 
 pytestmark = pytest.mark.live_agent
 
@@ -182,7 +182,7 @@ def test_l_ag_05_approval_resumes_in_a_new_process_with_the_real_model(
     ledger, tmp_path: Path, record_property
 ):
     worker = Path(__file__).with_name("_live_approval_process.py")
-    env_names = ("PATH", "SYSTEMROOT", "TEMP", "TMP", "MOODPRINT_EVAL_BUDGET", "OPENAI_API_KEY")
+    env_names = ("PATH", "SYSTEMROOT", "TEMP", "TMP", "SAFEVOICE_EVAL_BUDGET", "OPENAI_API_KEY")
     import os
 
     env = {name: os.environ[name] for name in env_names if name in os.environ}

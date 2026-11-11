@@ -1,4 +1,4 @@
-# Bộ công cụ Codex của MoodPrint
+# Bộ công cụ Codex của SafeVoice
 
 Các skill có thể chia sẻ nằm trong `.agents/skills/`. Codex tải từng skill khi nội dung công việc phù hợp. Danh sách nguồn, phiên bản, plugin, MCP và kết quả kiểm chứng nằm tại [INSTALLATION_MANIFEST.md](INSTALLATION_MANIFEST.md).
 

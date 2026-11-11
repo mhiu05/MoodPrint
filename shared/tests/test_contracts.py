@@ -9,7 +9,7 @@ ID = UUID("11111111-1111-4111-8111-111111111111")
 
 
 def test_auth_repr_does_not_contain_claims():
-    from moodprint_shared.contracts.auth import AuthContext
+    from safevoice_shared.contracts.auth import AuthContext
 
     auth = AuthContext(ID, None, None, '{"private":"claims-sentinel"}')
     assert "claims-sentinel" not in repr(auth)
@@ -18,7 +18,7 @@ def test_auth_repr_does_not_contain_claims():
 
 
 def test_dtos_are_frozen_and_use_camel_case():
-    from moodprint_shared.contracts.knowledge import KnowledgeQuery
+    from safevoice_shared.contracts.knowledge import KnowledgeQuery
 
     query = KnowledgeQuery(text="tổng hợp", topK=2)
     with pytest.raises(ValidationError):
@@ -29,21 +29,21 @@ def test_dtos_are_frozen_and_use_camel_case():
 
 
 def test_knowledge_scope_forbids_user_identity():
-    from moodprint_shared.contracts.knowledge import RetrievalScope
+    from safevoice_shared.contracts.knowledge import RetrievalScope
 
     with pytest.raises(ValidationError):
         RetrievalScope(request_id="r", user_id=ID)
 
 
 def test_memory_content_limit():
-    from moodprint_shared.contracts.memory import MemoryCreate
+    from safevoice_shared.contracts.memory import MemoryCreate
 
     with pytest.raises(ValidationError):
         MemoryCreate(category="preference", content="x" * 501)
 
 
 def test_timeline_unknown_never_accepts_invented_date():
-    from moodprint_shared.contracts.incidents import EventCreate
+    from safevoice_shared.contracts.incidents import EventCreate
 
     with pytest.raises(ValidationError):
         EventCreate(id=ID, when="2026-01-01", time_precision="unknown", description="synthetic")
@@ -84,7 +84,7 @@ def test_timeline_unknown_never_accepts_invented_date():
     ],
 )
 def test_event_round_trip_json(event, data):
-    from moodprint_shared.contracts.streaming import STREAM_EVENT_ADAPTER
+    from safevoice_shared.contracts.streaming import STREAM_EVENT_ADAPTER
 
     payload = {"event": event, "v": 1, "seq": 1, "runId": str(ID), "data": data}
     value = STREAM_EVENT_ADAPTER.validate_python(payload)
@@ -94,7 +94,7 @@ def test_event_round_trip_json(event, data):
 
 
 def test_tool_event_rejects_arguments():
-    from moodprint_shared.contracts.streaming import STREAM_EVENT_ADAPTER
+    from safevoice_shared.contracts.streaming import STREAM_EVENT_ADAPTER
 
     with pytest.raises(ValidationError):
         STREAM_EVENT_ADAPTER.validate_python(
@@ -109,7 +109,7 @@ def test_tool_event_rejects_arguments():
 
 
 def test_error_contract_exposes_safe_http_metadata():
-    from moodprint_shared.contracts.errors import NotFound, VersionConflict
+    from safevoice_shared.contracts.errors import NotFound, VersionConflict
 
     assert NotFound().status_code == 404
     conflict = VersionConflict(details={"latest": {"version": 2}})
@@ -118,17 +118,17 @@ def test_error_contract_exposes_safe_http_metadata():
 
 
 def test_all_service_modules_import():
-    from moodprint_shared.contracts.agent import (
+    from safevoice_shared.contracts.agent import (
         AgentServices,
         AgentToolContext,
         CompanionTurn,
         ToolPolicy,
     )
-    from moodprint_shared.contracts.context import ContextBuilder, ContextBundle
-    from moodprint_shared.contracts.conversations import AgentSession, ConversationService
-    from moodprint_shared.contracts.evidence import EvidenceService
-    from moodprint_shared.contracts.incidents import IncidentService
-    from moodprint_shared.contracts.plans import ActionPlanService
+    from safevoice_shared.contracts.context import ContextBuilder, ContextBundle
+    from safevoice_shared.contracts.conversations import AgentSession, ConversationService
+    from safevoice_shared.contracts.evidence import EvidenceService
+    from safevoice_shared.contracts.incidents import IncidentService
+    from safevoice_shared.contracts.plans import ActionPlanService
 
     assert all(
         (

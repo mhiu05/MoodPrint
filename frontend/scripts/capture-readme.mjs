@@ -103,7 +103,7 @@ try {
   await page.setViewportSize({ width: 1280, height: 620 });
   await page.goto(`${origin}/ai/chat/${account.conversationId}`);
   await expect(
-    page.getByRole("heading", { name: "MoodPrint", exact: true }),
+    page.getByRole("heading", { name: "SafeVoice", exact: true }),
   ).toBeVisible();
   await expect(page.getByText(/Bạn muốn kể điều gì/)).toBeVisible();
   const input = page.getByRole("textbox", { name: "Điều bạn muốn kể" });
@@ -111,7 +111,7 @@ try {
   await input.fill(
     "Mình muốn chuẩn bị cách nói chuyện với cô.\nMình đã ghi lại sự việc và muốn chọn một bước nhỏ để bắt đầu.",
   );
-  await page.getByRole("heading", { name: "MoodPrint", exact: true }).click();
+  await page.getByRole("heading", { name: "SafeVoice", exact: true }).click();
   await page.screenshot({
     path: path.join(output, "chat-desktop.png"),
     animations: "disabled",

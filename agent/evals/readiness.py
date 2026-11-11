@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from evals.cases_io import Case, load_cases
 from evals.provenance import build_manifest, compare, file_hash, reconcile
 from evals.s06_mechanisms import build_plan, compare_mechanisms
-from moodprint_shared.config import AppConfig
+from safevoice_shared.config import AppConfig
 
 RESULTS = Path(__file__).resolve().parent / "results"
 

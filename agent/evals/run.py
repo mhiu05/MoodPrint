@@ -28,9 +28,9 @@ from evals import assertions, safety_eval  # noqa: E402
 from evals.budget import EXIT_BUDGET, BudgetError  # noqa: E402
 from evals.cases_io import CASE_DIR, Case, load_cases  # noqa: E402
 from evals.provenance import build_manifest, digest  # noqa: E402
-from moodprint_agent.companion import PROMPT_VERSION  # noqa: E402
-from moodprint_agent.tools.factory import build_registry  # noqa: E402
-from moodprint_shared.config import OPENAI_MODEL, AppConfig  # noqa: E402
+from safevoice_agent.companion import PROMPT_VERSION  # noqa: E402
+from safevoice_agent.tools.factory import build_registry  # noqa: E402
+from safevoice_shared.config import OPENAI_MODEL, AppConfig  # noqa: E402
 
 RESULTS = Path(__file__).resolve().parent / "results"
 
@@ -167,8 +167,8 @@ async def live(args: argparse.Namespace) -> int:
             "real retriever requires an explicit async-context-manager factory; no fixture fallback"
         )
     if args.ledger:
-        os.environ["MOODPRINT_EVAL_LEDGER"] = str(Path(args.ledger))
-    os.environ["MOODPRINT_EVAL_BUDGET"] = str(Path(args.budget))
+        os.environ["SAFEVOICE_EVAL_LEDGER"] = str(Path(args.ledger))
+    os.environ["SAFEVOICE_EVAL_BUDGET"] = str(Path(args.budget))
     try:
         ledger = open_ledger(EVAL_SCOPE)
     except BudgetError as error:
@@ -200,7 +200,7 @@ async def live(args: argparse.Namespace) -> int:
             raise ValueError("retriever factory must be module:factory")
         factory = getattr(importlib.import_module(module), name)
         knowledge = await stack.enter_async_context(factory(cfg, args.corpus_version))
-        from moodprint_agent.knowledge.retriever import PgVectorKnowledgeRetriever
+        from safevoice_agent.knowledge.retriever import PgVectorKnowledgeRetriever
 
         if not isinstance(knowledge, PgVectorKnowledgeRetriever):
             raise ValueError(

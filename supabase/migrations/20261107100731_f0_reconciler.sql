@@ -26,7 +26,7 @@ begin
   return affected;
 end $$;
 revoke all on function app_private.reconcile_stale_runs(interval) from public,anon,authenticated,service_role;
-grant execute on function app_private.reconcile_stale_runs(interval) to moodprint_api;
+grant execute on function app_private.reconcile_stale_runs(interval) to safevoice_api;
 
 -- Evidence is a Phase 1 table. Its purge functions belong in f1_evidence,
 -- alongside the table and immutable-column trigger, rather than placeholder RPCs.

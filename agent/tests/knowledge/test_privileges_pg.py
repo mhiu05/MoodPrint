@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-from moodprint_agent.knowledge.ingest.runtime import engine_for
+from safevoice_agent.knowledge.ingest.runtime import engine_for
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -65,7 +65,7 @@ def test_admin_ingestion_can_maintain_private_notes_without_runtime_grants() -> 
                         text(
                             "insert into knowledge.sources (source_id, kind, publisher, title, "
                             "language, country_scope, authority_tier, licence_class, verified_on) "
-                            "values ('mp-admin-privilege', 'authored', 'MoodPrint', 'Privilege test', "
+                            "values ('mp-admin-privilege', 'authored', 'SafeVoice', 'Privilege test', "
                             "'vi', array['VN'], 4, 'authored', '2026-11-09')"
                         )
                     )

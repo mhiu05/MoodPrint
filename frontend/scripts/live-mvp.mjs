@@ -75,7 +75,7 @@ const context = await browser.newContext({
   reducedMotion: "reduce",
 });
 await context.addInitScript(() =>
-  localStorage.setItem("moodprint:ai-companion", "live"),
+  localStorage.setItem("safevoice:ai-companion", "live"),
 );
 await context.route("**/*", async (route) => {
   const url = new URL(route.request().url());

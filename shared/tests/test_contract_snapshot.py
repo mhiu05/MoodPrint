@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 def test_contract_snapshot():
-    from moodprint_shared.testing.schemas import contract_schemas
+    from safevoice_shared.testing.schemas import contract_schemas
 
     directory = Path(__file__).resolve().parents[1] / "contract-schemas"
     expected = contract_schemas()

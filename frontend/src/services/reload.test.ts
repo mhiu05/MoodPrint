@@ -10,7 +10,7 @@ it("restores a demo login and edits after a fresh document initializes", async (
   first.useWorkspaceStore
     .getState()
     .putCase({ ...item, title: "Synthetic reload edit" });
-  const saved = localStorage.getItem("moodprint-demo");
+  const saved = localStorage.getItem("safevoice-demo");
   vi.resetModules();
   const workspace = await import("./workspace");
   const second = await import("../app/store");
@@ -20,5 +20,5 @@ it("restores a demo login and edits after a fresh document initializes", async (
   expect(second.useWorkspaceStore.getState().cases[0].title).toBe(
     "Synthetic reload edit",
   );
-  expect(localStorage.getItem("moodprint-demo")).toBe(saved);
+  expect(localStorage.getItem("safevoice-demo")).toBe(saved);
 });

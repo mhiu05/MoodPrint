@@ -14,7 +14,7 @@ def values():
         "SUPABASE_URL": "https://xhlshihobyxrgfqrdafh.supabase.co",
         "SUPABASE_PUBLISHABLE_KEY": "synthetic-public",
         "SUPABASE_SECRET_KEY": "synthetic-secret",
-        "DATABASE_URL": "postgresql+asyncpg://moodprint_api.xhlshihobyxrgfqrdafh:synthetic@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres?sslmode=require",
+        "DATABASE_URL": "postgresql+asyncpg://safevoice_api.xhlshihobyxrgfqrdafh:synthetic@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres?sslmode=require",
         "OPENAI_API_KEY": "must-not-use",
         "VOYAGE_API_KEY": "synthetic-voyage",
     }
@@ -27,10 +27,10 @@ def values():
         ("SUPABASE_URL", "https://old-project.supabase.co"),
         ("SUPABASE_URL", "https://xhlshihobyxrgfqrdafh.supabase.co@evil.invalid"),
         ("SUPABASE_URL", "https://xhlshihobyxrgfqrdafh.supabase.co?secret=redacted"),
-        ("DATABASE_URL", "postgresql+asyncpg://moodprint_api:synthetic@127.0.0.1:54322/postgres"),
+        ("DATABASE_URL", "postgresql+asyncpg://safevoice_api:synthetic@127.0.0.1:54322/postgres"),
         (
             "DATABASE_URL",
-            "postgresql+asyncpg://moodprint_api.old-project:synthetic@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres",
+            "postgresql+asyncpg://safevoice_api.old-project:synthetic@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres",
         ),
         (
             "DATABASE_URL",
@@ -38,7 +38,7 @@ def values():
         ),
         (
             "DATABASE_URL",
-            "postgresql+asyncpg://moodprint_api.xhlshihobyxrgfqrdafh:synthetic@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres?host=evil.invalid",
+            "postgresql+asyncpg://safevoice_api.xhlshihobyxrgfqrdafh:synthetic@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres?host=evil.invalid",
         ),
     ],
 )
@@ -164,7 +164,7 @@ async def test_hosted_lifespan_does_not_enter_production_jobs_or_paid_model(tmp_
 async def test_hosted_verifier_rejects_valid_but_unrecorded_user(monkeypatch):
     from app.core.auth import JwtVerifier
     from app.core.errors import ApiError
-    from moodprint_shared.contracts.auth import AuthContext
+    from safevoice_shared.contracts.auth import AuthContext
 
     from scripts.hosted_product_app import SyntheticVerifier
 
@@ -189,7 +189,7 @@ async def test_hosted_verifier_rejects_valid_but_unrecorded_user(monkeypatch):
     ],
 )
 async def test_retrieval_guard_never_invokes_configured_paid_adapter(exists, reason):
-    from moodprint_shared.contracts.errors import KnowledgeUnavailable
+    from safevoice_shared.contracts.errors import KnowledgeUnavailable
 
     from scripts.hosted_product_app import BlockPaidRetrieval
 

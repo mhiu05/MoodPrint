@@ -1,4 +1,4 @@
-# MoodPrint backend
+# SafeVoice backend
 
 Backend dùng FastAPI và import trực tiếp package Agent trong cùng tiến trình. Các hợp đồng dữ liệu dùng chung nằm trong `shared/`; schema PostgreSQL, role, quyền truy cập và RLS được quản lý bằng [migration Supabase](../supabase/migrations/).
 
@@ -12,7 +12,7 @@ uv run python scripts/check.py
 uv run python -m pytest -m integration
 ```
 
-Bootstrap sinh mật khẩu cho role `moodprint_api` và tạo `.local/test.env` dành riêng cho test. Script chỉ chấp nhận Supabase local, không đọc hay ghi đè `.env` gốc. Chạy lại bootstrap sau mỗi lần reset database. Backend từ chối kết nối runtime bằng role `postgres`.
+Bootstrap sinh mật khẩu cho role `safevoice_api` và tạo `.local/test.env` dành riêng cho test. Script chỉ chấp nhận Supabase local, không đọc hay ghi đè `.env` gốc. Chạy lại bootstrap sau mỗi lần reset database. Backend từ chối kết nối runtime bằng role `postgres`.
 
 Gate ownership đọc policy từ baseline Git tin cậy; bản policy trong repo nằm tại [scripts/ownership.json](../scripts/ownership.json). Kiểm tra phạm vi migration dùng [schema manifest](../scripts/dev/schema-manifest.json). Xem [quy trình kiểm thử](../README.md#kiểm-thử). Muốn chạy UI/API với Supabase local và model scripted không cần provider, dùng `uv run python scripts/e2e_stack.py --project real --agent scripted` sau bootstrap.
 

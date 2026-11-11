@@ -8,7 +8,7 @@ import { expect } from "./fixtures";
 
 export const companionLive = false;
 
-// ---- deterministic model stand-in (agent/src/moodprint_agent/testing/fake_provider.py) -------------
+// ---- deterministic model stand-in (agent/src/safevoice_agent/testing/fake_provider.py) -------------
 // Top-left pixel colour of an uploaded image selects the fake provider's behaviour.
 export const COLORS = {
   ok: [30, 160, 90],
@@ -66,8 +66,8 @@ export const sha256 = (data: Buffer) =>
   createHash("sha256").update(data).digest("hex");
 
 const logPath =
-  process.env.MOODPRINT_E2E_MODEL_LOG ??
-  path.join(tmpdir(), "moodprint-e2e-model.log");
+  process.env.SAFEVOICE_E2E_MODEL_LOG ??
+  path.join(tmpdir(), "safevoice-e2e-model.log");
 /** Lines the fake provider has logged so far: "<kind> <sha16> <mode>". */
 export function modelLog(): string[] {
   return existsSync(logPath)

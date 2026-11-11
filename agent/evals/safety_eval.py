@@ -10,7 +10,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from moodprint_agent.tools.safety import assess_conversation
+from safevoice_agent.tools.safety import assess_conversation
 
 CASE_DIR = Path(__file__).resolve().parent / "cases"
 LEVELS = ("none", "elevated", "immediate")

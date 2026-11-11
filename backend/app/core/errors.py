@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from moodprint_shared.contracts.errors import DomainError
+from safevoice_shared.contracts.errors import DomainError
 from starlette.exceptions import HTTPException
 
 

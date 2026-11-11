@@ -1,1 +1,1 @@
-"""MoodPrint modular monolith API."""
+"""SafeVoice modular monolith API."""

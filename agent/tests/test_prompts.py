@@ -4,7 +4,7 @@ import hashlib
 import re
 
 import pytest
-from moodprint_agent.companion import (
+from safevoice_agent.companion import (
     EVIDENCE_READER_VERSION,
     PROMPT_VERSION,
     ROLEPLAY_COACH_VERSION,
@@ -13,17 +13,19 @@ from moodprint_agent.companion import (
 )
 
 PINNED_SHA256 = {
-    "companion_v5": "7743e966d04127a8a98beca77b543a0929019d544db43e065262731e3921150d",
+    "companion_v5": "b12cf26eb903dd793606424dbbfbf2a4ab5426a9fe12827680207206ee627556",
     "roleplay_partner_v2": "9011d918e58f12088b864b845fe382f29882cc134bba65fb67fb22cc41a55307",
-    "roleplay_coach_v1": "671dcf3ab3a3eccd28cec2a5c97dc194b5abed750feec7890dcc6d5da248d2bd",
+    "roleplay_coach_v1": "c6de95ced66eb8db6b0b8bfc6dcc3971257d139742a633834fec102104f7fc75",
     "evidence_reader_v1": "f99c4c151002c649f5628a12ae7094ed92fe42098f76114b07b25da5f8593b0c",
 }
 
 
+# SafeVoice updates the brand in existing prompt files without changing their rules.
+# These pins cover the renamed text; archived eval hashes retain their original provenance.
 # Earlier versions stay in the repo and stay pinned: the live results in agent/evals/results name them.
 HISTORICAL_SHA256 = {
-    "companion_v4": "7777b4f52febb823465475f532b315f1fa92ebeab1b031587089eff1ab1017f9",
-    "companion_v3": "24d3bb9f4faa0f5f0ab0b61cb18e7cc7fdcf6283bca7046a72d311ee977d633b",
+    "companion_v4": "956371cbca236c9eee2738c29cd34b33a5554f6da8d418f17bbcd7a777fb0249",
+    "companion_v3": "fa1b8ae8298e390920c67afb6c820f8834dc471ee86525c368906d9b682a79b8",
     "roleplay_partner_v1": "a23922050aef6ed49056f40cdf5dbe573a9eb289e744b594cccf15c5df3cc778",
 }
 # Used only by the opt-in model-assisted urgency assessor, not by the Companion version constant.

@@ -92,7 +92,7 @@ describe("case wizard recovery", () => {
         ?.linkedCaseId,
     ).toBe(saved.id);
     expect(
-      sessionStorage.getItem("moodprint-case-draft-v1:USER-AN:new"),
+      sessionStorage.getItem("safevoice-case-draft-v1:USER-AN:new"),
     ).toContain("Bản nháp chuyện A");
   });
   it("restores the unfinished story and current step after a reload", async () => {
@@ -106,7 +106,7 @@ describe("case wizard recovery", () => {
     });
     await waitFor(() =>
       expect(
-        sessionStorage.getItem("moodprint-case-draft-v1:USER-AN:new"),
+        sessionStorage.getItem("safevoice-case-draft-v1:USER-AN:new"),
       ).toContain("Mình chưa nhớ ngày"),
     );
     first.unmount();
@@ -131,7 +131,7 @@ describe("case wizard recovery", () => {
       useDemoStore.getState().cases.some((c) => c.title === "Nháp thử lại"),
     ).toBe(false);
     expect(
-      sessionStorage.getItem("moodprint-case-draft-v1:USER-AN:new"),
+      sessionStorage.getItem("safevoice-case-draft-v1:USER-AN:new"),
     ).toContain("Nháp thử lại");
     fireEvent.click(screen.getByRole("button", { name: "Thử lưu lại" }));
     await screen.findByText("Hồ sơ đã lưu");
@@ -140,7 +140,7 @@ describe("case wizard recovery", () => {
         ?.status,
     ).toBe("draft");
     expect(
-      sessionStorage.getItem("moodprint-case-draft-v1:USER-AN:new"),
+      sessionStorage.getItem("safevoice-case-draft-v1:USER-AN:new"),
     ).toBeNull();
   });
 });

@@ -4,7 +4,7 @@ These examples are implementation tests, never independent safety validation.
 """
 
 import pytest
-from moodprint_agent.tools.safety import assess_conversation
+from safevoice_agent.tools.safety import assess_conversation
 
 
 @pytest.mark.parametrize(

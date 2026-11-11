@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from moodprint_agent.knowledge.scoring import RawHit, score_hits
-from moodprint_shared.config import KnowledgeConfig
-from moodprint_shared.contracts.knowledge import SourceCitation
+from safevoice_agent.knowledge.scoring import RawHit, score_hits
+from safevoice_shared.config import KnowledgeConfig
+from safevoice_shared.contracts.knowledge import SourceCitation
 
 
 def _citation(document: str) -> SourceCitation:
@@ -14,7 +14,7 @@ def _citation(document: str) -> SourceCitation:
         source_id="mp-authored",
         document_id=document,
         title=document,
-        publisher="MoodPrint",
+        publisher="SafeVoice",
         url=None,
         section=None,
         published_at=None,

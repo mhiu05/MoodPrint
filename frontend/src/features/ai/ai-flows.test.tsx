@@ -65,7 +65,7 @@ describe("AI journey continuity", () => {
     expect(
       screen.getAllByText(/Bộ ảnh mẫu không thể lưu vào hồ sơ thật/).length,
     ).toBeGreaterThan(0);
-    expect(localStorage.getItem(`moodprint-sim-v1:${userId}`)).toContain(
+    expect(localStorage.getItem(`safevoice-sim-v1:${userId}`)).toContain(
       analysis.id,
     );
   });

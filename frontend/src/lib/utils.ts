@@ -9,7 +9,7 @@ export const normalize = (value: string) =>
 export async function copyText(text: string) {
   await navigator.clipboard.writeText(text);
 }
-export function downloadText(text: string, filename = "moodprint-demo.txt") {
+export function downloadText(text: string, filename = "safevoice-demo.txt") {
   const url = URL.createObjectURL(
     new Blob([text], { type: "text/plain;charset=utf-8" }),
   );

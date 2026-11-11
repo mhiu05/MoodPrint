@@ -1,10 +1,10 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.base import FrozenDTO
-from moodprint_shared.contracts.plans import ActionPlan, ItemStatus, PlanUpsert
 from pydantic import Field, model_validator
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.base import FrozenDTO
+from safevoice_shared.contracts.plans import ActionPlan, ItemStatus, PlanUpsert
 
 from app.core.auth import get_auth
 from app.core.errors import ApiError

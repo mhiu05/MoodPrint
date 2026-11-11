@@ -24,13 +24,13 @@ from app.agent_gateway.sse import RunStream, produce
 from app.core.errors import ApiError
 from app.modules.conversations.service import ConversationService
 from app.modules.incidents.service import IncidentService
-from moodprint_agent.knowledge.embedder import HashingEmbedder
-from moodprint_agent.knowledge.ingest.cli import main as ingest
-from moodprint_agent.knowledge.retriever import PgVectorKnowledgeRetriever
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_agent.tools.factory import build_registry
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.errors import KnowledgeUnavailable, NotFound
+from safevoice_agent.knowledge.embedder import HashingEmbedder
+from safevoice_agent.knowledge.ingest.cli import main as ingest
+from safevoice_agent.knowledge.retriever import PgVectorKnowledgeRetriever
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_agent.tools.factory import build_registry
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.errors import KnowledgeUnavailable, NotFound
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -246,7 +246,7 @@ async def test_a_failing_retriever_ends_the_run_cleanly_without_a_citation(
     engines = []
     if failure == "database_down":
         engine = create_async_engine(
-            "postgresql+asyncpg://moodprint_api:nope@127.0.0.1:1/postgres", hide_parameters=True
+            "postgresql+asyncpg://safevoice_api:nope@127.0.0.1:1/postgres", hide_parameters=True
         )
         engines.append(engine)
         retriever = PgVectorKnowledgeRetriever(engine, HashingEmbedder(), CFG.knowledge)

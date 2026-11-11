@@ -9,18 +9,18 @@ import pytest
 from agents import SQLiteSession
 from agents.testing import ModelStep, ScriptedModel, assistant_message
 from agents.usage import Usage
-from moodprint_agent.budget import RunToolBudget
-from moodprint_agent.roleplay.feedback import ground_rephrasings
-from moodprint_agent.roleplay.models import Rephrasing, RoleplayContext, RoleplayFeedback
-from moodprint_agent.roleplay.scenarios import PERSONAS, SCENARIOS, scenario_for
-from moodprint_agent.roleplay.service import EXIT_ROLE_TEXT
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_agent.tools.context import CompanionToolContext
-from moodprint_agent.tools.factory import build_registry
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.agent import AgentServices
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.context import ContextBundle
+from safevoice_agent.budget import RunToolBudget
+from safevoice_agent.roleplay.feedback import ground_rephrasings
+from safevoice_agent.roleplay.models import Rephrasing, RoleplayContext, RoleplayFeedback
+from safevoice_agent.roleplay.scenarios import PERSONAS, SCENARIOS, scenario_for
+from safevoice_agent.roleplay.service import EXIT_ROLE_TEXT
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_agent.tools.context import CompanionToolContext
+from safevoice_agent.tools.factory import build_registry
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.agent import AgentServices
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.context import ContextBundle
 
 CFG = AppConfig()
 USAGE = Usage(requests=1, input_tokens=10, output_tokens=5, total_tokens=15)

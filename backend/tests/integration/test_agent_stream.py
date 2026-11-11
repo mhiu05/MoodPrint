@@ -11,10 +11,10 @@ from app.agent_gateway.sse import RunStream, produce
 from app.core.auth import get_auth
 from app.main import create_app
 from app.modules.conversations.service import ConversationService
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_shared.config import AppConfig
-from moodprint_shared.env import EnvSettings
-from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_shared.config import AppConfig
+from safevoice_shared.env import EnvSettings
+from safevoice_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 
 from backend.tests.integration.conftest import local_value
 
@@ -132,7 +132,7 @@ async def test_approved_memory_retrieved_across_conversations_without_copying_to
     db_engine, identities
 ):
     from app.modules.memory.service import MemoryService
-    from moodprint_shared.contracts.memory import MemoryCreate
+    from safevoice_shared.contracts.memory import MemoryCreate
 
     auth = identities[0]
     service = ConversationService(db_engine)

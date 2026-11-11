@@ -14,7 +14,7 @@ from urllib.parse import urlsplit
 
 PROJECT_REF = "xhlshihobyxrgfqrdafh"
 RUNTIME_URL_PLACEHOLDER = (
-    "postgresql+asyncpg://moodprint_api.<project-ref>:<generated-password>"
+    "postgresql+asyncpg://safevoice_api.<project-ref>:<generated-password>"
     "@aws-<region>.pooler.supabase.com:5432/postgres"
 )
 CLI_VERSION = "2.122.1"
@@ -126,7 +126,7 @@ def require_local_gate(root: Path, head: str, *, phase: int) -> None:
 
 
 def is_generated_runtime_url(database_url: str) -> bool:
-    return urlsplit(database_url).username in {"moodprint_api", f"moodprint_api.{PROJECT_REF}"}
+    return urlsplit(database_url).username in {"safevoice_api", f"safevoice_api.{PROJECT_REF}"}
 
 
 def validate_hosted_target(supabase_url: str, database_url: str) -> None:
@@ -198,7 +198,7 @@ def write_generated_database_url(
         + line
         + newline
     )
-    temp = path.with_name(path.name + ".moodprint-tmp")
+    temp = path.with_name(path.name + ".safevoice-tmp")
     try:
         temp.write_bytes(result.encode("utf-8"))
         temp.replace(path)

@@ -5,11 +5,11 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime
 
-from moodprint_agent.knowledge.ingest.topics import PRODUCTION_TOPICS
-from moodprint_agent.knowledge.retriever import PgVectorKnowledgeRetriever
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.errors import KnowledgeTimeout, KnowledgeUnavailable, NotFound
-from moodprint_shared.contracts.knowledge import (
+from safevoice_agent.knowledge.ingest.topics import PRODUCTION_TOPICS
+from safevoice_agent.knowledge.retriever import PgVectorKnowledgeRetriever
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.errors import KnowledgeTimeout, KnowledgeUnavailable, NotFound
+from safevoice_shared.contracts.knowledge import (
     KnowledgeFilters,
     KnowledgeQuery,
     KnowledgeRetriever,
@@ -29,7 +29,7 @@ from app.modules.knowledge.schemas import (
     SourceRead,
 )
 
-log = logging.getLogger("moodprint.knowledge.api")
+log = logging.getLogger("safevoice.knowledge.api")
 
 
 def parse_age(value: str | None) -> str | None:
@@ -160,7 +160,7 @@ class KnowledgeService:
         )
         publisher = str(row["publisher"])
         if row["licence_class"] == "authored":
-            publisher = f"MoodPrint biên soạn — dựa trên {publisher}"
+            publisher = f"SafeVoice biên soạn — dựa trên {publisher}"
         derived = row["derived_from"] if isinstance(row["derived_from"], list) else []
         return DocumentRead(
             document_id=str(row["document_id"]),

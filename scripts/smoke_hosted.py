@@ -1,6 +1,6 @@
 """Explicit synthetic Phase 0 smoke; never run from automatic pytest.
 
-Requires migrated target and a restricted moodprint_api DATABASE_URL. Outputs
+Requires migrated target and a restricted safevoice_api DATABASE_URL. Outputs
 only checkpoint names; upstream errors, tokens and connection strings are hidden.
 """
 
@@ -14,8 +14,8 @@ from app.main import create_app
 from app.modules.evidence.keys import original_key
 from db.safety import ROOT, is_generated_runtime_url, validate_hosted_target
 from dotenv import dotenv_values
-from moodprint_shared.config import AppConfig
-from moodprint_shared.env import EnvSettings
+from safevoice_shared.config import AppConfig
+from safevoice_shared.env import EnvSettings
 
 
 def field(payload: dict, name: str):
@@ -117,7 +117,7 @@ async def run(phase: str) -> None:
     runtime_url = values.get("DATABASE_URL", "")
     validate_hosted_target(values.get("SUPABASE_URL", ""), admin_url)
     if not is_generated_runtime_url(runtime_url):
-        raise ValueError("DATABASE_URL must be provisioned as moodprint_api before hosted smoke")
+        raise ValueError("DATABASE_URL must be provisioned as safevoice_api before hosted smoke")
     settings = EnvSettings(**values)
     app, users, storage_keys = create_app(settings), [], []
     base = settings.supabase_url.rstrip("/")

@@ -7,12 +7,12 @@ from agents.usage import Usage
 from app.agent_gateway.sse import RunStream, produce
 from app.modules.conversations.approvals import ApprovalService
 from app.modules.conversations.service import ConversationService
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_agent.tools.registry import ToolRegistry
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.agent import AgentToolContext, ToolPolicy
-from moodprint_shared.contracts.errors import NotFound, VersionConflict
-from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_agent.tools.registry import ToolRegistry
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.agent import AgentToolContext, ToolPolicy
+from safevoice_shared.contracts.errors import NotFound, VersionConflict
+from safevoice_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 
 pytestmark = pytest.mark.integration
 

@@ -1,5 +1,5 @@
 [project]
-name = "moodprint-workspace"
+name = "safevoice-workspace"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = []
@@ -11,8 +11,8 @@ package = false
 members = ["shared", "agent", "backend"]
 
 [tool.uv.sources]
-moodprint-shared = { workspace = true }
-moodprint-agent = { workspace = true }
+safevoice-shared = { workspace = true }
+safevoice-agent = { workspace = true }
 
 [dependency-groups]
 dev = ["pytest>=9", "pytest-asyncio>=1", "ruff>=0.14", "pyright>=1.1", "import-linter>=2", "httpx>=0.28"]

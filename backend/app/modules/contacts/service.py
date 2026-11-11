@@ -1,8 +1,8 @@
 from uuid import UUID
 
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.errors import NotFound
-from moodprint_shared.contracts.paging import Page
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.errors import NotFound
+from safevoice_shared.contracts.paging import Page
 from sqlalchemy import text
 
 from app.core.paging import decode_cursor, encode_cursor

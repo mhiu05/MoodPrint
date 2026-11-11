@@ -140,4 +140,4 @@ begin
 end $$;
 revoke all on function app_private.claim_evidence_for_purge(integer),app_private.finish_evidence_purge(uuid)
 from public,anon,authenticated,service_role;
-grant execute on function app_private.claim_evidence_for_purge(integer),app_private.finish_evidence_purge(uuid) to moodprint_api;
+grant execute on function app_private.claim_evidence_for_purge(integer),app_private.finish_evidence_purge(uuid) to safevoice_api;

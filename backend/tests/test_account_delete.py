@@ -3,7 +3,7 @@ from uuid import uuid4
 import httpx
 import pytest
 from app.infrastructure.auth_admin import AuthAdmin
-from moodprint_shared.testing.auth import make_auth_context
+from safevoice_shared.testing.auth import make_auth_context
 
 
 async def test_auth_delete_error_hides_body_and_can_be_retried(settings):

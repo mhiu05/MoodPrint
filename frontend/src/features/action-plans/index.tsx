@@ -140,7 +140,7 @@ function optionsFor(item: Incident): PlanOption[] {
         ? "Kiểm tra đúng nền tảng và cân nhắc cùng người lớn bạn tin. Giữ nội dung có sẵn trước nếu phù hợp."
         : "Chọn người hoặc địa điểm bạn tiếp cận được trong sinh hoạt hằng ngày.",
       considerations: online
-        ? "Đây là bước chuẩn bị. MoodPrint không tự chặn, báo cáo hoặc gửi nội dung; không bảo đảm nền tảng sẽ xử lý."
+        ? "Đây là bước chuẩn bị. SafeVoice không tự chặn, báo cáo hoặc gửi nội dung; không bảo đảm nền tảng sẽ xử lý."
         : "Không hẹn gặp hay đối đầu người đang khiến bạn lo sợ. Nếu nguy hiểm trước mắt, tìm hỗ trợ trực tiếp.",
       labels: online
         ? [
@@ -260,7 +260,7 @@ function PlanWorkspace({ caseId }: { caseId?: string }) {
 }
 function PlanEditor({ item, stored }: { item: Incident; stored?: ActionPlan }) {
   const demo = useWorkspaceStore((s) => s.workspace.kind === "demo");
-  const key = `moodprint-plan-draft-v1:${item.ownerId}:${item.id}`;
+  const key = `safevoice-plan-draft-v1:${item.ownerId}:${item.id}`;
   const [initial] = useState(() => readPlanRecovery(key, stored));
   const [plan, setPlan] = useState<ActionPlan | null>(initial.plan);
   const [baseRevision, setBaseRevision] = useState<ActionPlan | null>(

@@ -4,14 +4,14 @@ export function clearUserSessionData(userId: string) {
   try {
     for (const key of Object.keys(sessionStorage)) {
       if (
-        /^moodprint-[a-z-]+-draft-v1:/.test(key) &&
+        /^safevoice-[a-z-]+-draft-v1:/.test(key) &&
         key.split(":")[1] === userId
       )
         sessionStorage.removeItem(key);
     }
-    localStorage.removeItem(`moodprint-sim-v1:${userId}`);
+    localStorage.removeItem(`safevoice-sim-v1:${userId}`);
     for (const key of Object.keys(localStorage)) {
-      if (key.startsWith(`tus::moodprint-upload-v1:${userId}:`))
+      if (key.startsWith(`tus::safevoice-upload-v1:${userId}:`))
         localStorage.removeItem(key);
     }
   } catch {
@@ -39,7 +39,7 @@ export function saveSimulation() {
   const userId = state.workspace.userId;
   try {
     localStorage.setItem(
-      `moodprint-sim-v1:${userId}`,
+      `safevoice-sim-v1:${userId}`,
       JSON.stringify({
         chats: state.chats.filter((item) => item.ownerId === userId),
         analyses: state.analyses.filter((item) => item.ownerId === userId),
@@ -58,7 +58,7 @@ export function saveSimulation() {
 export function restoreSimulation(userId: string) {
   try {
     const value = JSON.parse(
-      localStorage.getItem(`moodprint-sim-v1:${userId}`) ?? "null",
+      localStorage.getItem(`safevoice-sim-v1:${userId}`) ?? "null",
     );
     if (!value || typeof value !== "object") return;
     const owned = <T extends { ownerId: string }>(items: T[] | undefined) =>

@@ -23,4 +23,4 @@ Khoản 2 nói về trách nhiệm tiếp nhận, xử lý và phối hợp xác
 
 ## Một cách mở lời
 
-Gợi ý của MoodPrint: bạn có thể nói với người lớn bạn tin: “Con/em lo một bạn đang không an toàn. Con/em biết những việc này, còn phần này chưa rõ.” Kể điều bạn thấy hoặc nghe và nói rõ chỗ chưa biết; đừng tự tìm gặp người gây hại để kiểm chứng. Nếu nguy hiểm đang xảy ra, ưu tiên tìm người lớn tại chỗ giúp ngay. MoodPrint không tự gửi thông tin thay bạn.
+Gợi ý của SafeVoice: bạn có thể nói với người lớn bạn tin: “Con/em lo một bạn đang không an toàn. Con/em biết những việc này, còn phần này chưa rõ.” Kể điều bạn thấy hoặc nghe và nói rõ chỗ chưa biết; đừng tự tìm gặp người gây hại để kiểm chứng. Nếu nguy hiểm đang xảy ra, ưu tiên tìm người lớn tại chỗ giúp ngay. SafeVoice không tự gửi thông tin thay bạn.

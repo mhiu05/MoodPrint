@@ -3,9 +3,9 @@
 import httpx
 import pytest
 from app.main import create_app
-from moodprint_shared.env import EnvSettings
-from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 from openai import AsyncOpenAI
+from safevoice_shared.env import EnvSettings
+from safevoice_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 
 
 @pytest.fixture
@@ -15,7 +15,7 @@ def settings():
         supabase_url="http://127.0.0.1:54721",
         supabase_publishable_key="synthetic",
         supabase_secret_key="synthetic",
-        database_url="postgresql+asyncpg://moodprint_api:synthetic@127.0.0.1:54722/postgres",
+        database_url="postgresql+asyncpg://safevoice_api:synthetic@127.0.0.1:54722/postgres",
         openai_api_key="synthetic-not-sent",
     )
 

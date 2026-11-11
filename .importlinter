@@ -1,22 +1,22 @@
 [importlinter]
 root_packages =
-    moodprint_shared
-    moodprint_agent
+    safevoice_shared
+    safevoice_agent
     app
 include_external_packages = True
 
 [importlinter:contract:shared]
 name = Shared cannot depend on application packages
 type = forbidden
-source_modules = moodprint_shared
+source_modules = safevoice_shared
 forbidden_modules =
-    moodprint_agent
+    safevoice_agent
     app
 
 [importlinter:contract:agent]
 name = Agent cannot depend on backend infrastructure
 type = forbidden
-source_modules = moodprint_agent
+source_modules = safevoice_agent
 forbidden_modules =
     app
     fastapi

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, Depends, Query, Request
-from moodprint_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.auth import AuthContext
 
 from app.core.auth import get_auth
 from app.core.errors import ApiError
@@ -14,7 +14,7 @@ from app.modules.knowledge.schemas import CorpusRead, DocumentRead, SearchRead, 
 from app.modules.knowledge.service import KnowledgeService, parse_age, parse_topic
 
 router = APIRouter(prefix="/v1/knowledge", tags=["knowledge"])
-log = logging.getLogger("moodprint.knowledge.http")
+log = logging.getLogger("safevoice.knowledge.http")
 
 
 def _service(request: Request) -> KnowledgeService:

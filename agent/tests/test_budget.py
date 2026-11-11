@@ -1,8 +1,8 @@
 """Budget enforcement must prevent the call after either limit is reached."""
 
 import pytest
-from moodprint_agent.budget import RunToolBudget
-from moodprint_agent.errors import PerToolBudgetExceeded, ToolBudgetExceeded
+from safevoice_agent.budget import RunToolBudget
+from safevoice_agent.errors import PerToolBudgetExceeded, ToolBudgetExceeded
 
 
 def test_per_tool_limit_does_not_consume_another_call() -> None:

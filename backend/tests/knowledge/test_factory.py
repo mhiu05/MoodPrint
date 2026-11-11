@@ -4,8 +4,8 @@ import logging
 from dataclasses import replace
 
 import pytest
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.knowledge import KnowledgeQuery, RetrievalScope
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.knowledge import KnowledgeQuery, RetrievalScope
 
 
 def _cfg(retriever: str) -> AppConfig:

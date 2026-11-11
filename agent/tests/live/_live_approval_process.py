@@ -14,12 +14,12 @@ from typing import cast
 from uuid import UUID
 
 from agents import RunContextWrapper, SQLiteSession
-from moodprint_agent.budget import RunToolBudget
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_agent.tools.registry import ToolRegistry
-from moodprint_shared.contracts.agent import AgentServices, AgentToolContext, ToolPolicy
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.context import ContextBundle
+from safevoice_agent.budget import RunToolBudget
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_agent.tools.registry import ToolRegistry
+from safevoice_shared.contracts.agent import AgentServices, AgentToolContext, ToolPolicy
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.context import ContextBundle
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _live import live_cfg, metered_client, open_ledger  # noqa: E402

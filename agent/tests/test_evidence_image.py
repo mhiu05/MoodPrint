@@ -4,8 +4,8 @@ import hashlib
 import io
 
 import pytest
-from moodprint_agent.evidence.image import ImageRejected, prepare_image, sniff_mime
 from PIL import Image
+from safevoice_agent.evidence.image import ImageRejected, prepare_image, sniff_mime
 
 ALLOWED = ("image/jpeg", "image/png", "image/webp")
 

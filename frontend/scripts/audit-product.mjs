@@ -314,7 +314,7 @@ try {
         url: page.url(),
         mode: await page.evaluate(
           () =>
-            JSON.parse(localStorage.getItem("moodprint-demo")).state.workspace
+            JSON.parse(localStorage.getItem("safevoice-demo")).state.workspace
               .kind,
         ),
       };
@@ -875,7 +875,7 @@ try {
       );
       await save.click();
       await page.waitForFunction(() =>
-        JSON.parse(localStorage.getItem("moodprint-demo")).state.drafts.some(
+        JSON.parse(localStorage.getItem("safevoice-demo")).state.drafts.some(
           (d) => d.content?.includes("hoàn toàn hư cấu"),
         ),
       );

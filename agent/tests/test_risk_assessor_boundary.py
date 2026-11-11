@@ -9,16 +9,16 @@ import httpx
 import pytest
 from agents import SQLiteSession
 from agents.testing import ScriptedModel, assistant_message
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_agent.tools.risk_assessor import (
+from openai import AsyncOpenAI
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_agent.tools.risk_assessor import (
     AssessorFailed,
     AssessorResult,
     ModelRisk,
     OpenAIRiskAssessor,
     hybrid_assess,
 )
-from moodprint_shared.config import AppConfig
-from openai import AsyncOpenAI
+from safevoice_shared.config import AppConfig
 from tests.test_roleplay import ctx_for, play
 from tests.test_runtime_hardening import context
 

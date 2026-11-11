@@ -15,17 +15,17 @@ from agents import RunContextWrapper, SQLiteSession
 from agents.exceptions import ModelRefusalError, ModelTimeoutError
 from agents.testing import ModelStep, ScriptedModel, assistant_message, function_call
 from agents.usage import Usage
-from moodprint_agent.budget import RunToolBudget
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_agent.tools.context import CompanionToolContext, ToolDeps
-from moodprint_agent.tools.proposals import ApplyOutcome, StoredProposal, payload_sha256
-from moodprint_agent.tools.registry import ToolRegistry
-from moodprint_agent.tools.saving import save_approved
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.agent import AgentServices, AgentToolContext, ToolPolicy
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.context import ContextBundle
 from openai import APIConnectionError
+from safevoice_agent.budget import RunToolBudget
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_agent.tools.context import CompanionToolContext, ToolDeps
+from safevoice_agent.tools.proposals import ApplyOutcome, StoredProposal, payload_sha256
+from safevoice_agent.tools.registry import ToolRegistry
+from safevoice_agent.tools.saving import save_approved
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.agent import AgentServices, AgentToolContext, ToolPolicy
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.context import ContextBundle
 
 USAGE = Usage(requests=1, input_tokens=3, output_tokens=3, total_tokens=6)
 

@@ -36,7 +36,7 @@ const api = createApiClient({
   },
   onUnauthenticated() {
     preserveExpiredSession();
-    window.dispatchEvent(new Event("moodprint:unauthenticated"));
+    window.dispatchEvent(new Event("safevoice:unauthenticated"));
   },
 });
 export function createRealServices(

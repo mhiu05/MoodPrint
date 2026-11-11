@@ -4,7 +4,7 @@ import httpx
 import pytest
 from app.infrastructure.storage_gateway import StorageGateway
 from app.modules.evidence.keys import original_key
-from moodprint_shared.config import AppConfig
+from safevoice_shared.config import AppConfig
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 

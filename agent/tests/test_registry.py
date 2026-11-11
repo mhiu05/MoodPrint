@@ -7,11 +7,11 @@ import pytest
 from agents import Agent, RunConfig, RunContextWrapper, Runner
 from agents.testing import ScriptedModel, assistant_message, function_call
 from agents.tool_context import ToolContext
-from moodprint_agent.budget import RunToolBudget
-from moodprint_agent.tools.diagnostics import get_server_time
-from moodprint_agent.tools.registry import ToolRegistry
-from moodprint_shared.config import OPENAI_MODEL
-from moodprint_shared.contracts.agent import ToolPolicy
+from safevoice_agent.budget import RunToolBudget
+from safevoice_agent.tools.diagnostics import get_server_time
+from safevoice_agent.tools.registry import ToolRegistry
+from safevoice_shared.config import OPENAI_MODEL
+from safevoice_shared.contracts.agent import ToolPolicy
 
 
 def policy(**changes):

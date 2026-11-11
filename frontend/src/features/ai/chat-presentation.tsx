@@ -48,7 +48,7 @@ export function ChatTopBar({
       <div className="chat-identity">
         <AgentStatusOrb state={phase} size={32} showLabel={false} />
         <div>
-          <h1>MoodPrint</h1>
+          <h1>SafeVoice</h1>
           <span className="chat-identity-status">AI mô phỏng</span>
           <span className="sr-only" role="status">
             {phaseLabels[phase]}
@@ -193,7 +193,7 @@ export function MessageBubble({
             ? "Bạn"
             : message.speaker === "system"
               ? "Thông tin mẫu"
-              : "MoodPrint · mô phỏng"}
+              : "SafeVoice · mô phỏng"}
         </small>
       )}
       <p>{message.body}</p>

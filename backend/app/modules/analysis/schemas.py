@@ -4,9 +4,9 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from moodprint_agent.evidence.models import EvidenceReading
-from moodprint_shared.contracts.base import FrozenDTO
 from pydantic import Field
+from safevoice_agent.evidence.models import EvidenceReading
+from safevoice_shared.contracts.base import FrozenDTO
 
 Confidence = Literal["high", "medium", "low"]
 

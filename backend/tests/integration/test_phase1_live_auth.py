@@ -10,7 +10,7 @@ from app.infrastructure.auth_admin import AuthAdmin
 from app.infrastructure.storage_gateway import StorageGateway
 from app.main import create_app
 from app.modules.evidence.schemas import UploadInfo
-from moodprint_shared.config import AppConfig
+from safevoice_shared.config import AppConfig
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 

@@ -3,7 +3,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
-from moodprint_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.auth import AuthContext
 
 from app.core.auth import get_auth
 from app.modules.analysis.schemas import AnalysisCreate, AnalysisRead

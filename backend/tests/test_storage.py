@@ -4,7 +4,7 @@ import httpx
 import pytest
 from app.infrastructure.storage_gateway import StorageGateway
 from app.modules.evidence.keys import derived_key, original_key
-from moodprint_shared.config import AppConfig
+from safevoice_shared.config import AppConfig
 
 OWNER = UUID("00000000-0000-0000-0000-000000000001")
 EVIDENCE = UUID("00000000-0000-0000-0000-000000000002")

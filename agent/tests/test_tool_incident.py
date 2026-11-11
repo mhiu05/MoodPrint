@@ -16,21 +16,21 @@ import pytest
 from agents import RunContextWrapper, SQLiteSession
 from agents.testing import ModelStep, ScriptedModel, assistant_message, function_call
 from agents.usage import Usage
-from moodprint_agent.budget import RunToolBudget
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_agent.tools.context import CompanionToolContext, ToolDeps
-from moodprint_agent.tools.factory import build_registry
-from moodprint_agent.tools.incident import (
+from safevoice_agent.budget import RunToolBudget
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_agent.tools.context import CompanionToolContext, ToolDeps
+from safevoice_agent.tools.factory import build_registry
+from safevoice_agent.tools.incident import (
     get_case_context,
     propose_case_event,
     save_confirmed_event,
 )
-from moodprint_agent.tools.proposals import ApplyOutcome, StoredProposal, payload_sha256
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.agent import AgentServices
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.context import ContextBundle
-from moodprint_shared.contracts.errors import NotFound
+from safevoice_agent.tools.proposals import ApplyOutcome, StoredProposal, payload_sha256
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.agent import AgentServices
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.context import ContextBundle
+from safevoice_shared.contracts.errors import NotFound
 
 NOW = datetime(2026, 11, 8, 12, 0, tzinfo=UTC)
 

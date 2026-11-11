@@ -7,7 +7,7 @@ country_scope = ["VN"]
 topics = ["legal-vn", "cyber"]
 age_bands = ["11-13", "14-17"]
 last_reviewed = 2026-11-09
-applicability = "MoodPrint tóm tắt văn bản hợp nhất 108/VBHN-VPQH (2025), Điều 1, 6 khoản 11 và 21; phạm vi trẻ em dưới 16 tuổi. Chưa có người đọc soát; không phải tư vấn cho một vụ việc."
+applicability = "SafeVoice tóm tắt văn bản hợp nhất 108/VBHN-VPQH (2025), Điều 1, 6 khoản 11 và 21; phạm vi trẻ em dưới 16 tuổi. Chưa có người đọc soát; không phải tư vấn cho một vụ việc."
 primary_url = "https://vanban.chinhphu.vn/?docid=215227&pageid=27160"
 [[derived_from]]
 source_id = "vn-luat-tre-em-vbhn108-2025"
@@ -23,4 +23,4 @@ locator = "Điều 1 (PDF trang 2); Điều 6 khoản 11 (trang 4); Điều 21 (
 
 ## Khi ảnh hoặc chuyện riêng bị đăng lên
 
-Gợi ý biên soạn của MoodPrint: nhờ người lớn đáng tin giúp xem nội dung bị chia sẻ, lưu thông tin cần thiết và chọn nơi báo phù hợp. Đừng đăng lại ảnh hay bí mật của người khác để trả đũa. Thẻ này không xác định mức phạt, không kết luận ai đã vi phạm và không hứa bài đăng sẽ được gỡ.
+Gợi ý biên soạn của SafeVoice: nhờ người lớn đáng tin giúp xem nội dung bị chia sẻ, lưu thông tin cần thiết và chọn nơi báo phù hợp. Đừng đăng lại ảnh hay bí mật của người khác để trả đũa. Thẻ này không xác định mức phạt, không kết luận ai đã vi phạm và không hứa bài đăng sẽ được gỡ.

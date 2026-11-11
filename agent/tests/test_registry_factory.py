@@ -10,17 +10,17 @@ import pytest
 from agents import RunContextWrapper
 from agents.testing import function_call
 from agents.tool_context import ToolContext
-from moodprint_agent.budget import RunToolBudget
-from moodprint_agent.tools.context import CompanionToolContext, RunScratch, ToolDeps
-from moodprint_agent.tools.factory import build_registry
-from moodprint_agent.tools.proposals import (
+from safevoice_agent.budget import RunToolBudget
+from safevoice_agent.tools.context import CompanionToolContext, RunScratch, ToolDeps
+from safevoice_agent.tools.factory import build_registry
+from safevoice_agent.tools.proposals import (
     can_transition,
     event_id_for,
     payload_sha256,
 )
-from moodprint_agent.tools.registry import ToolRegistry, ToolSpec
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.agent import ToolPolicy
+from safevoice_agent.tools.registry import ToolRegistry, ToolSpec
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.agent import ToolPolicy
 
 
 def _policy(name: str = "probe", **changes: Any) -> ToolPolicy:
@@ -127,7 +127,7 @@ async def test_tool_context_records_the_sdk_tool_call_id() -> None:
 
 
 def test_scratch_snapshot_roundtrip_keeps_citation_ledger() -> None:
-    from moodprint_shared.contracts.knowledge import SourceCitation
+    from safevoice_shared.contracts.knowledge import SourceCitation
 
     citation = SourceCitation(
         source_id="s-1",

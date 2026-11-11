@@ -5,8 +5,8 @@ from datetime import UTC, datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from moodprint_agent.evidence.orchestrator import AnalysisRecord
-from moodprint_shared.contracts.auth import AuthContext
+from safevoice_agent.evidence.orchestrator import AnalysisRecord
+from safevoice_shared.contracts.auth import AuthContext
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -93,7 +93,7 @@ class SqlAnalysisStore:
                 .first()
             )
         if existing is None:  # the id belongs to another owner: indistinguishable from absent
-            from moodprint_shared.contracts.errors import NotFound
+            from safevoice_shared.contracts.errors import NotFound
 
             raise NotFound()
         return to_record(existing)
@@ -139,7 +139,7 @@ class SqlAnalysisStore:
                 .first()
             )
         if row is None:
-            from moodprint_shared.contracts.errors import NotFound
+            from safevoice_shared.contracts.errors import NotFound
 
             raise NotFound()
         return to_record(row)

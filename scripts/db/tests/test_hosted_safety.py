@@ -84,7 +84,7 @@ def test_env_write_preserves_owner_values_and_comments(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     safety.write_generated_database_url(
-        env, "postgresql+asyncpg://moodprint_api:generated@db.host/postgres"
+        env, "postgresql+asyncpg://safevoice_api:generated@db.host/postgres"
     )
     result = env.read_text(encoding="utf-8")
     assert "SUPABASE_DB_URL='owner-secret'" in result
@@ -112,7 +112,7 @@ def test_owner_admin_url_cannot_be_overwritten_even_with_rotation(tmp_path: Path
 
 def test_similar_role_name_is_not_generated_runtime_credential(tmp_path: Path) -> None:
     env = tmp_path / ".env"
-    original = "DATABASE_URL=postgresql://moodprint_api_backup:owner-secret@db.project/postgres\n"
+    original = "DATABASE_URL=postgresql://safevoice_api_backup:owner-secret@db.project/postgres\n"
     env.write_text(original, encoding="utf-8")
     with pytest.raises(ValueError, match="owner"):
         safety.write_generated_database_url(env, "generated", rotate=True)
@@ -154,7 +154,7 @@ def test_runtime_login_is_not_privileged_database_fallback(tmp_path: Path, monke
     path = tmp_path / ".env"
     path.write_text(
         "SUPABASE_URL=https://xhlshihobyxrgfqrdafh.supabase.co\n"
-        "DATABASE_URL=postgresql://moodprint_api:synthetic-password@db.xhlshihobyxrgfqrdafh.supabase.co:5432/postgres\n",
+        "DATABASE_URL=postgresql://safevoice_api:synthetic-password@db.xhlshihobyxrgfqrdafh.supabase.co:5432/postgres\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(safety, "ROOT", tmp_path)

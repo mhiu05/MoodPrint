@@ -1,7 +1,7 @@
 """Developer regressions from synthetic live checks; not independent safety validation."""
 
 import pytest
-from moodprint_agent.tools.safety import assess_urgency
+from safevoice_agent.tools.safety import assess_urgency
 
 
 @pytest.mark.parametrize(

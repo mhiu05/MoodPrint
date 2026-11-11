@@ -2,18 +2,18 @@ import json
 from pathlib import Path
 
 import pytest
-from moodprint_agent.knowledge.embedder import EmbeddingCache
-from moodprint_agent.knowledge.ingest.acquire import assert_public_https
-from moodprint_agent.knowledge.ingest.budget import (
+from safevoice_agent.knowledge.embedder import EmbeddingCache
+from safevoice_agent.knowledge.ingest.acquire import assert_public_https
+from safevoice_agent.knowledge.ingest.budget import (
     BudgetBlocked,
     commit,
     release,
     reserve,
     snapshot,
 )
-from moodprint_agent.knowledge.ingest.cli import main
-from moodprint_agent.knowledge.ingest.embed import embed_missing
-from moodprint_agent.knowledge.ingest.runtime import resolve_admin_url
+from safevoice_agent.knowledge.ingest.cli import main
+from safevoice_agent.knowledge.ingest.embed import embed_missing
+from safevoice_agent.knowledge.ingest.runtime import resolve_admin_url
 
 ROOT = Path("agent/ingestion/corpus/manifest.toml")
 
@@ -55,7 +55,7 @@ def _corpus(root: Path) -> Path:
             [
                 'source_id = "mp-authored"',
                 'kind = "authored"',
-                'publisher = "MoodPrint"',
+                'publisher = "SafeVoice"',
                 'title = "Thẻ biên soạn"',
                 'language = "vi"',
                 'country_scope = ["VN"]',
@@ -157,7 +157,7 @@ def test_ssrf_guard_rejects_loopback_and_plain_http() -> None:
 def test_remote_database_target_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(
         "TEST_ADMIN_DATABASE_URL",
-        "postgresql+asyncpg://moodprint_api:local@db.example.com/postgres",
+        "postgresql+asyncpg://safevoice_api:local@db.example.com/postgres",
     )
     with pytest.raises(ValueError):
         resolve_admin_url("test-env")
@@ -229,8 +229,8 @@ def test_voyage_command_stops_before_a_client_when_the_budget_refuses(
     def explode(*_args: object, **_kwargs: object) -> object:
         raise AssertionError("voyage client should not be constructed")
 
-    monkeypatch.setattr("moodprint_agent.knowledge.ingest.commands.reserve", refuse)
-    monkeypatch.setattr("moodprint_agent.knowledge.ingest.commands.VoyageEmbedder", explode)
+    monkeypatch.setattr("safevoice_agent.knowledge.ingest.commands.reserve", refuse)
+    monkeypatch.setattr("safevoice_agent.knowledge.ingest.commands.VoyageEmbedder", explode)
     assert main(["embed", "--build", str(build), "--embedder", "voyage"]) == 3
 
 
@@ -242,13 +242,13 @@ def test_voyage_embed_requires_existing_cumulative_ledger(
     assert main(["build", "--manifest", str(manifest), "--out", str(build)]) == 0
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(
-        "moodprint_agent.knowledge.ingest.commands._voyage_key", lambda: "synthetic-key"
+        "safevoice_agent.knowledge.ingest.commands._voyage_key", lambda: "synthetic-key"
     )
 
     def unexpected(*args, **kwargs):
         raise AssertionError("missing ledger must fail before provider construction")
 
-    monkeypatch.setattr("moodprint_agent.knowledge.ingest.commands.VoyageEmbedder", unexpected)
+    monkeypatch.setattr("safevoice_agent.knowledge.ingest.commands.VoyageEmbedder", unexpected)
     assert main(["embed", "--build", str(build), "--embedder", "voyage"]) == 3
     assert not (tmp_path / ".local/voyage-ledger.json").exists()
 
@@ -258,7 +258,7 @@ def test_embed_timeout_keeps_conservative_cost(
 ) -> None:
     from types import SimpleNamespace
 
-    from moodprint_shared.contracts.errors import KnowledgeTimeout
+    from safevoice_shared.contracts.errors import KnowledgeTimeout
 
     manifest = _corpus(tmp_path / "corpus")
     build = tmp_path / "build"
@@ -267,7 +267,7 @@ def test_embed_timeout_keeps_conservative_cost(
     initial = reserve(1)
     commit(initial, 0)
     monkeypatch.setattr(
-        "moodprint_agent.knowledge.ingest.commands._voyage_key", lambda: "synthetic-key"
+        "safevoice_agent.knowledge.ingest.commands._voyage_key", lambda: "synthetic-key"
     )
 
     class TimeoutEmbedder:
@@ -284,7 +284,7 @@ def test_embed_timeout_keeps_conservative_cost(
         async def aclose(self):
             pass
 
-    monkeypatch.setattr("moodprint_agent.knowledge.ingest.commands.VoyageEmbedder", TimeoutEmbedder)
+    monkeypatch.setattr("safevoice_agent.knowledge.ingest.commands.VoyageEmbedder", TimeoutEmbedder)
     with pytest.raises(KnowledgeTimeout):
         main(["embed", "--build", str(build), "--embedder", "voyage"])
     assert float(snapshot()["spent_usd"]) > 0

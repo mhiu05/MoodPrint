@@ -2,12 +2,12 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
-from moodprint_agent.memory.context_builder import MemoryContextBuilder
-from moodprint_agent.memory.retrieval import lexical_score
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.context import ContextRequest
-from moodprint_shared.contracts.memory import Memory, MemoryHit
+from safevoice_agent.memory.context_builder import MemoryContextBuilder
+from safevoice_agent.memory.retrieval import lexical_score
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.context import ContextRequest
+from safevoice_shared.contracts.memory import Memory, MemoryHit
 
 NOW = datetime(2026, 11, 7, tzinfo=UTC)
 USER = UUID("10000000-0000-0000-0000-000000000001")

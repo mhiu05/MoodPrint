@@ -79,7 +79,7 @@ def prepare(name: str, offset: int, *, lite: bool = False) -> Path:
         elif marker.is_file():
             lite = True
         (workdir / "supabase").mkdir(parents=True, exist_ok=True)
-        config = re.sub(r'project_id = "[^"]+"', f'project_id = "moodprint-{name}"', config)
+        config = re.sub(r'project_id = "[^"]+"', f'project_id = "safevoice-{name}"', config)
         config = re.sub(
             r"(?m)^(\w*port\s*=\s*)(\d+)$", lambda m: m[1] + str(int(m[2]) + offset), config
         )
@@ -123,9 +123,9 @@ def cli(workdir: Path, *arguments: str) -> subprocess.CompletedProcess[str]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("prepare", "start", "reset", "test", "stop", "status"))
-    parser.add_argument("--name", default=os.environ.get("MOODPRINT_STACK_NAME", "foundation"))
+    parser.add_argument("--name", default=os.environ.get("SAFEVOICE_STACK_NAME", "foundation"))
     parser.add_argument(
-        "--offset", type=int, default=int(os.environ.get("MOODPRINT_PORT_OFFSET", "0"))
+        "--offset", type=int, default=int(os.environ.get("SAFEVOICE_PORT_OFFSET", "0"))
     )
     parser.add_argument("--lite", action="store_true")
     args = parser.parse_args()

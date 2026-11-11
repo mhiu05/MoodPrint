@@ -187,7 +187,7 @@ export function SupportHome() {
       <div className="support-footnote">
         <ShieldCheck size={20} />
         <p>
-          MoodPrint giúp bạn chuẩn bị. Việc lưu, sao chép và mô phỏng báo cáo
+          SafeVoice giúp bạn chuẩn bị. Việc lưu, sao chép và mô phỏng báo cáo
           trong ứng dụng chưa liên hệ với nhà trường hoặc một người hỗ trợ.
         </p>
       </div>
@@ -407,7 +407,7 @@ export function FindHelpPage() {
       </section>
       <p className="support-footnote">
         Thông tin Tổng đài 111 được kiểm tra theo nguồn chính thức ngày
-        07/11/2026. Các gợi ý người hỗ trợ còn lại là nội dung do MoodPrint biên
+        07/11/2026. Các gợi ý người hỗ trợ còn lại là nội dung do SafeVoice biên
         tập, không phải danh bạ dịch vụ đã xác minh.
       </p>
     </div>
@@ -585,7 +585,7 @@ function SupportComposer() {
         ? `case:${initialCase.id}`
         : `new:${source?.id || "default"}`;
   const [recoveryContext, setRecoveryContext] = useState(contextId);
-  const recoveryKey = `moodprint-support-draft-v1:${user?.id || "signed-out"}:${recoveryContext}`;
+  const recoveryKey = `safevoice-support-draft-v1:${user?.id || "signed-out"}:${recoveryContext}`;
   const [initial] = useState(() => {
     const values: ComposerValues = {
       recipient: existing?.recipientType || source?.recipient || "Giáo viên",
@@ -762,7 +762,7 @@ function SupportComposer() {
         );
       await navigator.clipboard.writeText(content);
       setSuccess(
-        "Đã sao chép. Bạn tự chọn nơi dán và người nhận ngoài MoodPrint.",
+        "Đã sao chép. Bạn tự chọn nơi dán và người nhận ngoài SafeVoice.",
       );
     } catch (e) {
       setError(errorMessage(e));
@@ -775,13 +775,13 @@ function SupportComposer() {
     try {
       if (!content.trim())
         throw new Error("Bạn chưa có nội dung để tải xuống.");
-      const text = `BẢN CHUẨN BỊ MOODPRINT — CHƯA GỬI\nNgười nhận dự kiến: ${values.recipient}\nChế độ: ${values.identity === "alias" ? "Bí danh (không bảo đảm ẩn danh tuyệt đối)" : demo ? "Tên hiển thị demo" : "Tên hiển thị"}\n\n${content}`;
+      const text = `BẢN CHUẨN BỊ SAFEVOICE — CHƯA GỬI\nNgười nhận dự kiến: ${values.recipient}\nChế độ: ${values.identity === "alias" ? "Bí danh (không bảo đảm ẩn danh tuyệt đối)" : demo ? "Tên hiển thị demo" : "Tên hiển thị"}\n\n${content}`;
       url = URL.createObjectURL(
         new Blob([text], { type: "text/plain;charset=utf-8" }),
       );
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `moodprint-loi-nhan-${draftId}.txt`;
+      anchor.download = `safevoice-loi-nhan-${draftId}.txt`;
       document.body.append(anchor);
       anchor.click();
       anchor.remove();
@@ -805,7 +805,7 @@ function SupportComposer() {
         {demo
           ? "Đây là bản chuẩn bị cục bộ."
           : "Bản nháp đã lưu được giữ trong tài khoản của bạn."}{" "}
-        MoodPrint không gửi email, tin nhắn hay báo cáo thật.
+        SafeVoice không gửi email, tin nhắn hay báo cáo thật.
       </Notice>
       {initial.recovered && dirty && (
         <Notice>
@@ -1370,7 +1370,7 @@ export function UrgentPage() {
         <span>
           <LifeBuoy size={22} />
         </span>
-        MoodPrint
+        SafeVoice
       </Link>
       <header>
         <Badge tone="peach">Hỗ trợ ngay</Badge>
@@ -1434,7 +1434,7 @@ export function UrgentPage() {
       <div className="support-urgent-note">
         <ShieldCheck size={19} />
         <p>
-          Bạn tự quyết định bấm gọi. MoodPrint không tự gọi, định vị, điều phối
+          Bạn tự quyết định bấm gọi. SafeVoice không tự gọi, định vị, điều phối
           hay thông báo cho ai. Không cần đăng nhập hoặc hoàn thành hồ sơ để xem
           trang này.
         </p>

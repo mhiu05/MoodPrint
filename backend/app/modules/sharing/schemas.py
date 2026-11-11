@@ -2,8 +2,8 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from moodprint_shared.contracts.base import FrozenDTO
 from pydantic import Field, JsonValue, field_validator
+from safevoice_shared.contracts.base import FrozenDTO
 
 SharedField = Literal[
     "title", "summary", "occurredAt", "place", "events", "people", "impactTags", "tried"

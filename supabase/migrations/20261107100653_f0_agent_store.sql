@@ -13,7 +13,7 @@ create table agent_store.agent_messages (
 create index idx_agent_messages_session_time on agent_store.agent_messages(session_id,created_at);
 alter table agent_store.agent_sessions enable row level security;
 alter table agent_store.agent_messages enable row level security;
-create policy backend_all on agent_store.agent_sessions for all to moodprint_api using(true) with check(true);
-create policy backend_all on agent_store.agent_messages for all to moodprint_api using(true) with check(true);
-grant select,insert,update,delete on agent_store.agent_sessions,agent_store.agent_messages to moodprint_api;
-grant usage,select on sequence agent_store.agent_messages_id_seq to moodprint_api;
+create policy backend_all on agent_store.agent_sessions for all to safevoice_api using(true) with check(true);
+create policy backend_all on agent_store.agent_messages for all to safevoice_api using(true) with check(true);
+grant select,insert,update,delete on agent_store.agent_sessions,agent_store.agent_messages to safevoice_api;
+grant usage,select on sequence agent_store.agent_messages_id_seq to safevoice_api;

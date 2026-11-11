@@ -8,10 +8,10 @@ from uuid import uuid4
 
 from agents import SQLiteSession
 from agents.testing import ModelStep, ScriptedModel, assistant_message, function_call
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_agent.tools.factory import build_registry
-from moodprint_agent.tools.save_intent import TURN_HINT_CLEAR
-from moodprint_shared.config import AppConfig
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_agent.tools.factory import build_registry
+from safevoice_agent.tools.save_intent import TURN_HINT_CLEAR
+from safevoice_shared.config import AppConfig
 from tests.test_tool_incident import (
     PROPOSE_ARGS,
     drive_to_pending_approval,

@@ -61,13 +61,13 @@ def permutation(source: Path, first: str) -> list[tuple[str, bytes]]:
 
 
 def current_stack(root: Path, environment: dict[str, str]) -> Path:
-    name = environment.get("MOODPRINT_STACK_NAME", "")
+    name = environment.get("SAFEVOICE_STACK_NAME", "")
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,39}", name):
-        raise ValueError("MOODPRINT_STACK_NAME must identify an existing isolated stack")
+        raise ValueError("SAFEVOICE_STACK_NAME must identify an existing isolated stack")
     try:
-        offset = int(environment["MOODPRINT_PORT_OFFSET"])
+        offset = int(environment["SAFEVOICE_PORT_OFFSET"])
     except (KeyError, ValueError):
-        raise ValueError("MOODPRINT_PORT_OFFSET is required and must be an integer") from None
+        raise ValueError("SAFEVOICE_PORT_OFFSET is required and must be an integer") from None
     if not 1 <= offset <= 9000:
         raise ValueError("An isolated stack requires a port offset between 1 and 9000")
     workdir = root / ".local/stacks" / name
@@ -85,7 +85,7 @@ def current_stack(root: Path, environment: dict[str, str]) -> Path:
             "Prepare the current isolated stack before checking migration orders"
         ) from None
     if (
-        config.get("project_id") != f"moodprint-{name}"
+        config.get("project_id") != f"safevoice-{name}"
         or config.get("db", {}).get("port") != 54322 + offset
     ):
         raise ValueError("Stack config does not match the current stack name/offset")

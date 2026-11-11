@@ -134,7 +134,7 @@ function CaseWizardForm({ draftIdentity }: { draftIdentity: string }) {
   const evidence = useDemoStore((s) => s.evidence);
   const location = useLocation();
   const navigate = useNavigate();
-  const key = `moodprint-case-draft-v1:${user?.id ?? "signed-out"}:${draftIdentity}`;
+  const key = `safevoice-case-draft-v1:${user?.id ?? "signed-out"}:${draftIdentity}`;
   const prefill = (location.state as { prefill?: Partial<Incident> } | null)
     ?.prefill;
   const [initial] = useState(() => {

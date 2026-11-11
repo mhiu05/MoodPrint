@@ -16,7 +16,7 @@ import jwt
 import pytest
 from app.infrastructure.storage_gateway import StorageGateway
 from app.modules.evidence.keys import original_key
-from moodprint_shared.config import AppConfig
+from safevoice_shared.config import AppConfig
 
 from backend.tests.integration.test_auth_flow import (
     auth_users as auth_users,

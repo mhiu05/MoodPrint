@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from moodprint_agent.tools.safety import assess_conversation, assess_urgency
+from safevoice_agent.tools.safety import assess_conversation, assess_urgency
 
 EVALS = Path(__file__).resolve().parents[1] / "evals"
 sys.path.insert(0, str(EVALS.parent))

@@ -1,9 +1,9 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.evidence import SignedRead
-from moodprint_shared.contracts.paging import Page
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.evidence import SignedRead
+from safevoice_shared.contracts.paging import Page
 
 from app.api.v1.shares import service
 from app.core.auth import get_auth

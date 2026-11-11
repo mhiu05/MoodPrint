@@ -17,9 +17,9 @@ import pytest_asyncio
 from app.core.db import create_engine
 from app.core.uow import user_uow
 from dotenv import dotenv_values
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.env import EnvSettings
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.env import EnvSettings
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
@@ -101,7 +101,7 @@ async def _assert_clean(engine: AsyncEngine) -> None:
                     text("select current_user,current_setting('request.jwt.claims',true)")
                 )
             ).one()
-            assert row[0] == "moodprint_api"
+            assert row[0] == "safevoice_api"
             assert row[1] in {None, ""}
             # The login has no auth schema privilege. Verify the identity on the
             # same physical connection after a role switch, without new claims.

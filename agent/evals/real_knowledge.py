@@ -11,10 +11,10 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import dotenv_values
-from moodprint_agent.knowledge.embedder import VoyageEmbedder
-from moodprint_agent.knowledge.ingest.budget import commit, reserve
-from moodprint_agent.knowledge.retriever import PgVectorKnowledgeRetriever
-from moodprint_shared.config import AppConfig
+from safevoice_agent.knowledge.embedder import VoyageEmbedder
+from safevoice_agent.knowledge.ingest.budget import commit, reserve
+from safevoice_agent.knowledge.retriever import PgVectorKnowledgeRetriever
+from safevoice_shared.config import AppConfig
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 def local_database() -> str:
     values = dotenv_values(
-        Path(os.environ.get("MOODPRINT_EVAL_DATABASE_ENV", ".local/stacks/int/test.env"))
+        Path(os.environ.get("SAFEVOICE_EVAL_DATABASE_ENV", ".local/stacks/int/test.env"))
     )
     database = values.get("TEST_DATABASE_URL")
     if not database or make_url(database).host not in {"127.0.0.1", "localhost", "::1"}:
@@ -60,13 +60,13 @@ class MeteredQueryEmbedder:
 
 def configuration() -> tuple[str, Path, str]:
     database = local_database()
-    ledger = Path(os.environ.get("MOODPRINT_VOYAGE_LEDGER", ".local/voyage-ledger.json"))
+    ledger = Path(os.environ.get("SAFEVOICE_VOYAGE_LEDGER", ".local/voyage-ledger.json"))
     if not ledger.is_file() or not ledger.with_suffix(".jsonl").is_file():
         raise ValueError("existing cumulative Voyage ledger and log required")
     authorization = json.loads(ledger.read_text(encoding="utf-8"))
     if authorization.get("model") != "voyage-4" or authorization.get("scope") != "phase-2-voyage":
         raise ValueError("Voyage authorization model/scope mismatch")
-    key = dotenv_values(Path(os.environ.get("MOODPRINT_VOYAGE_KEY_FILE", ".env"))).get(
+    key = dotenv_values(Path(os.environ.get("SAFEVOICE_VOYAGE_KEY_FILE", ".env"))).get(
         "VOYAGE_API_KEY"
     )
     if not key:
@@ -93,7 +93,7 @@ async def factory(cfg: AppConfig, corpus_version: str):
                 .mappings()
                 .one()
             )
-            expected = os.environ.get("MOODPRINT_EVAL_CORPUS_SHA256")
+            expected = os.environ.get("SAFEVOICE_EVAL_CORPUS_SHA256")
             if (
                 row["version"] != corpus_version
                 or row["embedding_model"] != "voyage-4"

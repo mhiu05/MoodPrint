@@ -69,7 +69,7 @@ try {
   const initialize = await request('initialize', {
     protocolVersion: '2025-06-18',
     capabilities: {},
-    clientInfo: { name: 'moodprint-promptfoo-smoke', version: '1.0.0' },
+    clientInfo: { name: 'safevoice-promptfoo-smoke', version: '1.0.0' },
   });
   if (initialize.error) throw new Error('Promptfoo MCP initialization failed');
   child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' })}\n`);

@@ -32,9 +32,9 @@ function clearFormDrafts() {
   try {
     for (const key of Object.keys(sessionStorage)) {
       if (
-        key.startsWith("moodprint-case-draft-v1:") ||
-        key.startsWith("moodprint-plan-draft-v1:") ||
-        key.startsWith("moodprint-support-draft-v1:")
+        key.startsWith("safevoice-case-draft-v1:") ||
+        key.startsWith("safevoice-plan-draft-v1:") ||
+        key.startsWith("safevoice-support-draft-v1:")
       )
         sessionStorage.removeItem(key);
     }
@@ -213,8 +213,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         try {
           for (const key of Object.keys(sessionStorage)) {
             if (
-              (key.startsWith("moodprint-case-draft-v1:") ||
-                key.startsWith("moodprint-plan-draft-v1:")) &&
+              (key.startsWith("safevoice-case-draft-v1:") ||
+                key.startsWith("safevoice-plan-draft-v1:")) &&
               key.endsWith(`:${id}`)
             )
               sessionStorage.removeItem(key);
@@ -280,7 +280,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       notify: (toast) => set({ toast }),
     }),
     {
-      name: "moodprint-demo",
+      name: "safevoice-demo",
       skipHydration: true,
       version: 1,
       storage: createJSONStorage(() => safeStorage),

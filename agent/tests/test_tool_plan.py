@@ -7,17 +7,17 @@ from uuid import UUID, uuid4
 
 import pytest
 from agents import RunContextWrapper
-from moodprint_agent.budget import RunToolBudget
-from moodprint_agent.tools.context import CompanionToolContext, ToolDeps
-from moodprint_agent.tools.factory import build_registry
-from moodprint_agent.tools.plan import PlanItemIn, get_action_plan, propose_action_plan, save_plan
-from moodprint_agent.tools.proposals import ApplyOutcome, StoredProposal, payload_sha256
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.agent import AgentServices
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.context import ContextBundle
-from moodprint_shared.contracts.errors import NotFound
-from moodprint_shared.contracts.plans import ActionPlan, PlanItem
+from safevoice_agent.budget import RunToolBudget
+from safevoice_agent.tools.context import CompanionToolContext, ToolDeps
+from safevoice_agent.tools.factory import build_registry
+from safevoice_agent.tools.plan import PlanItemIn, get_action_plan, propose_action_plan, save_plan
+from safevoice_agent.tools.proposals import ApplyOutcome, StoredProposal, payload_sha256
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.agent import AgentServices
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.context import ContextBundle
+from safevoice_shared.contracts.errors import NotFound
+from safevoice_shared.contracts.plans import ActionPlan, PlanItem
 
 OWNER, CASE = uuid4(), uuid4()
 T0 = datetime(2026, 11, 8, tzinfo=UTC)
@@ -210,7 +210,7 @@ async def test_stale_or_missing_base_version_is_a_structured_conflict() -> None:
         ({"goal": ""}, "invalid_field"),
         ({"items": items(("Đối đầu với bạn đó ngay", "high"))}, "unsafe_step"),
         ({"items": items(("Tự điều tra tài khoản ẩn danh", "normal"))}, "unsafe_step"),
-        ({"items": items(("MoodPrint sẽ liên hệ nhà trường", "normal"))}, "unsafe_step"),
+        ({"items": items(("SafeVoice sẽ liên hệ nhà trường", "normal"))}, "unsafe_step"),
     ],
 )
 async def test_limits_are_reported_not_silently_trimmed(override, code) -> None:
@@ -266,7 +266,7 @@ def test_inventory_for_plan_tools() -> None:
 
 
 def test_the_unsafe_step_filter_blocks_confronting_the_bully_but_not_asking_an_adult() -> None:
-    from moodprint_agent.tools.plan import _UNSAFE_STEP  # pyright: ignore[reportPrivateUsage]
+    from safevoice_agent.tools.plan import _UNSAFE_STEP  # pyright: ignore[reportPrivateUsage]
 
     safe = (
         "Xin cô chủ nhiệm nói chuyện riêng vào lúc phù hợp",
@@ -293,7 +293,7 @@ def test_unsafe_step_filter_minimal_pairs_closure_round() -> None:
     The two lists in the test above are kept as the historical examples (they came from live
     findings); these extend them without loosening anything.
     """
-    from moodprint_agent.tools.plan import _UNSAFE_STEP  # pyright: ignore[reportPrivateUsage]
+    from safevoice_agent.tools.plan import _UNSAFE_STEP  # pyright: ignore[reportPrivateUsage]
 
     pairs = (  # (unsafe step, nearby protective step that must stay allowed)
         ("Nhắn tin dọa lại cho bạn ấy", "Không trả lời tin nhắn đó và lưu lại làm bằng chứng"),

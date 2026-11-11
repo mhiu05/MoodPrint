@@ -17,7 +17,7 @@ test("E-DEMO-02: existing demo data survives a real session without entering the
       .click();
     await expect(page).toHaveURL(/\/auth$/);
     const demo = await page.evaluate(() =>
-      localStorage.getItem("moodprint-demo"),
+      localStorage.getItem("safevoice-demo"),
     );
     expect(demo).not.toBeNull();
     const payloads: string[] = [];
@@ -40,7 +40,7 @@ test("E-DEMO-02: existing demo data survives a real session without entering the
     ).toBeVisible();
     await expect(page.getByText("CASE-AN-001")).toHaveCount(0);
     expect(
-      await page.evaluate(() => localStorage.getItem("moodprint-demo")),
+      await page.evaluate(() => localStorage.getItem("safevoice-demo")),
     ).toBe(demo);
     expect(
       payloads.some((payload) =>
@@ -49,7 +49,7 @@ test("E-DEMO-02: existing demo data survives a real session without entering the
     ).toBe(false);
     await signOut(page);
     expect(
-      await page.evaluate(() => localStorage.getItem("moodprint-demo")),
+      await page.evaluate(() => localStorage.getItem("safevoice-demo")),
     ).toBe(demo);
     await page
       .getByRole("button", { name: "Vào thử với tài khoản demo" })

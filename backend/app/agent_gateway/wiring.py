@@ -2,19 +2,19 @@ import os
 from dataclasses import replace
 from uuid import UUID
 
-from moodprint_agent.budget import RunToolBudget
-from moodprint_agent.memory.context_builder import DomainSummary, MemoryContextBuilder
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_agent.tools.context import CompanionToolContext, ToolDeps
-from moodprint_agent.tools.factory import build_registry
-from moodprint_agent.tools.risk_assessor import OpenAIRiskAssessor
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.agent import AgentServices
-from moodprint_shared.contracts.context import ContextBundle, ContextRequest
-from moodprint_shared.contracts.errors import NotFound
-from moodprint_shared.contracts.knowledge import KnowledgeRetriever
-from moodprint_shared.contracts.paging import Page
 from openai import AsyncOpenAI
+from safevoice_agent.budget import RunToolBudget
+from safevoice_agent.memory.context_builder import DomainSummary, MemoryContextBuilder
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_agent.tools.context import CompanionToolContext, ToolDeps
+from safevoice_agent.tools.factory import build_registry
+from safevoice_agent.tools.risk_assessor import OpenAIRiskAssessor
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.agent import AgentServices
+from safevoice_shared.contracts.context import ContextBundle, ContextRequest
+from safevoice_shared.contracts.errors import NotFound
+from safevoice_shared.contracts.knowledge import KnowledgeRetriever
+from safevoice_shared.contracts.paging import Page
 
 from app.agent_gateway.proposals import SqlConfirmedEventWriter, SqlPlanWriter, SqlProposalStore
 from app.modules.evidence.service import EvidenceService
@@ -96,7 +96,7 @@ def build_runtime(cfg: AppConfig, model_client: AsyncOpenAI | None) -> Companion
     # Default off: the deterministic layer alone runs. See agent/evals/spikes/S-06.md.
     assessor = (
         OpenAIRiskAssessor(model_client, cfg)
-        if model_client is not None and os.environ.get("MOODPRINT_MODEL_ASSISTED_SAFETY") == "1"
+        if model_client is not None and os.environ.get("SAFEVOICE_MODEL_ASSISTED_SAFETY") == "1"
         else None
     )
     return CompanionRuntime(
@@ -190,7 +190,7 @@ async def _with_attachments(engine, cfg: AppConfig, auth, run_id: UUID, bundle: 
     """Tell the model *that* images are attached (id, name, kind), never what is in them."""
     from datetime import UTC, datetime
 
-    from moodprint_shared.contracts.context import ContextSection, Provenance
+    from safevoice_shared.contracts.context import ContextSection, Provenance
 
     from app.modules.conversations.service import ConversationService
 

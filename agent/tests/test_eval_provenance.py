@@ -140,7 +140,7 @@ def test_compare_rejects_prompt_drift():
 
 def test_recording_retriever_accepts_injected_adapter():
     from evals.fakes import RecordingKnowledge
-    from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
+    from safevoice_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 
     inner = FixtureKnowledgeRetriever()
     assert RecordingKnowledge(inner=inner)._inner is inner
@@ -161,7 +161,7 @@ def test_live_ledger_missing_is_refused_without_creating_new_ledger(tmp_path, mo
     from evals.live import open_ledger
 
     missing = tmp_path / "eval-spend.jsonl"
-    monkeypatch.setenv("MOODPRINT_EVAL_LEDGER", str(missing))
+    monkeypatch.setenv("SAFEVOICE_EVAL_LEDGER", str(missing))
     with pytest.raises(BudgetError, match="existing.*ledger"):
         open_ledger()
     assert not missing.exists()
@@ -270,8 +270,8 @@ def test_missing_request_bound_counts_roleplay_coach_and_approval_resumes():
 async def test_real_adapter_is_not_replaced_with_empty_fixture_setup():
     from evals.cases_io import Setup
     from evals.harness import _domain_for
-    from moodprint_shared.contracts.knowledge import KnowledgeQuery, RetrievalScope
-    from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
+    from safevoice_shared.contracts.knowledge import KnowledgeQuery, RetrievalScope
+    from safevoice_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 
     domain = _domain_for(
         Case(id="real", suite="knowledge", setup=Setup(corpus="empty")), FixtureKnowledgeRetriever()
@@ -306,7 +306,7 @@ def test_shared_evidence_policy_is_part_of_the_pinned_source(monkeypatch, source
 
     original = provenance.file_hash
     before = provenance.snapshot(
-        __import__("moodprint_shared.config", fromlist=["AppConfig"]).AppConfig(),
+        __import__("safevoice_shared.config", fromlist=["AppConfig"]).AppConfig(),
         effort="low",
         retriever="fixture",
         corpus_version="synthetic-fixture-v1",
@@ -317,7 +317,7 @@ def test_shared_evidence_policy_is_part_of_the_pinned_source(monkeypatch, source
         lambda path: "f" * 64 if path.name == source_name else original(path),
     )
     after = provenance.snapshot(
-        __import__("moodprint_shared.config", fromlist=["AppConfig"]).AppConfig(),
+        __import__("safevoice_shared.config", fromlist=["AppConfig"]).AppConfig(),
         effort="low",
         retriever="fixture",
         corpus_version="synthetic-fixture-v1",

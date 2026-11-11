@@ -17,11 +17,11 @@ from uuid import uuid4
 
 import httpx
 from app.main import create_app as real_app
-from moodprint_agent.knowledge.embedder import EmbeddingCache, VoyageEmbedder
-from moodprint_agent.knowledge.retriever import PgVectorKnowledgeRetriever
-from moodprint_shared.config import AppConfig
-from moodprint_shared.env import EnvSettings
 from openai import AsyncOpenAI
+from safevoice_agent.knowledge.embedder import EmbeddingCache, VoyageEmbedder
+from safevoice_agent.knowledge.retriever import PgVectorKnowledgeRetriever
+from safevoice_shared.config import AppConfig
+from safevoice_shared.env import EnvSettings
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "agent"))
@@ -63,9 +63,9 @@ def create_app():
         raise ValueError("Live MVP inspection is authorized only in local development")
     if not settings.openai_api_key or not settings.voyage_api_key:
         raise ValueError("The existing owner provider keys are required")
-    budget_path = _existing_path("MOODPRINT_EVAL_BUDGET")
-    ledger_path = _existing_path("MOODPRINT_EVAL_LEDGER")
-    voyage_path = _existing_path("MOODPRINT_VOYAGE_LEDGER")
+    budget_path = _existing_path("SAFEVOICE_EVAL_BUDGET")
+    ledger_path = _existing_path("SAFEVOICE_EVAL_LEDGER")
+    voyage_path = _existing_path("SAFEVOICE_VOYAGE_LEDGER")
     budget = load_budget(budget_path, scope="phase3-eval")
     if budget.max_usd > 2.99 or budget.max_calls_total > 1140:
         raise ValueError("Live MVP authorization exceeds this task's cumulative caps")

@@ -5,13 +5,13 @@ import json
 from typing import Any
 from uuid import UUID, uuid4, uuid5
 
-from moodprint_agent.roleplay.feedback import FeedbackFailed, RoleplayCoach
-from moodprint_agent.roleplay.models import RoleplayContext, RoleplayFeedback
-from moodprint_agent.roleplay.scenarios import SCENARIOS, Scenario, scenario_for
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.errors import NotFound
 from openai import AsyncOpenAI
+from safevoice_agent.roleplay.feedback import FeedbackFailed, RoleplayCoach
+from safevoice_agent.roleplay.models import RoleplayContext, RoleplayFeedback
+from safevoice_agent.roleplay.scenarios import SCENARIOS, Scenario, scenario_for
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.errors import NotFound
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 

@@ -1,7 +1,7 @@
 from datetime import datetime
 
-from moodprint_shared.contracts.base import FrozenDTO
 from pydantic import AwareDatetime
+from safevoice_shared.contracts.base import FrozenDTO
 
 
 class ArticleStatePut(FrozenDTO):

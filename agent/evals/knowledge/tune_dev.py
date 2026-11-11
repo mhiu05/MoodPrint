@@ -24,10 +24,10 @@ from dataclasses import replace
 from pathlib import Path
 
 from dotenv import dotenv_values
-from moodprint_agent.knowledge.retriever import Collected, PgVectorKnowledgeRetriever
-from moodprint_agent.knowledge.scoring import score_hits
-from moodprint_shared.config import KnowledgeConfig
-from moodprint_shared.contracts.knowledge import KnowledgeFilters, KnowledgeQuery, RetrievalScope
+from safevoice_agent.knowledge.retriever import Collected, PgVectorKnowledgeRetriever
+from safevoice_agent.knowledge.scoring import score_hits
+from safevoice_shared.config import KnowledgeConfig
+from safevoice_shared.contracts.knowledge import KnowledgeFilters, KnowledgeQuery, RetrievalScope
 from sqlalchemy.ext.asyncio import create_async_engine
 
 HERE = Path(__file__).resolve().parent

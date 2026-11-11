@@ -1,4 +1,4 @@
-from moodprint_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.auth import AuthContext
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -80,8 +80,8 @@ class ProfileService:
             await self._delete_account(auth, token, storage, cfg)
 
     async def _delete_account(self, auth: AuthContext, token: str, storage, cfg=None) -> None:
-        from moodprint_shared.config import AppConfig
-        from moodprint_shared.contracts.errors import RunInProgress
+        from safevoice_shared.config import AppConfig
+        from safevoice_shared.contracts.errors import RunInProgress
 
         from app.modules.conversations.service import ConversationService
         from app.modules.evidence.service import EvidenceService

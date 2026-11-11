@@ -7,17 +7,17 @@ from uuid import uuid4
 
 import pytest
 from agents import RunContextWrapper
-from moodprint_agent.budget import RunToolBudget
-from moodprint_agent.memory.validation import validate_candidate
-from moodprint_agent.tools.context import CompanionToolContext
-from moodprint_agent.tools.factory import build_registry
-from moodprint_agent.tools.memory import propose_memory
-from moodprint_agent.tools.support import draft_support_message, support_directory
-from moodprint_agent.tools.support_data import DIRECTORY
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.agent import AgentServices
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.context import ContextBundle
+from safevoice_agent.budget import RunToolBudget
+from safevoice_agent.memory.validation import validate_candidate
+from safevoice_agent.tools.context import CompanionToolContext
+from safevoice_agent.tools.factory import build_registry
+from safevoice_agent.tools.memory import propose_memory
+from safevoice_agent.tools.support import draft_support_message, support_directory
+from safevoice_agent.tools.support_data import DIRECTORY
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.agent import AgentServices
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.context import ContextBundle
 
 
 def make_ctx(memory: Any = None) -> CompanionToolContext:

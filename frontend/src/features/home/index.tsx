@@ -98,7 +98,7 @@ export function HomePage() {
             từng chút một.
           </h2>
           <p>
-            Không cần tìm đúng lời ngay. Cùng MoodPrint hiểu điều đang khiến bạn
+            Không cần tìm đúng lời ngay. Cùng SafeVoice hiểu điều đang khiến bạn
             bận tâm.
           </p>
           <Link to="/ai/chat" className="button primary">

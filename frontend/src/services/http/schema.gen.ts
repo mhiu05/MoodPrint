@@ -5748,7 +5748,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description MoodPrint v1 SSE events; each data field contains a StreamEvent JSON object. */
+      /** @description SafeVoice v1 SSE events; each data field contains a StreamEvent JSON object. */
       200: {
         headers: {
           [name: string]: unknown;
@@ -10013,7 +10013,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description MoodPrint v1 SSE events; each data field contains a StreamEvent JSON object. */
+      /** @description SafeVoice v1 SSE events; each data field contains a StreamEvent JSON object. */
       200: {
         headers: {
           [name: string]: unknown;

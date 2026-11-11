@@ -4,8 +4,8 @@ import pytest
 from app.modules.conversations.service import ConversationService
 from app.modules.incidents.schemas import CaseCreate
 from app.modules.incidents.service import IncidentService
-from moodprint_shared.contracts.conversations import RunUsage, TurnResult
-from moodprint_shared.contracts.errors import NotFound, RunInProgress
+from safevoice_shared.contracts.conversations import RunUsage, TurnResult
+from safevoice_shared.contracts.errors import NotFound, RunInProgress
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from backend.tests.integration.conftest import local_value

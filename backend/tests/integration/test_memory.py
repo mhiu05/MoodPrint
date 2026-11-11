@@ -3,8 +3,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from app.core.uow import user_uow
 from app.modules.memory.service import MemoryService
-from moodprint_shared.contracts.errors import NotFound, VersionConflict
-from moodprint_shared.contracts.memory import (
+from safevoice_shared.contracts.errors import NotFound, VersionConflict
+from safevoice_shared.contracts.memory import (
     CandidateDecision,
     MemoryCandidateCreate,
     MemoryCreate,

@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const managed = process.env.E2E_STACK_MANAGED === "1";
-const offset = Number(process.env.MOODPRINT_PORT_OFFSET ?? 0);
+const offset = Number(process.env.SAFEVOICE_PORT_OFFSET ?? 0);
 const port = Number(process.env.E2E_PORT ?? 5178 + offset);
 if (!Number.isInteger(port) || port < 1024 || port > 65535) {
   throw new Error("Invalid E2E_PORT");

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from moodprint_agent.knowledge.lexical import (
+from safevoice_agent.knowledge.lexical import (
     TermStats,
     chunk_terms,
     content_bigrams,

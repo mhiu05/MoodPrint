@@ -4731,7 +4731,7 @@
     }
   },
   "info": {
-    "title": "MoodPrint API",
+    "title": "SafeVoice API",
     "version": "1.0.0"
   },
   "openapi": "3.1.0",
@@ -8279,7 +8279,7 @@
                 }
               }
             },
-            "description": "MoodPrint v1 SSE events; each data field contains a StreamEvent JSON object."
+            "description": "SafeVoice v1 SSE events; each data field contains a StreamEvent JSON object."
           },
           "400": {
             "content": {
@@ -13591,7 +13591,7 @@
                 }
               }
             },
-            "description": "MoodPrint v1 SSE events; each data field contains a StreamEvent JSON object."
+            "description": "SafeVoice v1 SSE events; each data field contains a StreamEvent JSON object."
           },
           "400": {
             "content": {

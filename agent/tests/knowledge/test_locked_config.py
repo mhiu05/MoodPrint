@@ -6,7 +6,7 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
-from moodprint_shared.config import KnowledgeConfig
+from safevoice_shared.config import KnowledgeConfig
 
 LOCKED = Path(__file__).resolve().parents[2] / "evals" / "knowledge" / "results"
 

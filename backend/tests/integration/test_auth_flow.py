@@ -10,8 +10,8 @@ from uuid import UUID, uuid4
 import httpx
 import pytest
 from app.main import create_app
-from moodprint_shared.config import AppConfig
-from moodprint_shared.env import EnvSettings
+from safevoice_shared.config import AppConfig
+from safevoice_shared.env import EnvSettings
 
 from backend.tests.integration.conftest import local_value
 

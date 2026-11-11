@@ -24,15 +24,15 @@ from evals.cases_io import Case  # noqa: E402
 from evals.fakes import CASE_ID, EvalDomain  # noqa: E402
 from evals.harness import TurnRecorder, _context  # noqa: E402
 from evals.provenance import digest, snapshot  # noqa: E402
-from moodprint_agent.companion import PROMPT_VERSION, load_prompt  # noqa: E402
-from moodprint_agent.roleplay.models import RoleplayContext  # noqa: E402
-from moodprint_agent.roleplay.scenarios import PERSONAS, scenario_for  # noqa: E402
-from moodprint_agent.runtime import CompanionRuntime  # noqa: E402
-from moodprint_agent.testing.fake_provider import build_fake_client  # noqa: E402
-from moodprint_agent.tools.factory import build_registry  # noqa: E402
-from moodprint_agent.tools.safety import EMERGENCY_BLOCK  # noqa: E402
-from moodprint_agent.tools.save_intent import TURN_HINT_CLEAR  # noqa: E402
-from moodprint_shared.config import AppConfig  # noqa: E402
+from safevoice_agent.companion import PROMPT_VERSION, load_prompt  # noqa: E402
+from safevoice_agent.roleplay.models import RoleplayContext  # noqa: E402
+from safevoice_agent.roleplay.scenarios import PERSONAS, scenario_for  # noqa: E402
+from safevoice_agent.runtime import CompanionRuntime  # noqa: E402
+from safevoice_agent.testing.fake_provider import build_fake_client  # noqa: E402
+from safevoice_agent.tools.factory import build_registry  # noqa: E402
+from safevoice_agent.tools.safety import EMERGENCY_BLOCK  # noqa: E402
+from safevoice_agent.tools.save_intent import TURN_HINT_CLEAR  # noqa: E402
+from safevoice_shared.config import AppConfig  # noqa: E402
 
 CASES = Path(__file__).with_name("product_cases.json")
 USAGE = Usage(requests=1, input_tokens=12, output_tokens=8, total_tokens=20)

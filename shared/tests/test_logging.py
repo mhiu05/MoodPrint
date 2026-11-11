@@ -5,7 +5,7 @@ import logging
 
 
 def captured(message, extra=None, args=()):
-    from moodprint_shared.logging import JsonFormatter, RedactingFilter
+    from safevoice_shared.logging import JsonFormatter, RedactingFilter
 
     stream = io.StringIO()
     handler = logging.StreamHandler(stream)
@@ -41,7 +41,7 @@ def test_redacts_jwt_inside_message():
 
 
 async def test_request_id_propagates():
-    from moodprint_shared.logging import request_id_context
+    from safevoice_shared.logging import request_id_context
 
     with request_id_context("request-one"):
         await asyncio.sleep(0)
@@ -50,7 +50,7 @@ async def test_request_id_propagates():
 
 
 def test_exception_details_are_never_logged():
-    from moodprint_shared.logging import JsonFormatter, RedactingFilter
+    from safevoice_shared.logging import JsonFormatter, RedactingFilter
 
     record = logging.LogRecord("privacy", logging.ERROR, "", 1, "operation failed", (), None)
     try:
@@ -66,7 +66,7 @@ def test_exception_details_are_never_logged():
 
 
 def test_server_owned_logger_handlers_cannot_bypass_privacy_filter(capsys):
-    from moodprint_shared.logging import configure_logging
+    from safevoice_shared.logging import configure_logging
 
     logger = logging.getLogger("uvicorn")
     previous_handlers, previous_propagate = logger.handlers[:], logger.propagate

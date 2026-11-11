@@ -2,8 +2,8 @@ import json
 from datetime import UTC, datetime
 from uuid import UUID
 
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.errors import NotFound, VersionConflict
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.errors import NotFound, VersionConflict
 from sqlalchemy import text
 
 from app.core.uow import user_uow

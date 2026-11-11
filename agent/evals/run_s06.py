@@ -20,8 +20,8 @@ from evals.s06_runner import OpenAIExtractionProvider, run_slot
 async def execute(plan, args):
     from evals.live import EVAL_SCOPE, live_cfg, metered_client, open_ledger
 
-    os.environ["MOODPRINT_EVAL_BUDGET"] = str(args.budget)
-    os.environ["MOODPRINT_EVAL_LEDGER"] = str(args.ledger)
+    os.environ["SAFEVOICE_EVAL_BUDGET"] = str(args.budget)
+    os.environ["SAFEVOICE_EVAL_LEDGER"] = str(args.ledger)
     ledger = open_ledger(EVAL_SCOPE)
     # Refuse the entire continuation before constructing a provider if allowance is exhausted.
     if ledger.reserved_calls >= ledger.budget.max_calls_total:

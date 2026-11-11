@@ -1,9 +1,9 @@
 from dataclasses import replace
 
 import pytest
-from moodprint_agent.knowledge import create_retriever
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.knowledge import KnowledgeQuery, RetrievalScope
+from safevoice_agent.knowledge import create_retriever
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.knowledge import KnowledgeQuery, RetrievalScope
 
 
 def _fixture_config() -> AppConfig:

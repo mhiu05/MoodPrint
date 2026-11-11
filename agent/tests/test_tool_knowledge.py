@@ -9,25 +9,25 @@ import pytest
 from agents import SQLiteSession
 from agents.testing import ModelStep, ScriptedModel, assistant_message, function_call
 from agents.usage import Usage
-from moodprint_agent.budget import RunToolBudget
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_agent.tools.citations import resolve_citations
-from moodprint_agent.tools.context import CompanionToolContext, RunScratch
-from moodprint_agent.tools.factory import build_registry
-from moodprint_agent.tools.knowledge import knowledge_search, mask_identifiers
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.agent import AgentServices
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.context import ContextBundle
-from moodprint_shared.contracts.errors import KnowledgeTimeout, KnowledgeUnavailable
-from moodprint_shared.contracts.knowledge import (
+from safevoice_agent.budget import RunToolBudget
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_agent.tools.citations import resolve_citations
+from safevoice_agent.tools.context import CompanionToolContext, RunScratch
+from safevoice_agent.tools.factory import build_registry
+from safevoice_agent.tools.knowledge import knowledge_search, mask_identifiers
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.agent import AgentServices
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.context import ContextBundle
+from safevoice_shared.contracts.errors import KnowledgeTimeout, KnowledgeUnavailable
+from safevoice_shared.contracts.knowledge import (
     KnowledgeChunk,
     KnowledgeQuery,
     KnowledgeResult,
     RetrievalScope,
     SourceCitation,
 )
-from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
+from safevoice_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 
 
 def make_ctx(retriever: Any, **overrides: Any) -> CompanionToolContext:

@@ -16,7 +16,7 @@
   "policy_contract": {
     "all_tables": "RLS enabled and at least one policy, including private ingestion tables",
     "knowledge_default": "authenticated has SELECT only; anon has no table or column privileges",
-    "private_ingestion_comment": "moodprint:private_ingestion",
+    "private_ingestion_comment": "safevoice:private_ingestion",
     "private_ingestion": "Exact table comment opts into server-only access. No anon/authenticated privileges; no PUBLIC/anon/authenticated/service_role policies. At least one policy role must have a write grant. This is no exception to RLS.",
     "sql_tests": "00 lists baseline names explicitly because pg_prove runs inside Postgres and cannot read a checkout JSON file. Keep that list aligned when an integrator approves a future baseline. 05/14 inspect live catalogs."
   },

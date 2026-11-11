@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from evals.budget import BudgetError  # noqa: E402
 from evals.live import EVAL_SCOPE, live_cfg, metered_client, open_ledger  # noqa: E402
 from evals.safety_eval import CASE_DIR, LEVELS, load  # noqa: E402
-from moodprint_agent.tools.risk_assessor import (
+from safevoice_agent.tools.risk_assessor import (
     RISK_ASSESSOR_VERSION,
     AssessorFailed,
     AssessorResult,
@@ -35,8 +35,8 @@ from moodprint_agent.tools.risk_assessor import (
     OpenAIRiskAssessor,
     hybrid_assess,
 )
-from moodprint_agent.tools.safety import assess_conversation
-from moodprint_shared.config import AppConfig  # noqa: E402
+from safevoice_agent.tools.safety import assess_conversation
+from safevoice_shared.config import AppConfig  # noqa: E402
 
 RESULTS = Path(__file__).resolve().parent / "results"
 

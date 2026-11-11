@@ -31,7 +31,7 @@ def load_test_env() -> dict[str, str]:
 
 
 def api_database_url() -> str:
-    """The ``moodprint_api`` login that searches through ``SET ROLE authenticated``."""
+    """The ``safevoice_api`` login that searches through ``SET ROLE authenticated``."""
     load_test_env()
     url = os.environ.get("TEST_DATABASE_URL")
     if not url:

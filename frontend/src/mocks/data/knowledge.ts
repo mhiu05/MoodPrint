@@ -68,7 +68,7 @@ const entries: Entry[] = [
     avoid:
       "Đừng ép mình phải cười để chứng tỏ đó chỉ là đùa. Cũng không cần buộc người khác nhận lỗi ngay trong một cuộc đối chất.",
     example:
-      "Tình huống do MoodPrint biên tập: một nhóm vẫn nhắc lại biệt danh sau khi bạn đã nói mình khó chịu.",
+      "Tình huống do SafeVoice biên tập: một nhóm vẫn nhắc lại biệt danh sau khi bạn đã nói mình khó chịu.",
     scenario: scenario(
       "Bạn sẽ bắt đầu từ đâu?",
       "Ghi lại việc lặp lại và tìm người lớn cùng xem",
@@ -92,7 +92,7 @@ const entries: Entry[] = [
     avoid:
       "Không bắt buộc phải đáp trả thật sắc sảo hay tự nói với cả nhóm. Giữ an toàn quan trọng hơn việc thắng lời qua tiếng lại.",
     example:
-      "Mẫu câu do MoodPrint soạn: “Mình đã nói là không thích tên đó. Mình muốn cô giúp để việc này dừng lại.”",
+      "Mẫu câu do SafeVoice soạn: “Mình đã nói là không thích tên đó. Mình muốn cô giúp để việc này dừng lại.”",
     scenario: scenario(
       "Bạn ở một mình và nhóm đang chặn lối. Bạn chọn gì?",
       "Đi về phía người lớn hoặc nơi có người hỗ trợ",
@@ -140,7 +140,7 @@ const entries: Entry[] = [
     avoid:
       "Không ở lại quay phim cho đủ, không hẹn gặp riêng để giải quyết và không giao nhiệm vụ tự giữ người đang gây hại.",
     example:
-      "Lời nhờ giúp do MoodPrint soạn: “Cô có thể ở lại cùng em và giúp em ra khỏi chỗ này không?”",
+      "Lời nhờ giúp do SafeVoice soạn: “Cô có thể ở lại cùng em và giúp em ra khỏi chỗ này không?”",
     scenario: scenario(
       "Bạn đang thấy có nguy cơ bị đánh tiếp. Điều nào ưu tiên?",
       "Tìm nơi an toàn và người lớn gần đó",
@@ -164,7 +164,7 @@ const entries: Entry[] = [
     avoid:
       "Không cần bỏ hoàn toàn mọi kết nối online để chứng minh rằng bạn đã tự bảo vệ mình. Bạn có thể xin giúp cho từng phần khó xử.",
     example:
-      "Câu tự nhắc do MoodPrint biên tập: “Mình có quyền tạm rời màn hình và quay lại khi có người hỗ trợ.”",
+      "Câu tự nhắc do SafeVoice biên tập: “Mình có quyền tạm rời màn hình và quay lại khi có người hỗ trợ.”",
     quiz: quiz(
       "Điều nào giúp nhận diện vấn đề thay vì xem nhẹ nó?",
       [
@@ -208,7 +208,7 @@ const entries: Entry[] = [
     topic: "Online",
     format: "checklist",
     sources: ["STOP-REPORT"],
-    know: "Ảnh chụp có thể giúp ghi lại nội dung, nhưng một khung hình bị cắt có thể thiếu phần trước và sau. MoodPrint không xác minh ảnh là thật hay ai đã gửi.",
+    know: "Ảnh chụp có thể giúp ghi lại nội dung, nhưng một khung hình bị cắt có thể thiếu phần trước và sau. SafeVoice không xác minh ảnh là thật hay ai đã gửi.",
     do: "Nếu an toàn: giữ bản gốc; ghi ngày chụp khác với ngày hiển thị trong ảnh; thêm nơi nội dung xuất hiện; đánh dấu phần bị cắt hoặc không đọc được. Chỉ chia sẻ với người cần giúp.",
     avoid:
       "Không sửa bản gốc rồi trình bày như chưa chỉnh. Không đăng công khai hình có tên, số điện thoại hoặc nội dung riêng tư của người khác.",
@@ -224,12 +224,12 @@ const entries: Entry[] = [
     topic: "Online",
     format: "checklist",
     sources: ["STOP-REPORT"],
-    know: "Nền tảng có cơ chế báo nội dung và chặn tài khoản riêng. Tên nút và trình tự có thể thay đổi; MoodPrint không có kết nối để xử lý báo cáo thay bạn.",
+    know: "Nền tảng có cơ chế báo nội dung và chặn tài khoản riêng. Tên nút và trình tự có thể thay đổi; SafeVoice không có kết nối để xử lý báo cáo thay bạn.",
     do: "Mở trung tâm trợ giúp từ chính ứng dụng hoặc website chính thức. Tìm “báo cáo” cho đúng loại nội dung: bài đăng, tài khoản hay tin nhắn. Xem lại nội dung bạn định gửi rồi tự quyết định.",
     avoid:
       "Không đưa mật khẩu cho người hứa “xử lý nhanh”. Không xem việc chặn là bảo đảm rằng nội dung đã biến mất ở mọi nơi.",
     example:
-      "Danh sách kiểm tra do MoodPrint soạn: đúng trang chính thức; đúng nội dung; thông tin đính kèm cần thiết; biết nơi xem phản hồi của nền tảng.",
+      "Danh sách kiểm tra do SafeVoice soạn: đúng trang chính thức; đúng nội dung; thông tin đính kèm cần thiết; biết nơi xem phản hồi của nền tảng.",
   },
   {
     id: 10,
@@ -291,7 +291,7 @@ const entries: Entry[] = [
     avoid:
       "Không gửi thêm ảnh, tiền hoặc thông tin để đổi lấy lời hứa xóa ảnh. Không rủ nhóm bạn phát tán lại để “tìm nguồn”.",
     example:
-      "Câu mở đầu do MoodPrint soạn: “Có ảnh của em đang bị chia sẻ. Em không muốn chuyển ảnh, nhưng em cần người lớn giúp ngay.”",
+      "Câu mở đầu do SafeVoice soạn: “Có ảnh của em đang bị chia sẻ. Em không muốn chuyển ảnh, nhưng em cần người lớn giúp ngay.”",
     scenario: scenario(
       "Một người hứa xóa ảnh nếu bạn gửi thêm. Bạn chọn gì?",
       "Dừng trao đổi và nhờ người lớn an toàn giúp",
@@ -309,7 +309,7 @@ const entries: Entry[] = [
     topic: "Nhờ hỗ trợ",
     format: "template",
     sources: ["UNICEF-VN"],
-    know: "Tìm một người lớn tin cậy là một cách tìm hỗ trợ. Mẫu bên dưới do MoodPrint biên tập để luyện trình bày; không phải biểu mẫu của trường.",
+    know: "Tìm một người lớn tin cậy là một cách tìm hỗ trợ. Mẫu bên dưới do SafeVoice biên tập để luyện trình bày; không phải biểu mẫu của trường.",
     do: "“Em muốn nói riêng với cô/thầy. Trong những ngày gần đây, em gặp… Điều em cần lúc này là…” Bạn có thể đề nghị người lớn nghe hết trước khi bàn cách làm.",
     avoid:
       "Không cần kể mọi chi tiết trong tin đầu tiên hoặc gửi tên tất cả người liên quan vào một nhóm đông người.",
@@ -367,7 +367,7 @@ const entries: Entry[] = [
     avoid:
       "Không hứa giữ bí mật tuyệt đối nếu bạn lo có người đang gặp nguy hiểm. Không đặt mình vào chỗ bị tấn công để chứng tỏ tình bạn.",
     example:
-      "Mẫu lời chứng do MoodPrint soạn: “Mình thấy việc xảy ra ở cửa lớp; phần trước đó mình không có mặt.”",
+      "Mẫu lời chứng do SafeVoice soạn: “Mình thấy việc xảy ra ở cửa lớp; phần trước đó mình không có mặt.”",
     scenario: scenario(
       "Bạn thấy bạn mình bị gây khó dễ trong nhóm chat. Cách hỗ trợ là…",
       "Nhắn riêng hỏi thăm và cùng tìm người lớn",
@@ -417,7 +417,7 @@ const entries: Entry[] = [
     avoid:
       "Không đưa thông tin liên hệ hoặc chuyện riêng lên không gian công khai để tìm bất kỳ người lạ nào nhận giúp.",
     example:
-      "Danh sách do MoodPrint gợi ý: người nói chuyện đầu tiên; người dự phòng; một câu mình muốn bắt đầu. Có thể chỉ dùng tên gọi dễ nhớ.",
+      "Danh sách do SafeVoice gợi ý: người nói chuyện đầu tiên; người dự phòng; một câu mình muốn bắt đầu. Có thể chỉ dùng tên gọi dễ nhớ.",
     quiz: quiz(
       "Nếu chưa thấy an toàn để kể với phụ huynh, bạn có thể…",
       [
@@ -437,7 +437,7 @@ const entries: Entry[] = [
     topic: "Nhờ hỗ trợ",
     format: "template",
     sources: ["STOP-REPORT"],
-    know: "Ghi ngày, giờ và mô tả sự việc giúp người đọc theo dõi diễn biến. Mẫu trình bày sau là gợi ý biên tập của MoodPrint, không xác minh hay kết luận trách nhiệm.",
+    know: "Ghi ngày, giờ và mô tả sự việc giúp người đọc theo dõi diễn biến. Mẫu trình bày sau là gợi ý biên tập của SafeVoice, không xác minh hay kết luận trách nhiệm.",
     do: "Viết bốn ý: việc đã thấy; thời gian biết hoặc chưa rõ; ảnh hưởng với mình; điều muốn được giúp. Dùng “mình nhìn thấy” và “mình nghe kể” cho đúng nguồn.",
     avoid:
       "Tránh từ “luôn luôn”, “tất cả” nếu bạn chưa có thông tin. Không biến suy đoán danh tính thành sự thật trong bản nháp.",
@@ -453,7 +453,7 @@ const entries: Entry[] = [
     topic: "Chăm sóc bản thân",
     format: "guide",
     sources: ["UNICEF-VN"],
-    know: "Việc bị làm tổn thương online có thể ảnh hưởng tới cảm giác và sinh hoạt. Trang này là gợi ý sinh hoạt do MoodPrint biên tập, không phải đánh giá sức khỏe tâm thần.",
+    know: "Việc bị làm tổn thương online có thể ảnh hưởng tới cảm giác và sinh hoạt. Trang này là gợi ý sinh hoạt do SafeVoice biên tập, không phải đánh giá sức khỏe tâm thần.",
     do: "Chọn một việc nhẹ phù hợp: uống nước, ngồi ở nơi yên, tắt thông báo một lúc hoặc nhắn cho người mình tin. Bạn có thể dừng bài đọc bất cứ lúc nào.",
     avoid:
       "Không ép mình phải bình tĩnh ngay để được giúp. Nếu bạn đang không an toàn hoặc có ý nghĩ làm hại bản thân, hãy tìm người lớn gần đó và trợ giúp trực tiếp ngay.",
@@ -465,16 +465,16 @@ const entries: Entry[] = [
     slug: "tong-dai-111",
     title: "Tổng đài 111 tại Việt Nam",
     summary:
-      "Một kênh chính thức về bảo vệ trẻ em, không cần qua bản nháp MoodPrint.",
+      "Một kênh chính thức về bảo vệ trẻ em, không cần qua bản nháp SafeVoice.",
     topic: "Nhờ hỗ trợ",
     format: "faq",
     sources: ["VN-111"],
     know: "Tổng đài Quốc gia bảo vệ trẻ em 111 hoạt động 24/24 và miễn phí cước gọi, tư vấn theo thông tin chính thức. Kênh này tiếp nhận thông tin về nguy cơ và hành vi xâm hại trẻ em.",
     do: "Bạn chủ động bấm liên kết gọi trên trang Hỗ trợ ngay hoặc mở tongdai111.vn. Nếu có thể, kể điều đang xảy ra, bạn đang ở đâu và điều cần giúp; không cần phải có hồ sơ đầy đủ.",
     avoid:
-      "Đừng hiểu rằng lưu một bản nháp trong MoodPrint đã liên hệ 111. Ứng dụng không gọi tự động và không có người trực hỗ trợ qua màn hình này.",
+      "Đừng hiểu rằng lưu một bản nháp trong SafeVoice đã liên hệ 111. Ứng dụng không gọi tự động và không có người trực hỗ trợ qua màn hình này.",
     example:
-      "Câu chuẩn bị do MoodPrint soạn: “Em muốn nhờ hỗ trợ về một việc khiến em thấy không an toàn. Em có thể kể từ đâu?”",
+      "Câu chuẩn bị do SafeVoice soạn: “Em muốn nhờ hỗ trợ về một việc khiến em thấy không an toàn. Em có thể kể từ đâu?”",
   },
   {
     id: 22,
@@ -484,10 +484,10 @@ const entries: Entry[] = [
     topic: "Nhờ hỗ trợ",
     format: "checklist",
     sources: ["UNICEF-VN"],
-    know: "Tìm hỗ trợ có thể là nhiều cuộc trò chuyện. Theo dõi trong MoodPrint chỉ là tự ghi nhận; dấu hoàn thành không xác nhận rằng nhà trường đã xử lý hay bạn đã an toàn.",
+    know: "Tìm hỗ trợ có thể là nhiều cuộc trò chuyện. Theo dõi trong SafeVoice chỉ là tự ghi nhận; dấu hoàn thành không xác nhận rằng nhà trường đã xử lý hay bạn đã an toàn.",
     do: "Chọn ngày tự xem lại, viết việc đã thực hiện và điều thay đổi. Nếu muốn, xin người lớn một lúc để trao đổi lại. Nếu chưa tốt hơn, chọn một bước khác cùng họ.",
     avoid:
-      "Không để một ngày hẹn ngăn bạn tìm giúp ngay khi nguy cơ tăng. MoodPrint không gửi nhắc lịch hoặc theo dõi thay người lớn.",
+      "Không để một ngày hẹn ngăn bạn tìm giúp ngay khi nguy cơ tăng. SafeVoice không gửi nhắc lịch hoặc theo dõi thay người lớn.",
     example:
       "Ghi chú mẫu: “Mình đã nói với cô vào thứ Hai. Hai ngày sau chưa có tin nhắn mới; mình vẫn lo giờ ra chơi và muốn bàn thêm.”",
   },
@@ -504,7 +504,7 @@ const entries: Entry[] = [
     avoid:
       "Không chọn việc buộc bạn gặp riêng người đe dọa hoặc tiếp tục ở chỗ nguy hiểm để thu thập thông tin.",
     example:
-      "Ví dụ do MoodPrint soạn: “Hôm nay mình chỉ cần nhờ cô đi cùng ra cổng. Việc ghi chép mình có thể để sau.”",
+      "Ví dụ do SafeVoice soạn: “Hôm nay mình chỉ cần nhờ cô đi cùng ra cổng. Việc ghi chép mình có thể để sau.”",
     quiz: quiz(
       "Bạn thấy nguy cơ đang xảy ra. Bước nào phù hợp nhất?",
       [
@@ -566,7 +566,7 @@ export const knowledgeArticles: KnowledgeArticle[] = entries.map((entry) => ({
   sourceIds: entry.sources,
   lastReviewed: "2026-11-07",
   applicability:
-    "Nội dung giáo dục tiếng Việt cho học sinh 11–17 tuổi. Ví dụ, mẫu lời nói, tình huống và câu hỏi do MoodPrint biên tập, hoàn toàn giả lập. Nguồn bên dưới dùng tham khảo chủ đề; không thẩm định từng tình huống và không thay tư vấn chuyên môn.",
+    "Nội dung giáo dục tiếng Việt cho học sinh 11–17 tuổi. Ví dụ, mẫu lời nói, tình huống và câu hỏi do SafeVoice biên tập, hoàn toàn giả lập. Nguồn bên dưới dùng tham khảo chủ đề; không thẩm định từng tình huống và không thay tư vấn chuyên môn.",
   scenario: entry.scenario,
   quiz: entry.quiz,
 }));

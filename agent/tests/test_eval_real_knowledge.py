@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 def test_real_factory_refuses_non_loopback_database_before_any_client(monkeypatch):
     module = importlib.import_module("evals.real_knowledge")
-    monkeypatch.setenv("MOODPRINT_EVAL_DATABASE_ENV", "synthetic.env")
+    monkeypatch.setenv("SAFEVOICE_EVAL_DATABASE_ENV", "synthetic.env")
     monkeypatch.setattr(
         module,
         "dotenv_values",
@@ -61,7 +61,7 @@ def test_exhausted_openai_ledger_is_refused_before_key_or_client(monkeypatch, tm
 
     path = tmp_path / "existing-spend.jsonl"
     path.write_text("synthetic test fixture", encoding="utf-8")
-    monkeypatch.setenv("MOODPRINT_EVAL_LEDGER", str(path))
+    monkeypatch.setenv("SAFEVOICE_EVAL_LEDGER", str(path))
     monkeypatch.setattr(live, "load_budget", lambda *args, **kwargs: None)
     monkeypatch.setattr(
         live,

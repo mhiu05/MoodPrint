@@ -1,9 +1,9 @@
 from typing import Literal
 from uuid import UUID
 
-from moodprint_shared.contracts.base import FrozenDTO
-from moodprint_shared.contracts.incidents import CaseStatus, EventCreate
 from pydantic import Field, model_validator
+from safevoice_shared.contracts.base import FrozenDTO
+from safevoice_shared.contracts.incidents import CaseStatus, EventCreate
 
 from app.core.errors import ApiError
 

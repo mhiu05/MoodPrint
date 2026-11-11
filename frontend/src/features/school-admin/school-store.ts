@@ -18,7 +18,7 @@ export const useSchoolStore = create<{
       reset: () => set({ reports: structuredClone(schoolSeed) }),
     }),
     {
-      name: "moodprint-school-demo",
+      name: "safevoice-school-demo",
       version: 1,
       storage: createJSONStorage(() => ({
         getItem: (key) => {

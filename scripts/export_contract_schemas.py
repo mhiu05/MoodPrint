@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-from moodprint_shared.testing.schemas import contract_schemas
+from safevoice_shared.testing.schemas import contract_schemas
 
 
 def main() -> int:

@@ -23,7 +23,7 @@ def clean_environment(monkeypatch):
 
 
 def settings(**overrides):
-    from moodprint_shared.env import EnvSettings
+    from safevoice_shared.env import EnvSettings
 
     data = dict(
         supabase_url="http://127.0.0.1:54321",
@@ -36,7 +36,7 @@ def settings(**overrides):
 
 
 def test_every_model_setting_is_gpt_6_luna():
-    from moodprint_shared.config import AppConfig
+    from safevoice_shared.config import AppConfig
 
     cfg = AppConfig()
     for entry in fields(cfg.agent):
@@ -56,7 +56,7 @@ def test_no_other_model_literal_in_source():
 
 
 def test_missing_required_var_names_the_var_without_value():
-    from moodprint_shared.env import EnvSettings
+    from safevoice_shared.env import EnvSettings
 
     with pytest.raises(ValidationError) as caught:
         EnvSettings(supabase_url="http://127.0.0.1", supabase_secret_key="private-sentinel")
@@ -75,7 +75,7 @@ def test_secret_not_in_repr():
 
 @pytest.mark.parametrize("host", ["remote.example", "127.0.0.1.evil.test", "", "0.0.0.0"])
 def test_test_env_rejects_remote_database(host):
-    from moodprint_shared.env import UnsafeTestEnvironment
+    from safevoice_shared.env import UnsafeTestEnvironment
 
     with pytest.raises(UnsafeTestEnvironment):
         settings(database_url=f"postgresql://u:private-sentinel@{host}/db")
@@ -111,7 +111,7 @@ def test_cors_accepts_process_comma_list(monkeypatch):
 
 
 def test_settings_cache_can_be_cleared(monkeypatch):
-    from moodprint_shared.env import get_settings
+    from safevoice_shared.env import get_settings
 
     monkeypatch.setenv("SUPABASE_URL", "http://127.0.0.1:54321")
     monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "synthetic")
@@ -123,7 +123,7 @@ def test_settings_cache_can_be_cleared(monkeypatch):
 
 
 def test_env_example_lists_every_field():
-    from moodprint_shared.env import EnvSettings
+    from safevoice_shared.env import EnvSettings
 
     content = (Path(__file__).resolve().parents[2] / ".env.example").read_text()
     names = set(re.findall(r"^([A-Z_]+)=", content, re.MULTILINE))
@@ -133,8 +133,8 @@ def test_env_example_lists_every_field():
 
 
 def test_env_example_has_no_values_for_secrets():
-    from moodprint_shared.env import EnvSettings
     from pydantic import SecretStr
+    from safevoice_shared.env import EnvSettings
 
     content = (Path(__file__).resolve().parents[2] / ".env.example").read_text()
     values = dict(re.findall(r"^([A-Z_]+)=(.*)$", content, re.MULTILINE))

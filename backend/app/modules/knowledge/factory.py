@@ -8,13 +8,13 @@ refused outright when ``APP_ENV=production``. Nothing falls back from one to the
 
 import logging
 
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.knowledge import KnowledgeRetriever
-from moodprint_shared.env import EnvSettings
-from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.knowledge import KnowledgeRetriever
+from safevoice_shared.env import EnvSettings
+from safevoice_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-log = logging.getLogger("moodprint.knowledge.factory")
+log = logging.getLogger("safevoice.knowledge.factory")
 
 
 def build_knowledge_retriever(
@@ -30,8 +30,8 @@ def build_knowledge_retriever(
     if cfg.knowledge.retriever == "pgvector":
         if settings.voyage_api_key is None:
             raise ValueError("Voyage API key is required for the pgvector retriever")
-        from moodprint_agent.knowledge.embedder import VoyageEmbedder
-        from moodprint_agent.knowledge.retriever import PgVectorKnowledgeRetriever
+        from safevoice_agent.knowledge.embedder import VoyageEmbedder
+        from safevoice_agent.knowledge.retriever import PgVectorKnowledgeRetriever
 
         return PgVectorKnowledgeRetriever(
             engine,

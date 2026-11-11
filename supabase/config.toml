@@ -1,6 +1,6 @@
 # CLI commands are pinned by scripts/dev/supabase_worktree.py to 2.122.1.
 # Keep application schemas out of the public Data API.
-project_id = "moodprint-foundation"
+project_id = "safevoice-foundation"
 
 [api]
 enabled = true

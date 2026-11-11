@@ -1,7 +1,7 @@
 import re
 from uuid import uuid4
 
-from moodprint_shared.logging import request_id_context
+from safevoice_shared.logging import request_id_context
 from starlette.middleware.base import BaseHTTPMiddleware
 
 

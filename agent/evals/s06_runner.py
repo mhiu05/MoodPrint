@@ -17,12 +17,12 @@ from typing import Any, Literal, Protocol
 
 from evals.budget import BudgetError
 from evals.s06_mechanisms import ASSESSMENT_FIELDS, MECHANISMS
-from moodprint_agent.companion import PROMPT_VERSION, load_prompt
-from moodprint_agent.tools.safety import assess_conversation
-from moodprint_shared.config import OPENAI_MODEL, AppConfig
-from moodprint_shared.contracts.agent import CompanionTurn, Finding
 from openai import pydantic_function_tool
 from pydantic import BaseModel, ConfigDict, ValidationError
+from safevoice_agent.companion import PROMPT_VERSION, load_prompt
+from safevoice_agent.tools.safety import assess_conversation
+from safevoice_shared.config import OPENAI_MODEL, AppConfig
+from safevoice_shared.contracts.agent import CompanionTurn, Finding
 
 
 class ExtractionFailed(ValueError):

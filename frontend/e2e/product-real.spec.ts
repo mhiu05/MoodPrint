@@ -16,7 +16,7 @@ test("PC-UI: case context reaches chat and practice; live composer fits seven ex
   try {
     const { id: caseId } = await createCaseViaApi(user.email);
     await page.addInitScript(() =>
-      localStorage.setItem("moodprint:ai-companion", "live"),
+      localStorage.setItem("safevoice:ai-companion", "live"),
     );
     await login(page, user.email);
     await expect(page).toHaveURL(/\/home$/);

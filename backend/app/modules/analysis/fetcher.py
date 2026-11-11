@@ -15,7 +15,7 @@ from collections.abc import Awaitable, Callable
 from urllib.parse import urlsplit
 
 import httpx
-from moodprint_agent.evidence.image import ImageRejected
+from safevoice_agent.evidence.image import ImageRejected
 
 Resolver = Callable[[str, int], Awaitable[list[str]]]
 SIGNED_PATH_PREFIX = "/storage/v1/object/sign/"

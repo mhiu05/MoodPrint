@@ -4,8 +4,8 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from moodprint_shared.contracts.base import FrozenDTO
 from pydantic import Field
+from safevoice_shared.contracts.base import FrozenDTO
 
 Role = Literal["teacher", "parent", "trusted_adult"]
 

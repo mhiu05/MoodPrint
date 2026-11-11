@@ -10,25 +10,25 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
-from moodprint_agent.tools.proposals import (
+from safevoice_agent.tools.proposals import (
     ApplyOutcome,
     ProposalKind,
     StoredProposal,
     payload_sha256,
 )
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.errors import NotFound
-from moodprint_shared.contracts.evidence import EvidenceMeta
-from moodprint_shared.contracts.incidents import CaseDetail, CaseQuery, CaseSummary
-from moodprint_shared.contracts.knowledge import (
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.errors import NotFound
+from safevoice_shared.contracts.evidence import EvidenceMeta
+from safevoice_shared.contracts.incidents import CaseDetail, CaseQuery, CaseSummary
+from safevoice_shared.contracts.knowledge import (
     KnowledgeQuery,
     KnowledgeResult,
     KnowledgeRetriever,
     RetrievalScope,
 )
-from moodprint_shared.contracts.memory import MemoryCandidate, MemoryCandidateCreate
-from moodprint_shared.contracts.paging import Page
-from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
+from safevoice_shared.contracts.memory import MemoryCandidate, MemoryCandidateCreate
+from safevoice_shared.contracts.paging import Page
+from safevoice_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 
 NOW = datetime(2026, 11, 8, 12, 0, tzinfo=UTC)
 OWNER = UUID("00000000-0000-4000-8000-0000000000a1")

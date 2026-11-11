@@ -14,14 +14,14 @@ from pathlib import Path
 from typing import Any
 
 from evals.cases_io import Case
-from moodprint_agent.companion import (
+from safevoice_agent.companion import (
     EVIDENCE_READER_VERSION,
     PROMPT_VERSION,
     ROLEPLAY_COACH_VERSION,
     ROLEPLAY_PARTNER_VERSION,
 )
-from moodprint_agent.tools.factory import build_registry
-from moodprint_shared.config import OPENAI_MODEL, AppConfig
+from safevoice_agent.tools.factory import build_registry
+from safevoice_shared.config import OPENAI_MODEL, AppConfig
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -43,7 +43,7 @@ def tree_hash(paths: list[Path]) -> str:
 def snapshot(
     cfg: AppConfig, *, effort: str, retriever: str, corpus_version: str, corpus_sha256: str = ""
 ) -> dict[str, Any]:
-    prompts = ROOT / "agent/src/moodprint_agent/prompts"
+    prompts = ROOT / "agent/src/safevoice_agent/prompts"
     names = [
         PROMPT_VERSION,
         ROLEPLAY_PARTNER_VERSION,
@@ -78,7 +78,7 @@ def snapshot(
         or (
             tree_hash(corpus_paths)
             if retriever == "real"
-            else tree_hash([ROOT / "shared/src/moodprint_shared/testing/knowledge_fixture.py"])
+            else tree_hash([ROOT / "shared/src/safevoice_shared/testing/knowledge_fixture.py"])
         ),
     }
 

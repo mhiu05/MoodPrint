@@ -18,8 +18,8 @@ from app.modules.sharing.schemas import ShareCreate, ShareSubmit
 from app.modules.sharing.service import SharingService
 from app.modules.support.schemas import DraftCreate
 from app.modules.support.service import SupportService
-from moodprint_shared.contracts.errors import Forbidden, NotFound
-from moodprint_shared.contracts.plans import PlanItem, PlanUpsert
+from safevoice_shared.contracts.errors import Forbidden, NotFound
+from safevoice_shared.contracts.plans import PlanItem, PlanUpsert
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 

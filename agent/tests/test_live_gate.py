@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_live_suite_refuses_without_budget_or_key(tmp_path: Path) -> None:
     env = {k: v for k, v in os.environ.items() if k != "OPENAI_API_KEY"}
-    env["MOODPRINT_EVAL_BUDGET"] = str(tmp_path / "absent-budget.json")
+    env["SAFEVOICE_EVAL_BUDGET"] = str(tmp_path / "absent-budget.json")
     result = subprocess.run(
         [
             sys.executable,

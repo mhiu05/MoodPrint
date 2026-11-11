@@ -16680,7 +16680,7 @@
         {
           "document_id": "kb-school-quy-trinh-khung",
           "chunk_id": "kb-school-quy-trinh-khung#001-f27269b9",
-          "text": "Thẻ này chỉ tóm tắt một khung chung. Quy trình cụ thể ở từng trường, ai phụ trách, thời hạn bao lâu, mức kỷ luật thế nào, có thể khác và không được nêu trong phần văn bản MoodPrint đã đọc. Hãy hỏi trực tiếp nhà trường về quy trình của họ.",
+          "text": "Thẻ này chỉ tóm tắt một khung chung. Quy trình cụ thể ở từng trường, ai phụ trách, thời hạn bao lâu, mức kỷ luật thế nào, có thể khác và không được nêu trong phần văn bản SafeVoice đã đọc. Hãy hỏi trực tiếp nhà trường về quy trình của họ.",
           "vector_score": 0.4682424924662709,
           "lexical_score": null,
           "rank_score": 0.9622641509433962,
@@ -16745,7 +16745,7 @@
         {
           "document_id": "kb-legal-rieng-tu-duoi16",
           "chunk_id": "kb-legal-rieng-tu-duoi16#001-3a5361ec",
-          "text": "Gợi ý biên soạn của MoodPrint: nhờ người lớn đáng tin giúp xem nội dung bị chia sẻ, lưu thông tin cần thiết và chọn nơi báo phù hợp. Đừng đăng lại ảnh hay bí mật của người khác để trả đũa. Thẻ này không xác định mức phạt, không kết luận ai đã vi phạm và không hứa bài đăng sẽ được gỡ.",
+          "text": "Gợi ý biên soạn của SafeVoice: nhờ người lớn đáng tin giúp xem nội dung bị chia sẻ, lưu thông tin cần thiết và chọn nơi báo phù hợp. Đừng đăng lại ảnh hay bí mật của người khác để trả đũa. Thẻ này không xác định mức phạt, không kết luận ai đã vi phạm và không hứa bài đăng sẽ được gỡ.",
           "vector_score": 0.4619015753269229,
           "lexical_score": null,
           "rank_score": 0.9622641509433962,
@@ -16823,7 +16823,7 @@
         {
           "document_id": "kb-school-nha-giao-tt03-2026",
           "chunk_id": "kb-school-nha-giao-tt03-2026#001-bfa3aebe",
-          "text": "Gợi ý thực hành của MoodPrint: mô tả điều đã xảy ra, cho biết bạn có an toàn lúc này không và nhờ giáo viên cùng xác định bước bảo vệ tiếp theo. Bạn có thể hỏi ai sẽ tiếp nhận thông tin và đề nghị trao đổi kín đáo. Quy tắc trên không hứa giữ kín tuyệt đối, không nêu số ngày giải quyết hay mức kỷ luật; đừng coi thẻ này là quy trình riêng của trường bạn.",
+          "text": "Gợi ý thực hành của SafeVoice: mô tả điều đã xảy ra, cho biết bạn có an toàn lúc này không và nhờ giáo viên cùng xác định bước bảo vệ tiếp theo. Bạn có thể hỏi ai sẽ tiếp nhận thông tin và đề nghị trao đổi kín đáo. Quy tắc trên không hứa giữ kín tuyệt đối, không nêu số ngày giải quyết hay mức kỷ luật; đừng coi thẻ này là quy trình riêng của trường bạn.",
           "vector_score": 0.5466001629829407,
           "lexical_score": 0.26064761158319144,
           "rank_score": 0.9272727272727272,
@@ -16848,7 +16848,7 @@
         {
           "document_id": "kb-school-quy-trinh-khung",
           "chunk_id": "kb-school-quy-trinh-khung#001-f27269b9",
-          "text": "Thẻ này chỉ tóm tắt một khung chung. Quy trình cụ thể ở từng trường, ai phụ trách, thời hạn bao lâu, mức kỷ luật thế nào, có thể khác và không được nêu trong phần văn bản MoodPrint đã đọc. Hãy hỏi trực tiếp nhà trường về quy trình của họ.",
+          "text": "Thẻ này chỉ tóm tắt một khung chung. Quy trình cụ thể ở từng trường, ai phụ trách, thời hạn bao lâu, mức kỷ luật thế nào, có thể khác và không được nêu trong phần văn bản SafeVoice đã đọc. Hãy hỏi trực tiếp nhà trường về quy trình của họ.",
           "vector_score": 0.5120792694139045,
           "lexical_score": 0.3980536788737568,
           "rank_score": 1.0,
@@ -16878,7 +16878,7 @@
         {
           "document_id": "kb-legal-nd80-tong-quan",
           "chunk_id": "kb-legal-nd80-tong-quan#001-47150db3",
-          "text": "Điều 6 chia các biện pháp làm ba nhóm: phòng ngừa, hỗ trợ người học có nguy cơ bị bạo lực, và can thiệp khi đã xảy ra. Mỗi nhóm có các việc cụ thể cho nhà trường, như tuyên truyền, tư vấn, chăm sóc y tế, thông báo gia đình và phối hợp với công an hoặc chính quyền địa phương. Lưu ý quan trọng. Đây là phần tóm tắt từ bản quét chính thức, không phải tư vấn pháp lý. MoodPrint chưa xác nhận được từ cơ sở dữ liệu chính thức rằng nghị định còn nguyên hiệu lực hoặc chưa bị sửa đổi vào thời điểm đọc. Với việc cần căn cứ pháp lý, hãy kiểm tra văn bản hiện hành hoặc hỏi người có chuyên môn.",
+          "text": "Điều 6 chia các biện pháp làm ba nhóm: phòng ngừa, hỗ trợ người học có nguy cơ bị bạo lực, và can thiệp khi đã xảy ra. Mỗi nhóm có các việc cụ thể cho nhà trường, như tuyên truyền, tư vấn, chăm sóc y tế, thông báo gia đình và phối hợp với công an hoặc chính quyền địa phương. Lưu ý quan trọng. Đây là phần tóm tắt từ bản quét chính thức, không phải tư vấn pháp lý. SafeVoice chưa xác nhận được từ cơ sở dữ liệu chính thức rằng nghị định còn nguyên hiệu lực hoặc chưa bị sửa đổi vào thời điểm đọc. Với việc cần căn cứ pháp lý, hãy kiểm tra văn bản hiện hành hoặc hỏi người có chuyên môn.",
           "vector_score": 0.4078095676842205,
           "lexical_score": null,
           "rank_score": 0.8947368421052632,
@@ -16906,7 +16906,7 @@
         {
           "document_id": "kb-school-quy-trinh-khung",
           "chunk_id": "kb-school-quy-trinh-khung#001-f27269b9",
-          "text": "Thẻ này chỉ tóm tắt một khung chung. Quy trình cụ thể ở từng trường, ai phụ trách, thời hạn bao lâu, mức kỷ luật thế nào, có thể khác và không được nêu trong phần văn bản MoodPrint đã đọc. Hãy hỏi trực tiếp nhà trường về quy trình của họ.",
+          "text": "Thẻ này chỉ tóm tắt một khung chung. Quy trình cụ thể ở từng trường, ai phụ trách, thời hạn bao lâu, mức kỷ luật thế nào, có thể khác và không được nêu trong phần văn bản SafeVoice đã đọc. Hãy hỏi trực tiếp nhà trường về quy trình của họ.",
           "vector_score": 0.6072337212334195,
           "lexical_score": null,
           "rank_score": 1.0,
@@ -16964,7 +16964,7 @@
         {
           "document_id": "kb-school-quy-trinh-khung",
           "chunk_id": "kb-school-quy-trinh-khung#001-f27269b9",
-          "text": "Thẻ này chỉ tóm tắt một khung chung. Quy trình cụ thể ở từng trường, ai phụ trách, thời hạn bao lâu, mức kỷ luật thế nào, có thể khác và không được nêu trong phần văn bản MoodPrint đã đọc. Hãy hỏi trực tiếp nhà trường về quy trình của họ.",
+          "text": "Thẻ này chỉ tóm tắt một khung chung. Quy trình cụ thể ở từng trường, ai phụ trách, thời hạn bao lâu, mức kỷ luật thế nào, có thể khác và không được nêu trong phần văn bản SafeVoice đã đọc. Hãy hỏi trực tiếp nhà trường về quy trình của họ.",
           "vector_score": 0.545056478531852,
           "lexical_score": 0.39244799551388115,
           "rank_score": 1.0,
@@ -16994,7 +16994,7 @@
         {
           "document_id": "kb-legal-nd80-tong-quan",
           "chunk_id": "kb-legal-nd80-tong-quan#001-47150db3",
-          "text": "Điều 6 chia các biện pháp làm ba nhóm: phòng ngừa, hỗ trợ người học có nguy cơ bị bạo lực, và can thiệp khi đã xảy ra. Mỗi nhóm có các việc cụ thể cho nhà trường, như tuyên truyền, tư vấn, chăm sóc y tế, thông báo gia đình và phối hợp với công an hoặc chính quyền địa phương. Lưu ý quan trọng. Đây là phần tóm tắt từ bản quét chính thức, không phải tư vấn pháp lý. MoodPrint chưa xác nhận được từ cơ sở dữ liệu chính thức rằng nghị định còn nguyên hiệu lực hoặc chưa bị sửa đổi vào thời điểm đọc. Với việc cần căn cứ pháp lý, hãy kiểm tra văn bản hiện hành hoặc hỏi người có chuyên môn.",
+          "text": "Điều 6 chia các biện pháp làm ba nhóm: phòng ngừa, hỗ trợ người học có nguy cơ bị bạo lực, và can thiệp khi đã xảy ra. Mỗi nhóm có các việc cụ thể cho nhà trường, như tuyên truyền, tư vấn, chăm sóc y tế, thông báo gia đình và phối hợp với công an hoặc chính quyền địa phương. Lưu ý quan trọng. Đây là phần tóm tắt từ bản quét chính thức, không phải tư vấn pháp lý. SafeVoice chưa xác nhận được từ cơ sở dữ liệu chính thức rằng nghị định còn nguyên hiệu lực hoặc chưa bị sửa đổi vào thời điểm đọc. Với việc cần căn cứ pháp lý, hãy kiểm tra văn bản hiện hành hoặc hỏi người có chuyên môn.",
           "vector_score": 0.41051405668258667,
           "lexical_score": null,
           "rank_score": 0.8947368421052632,
@@ -17042,7 +17042,7 @@
         {
           "document_id": "kb-school-quy-trinh-khung",
           "chunk_id": "kb-school-quy-trinh-khung#001-f27269b9",
-          "text": "Thẻ này chỉ tóm tắt một khung chung. Quy trình cụ thể ở từng trường, ai phụ trách, thời hạn bao lâu, mức kỷ luật thế nào, có thể khác và không được nêu trong phần văn bản MoodPrint đã đọc. Hãy hỏi trực tiếp nhà trường về quy trình của họ.",
+          "text": "Thẻ này chỉ tóm tắt một khung chung. Quy trình cụ thể ở từng trường, ai phụ trách, thời hạn bao lâu, mức kỷ luật thế nào, có thể khác và không được nêu trong phần văn bản SafeVoice đã đọc. Hãy hỏi trực tiếp nhà trường về quy trình của họ.",
           "vector_score": 0.4469128713931796,
           "lexical_score": null,
           "rank_score": 0.9272727272727272,
@@ -17329,7 +17329,7 @@
         {
           "document_id": "kb-legal-nd80-tong-quan",
           "chunk_id": "kb-legal-nd80-tong-quan#001-47150db3",
-          "text": "Điều 6 chia các biện pháp làm ba nhóm: phòng ngừa, hỗ trợ người học có nguy cơ bị bạo lực, và can thiệp khi đã xảy ra. Mỗi nhóm có các việc cụ thể cho nhà trường, như tuyên truyền, tư vấn, chăm sóc y tế, thông báo gia đình và phối hợp với công an hoặc chính quyền địa phương. Lưu ý quan trọng. Đây là phần tóm tắt từ bản quét chính thức, không phải tư vấn pháp lý. MoodPrint chưa xác nhận được từ cơ sở dữ liệu chính thức rằng nghị định còn nguyên hiệu lực hoặc chưa bị sửa đổi vào thời điểm đọc. Với việc cần căn cứ pháp lý, hãy kiểm tra văn bản hiện hành hoặc hỏi người có chuyên môn.",
+          "text": "Điều 6 chia các biện pháp làm ba nhóm: phòng ngừa, hỗ trợ người học có nguy cơ bị bạo lực, và can thiệp khi đã xảy ra. Mỗi nhóm có các việc cụ thể cho nhà trường, như tuyên truyền, tư vấn, chăm sóc y tế, thông báo gia đình và phối hợp với công an hoặc chính quyền địa phương. Lưu ý quan trọng. Đây là phần tóm tắt từ bản quét chính thức, không phải tư vấn pháp lý. SafeVoice chưa xác nhận được từ cơ sở dữ liệu chính thức rằng nghị định còn nguyên hiệu lực hoặc chưa bị sửa đổi vào thời điểm đọc. Với việc cần căn cứ pháp lý, hãy kiểm tra văn bản hiện hành hoặc hỏi người có chuyên môn.",
           "vector_score": 0.5452737808227539,
           "lexical_score": 0.09564251606040078,
           "rank_score": 0.9807692307692308,
@@ -17445,7 +17445,7 @@
         {
           "document_id": "legacy-tong-dai-111",
           "chunk_id": "legacy-tong-dai-111#000-fdd26a70",
-          "text": "Tổng đài Quốc gia bảo vệ trẻ em 111 hoạt động 24/24 và miễn phí cước gọi, tư vấn theo thông tin chính thức. Kênh này tiếp nhận thông tin về nguy cơ và hành vi xâm hại trẻ em. Một bước bạn có thể thử. Bạn chủ động bấm liên kết gọi trên trang Hỗ trợ ngay hoặc mở tongdai111.vn. Nếu có thể, kể điều đang xảy ra, bạn đang ở đâu và điều cần giúp; không cần phải có hồ sơ đầy đủ. Điều cần tránh. Đừng hiểu rằng lưu một bản nháp trong MoodPrint đã liên hệ 111. Ứng dụng không gọi tự động và không có người trực hỗ trợ qua màn hình này. Ví dụ để chuẩn bị lời của bạn. Câu chuẩn bị do MoodPrint soạn: “Em muốn nhờ hỗ trợ về một việc khiến em thấy không an toàn. Em có thể kể từ đâu?”",
+          "text": "Tổng đài Quốc gia bảo vệ trẻ em 111 hoạt động 24/24 và miễn phí cước gọi, tư vấn theo thông tin chính thức. Kênh này tiếp nhận thông tin về nguy cơ và hành vi xâm hại trẻ em. Một bước bạn có thể thử. Bạn chủ động bấm liên kết gọi trên trang Hỗ trợ ngay hoặc mở tongdai111.vn. Nếu có thể, kể điều đang xảy ra, bạn đang ở đâu và điều cần giúp; không cần phải có hồ sơ đầy đủ. Điều cần tránh. Đừng hiểu rằng lưu một bản nháp trong SafeVoice đã liên hệ 111. Ứng dụng không gọi tự động và không có người trực hỗ trợ qua màn hình này. Ví dụ để chuẩn bị lời của bạn. Câu chuẩn bị do SafeVoice soạn: “Em muốn nhờ hỗ trợ về một việc khiến em thấy không an toàn. Em có thể kể từ đâu?”",
           "vector_score": 0.4390481078057361,
           "lexical_score": null,
           "rank_score": 0.9807692307692308,
@@ -17455,7 +17455,7 @@
         {
           "document_id": "legacy-theo-doi-sau-khi-nho-giup",
           "chunk_id": "legacy-theo-doi-sau-khi-nho-giup#000-051d0fcc",
-          "text": "Tìm hỗ trợ có thể là nhiều cuộc trò chuyện. Theo dõi trong MoodPrint chỉ là tự ghi nhận; dấu hoàn thành không xác nhận rằng nhà trường đã xử lý hay bạn đã an toàn. Một bước bạn có thể thử. Chọn ngày tự xem lại, viết việc đã thực hiện và điều thay đổi. Nếu muốn, xin người lớn một lúc để trao đổi lại. Nếu chưa tốt hơn, chọn một bước khác cùng họ. Điều cần tránh. Không để một ngày hẹn ngăn bạn tìm giúp ngay khi nguy cơ tăng. MoodPrint không gửi nhắc lịch hoặc theo dõi thay người lớn. Ví dụ để chuẩn bị lời của bạn. Ghi chú mẫu: “Mình đã nói với cô vào thứ Hai. Hai ngày sau chưa có tin nhắn mới; mình vẫn lo giờ ra chơi và muốn bàn thêm.”",
+          "text": "Tìm hỗ trợ có thể là nhiều cuộc trò chuyện. Theo dõi trong SafeVoice chỉ là tự ghi nhận; dấu hoàn thành không xác nhận rằng nhà trường đã xử lý hay bạn đã an toàn. Một bước bạn có thể thử. Chọn ngày tự xem lại, viết việc đã thực hiện và điều thay đổi. Nếu muốn, xin người lớn một lúc để trao đổi lại. Nếu chưa tốt hơn, chọn một bước khác cùng họ. Điều cần tránh. Không để một ngày hẹn ngăn bạn tìm giúp ngay khi nguy cơ tăng. SafeVoice không gửi nhắc lịch hoặc theo dõi thay người lớn. Ví dụ để chuẩn bị lời của bạn. Ghi chú mẫu: “Mình đã nói với cô vào thứ Hai. Hai ngày sau chưa có tin nhắn mới; mình vẫn lo giờ ra chơi và muốn bàn thêm.”",
           "vector_score": 0.4065052326616514,
           "lexical_score": null,
           "rank_score": 0.9622641509433962,
@@ -17475,7 +17475,7 @@
         {
           "document_id": "kb-legal-nd80-tong-quan",
           "chunk_id": "kb-legal-nd80-tong-quan#001-47150db3",
-          "text": "Điều 6 chia các biện pháp làm ba nhóm: phòng ngừa, hỗ trợ người học có nguy cơ bị bạo lực, và can thiệp khi đã xảy ra. Mỗi nhóm có các việc cụ thể cho nhà trường, như tuyên truyền, tư vấn, chăm sóc y tế, thông báo gia đình và phối hợp với công an hoặc chính quyền địa phương. Lưu ý quan trọng. Đây là phần tóm tắt từ bản quét chính thức, không phải tư vấn pháp lý. MoodPrint chưa xác nhận được từ cơ sở dữ liệu chính thức rằng nghị định còn nguyên hiệu lực hoặc chưa bị sửa đổi vào thời điểm đọc. Với việc cần căn cứ pháp lý, hãy kiểm tra văn bản hiện hành hoặc hỏi người có chuyên môn.",
+          "text": "Điều 6 chia các biện pháp làm ba nhóm: phòng ngừa, hỗ trợ người học có nguy cơ bị bạo lực, và can thiệp khi đã xảy ra. Mỗi nhóm có các việc cụ thể cho nhà trường, như tuyên truyền, tư vấn, chăm sóc y tế, thông báo gia đình và phối hợp với công an hoặc chính quyền địa phương. Lưu ý quan trọng. Đây là phần tóm tắt từ bản quét chính thức, không phải tư vấn pháp lý. SafeVoice chưa xác nhận được từ cơ sở dữ liệu chính thức rằng nghị định còn nguyên hiệu lực hoặc chưa bị sửa đổi vào thời điểm đọc. Với việc cần căn cứ pháp lý, hãy kiểm tra văn bản hiện hành hoặc hỏi người có chuyên môn.",
           "vector_score": 0.39096951484680176,
           "lexical_score": 0.27644087473859624,
           "rank_score": 0.9107142857142857,
@@ -17513,7 +17513,7 @@
         {
           "document_id": "legacy-tam-dung-khi-lo-lang",
           "chunk_id": "legacy-tam-dung-khi-lo-lang#000-c9e25014",
-          "text": "Việc bị làm tổn thương online có thể ảnh hưởng tới cảm giác và sinh hoạt. Trang này là gợi ý sinh hoạt do MoodPrint biên tập, không phải đánh giá sức khỏe tâm thần. Một bước bạn có thể thử. Chọn một việc nhẹ phù hợp: uống nước, ngồi ở nơi yên, tắt thông báo một lúc hoặc nhắn cho người mình tin. Bạn có thể dừng bài đọc bất cứ lúc nào. Điều cần tránh. Không ép mình phải bình tĩnh ngay để được giúp. Nếu bạn đang không an toàn hoặc có ý nghĩ làm hại bản thân, hãy tìm người lớn gần đó và trợ giúp trực tiếp ngay. Ví dụ để chuẩn bị lời của bạn. Lời nhắn mẫu: “Mình đang thấy quá tải. Bạn có thể ngồi cùng mình một lúc trong khi mình tìm cô không?”",
+          "text": "Việc bị làm tổn thương online có thể ảnh hưởng tới cảm giác và sinh hoạt. Trang này là gợi ý sinh hoạt do SafeVoice biên tập, không phải đánh giá sức khỏe tâm thần. Một bước bạn có thể thử. Chọn một việc nhẹ phù hợp: uống nước, ngồi ở nơi yên, tắt thông báo một lúc hoặc nhắn cho người mình tin. Bạn có thể dừng bài đọc bất cứ lúc nào. Điều cần tránh. Không ép mình phải bình tĩnh ngay để được giúp. Nếu bạn đang không an toàn hoặc có ý nghĩ làm hại bản thân, hãy tìm người lớn gần đó và trợ giúp trực tiếp ngay. Ví dụ để chuẩn bị lời của bạn. Lời nhắn mẫu: “Mình đang thấy quá tải. Bạn có thể ngồi cùng mình một lúc trong khi mình tìm cô không?”",
           "vector_score": 0.4768904420006802,
           "lexical_score": null,
           "rank_score": 0.9622641509433962,
@@ -17523,7 +17523,7 @@
         {
           "document_id": "legacy-theo-doi-sau-khi-nho-giup",
           "chunk_id": "legacy-theo-doi-sau-khi-nho-giup#000-051d0fcc",
-          "text": "Tìm hỗ trợ có thể là nhiều cuộc trò chuyện. Theo dõi trong MoodPrint chỉ là tự ghi nhận; dấu hoàn thành không xác nhận rằng nhà trường đã xử lý hay bạn đã an toàn. Một bước bạn có thể thử. Chọn ngày tự xem lại, viết việc đã thực hiện và điều thay đổi. Nếu muốn, xin người lớn một lúc để trao đổi lại. Nếu chưa tốt hơn, chọn một bước khác cùng họ. Điều cần tránh. Không để một ngày hẹn ngăn bạn tìm giúp ngay khi nguy cơ tăng. MoodPrint không gửi nhắc lịch hoặc theo dõi thay người lớn. Ví dụ để chuẩn bị lời của bạn. Ghi chú mẫu: “Mình đã nói với cô vào thứ Hai. Hai ngày sau chưa có tin nhắn mới; mình vẫn lo giờ ra chơi và muốn bàn thêm.”",
+          "text": "Tìm hỗ trợ có thể là nhiều cuộc trò chuyện. Theo dõi trong SafeVoice chỉ là tự ghi nhận; dấu hoàn thành không xác nhận rằng nhà trường đã xử lý hay bạn đã an toàn. Một bước bạn có thể thử. Chọn ngày tự xem lại, viết việc đã thực hiện và điều thay đổi. Nếu muốn, xin người lớn một lúc để trao đổi lại. Nếu chưa tốt hơn, chọn một bước khác cùng họ. Điều cần tránh. Không để một ngày hẹn ngăn bạn tìm giúp ngay khi nguy cơ tăng. SafeVoice không gửi nhắc lịch hoặc theo dõi thay người lớn. Ví dụ để chuẩn bị lời của bạn. Ghi chú mẫu: “Mình đã nói với cô vào thứ Hai. Hai ngày sau chưa có tin nhắn mới; mình vẫn lo giờ ra chơi và muốn bàn thêm.”",
           "vector_score": 0.3412045836448694,
           "lexical_score": null,
           "rank_score": 0.9444444444444444,

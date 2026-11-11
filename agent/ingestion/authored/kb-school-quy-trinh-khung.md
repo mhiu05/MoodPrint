@@ -7,11 +7,11 @@ country_scope = ["VN"]
 topics = ["school-procedure-vn", "legal-vn"]
 age_bands = ["14-17"]
 last_reviewed = 2026-11-09
-applicability = "Tóm tắt biên soạn của MoodPrint từ bản quét chính thức Nghị định 80/2017/NĐ-CP; không phải văn bản pháp luật và không thay thế tư vấn pháp lý. Hiệu lực hiện hành chưa xác nhận từ cơ sở dữ liệu chính thức."
+applicability = "Tóm tắt biên soạn của SafeVoice từ bản quét chính thức Nghị định 80/2017/NĐ-CP; không phải văn bản pháp luật và không thay thế tư vấn pháp lý. Hiệu lực hiện hành chưa xác nhận từ cơ sở dữ liệu chính thức."
 primary_url = "https://vanban.chinhphu.vn/default.aspx?docid=190430&pageid=27160"
 [[derived_from]]
 source_id = "mp-authored"
-locator = "Biên soạn nguyên bản bởi MoodPrint từ thực hành bảo vệ trẻ em thông dụng; chưa thẩm định bởi chuyên gia bên ngoài."
+locator = "Biên soạn nguyên bản bởi SafeVoice từ thực hành bảo vệ trẻ em thông dụng; chưa thẩm định bởi chuyên gia bên ngoài."
 [[derived_from]]
 source_id = "vn-nd-80-2017"
 locator = "Nghị định 80/2017/NĐ-CP, Điều 6 khoản 3, trang 5 (biện pháp can thiệp khi xảy ra bạo lực học đường), bản quét chính thức"
@@ -26,4 +26,4 @@ Cũng theo điểm c khoản 3, nếu vụ việc vượt quá khả năng giả
 
 ## Điều thẻ này không nói
 
-Thẻ này chỉ tóm tắt một khung chung. Quy trình cụ thể ở từng trường, ai phụ trách, thời hạn bao lâu, mức kỷ luật thế nào, có thể khác và không được nêu trong phần văn bản MoodPrint đã đọc. Hãy hỏi trực tiếp nhà trường về quy trình của họ.
+Thẻ này chỉ tóm tắt một khung chung. Quy trình cụ thể ở từng trường, ai phụ trách, thời hạn bao lâu, mức kỷ luật thế nào, có thể khác và không được nêu trong phần văn bản SafeVoice đã đọc. Hãy hỏi trực tiếp nhà trường về quy trình của họ.

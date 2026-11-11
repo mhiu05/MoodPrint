@@ -7,11 +7,11 @@ country_scope = ["VN"]
 topics = ["legal-vn", "school-procedure-vn"]
 age_bands = ["14-17"]
 last_reviewed = 2026-11-09
-applicability = "Tóm tắt biên soạn của MoodPrint từ bản quét chính thức Nghị định 80/2017/NĐ-CP; không phải văn bản pháp luật và không thay thế tư vấn pháp lý. Hiệu lực hiện hành chưa xác nhận từ cơ sở dữ liệu chính thức."
+applicability = "Tóm tắt biên soạn của SafeVoice từ bản quét chính thức Nghị định 80/2017/NĐ-CP; không phải văn bản pháp luật và không thay thế tư vấn pháp lý. Hiệu lực hiện hành chưa xác nhận từ cơ sở dữ liệu chính thức."
 primary_url = "https://vanban.chinhphu.vn/default.aspx?docid=190430&pageid=27160"
 [[derived_from]]
 source_id = "mp-authored"
-locator = "Biên soạn nguyên bản bởi MoodPrint từ thực hành bảo vệ trẻ em thông dụng; chưa thẩm định bởi chuyên gia bên ngoài."
+locator = "Biên soạn nguyên bản bởi SafeVoice từ thực hành bảo vệ trẻ em thông dụng; chưa thẩm định bởi chuyên gia bên ngoài."
 [[derived_from]]
 source_id = "vn-nd-80-2017"
 locator = "Nghị định 80/2017/NĐ-CP, Điều 5 khoản 1 điểm b, c, đ, e, trang 3–4, bản quét chính thức"

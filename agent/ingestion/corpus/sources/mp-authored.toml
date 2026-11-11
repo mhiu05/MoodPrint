@@ -1,13 +1,13 @@
 source_id = "mp-authored"
 kind = "authored"
-publisher = "MoodPrint"
-title = "Thẻ biên soạn MoodPrint về bắt nạt học đường"
+publisher = "SafeVoice"
+title = "Thẻ biên soạn SafeVoice về bắt nạt học đường"
 language = "vi"
 country_scope = ["VN"]
 authority_tier = 4
 licence_class = "authored"
-licence_note = "Nội dung gốc do MoodPrint viết cho học sinh 11–17 tuổi tại Việt Nam."
-licence_quote = "MoodPrint giữ bản quyền phần tự biên soạn và cho dùng trong sản phẩm."
+licence_note = "Nội dung gốc do SafeVoice viết cho học sinh 11–17 tuổi tại Việt Nam."
+licence_quote = "SafeVoice giữ bản quyền phần tự biên soạn và cho dùng trong sản phẩm."
 verified_on = "2026-11-08"
 evidence = "Viết trong repo, không sao chép nguồn hạn chế."
 [scores]

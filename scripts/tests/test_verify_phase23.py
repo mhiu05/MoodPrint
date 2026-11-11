@@ -57,7 +57,7 @@ def transport(root, *, failure=None, drift=False):
                 'APP_ENV="test"\nSUPABASE_URL="http://127.0.0.1:54721"\n'
                 'SUPABASE_PUBLISHABLE_KEY="synthetic"\nSUPABASE_SECRET_KEY="synthetic"\n'
                 + "".join(
-                    f'{name}="postgresql+asyncpg://moodprint_api:synthetic@127.0.0.1:54722/postgres"\n'
+                    f'{name}="postgresql+asyncpg://safevoice_api:synthetic@127.0.0.1:54722/postgres"\n'
                     for name in ("DATABASE_URL", "TEST_DATABASE_URL", "TEST_ADMIN_DATABASE_URL")
                 )
             )

@@ -11,18 +11,18 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from moodprint_agent.tools.proposals import (
+from safevoice_agent.tools.proposals import (
     ApplyOutcome,
     ProposalKind,
     StoredProposal,
     event_id_for,
     payload_sha256,
 )
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.errors import NotFound
-from moodprint_shared.contracts.incidents import EventCreate
-from moodprint_shared.contracts.plans import PlanUpsert
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.errors import NotFound
+from safevoice_shared.contracts.incidents import EventCreate
+from safevoice_shared.contracts.plans import PlanUpsert
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine

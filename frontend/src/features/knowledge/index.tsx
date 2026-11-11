@@ -180,7 +180,7 @@ export function KnowledgeHub() {
       />
       <section className="knowledge-intro">
         <div>
-          <span className="knowledge-eyebrow">Thư viện MoodPrint</span>
+          <span className="knowledge-eyebrow">Thư viện SafeVoice</span>
           <h2>Một góc nhỏ để tìm câu trả lời.</h2>
           <p>
             Hướng dẫn dễ đọc, tình huống để thử và lời mở đầu khi bạn cần nhờ
@@ -418,7 +418,7 @@ function ArticleReading({ article }: { article: KnowledgeArticle }) {
         >
           <Badge tone="lavender">Thử một lựa chọn</Badge>
           <p className="muted">
-            Tình huống giả lập do MoodPrint biên tập. Bạn có thể thử lại, không
+            Tình huống giả lập do SafeVoice biên tập. Bạn có thể thử lại, không
             chấm điểm con người.
           </p>
           <h2>{article.scenario.question}</h2>
@@ -455,7 +455,7 @@ function ArticleReading({ article }: { article: KnowledgeArticle }) {
         <section className="knowledge-activity" aria-label="Câu hỏi tương tác">
           <Badge tone="lavender">Dừng một nhịp, thử nghĩ</Badge>
           <p className="muted">
-            Câu hỏi do MoodPrint biên tập để học qua ví dụ.
+            Câu hỏi do SafeVoice biên tập để học qua ví dụ.
           </p>
           <h2>{article.quiz.question}</h2>
           <div className="stack">

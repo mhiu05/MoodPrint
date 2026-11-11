@@ -17,12 +17,12 @@ from app.modules.conversations.service import ConversationService
 from app.modules.incidents.schemas import CaseCreate
 from app.modules.incidents.service import IncidentService
 from app.modules.plans.service import ActionPlanService
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_agent.tools.factory import build_registry
-from moodprint_agent.tools.proposals import event_id_for
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.errors import NotFound, VersionConflict
-from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_agent.tools.factory import build_registry
+from safevoice_agent.tools.proposals import event_id_for
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.errors import NotFound, VersionConflict
+from safevoice_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -301,7 +301,7 @@ async def test_crash_after_domain_commit_before_applied_retries_without_a_second
     # Simulate the crash window: the domain write committed, the proposal still says "approved".
     store = SqlProposalStore(db_engine, CFG)
     stored = await store.get(auth, pid)
-    from moodprint_shared.contracts.incidents import EventCreate
+    from safevoice_shared.contracts.incidents import EventCreate
 
     event = stored.payload["event"]
     await incidents.add_confirmed_event(
@@ -429,7 +429,7 @@ async def test_plan_proposal_applies_once_survives_a_crash_and_reports_version_c
     run = (await service.begin_turn(auth, conv, uuid4(), "Lập kế hoạch")).run_id
     from uuid import uuid5
 
-    from moodprint_agent.tools.plan import PLAN_NAMESPACE
+    from safevoice_agent.tools.plan import PLAN_NAMESPACE
 
     plan_id = uuid5(PLAN_NAMESPACE, f"plan:{case.id}")
     payload = {

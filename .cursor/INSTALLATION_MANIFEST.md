@@ -1,8 +1,8 @@
-# MoodPrint Cursor Toolkit Installation Manifest
+# SafeVoice Cursor Toolkit Installation Manifest
 
 Checked: 2026-10-29
 
-Repository: `E:\MoodPrint`
+Repository: `E:\SafeVoice`
 Host: Windows PowerShell; Cursor Agent; Node.js 24.13.0; Python 3.12; uv available.
 
 This mirrors the Codex (`.agents` / `~/.codex`) and Claude (`.claude` / `.mcp.json`) toolkits so Cursor Agent can use the same skills and MCP servers.
@@ -23,12 +23,12 @@ Skipped (Codex-only / disabled): `node_repl`, `mongodb-atlas` (disabled), `supab
 
 | Server | Transport | Notes |
 |---|---|---|
-| `supabase` | HTTP | Same MoodPrint project_ref as Claude/Codex; approve OAuth in Cursor Customize → MCP |
+| `supabase` | HTTP | Same SafeVoice project_ref as Claude/Codex; approve OAuth in Cursor Customize → MCP |
 | `promptfoo` | stdio | `npx --yes promptfoo@0.125.1 mcp --transport stdio` |
 | `openaiDeveloperDocs` | HTTP | `https://developers.openai.com/mcp` (no auth) |
 | `playwright` | stdio | `npx @playwright/mcp@latest` (from Codex user MCP) |
 | `github` | HTTP | Needs `GITHUB_PERSONAL_ACCESS_TOKEN` in the environment |
-| `aws-mcp` | stdio | `uvx mcp-proxy-for-aws@latest …`; `AWS_MCP_PROXY_PROFILES=moodprint` |
+| `aws-mcp` | stdio | `uvx mcp-proxy-for-aws@latest …`; `AWS_MCP_PROXY_PROFILES=safevoice` |
 
 ## Skills already discoverable
 

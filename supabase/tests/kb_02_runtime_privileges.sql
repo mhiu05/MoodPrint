@@ -8,7 +8,7 @@ insert into knowledge.sources (
   source_id, kind, publisher, title, language, country_scope,
   authority_tier, licence_class, verified_on
 ) values (
-  'mp-privileges', 'authored', 'MoodPrint', 'Privilege test', 'vi', array['VN'],
+  'mp-privileges', 'authored', 'SafeVoice', 'Privilege test', 'vi', array['VN'],
   4, 'authored', '2026-11-09'
 );
 select lives_ok(
@@ -28,12 +28,12 @@ select ok(
   not has_table_privilege(r.oid, 'knowledge.source_confidential', 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
   and not has_any_column_privilege(r.oid, 'knowledge.source_confidential', 'SELECT,INSERT,UPDATE,REFERENCES'),
   r.rolname || ' has no private-note table or column privileges'
-) from pg_roles r where r.rolname in ('anon', 'authenticated', 'moodprint_api', 'service_role');
+) from pg_roles r where r.rolname in ('anon', 'authenticated', 'safevoice_api', 'service_role');
 
 -- postgres is not SUPERUSER on hosted Supabase; membership stays transaction-local.
-grant moodprint_api to postgres;
-grant usage on schema extensions to moodprint_api;
-set local role moodprint_api;
+grant safevoice_api to postgres;
+grant usage on schema extensions to safevoice_api;
+set local role safevoice_api;
 select throws_ok($$insert into knowledge.source_confidential values ('mp-privileges', 'runtime note')$$,
   '42501', null, 'runtime login cannot insert private notes');
 select throws_ok($$update knowledge.source_confidential set licence_note = 'runtime revised' where source_id = 'mp-privileges'$$,

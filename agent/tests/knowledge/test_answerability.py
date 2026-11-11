@@ -1,9 +1,9 @@
 """A related chunk is not proof of the requested fact."""
 
 import pytest
-from moodprint_agent.knowledge.scoring import RawHit
-from moodprint_shared.contracts.knowledge import SourceCitation
-from moodprint_shared.knowledge_support import assess_support
+from safevoice_agent.knowledge.scoring import RawHit
+from safevoice_shared.contracts.knowledge import SourceCitation
+from safevoice_shared.knowledge_support import assess_support
 
 
 def hit(
@@ -17,7 +17,7 @@ def hit(
         source_id="mp-authored",
         document_id="guide",
         title=title,
-        publisher="MoodPrint",
+        publisher="SafeVoice",
         url=None,
         section=None,
         published_at=None,

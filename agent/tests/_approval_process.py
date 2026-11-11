@@ -10,13 +10,13 @@ from uuid import UUID
 
 from agents import RunContextWrapper, SQLiteSession
 from agents.testing import ScriptedModel, assistant_message, function_call
-from moodprint_agent.budget import RunToolBudget
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_agent.tools.registry import ToolRegistry
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.agent import AgentServices, AgentToolContext, ToolPolicy
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.context import ContextBundle
+from safevoice_agent.budget import RunToolBudget
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_agent.tools.registry import ToolRegistry
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.agent import AgentServices, AgentToolContext, ToolPolicy
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.context import ContextBundle
 
 STAGE = sys.argv[1]
 DIRECTORY = Path(sys.argv[2])

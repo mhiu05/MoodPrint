@@ -9,8 +9,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from evals.real_knowledge import factory
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.knowledge import KnowledgeQuery, RetrievalScope
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.knowledge import KnowledgeQuery, RetrievalScope
 
 
 def cases_to_measure():
@@ -76,7 +76,7 @@ def main():
 
     result["source_sha"] = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
     result["support_sha256_lf"] = hashlib.sha256(
-        Path("shared/src/moodprint_shared/knowledge_support.py")
+        Path("shared/src/safevoice_shared/knowledge_support.py")
         .read_bytes()
         .replace(b"\r\n", b"\n")
     ).hexdigest()

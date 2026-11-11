@@ -17,21 +17,21 @@ from app.modules.analysis.service import AnalysisService
 from app.modules.analysis.store import SqlAnalysisStore
 from app.modules.evidence.schemas import EvidencePatch, UploadCreate
 from app.modules.evidence.service import EvidenceService
-from moodprint_agent.evidence.models import (
+from PIL import Image
+from safevoice_agent.evidence.models import (
     EvidenceReading,
     ExtractedText,
     Inference,
     VisibleMetadata,
 )
-from moodprint_agent.evidence.orchestrator import (
+from safevoice_agent.evidence.orchestrator import (
     CONSENT_VERSION,
     AnalysisError,
     AnalysisOrchestrator,
 )
-from moodprint_agent.evidence.reader import ReaderOutput, ReadFailed
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.errors import NotFound
-from PIL import Image
+from safevoice_agent.evidence.reader import ReaderOutput, ReadFailed
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.errors import NotFound
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 

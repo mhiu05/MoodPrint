@@ -9,9 +9,9 @@ import jwt
 import pytest
 from app.core.auth import JwtVerifier
 from cryptography.hazmat.primitives.asymmetric import ec
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.errors import DomainError
-from moodprint_shared.env import EnvSettings
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.errors import DomainError
+from safevoice_shared.env import EnvSettings
 
 
 @pytest.fixture
@@ -24,7 +24,7 @@ def auth_setup():
         supabase_url="http://127.0.0.1:54321",
         supabase_publishable_key="test-public",
         supabase_secret_key="test-secret",
-        database_url="postgresql+asyncpg://moodprint_api:local@127.0.0.1:54322/postgres",
+        database_url="postgresql+asyncpg://safevoice_api:local@127.0.0.1:54322/postgres",
     )
     claims = {
         "sub": str(uuid4()),

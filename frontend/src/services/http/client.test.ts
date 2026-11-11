@@ -75,7 +75,7 @@ describe("authenticated API requests", () => {
   it("stops after a second 401 and keeps wizard drafts", async () => {
     let requests = 0;
     let expired = 0;
-    sessionStorage.setItem("moodprint-case-draft-v1:a:new", "draft");
+    sessionStorage.setItem("safevoice-case-draft-v1:a:new", "draft");
     const api = createApiClient({
       baseUrl: "http://localhost:8000",
       getToken: async () => "old",
@@ -91,7 +91,7 @@ describe("authenticated API requests", () => {
     await expect(api("/v1/cases")).rejects.toBeInstanceOf(ApiError);
     expect(requests).toBe(2);
     expect(expired).toBe(1);
-    expect(sessionStorage.getItem("moodprint-case-draft-v1:a:new")).toBe(
+    expect(sessionStorage.getItem("safevoice-case-draft-v1:a:new")).toBe(
       "draft",
     );
   });

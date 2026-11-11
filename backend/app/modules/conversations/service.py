@@ -2,18 +2,18 @@ import json
 from collections.abc import Sequence
 from uuid import UUID, uuid4
 
-from moodprint_agent.memory.compaction import token_compaction_policy
-from moodprint_agent.memory.session import (
+from safevoice_agent.memory.compaction import token_compaction_policy
+from safevoice_agent.memory.session import (
     make_compaction_session,
     make_session,
     repair_session,
 )
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.agent import CompanionTurn
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.conversations import ChatMessage, TurnHandle, TurnResult
-from moodprint_shared.contracts.errors import NotFound, RunInProgress
-from moodprint_shared.contracts.knowledge import SourceCitation
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.agent import CompanionTurn
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.conversations import ChatMessage, TurnHandle, TurnResult
+from safevoice_shared.contracts.errors import NotFound, RunInProgress
+from safevoice_shared.contracts.knowledge import SourceCitation
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 

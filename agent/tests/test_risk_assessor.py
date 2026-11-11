@@ -7,8 +7,8 @@ from collections.abc import Sequence
 
 import pytest
 from agents.testing import ScriptedModel, assistant_message
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_agent.tools.risk_assessor import (
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_agent.tools.risk_assessor import (
     AssessorFailed,
     AssessorResult,
     ModelRisk,
@@ -16,8 +16,8 @@ from moodprint_agent.tools.risk_assessor import (
     render_input,
     wide_net,
 )
-from moodprint_agent.tools.safety import EMERGENCY_BLOCK
-from moodprint_shared.config import AppConfig
+from safevoice_agent.tools.safety import EMERGENCY_BLOCK
+from safevoice_shared.config import AppConfig
 from tests.test_runtime import collect, context
 
 INDIRECT = "Bạn thân tớ nhắn vừa uống cả đống thuốc rồi, giờ không trả lời điện thoại."

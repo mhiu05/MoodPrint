@@ -21,12 +21,12 @@ from itertools import combinations
 from pathlib import Path
 
 from dotenv import dotenv_values
-from moodprint_agent.knowledge.embedder import VoyageEmbedder
-from moodprint_agent.knowledge.ingest.budget import commit, reserve
-from moodprint_agent.knowledge.query import STOPWORDS, lexical_tokens, prepare_query
-from moodprint_agent.knowledge.retriever import _LEXICAL_SQL, _VECTOR_SQL, _vector_literal
-from moodprint_shared.config import KnowledgeConfig
-from moodprint_shared.env import get_settings
+from safevoice_agent.knowledge.embedder import VoyageEmbedder
+from safevoice_agent.knowledge.ingest.budget import commit, reserve
+from safevoice_agent.knowledge.query import STOPWORDS, lexical_tokens, prepare_query
+from safevoice_agent.knowledge.retriever import _LEXICAL_SQL, _VECTOR_SQL, _vector_literal
+from safevoice_shared.config import KnowledgeConfig
+from safevoice_shared.env import get_settings
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -207,7 +207,7 @@ async def main() -> None:
             "age": None,
         }
         # document frequency of every folded token over chunk text for IDF
-        from moodprint_agent.knowledge.textnorm import fold_vietnamese
+        from safevoice_agent.knowledge.textnorm import fold_vietnamese
 
         df: Counter[str] = Counter()
         for chunk in chunks:

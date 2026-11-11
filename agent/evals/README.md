@@ -4,6 +4,11 @@ Xem [kiểm thử hệ thống](../../README.md#kiểm-thử) và
 [kiến trúc runtime](../../README.md#kiến-trúc-hệ-thống). Các bộ đánh giá dùng dữ liệu tổng hợp;
 không đưa dữ liệu học sinh thật vào fixtures hoặc kết quả public.
 
+Tên sản phẩm trong các output lưu trữ đã được chuẩn hóa thành SafeVoice. Hash,
+commit và provenance lịch sử vẫn mô tả lần chạy trước khi đổi tên; các tệp này
+không phải bằng chứng đánh giá cho mã nguồn hoặc prompt hiện tại. Cần chạy lại
+eval để tạo bộ kết quả và hash nhất quán cho phiên bản SafeVoice.
+
 ## Đường chạy offline
 
 Unit tests trong `agent/tests` dùng official SDK `ScriptedModel`, không cần API key.
@@ -26,7 +31,7 @@ chất lượng ngữ nghĩa; phần live chưa chạy được giữ `NOT_RUN`.
 
 [run.py](run.py) hỗ trợ `--suite live`; đường này cần API key và tệp ngân sách do owner
 cấp, đặt chỗ chi phí trước từng request và dừng khi chạm giới hạn. Mọi lời gọi dùng
-`moodprint_shared.config.OPENAI_MODEL`, gồm compaction và smoke test. Không tự nâng
+`safevoice_shared.config.OPENAI_MODEL`, gồm compaction và smoke test. Không tự nâng
 trần ngân sách để hoàn thành một bộ đánh giá.
 
 Case nằm trong `cases/*.jsonl`. Kết quả ở `results/<run-id>/` gồm output, assertion

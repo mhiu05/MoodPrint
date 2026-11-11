@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from moodprint_agent.knowledge.ingest.chunk import blocks_from_markdown, chunk_document
-from moodprint_agent.knowledge.ingest.embed import embedding_input
-from moodprint_agent.knowledge.ingest.models import ChunkParams, ParsedDocument
+from safevoice_agent.knowledge.ingest.chunk import blocks_from_markdown, chunk_document
+from safevoice_agent.knowledge.ingest.embed import embedding_input
+from safevoice_agent.knowledge.ingest.models import ChunkParams, ParsedDocument
 
 
 def _doc(body: str) -> ParsedDocument:

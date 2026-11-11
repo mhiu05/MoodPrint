@@ -7,10 +7,10 @@ country_scope = ["VN"]
 topics = ["physical", "evidence"]
 age_bands = ["11-13", "14-17"]
 last_reviewed = 2026-11-09
-applicability = "Thẻ biên soạn của MoodPrint cho học sinh tại Việt Nam; không thay thế tư vấn pháp lý, y tế hoặc tâm lý."
+applicability = "Thẻ biên soạn của SafeVoice cho học sinh tại Việt Nam; không thay thế tư vấn pháp lý, y tế hoặc tâm lý."
 [[derived_from]]
 source_id = "mp-authored"
-locator = "Biên soạn nguyên bản bởi MoodPrint từ thực hành bảo vệ trẻ em thông dụng; chưa thẩm định bởi chuyên gia bên ngoài."
+locator = "Biên soạn nguyên bản bởi SafeVoice từ thực hành bảo vệ trẻ em thông dụng; chưa thẩm định bởi chuyên gia bên ngoài."
 [[derived_from]]
 source_id = "vn-nd-80-2017"
 locator = "Nghị định 80/2017/NĐ-CP, Điều 6 khoản 3 điểm b và c, trang 5 (chăm sóc y tế, thông báo gia đình), bản quét chính thức"

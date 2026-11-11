@@ -1,7 +1,7 @@
 import httpx
 import pytest
 from app.main import create_app
-from moodprint_shared.env import EnvSettings
+from safevoice_shared.env import EnvSettings
 
 
 @pytest.fixture
@@ -11,7 +11,7 @@ def settings():
         supabase_url="http://127.0.0.1:54321",
         supabase_publishable_key="test-public",
         supabase_secret_key="test-secret",
-        database_url="postgresql+asyncpg://moodprint_api:local@127.0.0.1:54322/postgres",
+        database_url="postgresql+asyncpg://safevoice_api:local@127.0.0.1:54322/postgres",
         cors_allowed_origins=["http://127.0.0.1:5173"],
     )
 
@@ -103,7 +103,7 @@ async def test_startup_shutdown_closes_engine(settings, monkeypatch):
     from app.core.db import create_engine
 
     engine = create_engine(
-        settings, __import__("moodprint_shared.config", fromlist=["AppConfig"]).AppConfig()
+        settings, __import__("safevoice_shared.config", fromlist=["AppConfig"]).AppConfig()
     )
     original_dispose = engine.dispose
     dispose = AsyncMock(side_effect=original_dispose)
@@ -120,7 +120,7 @@ async def test_startup_shutdown_closes_engine(settings, monkeypatch):
     # default is the real retriever and needs a Voyage key).
     from dataclasses import replace
 
-    from moodprint_shared.config import AppConfig
+    from safevoice_shared.config import AppConfig
 
     base = AppConfig()
     app = create_app(
@@ -134,9 +134,9 @@ async def test_startup_shutdown_closes_engine(settings, monkeypatch):
 
 
 async def test_lifespan_injects_knowledge_before_building_runtime(settings, monkeypatch):
-    from moodprint_shared.config import AppConfig
-    from moodprint_shared.contracts.knowledge import KnowledgeQuery, RetrievalScope
-    from moodprint_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
+    from safevoice_shared.config import AppConfig
+    from safevoice_shared.contracts.knowledge import KnowledgeQuery, RetrievalScope
+    from safevoice_shared.testing.knowledge_fixture import FixtureKnowledgeRetriever
 
     app = create_app(settings)
     retriever = FixtureKnowledgeRetriever()
@@ -169,7 +169,7 @@ async def test_startup_factory_failure_closes_acquired_resources(settings, monke
     from dataclasses import replace
     from unittest.mock import AsyncMock
 
-    from moodprint_shared.config import AppConfig
+    from safevoice_shared.config import AppConfig
 
     dispose = AsyncMock()
     monkeypatch.setattr(

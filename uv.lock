@@ -4,10 +4,10 @@ requires-python = "==3.12.*"
 
 [manifest]
 members = [
-    "moodprint-agent",
-    "moodprint-backend",
-    "moodprint-shared",
-    "moodprint-workspace",
+    "safevoice-agent",
+    "safevoice-backend",
+    "safevoice-shared",
+    "safevoice-workspace",
 ]
 
 [[package]]
@@ -556,11 +556,11 @@ wheels = [
 ]
 
 [[package]]
-name = "moodprint-agent"
+name = "safevoice-agent"
 version = "0.1.0"
 source = { editable = "agent" }
 dependencies = [
-    { name = "moodprint-shared" },
+    { name = "safevoice-shared" },
     { name = "openai-agents", extra = ["sqlalchemy"] },
 ]
 
@@ -582,7 +582,7 @@ requires-dist = [
     { name = "beautifulsoup4", marker = "extra == 'knowledge'", specifier = ">=4.12" },
     { name = "httpx", marker = "extra == 'knowledge'", specifier = ">=0.28" },
     { name = "lxml", marker = "extra == 'knowledge'", specifier = ">=5" },
-    { name = "moodprint-shared", editable = "shared" },
+    { name = "safevoice-shared", editable = "shared" },
     { name = "openai-agents", extras = ["sqlalchemy"], specifier = "==0.24.*" },
     { name = "pillow", marker = "extra == 'companion'", specifier = ">=11" },
     { name = "pypdf", marker = "extra == 'knowledge'", specifier = ">=5" },
@@ -590,15 +590,15 @@ requires-dist = [
 provides-extras = ["knowledge", "companion"]
 
 [[package]]
-name = "moodprint-backend"
+name = "safevoice-backend"
 version = "0.1.0"
 source = { editable = "backend" }
 dependencies = [
     { name = "asyncpg" },
     { name = "fastapi" },
     { name = "httpx" },
-    { name = "moodprint-agent", extra = ["companion", "knowledge"] },
-    { name = "moodprint-shared" },
+    { name = "safevoice-agent", extra = ["companion", "knowledge"] },
+    { name = "safevoice-shared" },
     { name = "pyjwt", extra = ["crypto"] },
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "uvicorn", extra = ["standard"] },
@@ -609,15 +609,15 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.30" },
     { name = "fastapi", specifier = ">=0.115" },
     { name = "httpx", specifier = ">=0.28" },
-    { name = "moodprint-agent", extras = ["knowledge", "companion"], editable = "agent" },
-    { name = "moodprint-shared", editable = "shared" },
+    { name = "safevoice-agent", extras = ["knowledge", "companion"], editable = "agent" },
+    { name = "safevoice-shared", editable = "shared" },
     { name = "pyjwt", extras = ["crypto"], specifier = ">=2.10" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34" },
 ]
 
 [[package]]
-name = "moodprint-shared"
+name = "safevoice-shared"
 version = "0.1.0"
 source = { editable = "shared" }
 dependencies = [
@@ -632,7 +632,7 @@ requires-dist = [
 ]
 
 [[package]]
-name = "moodprint-workspace"
+name = "safevoice-workspace"
 version = "0.1.0"
 source = { virtual = "." }
 

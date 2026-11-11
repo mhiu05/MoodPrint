@@ -26,9 +26,9 @@ import httpx
 from app.core.auth import JwtVerifier
 from app.core.db import create_engine
 from app.core.uow import user_uow
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.env import EnvSettings
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.env import EnvSettings
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -80,7 +80,7 @@ def validate_runtime_target(values: Mapping[str, str]) -> str:
             raise RoleProbeError("DATABASE_URL_must_use_generated_runtime_role")
         direct = parsed.host == f"db.{safety.PROJECT_REF}.supabase.co"
         pooler = (parsed.host or "").endswith(".pooler.supabase.com")
-        expected_role = "moodprint_api" + (f".{safety.PROJECT_REF}" if pooler else "")
+        expected_role = "safevoice_api" + (f".{safety.PROJECT_REF}" if pooler else "")
         if parsed.username != expected_role or not (direct or pooler):
             raise RoleProbeError("runtime_target_mismatch")
         if parsed.drivername not in {"postgres", "postgresql", "postgresql+asyncpg"}:
@@ -136,14 +136,14 @@ async def _check_clean_pool(engine: AsyncEngine) -> None:
                         )
                     )
                 ).one()
-                if row[0] != "moodprint_api" or any(row[index] for index in (2, 3, 4)):
+                if row[0] != "safevoice_api" or any(row[index] for index in (2, 3, 4)):
                     raise RoleProbeError("runtime_role_unsafe")
                 if row[1] not in {None, ""}:
                     raise RoleProbeError("claims_leaked_outside_transaction")
                 await connection.execute(text("SET LOCAL ROLE authenticated"))
                 if await connection.scalar(text("select auth.uid()")) is not None:
                     raise RoleProbeError("identity_leaked_on_reused_connection")
-            if await connection.scalar(text("select current_user")) != "moodprint_api":
+            if await connection.scalar(text("select current_user")) != "safevoice_api":
                 raise RoleProbeError("role_leaked_after_commit")
             await connection.rollback()
 

@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from app.main import create_app
-from moodprint_shared.env import EnvSettings
+from safevoice_shared.env import EnvSettings
 
 
 def main() -> int:
@@ -15,7 +15,7 @@ def main() -> int:
     app = create_app(
         EnvSettings(
             app_env="test",
-            database_url="postgresql+asyncpg://moodprint_api:test@127.0.0.1:54322/postgres",
+            database_url="postgresql+asyncpg://safevoice_api:test@127.0.0.1:54322/postgres",
             supabase_url="http://127.0.0.1:54321",
             supabase_publishable_key="synthetic",
             supabase_secret_key="synthetic",

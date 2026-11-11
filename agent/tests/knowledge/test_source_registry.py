@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from moodprint_agent.knowledge.ingest.manifest import load_manifest
-from moodprint_agent.knowledge.ingest.topics import LICENCE_CLASSES
+from safevoice_agent.knowledge.ingest.manifest import load_manifest
+from safevoice_agent.knowledge.ingest.topics import LICENCE_CLASSES
 
 
 def test_source_registry_keeps_licence_classes_and_blocks_restricted_acquire() -> None:

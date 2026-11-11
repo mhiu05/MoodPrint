@@ -1,8 +1,8 @@
 from uuid import uuid4
 
 from agents import SQLiteSession
-from moodprint_agent.memory.session import make_compaction_session, make_session, repair_session
-from moodprint_shared.config import AppConfig
+from safevoice_agent.memory.session import make_compaction_session, make_session, repair_session
+from safevoice_shared.config import AppConfig
 from sqlalchemy.ext.asyncio import create_async_engine
 
 

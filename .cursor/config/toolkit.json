@@ -52,7 +52,7 @@
     "openaiDeveloperDocs": "HTTP; no auth",
     "playwright": "stdio via npx @playwright/mcp@latest",
     "github": "HTTP; needs env GITHUB_PERSONAL_ACCESS_TOKEN",
-    "aws-mcp": "stdio via uvx; AWS_MCP_PROXY_PROFILES=moodprint"
+    "aws-mcp": "stdio via uvx; AWS_MCP_PROXY_PROFILES=safevoice"
   },
   "agents": [
     "impeccable-asset-producer",

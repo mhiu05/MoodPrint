@@ -7,11 +7,11 @@ country_scope = ["VN"]
 topics = ["definition"]
 age_bands = ["11-13", "14-17"]
 last_reviewed = 2026-11-09
-applicability = "Tóm tắt biên soạn của MoodPrint cho học sinh tại Việt Nam; không thay thế tư vấn pháp lý."
+applicability = "Tóm tắt biên soạn của SafeVoice cho học sinh tại Việt Nam; không thay thế tư vấn pháp lý."
 legacy_article_id = "KB-01"
 [[derived_from]]
 source_id = "mp-authored"
-locator = "Bài tĩnh trong frontend/src/mocks/data/knowledge.ts (id KB-01); biên soạn nguyên bản bởi MoodPrint, chưa thẩm định bởi chuyên gia bên ngoài."
+locator = "Bài tĩnh trong frontend/src/mocks/data/knowledge.ts (id KB-01); biên soạn nguyên bản bởi SafeVoice, chưa thẩm định bởi chuyên gia bên ngoài."
 +++
 ## Điều cần biết
 

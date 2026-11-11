@@ -47,7 +47,7 @@ def ready(repo):
         (
             "feat/knowledge-base",
             "backend/tests/knowledge/test_x.py",
-            "agent/src/moodprint_agent/tools/x.py",
+            "agent/src/safevoice_agent/tools/x.py",
         ),
         (
             "feat/agent-companion",
@@ -82,7 +82,7 @@ def test_retired_branch_fails_and_integrator_is_unprofiled(repo):
 @pytest.mark.parametrize("branch", ["feat/knowledge-base", "feat/agent-companion"])
 def test_committed_frozen_file_fails_both_phases(repo, branch):
     ready(repo)
-    write(repo, "shared/src/moodprint_shared/contracts/knowledge.py", "# frozen\n")
+    write(repo, "shared/src/safevoice_shared/contracts/knowledge.py", "# frozen\n")
     git(repo, "add", ".")
     git(repo, "commit", "-m", "forbidden frozen")
     assert run(repo, branch).returncode == 1
@@ -149,7 +149,7 @@ def test_malformed_trusted_policy_fails_closed(repo, mutation):
     elif mutation == "badallow":
         policy["phases"]["2"]["allow"] = {"**": True}
     elif mutation == "badsignature":
-        policy["frozen_signatures"]["agent/src/moodprint_agent/knowledge/__init__.py"] = (
+        policy["frozen_signatures"]["agent/src/safevoice_agent/knowledge/__init__.py"] = (
             "create_retriever"
         )
     elif mutation == "badsection":

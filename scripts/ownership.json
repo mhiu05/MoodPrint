@@ -15,11 +15,11 @@
     ".mcp.json"
   ],
   "frozen": [
-    "shared/src/moodprint_shared/contracts/**",
-    "shared/src/moodprint_shared/testing/**",
+    "shared/src/safevoice_shared/contracts/**",
+    "shared/src/safevoice_shared/testing/**",
     "shared/contract-schemas/**",
-    "shared/src/moodprint_shared/env.py",
-    "shared/src/moodprint_shared/logging.py",
+    "shared/src/safevoice_shared/env.py",
+    "shared/src/safevoice_shared/logging.py",
     "supabase/migrations/*_f0_*",
     "supabase/migrations/*_f1_*",
     "supabase/tests/[0-9]*.sql",
@@ -80,7 +80,7 @@
     "debug.log"
   ],
   "shared_sections": {
-    "shared/src/moodprint_shared/config.py": {
+    "shared/src/safevoice_shared/config.py": {
       "kind": "python_classes",
       "2": [
         "KnowledgeConfig"
@@ -110,7 +110,7 @@
     }
   },
   "frozen_signatures": {
-    "agent/src/moodprint_agent/knowledge/__init__.py": [
+    "agent/src/safevoice_agent/knowledge/__init__.py": [
       "create_retriever"
     ],
     "backend/app/modules/knowledge/factory.py": [
@@ -124,7 +124,7 @@
     "2": {
       "allow": [
         "agent/ingestion/**",
-        "agent/src/moodprint_agent/knowledge/**",
+        "agent/src/safevoice_agent/knowledge/**",
         "agent/tests/knowledge/**",
         "agent/evals/knowledge/**",
         "backend/app/modules/knowledge/**",
@@ -144,17 +144,17 @@
     },
     "3": {
       "allow": [
-        "agent/src/moodprint_agent/companion.py",
-        "agent/src/moodprint_agent/runtime.py",
-        "agent/src/moodprint_agent/events.py",
-        "agent/src/moodprint_agent/budget.py",
-        "agent/src/moodprint_agent/errors.py",
-        "agent/src/moodprint_agent/prompts/**",
-        "agent/src/moodprint_agent/tools/**",
-        "agent/src/moodprint_agent/memory/**",
-        "agent/src/moodprint_agent/roleplay/**",
-        "agent/src/moodprint_agent/evidence/**",
-        "agent/src/moodprint_agent/testing/**",
+        "agent/src/safevoice_agent/companion.py",
+        "agent/src/safevoice_agent/runtime.py",
+        "agent/src/safevoice_agent/events.py",
+        "agent/src/safevoice_agent/budget.py",
+        "agent/src/safevoice_agent/errors.py",
+        "agent/src/safevoice_agent/prompts/**",
+        "agent/src/safevoice_agent/tools/**",
+        "agent/src/safevoice_agent/memory/**",
+        "agent/src/safevoice_agent/roleplay/**",
+        "agent/src/safevoice_agent/evidence/**",
+        "agent/src/safevoice_agent/testing/**",
         "agent/tests/**",
         "agent/evals/**",
         "backend/app/agent_gateway/**",

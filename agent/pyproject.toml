@@ -1,9 +1,9 @@
 [project]
-name = "moodprint-agent"
+name = "safevoice-agent"
 version = "0.1.0"
-description = "MoodPrint Companion runtime"
+description = "SafeVoice Companion runtime"
 requires-python = ">=3.12"
-dependencies = ["moodprint-shared", "openai-agents[sqlalchemy]==0.24.*"]
+dependencies = ["safevoice-shared", "openai-agents[sqlalchemy]==0.24.*"]
 
 [project.optional-dependencies]
 # --- knowledge: Phase 2 owns this extra ---
@@ -12,11 +12,11 @@ knowledge = ["httpx>=0.28", "asyncpg>=0.30", "pypdf>=5", "beautifulsoup4>=4.12",
 companion = ["pillow>=11"]
 
 [tool.uv.sources]
-moodprint-shared = { workspace = true }
+safevoice-shared = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/moodprint_agent"]
+packages = ["src/safevoice_agent"]

@@ -7,11 +7,11 @@ country_scope = ["VN"]
 topics = ["legal-vn"]
 age_bands = ["14-17"]
 last_reviewed = 2026-11-09
-applicability = "Tóm tắt biên soạn của MoodPrint từ bản quét chính thức Nghị định 80/2017/NĐ-CP; không phải văn bản pháp luật và không thay thế tư vấn pháp lý. Hiệu lực hiện hành chưa xác nhận từ cơ sở dữ liệu chính thức."
+applicability = "Tóm tắt biên soạn của SafeVoice từ bản quét chính thức Nghị định 80/2017/NĐ-CP; không phải văn bản pháp luật và không thay thế tư vấn pháp lý. Hiệu lực hiện hành chưa xác nhận từ cơ sở dữ liệu chính thức."
 primary_url = "https://vanban.chinhphu.vn/default.aspx?docid=190430&pageid=27160"
 [[derived_from]]
 source_id = "mp-authored"
-locator = "Biên soạn nguyên bản bởi MoodPrint từ thực hành bảo vệ trẻ em thông dụng; chưa thẩm định bởi chuyên gia bên ngoài."
+locator = "Biên soạn nguyên bản bởi SafeVoice từ thực hành bảo vệ trẻ em thông dụng; chưa thẩm định bởi chuyên gia bên ngoài."
 [[derived_from]]
 source_id = "vn-nd-80-2017"
 locator = "Nghị định 80/2017/NĐ-CP, Điều 1, 2, 6, 16, trang 1–7, bản quét chính thức"
@@ -30,4 +30,4 @@ Nghị định 80/2017/NĐ-CP do Chính phủ ban hành ngày 17 tháng 7 năm 2
 
 ## Lưu ý quan trọng
 
-Đây là phần tóm tắt từ bản quét chính thức, không phải tư vấn pháp lý. MoodPrint chưa xác nhận được từ cơ sở dữ liệu chính thức rằng nghị định còn nguyên hiệu lực hoặc chưa bị sửa đổi vào thời điểm đọc. Với việc cần căn cứ pháp lý, hãy kiểm tra văn bản hiện hành hoặc hỏi người có chuyên môn.
+Đây là phần tóm tắt từ bản quét chính thức, không phải tư vấn pháp lý. SafeVoice chưa xác nhận được từ cơ sở dữ liệu chính thức rằng nghị định còn nguyên hiệu lực hoặc chưa bị sửa đổi vào thời điểm đọc. Với việc cần căn cứ pháp lý, hãy kiểm tra văn bản hiện hành hoặc hỏi người có chuyên môn.

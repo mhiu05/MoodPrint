@@ -2,15 +2,15 @@ import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request, Response
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.incidents import (
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.incidents import (
     CaseDetail,
     CaseQuery,
     CaseStatus,
     CaseSummary,
     TimelineEvent,
 )
-from moodprint_shared.contracts.paging import Page
+from safevoice_shared.contracts.paging import Page
 
 from app.core.auth import get_auth
 from app.core.errors import ApiError

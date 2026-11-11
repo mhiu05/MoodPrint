@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 export function Brand({ to = "/home" }: { to?: string }) {
   return (
-    <Link to={to} className="brand" aria-label="MoodPrint — trang chủ">
+    <Link to={to} className="brand" aria-label="SafeVoice — trang chủ">
       <span className="brand-mark">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path
@@ -18,7 +18,7 @@ export function Brand({ to = "/home" }: { to?: string }) {
           />
         </svg>
       </span>
-      MoodPrint
+      SafeVoice
     </Link>
   );
 }

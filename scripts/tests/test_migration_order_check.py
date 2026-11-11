@@ -141,18 +141,18 @@ def test_current_stack_requires_existing_matching_config(tmp_path):
     stack = tmp_path / ".local/stacks/unit"
     (stack / "supabase").mkdir(parents=True)
     (stack / "supabase/config.toml").write_text(
-        'project_id = "moodprint-unit"\n[db]\nport = 54622\n'
+        'project_id = "safevoice-unit"\n[db]\nport = 54622\n'
     )
     assert (
         order.current_stack(
-            tmp_path, {"MOODPRINT_STACK_NAME": "unit", "MOODPRINT_PORT_OFFSET": "300"}
+            tmp_path, {"SAFEVOICE_STACK_NAME": "unit", "SAFEVOICE_PORT_OFFSET": "300"}
         )
         == stack
     )
     for env in [
         {},
-        {"MOODPRINT_STACK_NAME": "../escape", "MOODPRINT_PORT_OFFSET": "300"},
-        {"MOODPRINT_STACK_NAME": "unit", "MOODPRINT_PORT_OFFSET": "0"},
+        {"SAFEVOICE_STACK_NAME": "../escape", "SAFEVOICE_PORT_OFFSET": "300"},
+        {"SAFEVOICE_STACK_NAME": "unit", "SAFEVOICE_PORT_OFFSET": "0"},
     ]:
         with pytest.raises(ValueError):
             order.current_stack(tmp_path, env)

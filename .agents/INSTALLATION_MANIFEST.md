@@ -1,11 +1,11 @@
-# MoodPrint Codex Toolkit Installation Manifest
+# SafeVoice Codex Toolkit Installation Manifest
 
 Checked: 2026-10-27
 
-Repository: `E:\MoodPrint`
+Repository: `E:\SafeVoice`
 Host: Windows PowerShell; Codex CLI 0.157.0; Node.js 24.13.0; Python 3.12.13; uv 0.11.14.
 
-MoodPrint is a React 19 / Vite / TypeScript frontend and a FastAPI / Python 3.12 backend. It uses the OpenAI Agents SDK and Supabase, so frontend, browser, and AI evaluation tools are applicable.
+SafeVoice is a React 19 / Vite / TypeScript frontend and a FastAPI / Python 3.12 backend. It uses the OpenAI Agents SDK and Supabase, so frontend, browser, and AI evaluation tools are applicable.
 
 ## Upstream sources
 

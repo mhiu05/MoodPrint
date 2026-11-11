@@ -1,16 +1,16 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request, Response
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.base import FrozenDTO
-from moodprint_shared.contracts.memory import (
+from pydantic import Field
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.base import FrozenDTO
+from safevoice_shared.contracts.memory import (
     CandidateDecision,
     Memory,
     MemoryCandidate,
     MemoryCreate,
 )
-from moodprint_shared.contracts.paging import Page
-from pydantic import Field
+from safevoice_shared.contracts.paging import Page
 
 from app.core.auth import get_auth
 from app.modules.conversations.paging import FoundationPages

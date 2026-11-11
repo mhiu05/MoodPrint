@@ -3,9 +3,9 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.knowledge import KnowledgeQuery, KnowledgeResult, RetrievalScope
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.knowledge import KnowledgeQuery, KnowledgeResult, RetrievalScope
 
 
 class EmptyMemory:

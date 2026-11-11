@@ -7,8 +7,8 @@ import subprocess
 import tomllib
 from pathlib import Path
 
-from moodprint_agent.knowledge.ingest.manifest import load_manifest
-from moodprint_agent.knowledge.ingest.topics import PUBLISHABLE
+from safevoice_agent.knowledge.ingest.manifest import load_manifest
+from safevoice_agent.knowledge.ingest.topics import PUBLISHABLE
 
 REPO = Path(__file__).resolve().parents[3]
 MANIFEST = REPO / "agent" / "ingestion" / "corpus" / "manifest.toml"

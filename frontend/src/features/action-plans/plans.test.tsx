@@ -274,7 +274,7 @@ describe("action plan integration", () => {
         ?.linkedPlanId,
     ).toBe(original.id);
     expect(
-      sessionStorage.getItem("moodprint-plan-draft-v1:USER-AN:CASE-AN-001"),
+      sessionStorage.getItem("safevoice-plan-draft-v1:USER-AN:CASE-AN-001"),
     ).toBeNull();
   });
 });

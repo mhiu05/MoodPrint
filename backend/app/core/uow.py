@@ -7,7 +7,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from uuid import UUID
 
-from moodprint_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.auth import AuthContext
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 

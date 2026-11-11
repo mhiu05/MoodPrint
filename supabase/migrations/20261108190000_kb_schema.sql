@@ -58,7 +58,7 @@ create table knowledge.source_confidential (
   licence_note text not null
 );
 
-comment on table knowledge.source_confidential is 'moodprint:private_ingestion';
+comment on table knowledge.source_confidential is 'safevoice:private_ingestion';
 
 create table knowledge.documents (
   corpus_version text not null references knowledge.corpus_versions (version) on delete cascade,
@@ -146,7 +146,7 @@ create policy read_all on knowledge.sources
   using (true);
 
 create policy ingest_writer on knowledge.source_confidential
-  for all to moodprint_api
+  for all to safevoice_api
   using (true)
   with check (true);
 
@@ -165,7 +165,7 @@ create policy no_client_access on knowledge.ingestion_runs
 revoke all on schema knowledge from public;
 revoke all on schema knowledge from anon;
 grant usage on schema knowledge to authenticated;
-grant usage on schema knowledge to moodprint_api;
+grant usage on schema knowledge to safevoice_api;
 
 revoke all on table knowledge.corpus_versions from public;
 revoke all on table knowledge.corpus_versions from anon;
@@ -187,9 +187,9 @@ grant select on table knowledge.documents to authenticated;
 grant select on table knowledge.chunks to authenticated;
 grant select on table knowledge.ingestion_runs to authenticated;
 
-grant insert on table knowledge.source_confidential to moodprint_api;
-grant update on table knowledge.source_confidential to moodprint_api;
-grant delete on table knowledge.source_confidential to moodprint_api;
+grant insert on table knowledge.source_confidential to safevoice_api;
+grant update on table knowledge.source_confidential to safevoice_api;
+grant delete on table knowledge.source_confidential to safevoice_api;
 
 revoke all on function knowledge.published_version() from public;
 revoke all on function knowledge.published_version() from anon;

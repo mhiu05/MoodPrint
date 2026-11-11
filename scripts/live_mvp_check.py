@@ -24,7 +24,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "agent"))
 
 from evals.budget import BudgetLedger, load_budget  # noqa: E402
-from moodprint_agent.companion import PROMPT_VERSION  # noqa: E402
+from safevoice_agent.companion import PROMPT_VERSION  # noqa: E402
 
 from scripts.hosted_product import (  # noqa: E402
     ProjectTransport,
@@ -43,9 +43,9 @@ API = "http://127.0.0.1:8000"
 
 
 def ledger_snapshot() -> dict:
-    path = Path(os.environ["MOODPRINT_EVAL_BUDGET"])
+    path = Path(os.environ["SAFEVOICE_EVAL_BUDGET"])
     ledger = BudgetLedger(
-        load_budget(path, scope="phase3-eval"), Path(os.environ["MOODPRINT_EVAL_LEDGER"])
+        load_budget(path, scope="phase3-eval"), Path(os.environ["SAFEVOICE_EVAL_LEDGER"])
     )
     return {
         "calls": ledger.reserved_calls,
@@ -611,7 +611,7 @@ class Harness:
     async def evidence(self):
         import hashlib
 
-        from moodprint_agent.evidence.orchestrator import CONSENT_VERSION
+        from safevoice_agent.evidence.orchestrator import CONSENT_VERSION
 
         image = (OUTPUT / "synthetic-chat.png").read_bytes()
         case = await self.case("Synthetic D screenshot")

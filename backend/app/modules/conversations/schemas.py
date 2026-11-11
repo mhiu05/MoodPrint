@@ -4,8 +4,8 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from moodprint_shared.contracts.base import FrozenDTO
-from moodprint_shared.contracts.conversations import RunStatus, RunUsage
+from safevoice_shared.contracts.base import FrozenDTO
+from safevoice_shared.contracts.conversations import RunStatus, RunUsage
 
 
 class ConversationRead(FrozenDTO):
@@ -38,7 +38,7 @@ class RunCancelRead(FrozenDTO):
 
 SSE_RESPONSES: dict[int | str, dict[str, Any]] = {
     200: {
-        "description": "MoodPrint v1 SSE events; each data field contains a StreamEvent JSON object.",
+        "description": "SafeVoice v1 SSE events; each data field contains a StreamEvent JSON object.",
         "content": {"text/event-stream": {"schema": {"type": "string"}}},
     }
 }

@@ -26,12 +26,12 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from dotenv import dotenv_values
-from moodprint_agent.knowledge.embedder import VoyageEmbedder
-from moodprint_agent.knowledge.ingest.budget import commit, reserve, snapshot
-from moodprint_agent.knowledge.retriever import PgVectorKnowledgeRetriever
-from moodprint_shared.config import KnowledgeConfig
-from moodprint_shared.contracts.knowledge import KnowledgeFilters, KnowledgeQuery, RetrievalScope
-from moodprint_shared.env import get_settings
+from safevoice_agent.knowledge.embedder import VoyageEmbedder
+from safevoice_agent.knowledge.ingest.budget import commit, reserve, snapshot
+from safevoice_agent.knowledge.retriever import PgVectorKnowledgeRetriever
+from safevoice_shared.config import KnowledgeConfig
+from safevoice_shared.contracts.knowledge import KnowledgeFilters, KnowledgeQuery, RetrievalScope
+from safevoice_shared.env import get_settings
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 

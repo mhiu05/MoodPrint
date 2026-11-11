@@ -2,9 +2,9 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from moodprint_shared.contracts.base import FrozenDTO
-from moodprint_shared.contracts.evidence import EvidenceMeta
 from pydantic import Field, field_validator
+from safevoice_shared.contracts.base import FrozenDTO
+from safevoice_shared.contracts.evidence import EvidenceMeta
 
 
 class UploadCreate(FrozenDTO):

@@ -7,11 +7,11 @@ import json
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.errors import Forbidden, NotFound, VersionConflict
-from moodprint_shared.contracts.evidence import SignedRead
-from moodprint_shared.contracts.paging import Page
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.errors import Forbidden, NotFound, VersionConflict
+from safevoice_shared.contracts.evidence import SignedRead
+from safevoice_shared.contracts.paging import Page
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 

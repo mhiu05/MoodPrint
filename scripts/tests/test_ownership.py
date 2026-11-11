@@ -14,10 +14,10 @@ ROOT = Path(__file__).resolve().parents[2]
 CHECKER = ROOT / "scripts" / "check_ownership.py"
 POLICY = ROOT / "scripts" / "ownership.json"
 BASE = "baseline/phase-1-verified"
-CONFIG = "shared/src/moodprint_shared/config.py"
+CONFIG = "shared/src/safevoice_shared/config.py"
 ENV = ".env.example"
 EXTRAS = "agent/pyproject.toml"
-FACTORY = "agent/src/moodprint_agent/knowledge/__init__.py"
+FACTORY = "agent/src/safevoice_agent/knowledge/__init__.py"
 
 _checker_spec = importlib.util.spec_from_file_location("ownership_checker_under_test", CHECKER)
 ownership = importlib.util.module_from_spec(_checker_spec)
@@ -131,7 +131,7 @@ def check(repo, phase=2, base=BASE):
     ("phase", "path"),
     [
         (2, "agent/ingestion/source.py"),
-        (2, "agent/src/moodprint_agent/knowledge/retriever.py"),
+        (2, "agent/src/safevoice_agent/knowledge/retriever.py"),
         (2, "agent/tests/knowledge/test_adapter.py"),
         (2, "agent/evals/knowledge/cases.jsonl"),
         (2, "backend/app/modules/knowledge/service.py"),
@@ -142,12 +142,12 @@ def check(repo, phase=2, base=BASE):
         (2, "frontend/src/services/composition/knowledge.ts"),
         (2, "frontend/src/services/http/knowledge.ts"),
         (2, "agent/ingestion/README.md"),
-        (3, "agent/src/moodprint_agent/runtime.py"),
-        (3, "agent/src/moodprint_agent/prompts/companion.md"),
-        (3, "agent/src/moodprint_agent/tools/knowledge_search.py"),
-        (3, "agent/src/moodprint_agent/memory/session.py"),
-        (3, "agent/src/moodprint_agent/roleplay/runtime.py"),
-        (3, "agent/src/moodprint_agent/evidence/analysis.py"),
+        (3, "agent/src/safevoice_agent/runtime.py"),
+        (3, "agent/src/safevoice_agent/prompts/companion.md"),
+        (3, "agent/src/safevoice_agent/tools/knowledge_search.py"),
+        (3, "agent/src/safevoice_agent/memory/session.py"),
+        (3, "agent/src/safevoice_agent/roleplay/runtime.py"),
+        (3, "agent/src/safevoice_agent/evidence/analysis.py"),
         (3, "agent/tests/integration/test_memory.py"),
         (3, "agent/evals/companion/cases.jsonl"),
         (3, "backend/app/agent_gateway/wiring.py"),
@@ -182,19 +182,19 @@ def test_owned_or_generated_changes_are_accepted(repo, phase, path):
 @pytest.mark.parametrize(
     ("phase", "path"),
     [
-        (2, "agent/src/moodprint_agent/runtime.py"),
+        (2, "agent/src/safevoice_agent/runtime.py"),
         (2, "agent/tests/test_companion.py"),
-        (3, "agent/src/moodprint_agent/knowledge/retriever.py"),
+        (3, "agent/src/safevoice_agent/knowledge/retriever.py"),
         (3, "agent/tests/knowledge/test_adapter.py"),
         (3, "agent/evals/knowledge/cases.jsonl"),
         (2, "supabase/migrations/20261108000000_ag_roleplay.sql"),
         (3, "supabase/migrations/20261108000000_kb_sources.sql"),
         (2, "supabase/migrations/nested/20261108000000_kb_sources.sql"),
-        (2, "shared/src/moodprint_shared/contracts/knowledge.py"),
-        (3, "shared/src/moodprint_shared/testing/knowledge_fixture.py"),
+        (2, "shared/src/safevoice_shared/contracts/knowledge.py"),
+        (3, "shared/src/safevoice_shared/testing/knowledge_fixture.py"),
         (2, "shared/contract-schemas/knowledge.json"),
-        (3, "shared/src/moodprint_shared/env.py"),
-        (2, "shared/src/moodprint_shared/logging.py"),
+        (3, "shared/src/safevoice_shared/env.py"),
+        (2, "shared/src/safevoice_shared/logging.py"),
         (2, "supabase/migrations/20261107000000_f0_profiles.sql"),
         (3, "supabase/migrations/20261107000000_f1_cases.sql"),
         (2, "backend/app/core/uow.py"),
@@ -458,8 +458,8 @@ OWNERSHIP_MATRIX = [
         (path, True, False)
         for path in (
             "agent/ingestion/source.py",
-            "agent/src/moodprint_agent/knowledge/retriever.py",
-            "agent/src/moodprint_agent/knowledge/ingest/batch.py",
+            "agent/src/safevoice_agent/knowledge/retriever.py",
+            "agent/src/safevoice_agent/knowledge/ingest/batch.py",
             "agent/tests/knowledge/test_x.py",
             "agent/evals/knowledge/cases.jsonl",
             "backend/app/modules/knowledge/service.py",
@@ -484,17 +484,17 @@ OWNERSHIP_MATRIX = [
     *[
         (path, False, True)
         for path in (
-            "agent/src/moodprint_agent/companion.py",
-            "agent/src/moodprint_agent/runtime.py",
-            "agent/src/moodprint_agent/events.py",
-            "agent/src/moodprint_agent/budget.py",
-            "agent/src/moodprint_agent/errors.py",
-            "agent/src/moodprint_agent/prompts/companion.md",
-            "agent/src/moodprint_agent/tools/x.py",
-            "agent/src/moodprint_agent/memory/x.py",
-            "agent/src/moodprint_agent/roleplay/x.py",
-            "agent/src/moodprint_agent/evidence/x.py",
-            "agent/src/moodprint_agent/testing/x.py",
+            "agent/src/safevoice_agent/companion.py",
+            "agent/src/safevoice_agent/runtime.py",
+            "agent/src/safevoice_agent/events.py",
+            "agent/src/safevoice_agent/budget.py",
+            "agent/src/safevoice_agent/errors.py",
+            "agent/src/safevoice_agent/prompts/companion.md",
+            "agent/src/safevoice_agent/tools/x.py",
+            "agent/src/safevoice_agent/memory/x.py",
+            "agent/src/safevoice_agent/roleplay/x.py",
+            "agent/src/safevoice_agent/evidence/x.py",
+            "agent/src/safevoice_agent/testing/x.py",
             "agent/tests/test_x.py",
             "agent/evals/companion/cases.jsonl",
             "backend/app/agent_gateway/service.py",
@@ -543,15 +543,15 @@ OWNERSHIP_MATRIX = [
     *[
         (path, False, False)
         for path in (
-            "agent/src/moodprint_agent/context.py",
-            "agent/src/moodprint_agent/__init__.py",
-            "agent/src/moodprint_agent/py.typed",
+            "agent/src/safevoice_agent/context.py",
+            "agent/src/safevoice_agent/__init__.py",
+            "agent/src/safevoice_agent/py.typed",
             "agent/README.md",
-            "shared/src/moodprint_shared/contracts/knowledge.py",
-            "shared/src/moodprint_shared/testing/fixture.py",
+            "shared/src/safevoice_shared/contracts/knowledge.py",
+            "shared/src/safevoice_shared/testing/fixture.py",
             "shared/contract-schemas/knowledge.json",
-            "shared/src/moodprint_shared/env.py",
-            "shared/src/moodprint_shared/logging.py",
+            "shared/src/safevoice_shared/env.py",
+            "shared/src/safevoice_shared/logging.py",
             "shared/tests/test_x.py",
             "shared/pyproject.toml",
             "backend/app/core/uow.py",

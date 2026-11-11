@@ -243,7 +243,7 @@ export const caseSummary = (item: Incident, evidence: Evidence[]): string => {
   const row = (e: TimelineEvent) =>
     `- ${eventTime(e)} | ${e.place || "Chưa ghi địa điểm"} | ${e.description} [${provenanceLabels[e.provenance]}]${e.evidenceIds.length ? ` — Nguồn: ${e.evidenceIds.join(", ")}` : ""}`;
   return [
-    `MOODPRINT — BẢN TÓM TẮT DEMO`,
+    `SAFEVOICE — BẢN TÓM TẮT DEMO`,
     item.title,
     `Trạng thái do người dùng đặt: ${statusLabels[item.status]}`,
     `Góc nhìn: ${item.perspective === "witness" ? "Người chứng kiến" : "Người trải qua"}`,

@@ -4,8 +4,8 @@ import asyncio
 from collections.abc import AsyncIterator
 from uuid import uuid4
 
-from moodprint_shared.contracts.conversations import RunUsage, TurnResult
-from moodprint_shared.contracts.streaming import StreamEvent, make_event
+from safevoice_shared.contracts.conversations import RunUsage, TurnResult
+from safevoice_shared.contracts.streaming import StreamEvent, make_event
 
 from app.agent_gateway.wiring import build_context
 from app.modules.conversations.approvals import ApprovalService

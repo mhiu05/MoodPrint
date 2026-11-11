@@ -16,8 +16,8 @@ from evals.budget import (
     GuardedTransport,
     load_budget,
 )
-from moodprint_shared.config import AppConfig
 from openai import AsyncOpenAI
+from safevoice_shared.config import AppConfig
 
 SCOPE = "phase3-live-compat"
 EVAL_SCOPE = "phase3-eval"
@@ -36,9 +36,9 @@ def api_key() -> str | None:
 
 def open_ledger(scope: str = SCOPE) -> BudgetLedger:
     """Raises ``BudgetError`` when the owner's budget is missing, expired or out of scope."""
-    path = Path(os.environ.get("MOODPRINT_EVAL_BUDGET", DEFAULT_BUDGET_PATH))
+    path = Path(os.environ.get("SAFEVOICE_EVAL_BUDGET", DEFAULT_BUDGET_PATH))
     ledger_path = Path(
-        os.environ.get("MOODPRINT_EVAL_LEDGER", str(path.with_name("eval-spend.jsonl")))
+        os.environ.get("SAFEVOICE_EVAL_LEDGER", str(path.with_name("eval-spend.jsonl")))
     )
     if not ledger_path.is_file():
         raise BudgetError(

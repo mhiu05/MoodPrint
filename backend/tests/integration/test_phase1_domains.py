@@ -7,8 +7,8 @@ import pytest
 from app.core.errors import ApiError
 from app.core.uow import user_uow
 from app.infrastructure.storage_gateway import ObjectInfo, SignedUpload
-from moodprint_shared.config import AppConfig, EvidenceConfig
-from moodprint_shared.contracts.errors import NotFound, QuotaExceeded, VersionConflict
+from safevoice_shared.config import AppConfig, EvidenceConfig
+from safevoice_shared.contracts.errors import NotFound, QuotaExceeded, VersionConflict
 from sqlalchemy import text
 
 pytestmark = pytest.mark.integration

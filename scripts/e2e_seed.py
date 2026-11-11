@@ -6,7 +6,7 @@ from runpy import run_module
 
 
 def main() -> int:
-    module = "moodprint_agent.knowledge.ingest"
+    module = "safevoice_agent.knowledge.ingest"
     if find_spec(module) is None:
         return 2
     sys.argv = [module, "seed-synthetic", "--target", "test-env"]

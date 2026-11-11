@@ -57,7 +57,7 @@ $ok = 0
 $warn = 0
 
 $ModeLabel = if ($Check) { 'check' } else { 'install' }
-Write-Output "MoodPrint Cursor toolkit ($ModeLabel)"
+Write-Output "SafeVoice Cursor toolkit ($ModeLabel)"
 
 # MCP
 if (Test-Path -LiteralPath $McpPath) {

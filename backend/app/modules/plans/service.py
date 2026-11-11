@@ -2,8 +2,8 @@
 
 from uuid import UUID
 
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.plans import ActionPlan, ItemStatus, PlanUpsert
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.plans import ActionPlan, ItemStatus, PlanUpsert
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 

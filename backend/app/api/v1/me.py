@@ -1,8 +1,8 @@
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Request, Response
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.base import FrozenDTO
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.base import FrozenDTO
 
 from app.core.auth import bearer_token, get_auth
 from app.core.deps import profile_service

@@ -2,7 +2,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from app.modules.incidents.service import IncidentService
-from moodprint_shared.contracts.incidents import EventCreate
+from safevoice_shared.contracts.incidents import EventCreate
 
 
 @pytest.mark.parametrize("provenance", ["user_entered", "ai_extracted"])

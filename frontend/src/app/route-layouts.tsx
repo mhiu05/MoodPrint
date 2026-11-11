@@ -25,9 +25,9 @@ export function Root() {
         state: { from: location.pathname + location.search },
         replace: true,
       });
-    window.addEventListener("moodprint:unauthenticated", expired);
+    window.addEventListener("safevoice:unauthenticated", expired);
     return () =>
-      window.removeEventListener("moodprint:unauthenticated", expired);
+      window.removeEventListener("safevoice:unauthenticated", expired);
   }, [navigate, location.pathname, location.search]);
   useEffect(() => {
     document.documentElement.dataset.reducedMotion = String(reduced);
@@ -100,7 +100,7 @@ export function RouteError() {
       <EmptyState
         title="Trang cần được mở lại"
         description="Có lỗi khi tải trang. Hãy mở lại để tiếp tục. Những nội dung đã lưu vẫn nằm trong tài khoản của bạn."
-        action={<LinkButton to="/">Mở lại MoodPrint</LinkButton>}
+        action={<LinkButton to="/">Mở lại SafeVoice</LinkButton>}
       />
     </main>
   );

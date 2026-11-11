@@ -7,15 +7,15 @@ country_scope = ["VN"]
 topics = ["cyber"]
 age_bands = ["11-13", "14-17"]
 last_reviewed = 2026-11-09
-applicability = "Tóm tắt biên soạn của MoodPrint cho học sinh tại Việt Nam; không thay thế tư vấn pháp lý."
+applicability = "Tóm tắt biên soạn của SafeVoice cho học sinh tại Việt Nam; không thay thế tư vấn pháp lý."
 legacy_article_id = "KB-08"
 [[derived_from]]
 source_id = "mp-authored"
-locator = "Bài tĩnh trong frontend/src/mocks/data/knowledge.ts (id KB-08); biên soạn nguyên bản bởi MoodPrint, chưa thẩm định bởi chuyên gia bên ngoài."
+locator = "Bài tĩnh trong frontend/src/mocks/data/knowledge.ts (id KB-08); biên soạn nguyên bản bởi SafeVoice, chưa thẩm định bởi chuyên gia bên ngoài."
 +++
 ## Điều cần biết
 
-Ảnh chụp có thể giúp ghi lại nội dung, nhưng một khung hình bị cắt có thể thiếu phần trước và sau. MoodPrint không xác minh ảnh là thật hay ai đã gửi.
+Ảnh chụp có thể giúp ghi lại nội dung, nhưng một khung hình bị cắt có thể thiếu phần trước và sau. SafeVoice không xác minh ảnh là thật hay ai đã gửi.
 
 ## Một bước bạn có thể thử
 

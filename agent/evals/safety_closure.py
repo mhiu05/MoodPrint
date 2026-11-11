@@ -19,9 +19,9 @@ from evals import safety_eval
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCES = (
-    "agent/src/moodprint_agent/tools/safety.py",
-    "agent/src/moodprint_agent/tools/risk_assessor.py",
-    "agent/src/moodprint_agent/runtime.py",
+    "agent/src/safevoice_agent/tools/safety.py",
+    "agent/src/safevoice_agent/tools/risk_assessor.py",
+    "agent/src/safevoice_agent/runtime.py",
     "agent/evals/safety_eval.py",
     "agent/evals/safety_closure.py",
 )

@@ -1,30 +1,30 @@
-# MoodPrint
+# SafeVoice
 
 **Hiểu tình huống, ghi lại điều cần nhớ, chuẩn bị bước tìm hỗ trợ.**
 
 Bắt nạt và bạo lực học đường có thể xảy ra trong lớp, ngoài sân trường hoặc trên mạng. Khi chưa biết gọi tên điều đang xảy ra hay mở lời với ai, học sinh cần một nơi để sắp xếp câu chuyện theo nhịp của mình.
 
-MoodPrint là ứng dụng web tiếng Việt hướng tới học sinh 11–17 tuổi: trò chuyện để làm rõ tình huống, đọc kiến thức, ghi nhận sự việc, giữ bằng chứng và luyện cách nói với người lớn tin cậy. Khác với một chatbot độc lập, cuộc trò chuyện có thể nối với hồ sơ và kế hoạch cá nhân; các thao tác AI đề xuất cần người dùng duyệt trước khi lưu.
+SafeVoice là ứng dụng web tiếng Việt hướng tới học sinh 11–17 tuổi: trò chuyện để làm rõ tình huống, đọc kiến thức, ghi nhận sự việc, giữ bằng chứng và luyện cách nói với người lớn tin cậy. Khác với một chatbot độc lập, cuộc trò chuyện có thể nối với hồ sơ và kế hoạch cá nhân; các thao tác AI đề xuất cần người dùng duyệt trước khi lưu.
 
 ## Giao diện sản phẩm
 
 <p align="center">
-  <img src=".github/assets/readme/chat-desktop.png" width="1000" alt="AI Companion kết nối: header gọn, vùng hội thoại tối và ô soạn tin nhiều dòng" />
+  <img src=".github/assets/readme/chat-desktop.png" width="1000" alt="SafeVoice AI Companion demo: cuộc trò chuyện mới và bản nháp chưa gửi" />
 </p>
 
-**AI Companion:** giao diện tập trung vào cuộc trò chuyện, với composer ở cuối màn hình. Ảnh thể hiện cuộc trò chuyện mới và **bản nháp chưa gửi**, chưa có phản hồi từ model.
+**AI Companion:** giao diện tập trung vào cuộc trò chuyện, với composer ở cuối màn hình. Ảnh demo thể hiện cuộc trò chuyện mới và **bản nháp chưa gửi**, chưa có phản hồi AI.
 
 | Trang chủ | Knowledge Hub |
 | --- | --- |
-| ![Trang chủ tài khoản local với hồ sơ và tiến độ kế hoạch](.github/assets/readme/dashboard.png) | ![Thư viện kiến thức và khu vực tra cứu nguồn](.github/assets/readme/knowledge.png) |
+| ![Trang chủ tài khoản demo với hồ sơ và tiến độ kế hoạch](.github/assets/readme/dashboard.png) | ![Thư viện kiến thức và khu vực tra cứu nguồn](.github/assets/readme/knowledge.png) |
 | Bắt đầu ghi nhận sự việc, tìm hỗ trợ hoặc tiếp tục kế hoạch. | Bài đọc đóng gói cùng ứng dụng; tra cứu nguồn qua API là phần riêng. |
 
 | Hồ sơ sự việc | Kế hoạch ứng phó |
 | --- | --- |
-| ![Danh sách ba hồ sơ hư cấu lưu qua FastAPI](.github/assets/readme/incidents.png) | ![Kế hoạch lưu trong database với mục tiêu và tiến độ](.github/assets/readme/action-plan.png) |
+| ![Danh sách hồ sơ hư cấu trong workspace demo](.github/assets/readme/incidents.png) | ![Kế hoạch demo với mục tiêu và tiến độ](.github/assets/readme/action-plan.png) |
 | Xem lại nội dung, trạng thái và các mốc đã ghi nhận. | Chia mục tiêu thành bước nhỏ, sửa và theo dõi tiến độ. |
 
-Năm ảnh được chụp trực tiếp bằng Playwright sau khi đăng nhập qua form thông thường, trên **frontend + FastAPI + Supabase Auth/PostgreSQL local thật**, với tài khoản và dữ liệu hư cấu riêng. Không thay response API, không dùng workspace demo, không dựng câu trả lời AI. Môi trường chụp dùng truy xuất từ khóa trong PostgreSQL và không cấu hình provider trả phí. School Admin không nằm trong bộ ảnh vì hiện chỉ có bản demo.
+Năm ảnh được chụp trực tiếp từ **frontend SafeVoice ở chế độ demo**, với nhân vật An và dữ liệu hư cấu lưu trong trình duyệt. Bộ ảnh không sử dụng FastAPI, Supabase hay provider trả phí và không chứng minh các luồng kết nối backend. School Admin không nằm trong bộ ảnh.
 
 ## Tính năng chính
 
@@ -90,7 +90,7 @@ Frontend dùng Supabase Auth để quản lý phiên và capability do API cấp
 ## Cấu trúc repository
 
 ```text
-MoodPrint/
+SafeVoice/
 ├── frontend/
 │   ├── src/features/          # Home, AI, hồ sơ, kế hoạch, kiến thức, hỗ trợ
 │   ├── src/services/          # Ports, composition và HTTP adapters
@@ -104,7 +104,7 @@ MoodPrint/
 │   ├── app/jobs/              # Đối soát run, dọn evidence
 │   └── tests/
 ├── agent/
-│   ├── src/moodprint_agent/   # Runtime, tools, knowledge, memory, roleplay
+│   ├── src/safevoice_agent/   # Runtime, tools, knowledge, memory, roleplay
 │   ├── ingestion/            # Nội dung, manifest và corpus tổng hợp
 │   ├── evals/                # Dataset, rubric và runner đánh giá
 │   └── tests/
@@ -126,9 +126,12 @@ Các lệnh ưu tiên **Windows PowerShell**. Trên macOS/Linux dùng `cd` thay 
 
 Cần Git và Node.js **22.12+**; CI dùng Node.js 24. Không cần Python, Docker, backend hay API key.
 
+Thay `$RepositoryUrl` bằng URL clone hiện tại từ GitHub → **Code**; tên thư mục local luôn là `SafeVoice`, kể cả khi repository trên GitHub chưa đổi tên.
+
 ```powershell
-git clone https://github.com/mhiu05/MoodPrint.git
-Set-Location MoodPrint/frontend
+$RepositoryUrl = "https://github.com/<owner>/<repository>.git"
+git clone $RepositoryUrl SafeVoice
+Set-Location SafeVoice/frontend
 npm.cmd ci
 npm.cmd run dev -- --config e2e/vite.demo.config.ts --port 5173 --strictPort
 ```
@@ -155,7 +158,7 @@ uv run python scripts/dev/bootstrap_local_db.py
 uv run python scripts/e2e_stack.py --project real --agent scripted
 ```
 
-`start` khởi động Supabase và áp dụng migrations lúc tạo database. `bootstrap_local_db.py` cấp mật khẩu ngẫu nhiên cho role giới hạn `moodprint_api`, ghi credential vào **`.local/test.env`**, không đọc `.env` của người dùng. Seed mặc định không tạo tài khoản chung. Không dùng role `postgres` để chạy ứng dụng.
+`start` khởi động Supabase và áp dụng migrations lúc tạo database. `bootstrap_local_db.py` cấp mật khẩu ngẫu nhiên cho role giới hạn `safevoice_api`, ghi credential vào **`.local/test.env`**, không đọc `.env` của người dùng. Seed mặc định không tạo tài khoản chung. Không dùng role `postgres` để chạy ứng dụng.
 
 | Dịch vụ | Địa chỉ mặc định |
 | --- | --- |
@@ -172,7 +175,7 @@ Mở `/auth`, đăng ký bằng email hư cấu và xác nhận qua hộp thư l
 Companion HTTP là opt-in. Với tài khoản kết nối, mở DevTools Console tại origin frontend, chạy rồi tải lại:
 
 ```javascript
-localStorage.setItem("moodprint:ai-companion", "live");
+localStorage.setItem("safevoice:ai-companion", "live");
 location.reload();
 ```
 
@@ -211,14 +214,22 @@ Template chứa placeholder hosted, **phải thay bằng giá trị local**. L�
 
 | Nhóm biến | Cấu hình |
 | --- | --- |
-| Backend | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `DATABASE_URL` của role `moodprint_api`; `CORS_ALLOWED_ORIGINS` liệt kê origin được phép |
+| Backend | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `DATABASE_URL` của role `safevoice_api`; `CORS_ALLOWED_ORIGINS` liệt kê origin được phép |
 | Frontend công khai | `VITE_PUBLIC_SUPABASE_URL`, `VITE_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `VITE_PUBLIC_API_BASE_URL`; tùy chọn `VITE_PUBLIC_AI_COMPANION=live` |
 | Provider bí mật | `VOYAGE_API_KEY` cho retrieval mặc định; `OPENAI_API_KEY` cho model thật |
 | Quản trị/test | `SUPABASE_DB_URL` là kết nối đặc quyền cho migration; `TEST_*` do bootstrap cấp cho local tests; không đưa vào browser |
 
-**Mọi biến `VITE_PUBLIC_*` được đưa vào bundle.** Chỉ URL và publishable key được dùng ở frontend; secret key, database password và provider key ở server. Khởi động lại Vite sau khi sửa env. Model, timeout, budget và retrieval tuning nằm trong [config.py](shared/src/moodprint_shared/config.py); `APIFY_API_TOKEN` chưa có tích hợp hoạt động trong luồng hiện tại.
+**Mọi biến `VITE_PUBLIC_*` được đưa vào bundle.** Chỉ URL và publishable key được dùng ở frontend; secret key, database password và provider key ở server. Khởi động lại Vite sau khi sửa env. Model, timeout, budget và retrieval tuning nằm trong [config.py](shared/src/safevoice_shared/config.py); `APIFY_API_TOKEN` chưa có tích hợp hoạt động trong luồng hiện tại.
 
 Factory mặc định dùng pgvector và **cần Voyage key ngay khi khởi động**, không tự chuyển sang fixture. OpenAI key có thể để trống nếu không dùng chức năng model; đường AI tương ứng sẽ báo chưa sẵn sàng. Có key chưa đồng nghĩa đã có corpus: pipeline `plan → build → embed → store → validate → publish` nằm tại [knowledge ingestion](agent/ingestion/README.md). Bước Voyage có thể mất phí và cần ledger/ngân sách; onboarding ngân sách còn thao tác thủ công. Không trộn embeddings hashing của E2E với corpus Voyage.
+
+### Cập nhật môi trường đã có khi đổi tên
+
+Package Python hiện dùng `safevoice-agent`, `safevoice-shared`, `safevoice-backend`; chạy lại `uv sync --all-packages --all-extras --locked` sau khi cập nhật code. Các biến phục vụ stack và eval dùng tiền tố `SAFEVOICE_`.
+
+Database tạo mới từ migrations dùng role `safevoice_api`. Với database đã triển khai, thay đổi mã nguồn không tự đổi role đang tồn tại: quản trị viên cần đổi tên role runtime hiện tại sang `safevoice_api`, cập nhật comment của `knowledge.source_confidential` thành `safevoice:private_ingestion`, rồi cập nhật username và credential tương ứng trong `DATABASE_URL`. Không reset database đang có dữ liệu chỉ để đổi tên. `.env` riêng và database hosted không được sửa tự động.
+
+Khóa lưu trữ trình duyệt hiện dùng tiền tố `safevoice`. Dữ liệu demo và tùy chọn cũ không tự chuyển sang khóa mới; dữ liệu tài khoản kết nối vẫn nằm trong database. Việc đổi tên repository trên GitHub và thư mục checkout là thao tác riêng với thay đổi nội dung code.
 
 Khi đã chủ động cấu hình provider và corpus, dùng hai terminal:
 

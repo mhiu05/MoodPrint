@@ -5,9 +5,9 @@ import re
 from dataclasses import fields
 from pathlib import Path
 
-from moodprint_agent.companion import build_companion, model_settings
-from moodprint_agent.tools.registry import ToolRegistry
-from moodprint_shared.config import OPENAI_MODEL, AppConfig
+from safevoice_agent.companion import build_companion, model_settings
+from safevoice_agent.tools.registry import ToolRegistry
+from safevoice_shared.config import OPENAI_MODEL, AppConfig
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCES = [ROOT / "agent" / "src", ROOT / "backend" / "app", ROOT / "shared" / "src"]
@@ -67,7 +67,7 @@ def test_agent_package_has_no_unreviewed_network_clients() -> None:
     # Reviewed exception (integration, INT-07): the ingestion CLI's SSRF guard resolves host names with
     # ``socket.getaddrinfo`` to refuse non-public addresses. It opens no connection, and nothing in the
     # runtime or the backend imports the ingest package.
-    reviewed = {ROOT / "agent" / "src" / "moodprint_agent" / "knowledge" / "ingest" / "acquire.py"}
+    reviewed = {ROOT / "agent" / "src" / "safevoice_agent" / "knowledge" / "ingest" / "acquire.py"}
     for path in (ROOT / "agent" / "src").rglob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):

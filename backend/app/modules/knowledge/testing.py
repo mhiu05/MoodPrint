@@ -2,10 +2,10 @@
 
 from dataclasses import replace
 
-from moodprint_agent.knowledge.embedder import HashingEmbedder
-from moodprint_agent.knowledge.retriever import PgVectorKnowledgeRetriever
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.knowledge import KnowledgeRetriever
+from safevoice_agent.knowledge.embedder import HashingEmbedder
+from safevoice_agent.knowledge.retriever import PgVectorKnowledgeRetriever
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.knowledge import KnowledgeRetriever
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 # The product gate (``min_vector_score`` 0.425) was calibrated on Voyage vectors. The deterministic

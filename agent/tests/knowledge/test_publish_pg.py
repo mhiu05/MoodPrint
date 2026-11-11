@@ -6,17 +6,17 @@ import json
 from pathlib import Path
 
 import pytest
-from moodprint_agent.knowledge.embedder import HashingEmbedder
-from moodprint_agent.knowledge.ingest.cli import main
-from moodprint_agent.knowledge.ingest.runtime import (
+from safevoice_agent.knowledge.embedder import HashingEmbedder
+from safevoice_agent.knowledge.ingest.cli import main
+from safevoice_agent.knowledge.ingest.runtime import (
     engine_for,
     rollback_version,
     seed_corpus,
     store_records,
 )
-from moodprint_agent.knowledge.retriever import PgVectorKnowledgeRetriever
-from moodprint_shared.config import KnowledgeConfig
-from moodprint_shared.contracts.knowledge import KnowledgeFilters, KnowledgeQuery, RetrievalScope
+from safevoice_agent.knowledge.retriever import PgVectorKnowledgeRetriever
+from safevoice_shared.config import KnowledgeConfig
+from safevoice_shared.contracts.knowledge import KnowledgeFilters, KnowledgeQuery, RetrievalScope
 
 from .kb_env import api_database_url, load_test_env
 

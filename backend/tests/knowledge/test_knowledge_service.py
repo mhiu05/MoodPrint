@@ -10,9 +10,9 @@ import pytest
 from app.core.errors import ApiError
 from app.modules.knowledge.schemas import ChunkRead
 from app.modules.knowledge.service import KnowledgeService, parse_age, parse_topic
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.errors import KnowledgeTimeout, KnowledgeUnavailable
-from moodprint_shared.contracts.knowledge import (
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.errors import KnowledgeTimeout, KnowledgeUnavailable
+from safevoice_shared.contracts.knowledge import (
     KnowledgeChunk,
     KnowledgeQuery,
     KnowledgeResult,
@@ -46,7 +46,7 @@ def _ok_result() -> KnowledgeResult:
         source_id="mp-authored",
         document_id="kb-def-ba-dau-hieu",
         title="Ba dấu hiệu",
-        publisher="MoodPrint",
+        publisher="SafeVoice",
         url=None,
         section="Cố ý gây hại",
         published_at=None,

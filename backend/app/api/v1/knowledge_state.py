@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Path, Query, Request
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.paging import Page
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.paging import Page
 
 from app.core.auth import get_auth
 from app.modules.knowledge_state.schemas import ArticleStatePut, ArticleStateRead

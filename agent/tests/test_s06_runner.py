@@ -190,7 +190,7 @@ async def test_default_plan_executes_all_240_pinned_slots_with_synthetic_provide
 @pytest.mark.asyncio
 async def test_openai_adapter_uses_only_injected_client_with_explicit_safe_request_shapes():
     from evals.s06_runner import OpenAIExtractionProvider, run_slot
-    from moodprint_shared.config import AppConfig
+    from safevoice_shared.config import AppConfig
 
     calls, closed = [], []
 
@@ -253,7 +253,7 @@ async def test_openai_adapter_uses_only_injected_client_with_explicit_safe_reque
 @pytest.mark.asyncio
 async def test_openai_adapter_refusal_or_unfinished_stream_is_failed_not_coverage():
     from evals.s06_runner import OpenAIExtractionProvider, run_slot
-    from moodprint_shared.config import AppConfig
+    from safevoice_shared.config import AppConfig
 
     class RefusedStream:
         async def __aiter__(self):

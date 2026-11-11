@@ -7,15 +7,15 @@ from uuid import uuid4
 import pytest
 from agents import SQLiteSession
 from agents.testing import ScriptedModel, assistant_message
-from moodprint_agent.budget import RunToolBudget
-from moodprint_agent.runtime import CompanionRuntime
-from moodprint_agent.tools.context import CompanionToolContext
-from moodprint_agent.tools.registry import diagnostic_registry
-from moodprint_agent.tools.save_intent import TURN_HINT_CLEAR, assess_save_intent
-from moodprint_shared.config import AppConfig
-from moodprint_shared.contracts.agent import AgentServices
-from moodprint_shared.contracts.auth import AuthContext
-from moodprint_shared.contracts.context import ContextBundle
+from safevoice_agent.budget import RunToolBudget
+from safevoice_agent.runtime import CompanionRuntime
+from safevoice_agent.tools.context import CompanionToolContext
+from safevoice_agent.tools.registry import diagnostic_registry
+from safevoice_agent.tools.save_intent import TURN_HINT_CLEAR, assess_save_intent
+from safevoice_shared.config import AppConfig
+from safevoice_shared.contracts.agent import AgentServices
+from safevoice_shared.contracts.auth import AuthContext
+from safevoice_shared.contracts.context import ContextBundle
 
 
 @pytest.mark.parametrize(
