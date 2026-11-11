@@ -12,7 +12,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 CHECKER = ROOT / "scripts" / "check_ownership.py"
-POLICY = ROOT / "docs" / "implementation" / "ownership.yaml"
+POLICY = ROOT / "scripts" / "ownership.json"
 BASE = "baseline/phase-1-verified"
 CONFIG = "shared/src/moodprint_shared/config.py"
 ENV = ".env.example"
@@ -65,7 +65,7 @@ def write(repo, path, content):
 def seed_repo(tmp_path_factory):
     tmp_path = tmp_path_factory.mktemp("ownership-seed")
     git(tmp_path, "init", "-b", "ownership-test")
-    write(tmp_path, "docs/implementation/ownership.yaml", POLICY.read_text(encoding="utf-8"))
+    write(tmp_path, "scripts/ownership.json", POLICY.read_text(encoding="utf-8"))
     write(
         tmp_path,
         CONFIG,
@@ -141,7 +141,7 @@ def check(repo, phase=2, base=BASE):
         (2, "frontend/src/features/knowledge/index.tsx"),
         (2, "frontend/src/services/composition/knowledge.ts"),
         (2, "frontend/src/services/http/knowledge.ts"),
-        (2, "docs/implementation/reports/phase-2-report.md"),
+        (2, "agent/ingestion/README.md"),
         (3, "agent/src/moodprint_agent/runtime.py"),
         (3, "agent/src/moodprint_agent/prompts/companion.md"),
         (3, "agent/src/moodprint_agent/tools/knowledge_search.py"),
@@ -161,13 +161,13 @@ def check(repo, phase=2, base=BASE):
         (3, "frontend/src/features/ai/chat.tsx"),
         (3, "frontend/src/services/composition/analysis.ts"),
         (3, "frontend/src/services/http/roleplay.ts"),
-        (3, "docs/implementation/reports/phase-3-report.md"),
+        (3, "agent/evals/README.md"),
         (2, "uv.lock"),
         (3, "frontend/package-lock.json"),
         (2, "backend/openapi.json"),
         (3, "frontend/src/services/http/schema.gen.ts"),
-        (2, "docs/implementation/compat/CC-P2-001.md"),
-        (3, "docs/implementation/compat/CC-P3-001.md"),
+        (2, "agent/evals/knowledge/README.md"),
+        (3, "agent/evals/rubric.md"),
     ],
 )
 def test_owned_or_generated_changes_are_accepted(repo, phase, path):
@@ -357,7 +357,7 @@ def test_factory_body_is_owned_but_signature_is_frozen(repo):
 
 
 def test_policy_cannot_be_relaxed_in_feature_branch(repo):
-    path = "docs/implementation/ownership.yaml"
+    path = "scripts/ownership.json"
     policy = json.loads((repo / path).read_text())
     policy["frozen"] = []
     policy["phases"]["2"]["allow"].append("**")
@@ -367,6 +367,33 @@ def test_policy_cannot_be_relaxed_in_feature_branch(repo):
     assert result.returncode == 1, result.stdout + result.stderr
     assert path in result.stdout
     assert "backend/app/core/uow.py" in result.stdout
+
+
+def test_legacy_baseline_policy_is_read_without_restoring_legacy_directory(repo):
+    blob = git(repo, "hash-object", "-w", ownership.POLICY).strip()
+    git(repo, "update-index", "--force-remove", ownership.POLICY)
+    git(repo, "update-index", "--add", "--cacheinfo", "100644", blob, ownership.LEGACY_POLICY)
+    (repo / ownership.POLICY).unlink()
+    git(repo, "commit", "-m", "synthetic historical policy location")
+    git(repo, "tag", "-f", BASE)
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(CHECKER),
+            "--repo",
+            str(repo),
+            "--phase",
+            "2",
+            "--base",
+            BASE,
+            "--head",
+            "HEAD",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert not (repo / Path(ownership.LEGACY_POLICY).parts[0]).exists()
 
 
 def test_missing_baseline_fails_without_reading_env_or_creating_tag(repo):
@@ -423,9 +450,9 @@ def test_new_frozen_cache_source_is_not_a_bytecode_exemption(repo):
     assert path in result.stdout
 
 
-# Literal expectations come from ownership matrix section 2, independently of
-# ownership.yaml and the matching helpers. One real disposable Git repository
-# supplies both phase verdicts; parametrization keeps every probe visible.
+# Literal expectations are independent of ownership.json and the matching helpers.
+# One real disposable Git repository supplies both phase verdicts;
+# parametrization keeps every probe visible.
 OWNERSHIP_MATRIX = [
     *[
         (path, True, False)
@@ -450,8 +477,8 @@ OWNERSHIP_MATRIX = [
             "frontend/src/services/http/knowledge.test.ts",
             "frontend/e2e/knowledge-real.spec.ts",
             "frontend/e2e/helpers/phase2.ts",
-            "docs/implementation/reports/phase-2-report.md",
-            "docs/implementation/compat/CC-P2-001.md",
+            "agent/ingestion/README.md",
+            "agent/evals/knowledge/README.md",
         )
     ],
     *[
@@ -500,8 +527,8 @@ OWNERSHIP_MATRIX = [
             "frontend/src/services/http/roleplay.ts",
             "frontend/e2e/ai-real.spec.ts",
             "frontend/e2e/helpers/phase3.ts",
-            "docs/implementation/reports/phase-3-report.md",
-            "docs/implementation/compat/CC-P3-001.md",
+            "agent/evals/README.md",
+            "agent/evals/rubric.md",
         )
     ],
     *[
@@ -576,13 +603,13 @@ OWNERSHIP_MATRIX = [
             ".githooks/pre-commit",
             "Dockerfile",
             "deploy/runtime.yaml",
-            "docs/implementation/ownership.yaml",
-            "docs/implementation/schema-manifest.json",
-            "docs/implementation/phase2-3/11-FILE-OWNERSHIP-AND-CONTRACT-MATRIX.md",
-            "docs/implementation/00-architecture.md",
-            "docs/implementation/compat/CC-001.md",
-            "docs/implementation/reports/pre-branch-report.md",
-            "docs/implementation/reports/integration-report.md",
+            "scripts/ownership.json",
+            "scripts/dev/schema-manifest.json",
+            "README.md",
+            "ARCHITECTURE.md",
+            "backend/README.md",
+            "frontend/README.md",
+            "deploy/README.md",
             ".gitignore",
             "pyproject.toml",
             ".importlinter",

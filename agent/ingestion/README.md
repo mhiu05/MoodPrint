@@ -1,5 +1,9 @@
 # Knowledge ingestion
 
+Xem [kiến trúc kho tri thức](../../README.md#kiến-trúc-hệ-thống),
+[cài đặt](../../README.md#cài-đặt-và-chạy-local) và [kiểm thử](../../README.md#kiểm-thử)
+trước khi chọn corpus và môi trường. Ingestion là CLI quản trị, không tự chạy khi backend khởi động.
+
 Chạy từ gốc repo. Mọi lệnh có `--target test-env` chỉ nhận database loopback; không có đích hosted.
 
 ## Cấu trúc
@@ -13,6 +17,10 @@ Chạy từ gốc repo. Mọi lệnh có `--target test-env` chỉ nhận databa
 | `synthetic/` | Corpus tổng hợp cho CI và E2E (HashingEmbedder). |
 
 ## Quy trình
+
+Các lệnh dưới mô tả pipeline; bước `embed --embedder voyage` gọi dịch vụ có phí và
+cần khóa/ngân sách nêu ở mục Voyage. Có thể dùng `--embedder hashing` cho corpus kiểm thử
+tổng hợp; vector hashing không thay thế chất lượng semantic embedding thật.
 
 ```powershell
 uv run python agent/ingestion/make_manifest.py
@@ -37,8 +45,13 @@ Mỗi phiên bản là bất biến: sửa nội dung thì tạo số phiên b�
 
 ## Voyage
 
-Chỉ chạy khi có khóa do owner cấp và sổ chi phí `.local/voyage-ledger.json` (trần USD 1.00, mô hình `voyage-4`). Tiến trình test không tự nạp khóa. Không dùng mô hình khác hay rerank khi chưa có phê duyệt riêng.
+Chỉ chạy khi có khóa được phép dùng và cả sổ chi phí `.local/voyage-ledger.json` lẫn log `.local/voyage-ledger.jsonl` đã tồn tại. Guard hiện gắn với trần USD 1.00 của quy trình phát triển trước đây và mô hình `voyage-4`, chưa có CLI onboarding ngân sách mới. Thiếu file, embed dừng với `BudgetBlocked`; không xóa/tạo lại ledger để đặt lại chi tiêu. Tiến trình test không tự nạp khóa. Không dùng mô hình khác hay rerank khi chưa có phê duyệt riêng.
+
+Đích `test-env` ưu tiên `TEST_ADMIN_DATABASE_URL`/`TEST_DATABASE_URL` trong environment. Nếu thiếu, nó tìm stack `kb` trước `.local/test.env`. Khi dùng foundation, thêm `--env-file .local/test.env` sau `uv run` cho các lệnh DB ở trên; xem [cài đặt provider](../../README.md#cài-đặt-và-chạy-local) để tránh nạp nhầm database local.
 
 ## Đánh giá
 
-`agent/evals/knowledge/`: benchmark v2 đã khóa (`cases/`), `tune_dev.py` chỉ đọc split dev, `run_v2.py` chạy một cấu hình đã đăng ký. Split test chỉ chạy một lần cho cấu hình đã khóa.
+[Retrieval benchmark](../evals/knowledge/README.md): benchmark v2 có split dev/test,
+`tune_dev.py` chỉ đọc dev, `run_v2.py` chạy cấu hình được chọn. Split test dành cho lượt
+đã đăng ký trước, không dùng để điều chỉnh ngưỡng. Kết quả đánh giá cũ phải được đọc
+cùng corpus, embedding model và cấu hình đã ghi trong artifact.

@@ -132,7 +132,7 @@ def test_head_commit_not_worktree_or_target_merge_is_checked(repo):
     ],
 )
 def test_malformed_trusted_policy_fails_closed(repo, mutation):
-    path = "docs/implementation/ownership.yaml"
+    path = "scripts/ownership.json"
     policy = json.loads((repo / path).read_text())
     if mutation == "unknown":
         policy["typo_allow"] = ["**"]
@@ -163,7 +163,7 @@ def test_malformed_trusted_policy_fails_closed(repo, mutation):
 
 def test_policy_edit_cannot_relax_checker(repo):
     ready(repo)
-    path = "docs/implementation/ownership.yaml"
+    path = "scripts/ownership.json"
     policy = json.loads((repo / path).read_text())
     policy["frozen"] = []
     policy["phases"]["2"]["allow"] = ["**"]

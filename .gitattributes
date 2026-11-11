@@ -1,0 +1,2 @@
+# Match Prettier's LF line endings on every platform; keep binary files unchanged.
+frontend/** text=auto eol=lf

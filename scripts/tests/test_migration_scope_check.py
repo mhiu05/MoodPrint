@@ -213,7 +213,7 @@ def test_cli_returns_failure_for_scope_violations_or_retired_profile(tmp_path, b
 
     migrations = tmp_path / "supabase/migrations"
     migrations.mkdir(parents=True)
-    manifest = tmp_path / "docs/implementation/schema-manifest.json"
+    manifest = tmp_path / "scripts/dev/schema-manifest.json"
     manifest.parent.mkdir(parents=True)
     manifest.write_text(json.dumps({"baseline_tables": {"app": ["messages"]}}))
     (migrations / "20261108100000_kb_outside.sql").write_text('create table "app".stolen(id int);')
@@ -230,3 +230,6 @@ def test_cli_returns_failure_for_scope_violations_or_retired_profile(tmp_path, b
         text=True,
     )
     assert result.returncode == expected
+    if expected == 1:
+        assert "20261108100000_kb_outside.sql" in result.stderr
+        assert "outside the phase schemas" in result.stderr

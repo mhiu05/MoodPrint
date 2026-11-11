@@ -1,12 +1,14 @@
 import { chromium } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const stage = process.argv[2] ?? "after";
 if (!["before", "after"].includes(stage))
   throw new Error("Use before or after");
 const destination = resolve(
-  "../docs/prototype/screenshots/ui-refinement",
+  dirname(fileURLToPath(import.meta.url)),
+  "../test-results/ui-refinement",
   stage,
 );
 await mkdir(destination, { recursive: true });

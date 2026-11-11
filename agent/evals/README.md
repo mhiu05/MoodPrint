@@ -1,26 +1,48 @@
 # Companion evaluations
 
-Phase 0 uses the official SDK `ScriptedModel` in `agent/tests`; no API key or model calls are needed.
-Scenario evaluations belong to Phase 3. Every future live invocation must use
-`moodprint_shared.config.OPENAI_MODEL`. This applies to compaction and smoke runs as well.
+Xem [kiểm thử hệ thống](../../README.md#kiểm-thử) và
+[kiến trúc runtime](../../README.md#kiến-trúc-hệ-thống). Các bộ đánh giá dùng dữ liệu tổng hợp;
+không đưa dữ liệu học sinh thật vào fixtures hoặc kết quả public.
 
-Keep synthetic cases in `cases/*.jsonl`. A run writes `outputs.jsonl` and deterministic
-`assertions.jsonl` under `results/<run-id>/`. Record the model, SDK version, commit,
-prompt version, and tools version with every output.
+## Đường chạy offline
 
-The coding agent reads every output and writes `grades.jsonl` using [the rubric](rubric.md).
-Do not call a judge model. Unrated cases remain unrated. High-risk cases SC-04, SC-07,
-SC-09, and SC-24 must each be read; sampling does not satisfy acceptance.
+Unit tests trong `agent/tests` dùng official SDK `ScriptedModel`, không cần API key.
+`run.py --suite deterministic` kiểm tra inventory/manifest và bộ quy tắc safety;
+nó không tự chạy mọi case live bằng mô hình giả.
 
-No live evaluation was executed in Phase 0. Paid calls require the configured API key
-and the owner's cost ceiling before running.
-
-Product scenarios have a separate offline entrypoint that executes the real SDK runtime and tools:
+Product scenarios có entrypoint riêng chạy runtime SDK và công cụ thật với model
+scripted, domain in-memory và HTTP fake cho phần cần response có cấu trúc:
 
 ```powershell
+uv run python agent/evals/run.py --suite deterministic
 uv run python agent/evals/product.py --out agent/evals/results/<new-product-offline-run>
 ```
 
-It records full action results and prompt/source hashes for 20 Vietnamese scenarios. Scripted replies
-receive no semantic quality grades; live slots stay `NOT_RUN`. See
-[the product matrix and 0–3 rubric](../../docs/quality/product-completion/agent-evaluation.md).
+`product.py` ghi kết quả hành động và hash prompt/source cho 20 kịch bản tiếng Việt
+trong [product_cases.json](product_cases.json). Câu trả lời scripted không nhận điểm
+chất lượng ngữ nghĩa; phần live chưa chạy được giữ `NOT_RUN`.
+
+## Live eval và cách đọc kết quả
+
+[run.py](run.py) hỗ trợ `--suite live`; đường này cần API key và tệp ngân sách do owner
+cấp, đặt chỗ chi phí trước từng request và dừng khi chạm giới hạn. Mọi lời gọi dùng
+`moodprint_shared.config.OPENAI_MODEL`, gồm compaction và smoke test. Không tự nâng
+trần ngân sách để hoàn thành một bộ đánh giá.
+
+Case nằm trong `cases/*.jsonl`. Kết quả ở `results/<run-id>/` gồm output, assertion
+xác định và metadata về model, SDK, commit, prompt/tools version, corpus cùng hash
+nguồn. Live harness mặc định vẫn dùng domain in-memory và fixture knowledge;
+[real_knowledge.py](real_knowledge.py) là adapter pgvector được chọn riêng, có ngân sách
+Voyage và chỉ chấp nhận DB loopback. Vì vậy “live” chỉ xác nhận đã gọi mô hình thật,
+không mặc định xác nhận toàn bộ hệ thống hay retrieval là thật.
+
+Coding agent đọc output và ghi `grades.jsonl` theo [rubric 0–3](rubric.md), không gọi
+judge model. Chưa chấm không có nghĩa là đạt. Mỗi output thuộc các case nguy cơ cao
+SC-04, SC-07, SC-09, SC-24 phải được đọc riêng, không lấy mẫu. Có thể đối chiếu
+[provenance.py](provenance.py), [assertions.py](assertions.py) và
+[harness.py](harness.py) để biết dữ kiện nào được thu thập.
+
+[MANIFEST-RECONCILIATION.md](MANIFEST-RECONCILIATION.md) là bản ghi lịch sử của một đợt
+đánh giá, không phải trạng thái ngân sách hay chứng nhận prompt hiện tại. Các kết quả
+cũ cần được đọc theo phiên bản ghi trong chúng. Kho tri thức có
+[benchmark và quy trình riêng](knowledge/README.md).

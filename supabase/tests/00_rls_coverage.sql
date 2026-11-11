@@ -5,7 +5,7 @@ select no_plan();
 
 select ok(exists(select 1 from pg_namespace where nspname='app'), 'domain schema exists');
 select ok(exists(select 1 from pg_namespace where nspname='agent_store'), 'SDK schema exists');
--- Named baseline, mirrored from docs/implementation/schema-manifest.json.
+-- Named baseline, mirrored from scripts/dev/schema-manifest.json.
 -- Additional phase tables are allowed and inspected below, never counted.
 select ok(exists(
     select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace

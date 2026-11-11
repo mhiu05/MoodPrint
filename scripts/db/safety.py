@@ -13,6 +13,10 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 PROJECT_REF = "xhlshihobyxrgfqrdafh"
+RUNTIME_URL_PLACEHOLDER = (
+    "postgresql+asyncpg://moodprint_api.<project-ref>:<generated-password>"
+    "@aws-<region>.pooler.supabase.com:5432/postgres"
+)
 CLI_VERSION = "2.122.1"
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -164,30 +168,42 @@ def load_hosted_env() -> dict[str, str]:
     return values
 
 
-def write_generated_database_url(path: Path, database_url: str, *, rotate: bool = False) -> None:
+def write_generated_database_url(
+    path: Path, database_url: str, *, rotate: bool = False, dry_run: bool = False
+) -> None:
     """Touch only DATABASE_URL; preserve every owner supplied line verbatim."""
-    original = path.read_text(encoding="utf-8") if path.exists() else ""
-    pattern = re.compile(r"^(?:export\s+)?DATABASE_URL\s*=.*$", re.MULTILINE)
+    original = path.read_bytes().decode("utf-8") if path.exists() else ""
+    pattern = re.compile(r"^[ \t]*(?:export[ \t]+)?DATABASE_URL[ \t]*=[^\r\n]*", re.MULTILINE)
     matches = pattern.findall(original)
     if len(matches) > 1:
         raise ValueError("Duplicate DATABASE_URL entries; resolve before provisioning")
     if matches:
         current = matches[0].split("=", 1)[1].strip().strip("'\"")
-        if current and rotate and not is_generated_runtime_url(current):
+        populated = current and current != RUNTIME_URL_PLACEHOLDER
+        if populated and rotate and not is_generated_runtime_url(current):
             raise ValueError("Existing DATABASE_URL is owner supplied; it cannot be overwritten")
-        if current and not rotate:
+        if populated and not rotate:
             raise ValueError(
                 "DATABASE_URL already exists; use --rotate to replace generated credentials"
             )
+    if dry_run:
+        return
+    newline = "\r\n" if "\r\n" in original else "\n"
     line = f'DATABASE_URL="{database_url}"'
     result = (
         pattern.sub(lambda _: line, original)
         if matches
-        else original + ("\n" if original and not original.endswith("\n") else "") + line + "\n"
+        else original
+        + (newline if original and not original.endswith("\n") else "")
+        + line
+        + newline
     )
     temp = path.with_name(path.name + ".moodprint-tmp")
-    temp.write_text(result, encoding="utf-8")
-    temp.replace(path)
+    try:
+        temp.write_bytes(result.encode("utf-8"))
+        temp.replace(path)
+    finally:
+        temp.unlink(missing_ok=True)
 
 
 def committed_migrations(root: Path = ROOT) -> list[Path]:

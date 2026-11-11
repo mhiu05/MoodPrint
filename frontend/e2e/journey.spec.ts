@@ -3,7 +3,7 @@ for (const width of [390, 1440]) {
   test(`full journey ${width}px: chat → eight screenshots → confirmed timeline → case → plan → roleplay → support`, async ({
     page,
     baseURL,
-  }) => {
+  }, testInfo) => {
     test.setTimeout(90000);
     await page.setViewportSize({ width, height: 900 });
     const errors: string[] = [];
@@ -54,7 +54,7 @@ for (const width of [390, 1440]) {
     await expect(page.locator(".ai-timeline li")).toHaveCount(6);
     if (process.env.CAPTURE_SCREENSHOTS === "1")
       await page.screenshot({
-        path: `../docs/prototype/screenshots/analysis-${width}px.png`,
+        path: testInfo.outputPath(`analysis-${width}px.png`),
         fullPage: true,
       });
     await page
@@ -123,7 +123,7 @@ for (const width of [390, 1440]) {
     ).toBeVisible();
     if (process.env.CAPTURE_SCREENSHOTS === "1")
       await page.screenshot({
-        path: `../docs/prototype/screenshots/support-message-${width}px.png`,
+        path: testInfo.outputPath(`support-message-${width}px.png`),
         fullPage: true,
       });
     await page.reload();

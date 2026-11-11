@@ -76,7 +76,7 @@ test("E-AG-01: a cited answer shows only the verified source chip", async ({
 
 test("E-AG-02: nothing is written before Save; Save adds one user_confirmed event", async ({
   page,
-}) => {
+}, info) => {
   const user = await createUser();
   try {
     const { id: caseId } = await createCaseViaApi(user.email);
@@ -97,6 +97,7 @@ test("E-AG-02: nothing is written before Save; Save adds one user_confirmed even
     await expect(
       dialog.getByText("Bạn A nhắn tin chế giễu trong nhóm lớp."),
     ).toBeVisible();
+    await page.screenshot({ path: info.outputPath("scripted-approval.png") });
     // Open dialog = still nothing written, and closing it does not decide anything.
     expect(await events(user.email, caseId)).toEqual([]);
     await dialog.getByRole("button", { name: "Đóng" }).click();
@@ -169,12 +170,20 @@ test("E-AG-04: a pending proposal survives a reload and a plan can be approved",
 
 test("E-AG-05: a memory suggestion needs the user's Yes and then exists", async ({
   page,
-}) => {
+}, info) => {
   const user = await createUser();
   try {
     await openChat(page, user.email);
     await say(page, "Hãy ghi nhớ giúp mình nhé");
     await expect(page.getByText("Ghi nhớ điều này?")).toBeVisible();
+    await page.getByRole("button", { name: "Sửa", exact: true }).click();
+    await expect(
+      page.getByRole("textbox", { name: "Nội dung ghi nhớ" }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: info.outputPath("scripted-memory-edit.png"),
+    });
+    await page.getByRole("button", { name: "Hủy", exact: true }).click();
     const token = await tokenFor(user.email);
     expect((await (await apiJson("/v1/memories", token)).json()).items).toEqual(
       [],
@@ -244,6 +253,124 @@ test("E-AG-12: the live chat fits a phone viewport without horizontal scroll", a
     );
     expect(overflow).toBeLessThanOrEqual(0);
   } finally {
+    await removeUser(user.email);
+  }
+});
+
+// Layout stress fixtures are test-only. These images stay in Playwright's output,
+// never in the README showcase (which uses the normal app without interception).
+test("E-AG-14: long history and multiline composer remain usable at mobile and desktop sizes", async ({
+  page,
+}, info) => {
+  test.setTimeout(120000);
+  const user = await createUser();
+  try {
+    await openChat(page, user.email);
+    const url = page.url();
+    await page.route("**/v1/conversations/*/messages*", async (route) => {
+      if (route.request().method() !== "GET") return route.fallback();
+      await route.fulfill({
+        json: {
+          items: Array.from({ length: 18 }, (_, index) => ({
+            id: `layout-${index}`,
+            role: index % 2 ? "assistant" : "user",
+            content:
+              index % 2
+                ? `Nội dung tổng hợp để kiểm tra bố cục ${index}.\n\n${"Bạn có thể ghi lại điều mình nhớ và chuẩn bị vài ý trước khi nói với người lớn tin cậy. ".repeat(12)}`
+                : `Lời kể tổng hợp ${index}: ${"Mình muốn chuẩn bị cách nói chuyện với cô. ".repeat(3)}`,
+            citations: [],
+            clientMessageId: null,
+            runId: null,
+            createdAt: "2026-11-10T09:00:00Z",
+          })),
+          nextCursor: null,
+        },
+      });
+    });
+    await page.goto(url);
+    await expect(page.getByTestId("live-assistant")).toHaveCount(9);
+    const log = page.getByRole("log");
+    const input = page.getByRole("textbox", { name: "Điều bạn muốn kể" });
+    for (const width of [360, 390, 430, 768, 1280, 1440]) {
+      await page.setViewportSize({ width, height: 800 });
+      await input.fill(
+        "Mình muốn chuẩn bị vài ý.\nMình sẽ nói với cô vào giờ ra chơi.\nMình cần cô lắng nghe.",
+      );
+      await expect(input).toHaveValue(/\n/);
+      // Width changes must reflow the existing draft without requiring another keystroke.
+      await expect
+        .poll(() =>
+          input.evaluate((element) => {
+            const box = element as HTMLTextAreaElement;
+            return (
+              box.scrollHeight <= box.clientHeight + 2 ||
+              box.clientHeight >= 138
+            );
+          }),
+        )
+        .toBe(true);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(width);
+      const composer = await page
+        .getByRole("form", { name: "Soạn tin nhắn" })
+        .boundingBox();
+      expect(composer!.y + composer!.height).toBeLessThanOrEqual(800);
+      await page.screenshot({
+        path: info.outputPath(`fixture-history-${width}.png`),
+      });
+    }
+    await log.evaluate((element) => {
+      element.scrollTop = 180;
+    });
+    await expect(
+      page.getByRole("button", { name: /Tin nhắn mới nhất/ }),
+    ).toBeVisible();
+    const before = await log.evaluate((element) => element.scrollTop);
+    await input.fill("Đang đọc lại lịch sử");
+    expect(await log.evaluate((element) => element.scrollTop)).toBe(before);
+    await page.getByRole("button", { name: /Tin nhắn mới nhất/ }).click();
+    await expect
+      .poll(() =>
+        log.evaluate(
+          (element) =>
+            element.scrollHeight - element.clientHeight - element.scrollTop,
+        ),
+      )
+      .toBeLessThan(2);
+    // A reduced viewport approximates the space left above a mobile keyboard.
+    await page.setViewportSize({ width: 390, height: 450 });
+    await input.focus();
+    const box = await input.boundingBox();
+    expect(box!.y + box!.height).toBeLessThanOrEqual(450);
+    await page.screenshot({
+      path: info.outputPath("fixture-keyboard-space.png"),
+    });
+  } finally {
+    await page.close();
+    await removeUser(user.email);
+  }
+});
+
+test("E-AG-15: compact thinking state and cancellation remain reachable on mobile", async ({
+  page,
+}, info) => {
+  test.setTimeout(60000);
+  const user = await createUser();
+  try {
+    await page.setViewportSize({ width: 390, height: 700 });
+    await openChat(page, user.email);
+    await say(page, "trả lời chậm — kiểm tra trạng thái chờ");
+    await expect(
+      page.getByRole("status", { name: "AI đang phản hồi" }),
+    ).toBeVisible();
+    await page.screenshot({ path: info.outputPath("scripted-thinking.png") });
+    await page.getByRole("button", { name: /Dừng/ }).click();
+    await expect(
+      page.getByRole("button", { name: "Gửi", exact: true }),
+    ).toBeVisible();
+  } finally {
+    await page.close();
     await removeUser(user.email);
   }
 });

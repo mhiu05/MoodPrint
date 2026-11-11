@@ -1,6 +1,6 @@
 """Frozen safety holdouts: the files cannot change after the fact and the measured numbers cannot
 silently regress. These guards record what the detector achieves; they do NOT claim the 0.95
-recall target is met on unseen text (it is not: see docs/implementation/reports/phase-3-report.md).
+recall target is met on unseen text (it is not: see the limitations in agent/README.md).
 """
 
 import hashlib

@@ -13,7 +13,7 @@ if (!["127.0.0.1", "localhost"].includes(new URL(baseURL).hostname))
   throw new Error("The product audit requires a loopback demo origin.");
 const out = resolve(
   dirname(fileURLToPath(import.meta.url)),
-  "../../docs/quality/product-completion",
+  "../test-results/product-completion",
 );
 await mkdir(out, { recursive: true });
 const viewports = [

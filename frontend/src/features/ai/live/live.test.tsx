@@ -145,6 +145,56 @@ beforeEach(() => {
 });
 
 describe("live chat", () => {
+  it("lets a reader jump back after manually scrolling away from incoming messages", async () => {
+    renderThread(fake());
+    await screen.findByText(/Bạn muốn kể điều gì/);
+    const log = screen.getByRole("log");
+    Object.defineProperties(log, {
+      scrollHeight: { configurable: true, value: 1200 },
+      clientHeight: { configurable: true, value: 400 },
+      scrollTop: { configurable: true, writable: true, value: 120 },
+    });
+    fireEvent.scroll(log);
+    expect(log.scrollTop).toBe(120);
+    log.scrollTo = vi.fn();
+    fireEvent.click(screen.getByRole("button", { name: /Tin nhắn mới nhất/ }));
+    expect(log.scrollTo).toHaveBeenCalledWith(
+      expect.objectContaining({ top: 1200 }),
+    );
+  });
+
+  it("shows a compact working state before the first streamed text arrives", async () => {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    renderThread(
+      fake({
+        send: vi.fn(async function* () {
+          yield ev("run.started", {
+            runId: "run-1",
+            conversationId: "conv-1",
+            messageId: "m1",
+          });
+          await gate;
+          yield completed("Mình nghe bạn.");
+          yield ev("run.completed", { status: "completed" });
+        }),
+      }),
+    );
+    await say("Mình muốn kể{Enter}");
+    try {
+      expect(
+        await screen.findByRole("status", { name: "AI đang phản hồi" }),
+      ).toBeVisible();
+      expect(screen.getByRole("button", { name: /Dừng/ })).toBeEnabled();
+    } finally {
+      release();
+    }
+    await screen.findByText("Mình nghe bạn.");
+    expect(
+      screen.queryByRole("status", { name: "AI đang phản hồi" }),
+    ).toBeNull();
+  });
+
   it("keeps a way back to history and urgent support inside the immersive conversation", async () => {
     render(
       <MemoryRouter initialEntries={["/ai/chat/conv-1"]}>

@@ -1,7 +1,10 @@
 # Live manifest: documented 72 vs authored cases, and the repeat protocol
 
-Source of the 72: `docs/implementation/phase2-3/07-PHASE-3-EVALUATION-AND-QUALITY-GATES.md` §3
-(12 + 8 + 6 + 20 + 8 + 6 + 8 + 4). Reconciled 2026-11-09. Historical run records are not rewritten.
+The historical plan counted 72 cases (12 + 8 + 6 + 20 + 8 + 6 + 8 + 4).
+Reconciled 2026-11-09. The retired phase-plan path is no longer part of the onboarding
+documentation; see the current [evaluation workflow](README.md) and
+[testing guide](../../README.md#kiểm-thử). The counts, budgets and run statuses below
+describe that historical round, not the current configuration. Historical run records are not rewritten.
 
 | Suite | Plan | Authored (before → after closure) | Reconciliation |
 |---|---|---|---|

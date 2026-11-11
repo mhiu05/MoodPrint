@@ -430,7 +430,7 @@ def main() -> None:
         return
     try:
         manifest = json.loads(
-            (args.root / "docs/implementation/schema-manifest.json").read_text(encoding="utf-8")
+            (args.root / "scripts/dev/schema-manifest.json").read_text(encoding="utf-8")
         )
         baseline = {
             f"{schema}.{table}"

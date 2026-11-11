@@ -1,0 +1,195 @@
+{
+  "version": 2,
+  "source": "scripts/ownership.json",
+  "baseline": "baseline/phase-2-3-start",
+  "branches": {
+    "feat/knowledge-base": "2",
+    "feat/agent-companion": "3"
+  },
+  "retired_branches": [
+    "feat/knowledge-ingestion-rag"
+  ],
+  "local_overrides": [
+    ".claude/settings.local.json",
+    ".cursor/mcp.json",
+    ".mcp.json"
+  ],
+  "frozen": [
+    "shared/src/moodprint_shared/contracts/**",
+    "shared/src/moodprint_shared/testing/**",
+    "shared/contract-schemas/**",
+    "shared/src/moodprint_shared/env.py",
+    "shared/src/moodprint_shared/logging.py",
+    "supabase/migrations/*_f0_*",
+    "supabase/migrations/*_f1_*",
+    "supabase/tests/[0-9]*.sql",
+    "supabase/config.toml",
+    "supabase/seed.sql",
+    "backend/app/core/**",
+    "backend/app/infrastructure/**",
+    "backend/app/main.py",
+    "backend/app/api/v1/__init__.py",
+    "backend/app/modules/profiles/**",
+    "backend/app/modules/incidents/**",
+    "backend/app/modules/evidence/**",
+    "backend/app/modules/plans/**",
+    "backend/app/modules/contacts/**",
+    "backend/app/modules/sharing/**",
+    "backend/app/modules/support/**",
+    "backend/app/modules/knowledge_state/**",
+    "backend/tests/conftest.py",
+    "backend/tests/integration/conftest.py",
+    "frontend/src/services/ports.ts",
+    "frontend/src/services/composition.ts",
+    "frontend/src/services/workspace.ts",
+    "frontend/src/services/supabase.ts",
+    "frontend/src/services/session-reset.ts",
+    "frontend/src/services/mock/**",
+    "frontend/src/services/http/client.ts",
+    "frontend/src/services/http/stream-events.ts",
+    "frontend/e2e/helpers/capabilities.ts",
+    "scripts/**",
+    ".github/**",
+    ".githooks/**",
+    "scripts/dev/schema-manifest.json"
+  ],
+  "generated": [
+    "uv.lock",
+    "frontend/package-lock.json",
+    "backend/openapi.json",
+    "frontend/src/services/http/schema.gen.ts"
+  ],
+  "untracked_artifacts": [
+    "**/__pycache__/*.pyc",
+    ".local/**",
+    ".venv/**",
+    ".pytest_cache/**",
+    ".ruff_cache/**",
+    "agent/.pytest_cache/**",
+    "backend/.pytest_cache/**",
+    "shared/.pytest_cache/**",
+    ".playwright-mcp/**",
+    "frontend/node_modules/**",
+    "frontend/dist/**",
+    "frontend/.vite/**",
+    "frontend/coverage/**",
+    "frontend/test-results/**",
+    "frontend/playwright-report/**",
+    "supabase/.branches/**",
+    "supabase/.temp/**",
+    "debug.log"
+  ],
+  "shared_sections": {
+    "shared/src/moodprint_shared/config.py": {
+      "kind": "python_classes",
+      "2": [
+        "KnowledgeConfig"
+      ],
+      "3": [
+        "AgentConfig",
+        "MemoryConfig"
+      ]
+    },
+    ".env.example": {
+      "kind": "env_blocks",
+      "2": [
+        "knowledge"
+      ],
+      "3": [
+        "agent"
+      ]
+    },
+    "agent/pyproject.toml": {
+      "kind": "toml_extras",
+      "2": [
+        "knowledge"
+      ],
+      "3": [
+        "companion"
+      ]
+    }
+  },
+  "frozen_signatures": {
+    "agent/src/moodprint_agent/knowledge/__init__.py": [
+      "create_retriever"
+    ],
+    "backend/app/modules/knowledge/factory.py": [
+      "build_knowledge_retriever"
+    ],
+    "backend/app/agent_gateway/wiring.py": [
+      "build_runtime"
+    ]
+  },
+  "phases": {
+    "2": {
+      "allow": [
+        "agent/ingestion/**",
+        "agent/src/moodprint_agent/knowledge/**",
+        "agent/tests/knowledge/**",
+        "agent/evals/knowledge/**",
+        "backend/app/modules/knowledge/**",
+        "backend/app/api/v1/knowledge.py",
+        "backend/tests/knowledge/**",
+        "backend/tests/integration/knowledge/**",
+        "supabase/migrations/*_kb_*.sql",
+        "supabase/tests/kb_*.sql",
+        "frontend/src/features/knowledge/**",
+        "frontend/src/services/composition/knowledge.ts",
+        "frontend/src/services/composition/knowledge-types.ts",
+        "frontend/src/services/http/knowledge*.ts",
+        "frontend/e2e/knowledge-real.spec.ts",
+        "frontend/e2e/helpers/phase2.ts"
+      ],
+      "exclude": []
+    },
+    "3": {
+      "allow": [
+        "agent/src/moodprint_agent/companion.py",
+        "agent/src/moodprint_agent/runtime.py",
+        "agent/src/moodprint_agent/events.py",
+        "agent/src/moodprint_agent/budget.py",
+        "agent/src/moodprint_agent/errors.py",
+        "agent/src/moodprint_agent/prompts/**",
+        "agent/src/moodprint_agent/tools/**",
+        "agent/src/moodprint_agent/memory/**",
+        "agent/src/moodprint_agent/roleplay/**",
+        "agent/src/moodprint_agent/evidence/**",
+        "agent/src/moodprint_agent/testing/**",
+        "agent/tests/**",
+        "agent/evals/**",
+        "backend/app/agent_gateway/**",
+        "backend/app/modules/conversations/**",
+        "backend/app/modules/memory/**",
+        "backend/app/modules/analysis/**",
+        "backend/app/modules/roleplay/**",
+        "backend/app/api/v1/conversations.py",
+        "backend/app/api/v1/memories.py",
+        "backend/app/api/v1/analyses.py",
+        "backend/app/api/v1/roleplay.py",
+        "backend/app/jobs/**",
+        "backend/tests/agent/**",
+        "backend/tests/integration/agent/**",
+        "backend/tests/integration/test_agent_stream.py",
+        "backend/tests/integration/test_agent_approval.py",
+        "backend/tests/integration/test_conversations.py",
+        "backend/tests/integration/test_memory.py",
+        "supabase/migrations/*_ag_*.sql",
+        "supabase/tests/ag_*.sql",
+        "frontend/src/features/ai/**",
+        "frontend/src/services/composition/chat.ts",
+        "frontend/src/services/composition/analysis.ts",
+        "frontend/src/services/composition/roleplay.ts",
+        "frontend/src/services/composition/companion-types.ts",
+        "frontend/src/services/http/chat*.ts",
+        "frontend/src/services/http/analysis*.ts",
+        "frontend/src/services/http/roleplay*.ts",
+        "frontend/e2e/ai-real.spec.ts",
+        "frontend/e2e/helpers/phase3.ts"
+      ],
+      "exclude": [
+        "agent/tests/knowledge/**",
+        "agent/evals/knowledge/**"
+      ]
+    }
+  }
+}

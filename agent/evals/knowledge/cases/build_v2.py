@@ -1,6 +1,6 @@
 """Build benchmark_v2.jsonl from benchmark_v2.src.txt. Deterministic; prints the frozen hash.
 
-Design (docs/implementation/phase2-3/04, section 7): 150 answerable and 30 no-result Vietnamese
+Benchmark design: 150 answerable and 30 no-result Vietnamese
 queries, graded per-document labels (2 = answers directly, 1 = useful in part), five styles, and a
 split stratified by topic and style (dev about 40 percent, test about 60 percent). The same coding
 agent wrote the corpus, the queries and the labels, so this is NOT independent validation.

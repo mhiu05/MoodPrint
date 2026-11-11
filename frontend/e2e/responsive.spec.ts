@@ -1,14 +1,9 @@
 import { expect, test } from "./helpers/fixtures";
-import { mkdirSync } from "node:fs";
-import { resolve } from "node:path";
-const screenshotDir = resolve("..", "docs", "prototype", "screenshots");
 test("responsive routes, reduced motion, console and local-only requests", async ({
   page,
   baseURL,
-}) => {
+}, testInfo) => {
   test.setTimeout(180000);
-  if (process.env.CAPTURE_SCREENSHOTS === "1")
-    mkdirSync(screenshotDir, { recursive: true });
   const errors: string[] = [];
   const external: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -87,8 +82,7 @@ test("responsive routes, reduced motion, console and local-only requests", async
                       : "support";
         if (process.env.CAPTURE_SCREENSHOTS === "1")
           await page.screenshot({
-            path: resolve(
-              screenshotDir,
+            path: testInfo.outputPath(
               `${name}-${width === 390 ? "mobile" : "desktop"}.png`,
             ),
             fullPage: true,

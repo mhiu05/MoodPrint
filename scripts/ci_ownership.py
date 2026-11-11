@@ -1,7 +1,6 @@
 """Select phase from the actual GitHub head branch; policy comes from an ancestor tag."""
 
 import argparse
-import json
 import re
 import subprocess
 import sys
@@ -9,20 +8,18 @@ from pathlib import Path
 
 try:
     from scripts.check_ownership import (
-        POLICY,
         ROOT,
         CheckError,
-        baseline_text,
+        baseline_policy,
         resolve_base,
         validate_policy,
         violations,
     )
 except ModuleNotFoundError:
     from check_ownership import (
-        POLICY,
         ROOT,
         CheckError,
-        baseline_text,
+        baseline_policy,
         resolve_base,
         validate_policy,
         violations,
@@ -59,7 +56,7 @@ def main(argv=None) -> int:
         return 0
     try:
         base = resolve_base(args.repo, args.head)
-        policy = json.loads(baseline_text(args.repo, base, POLICY))
+        policy = baseline_policy(args.repo, base)
         validate_policy(policy)
         phase = policy["branches"][branch]
         paths, errors = violations(

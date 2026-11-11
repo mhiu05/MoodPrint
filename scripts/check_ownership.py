@@ -16,7 +16,10 @@ from fnmatch import fnmatchcase
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-POLICY = "docs/implementation/ownership.yaml"
+POLICY = "scripts/ownership.json"
+# Existing trusted tags predate the configuration move. Read their Git objects
+# directly; no legacy directory is needed in the checkout.
+LEGACY_POLICY = "docs/implementation/ownership.yaml"
 DEFAULT_BASE = "baseline/phase-2-3-start"
 
 
@@ -65,6 +68,15 @@ def baseline_text(repo: Path, commit: str, path: str) -> str:
         return git(repo, "show", f"{commit}:{path}").decode("utf-8").replace("\r\n", "\n")
     except (CheckError, UnicodeError):
         raise CheckError(f"Baseline is missing a readable required file: {path}") from None
+
+
+def baseline_policy(repo: Path, commit: str) -> dict:
+    path = (
+        POLICY
+        if git(repo, "ls-tree", "--name-only", commit, "--", POLICY).strip()
+        else LEGACY_POLICY
+    )
+    return json.loads(baseline_text(repo, commit, path))
 
 
 def resolve_base(repo: Path, head: str = "HEAD") -> str:
@@ -421,7 +433,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         assert_base_ancestor(repo, commit, args.head or "HEAD")
         # A feature branch must not be able to relax the policy it is checked against.
-        policy = json.loads(baseline_text(repo, commit, POLICY))
+        policy = baseline_policy(repo, commit)
         validate_policy(policy)
         paths, errors = violations(repo, commit, args.phase, policy, head=args.head)
     except (CheckError, OSError, UnicodeError, ValueError, KeyError, TypeError) as error:

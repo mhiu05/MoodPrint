@@ -20,7 +20,7 @@ test("mock processing keeps the compact companion identity stable", async ({
 
 test("active conversation and inline evidence fit every requested width", async ({
   page,
-}) => {
+}, testInfo) => {
   test.setTimeout(90000);
   await page.setViewportSize({ width: 390, height: 844 });
   await login(page);
@@ -46,7 +46,7 @@ test("active conversation and inline evidence fit every requested width", async 
     expect(composer!.y + composer!.height).toBeLessThanOrEqual(640);
     if (process.env.CAPTURE_SCREENSHOTS === "1")
       await page.screenshot({
-        path: `../docs/prototype/screenshots/ui-refinement/after/inline-analysis-${width}.png`,
+        path: testInfo.outputPath(`inline-analysis-${width}.png`),
       });
   }
   await page.setViewportSize({ width: 320, height: 480 });
@@ -187,7 +187,7 @@ test("all twelve scripted flows still advance through three turns from the compa
 
 test("composer fits short and simulated keyboard viewports without page scrolling", async ({
   page,
-}) => {
+}, testInfo) => {
   await login(page);
   for (const width of [320, 360, 375, 390, 430, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 480 });
@@ -224,7 +224,7 @@ test("composer fits short and simulated keyboard viewports without page scrollin
     .toBeLessThanOrEqual(420);
   if (process.env.CAPTURE_SCREENSHOTS === "1")
     await page.screenshot({
-      path: "../docs/prototype/screenshots/ui-refinement/after/chat-keyboard-390.png",
+      path: testInfo.outputPath("chat-keyboard-390.png"),
     });
 });
 

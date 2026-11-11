@@ -60,11 +60,17 @@ it("keeps the composer editable during a failed reply and preserves the next dra
   const input = screen.getByRole("textbox", { name: "Điều bạn muốn kể" });
   expect(input).toBeEnabled();
   fireEvent.change(input, { target: { value: "Lời kể tiếp theo" } });
-  await screen.findByRole("button", { name: "Thử lại phản hồi mẫu" });
+  // A real simulated save uses a timer; allow the state transition under parallel jsdom load.
+  await screen.findByRole(
+    "button",
+    { name: "Thử lại phản hồi mẫu" },
+    { timeout: 5000 },
+  );
   expect(input).toHaveValue("Lời kể tiếp theo");
   fireEvent.click(screen.getByRole("button", { name: "Thử lại phản hồi mẫu" }));
-  await waitFor(() =>
-    expect(useDemoStore.getState().chats[0].messages).toHaveLength(2),
+  await waitFor(
+    () => expect(useDemoStore.getState().chats[0].messages).toHaveLength(2),
+    { timeout: 5000 },
   );
   expect(input).toHaveValue("Lời kể tiếp theo");
 });

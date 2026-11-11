@@ -1,11 +1,25 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   Link,
   useNavigate,
   useParams,
   useSearchParams,
 } from "react-router-dom";
-import { ArrowRight, MessageCircle, Plus, Send, Square } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  LifeBuoy,
+  MessageCircle,
+  Plus,
+  Send,
+  Square,
+} from "lucide-react";
 import { Button, EmptyState, Notice, PageHeader } from "../../../components/ui";
 import { AgentStatusOrb } from "../../../animations/AgentStatusOrb";
 import type {
@@ -20,6 +34,7 @@ import { describeFailure } from "./use-live-chat";
 import { hydrateWorkspace } from "../../../services/workspace";
 import { formatDate } from "../../../lib/utils";
 import { useWorkspaceStore } from "../../../app/store";
+import { MessageList } from "../chat-presentation";
 import "./live.css";
 
 export function UrgentBlock() {
@@ -44,9 +59,7 @@ export function UrgentBlock() {
 
 export function LiveMessageView({ message }: { message: LiveMessage }) {
   return (
-    <li
-      className={`live-message live-${message.role} ai-message ${message.role === "assistant" ? "ai" : "user"}`}
-    >
+    <li className={`live-message live-${message.role}`}>
       <div className="live-bubble" data-testid={`live-${message.role}`}>
         {message.role === "assistant" && (
           <span className="live-author">AI · không phải người thật</span>
@@ -69,6 +82,7 @@ export function Thread({
   banner,
   withMemory = true,
   onSettled,
+  navigation,
 }: {
   service: LiveCompanion;
   conversationId: string;
@@ -76,16 +90,31 @@ export function Thread({
   banner?: ReactNode;
   withMemory?: boolean;
   onSettled?: () => void;
+  navigation?: ReactNode;
 }) {
   const chat = useLiveChat(service, conversationId);
   const [draft, setDraft] = useState("");
   const [deferred, setDeferred] = useState<string | null>(null);
-  const endRef = useRef<HTMLDivElement>(null);
-  const follow = useRef(true);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const busy = chat.status === "streaming" || chat.status === "recovering";
-  useEffect(() => {
-    if (follow.current) endRef.current?.scrollIntoView?.({ block: "end" });
-  }, [chat.messages]);
+  useLayoutEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    const resize = () => {
+      input.style.height = "auto";
+      input.style.height = `${Math.min(input.scrollHeight || 44, 140)}px`;
+    };
+    resize();
+    if (typeof ResizeObserver === "undefined") return;
+    let width = input.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (input.clientWidth === width) return;
+      width = input.clientWidth;
+      resize();
+    });
+    observer.observe(input);
+    return () => observer.disconnect();
+  }, [draft]);
   // The dialog is open for any approval the user has not deferred; no effect needed.
   const dialog =
     chat.approval !== null && deferred !== chat.approval.approvalId;
@@ -114,46 +143,70 @@ export function Thread({
       aria-label="Trò chuyện với AI"
     >
       <header className="live-thread-head">
+        {navigation}
         <AgentStatusOrb state={orb} size={32} showLabel={false} />
-        <div>
+        <div className="live-thread-identity">
           <h2>{heading}</h2>
           <small>
-            AI có thể sai và không phải người thật. Với chuyện nghiêm trọng, hãy
-            nói với người lớn bạn tin.
+            AI Companion ·{" "}
+            {busy
+              ? "Đang phản hồi…"
+              : chat.status === "awaiting_approval"
+                ? "Chờ bạn duyệt"
+                : "Không phải người thật"}
           </small>
         </div>
+        <Link
+          className="button ghost icon-button"
+          to="/support/urgent"
+          aria-label="Tìm hỗ trợ ngay"
+        >
+          <LifeBuoy size={20} />
+        </Link>
       </header>
-      <div
-        className="live-thread-body"
-        onScroll={(event) => {
-          const el = event.currentTarget;
-          follow.current =
-            el.scrollHeight - el.clientHeight - el.scrollTop < 100;
-        }}
+      {banner && <div className="live-thread-context">{banner}</div>}
+      <MessageList
+        sessionKey={conversationId}
+        revision={`${chat.messages.length}:${chat.messages.at(-1)?.content.length ?? 0}:${chat.status}:${chat.tools.length}`}
+        lastSpeaker={chat.messages.at(-1)?.role === "user" ? "user" : "ai"}
       >
-        {banner}
         {chat.status === "recovering" && chat.loaded && (
           <p role="status">
             Đang khôi phục lượt trò chuyện. Bạn có thể dừng nếu không muốn chờ.
           </p>
         )}
-        {/* The live region wraps the list: an <li> must stay a direct child of a real list. */}
-        <div role="log" aria-live="polite" aria-label="Tin nhắn">
-          <ol className="live-messages">
-            {!chat.loaded && (
-              <li className="live-hint">Đang tải cuộc trò chuyện…</li>
-            )}
-            {chat.loaded && !chat.messages.length && (
-              <li className="live-hint">
-                Bạn muốn kể điều gì? Có thể bắt đầu từ một câu.
-              </li>
-            )}
-            {chat.messages.map((message) => (
+        <ol className="live-messages">
+          {!chat.loaded && (
+            <li className="live-hint">Đang tải cuộc trò chuyện…</li>
+          )}
+          {chat.loaded && !chat.messages.length && (
+            <li className="live-hint">
+              <AgentStatusOrb state="idle" size={32} showLabel={false} />
+              <h3>Bạn muốn kể điều gì?</h3>
+              <p>
+                Có thể bắt đầu từ một câu. Bạn quyết định điều nào được lưu.
+              </p>
+            </li>
+          )}
+          {chat.messages
+            .filter((message) => !message.streaming || message.content)
+            .map((message) => (
               <LiveMessageView key={message.id} message={message} />
             ))}
-          </ol>
-        </div>
-        <div ref={endRef} />
+        </ol>
+        {chat.status === "streaming" &&
+          !chat.messages.some(
+            (message) => message.streaming && message.content,
+          ) && (
+            <div
+              className="live-working"
+              role="status"
+              aria-label="AI đang phản hồi"
+            >
+              <AgentStatusOrb state="processing" size={20} showLabel={false} />
+              <span>Đang phản hồi…</span>
+            </div>
+          )}
         {chat.tools.length > 0 && (
           <ul className="live-tools" aria-label="AI đang làm">
             {chat.tools.map((tool) => (
@@ -204,55 +257,68 @@ export function Thread({
         {withMemory && (
           <MemoryCandidates service={service} refreshKey={memoryKey} />
         )}
-      </div>
-      <form
-        className="live-composer"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void submit();
-        }}
-      >
-        <label className="sr-only" htmlFor="live-input">
-          Điều bạn muốn kể
-        </label>
-        <textarea
-          id="live-input"
-          value={draft}
-          rows={2}
-          maxLength={4000}
-          placeholder="Viết điều bạn muốn nói…"
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (
-              event.key === "Enter" &&
-              !event.shiftKey &&
-              !event.nativeEvent.isComposing
-            ) {
-              event.preventDefault();
-              void submit();
-            }
+      </MessageList>
+      <footer className="live-composer-zone">
+        <form
+          className="live-composer"
+          aria-label="Soạn tin nhắn"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submit();
           }}
-        />
-        {chat.status === "streaming" ||
-        (chat.status === "recovering" && chat.loaded) ? (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => void chat.stop()}
-          >
-            <Square size={16} /> Dừng
-          </Button>
-        ) : (
-          <Button
-            type="submit"
-            disabled={
-              !draft.trim() || busy || chat.status === "awaiting_approval"
-            }
-          >
-            <Send size={16} /> Gửi
-          </Button>
-        )}
-      </form>
+        >
+          <label className="sr-only" htmlFor="live-input">
+            Điều bạn muốn kể
+          </label>
+          <textarea
+            id="live-input"
+            ref={inputRef}
+            value={draft}
+            rows={1}
+            maxLength={4000}
+            placeholder="Viết điều bạn muốn nói…"
+            aria-describedby="live-chat-note"
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (
+                event.key === "Enter" &&
+                !event.shiftKey &&
+                !event.nativeEvent.isComposing &&
+                event.keyCode !== 229
+              ) {
+                event.preventDefault();
+                void submit();
+              }
+            }}
+          />
+          {chat.status === "streaming" ||
+          (chat.status === "recovering" && chat.loaded) ? (
+            <Button
+              type="button"
+              variant="secondary"
+              className="icon-button"
+              aria-label="Dừng phản hồi"
+              onClick={() => void chat.stop()}
+            >
+              <Square size={16} />
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              className="icon-button"
+              aria-label="Gửi"
+              disabled={
+                !draft.trim() || busy || chat.status === "awaiting_approval"
+              }
+            >
+              <Send size={18} />
+            </Button>
+          )}
+        </form>
+        <p id="live-chat-note" className="live-chat-note">
+          AI có thể sai. Với chuyện nghiêm trọng, hãy nói với người lớn bạn tin.
+        </p>
+      </footer>
     </section>
   );
 }
@@ -315,12 +381,14 @@ export function LiveChatPage({ service }: { service: LiveCompanion }) {
   };
   return (
     <div className="live-chat-page">
-      <nav className="live-navigation" aria-label="Điều hướng trò chuyện">
-        <Link to={id ? "/ai/chat" : "/ai"}>
-          {id ? "Lịch sử trò chuyện" : "Quay lại không gian AI"}
-        </Link>
-        <Link to="/support/urgent">Tìm hỗ trợ ngay</Link>
-      </nav>
+      {!id && (
+        <nav className="live-navigation" aria-label="Điều hướng trò chuyện">
+          <Link to={id ? "/ai/chat" : "/ai"}>
+            {id ? "Lịch sử trò chuyện" : "Quay lại không gian AI"}
+          </Link>
+          <Link to="/support/urgent">Tìm hỗ trợ ngay</Link>
+        </nav>
+      )}
       {id ? (
         <>
           <h1 className="sr-only">Trò chuyện với AI</h1>
@@ -328,6 +396,16 @@ export function LiveChatPage({ service }: { service: LiveCompanion }) {
             key={id}
             service={service}
             conversationId={id}
+            heading="MoodPrint"
+            navigation={
+              <Link
+                className="button ghost icon-button"
+                to="/ai/chat"
+                aria-label="Lịch sử trò chuyện"
+              >
+                <ArrowLeft size={20} />
+              </Link>
+            }
             banner={
               linkedCase ? (
                 <Notice>

@@ -1,19 +1,41 @@
-/* Live Companion UI. Reuses the existing tokens; adds only what the simulated chat lacks. */
+/* The connected conversation owns its palette; the surrounding product stays green. */
 .live-thread {
+  --ink: #eef1ef;
+  --muted: #aab5b0;
+  --primary: #b7dacb;
+  --deep: #d1e9de;
+  --soft: #303b36;
+  --line: #39413d;
+  --page: #1c201e;
+  --surface: #272c29;
+  --bg: #1c201e;
+  --surface-2: #303632;
+  --primary-soft: #dce9df;
+  color: var(--ink);
+  background: var(--page);
+  color-scheme: dark;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3, 12px);
-  max-width: 760px;
+  max-width: 100%;
   margin: 0 auto;
-  padding: var(--space-4, 16px);
   width: 100%;
   min-width: 0;
+  min-height: 0;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.ai-feature > .live-thread {
+  height: min(720px, calc(100dvh - 160px));
+  min-height: 280px;
 }
 .live-chat-page {
   height: 100%;
   display: flex;
   flex-direction: column;
   padding-top: env(safe-area-inset-top);
+  background: #1c201e;
+  color: #eef1ef;
+  --line: #39413d;
 }
 .live-navigation {
   display: flex;
@@ -34,22 +56,65 @@
 .live-list-content {
   overflow-y: auto;
   padding: 20px 16px;
+  background: var(--page);
+  color: var(--ink);
+  flex: 1;
+  width: 100%;
 }
 .live-chat-page > .live-thread {
   flex: 1;
   min-height: 0;
+  border-radius: 0;
 }
-.live-thread-body {
-  min-width: 0;
-}
-.live-chat-page .live-thread-body {
-  flex: 1;
+.live-thread > .chat-scroll-region {
   min-height: 0;
+}
+.live-thread .chat-transcript {
+  padding-inline: max(16px, env(safe-area-inset-left));
+  padding-block: 0;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow-x: hidden;
+  scrollbar-color: #56635b transparent;
 }
-.live-chat-page .live-messages {
-  min-height: 0;
+.live-thread .chat-reading-column {
+  max-width: 760px;
+  padding-block: 24px;
+  gap: 12px;
+}
+.live-thread .chat-jump {
+  background: #dce9df;
+  color: #1c2b22;
+  border: 0;
+}
+.live-thread ::selection {
+  background: #b7dacb;
+  color: #17231c;
+}
+.live-thread :focus-visible {
+  outline-color: #b7dacb;
+}
+.live-thread .button.ghost {
+  color: var(--ink);
+}
+.live-thread .button.ghost:hover {
+  background: #343d37;
+}
+.live-thread .button.secondary {
+  background: #343d37;
+  color: #eef1ef;
+  border-color: #56635b;
+}
+.live-thread .button.primary {
+  background: #b7dacb;
+  color: #172b22;
+}
+.live-thread .button:disabled {
+  opacity: 0.45;
+}
+.live-thread .orb-static {
+  background: #34473b;
+  color: #d1e9b8;
+  border: 0;
 }
 .live-pick {
   display: grid;
@@ -64,14 +129,58 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
+  min-height: 72px;
+  padding: 10px max(16px, calc((100% - 860px) / 2));
+  border-bottom: 1px solid var(--line);
+}
+.live-thread-identity {
+  flex: 1;
+  min-width: 0;
 }
 .live-thread-head h2 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 16px;
+  letter-spacing: -0.02em;
 }
 .live-thread-head small,
 .live-author {
   color: var(--muted, #52616b);
+}
+.live-thread-head small {
+  display: block;
+  font-size: 12px;
+  margin-top: 2px;
+}
+.live-thread .icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 10px;
+  flex-shrink: 0;
+  border-radius: 12px;
+}
+.live-thread-context {
+  width: 100%;
+  max-width: 792px;
+  margin-inline: auto;
+  padding: 8px 16px 0;
+  font-size: 12px;
+}
+.live-thread-context .notice {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  color: var(--muted);
+}
+.live-thread-context .button {
+  min-height: 36px;
+  padding: 4px 10px;
+  font-size: 12px;
 }
 .live-messages {
   list-style: none;
@@ -79,38 +188,65 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  min-height: 40vh;
+  gap: 16px;
 }
 .live-hint {
   color: var(--muted, #52616b);
+  padding-block: 32px;
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  max-width: 38ch;
+}
+.live-hint h3 {
+  color: var(--ink);
+  font-size: 22px;
+}
+.live-hint p {
+  font-size: 14px;
 }
 .live-message {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
+  align-items: flex-start;
 }
 .live-user {
   align-items: flex-end;
 }
 .live-bubble {
-  max-width: min(100%, 560px);
+  max-width: min(88%, 65ch);
   padding: 12px 14px;
   border-radius: 16px;
-  background: var(--surface-2, #eef3f5);
+  background: #2c312e;
   overflow-wrap: anywhere;
+  border-bottom-left-radius: 5px;
 }
 .live-user .live-bubble {
-  background: var(--primary-soft, #dff1ee);
+  background: #dce9df;
+  color: #1c2b22;
+  border-radius: 16px 16px 5px 16px;
 }
 .live-text {
   margin: 0;
   white-space: pre-wrap;
+  font-size: 15px;
+  line-height: 1.65;
 }
 .live-author {
   display: block;
   font-size: 0.78rem;
   margin-bottom: 4px;
+}
+.live-working {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 6px 0;
 }
 .live-tools {
   list-style: none;
@@ -140,26 +276,59 @@
   display: flex;
   gap: 8px;
   align-items: flex-end;
-  position: sticky;
-  bottom: 0;
-  background: var(--bg, #fff);
-  padding-block: 8px;
+  background: #292f2b;
+  border: 1px solid #56635b;
+  border-radius: 16px;
+  padding: 6px;
+  max-width: 760px;
+  margin-inline: auto;
+}
+.live-composer:focus-within {
+  border-color: #b7dacb;
+  outline: 2px solid #b7dacb;
+  outline-offset: 2px;
+}
+.live-composer-zone {
+  flex-shrink: 0;
+  padding: 10px max(16px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom));
+}
+.live-chat-note {
+  max-width: 760px;
+  margin: 8px auto 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  line-height: 1.5;
 }
 .live-composer textarea {
   flex: 1;
   resize: none;
-  min-height: 48px;
+  min-height: 44px;
+  max-height: min(140px, 25dvh);
   font: inherit;
   padding: 10px 12px;
   border-radius: 12px;
-  border: 1px solid var(--line, #c7d2d8);
+  border: 0;
   min-width: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.5;
+  caret-color: #b7dacb;
+}
+.live-composer textarea::placeholder {
+  color: #aab5b0;
+}
+.live-composer textarea:focus-visible {
+  outline: none;
 }
 .live-urgent {
   padding: 14px;
   border-radius: 14px;
   border: 2px solid var(--danger, #b3261e);
   background: var(--danger-soft, #fdeceb);
+  color: #7a1f17;
 }
 .live-citations ul {
   list-style: none;
@@ -176,6 +345,57 @@
   border: 1px solid var(--line, #c7d2d8);
   background: #fff;
   cursor: pointer;
+}
+.live-thread .live-chip,
+.live-thread .live-citation-card {
+  color: #eef1ef;
+  background: #343d37;
+}
+.live-thread .live-memory-card,
+.live-thread .notice {
+  color: var(--ink);
+}
+.live-thread .notice {
+  background: #303b36;
+  border-color: #56635b;
+}
+.live-thread .live-thread-context .notice {
+  background: transparent;
+  color: var(--muted);
+}
+.live-thread .live-memory-card {
+  background: #303632;
+}
+.live-thread .live-memory-card textarea {
+  background: #1c201e;
+  color: var(--ink);
+  border-color: #56635b;
+  caret-color: #b7dacb;
+}
+.live-thread dialog {
+  color-scheme: light;
+  --ink: #183b37;
+  --muted: #506c66;
+  --primary: #126a61;
+  --line: #ccddd7;
+  --bg: #fff;
+}
+.live-thread dialog .button.primary {
+  background: #126a61;
+  color: #fff;
+}
+.live-thread dialog .button.secondary {
+  background: #eef5f0;
+  color: #183b37;
+}
+.live-thread dialog .button.ghost {
+  color: #183b37;
+}
+.live-thread dialog .button.ghost:hover {
+  background: #eaf3ef;
+}
+.live-thread dialog :focus-visible {
+  outline-color: #126a61;
 }
 .live-citation-card {
   display: grid;
@@ -273,10 +493,22 @@
   white-space: nowrap;
 }
 @media (max-width: 480px) {
-  .live-thread {
-    padding: 12px;
+  .live-thread-head {
+    gap: 8px;
+    min-height: 64px;
+    padding: 8px 12px;
   }
-  .live-composer {
-    flex-wrap: wrap;
+  .live-bubble {
+    max-width: 94%;
+    padding: 10px 12px;
+  }
+  .live-thread .chat-reading-column {
+    padding-block: 18px;
+  }
+  .live-composer-zone {
+    padding-inline: 12px;
+  }
+  .live-chat-note {
+    font-size: 11px;
   }
 }

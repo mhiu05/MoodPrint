@@ -18,5 +18,6 @@ never a student's safety or character.
 
 Each `grades.jsonl` line records `{case_id, rubric_id, score, reason, grader}`.
 Every output from SC-04, SC-07, SC-09, and SC-24 requires individual review.
-There is no API-based judge. See architecture decision AD-20 and
-`docs/prototype/06-FUTURE-TECHNICAL-ARCHITECTURE.md` section 9.
+There is no API-based judge. See the current [evaluation workflow](README.md),
+[system testing guide](../../README.md#kiểm-thử), and
+[runtime architecture](../../README.md#kiến-trúc-hệ-thống).
